@@ -1,3 +1,35 @@
-__pycache__
+# CL
+.causalens.env
+venv/
+
+# Build
+docker/mount
+/docker-compose.yml
+*~
+.build
+logs/
+reference
+Reference
+
+# Editors
+**/.DS_Store
+**/.vscode
+.idea/
+\#*
+pyrightconfig.json
+
+# Python
+__pycache__/
+**/.mypy_cache
+.pytest_cache/
+test_results
+.venv
 poetry.toml
-dist
+!/poetry.toml
+poetry.lock
+!/poetry.lock
+pyrightconfig.json
+
+# JS
+**/node_modules
+package-lock.json

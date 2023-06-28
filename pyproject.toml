@@ -1,21 +1,16 @@
-[tool.poetry]
-name = "dara-core"
-version = "0.0.1"
-description = "Dara Framework"
-authors = ["causaLens <support@causalens.com>"]
-readme = "README.md"
+[build-system]
+requires = ["poetry"]
 
-packages = [
-    { include = 'dara', from = 'src'}
-]
+[tool.poetry]
+name = "dara-framework-monorepo"
+version = "0.0.1"
+description = "Dara Framework monorepo metapackage"
+authors = ["causaLens <support@causalens.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8.0, <3.9.0"
+python = ">=3.8.0, <3.12.0"
 
+[tool.poetry.group.dev.dependencies]
+dara-core = {path = "packages/dara-core", develop = true}
+dara-components = {path = "packages/dara-components", develop = true}
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-dara = 'dara.core.main:main'

@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "dara-core"
+version = "0.0.1"
+description = "Dara Framework Core"
+authors = ["causaLens <support@causalens.com>"]
+readme = "README.md"
+
+packages = [
+    { include = 'dara' }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8.0, <3.12.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+dara = 'dara.core.main:main'
