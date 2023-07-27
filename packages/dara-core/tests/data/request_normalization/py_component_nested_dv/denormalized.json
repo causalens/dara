@@ -1,0 +1,17 @@
+{
+  "{{var_3_name}}": {
+    "type": "derived",
+    "uid": "{{var_3_uid}}",
+    "values": [
+      {
+        "type": "derived",
+        "uid": "{{var_2_uid}}",
+        "values": [
+          1
+        ],
+        "force": false
+      }
+    ],
+    "force": false
+  }
+}

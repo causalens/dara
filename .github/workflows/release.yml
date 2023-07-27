@@ -1,0 +1,108 @@
+name: package and publish
+
+on:
+  push:
+    tags:
+      - VERSION*
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: "causalens.jfrog.io/docker-internal/causalens-base:latest"
+      credentials:
+        username: "${{ secrets.JF_USERNAME }}"
+        password: "${{ secrets.JF_PASSWORD }}"
+      env:
+        NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup git config
+        run: |
+          git config --global --add safe.directory /__w/dara/dara
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+      - name: Extract branch name
+        shell: bash
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          echo ::set-output name=branch::${raw/origin\/}
+        id: extract_branch
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+          cache: "poetry"
+      - run: poetry install
+      - name: Link packages
+        run: make link
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install project dependencies
+        run: make deps-project
+      - name: Get version
+        id: set-version
+        # Retrieves version from 'version = "<version>"' line in borg.toml
+        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' borg.toml)"
+      - name: Parse and resolve changelog
+        id: set-changelog
+        run: |
+          echo "::set-output name=changelog::$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})"
+      - name: Prepare resources required for packaging
+        run: make prepare
+      - name: Make packages
+        run: make run script=package
+      - name: Publish packages
+        run: make publish
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+      - name: Package Open Source Docs
+        uses: causalens/docs-upload-action@v0.0.5
+        with:
+          artifactory-password: ${{ secrets.JF_PASSWORD }}
+          artifactory-username: ${{ secrets.JF_USERNAME }}
+          artifactory-url: https://causalens.jfrog.io/artifactory
+          package-name: dara
+          package-paths: >
+            packages/create-dara-app/create_dara_app
+            packages/dara-components/dara.components
+            packages/dara-core/dara.core
+          version: ${{ steps.set-version.outputs.version }}
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              username: 'action-slack',
+              blocks: [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Dara changelog for tag ${{ steps.set-version.outputs.version }}"
+                  }
+                },
+                ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": section
+                  }
+                })))
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_TECH_TEAM_CHANNEL_WEBHOOK }}"
+        if: "${{ always() }}"

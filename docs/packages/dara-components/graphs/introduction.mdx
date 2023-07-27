@@ -1,0 +1,307 @@
+---
+title: Introduction
+---
+
+## Overview
+
+This extension contains all the the components used to display causal graphs.
+
+## Getting Started
+
+### Add your first Causal Graph
+
+Below we are going to show an example of how to add a `dara.components.graphs.components.causal_graph_viewer.CausalGraphViewer` component.
+
+```python
+from dara.components import CausalGraphViewer
+from dara.core import ConfigurationBuilder, get_icon, ComponentInstance
+from causal_graph import CausalGraph
+
+# Creates a CausalGraph
+def default_causal_graph() -> CausalGraph:
+    # defines defaults
+    cg = CausalGraph(
+        default_edge_activation='piecewise_linear', default_node_aggregation='sum', default_node_activation='identity'
+    )
+    # Create edges
+    cg.add_edge('Age', 'Fraud')
+    cg.add_edge('Age', 'Marital Status Value=Married')
+    cg.add_edge('Age', 'Number of Children')
+    cg.add_edge('Authority Contacted', 'Fraud')
+    cg.add_edge('CPI', 'Salary')
+    cg.add_edge('Car Value', 'Fraud')
+    cg.add_edge('Claim Type Value=Liability', 'Total Claim')
+    cg.add_edge('Collision Type Value=Front', 'Claim Type Value=Liability')
+    cg.add_edge('Collision Type Value=Front', 'Total Claim')
+    cg.add_edge('Crime Rate', 'Fraud')
+    cg.add_edge('Education Level Value=Higher', 'Fraud')
+    cg.add_edge('Education Level Value=Higher', 'Occupation Value=Professional')
+    cg.add_edge('Gender Value=F', 'Salary')
+    cg.add_edge('Location Value=EC', 'Crime Rate')
+    cg.add_edge('Location Value=SE', 'Crime Rate')
+    cg.add_edge('Location Value=SW', 'Crime Rate')
+    cg.add_edge('Marital Status Value=Married', 'Fraud')
+    cg.add_edge('No-Claims Years', 'Fraud')
+    cg.add_edge('Number of Children', 'Fraud')
+    cg.add_edge('Occupation Value=Professional', 'Salary')
+    cg.add_edge('Previous Claims', 'Fraud')
+    cg.add_edge('Previous Claims Value', 'Fraud')
+    cg.add_edge('Salary', 'Car Value')
+    cg.add_edge('Salary', 'Fraud')
+    cg.add_edge('Total Claim', 'Fraud')
+    cg.add_edge('Unemployment Rate', 'Salary')
+    cg.add_edge('Years with License', 'Fraud')
+
+    return cg
+
+
+# config
+config = ConfigurationBuilder()
+
+# adds causal graph viewer
+def causal_graph_viewer_content() -> ComponentInstance:
+    return CausalGraphViewer(
+        causal_graph=default_causal_graph()
+    )
+
+
+config.add_page(name='CausalGraph', content=causal_graph_viewer_content(), icon=get_icon('diagram-project'))
+```
+
+![CausalGraphViewer Example](./assets/fcose_graph.png)
+
+_`CausalGraphViewer` component_
+
+### Customising Causal Graph Viewer
+
+#### Available activations and aggregations
+
+By default the extension provides a default set of basic node aggregations and edge activations. To customise them, provide your own list of activations
+and aggregations to `CausalGraphViewer`. This impacts the lists of activations and aggregations users see in the side panel
+when they click on a node or edge.
+
+```python
+from causal_graph import CausalGraph
+from dara.components import CausalGraphViewer
+from dara.core import ConfigurationBuilder, get_icon, ComponentInstance
+
+# Example activations
+edge_activations = [
+    'bias',
+    'linear'
+]
+
+# Example aggregations
+node_aggregations = [
+    'min',
+    'max',
+    'mlp'
+]
+
+config = ConfigurationBuilder()
+
+# Using default_causal_graph from previous example
+def causal_graph_viewer_content() -> ComponentInstance:
+    return CausalGraphViewer(
+        activations=edge_activations,
+        aggregations=node_aggregations,
+        causal_graph=default_causal_graph()
+    )
+
+
+config.add_page(name='CausalGraph', content=causal_graph_viewer_content(), icon=get_icon('diagram-project'))
+```
+
+#### Rendering properties
+
+The rendering of nodes and edges can be customised via the `rendering_properties` metadata. The following properties are available:
+
+`edge.meta.rendering_properties`:
+
+- `accepted: boolean` - whether edge was accepted (used by resolver component)
+- `color: string` - edge color
+- `description: string` - description/note displayed in side panel
+- `forced: boolean` - whether edge was forced by constraints from domain knowledge
+- `thickness: number` - edge thickness; provided values are normalized and scaled across all edge thicknesses provided
+- `tooltip: string | dict[string, string]` - extra information to display in tooltip
+
+`node.meta.rendering_properties`
+
+- `color: string` - whether edge was accepted (used by resolver component)
+- `highlight_color: string` - color used for border and selected shadow
+- `label: string` - human-readable alternative label to display instead of the node name
+- `label_color: string` - node font color
+- `label_size: string | number` - node font size
+- `latent: boolean` - whether the node is latent; if not provided, computed based on `available_inputs` property
+- `size: number` - node radius in pixels
+- `tooltip: string | dict[string, string]` - extra information to display in tooltip
+- `x: number` - x position of node
+- `y: number` - y position of node
+
+The metadata can be set in the following way:
+
+```python
+from causal_graph import CausalGraph
+
+# Creates a CausalGraph
+def graph_with_meta() -> CausalGraph:
+    cg = CausalGraph()
+
+    cg.add_node('client_age', meta={'rendering_properties': {
+        'color': 'red',
+        'label': 'Age',
+        'label_color': 'pink',
+        'label_size': 12,
+        'latent': False,
+        'size': 10,
+        'tooltip': 'Age of the client'
+    }})
+
+    cg.add_edge('client_age', 'fraud', meta={'rendering_properties': {
+        'color': 'blue',
+        'description': 'This is a note which can also be edited via the UI',
+        'thickness': 1,
+        'tooltip': 'Connection between age and fraud'
+    }})
+
+    return cg
+```
+
+#### Edge thickness
+
+One of the rendering properties is `thickness`. This property is used to scale the displayed strength of the edges. When set on more
+than two edges, the values provided for `thickness` are normalized and scaled across all edges with a thickness provided.
+
+```python
+from causal_graph import CausalGraph
+
+# Creates a CausalGraph
+def graph_with_meta() -> CausalGraph:
+    cg = CausalGraph()
+
+    cg.add_edge('client_age', 'fraud', meta={'rendering_properties': {'thickness': 1}})
+
+    cg.add_edge('client_age', 'marital_status', meta={'rendering_properties': {'thickness': 2}})
+
+    cg.add_edge('client_age', 'number_of_children', meta={'rendering_properties': {'thickness': 3}})
+
+    cg.add_edge('client_age', 'occupation', meta={'rendering_properties': {'thickness': 4}})
+
+    cg.add_edge('client_age', 'salary', meta={'rendering_properties': {'thickness': 5}})
+
+    cg.add_edge('client_age', 'total_claim', meta={'rendering_properties': {'thickness': 6}})
+
+    cg.add_edge('client_age', 'unemployment_rate', meta={'rendering_properties': {'thickness': 7}})
+
+    return cg
+```
+
+![CausalGraphViewer Example](./assets/graph_with_strength.png)
+
+_`CausalGraphViewer` with edge thicknesses_
+
+#### Graph Layouts
+
+The default layout you have seen in the previous examples is the `FcoseLayout`. Layouts are available as classes with customizable properties.
+You can read more about `fCoSE` and more available layouts in the [reference documentation](../../reference/dara/components/graphs/graph_layout) and the layout docstrings.
+
+You can set the layout by providing a layout instance as the `graph_layout` property of `CausalGraphViewer`:
+
+```python
+from dara.components import CausalGraphViewer
+from dara.components.graph_layout import PlanarLayout
+
+CausalGraphViewer(
+    causal_graph=default_causal_graph(),
+    graph_layout=PlanarLayout()
+)
+```
+
+![CausalGraphViewer Example](./assets/planar_graph.png)
+
+_`CausalGraphViewer` with `PlanarLayout`_
+
+In particular, you can provide your own layout by setting the `x` and `y` properties of each node in the `rendering_properties` metadata.
+Here's an example of using a custom layout using the `networkx` library and `pygraphviz`:
+
+```python
+import networkx
+
+cg = CausalGraph()
+# ... add edges and nodes to cg
+
+# Compute positions wih pygraphviz
+cg_nx = cg.to_networkx()
+nx_layout = networkx.nx_agraph.graphviz_layout(cg_nx)
+
+# Update metadata to include the positions
+scaling_factor = 5 # the layout needs to account for node sizes so we have to scale it
+for node, positions in nx_layout.items():
+    x, y = positions
+    node = cg.get_node(node)
+    node.meta = {
+        'rendering_properties': {
+            'x': x * scaling_factor,
+            'y': y * scaling_factor
+        }
+    }
+```
+
+This can be used with the `CustomLayout` class to provide a fixed layout which can be restored upon pressing the `Recalculate Layout` button.
+When used with other layouts, the positions from metatdata are used directly and the specified layout algorithm is not ran on the first render.
+Further recalculations of the layout will use positions provided by the specified layout algorithm.
+
+Note that third-party layout algorithms might not account for node sizes, so you might have to scale the positions accordingly unless
+they provide a way to specify the node size.
+
+#### Interactivity
+
+While the `CausalGraphViewer` component can be used as a view-only component, it can also be used for interactive flows by passing `editable=True`.
+
+When provided with a `Variable` containing a `CausalGraph` instance, it will update the graph in the `Variable` whenever the user makes changes to the graph.
+
+When provided with a `DerivedVariable`, the graph will not updated it as `DerivedVariable`s are read-only. You can either:
+
+- use the `on_update` callback to get notified of changes to the graph and save the updated state to another variable
+
+```python
+from causal_graph import CausalGraph
+from dara.components import CausalGraphViewer
+from dara.core import Variable, DerivedVariable
+
+def compute_cg():
+    return CausalGraph(...)
+
+# read-only computed causal graph
+cg_dv = DerivedVariable(compute_cg, variables=[])
+
+# writable variable to store the updated graph
+cg_copy = Variable()
+
+CausalGraphViewer(
+    causal_graph=cg_dv,
+    editable=True,
+    on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=cg_copy)
+)
+```
+
+- use the `Variable.create_from_derived` API to create a writable variable from a read-only variable. This copy will be in sync with the
+  read-only variable until the user makes changes to the graph. You can read more about it in the [interactivity documentation](../../getting-started/interactivity#variablecreate_from_derived).
+
+```python
+from causal_graph import CausalGraph
+
+def compute_cg():
+    return CausalGraph(...)
+
+# read-only computed causal graph
+cg_dv = DerivedVariable(compute_cg, variables=[])
+
+# writable variable to store the updated graph
+cg_copy = Variable.create_from_derived(cg_dv)
+
+CausalGraphViewer(
+    causal_graph=cg_copy,
+    editable=True
+)
+```

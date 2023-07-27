@@ -1,0 +1,22 @@
+{
+  "DataVariable:{{data_var_uid}}:{{data_var_hash_1}}": {
+    "uid": "{{data_var_uid}}",
+    "filters": {
+      "column": "test1",
+      "value": "test1",
+      "operator": "EQ"
+    },
+    "cache": "user",
+    "__typename": "DataVariable"
+  },
+  "DataVariable:{{data_var_uid}}:{{data_var_hash_2}}": {
+    "uid": "{{data_var_uid}}",
+    "filters": {
+      "column": "test2",
+      "value": "test2",
+      "operator": "EQ"
+    },
+    "cache": "user",
+    "__typename": "DataVariable"
+  }
+}

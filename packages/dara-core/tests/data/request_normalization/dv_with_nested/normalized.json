@@ -1,0 +1,8 @@
+[
+  {
+    "__ref": "Variable:{{var_1_uid}}:a"
+  },
+  {
+    "__ref": "Variable:{{var_2_uid}}:b"
+  }
+]

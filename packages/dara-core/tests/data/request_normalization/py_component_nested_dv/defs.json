@@ -1,0 +1,63 @@
+{
+  "{{var_3_name}}": {
+    "cache": "global",
+    "uid": "{{var_3_uid}}",
+    "variables": [
+      {
+        "cache": "global",
+        "uid": "{{var_2_uid}}",
+        "variables": [
+          {
+            "default": 1,
+            "nested": [],
+            "persist_value": false,
+            "uid": "{{var_1_uid}}",
+            "__typename": "Variable"
+          }
+        ],
+        "nested": [],
+        "polling_interval": null,
+        "deps": [
+          {
+            "default": 1,
+            "nested": [],
+            "persist_value": false,
+            "uid": "{{var_1_uid}}",
+            "__typename": "Variable"
+          }
+        ],
+        "__typename": "DerivedVariable"
+      }
+    ],
+    "nested": [],
+    "polling_interval": null,
+    "deps": [
+      {
+        "cache": "global",
+        "uid": "{{var_2_uid}}",
+        "variables": [
+          {
+            "default": 1,
+            "nested": [],
+            "persist_value": false,
+            "uid": "{{var_1_uid}}",
+            "__typename": "Variable"
+          }
+        ],
+        "nested": [],
+        "polling_interval": null,
+        "deps": [
+          {
+            "default": 1,
+            "nested": [],
+            "persist_value": false,
+            "uid": "{{var_1_uid}}",
+            "__typename": "Variable"
+          }
+        ],
+        "__typename": "DerivedVariable"
+      }
+    ],
+    "__typename": "DerivedVariable"
+  }
+}

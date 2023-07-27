@@ -1,0 +1,28 @@
+{
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "private": true,
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && node ./esbuild.js",
+    "dev": "tsc --noEmit && rimraf dist && esbuild ./src/index.ts --bundle --platform=node --outfile=./dist/index.js"
+  },
+  "name": "changelog-parser",
+  "author": "Krzysztof Bielikowicz",
+  "module": "src/index.ts",
+  "devDependencies": {
+    "rimraf": "^3.0.2",
+    "tslib": "^2.3.1",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^8.1.0",
+    "esbuild": "^0.12.25",
+    "slackify-markdown": "^4.3.0"
+  }
+}

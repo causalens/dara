@@ -1,0 +1,19 @@
+{
+  "{{var_3_name}}": {
+    "type": "derived",
+    "uid": "{{var_3_uid}}",
+    "values": [
+      {
+        "type": "derived",
+        "uid": "{{var_2_uid}}",
+        "values": [
+          {
+            "__ref": "Variable:{{var_1_uid}}"
+          }
+        ],
+        "force": false
+      }
+    ],
+    "force": false
+  }
+}

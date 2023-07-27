@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./js/", "./tests/"],
+  "exclude": [],
+  "compilerOptions": {
+    "rootDir": "."
+  }
+}

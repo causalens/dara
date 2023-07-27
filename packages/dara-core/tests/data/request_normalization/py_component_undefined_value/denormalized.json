@@ -1,0 +1,9 @@
+{
+  "{{var_1_name}}": null,
+  "{{var_2_name}}": {
+    "force": false,
+    "type": "derived",
+    "uid": "{{var_2_uid}}",
+    "values": [1]
+  }
+}

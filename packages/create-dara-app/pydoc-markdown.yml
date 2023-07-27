@@ -1,0 +1,4 @@
+loaders:
+  - type: python
+    search_path: [./create_dara_app]
+    ignore_when_discovered: [templates, __init__]

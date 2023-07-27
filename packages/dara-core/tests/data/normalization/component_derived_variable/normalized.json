@@ -1,0 +1,17 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "__ref": "DerivedVariable:{{dv_1_uid}}"
+          }
+        },
+        "uid": "{{mock_text_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}

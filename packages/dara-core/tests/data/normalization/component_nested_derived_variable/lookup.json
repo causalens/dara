@@ -1,0 +1,66 @@
+{
+  "Variable:{{root_var_uid}}": {
+    "default": "test",
+    "nested": [],
+    "persist_value": false,
+    "uid": "{{root_var_uid}}",
+    "__typename": "Variable"
+  },
+  "DerivedVariable:{{dv_1_uid}}": {
+    "cache": "global",
+    "uid": "{{dv_1_uid}}",
+    "variables": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "nested": [],
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "__typename": "DerivedVariable"
+  },
+  "DerivedVariable:{{dv_2_uid}}": {
+    "cache": "global",
+    "uid": "{{dv_2_uid}}",
+    "variables": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "nested": [],
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "__typename": "DerivedVariable"
+  },
+  "DerivedVariable:{{dv_3_uid}}": {
+    "cache": "global",
+    "uid": "{{dv_3_uid}}",
+    "variables": [
+      {
+        "__ref": "DerivedVariable:{{dv_1_uid}}"
+      },
+      {
+        "__ref": "DerivedVariable:{{dv_2_uid}}"
+      }
+    ],
+    "nested": [],
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "DerivedVariable:{{dv_1_uid}}"
+      },
+      {
+        "__ref": "DerivedVariable:{{dv_2_uid}}"
+      }
+    ],
+    "__typename": "DerivedVariable"
+  }
+}

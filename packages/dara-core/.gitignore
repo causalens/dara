@@ -1,3 +1,7 @@
-__pycache__
-poetry.toml
-dist
+dist/
+dara/core/umd/
+package-lock.json
+yarn-error.log
+.env
+!.env.test
+docs/reference

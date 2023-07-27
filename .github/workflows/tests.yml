@@ -1,0 +1,116 @@
+name: TESTS
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  lint-and-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: "causalens.jfrog.io/docker-internal/causalens-base:latest"
+      credentials:
+        username: "${{ secrets.JF_USERNAME }}"
+        password: "${{ secrets.JF_PASSWORD }}"
+      env:
+        BORG_BASE_REF: "${{ github.base_ref }}"
+        NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup git config
+        run: |
+          git config --global --add safe.directory /__w/dara/dara
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+          cache: "poetry"
+      - run: poetry install
+      - name: Detect if running on master
+        id: check_master
+        run: |
+          if [[ "${{github.base_ref}}" == "master" || "${{github.ref}}" == "refs/heads/master" ]]; then
+            echo "::set-output name=is_master::true"
+          else
+            echo "::set-output name=is_master::false"
+          fi
+      - name: Link packages
+        run: make link
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Detect Cypress version used
+        id: set-cypress
+        run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"
+      - name: Cache Cypress binary
+        uses: actions/cache@v2
+        # This attempts to restore cached Cypress; if not found and job is successful, creates new cache
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-cypress-${{ steps.set-cypress.outputs.cypress }}
+          restore-keys: |
+            cypress-${{ runner.os }}-cypress-
+      - name: Install system deps
+        run: apt update && apt install sudo wget
+      - name: Install and cache APT Cypress deps
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+          version: cypress-${{ runner.os }}-${{ steps.set-cypress.outputs.cypress }}
+      - name: Install JS project dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Prepare resources required for testing
+        run: make prepare
+      - name: Run linting
+        run: make lint
+      - name: Run Python security - Bandit
+        run: make security-scan
+      - name: Run JS security - Bearer
+        run: make bearer
+      - name: Run tests
+        run: make test
+      - name: Run Cypress E2E tests
+        run: |
+          cd packages/dara-core
+          pnpm run test:e2e
+        env:
+          # Override default setting to save screenshots in CI
+          CYPRESS_SCREENSHOT_ON_RUN_FAILURE: true
+      - name: Upload Cypress screenshots
+        # Uploads screenshots if Cypress tests failed
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: screenshots
+          path: packages/dara-core/cypress/screenshots
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: workflow,job,commit,repo,ref,author,took
+          custom_payload: |
+            {
+              username: 'action-slack',
+              attachments: [{
+                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+                text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} ${{ job.status }} in ${process.env.AS_TOOK}`,
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_BUILD_CHANNEL_WEBHOOK }}"
+        if: "${{ always() }}"

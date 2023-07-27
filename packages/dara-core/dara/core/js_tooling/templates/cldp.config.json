@@ -1,0 +1,5 @@
+{
+  "local_entry": "./js",
+  "extra_dependencies": {},
+  "package_manager": "npm"
+}

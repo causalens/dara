@@ -1,0 +1,50 @@
+name: publish docs
+
+on: workflow_dispatch
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: "causalens.jfrog.io/docker-internal/causalens-base:latest"
+      credentials:
+        username: "${{ secrets.JF_USERNAME }}"
+        password: "${{ secrets.JF_PASSWORD }}"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup git config
+        run: |
+          git config --global --add safe.directory /__w/dara/dara
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+      - name: Extract branch name
+        shell: bash
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          echo ::set-output name=branch::${raw/origin\/}
+        id: extract_branch
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+          cache: "poetry"
+      - run: poetry install
+      - name: Link packages
+        run: make link
+      - name: Get version
+        id: set-version
+        # Retrieves version from 'version = "<version>"' line in borg.toml
+        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' borg.toml)"
+      - name: Package Open Source Docs
+        uses: causalens/docs-upload-action@v0.0.5
+        with:
+          artifactory-password: ${{ secrets.JF_PASSWORD }}
+          artifactory-username: ${{ secrets.JF_USERNAME }}
+          artifactory-url: https://causalens.jfrog.io/artifactory
+          package-name: dara
+          package-paths: >
+            packages/create-dara-app/create_dara_app
+            packages/dara-components/dara.components
+            packages/dara-core/dara.core
+          version: ${{ steps.set-version.outputs.version }}

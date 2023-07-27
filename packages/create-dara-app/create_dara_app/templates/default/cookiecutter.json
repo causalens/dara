@@ -1,0 +1,7 @@
+{
+  "project_name": "Decision App",
+  "__project_slug": "{{ cookiecutter.project_name|lower|replace(' ', '-') }}",
+  "__package_name": "{{ cookiecutter.project_name|lower|replace(' ', '_') }}",
+  "author_name": "Author <author@example.com>",
+  "dara_version": "*"
+}

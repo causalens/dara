@@ -1,0 +1,17 @@
+{
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "preserveSymlinks": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "target": "es6"
+  }
+}

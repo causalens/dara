@@ -1,0 +1,50 @@
+---
+title: Data Slicer
+---
+
+## Overview
+
+This package provides the `DataSlicer` and `DataSlicerModal` components.
+
+## `DataSlicer` and `DataSlicerModal`
+
+These components allow the user to select a subset of a dataset by variable ranges or individual rows.
+This enables the user to run the different components on different subsets of the dataset directly on the app.
+
+- `DataSlicer`, a callable class which creates an inline DataSlicer
+- `DataSlicerModal`, a callable class which creates a modal version of the DataSlicer; adds a hovering button on the right side of the screen, showing the current filter status, which when clicked opens a modal with the DataSlicer
+
+### Example
+
+```python
+from pandas import DataFrame
+import numpy as np
+
+from dara.core import ConfigurationBuilder, py_component, DataVariable
+from dara.components import Table, Stack, DataSlicer, DataSlicerModal
+
+config = ConfigurationBuilder()
+
+
+data = DataFrame(np.random.randint(0, 100, size=(100, 4)), columns=list('ABCD'))
+
+
+@py_component
+def display_dataframe(data: DataFrame):
+    return Table(data=DataVariable(data), columns=list('ABCD'))
+
+
+# Multi-page setup
+slicer = DataSlicer(data)
+filtered_data = slicer.get_output()
+
+config.add_page('Slicer', slicer())
+config.add_page('Filtered data usage', display_dataframe(filtered_data))
+
+
+# Single-page setup
+slicer_modal = DataSlicerModal(data)
+filtered_modal_data = slicer_modal.get_output()
+
+config.add_page('Page with Slicer', Stack(display_dataframe(filtered_modal_data), slicer_modal()))
+```

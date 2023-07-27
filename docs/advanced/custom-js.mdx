@@ -1,0 +1,484 @@
+---
+title: Custom JavaScript Components
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+The framework allows for easy ways to customize your app whether that be through python functions or CSS dictionaries. If you want to take it a step further and are familiar with JavaScript, you are welcome to make custom JavaScript components.
+
+## Local components
+
+### Setting up the project
+
+Dara CLI provides a command to setup necessary scaffolding to include your custom local JS in the application.
+
+Run the following to setup custom JS:
+
+<Tabs
+    defaultValue="poetry"
+    groupId="packageManager"
+    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+>
+<TabItem value="poetry">
+
+```sh
+poetry run dara setup-custom-js
+```
+
+</TabItem>
+<TabItem value="pip">
+
+```sh
+dara setup-custom-js
+```
+
+</TabItem>
+</Tabs>
+
+The command does the following:
+
+- includes a `dara.config.json` file in the root of your project
+
+```json title=dara.config.json
+{
+  "local_entry": "./js",
+  "extra_dependencies": {},
+  "package_manager": "npm"
+}
+```
+
+- includes a `js` folder in your application with an example custom JS component
+
+The JSON configuration is required for custom JS to work.
+When running the application in production mode, custom JS will then be included if the JSON file is present.
+
+The configuration file provides sensible defaults, however these can be tuned to your project's needs.
+
+The `local_entry` component defines the path to the folder containing your custom JS. That folder should include an `index.tsx` file which
+collects everything you want to export there. Continuing the previous example:
+
+```tsx title=js/index.tsx
+// Notice `LocalJsComponent` corresponds to the name of registered component in the Python code
+export { default as LocalJsComponent } from "./local-js-component";
+```
+
+`extra_dependencies` allows you to specify any extra npm dependencies your local module requires. These will be merged into the generated `package.json` file.
+
+`package_manager` allows you to specify which package manager to use when installing or building dependencies. Currently, only `npm`, `pnpm` and `yarn` are supported.
+
+### Writing and Registering Custom Components
+
+The custom JS scaffolding includes an example component. However, this documentation walks you through creating your own in a step by step fashion.
+
+The custom components you write can be any kind of React component. The system will understand how to render this once
+you have registered the component with the application. You'll use the following component as an example and slowly build
+it up to something useful.
+
+```tsx title=js/custom-component.tsx
+import * as React from "react";
+
+interface CustomComponentProps {
+  title: string;
+  content: number;
+}
+
+export default function CustomComponent(props: CustomComponentProps) {
+  return (
+    <div>
+      <h1>{props.title}</h1>
+      {props.content}
+    </div>
+  );
+}
+```
+
+:::tip
+Note that you need to import `react` in every component for the JSX transform to work properly
+:::
+
+The following would then need to be added into the local module's main export file:
+
+```tsx title=js/index.tsx
+export { default as CustomComponent } from "./custom-component";
+```
+
+:::caution
+The name of the component exported here _must_ match the name of the component definition class on the python side (detailed
+below). It can be otherwise customised by setting `js_component` property on your `ComponentInstance` subclass.
+:::
+
+The directory structure should now look like the following if you have followed the steps so far:
+
+![Directory Structure](../assets/advanced/custom_js_folder_structure.png)
+
+However, this doesn't yet allow us to easily construct the component on the python side. For that you need to create a props mapping object using
+our `ComponentInstance` base class:
+
+```python
+from dara.core.definitions import ComponentInstance
+
+class CustomComponent(ComponentInstance):
+    title: str
+    content: int
+```
+
+The final step to register this component on the python side is to add the following line to the configuration of the
+application so that our application knows where to find it.
+
+```python
+config.add_js_component(CustomComponent, local=True)
+```
+
+With this, you can now use this component as you would any other exposed by the various extensions in the framework and it
+will encode the title and content parameters as the props for the component.
+
+### Running Your Application
+
+Now that you have setup your application then you will want to start it. When working with this mode then you will need
+to get two different terminal processes running.
+
+The first will be the startup of the main application. Here the `--enable-hmr` flag tells it to triggers the install of the required JS packages, picking up your custom JS based on `dara.config.json`,
+and to serve the UI from a development server so you can benefit from Hot Module Reloading.
+
+<Tabs
+    defaultValue="poetry"
+    groupId="packageManager"
+    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+>
+<TabItem value="poetry">
+
+```sh
+poetry run dara --enable-hmr
+```
+
+</TabItem>
+<TabItem value="pip">
+
+```sh
+dara --enable-hmr
+```
+
+</TabItem>
+</Tabs>
+
+The second will be the Vite development server, which when run in dev mode will serve the JS part of your application. The Vite
+bundler supports Hot Module replacement, which means you don't need to refresh the page when developing and components
+will be replaced in place. For convenience, Dara CLI provides a command for that:
+
+<Tabs
+    defaultValue="poetry"
+    groupId="packageManager"
+    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+>
+<TabItem value="poetry">
+
+```sh
+poetry run dara dev
+```
+
+</TabItem>
+<TabItem value="pip">
+
+```sh
+dara dev
+```
+
+</TabItem>
+</Tabs>
+
+This should start up quickly and be ready to serve your modules and you should be able to see the application in the browser.
+
+:::tip
+If you are not going to edit the JS and don't want the HMR functionality then you can simply run `dara start --production` rather than
+the `--enable-hmr` flag. This will build an optimized JS bundle and serve it from the main application server.
+:::
+
+### Handling Variables and Actions
+
+In the example above we are just passing simple properties that require no special handling. However, the framework
+supports a couple of special parameters such as Variables and Actions that require some special handling on the JS side.
+The following section shows how you can work with these on the JS side:
+
+#### Variables
+
+To easily support `Variable` type arguments (including `UrlVariable` and `DerivedVariable`) there is a helper hook called
+`useVariable` that accepts the serialized variable as its single input and returns an array of useful parameters that
+work in a similar fashion to a normal `useState` hook.
+
+```tsx title=js/custom-component.tsx
+import { useVariable, Variable } from "@darajs/core";
+
+interface CustomComponentProps {
+  title: string;
+  content: Variable<number>;
+}
+
+export default function CustomComponent(props: CustomComponentProps) {
+  const [content, setContent] = useVariable(props.content);
+
+  function onChange(e: InputEvent) {
+    setContent(e.target.value);
+  }
+
+  return (
+    <div>
+      <h1>{props.title}</h1>
+      {content}
+      <input onChange={onChange} />
+    </div>
+  );
+}
+```
+
+In this example, the content can be passed as a Variable or not and the hook will process what it receives to ensure
+that the `content` variable is set correctly. Further to this, the second element of the returned array is a setter
+function that allows for the variable to be updated, in the example we added an input that can be used to control the
+content. This setter will propagate any changes to all other uses of `useVariable` that are subscribed to the same
+`Variable` element on the python side.
+
+#### Actions
+
+Actions are configured on the python side and their main use is as event listeners that trigger some action in the
+framework when a particular event happens on the JS side. Let's add a button and onclick action to our component.
+
+```tsx title=js/custom-component.tsx
+import * as React from "react";
+import { Action, useAction, useVariable, Variable } from "@darajs/core";
+
+interface CustomComponentProps {
+  title: string;
+  content: Variable<number>;
+  onclick: Action;
+}
+
+export default function CustomComponent(props: CustomComponentProps) {
+  const [content, setContent] = useVariable(props.content);
+  const [onClick] = useAction(props.onclick);
+
+  function onChange(e: InputEvent) {
+    setContent(e.target.value);
+  }
+
+  return (
+    <div>
+      <h1>{props.title}</h1>
+      {content}
+      <input onChange={onChange} />
+      <button onClick={onClick}>Click Me</button>
+    </div>
+  );
+}
+```
+
+In this example you'll use the `useAction` hook to ingest the onclick handler passed. It will simply return undefined if no
+action was passed so the underlying JS component doesn't register a listener. The hook itself will deal with how to
+process the action, so each component doesn't have to worry about handling generic actions.
+
+Note that the `useAction` hook returns an array with the first element being the handler, and the second being a boolean
+indicating whether the action is currently in progress. This is useful for long-running actions involving `DerivedVariable`s
+which are run as a background task.
+
+### Writing and Registering Custom Actions
+
+For some advanced use cases, you might want to create custom action. The process is very similar to creating a custom component.
+
+The custom action you create needs to be have a specific signature compatible with the action system. For ease of use,
+a TypeScript `ActionHook` helper type is provided:
+
+```tsx title=dara-core/js/types/core.tsx
+/**
+ * Object injected into actions
+ */
+export interface ActionContext<T> {
+  /**
+   * Helper function to execute an action on the server
+   */
+  fetchAction: (uid: string, body: ActionBodyContext) => Promise<T>;
+  /**
+   * Current auth session token
+   */
+  sessionToken: string;
+  /**
+   * Websocket Client instance
+   */
+  wsClient: WebSocketClientInterface;
+}
+
+export interface ActionBodyContext {
+  extras?: NormalizedPayload<Record<string | number, any>>;
+  inputs?: Record<string, any>;
+}
+
+/**
+ * Signature of an ActionHook
+ */
+export interface ActionHook<
+  ActionReturnType,
+  ActionInstanceType extends ActionInstance = ActionInstance
+> {
+  (
+    action: ActionInstanceType,
+    actionContext: ActionContext<ActionReturnType>
+  ): (value: any) => Promise<void>;
+}
+```
+
+As you can see, the action function takes an `ActionInstance` and an `ActionContext` object, providing the action with useful
+constructs and functions. The action function can be thought of as a `React` hook, that returns a callback to execute the action.
+
+```tsx = title=js/custom-action.tsx
+import { useCallback } from "react";
+import { ActionHook, ActionInstance } from "@darajs/core";
+
+interface CustomActionInstance extends ActionInstance {
+  country: string;
+}
+
+const CustomAction: ActionHook<string, CustomActionInstance> = (
+  action,
+  { fetchAction }
+) => {
+  return useCallback(async (name: any) => {
+    const fullName = `${name} from ${action.country}`;
+    return fetchAction(action.uid, { inputs: { value: fullName } });
+  }, []);
+};
+
+export default CustomAction;
+```
+
+In this example, you define an action handler for an instance that can be configured with a `country` prop. When the action is called
+with a value coming from a component, that value is combined with the `country` prop and calls the backend with the combined value.
+
+Just like for the component, the following would then need to be added into the local module's main export file.
+
+```tsx title=js/index.tsx
+export { default as CustomAction } from "./custom-action";
+```
+
+To register the action on the backend side you need to write a subclass of `ActionInstance` and create it with your application config.
+
+```python
+from dara.core.base_definitions import ActionDef, ActionInstance
+from dara.core.interactivity.actions import ComponentActionContext
+
+class CustomAction(ActionInstance):
+    country: str
+    function: Callable
+    Ctx = ComponentActionContext
+
+    def __init__(self, function: Callable[[ComponentActionContext], Any]):
+        """
+        :param function: the function to be called
+        """
+        uid = str(uuid.uuid4())
+
+        # You need to register the handler for the function
+        self.register_resolver(uid, function)
+
+        super().__init__(uid=uid, function=function)
+
+
+config.add_action(CustomAction, local=True)
+```
+
+Note that if you want to execute backend code when the action is called with `fetchAction` from the frontend, the backend
+`ActionInstance` needs to take in a `Callable[[ActionContextType], Any]` parameter and register it by calling `self.register_resolver`.
+
+`ActionContext` requires two fields `extras` and `inputs`. You can define your own custom context depending on your usecase.
+If it only takes one value as input, then you can simply use `ComponentActionContext`, which intends to take the component value
+to the resolving function, for example the selected value on a select component.
+
+:::tip
+The action can be purely front-end and does not need to call the backend at all. You can then skip the `__init__` part
+of the backend definition.
+:::
+
+The action can then be used like any other built-in action.
+
+```python
+Button('Test button', onclick=CustomAction(country='United Kingdom', function=lambda x: f'Greetings, {x}!'))
+```
+
+## Distributing custom components and actions
+
+After you have built components and actions you might want to distribute them as a separate package. Users will then be able to use your components and actions without explicitly registering them. The steps to do that are as follows:
+
+1. Distribute the JavaScript implementation as an `npm` package
+
+In order for other applications to automatically pull the JavaScript, you need to publish your JavaScript module to `npm`. You will need to create your own `package.json`, defining the dependencies required.
+
+2. Add `js_module` entry to component and action classes
+
+Modify your component and action classes to point to your `npm` module
+
+```python
+
+class CustomAction(ActionInstance):
+    country: str
+    function: Callable
+
+    js_module = 'my_npm_module'
+
+class CustomComponent(ComponentInstance):
+    title: str
+    content: int
+
+    js_module = 'my_npm_module'
+```
+
+This makes it so that your `npm` module will be installed in the user's app whenever the component or action is used.
+
+3. Distribute your Python package via `PyPi`
+
+4. Optional: include a `umd` bundle to make the package work in non-production mode
+
+In order for your package to work when running the Dara CLI with a simple `dara start` (non-production mode), your package needs to distribute a pre-built UMD JavaScript bundle which can be pulled without running an `npm install`.
+If the file is not present, your custom components and actions will only work in production mode, e.g. with `dara start --production`.
+
+The requirements for the UMD bundle are:
+
+- the expected location for it is `your_package_name/umd/your_package_name.umd.js`
+- your UMD module needs to expose a global variable with its name matching the Python's module name
+- make sure not to include `react`, `react-dom`, `styled-components` or `@darajs/core` with your bundle as those will already be included in the core bundle
+
+Here's an example [`Vite`](https://vitejs.dev/) configuration to achieve those, but you are welcome to use a bundler of your choice.
+
+```typescript title=vite.config.ts
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+import path from "path";
+
+export default defineConfig({
+  plugins: [
+    react({
+      jsxRuntime: "classic",
+    }),
+  ],
+  define: {
+    "process.env.NODE_ENV": '"production"',
+  },
+  build: {
+    minify: false,
+    rollupOptions: {
+      external: ["react", "react-dom", "styled-components", "@darajs/core"],
+      output: {
+        exports: "named",
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+          "styled-components": "styled",
+          "@darajs/core": "dara.core",
+        },
+      },
+    },
+    lib: {
+      entry: path.resolve(__dirname, "js/index.tsx"),
+      name: "your_python_package_name",
+      formats: ["umd"],
+    },
+    outDir: "your_python_package_name/umd",
+  },
+});
+```

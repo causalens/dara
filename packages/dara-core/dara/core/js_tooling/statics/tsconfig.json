@@ -1,0 +1,17 @@
+{
+    "exclude": ["**/*.spec.tsx", "tests/**", "**/*.template.tsx"],
+    "compilerOptions": {
+        "baseUrl": ".",
+        "declaration": true,
+        "esModuleInterop": true,
+        "jsx": "react",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "noImplicitAny": true,
+        "outDir": ".",
+        "preserveSymlinks": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "target": "es6",
+    }
+}
