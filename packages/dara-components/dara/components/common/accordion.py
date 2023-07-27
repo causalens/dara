@@ -117,7 +117,7 @@ class Accordion(LayoutComponent):
 
     ```python
     from dara.components.common import Accordion, AccordionItem, Stack, Button, ItemBadge, Text, ComponentInstance
-    from dara.core.visual.themes.light import Light
+    from dara.core.visual.themes import Light
     from dara.core import Variable, UpdateVariable
 
     acc_var = Variable(1)
@@ -163,7 +163,7 @@ class Accordion(LayoutComponent):
     from bokeh.plotting import figure
     from dara.components.plotting import Bokeh
     from pandas import DataFrame
-    from causal_graph import CausalGraph
+    from cai_causal_graph import CausalGraph
 
     # creates a Bokeh figure
     def bokeh_figure() -> Bokeh:

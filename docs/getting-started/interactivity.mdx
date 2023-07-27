@@ -183,7 +183,6 @@ Other components like `Select`s have corresponding callbacks. The callback for a
 
 In summary, to trigger an update based on user interaction simply pass an action to your component's callback. `UpdateVariable` is just one of the actions to inspire you on what you can do with your app. To see more actions checkout the [Actions](./actions.md).
 
-
 ### `DerivedVariable`
 
 As mentioned earlier, values cannot be extracted from `Variable`s with traditional Python code. However, the values of a `Variable` can be extracted and used for calculations in a `dara.core.interactivity.derived_variable.DerivedVariable`.
@@ -381,7 +380,7 @@ If you have long-running tasks, it helps to let the end-user know the progress t
 You can achieve this using the `dara.core.interactivity.plain_variable.create_from_derived` static method on the `Variable` class. It creates a new `Variable` instance that is initially bound to the `DerivedVariable` passed as an argument. The resulting `Variable` will be mutable, like any other `Variable`. At first, it will mirror the value of the `DerivedVariable`. Once it's explicitly modified, e.g. by a component or an `UpdateVariable` action, it will stop mirroring the `DerivedVariable` value.
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 from dara.components import CausalGraphViewer
 from dara.core import DerivedVariable, Variable
 

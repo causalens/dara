@@ -15,7 +15,7 @@ Below we are going to show an example of how to add a `dara.components.graphs.co
 ```python
 from dara.components import CausalGraphViewer
 from dara.core import ConfigurationBuilder, get_icon, ComponentInstance
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 
 # Creates a CausalGraph
 def default_causal_graph() -> CausalGraph:
@@ -81,7 +81,7 @@ and aggregations to `CausalGraphViewer`. This impacts the lists of activations a
 when they click on a node or edge.
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 from dara.components import CausalGraphViewer
 from dara.core import ConfigurationBuilder, get_icon, ComponentInstance
 
@@ -141,7 +141,7 @@ The rendering of nodes and edges can be customised via the `rendering_properties
 The metadata can be set in the following way:
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 
 # Creates a CausalGraph
 def graph_with_meta() -> CausalGraph:
@@ -173,7 +173,7 @@ One of the rendering properties is `thickness`. This property is used to scale t
 than two edges, the values provided for `thickness` are normalized and scaled across all edges with a thickness provided.
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 
 # Creates a CausalGraph
 def graph_with_meta() -> CausalGraph:
@@ -265,7 +265,7 @@ When provided with a `DerivedVariable`, the graph will not updated it as `Derive
 - use the `on_update` callback to get notified of changes to the graph and save the updated state to another variable
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 from dara.components import CausalGraphViewer
 from dara.core import Variable, DerivedVariable
 
@@ -289,7 +289,7 @@ CausalGraphViewer(
   read-only variable until the user makes changes to the graph. You can read more about it in the [interactivity documentation](../../getting-started/interactivity#variablecreate_from_derived).
 
 ```python
-from causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph
 
 def compute_cg():
     return CausalGraph(...)
