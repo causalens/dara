@@ -69,7 +69,7 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
       - name: Package Open Source Docs
-        uses: causalens/docs-upload-action@v0.0.5
+        uses: causalens/docs-upload-action@v0.0.6
         with:
           artifactory-password: ${{ secrets.JF_PASSWORD }}
           artifactory-username: ${{ secrets.JF_USERNAME }}

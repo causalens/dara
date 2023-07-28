@@ -37,7 +37,7 @@ jobs:
         # Retrieves version from 'version = "<version>"' line in borg.toml
         run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' borg.toml)"
       - name: Package Open Source Docs
-        uses: causalens/docs-upload-action@v0.0.5
+        uses: causalens/docs-upload-action@v0.0.6
         with:
           artifactory-password: ${{ secrets.JF_PASSWORD }}
           artifactory-username: ${{ secrets.JF_USERNAME }}
