@@ -26,7 +26,7 @@ description = "CLI to quickly bootstrap a Dara app"
 include = ["create_dara_app/templates/**/*"]
 name = "create-dara-app"
 version = "0.3.3"
-license = "BUSL-1.1"
+license = "Apache-2.0"
 
 [tool.poetry.dependencies]
 click = "=8.1.3"

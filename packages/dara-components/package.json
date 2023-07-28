@@ -17,7 +17,7 @@
     "Patricia Jacob <patricia@causalens.com>",
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
   ],
-  "license": "BUSL-1.1",
+  "license": "Apache-2.0",
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
     "@darajs/eslint-config": "~0.2.2",
@@ -72,7 +72,6 @@
     "remark-gfm": "^3.0.1"
   },
   "files": [
-    "dist",
-    "LICENSES"
+    "dist"
   ]
 }

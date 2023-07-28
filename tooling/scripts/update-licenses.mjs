@@ -1,17 +1,24 @@
 import fs from "fs/promises";
-import fsSync from "fs";
 import path from "path";
-import { Glob, globIterate } from "glob";
+import { Glob } from "glob";
 
 // 1. Copyright header - update in every Python file
 const LICENSE = `\
 """
-Copyright (c) 2023 by Impulse Innovations Ltd. Part of the causaLens product.
+Copyright 2023 Impulse Innovations Limited
 
-Use of this software is governed by the Business Source License 1.1 included in the file LICENSES/BSL.txt.
 
-As of the Change Date specified in that file, in accordance with the Business Source License 1.1,
-use of this software will be governed by the Apache License, Version 2.0, included in the file LICENSES/APL.txt.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 `;
 
@@ -66,14 +73,8 @@ async function updateCopyright(folders, header) {
 
 await updateCopyright(OPEN_SOURCE_FOLDERS, LICENSE);
 
-// 2. Copy LICENSES/ folder to each packages/*/ folder - only in OPEN_SOURCE_FOLDERS
-const LICENSES_PATH = "./LICENSES";
-const licensesIter = globIterate(`${LICENSES_PATH}/*`);
-const licenses = [];
-for await (const license of licensesIter) {
-  licenses.push(license);
-}
-console.log("Discovered licenses: ", licenses);
+// 2. Copy LICENSE folder to each packages/*/ folder - only in OPEN_SOURCE_FOLDERS
+const LICENSE_PATH = "./LICENSE";
 
 const packages = new Glob(
   `./packages/{${Object.keys(OPEN_SOURCE_FOLDERS).join(",")}}/`,
@@ -84,14 +85,7 @@ const packages = new Glob(
 );
 
 for await (const p of packages) {
-  // If LICENSES does not exist in that folder, create empty first
-  if (!fsSync.existsSync(path.join(p, "LICENSES"))) {
-    await fs.mkdir(`${p}/LICENSES`);
-  }
-
-  for (const license of licenses) {
-    const newPath = path.join(p, "LICENSES", license.split("/").pop());
-    console.log(`Copying ${license} to ${newPath}`);
-    await fs.copyFile(license, newPath);
-  }
+  const newPath = path.join(p, "LICENSE");
+  console.log(`Copying LICENSE to ${newPath}`);
+  await fs.copyFile(LICENSE_PATH, newPath);
 }

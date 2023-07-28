@@ -24,7 +24,7 @@ description = ""
 include = ["dara/core/js_tooling/**/*", "dara/core/umd/**/*", "dara/core/log_configs/**/*"]
 name = "dara-core"
 version = "0.3.3"
-license = "BUSL-1.1"
+license = "Apache-2.0"
 
 [[tool.poetry.packages]]
 include = "dara"

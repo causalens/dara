@@ -1,2 +1,0 @@
-This project is protected by the Business Source License (link).
-Please note that the license is planned to transition to Apache 2 (link) in the future (change date).

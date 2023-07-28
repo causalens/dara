@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
-  "license": "BUSL-1.1",
+  "license": "Apache-2.0",
   "author": "Sam Smith <sam@causalens.com>",
   "contributors": [
     "Patricia Jacob <patricia@causalens.com>",
@@ -101,7 +101,6 @@
     "use-async-resource": "^2.2.2"
   },
   "files": [
-    "dist",
-    "LICENSES"
+    "dist"
   ]
 }
