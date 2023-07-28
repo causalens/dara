@@ -18,11 +18,13 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALF
 
 [tool.poetry]
 authors = ["Patricia Jacob <patricia@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>", "Sam Smith <sam@causalens.com>"]
-description = ""
+description = "Components for the Dara Framework"
 include = ["dara/components/umd/**/*"]
 license = "Apache-2.0"
 name = "dara-components"
 version = "1.0.0-a.1"
+repository = "https://github.com/causalens/dara"
+homepage = "https://dara.causalens.com/"
 
 [[tool.poetry.packages]]
 include = "dara"

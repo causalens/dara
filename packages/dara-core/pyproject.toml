@@ -18,11 +18,13 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALF
 
 [tool.poetry]
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
-description = ""
+description = "Dara Framework Core"
 include = ["dara/core/js_tooling/**/*", "dara/core/umd/**/*", "dara/core/log_configs/**/*"]
 license = "Apache-2.0"
 name = "dara-core"
 version = "1.0.0-a.1"
+repository = "https://github.com/causalens/dara"
+homepage = "https://dara.causalens.com/"
 
 [[tool.poetry.packages]]
 include = "dara"
