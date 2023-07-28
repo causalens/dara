@@ -10,7 +10,7 @@ When contributing, please ensure that you know and understand which package your
 
 #### Tools
 
-This repository uses (Poetry)[https://python-poetry.org/] for managing Python projects. In addition to this, currently `Borg`, an in-house monorepo management tool, is used for merging dependencies of all packages into a top-level `pyproject.toml`.
+This repository uses [Poetry](https://python-poetry.org/) for managing Python projects. In addition to this, currently `Borg`, an in-house monorepo management tool, is used for merging dependencies of all packages into a top-level `pyproject.toml`.
 
 #### Installation
 

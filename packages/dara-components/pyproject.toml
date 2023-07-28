@@ -22,15 +22,15 @@ description = ""
 include = ["dara/components/umd/**/*"]
 license = "Apache-2.0"
 name = "dara-components"
-version = "1.0.0a1"
+version = "1.0.0-a.1"
 
 [[tool.poetry.packages]]
 include = "dara"
 
 [tool.poetry.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
-cai-causal-graph = ">=0.0.0"
-dara-core = "=1.0.0a1"
+cai-causal-graph = ">=0.0.1"
+dara-core = "=1.0.0-a.1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"

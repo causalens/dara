@@ -189,4 +189,3 @@ def generate_env(force: bool):
         raise UsageError('.env file already exists, use --force to re-create it')
 
     generate_env_file()
-
