@@ -1,10 +1,8 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-
 [tool.blue]
 line-length = 120
-
 [tool.borg.scripts]
 format = "poetry run isort create_dara_app && poetry run blue create_dara_app"
 lint = "poetry run mypy --ignore-missing-imports create_dara_app && poetry run pylint create_dara_app"
@@ -24,9 +22,9 @@ exclude = ["create_dara_app/templates/"]
 authors = ["Krzysztof Bielikowicz <krzysztof@causalens.com>"]
 description = "CLI to quickly bootstrap a Dara app"
 include = ["create_dara_app/templates/**/*"]
-name = "create-dara-app"
-version = "0.3.3"
 license = "Apache-2.0"
+name = "create-dara-app"
+version = "1.0.0a1"
 
 [tool.poetry.dependencies]
 click = "=8.1.3"

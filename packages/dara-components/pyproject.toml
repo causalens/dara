@@ -1,10 +1,8 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-
 [tool.blue]
 line-length = 120
-
 [tool.borg.scripts]
 format = "poetry run isort dara && poetry run blue dara"
 lint = "poetry run mypy --ignore-missing-imports  -p dara.components && poetry run pylint dara"
@@ -22,9 +20,9 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALF
 authors = ["Patricia Jacob <patricia@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>", "Sam Smith <sam@causalens.com>"]
 description = ""
 include = ["dara/components/umd/**/*"]
-name = "dara-components"
-version = "0.3.3"
 license = "Apache-2.0"
+name = "dara-components"
+version = "1.0.0a1"
 
 [[tool.poetry.packages]]
 include = "dara"
@@ -32,7 +30,7 @@ include = "dara"
 [tool.poetry.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.0.0"
-dara-core = "=0.3.3"
+dara-core = "=1.0.0a1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
