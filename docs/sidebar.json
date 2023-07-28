@@ -73,6 +73,15 @@
       "items": [
         {
           "type": "category",
+          "label": "create-dara-app",
+          "collapsible": true,
+          "collapsed": true,
+          "items": [
+            "docs/packages/create-dara-app/introduction"
+          ]
+        },
+        {
+          "type": "category",
           "label": "dara-core",
           "collapsible": true,
           "collapsed": true,

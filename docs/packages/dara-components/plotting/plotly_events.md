@@ -14,7 +14,7 @@ Plotly events make it possible to trigger actions based on front-end interaction
 
 To further understand this, imagine you want to create a scatter plot that when hovering the color of the point selected changes to pink and when clicked turns green. You also want to show the coordinates of the point you are interacting with in your app.
 
-First `event_name`, you will need `plotly_click` and `plotly_hover`, which could also be passed with the help of the component `dara.components.plotting.plotly.plotly.PlotlyEventName` enum as `Plotly.EventName.CLICK` and `Plotly.EventName.HOVER`.
+First `event_name`, you will need `plotly_click` and `plotly_hover`, which could also be passed with the help of the component `dara.components.plotting.plotly.PlotlyEventName` enum as `Plotly.EventName.CLICK` and `Plotly.EventName.HOVER`.
 
 Next `actions` for both we will need to update a `Variable` with the coordinates associated with the interacted point.For this you can use `UpdateVariable` action:
 

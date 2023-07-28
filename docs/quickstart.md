@@ -99,7 +99,7 @@ Your project's directory should now look like the following:
         -  eda.py
 ```
 
-Now you can begin using Bokeh plots by wrapping any plot in the `dara.components.plotting.bokeh.bokeh.Bokeh` wrapper component provided by the extension. You can use any plot of choice but this example will use a scatter plot to show the relationship between two variables. It will stratify the scatter plot by the target, species.
+Now you can begin using Bokeh plots by wrapping any plot in the `dara.components.plotting.bokeh.Bokeh` wrapper component provided by the extension. You can use any plot of choice but this example will use a scatter plot to show the relationship between two variables. It will stratify the scatter plot by the target, species.
 
 ```python title=pages/eda.py
 from bokeh.plotting import figure
