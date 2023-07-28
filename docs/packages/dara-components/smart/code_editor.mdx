@@ -1,0 +1,32 @@
+---
+title: Code Editor
+---
+
+## Overview
+
+This extension provides with the capability to add a `dara.components.smart.code_editor.CodeEditor` component to your app.
+You can also run the script obtained in a "sandbox" with [`dara.components.smart.code_editor.ScriptVisitor`.
+
+## Getting Started
+
+### Adding CodeEditor component to a page
+
+The `CodeEditor` component takes a `script` argument which is some `Variable` or `DerivedVariable` that contains the value to be displayed inside the code editor.
+
+Below is a simple example of how you can add the `CodeEditor` to your app:
+
+```python
+from dara.core import Variable, ConfigurationBuilder, ComponentInstance, get_icon
+from dara.components import Stack, CodeEditor
+
+# config
+config = ConfigurationBuilder()
+
+# define a Variable which contains scripts initial value
+script = Variable('value = 10')
+
+def code_editor_page_content() -> ComponentInstance:
+    return Stack(CodeEditor(script=script))
+
+config.add_page(name='Code Editor', content=code_editor_page_content(), icon=get_icon('code'))
+```

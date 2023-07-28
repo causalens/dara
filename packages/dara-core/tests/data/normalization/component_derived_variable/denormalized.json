@@ -1,0 +1,39 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "cache": "global",
+            "uid": "{{dv_1_uid}}",
+            "variables": [
+              {
+                "default": "test",
+                "nested": [],
+                "persist_value": false,
+                "uid": "{{var_1_uid}}",
+                "__typename": "Variable"
+              }
+            ],
+            "nested": [],
+            "polling_interval": null,
+            "deps": [
+              {
+                "default": "test",
+                "nested": [],
+                "persist_value": false,
+                "uid": "{{var_1_uid}}",
+                "__typename": "Variable"
+              }
+            ],
+            "__typename": "DerivedVariable"
+          }
+        },
+        "uid": "{{mock_text_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}

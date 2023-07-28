@@ -1,0 +1,78 @@
+{
+  "Variable:{{root_var_uid}}": {
+    "default": "test",
+    "nested": [],
+    "persist_value": false,
+    "uid": "{{root_var_uid}}",
+    "__typename": "Variable"
+  },
+  "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}": {
+    "cache": "global",
+    "uid": "{{dv_1_uid}}",
+    "variables": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "filters": {
+      "column": "col1",
+      "value": "val1",
+      "operator": "EQ"
+    },
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "__typename": "DerivedDataVariable"
+  },
+  "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}": {
+    "cache": "global",
+    "uid": "{{dv_2_uid}}",
+    "variables": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "filters": {
+      "column": "col1",
+      "value": "val1",
+      "operator": "EQ"
+    },
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "Variable:{{root_var_uid}}"
+      }
+    ],
+    "__typename": "DerivedDataVariable"
+  },
+  "DerivedDataVariable:{{dv_3_uid}}:{{dv_3_hash}}": {
+    "cache": "global",
+    "uid": "{{dv_3_uid}}",
+    "variables": [
+      {
+        "__ref": "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}"
+      },
+      {
+        "__ref": "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}"
+      }
+    ],
+    "filters": {
+      "column": "col1",
+      "value": "val1",
+      "operator": "EQ"
+    },
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}"
+      },
+      {
+        "__ref": "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}"
+      }
+    ],
+    "__typename": "DerivedDataVariable"
+  }
+}

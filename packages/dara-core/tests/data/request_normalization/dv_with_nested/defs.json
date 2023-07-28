@@ -1,0 +1,26 @@
+[
+  {
+    "default": {
+      "a": 1,
+      "b": 2
+    },
+    "nested": [
+      "a"
+    ],
+    "persist_value": false,
+    "uid": "{{var_1_uid}}",
+    "__typename": "Variable"
+  },
+  {
+    "default": {
+      "a": 1,
+      "b": 2
+    },
+    "nested": [
+      "b"
+    ],
+    "persist_value": false,
+    "uid": "{{var_2_uid}}",
+    "__typename": "Variable"
+  }
+]

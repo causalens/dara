@@ -1,0 +1,192 @@
+---
+title: Handling Data
+---
+
+This page will introduce you to handling data in Dara applications.
+
+## `DataVariable`
+
+You have previously been introduced to the concept of `dara.core.interactivity.plain_variable.Variable`s, the core of interactivity in Dara. These variables work well for smaller application data but `DataVariable` are better equipped to handle datasets, especially larger ones while optimizing performance.
+
+`dara.core.interactivity.data_variable.DataVariable`s take in data in the form of a `pandas.DataFrame`. `DataVariable` can also be instantiated without data to be filled later by interacting with the app.
+
+```python
+import pandas
+from dara.core import DataVariable, CacheType
+
+data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
+my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
+```
+
+Like `DerivedVariable`s, you can set how you'd like to cache the results according to the `CacheType` enumeration:
+
+- `CacheType.GLOBAL` - as you've seen previously, the data will be accessible by all users and can be provided upfront
+- `CacheType.SESSION` - the data will be accessible only for the current session
+- `CacheType.USER` - the data will be accessible only for the current user and is tracked across sessions/logins
+
+:::caution
+When loading your data directly in source code like the example above, the `cache` argument **must** be set to `global` and therefore accessible by all users. This is because at the time of executing your code initially, there is no concept of a logged in user or session. Any other setting in this context will trigger an error. Keep reading to see when other `cache` settings can be used.
+:::
+
+### Usage
+
+The `DataVariable` can be used as any other variable, that is:
+
+- in a `DerivedVariable`
+
+```python
+import pandas
+from dara.core import DataVariable, DerivedVariable, CacheType
+
+data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
+my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
+
+DerivedVariable(my_function, variables=[my_first_data_variable])
+```
+
+- in a `py_component`
+
+```python
+import pandas
+from bokeh import figure
+
+from dara.core import py_component, DataVariable, CacheType
+from DerivedVariable import Table, Bokeh
+
+@py_component
+def plot_data(data: pandas.DataFrame)
+    p = figure(title='My Plot')
+    p.line(x=data['X Data'], y=data['Y Data'])
+    return Bokeh(p)
+
+data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
+my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
+
+config.add_page('data page', plot_data(my_first_data_variable))
+```
+
+- in action `extras`
+
+```python
+import pandas
+from dara.core import DataVariable, CacheType, UpdateVariable, Variable
+
+data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
+my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
+
+target = Variable()
+
+UpdateVariable(
+    my_resolver_function,
+    variable=target,
+    extras=[my_first_data_variable]
+)
+```
+
+### Updating
+
+You can update the data stored in a `DataVariable` by:
+
+- using the `dara.core.interactivity.actions.UpdateVariable` action
+
+```python
+from dara.core import DataVariable, CacheType, UpdateVariable
+
+my_session_data_variable = DataVariable(cache=CacheType.SESSION)
+# Load a new DataFrame into the DataVariable - only visible to the current session since cache=CacheType.SESSION
+UpdateVariable(lambda ctx: pandas.read_csv(...), variable=my_session_data_variable)
+
+# Load a new DataFrame into the DataVariable - visible to all users since cache=CacheType.GLOBAL
+UpdateVariable(lambda ctx: pandas.read_csv(...), variable=my_first_data_variable)
+```
+
+- using `dara-components.common.dropzone.UploadDropzone` to upload a new dataset
+
+```python
+from dara.core import DataVariable, CacheType
+from dara.components import UploadDropzone
+
+# data specific to the user
+target = DataVariable(cache=CacheType.USER)
+
+# On upload, target will be updated to store the DataFrame uploaded by the user
+UploadDropzone(target=target)
+```
+
+### Filtering
+
+Another benefit of using a `DataVariable` for data is the ability to filter it. This will automatically be
+done by components designed to handle `DataVariable`s, such as `dara.components.common.table.Table`, which will only request a subset of data
+as needed.
+
+```python
+import pandas
+
+from dara.core import DataVariable
+from dara.core.interactivity.filtering import ClauseQuery, ValueQuery
+from dara.components import Table
+
+data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
+variable = DataVariable(data)
+
+# Filter rows where 'a' == 2
+variable_filtered_1 = variable.filter(ValueQuery(column='a', value=2))
+
+# Filter rows where 'a' == 2 or 'b' == 5
+variable_filtered_2 = variable.filter(
+    ClauseQuery(
+        combinator='OR',
+        clauses=[ValueQuery(column='a', value=2), ValueQuery(column='b', value=5)]
+    )
+)
+
+...
+
+filtered_tables = Stack(
+    Table(variable_filtered_1, columns=['a', 'b']),
+    Table(variable_filtered_2, columns=['a', 'b'])
+)
+config.add_page('Filtered Data', filtered_tables)
+```
+
+Even though the new filtered variables can be used as if they were new variables, they will correctly
+be updated when the original variable is updated i.e. with the `UpdateVariable` action.
+
+## `DerivedDataVariable`
+
+Another way to handle data is to create a `dara.core.interactivity.derived.data_variable.DerivedDataVariable` that will produce a dataset on the fly.
+This is very similar to a `DerivedVariable` except it's designed to handle data.
+
+The differences between `DerivedVariable` and `DerivedDataVariable` are the following:
+
+- The resolver function must return a `DataFrame`.
+- It doesn't support nested data or have the `.get` method- as it does not make sense when working with a `DataFrame`.
+- The `cache` option cannot be set to `None`.
+
+Under the hood it works almost exactly like a `DerivedVariable`. Your resolver function will be executed
+whenever one of the dependant variables change (or when you use `.trigger()`). Its result will be then
+passed through the same filtering logic as for a `DataVariable`.
+
+`DerivedDataVariable`s can also be ran in a separate process like `DerivedVariable`s. The same requirements apply in that you must specify the location of the `DerivedDataVariable`s resolvers in your app using `config.task_module` and set `run_as_task=True` on the `DerivedDataVariable`'s instantiation.
+
+:::tip
+When you want to perform any data processing within your app based on user inputs, a `DerivedDataVariable` is a
+great way to keep this logic outside of your `py_component`s. See
+[\_\_Best Practices: Light PyComponents](../best-practices/light-pycomponents#use-deriveddatavariables-for-data-processing)
+for an example.
+
+Additionally, if you are doing any data processing in your app that is not based on user inputs
+(for example static scaling or dropping of columns), your app will perform better if this processing is done beforehand
+and loaded into your app already processed.
+:::
+
+## `DataExtension`
+
+The data extension provides extra functionalities for interacting with data, built on top of the core `DataVariable` concepts.
+The extension also contains a `DataFactory` class which is a factory of variables, actions and methods to interact with locally stored data.
+
+To learn more you can checkout the [documentation](../../packages/dara-core/data).
+
+## Next Steps
+
+Throughout the user guide, you've been adding pages to your configuration to render the components you've built. All of these pages are configured into a layout along with a router so that you can navigate to and from pages with URLs and navigation bars. You will learn more about this in the next section.

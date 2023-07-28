@@ -1,0 +1,15 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": "test"
+        },
+        "uid": "{{mock_text_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}

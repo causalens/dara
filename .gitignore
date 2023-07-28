@@ -10,6 +10,8 @@ docker/mount
 logs/
 reference
 Reference
+dist
+bin
 
 # Editors
 **/.DS_Store
@@ -29,6 +31,7 @@ poetry.toml
 poetry.lock
 !/poetry.lock
 pyrightconfig.json
+.ipynb_checkpoints
 
 # JS
 **/node_modules

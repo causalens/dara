@@ -1,0 +1,23 @@
+{
+  "name": "root",
+  "private": true,
+  "dependencies": {
+    "glob": "*",
+    "lerna": "^7.0.0"
+  },
+  "workspaces": [
+    "packages/**"
+  ],
+  "pnpm": {
+    "packageExtensions": {
+      "@cl/styled-components": {
+        "dependencies": {
+          "react-dom": "^18.2"
+        }
+      }
+    },
+    "overrides": {
+      "prettier": "^2.8"
+    }
+  }
+}

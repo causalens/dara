@@ -1,0 +1,86 @@
+{
+  "name": "@darajs/components",
+  "version": "1.0.0-a.1",
+  "description": "Components for the Dara framework",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "jsnext:main": "dist/index.js",
+  "scripts": {
+    "build": "rimraf dist && vite build && tsc && cp -R dist/umd/ dara/components/umd/",
+    "lint": "eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
+    "lint:fix": "eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
+    "package": "yarn build && yarn publish --no-git-tag-version",
+    "test-watch": "jest --watch"
+  },
+  "author": "Sam Smith <sam@causalens.com>",
+  "homepage": "https://dara.causalens.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/causalens/dara.git",
+    "directory": "packages/dara-components"
+  },
+  "contributors": [
+    "Patricia Jacob <patricia@causalens.com>",
+    "Krzysztof Bielikowicz <krzysztof@causalens.com>"
+  ],
+  "license": "Apache-2.0",
+  "prettier": "@darajs/prettier-config",
+  "devDependencies": {
+    "@darajs/eslint-config": "~1.0.0-a.1",
+    "@darajs/prettier-config": "~1.0.0-a.1",
+    "@darajs/stylelint-config": "~1.0.0-a.1",
+    "@testing-library/react-hooks": "^3.4.2",
+    "@types/lodash": "^4.14.155",
+    "@types/react": "^18.2.6",
+    "@types/react-datepicker": "^3.1.0",
+    "@types/react-dom": "^18.2.4",
+    "@types/react-plotly.js": "~2.6.0",
+    "@types/react-table": "^7.0.19",
+    "@types/react-virtualized-auto-sizer": "^1.0.0",
+    "@types/react-window": "^1.8.2",
+    "@types/react-window-infinite-loader": "^1.0.3",
+    "@types/shortid": "0.0.29",
+    "@types/styled-components": "^5.1.0",
+    "@vitejs/plugin-react": "2.1.0",
+    "prettier": "^2.3.0",
+    "react-test-renderer": "^17.0",
+    "rimraf": "^3.0.2",
+    "stylelint": "~14.5.0",
+    "typescript": "^5.0.4",
+    "vite": "3.1.8"
+  },
+  "dependencies": {
+    "@bokeh/bokehjs": "~3.1.1",
+    "@codemirror/next": "^0.10.0",
+    "@darajs/core": "1.0.0-a.1",
+    "@darajs/styled-components": "~1.0.0-a.1",
+    "@darajs/ui-causal-graph-editor": "~1.0.0-a.1",
+    "@darajs/ui-code-editor": "~1.0.0-a.1",
+    "@darajs/ui-components": "~1.0.0-a.1",
+    "@darajs/ui-hierarchy-viewer": "~1.0.0-a.1",
+    "@darajs/ui-icons": "~1.0.0-a.1",
+    "@darajs/ui-utils": "~1.0.0-a.1",
+    "@popperjs/core": "2.4.0",
+    "date-fns": "2.9.0",
+    "immer": "^9.0.6",
+    "lodash": "^4.17.21",
+    "nanoid": "^3.3.0",
+    "plotly.js": "~2.23.2",
+    "polished": "^4.2.2",
+    "prism-react-renderer": "^1.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "8.0.6",
+    "react-plotly.js": "~2.6.0",
+    "react-virtualized-auto-sizer": "1.0.6",
+    "recoil": "^0.7.7",
+    "rehype-raw": "^6.1.1",
+    "remark-gfm": "^3.0.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

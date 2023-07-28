@@ -1,0 +1,145 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "cache": "global",
+            "uid": "{{dv_3_uid}}",
+            "variables": [
+              {
+                "cache": "global",
+                "uid": "{{dv_1_uid}}",
+                "variables": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "filters": {
+                  "column": "col1",
+                  "value": "val1",
+                  "operator": "EQ"
+                },
+                "polling_interval": null,
+                "deps": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "__typename": "DerivedDataVariable"
+              },
+              {
+                "cache": "global",
+                "uid": "{{dv_2_uid}}",
+                "variables": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "filters": {
+                  "column": "col1",
+                  "value": "val1",
+                  "operator": "EQ"
+                },
+                "polling_interval": null,
+                "deps": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "__typename": "DerivedDataVariable"
+              }
+            ],
+            "filters": {
+              "column": "col1",
+              "value": "val1",
+              "operator": "EQ"
+            },
+            "polling_interval": null,
+            "deps": [
+              {
+                "cache": "global",
+                "uid": "{{dv_1_uid}}",
+                "variables": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "filters": {
+                  "column": "col1",
+                  "value": "val1",
+                  "operator": "EQ"
+                },
+                "polling_interval": null,
+                "deps": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "__typename": "DerivedDataVariable"
+              },
+              {
+                "cache": "global",
+                "uid": "{{dv_2_uid}}",
+                "variables": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "filters": {
+                  "column": "col1",
+                  "value": "val1",
+                  "operator": "EQ"
+                },
+                "polling_interval": null,
+                "deps": [
+                  {
+                    "default": "test",
+                    "nested": [],
+                    "persist_value": false,
+                    "uid": "{{root_var_uid}}",
+                    "__typename": "Variable"
+                  }
+                ],
+                "__typename": "DerivedDataVariable"
+              }
+            ],
+            "__typename": "DerivedDataVariable"
+          }
+        },
+        "uid": "{{mock_text_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}

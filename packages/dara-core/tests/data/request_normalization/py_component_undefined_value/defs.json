@@ -1,0 +1,39 @@
+{
+  "{{var_1_name}}": {
+    "__typename": "Variable",
+    "default": [
+      0.4043240121086956,
+      0.14600226520370102,
+      0.5744194670867628,
+      62.34411669964567,
+      1.5716702625085823
+    ],
+    "nested": [],
+    "uid": "{{var_1_uid}}"
+  },
+  "{{var_2_name}}": {
+    "__typename": "DerivedVariable",
+    "deps": [
+      {
+        "__typename": "Variable",
+        "default": [
+          1
+        ],
+        "nested": [],
+        "uid": "{{var_3_uid}}"
+      }
+    ],
+    "nested": [],
+    "uid": "{{var_2_uid}}",
+    "variables": [
+      {
+        "__typename": "Variable",
+        "default": [
+          1
+        ],
+        "nested": [],
+        "uid": "{{var_3_uid}}"
+      }
+    ]
+  }
+}

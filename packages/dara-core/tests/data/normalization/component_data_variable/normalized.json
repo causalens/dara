@@ -1,0 +1,26 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "__ref": "DataVariable:{{data_var_uid}}:{{data_var_hash_1}}"
+          }
+        },
+        "uid": "{{mock_text_1_uid}}"
+      },
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "__ref": "DataVariable:{{data_var_uid}}:{{data_var_hash_2}}"
+          }
+        },
+        "uid": "{{mock_text_2_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}

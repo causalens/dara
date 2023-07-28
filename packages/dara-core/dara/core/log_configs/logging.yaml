@@ -1,0 +1,36 @@
+version: 1
+disable_existing_loggers: true
+
+formatters:
+  standard:
+    class: "dara.core.logging.DaraDevFormatter"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: standard
+    stream: ext://sys.stdout
+
+loggers:
+  uvicorn.access:
+    # Supress uvicorn access logs below WARNING level, as they duplicate our http logger's DEBUG logs
+    level: WARNING
+  uvicorn.error:
+    # Make sure not to show uvicorn debug logs
+    level: INFO
+  dara.dev:
+    level: INFO
+  dara.http:
+    level: INFO
+  dara:
+    propagate: true
+  # Supress spammy logs from these two on debug level
+  matplotlib:
+    level: ERROR
+  h5py:
+    level: ERROR
+
+root:
+  level: INFO
+  handlers: [console]
+  propagate: no

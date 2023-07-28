@@ -1,0 +1,6 @@
+# Code owners file is read from top to bottom, with the later (more specific) entries taking precedence over the earlier
+# ones
+@krzysztof-causalens
+
+# Package Owners overrides
+/packages/dara-components @krzysztof-causalens @patricia-causalens

@@ -1,0 +1,26 @@
+{
+  "Variable:{{var_1_uid}}": {
+    "default": "test",
+    "nested": [],
+    "persist_value": false,
+    "uid": "{{var_1_uid}}",
+    "__typename": "Variable"
+  },
+  "DerivedVariable:{{dv_1_uid}}": {
+    "cache": "global",
+    "uid": "{{dv_1_uid}}",
+    "variables": [
+      {
+        "__ref": "Variable:{{var_1_uid}}"
+      }
+    ],
+    "nested": [],
+    "polling_interval": null,
+    "deps": [
+      {
+        "__ref": "Variable:{{var_1_uid}}"
+      }
+    ],
+    "__typename": "DerivedVariable"
+  }
+}

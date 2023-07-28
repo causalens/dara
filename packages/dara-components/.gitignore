@@ -1,0 +1,5 @@
+dist/
+dara/components/umd/
+package-lock.json
+yarn-error.log
+docs/reference

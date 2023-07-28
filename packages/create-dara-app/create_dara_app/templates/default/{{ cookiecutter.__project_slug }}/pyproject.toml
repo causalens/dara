@@ -1,0 +1,31 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "{{ cookiecutter.project_name }}"
+version = "0.1.0"
+description = ""
+authors = ["{{ cookiecutter.author_name }}"]
+
+[tool.blue]
+line-length = 120
+
+[tool.isort]
+known_causalens = ["dara"]
+profile = "black"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.poetry.dependencies]
+python = ">=3.8.0, <3.12.0"
+dara-core = "^{{ cookiecutter.dara_version }}"
+dara-components = "^{{ cookiecutter.dara_version }}"
+seaborn = ">=0.11.0"
+
+[tool.poetry.dev-dependencies]
+blue = "^0.9.0"
+isort = "^5.10.1"
+
+[virtualenvs]
+in-project = true
+create = true

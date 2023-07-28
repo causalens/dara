@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**"],
+  "include": ["./js/**/*"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "./js",
+    "outDir": "./dist/"
+  }
+}

@@ -1,0 +1,46 @@
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+[tool.blue]
+line-length = 120
+[tool.borg.scripts]
+format = "poetry run isort create_dara_app && poetry run blue create_dara_app"
+lint = "poetry run mypy --ignore-missing-imports create_dara_app && poetry run pylint create_dara_app"
+package = "poetry build -f wheel"
+publish = "poetry publish"
+security-scan = "poetry run bandit create_dara_app -ll -i"
+
+[tool.isort]
+known_causalens = ["dara"]
+profile = "black"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+exclude = ["create_dara_app/templates/"]
+
+[tool.poetry]
+authors = ["Krzysztof Bielikowicz <krzysztof@causalens.com>"]
+description = "CLI to quickly bootstrap a Dara app"
+include = ["create_dara_app/templates/**/*"]
+license = "Apache-2.0"
+name = "create-dara-app"
+version = "1.0.0-a.1"
+repository = "https://github.com/causalens/dara"
+homepage = "https://dara.causalens.com/"
+
+[tool.poetry.dependencies]
+click = "=8.1.3"
+cookiecutter = "^2.1.1"
+python = ">=3.8, <3.12.0"
+
+[tool.poetry.dev-dependencies]
+bandit = "^1.7.5"
+blue = "^0.9.0"
+isort = "^5.10.1"
+mypy = "^0.991.0"
+pylint = ">=2.6.0, <3.0.0"
+pytest = "^7.0.0"
+types-requests = "^2.28.1"
+
+[tool.poetry.scripts]
+create-dara-app = "create_dara_app.cli:cli"
