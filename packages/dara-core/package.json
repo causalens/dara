@@ -1,11 +1,18 @@
 {
   "name": "@darajs/core",
   "version": "1.0.0-a.1",
+  "description": "Dara Framework core",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "license": "Apache-2.0",
   "author": "Sam Smith <sam@causalens.com>",
+  "homepage": "https://dara.causalens.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/causalens/dara.git",
+    "directory": "packages/dara-core"
+  },
   "contributors": [
     "Patricia Jacob <patricia@causalens.com>",
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
