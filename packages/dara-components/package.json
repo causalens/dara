@@ -13,6 +13,12 @@
     "test-watch": "jest --watch"
   },
   "author": "Sam Smith <sam@causalens.com>",
+  "homepage": "https://dara.causalens.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/causalens/dara.git",
+    "directory": "packages/dara-components"
+  },
   "contributors": [
     "Patricia Jacob <patricia@causalens.com>",
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
