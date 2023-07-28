@@ -180,17 +180,11 @@ def graph_with_meta() -> CausalGraph:
     cg = CausalGraph()
 
     cg.add_edge('client_age', 'fraud', meta={'rendering_properties': {'thickness': 1}})
-
     cg.add_edge('client_age', 'marital_status', meta={'rendering_properties': {'thickness': 2}})
-
     cg.add_edge('client_age', 'number_of_children', meta={'rendering_properties': {'thickness': 3}})
-
     cg.add_edge('client_age', 'occupation', meta={'rendering_properties': {'thickness': 4}})
-
     cg.add_edge('client_age', 'salary', meta={'rendering_properties': {'thickness': 5}})
-
     cg.add_edge('client_age', 'total_claim', meta={'rendering_properties': {'thickness': 6}})
-
     cg.add_edge('client_age', 'unemployment_rate', meta={'rendering_properties': {'thickness': 7}})
 
     return cg
@@ -203,7 +197,7 @@ _`CausalGraphViewer` with edge thicknesses_
 #### Graph Layouts
 
 The default layout you have seen in the previous examples is the `FcoseLayout`. Layouts are available as classes with customizable properties.
-You can read more about `fCoSE` and more available layouts in the [reference documentation](../../reference/dara/components/graphs/graph_layout) and the layout docstrings.
+You can read more about `fCoSE` and more available layouts in the `dara.components.graphs.graph_layout.GraphLayout` and the layout docstrings.
 
 You can set the layout by providing a layout instance as the `graph_layout` property of `CausalGraphViewer`:
 
@@ -286,7 +280,7 @@ CausalGraphViewer(
 ```
 
 - use the `Variable.create_from_derived` API to create a writable variable from a read-only variable. This copy will be in sync with the
-  read-only variable until the user makes changes to the graph. You can read more about it in the [interactivity documentation](../../getting-started/interactivity#variablecreate_from_derived).
+  read-only variable until the user makes changes to the graph. You can read more about it in the [interactivity documentation](../getting-started/interactivity#variablecreate_from_derived).
 
 ```python
 from cai_causal_graph import CausalGraph

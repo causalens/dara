@@ -244,7 +244,7 @@ These components are all static, so while their contents can be updated the comp
 
 ![Interactive Components](../assets/getting_started/components/interactive_components.gif)
 
-As these components are interactive, they take more inputs than just some string to display. You will learn how to use these components in the [next section](./interactivity.md).
+As these components are interactive, they take more inputs than just some string to display. You will learn how to use these components in the [next section](./interactivity.mdx).
 
 ## Putting It All Together
 

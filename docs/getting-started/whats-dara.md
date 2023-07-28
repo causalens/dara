@@ -105,4 +105,4 @@ Components being customizable and reusable results in powerful extensibility and
 
 ## Next Steps
 
-You can learn more about these principles and how to build your own app in the [tutorial to follow](./setup).
+You can learn more about these principles and how to build your own app in the [tutorial to follow](./local-setup.mdx).
