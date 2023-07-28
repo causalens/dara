@@ -8,6 +8,6 @@ Dara is a dynamic application framework designed for creating interactive web ap
 
 This repository covers the Dara Application Framework first-party packages.
 
-- **`dara-core`**: The core of the Dara framework, this includes the core framework code for creating applications.
+- `dara-core`: The core of the Dara framework, this includes the core framework code for creating applications.
 - `dara-components`: Components for the Dara Framework.
 - `create-dara-app`: A CLI tool for creating new Dara applications.

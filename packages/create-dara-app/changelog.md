@@ -2,9 +2,6 @@
 title: Changelog
 ---
 
-## 0.3.2
+## 1.0.0-a.1
 
-- Add Dara logo to the template
-- Add A-Z components to the template
-- Initial release, renamed from `create-decision-app` to `create-dara-app`
- 
+- Initial release
