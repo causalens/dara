@@ -76,7 +76,7 @@ You are now ready to add the core of the Dara framework:
 poetry add dara-core --extras all
 ```
 
-You can follow the [User Guide](./getting-started/whats-dara) for other options on how to install the packages and create your first app.
+You can follow the User Guide's [Local Development instructions](./getting-started/local-setup.mdx) for other options on how to install the packages and create your first app.
 
 ## Your App's Configuration
 
