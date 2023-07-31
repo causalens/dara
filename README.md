@@ -1,15 +1,64 @@
-# Dara Application Framework Monorepo
+# Dara Application Framework
 
-[![Dara Logo](./dara_light.svg)]
+![Dara Logo](./img/dara_light.svg)
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![PyPI](https://img.shields.io/pypi/v/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
+
+> Build decision apps in Python
 
 Dara is a dynamic application framework designed for creating interactive web apps with ease, all in pure Python. Over the past two years, Dara has fueled the development of hundreds of apps, now widely used and appreciated by both our customers and our in-house teams!
 
-## Introduction
+## Quickstart
+
+To get started with Dara, you can use the `create-dara-app` CLI tool to create a new app.
+
+```bash
+pip install create-dara-app
+```
+
+You can also use [`pipx`](https://pypa.github.io/pipx/) to install the CLI tool in an isolated environment.
+
+Then simply run the following command to create a new app.
+
+```bash
+create-dara-app
+```
+
+By default the CLI will attempt to scaffold your project with [`poetry`](https://python-poetry.org/) but will fall back to `pip` if `poetry` is not present. This can be overriden with `--packaging pip` or `--packaging poetry` flag.
+
+After the project is created, you can run it with:
+
+```bash
+cd my-dara-app
+# with poetry installation
+poetry run dara start
+# with pip installation
+dara start
+```
+
+Note: `pip` installation uses [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installs which require `pip >= 21.3` and `setuptools >= 64.0.0`. You can upgrade both with:
+
+```bash
+python -m pip install --upgrade pip
+pip install --user --upgrade setuptools
+```
+
+## Dara App examples
+
+| Dara App                                            |                                                                                                   Description                                                                                                   |
+| --------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| ![Large Language Model](./img/llm.png)              |                                                     Demonstrates how to use incorporate a LLM chat box into your decision app to understand model insights                                                      |
+| ![Plot Interactivity](./img/plot_interactivity.png) |                         Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with Bokeh or Plotly plots                          |
+| ![Graph Editor](./img/graph_viewer.png)             | Demonstrates how to use the CausalGraphViweer component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
+
+## Repository introduction
 
 This repository covers the Dara Application Framework first-party packages.
 
 - `dara-core`: The core of the Dara framework, this includes the core framework code for creating applications.
 - `dara-components`: Components for the Dara Framework.
 - `create-dara-app`: A CLI tool for creating new Dara applications.
+
+More information on the repository structure can be found in the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
