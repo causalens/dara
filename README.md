@@ -43,6 +43,8 @@ poetry run dara start
 dara start
 ```
 
+![Dara App](./img/components_gallery.png)
+
 Note: `pip` installation uses [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installs which require `pip >= 21.3` and `setuptools >= 64.0.0`. You can upgrade both with:
 
 ```bash
