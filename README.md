@@ -6,7 +6,9 @@
 [![PyPI](https://img.shields.io/pypi/v/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
 
-> Build decision apps in Python
+### Build decision apps in Python
+
+_Tap into the power of causality by transforming data into interactive graphs and applications_
 
 Dara is a dynamic application framework designed for creating interactive web apps with ease, all in pure Python. Over the past two years, Dara has fueled the development of hundreds of apps, now widely used and appreciated by both our customers and our in-house teams!
 
@@ -45,13 +47,19 @@ python -m pip install --upgrade pip
 pip install --user --upgrade setuptools
 ```
 
+For more details check out our [Documentation](https://dara.causalens.com/docs/category/build-dara-apps).
+
 ## Dara App examples
 
-| Dara App                                            |                                                                                                   Description                                                                                                   |
-| --------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| ![Large Language Model](./img/llm.png)              |                                                     Demonstrates how to use incorporate a LLM chat box into your decision app to understand model insights                                                      |
-| ![Plot Interactivity](./img/plot_interactivity.png) |                         Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with Bokeh or Plotly plots                          |
-| ![Graph Editor](./img/graph_viewer.png)             | Demonstrates how to use the CausalGraphViweer component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
+Explore some of our favorite apps, a great way of getting started and getting to know the framework!
+
+| Dara App                                            |                                                                                                    Description                                                                                                    |
+| --------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| ![Large Language Model](./img/llm.png)              |                                                      Demonstrates how to use incorporate a LLM chat box into your decision app to understand model insights                                                       |
+| ![Plot Interactivity](./img/plot_interactivity.png) |                        Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with `Bokeh` or `Plotly` plots                         |
+| ![Graph Editor](./img/graph_viewer.png)             | Demonstrates how to use the `CausalGraphViewer` component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
+
+Check out more in our [App Gallery](https://dara.causalens.com/gallery).
 
 ## Repository introduction
 
