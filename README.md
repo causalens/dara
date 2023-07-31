@@ -1,6 +1,9 @@
 # Dara Application Framework
 
-![Dara Logo](./img/dara_light.svg)
+<picture>
+    <source srcset="./img/dara_dark.svg" media="(prefers-color-scheme: dark)">
+    <img src="./img/dara_light.svg" alt="Dara Logo" /
+</picture>
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![PyPI](https://img.shields.io/pypi/v/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
