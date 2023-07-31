@@ -2,7 +2,7 @@
 
 <picture>
     <source srcset="./img/dara_dark.svg" media="(prefers-color-scheme: dark)">
-    <img src="./img/dara_light.svg" alt="Dara Logo" /
+    <img src="./img/dara_light.svg" alt="Dara Logo">
 </picture>
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
