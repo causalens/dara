@@ -17,7 +17,9 @@ limitations under the License.
 import logging
 import pathlib
 import sys
+import shutil
 from importlib.metadata import version
+from typing import Literal
 
 import click
 from cookiecutter.exceptions import FailedHookException, OutputDirExistsException
@@ -42,7 +44,9 @@ def cli():
 @click.argument('directory', type=click.Path(exists=False), default='.')
 @click.option('--debug', help='Enable debug logging', is_flag=True, default=False)
 @click.option('--no-install', help='Skip installing dependencies', is_flag=True, default=False)
-def bootstrap(directory: str, debug: bool, no_install: bool):
+@click.option('--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry')
+@click.option('--pre', help='Accept prereleases', is_flag=True, default=False)
+def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal['pip', 'poetry'], pre: bool):
     """
     Creates a new Decision App project under specified parent DIRECTORY with the default template.
     Uses the Dara version matching the CLI's version.
@@ -51,12 +55,25 @@ def bootstrap(directory: str, debug: bool, no_install: bool):
 
     dara_version = version('create-dara-app')
     logger.debug(f'Using create-dara-app version {dara_version}')
+
+    if packaging == 'poetry':
+        # Check if poetry is available
+        poetry_path = shutil.which('poetry')
+        if poetry_path is None:
+            logger.warn('Poetry not found. Falling back to pip.')
+            packaging = 'pip'
+
     try:
         cookiecutter(
             TEMPLATE_DIRECTORY,
             output_dir=directory,
-            extra_context={'dara_version': dara_version},
-            accept_hooks=not no_install,
+            extra_context={
+                '__dara_version': dara_version,
+                '__install': not no_install,
+                '__packaging': packaging,
+                '__pip_args': '--pre' if pre else '',
+                '__poetry_args': '--allow-prereleases' if pre else '',
+            },
         )
     except OutputDirExistsException as e:
         click.echo(

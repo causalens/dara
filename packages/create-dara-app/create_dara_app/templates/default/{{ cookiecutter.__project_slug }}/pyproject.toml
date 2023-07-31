@@ -1,3 +1,4 @@
+{% if cookiecutter.__packaging == 'poetry' %}
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
@@ -8,19 +9,10 @@ version = "0.1.0"
 description = "{{ cookiecutter.project_name }}"
 authors = ["{{ cookiecutter.author_name }}"]
 
-[tool.blue]
-line-length = 120
-
-[tool.isort]
-known_causalens = ["dara"]
-profile = "black"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALFOLDER"]
-
 [tool.poetry.dependencies]
 python = ">=3.8.0, <3.12.0"
-dara-core = "^{{ cookiecutter.dara_version }}"
-dara-components = "^{{ cookiecutter.dara_version }}"
-seaborn = ">=0.11.0"
+dara-core = "^{{ cookiecutter.__dara_version }}"
+dara-components = "^{{ cookiecutter.__dara_version }}"
 
 [tool.poetry.dev-dependencies]
 blue = "^0.9.0"
@@ -29,3 +21,37 @@ isort = "^5.10.1"
 [virtualenvs]
 in-project = true
 create = true
+
+{% else %}
+
+[build-system]
+requires = ["setuptools>=64.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{ cookiecutter.__package_name }}"
+version = "0.1.0"
+dependencies = [
+    "dara-core == {{ cookiecutter.__dara_version }}",
+    "dara-components == {{ cookiecutter.__dara_version }}",
+    "blue >= 0.9.0",
+    "isort >= 5.10.1"
+]
+authors = [
+    { name = "{{ cookiecutter.author_name }}" }
+]
+description = "{{ cookiecutter.project_name }}"
+requires-python = ">=3.8, <3.12.0"
+
+[tool.setuptools]
+packages = ["{{ cookiecutter.__package_name }}"]
+
+{% endif %}
+
+[tool.blue]
+line-length = 120
+
+[tool.isort]
+known_dara = ["dara"]
+profile = "black"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DARA", "FIRSTPARTY", "LOCALFOLDER"]
