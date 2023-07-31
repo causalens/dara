@@ -16,8 +16,8 @@ limitations under the License.
 """
 import logging
 import pathlib
-import sys
 import shutil
+import sys
 from importlib.metadata import version
 from typing import Literal
 
@@ -44,7 +44,9 @@ def cli():
 @click.argument('directory', type=click.Path(exists=False), default='.')
 @click.option('--debug', help='Enable debug logging', is_flag=True, default=False)
 @click.option('--no-install', help='Skip installing dependencies', is_flag=True, default=False)
-@click.option('--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry')
+@click.option(
+    '--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry'
+)
 @click.option('--pre', help='Accept prereleases', is_flag=True, default=False)
 def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal['pip', 'poetry'], pre: bool):
     """
