@@ -62,7 +62,7 @@ Explore some of our favorite apps, a great way of getting started and getting to
 | ![Plot Interactivity](./img/plot_interactivity.png) |                        Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with `Bokeh` or `Plotly` plots                         |
 | ![Graph Editor](./img/graph_viewer.png)             | Demonstrates how to use the `CausalGraphViewer` component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
 
-Check out more in our [App Gallery](https://dara.causalens.com/gallery).
+Check out our [App Gallery](https://dara.causalens.com/gallery) for more inspiration!
 
 ## Repository introduction
 
@@ -73,3 +73,7 @@ This repository covers the Dara Application Framework first-party packages.
 - `create-dara-app`: A CLI tool for creating new Dara applications.
 
 More information on the repository structure can be found in the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
+
+## License
+
+Dara is open-source and licensed under the [Apache 2.0 License](./LICENSE).
