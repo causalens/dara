@@ -172,7 +172,7 @@ Create another folder in your project with the same name as the project itself. 
 ```
 
 :::warning
-The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
+The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `test-application` project will have a `test_application` subfolder.
 :::
 
 Now in order to install the project in editable mode you need a `pyproject.toml` file with the following contents at the minimum:
@@ -269,8 +269,8 @@ This can be overriden with `--packaging pip` or `--packaging poetry` flag.
 If you have set up your project manually with Poetry or pip, you will have the following file structure:
 
 ```
-- my_first_app/
-    - my_first_app/
+- <your-app-name>/
+    - <your_app_name>/
         - __init__.py
         - main.py
     - pyproject.toml

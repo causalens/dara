@@ -57,7 +57,7 @@ For more details check out our [Documentation](https://dara.causalens.com/docs/c
 
 ## Dara App examples
 
-Explore some of our favorite apps, a great way of getting started and getting to know the framework!
+Explore some of our favorite apps - a great way of getting started and getting to know the framework!
 
 | Dara App                                            |                                                                                                    Description                                                                                                    |
 | --------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
