@@ -66,6 +66,7 @@ As the `readme` field is set to `"README.md"`, you will want to make sure to hav
 ```
 
 Now that you have initiated your Poetry project, you can install it with the following:
+
 ```sh
 poetry install
 ```
@@ -127,6 +128,7 @@ In order to do EDA, you will need some plotting functionality. This can be found
 ### Data
 
 In this app, you will use data and models from `scikit-learn`. Therefore you must add this dependency to your project:
+
 ```sh
 poetry add scikit-learn
 ```
@@ -408,7 +410,6 @@ Your project's directory should now look like the following:
     - pyproject.toml
     - README.md
 ```
-
 
 This page will run a `DecisionTreeClassifier` and show the results via a confusion matrix. You can plot the confusion matrix with the `Bokeh` wrapper.
 

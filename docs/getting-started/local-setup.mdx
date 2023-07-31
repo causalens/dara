@@ -34,7 +34,16 @@ There are two methods in which you can start a new Dara project:
 >
 <TabItem value="cli">
 
-The CLI can be installed globally with the help of the `pipx` package which installs it in an isolated virtual environment and makes it available just like any other global binary.
+The CLI can be installed globally with
+
+```bash
+pip install create-dara-app
+```
+
+<details>
+<summary>
+You can also use `pipx` to install the CLI in an isolated global virtual environment
+</summary>
 
 `pipx` installation instructions [are available here](https://pypa.github.io/pipx/installation/) but the short version is:
 
@@ -50,6 +59,8 @@ To install the CLI globally with the `pipx` package, run the following command:
 ```bash
 pipx install create-dara-app
 ```
+
+</details>
 
 You should see a message saying that the CLI has been installed successfully. Check that the CLI is available by running the following command:
 
@@ -76,6 +87,7 @@ When following the prompts, you can simply hit enter for most however when promp
 ```sh
 Compatible Python versions [^3.8]:  >=3.8.0, <3.12.0
 ```
+
 This is necessary because Dara libraries support python versions `>=3.8.0, <3.12.0`.
 :::
 
@@ -87,7 +99,7 @@ name = "<your-app-name>"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-packages = [{include = "<your-app-name>"}]
+packages = [{include = "<your_app_name>"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8.0, <3.12.0"
@@ -106,7 +118,23 @@ As the `readme` field is set to `"README.md"`, you will want to make sure to hav
     - README.md
 ```
 
+Then create a folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
+
+```
+- <your-app-name>/
+    - <your_app_name>/
+        - __init__.py
+        - main.py
+    - pyproject.toml
+    - README.md
+```
+
+:::warning
+The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
+:::
+
 Now that you have initiated your Poetry project, you can install it with the following:
+
 ```sh
 poetry install
 ```
@@ -124,15 +152,68 @@ poetry add dara-core --extras all
 You can create a virtual environment with the following command:
 
 ```sh
-python3 -m venv dara_venv
+python3 -m venv .venv
 ```
 
 This will create a virtual environment in your current working directory. You can then activate that environment with
 the following command:
 
 ```sh
-source dara_venv/bin/activate
+source .venv/bin/activate
 ```
+
+Create another folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
+
+```
+- <your-app-name>/
+    - <your_app_name>/
+        - __init__.py
+        - main.py
+```
+
+:::warning
+The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
+:::
+
+Now in order to install the project in editable mode you need a `pyproject.toml` file with the following contents at the minimum:
+
+```toml title=<your-app-name>/pyproject.toml
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "<your_app_name>"
+version = "0.1.0"
+requires-python = ">=3.8, <3.12.0"
+
+[tool.setuptools]
+packages = ["your_app_name"]
+```
+
+You can now install the project in editable mode with the following command:
+
+```sh
+pip install -e .
+```
+
+:::caution
+
+In order to use the [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installation process, you need the following dependencies:
+
+- `pip >= 21.3`
+- `setuptools >= 64.0.0`
+
+Those can be upgraded with:
+
+```bash
+python -m pip install --upgrade pip
+pip install --user --upgrade setuptools
+```
+
+Alternatively you can use a `setup.py` or `setup.cfg` file instead of the `pyproject.toml`. You can read more
+about the setup in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/quickstart.html).
+:::
 
 You are now ready to install the core of the Dara framework:
 
@@ -166,7 +247,7 @@ If you have installed the `create-dara-app` package, you can follow these instru
         - utils/
             - components.py
             - template.py
-        - main.py        
+        - main.py
     - pyproject.toml
     - README.md
 ```
@@ -177,25 +258,24 @@ To create this app run the following command:
 create-dara-app
 ```
 
+:::note
+By default the CLI will attempt to scaffold your project with [`poetry`](https://python-poetry.org/) but will fall back to `pip` if `poetry` is not present.
+This can be overriden with `--packaging pip` or `--packaging poetry` flag.
+:::
+
 </TabItem>
 <TabItem value="manual">
 
-If you have set up your project manually with Poetry or pip, you should follow these instructions.
-
-Create another folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
+If you have set up your project manually with Poetry or pip, you will have the following file structure:
 
 ```
-- <your-app-name>/
-    - <your_app_name>/
+- my_first_app/
+    - my_first_app/
         - __init__.py
         - main.py
     - pyproject.toml
     - README.md
 ```
-
-:::warning
-The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
-:::
 
 Now you can start coding your app. In `main.py`, copy the following contents into it:
 
@@ -218,7 +298,7 @@ Dara expects configuration to be available as a `config` variable in `{root_pack
 As an example, in a project called `test-application`
 your code should be in `(...)/test-application/test_application/main.py`. Take note of the dash being replaced by an underscore in the package name.
 
-The default behavior can be overridden using the `--config` CLI flag.
+The default behavior can be overridden using the `--config` CLI flag which takes the format of `--config {root_package}.{module}:{variable}`.
 :::
 
 </TabItem>
@@ -235,12 +315,6 @@ Once you've got your project setup, you will want to run the application so you 
 >
 
 <TabItem value="Poetry">
-
-If you have used the CLI you can skip this step, as it automatically installs the dependencies. Otherwise install the dependencies:
-
-```sh
-poetry install
-```
 
 To start the app:
 
