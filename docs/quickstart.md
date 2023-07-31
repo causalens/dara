@@ -112,6 +112,10 @@ Try running your app with the following command within the outermost `my_first_a
 poetry run dara start
 ```
 
+Your app will look like the following:
+
+![Hello World](./assets/my_first_app/hello_world.png)
+
 ### Extensions
 
 The core of the Dara framework comes with many functionalities such as interactivity and the base rendering engine. By design, the framework is easily extendable with extra components and other features via outside packages and plugins.
@@ -306,6 +310,7 @@ def eda_page():
             Text('Y:'),
             Select(items=features, value=y_var),
             direction='horizontal',
+            align='center',
             hug=True,
         ),
         Stack(scatter_plot('petal length (cm)', 'petal width (cm)')),
@@ -369,6 +374,7 @@ def eda_page():
             Text('Y:'),
             Select(items=features, value=y_var),
             direction='horizontal',
+            align='center',
             hug=True,
         ),
         Stack(scatter_plot(x_var, y_var)),
