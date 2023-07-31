@@ -192,7 +192,7 @@ Now you can begin using Bokeh plots by wrapping any plot in the `dara.components
 ```python title=my_first_app/my_first_app/pages/eda.py
 from bokeh.plotting import figure
 
-from dara.components import Bokeh, Card, Stack
+from dara.components import Bokeh, Card
 from dara.components.plotting.palettes import CategoricalLight3
 
 from my_first_app.definitions import data
@@ -217,7 +217,7 @@ def scatter_plot(x: str, y: str):
 
 def eda_page():
     return Card(
-        Stack(scatter_plot('petal length (cm)', 'petal width (cm)')),
+        scatter_plot('petal length (cm)', 'petal width (cm)'),
         title='Scatter Plot'
     )
 ```
@@ -313,7 +313,7 @@ def eda_page():
             align='center',
             hug=True,
         ),
-        Stack(scatter_plot('petal length (cm)', 'petal width (cm)')),
+        scatter_plot('petal length (cm)', 'petal width (cm)'),
         title='Scatter Plot'
     )
 ```
@@ -377,7 +377,7 @@ def eda_page():
             align='center',
             hug=True,
         ),
-        Stack(scatter_plot(x_var, y_var)),
+        scatter_plot(x_var, y_var),
         title='Scatter Plot'
     )
 ```
@@ -421,7 +421,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
-from dara.components import Bokeh, Card, Stack
+from dara.components import Bokeh, Card
 from dara.components.plotting.palettes import SequentialDark8
 
 from my_first_app.definitions import data, features, target_names
@@ -476,7 +476,7 @@ def confusion_matrix_plot():
 
 def classification_page():
     return Card(
-        Stack(confusion_matrix_plot()),
+        confusion_matrix_plot(),
         title='Classification Results'
     )
 ```
@@ -578,7 +578,7 @@ def classification_page():
             direction='horizontal',
             hug=True,
         ),
-        Stack(confusion_matrix_plot()),
+        confusion_matrix_plot(),
         title='Classification Results'
     )
 ```
@@ -683,7 +683,7 @@ def classification_page():
             direction='horizontal',
             hug=True,
         ),
-        Stack(confusion_matrix_plot(predictions_var)),
+        confusion_matrix_plot(predictions_var),
         title='Classification Results'
     )
 ```
