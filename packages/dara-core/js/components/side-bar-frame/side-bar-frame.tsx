@@ -1,11 +1,11 @@
+import { useConfig } from '@/api';
+import { daraDark, daraLight } from '@/assets';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
+import { ComponentInstance } from '@/types';
 import { transparentize } from 'polished';
 
 import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
-
-import { useConfig } from '@/api';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
-import { ComponentInstance } from '@/types';
 
 interface SideBarProps {
     width?: string;
@@ -65,6 +65,13 @@ const LogoutButton = styled(Button)`
     }
 `;
 
+const BuiltWithSpan = styled.span`
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+    font-size: 0.75rem;
+`;
+
 interface LogoProps {
     width?: string;
 }
@@ -118,6 +125,7 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
                         <LogoutArrow style={{ marginRight: '0.5rem' }} />
                         Logout
                     </LogoutButton>
+                    <BuiltWithSpan>Built with {theme.themeType === 'dark' ? daraDark : daraLight}</BuiltWithSpan>
                 </SideBar>
             </ThemeContext.Provider>
             {props.side_bar_position !== 'right' && (
