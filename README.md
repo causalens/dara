@@ -5,6 +5,7 @@
     <img src="./img/dara_light.svg" alt="Dara Logo">
 </picture>
 
+![Master tests](https://github.com/causalens/dara/actions/workflows/tests.yml/badge.svg?branch=master)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![PyPI](https://img.shields.io/pypi/v/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
