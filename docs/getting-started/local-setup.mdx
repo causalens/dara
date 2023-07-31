@@ -62,21 +62,56 @@ create-dara-app --version
 <TabItem value="Poetry">
 
 Poetry can be installed following these [instructions](https://Python-Poetry.org/docs/basic-usage/). You can
-then create a new Poetry project with the following command:
+then create a new Poetry project with the following command in your project's directory:
 
 ```sh
 poetry init
 ```
 
-This will step you through creating a new project and it will create a virtual environment for you in the
-background. Next you will need to change the Python version in your generated `pyproject.toml` file to the following:
+This command will guide you through creating your `pyproject.toml` config.
+
+:::warning
+When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.8.0, <3.12.0`.
+
+```sh
+Compatible Python versions [^3.8]:  >=3.8.0, <3.12.0
+```
+This is necessary because Dara libraries support python versions `>=3.8.0, <3.12.0`.
+:::
+
+The contents of the `pyproject.toml` will be something like the following:
 
 ```toml
+[tool.poetry]
+name = "<your-app-name>"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+packages = [{include = "<your-app-name>"}]
+
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12.0"
+python = ">=3.8.0, <3.12.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 ```
 
-You are now ready to install the core of the Dara framework:
+As the `readme` field is set to `"README.md"`, you will want to make sure to have a `README.md` file in your directory. This file can be empty to start with and you can fill it out at a later time with important information about the app. You will now have the following file structure:
+
+```
+- <your-app-name>/
+    - pyproject.toml
+    - README.md
+```
+
+Now that you have initiated your Poetry project, you can install it with the following:
+```sh
+poetry install
+```
+
+You are now ready to add the core of the Dara framework:
 
 ```sh
 poetry add dara-core --extras all
@@ -108,9 +143,9 @@ pip install dara-core[all]
 </TabItem>
 </Tabs>
 
-## Hello World
+## Building your app
 
-You will now create one of the simplest application that you can make with the Dara framework.
+The following will go through two examples of building a simple app - one using the `create-dara-app` command line interface and the other using Poetry manually.
 
 <Tabs
     defaultValue="cli"
@@ -118,7 +153,25 @@ You will now create one of the simplest application that you can make with the D
 >
 <TabItem value="cli">
 
-To create a "Hello World" app simply type in your terminal and follow the prompts:
+If you have installed the `create-dara-app` package, you can follow these instructions.
+
+`create-dara-app` creates an app with two pages. The first page is an introductory page with a welcome message, and the second page is a gallery of components, providing a simple example of how to use each component offered in `dara-components`.
+
+```
+- <your-app-name>/
+    - <your_app_name>/
+        - pages/
+            - intro_page.py
+            - components_page.py
+        - utils/
+            - components.py
+            - template.py
+        - main.py        
+    - pyproject.toml
+    - README.md
+```
+
+To create this app run the following command:
 
 ```bash
 create-dara-app
@@ -127,15 +180,26 @@ create-dara-app
 </TabItem>
 <TabItem value="manual">
 
-Create a folder in your project with the same name as the project itself.
+If you have set up your project manually with Poetry or pip, you should follow these instructions.
+
+Create another folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
+
+```
+- <your-app-name>/
+    - <your_app_name>/
+        - __init__.py
+        - main.py
+    - pyproject.toml
+    - README.md
+```
 
 :::warning
 The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
 :::
 
-Under this folder add a `main.py` file and copy the following snippet into it.
+Now you can start coding your first app. In `main.py`, copy the following contents into it:
 
-```python
+```python title=<your-app-name>/<your_app_name>/main.py
 from dara.core import ConfigurationBuilder
 from dara.components import Heading
 
@@ -154,7 +218,7 @@ Dara expects configuration to be available as a `config` variable in `{root_pack
 As an example, in a project called `test-application`
 your code should be in `(...)/test-application/test_application/main.py`. Take note of the dash being replaced by an underscore in the package name.
 
-The default behaviour can be overriden using the `--config` CLI flag.
+The default behavior can be overridden using the `--config` CLI flag.
 :::
 
 </TabItem>
@@ -162,7 +226,7 @@ The default behaviour can be overriden using the `--config` CLI flag.
 
 ### Running your application
 
-Once you've got your project setup will want to run the application so you can see your application in action. This can be done with a single command from the root of your project:
+Once you've got your project setup, you will want to run the application so you can see your application in action. This can be done with a single command from the root of your project:
 
 <Tabs
     defaultValue="Poetry"
@@ -200,7 +264,12 @@ dara start --reload
 The `--reload` flag here will cause it to automatically reload the backend and UI whenever any changes are made and saved.
 :::
 
-This command will start a local development server and will start your application at `http://localhost:8000` and it
-should look like the below:
+This command will start a local development server and will start your application at `http://localhost:8000`.
+
+If you have used the `create-dara-app` CLI, your app will look like the following:
+
+![Gallery of Components App](../assets/getting_started/components_gallery.png)
+
+If you have set up your app manually, your app will look like the following:
 
 ![Hello World App](../assets/getting_started/hello_world.png)
