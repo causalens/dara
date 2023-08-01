@@ -7,12 +7,6 @@ import click
 
 packaging = '{{ cookiecutter.__packaging }}'
 
-pip_args = '{{ cookiecutter.__pip_args }}'.split(' ')
-# Filter out empty
-pip_args = list(filter(None, pip_args))
-
-poetry_args = '{{ cookiecutter.__poetry_args }}'
-
 click.echo('\nProject generated. Running post-generation hooks...')
 click.echo(os.getcwd())
 
@@ -20,7 +14,7 @@ click.echo(os.getcwd())
 
 if packaging == 'poetry':
     click.echo('Installing dependencies...')
-    exit_code = os.system(f'poetry install {poetry_args}')
+    exit_code = os.system(f'poetry install')
 
     if exit_code > 0:
         click.echo('Error: Poetry install failed', err=True)
@@ -39,10 +33,11 @@ if packaging == 'pip':
     subprocess.run([pip_path, 'install', '--upgrade', 'pip'])
 
     click.echo('Installing dependencies...')
-    subprocess.run([pip_path, 'install', '-e', '.', *pip_args ])
+    subprocess.run([pip_path, 'install', '-e', '.'])
 
     click.echo('Generating .env...')
-    os.system('dara generate-env')
+    dara_path = os.path.join('.venv', 'bin', 'dara') if sys.platform != 'win32' else os.path.join('.venv', 'Scripts', 'dara.exe')
+    subprocess.run([dara_path, 'generate-env'])
 
 
 {% endif %}
