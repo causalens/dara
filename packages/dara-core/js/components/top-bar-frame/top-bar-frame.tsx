@@ -75,7 +75,6 @@ const LogoutButton = styled(Button)`
 const RouteButtons = styled(Wrapper)`
     gap: 0.5rem;
     align-items: center;
-    justify-content: end;
 `;
 
 const BuiltWithSpan = styled.span`
