@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.0.0-a.2
 
 -   Added 'Built with Dara' to sidebars.
 -   Removed extra dependency on `create-dara-app`

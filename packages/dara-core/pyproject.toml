@@ -22,7 +22,7 @@ description = "Dara Framework Core"
 include = ["dara/core/js_tooling/**/*", "dara/core/umd/**/*", "dara/core/log_configs/**/*"]
 license = "Apache-2.0"
 name = "dara-core"
-version = "1.0.0-a.1"
+version = "1.0.0-a.2"
 repository = "https://github.com/causalens/dara"
 homepage = "https://dara.causalens.com/"
 
@@ -59,11 +59,11 @@ xlrd = "*"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "=1.0.0-a.1"
+version = "=1.0.0-a.2"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "=1.0.0-a.1"
+version = "=1.0.0-a.2"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
