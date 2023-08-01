@@ -1,11 +1,13 @@
-import { useConfig } from '@/api';
-import { daraDark, daraLight } from '@/assets';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
-import { ComponentInstance } from '@/types';
 import { transparentize } from 'polished';
 
 import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
+
+import { useConfig } from '@/api';
+import DaraDark from '@/assets/dara-dark.svg';
+import DaraLight from '@/assets/dara-light.svg';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
+import { ComponentInstance } from '@/types';
 
 interface TopBarProps {
     height?: string;
@@ -113,6 +115,8 @@ function SideBarFrame(props: TopBarFrameProps): JSX.Element {
     const theme = useTheme();
     const { data: config } = useConfig();
     const logo = props.logo_path && <LogoImage alt="Logo" src={props.logo_path} width={props.logo_width} />;
+    const daraLogo =
+        theme.themeType === 'dark' ? <img alt="Dara" src={DaraDark} /> : <img alt="Dara" src={DaraLight} />;
 
     return (
         <Wrapper backgroundColor={theme.colors.background} direction="column">
@@ -132,7 +136,7 @@ function SideBarFrame(props: TopBarFrameProps): JSX.Element {
                             Logout
                         </LogoutButton>
                     </TopBarContent>
-                    <BuiltWithSpan>Built with {theme.themeType === 'dark' ? daraDark : daraLight}</BuiltWithSpan>
+                    <BuiltWithSpan>Built with {daraLogo}</BuiltWithSpan>
                 </TopBar>
             </ThemeContext.Provider>
 
