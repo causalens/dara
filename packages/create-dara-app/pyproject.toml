@@ -24,7 +24,7 @@ description = "CLI to quickly bootstrap a Dara app"
 include = ["create_dara_app/templates/**/*"]
 license = "Apache-2.0"
 name = "create-dara-app"
-version = "1.0.0-a.1"
+version = "1.0.0-a.2"
 repository = "https://github.com/causalens/dara"
 homepage = "https://dara.causalens.com/"
 
