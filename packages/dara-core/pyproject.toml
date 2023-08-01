@@ -82,7 +82,8 @@ types-croniter = "^1.0.10"
 types-requests = "^2.27.29"
 
 [tool.poetry.extras]
-all = ["dara-components", "create-dara-app"]
+all = ["dara-components"]
+
 [tool.poetry.plugins."pydoc_markdown.interfaces.Renderer"]
 docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 

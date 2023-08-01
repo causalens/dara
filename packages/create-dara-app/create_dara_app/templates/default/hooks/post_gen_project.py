@@ -1,27 +1,48 @@
 import os
+import subprocess
 import sys
+import venv
 
 import click
 
+packaging = '{{ cookiecutter.__packaging }}'
+
+pip_args = '{{ cookiecutter.__pip_args }}'.split(' ')
+# Filter out empty
+pip_args = list(filter(None, pip_args))
+
+poetry_args = '{{ cookiecutter.__poetry_args }}'
+
 click.echo('\nProject generated. Running post-generation hooks...')
+click.echo(os.getcwd())
 
-python_version = sys.version_info
-python_ver_string = f'{python_version.major}.{python_version.minor}'
+{% if cookiecutter.__install %}
 
-click.echo('Creating a venv...')
-# This explicitly creates a new venv for the project
-exit_code = os.system(f'poetry env use {python_ver_string}')
+if packaging == 'poetry':
+    click.echo('Installing dependencies...')
+    exit_code = os.system(f'poetry install {poetry_args}')
 
-if exit_code > 0:
-    click.echo('Error: failed to create a new .venv', err=True)
-    sys.exit(1)
+    if exit_code > 0:
+        click.echo('Error: Poetry install failed', err=True)
+        sys.exit(1)
 
-click.echo('Installing dependencies...')
-exit_code = os.system('poetry install')
+    click.echo('Generating .env...')
+    os.system('poetry run dara generate-env')
 
-if exit_code > 0:
-    click.echo('Error: Poetry install failed', err=True)
-    sys.exit(1)
+if packaging == 'pip':
+    click.echo('Creating a venv...')
 
-click.echo('Generating .env...')
-os.system('poetry run dara generate-env')
+    venv.create('.venv', with_pip=True)
+    pip_path = os.path.join('.venv', 'bin', 'pip') if sys.platform != 'win32' else os.path.join('.venv', 'Scripts', 'pip.exe')
+
+    click.echo('Upgrading pip...')
+    subprocess.run([pip_path, 'install', '--upgrade', 'pip'])
+
+    click.echo('Installing dependencies...')
+    subprocess.run([pip_path, 'install', '-e', '.', *pip_args ])
+
+    click.echo('Generating .env...')
+    os.system('dara generate-env')
+
+
+{% endif %}

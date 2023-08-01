@@ -4,7 +4,13 @@ This is the CLI for creating Decision Apps with Dara.
 
 ## Installation
 
-The CLI can be installed globally with the help of the `pipx` package which installs it in an isolated virtual environment and makes it available just like any other global binary.
+The CLI can be installed globally with `pip`:
+
+```bash
+pip install create-dara-app
+```
+
+Alternatively with the help of the `pipx` package you can install it in an isolated virtual environment and make it available just like any other global binary. You can skip the rest of this section if you are not interested in using `pipx`.
 
 `pipx` installation instructions [are available here](https://pypa.github.io/pipx/installation/) but the short version is:
 
@@ -67,6 +73,22 @@ create-dara-app [OPTIONS] [DIRECTORY]
 - `DIRECTORY` - parent directory for the new project, defaults to `.` if not specified (which means the project will be generated in `./{project_name}`)
 - `--debug` - enable debug logging
 - `--no-install` - do not install dependencies after creating the project
+- `--packaging` - choose the packaging tool to use when scaffolding your project. Accepts `poetry` or `pip`, defaults to `poetry`. If `poetry` is not installed, it display a warning and fall back to `pip`.
+- `--pre` - accept pre-release versions of dependencies. This flag is passed to the packaging tool, i.e. `poetry install --allow-prereleases` or `pip install --pre`.
+
+#### PIP setup
+
+`pip` installation uses [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installation process. This requires the following:
+
+- `pip >= 21.3`
+- `setuptools >= 64.0.0`
+
+Those dependencies can be upgraded with:
+
+```bash
+python -m pip install --upgrade pip
+pip install --user --upgrade setuptools
+```
 
 ## Running the CLI locally
 
