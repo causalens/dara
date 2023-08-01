@@ -4,6 +4,8 @@ import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import { useConfig } from '@/api';
+import DaraDark from '@/assets/dara-dark.svg';
+import DaraLight from '@/assets/dara-light.svg';
 import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
 import { ComponentInstance } from '@/types';
 
@@ -65,6 +67,13 @@ const LogoutButton = styled(Button)`
     }
 `;
 
+const BuiltWithSpan = styled.span`
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+    font-size: 0.75rem;
+`;
+
 interface LogoProps {
     width?: string;
 }
@@ -99,6 +108,8 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
     const theme = useTheme();
     const { data: config } = useConfig();
     const logo = props.logo_path && <LogoImage alt="Logo" src={props.logo_path} width={props.logo_width} />;
+    const daraLogo =
+        theme.themeType === 'dark' ? <img alt="Dara" src={DaraDark} /> : <img alt="Dara" src={DaraLight} />;
 
     return (
         <Wrapper backgroundColor={theme.colors.background}>
@@ -118,6 +129,7 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
                         <LogoutArrow style={{ marginRight: '0.5rem' }} />
                         Logout
                     </LogoutButton>
+                    <BuiltWithSpan>Built with {daraLogo}</BuiltWithSpan>
                 </SideBar>
             </ThemeContext.Provider>
             {props.side_bar_position !== 'right' && (
