@@ -10,6 +10,10 @@ packaging = '{{ cookiecutter.__packaging }}'
 click.echo('\nProject generated. Running post-generation hooks...')
 click.echo(os.getcwd())
 
+if packaging == 'pip':
+    # Remove the poetry.toml file
+    os.remove('poetry.toml')
+
 {% if cookiecutter.__install %}
 
 if packaging == 'poetry':
