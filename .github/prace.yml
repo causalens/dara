@@ -2,8 +2,6 @@ title:
   patterns:
     - '(Docs|Breaking|Improvement|Fix|Refactor|Feat):\s[A-Z]*-\d+.*'
     - 'Build:\d+\.\d+\.\d'
-    # allow dependabot formatted PRs
-    - "(Deps|Deps-dev): .*"
   error: >-
     You have to include [<change-type>:<ticket number>] or Build:X.X.X> into
     your title
