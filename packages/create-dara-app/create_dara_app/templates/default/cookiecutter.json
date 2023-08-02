@@ -5,7 +5,5 @@
   "author_name": "Author <author@example.com>",
   "__dara_version": "*",
   "__packaging": "poetry",
-  "__install": "true",
-  "__pip_args": "",
-  "__poetry_args": ""
+  "__install": "true"
 }

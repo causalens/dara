@@ -47,8 +47,7 @@ def cli():
 @click.option(
     '--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry'
 )
-@click.option('--pre', help='Accept prereleases', is_flag=True, default=False)
-def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal['pip', 'poetry'], pre: bool):
+def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal['pip', 'poetry']):
     """
     Creates a new Decision App project under specified parent DIRECTORY with the default template.
     Uses the Dara version matching the CLI's version.
@@ -73,8 +72,6 @@ def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal[
                 '__dara_version': dara_version,
                 '__install': not no_install,
                 '__packaging': packaging,
-                '__pip_args': '--pre' if pre else '',
-                '__poetry_args': '--allow-prereleases' if pre else '',
             },
         )
     except OutputDirExistsException as e:

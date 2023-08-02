@@ -18,9 +18,6 @@ dara-components = "^{{ cookiecutter.__dara_version }}"
 blue = "^0.9.0"
 isort = "^5.10.1"
 
-[virtualenvs]
-in-project = true
-create = true
 
 {% else %}
 
