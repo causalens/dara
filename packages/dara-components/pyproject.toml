@@ -19,12 +19,13 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALF
 [tool.poetry]
 authors = ["Patricia Jacob <patricia@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>", "Sam Smith <sam@causalens.com>"]
 description = "Components for the Dara Framework"
+homepage = "https://dara.causalens.com/"
 include = ["dara/components/umd/**/*"]
 license = "Apache-2.0"
 name = "dara-components"
-version = "1.0.0-a.2"
 repository = "https://github.com/causalens/dara"
-homepage = "https://dara.causalens.com/"
+version = "1.0.0"
+readme = "README.md"
 
 [[tool.poetry.packages]]
 include = "dara"
@@ -32,7 +33,7 @@ include = "dara"
 [tool.poetry.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.0.1"
-dara-core = "=1.0.0-a.2"
+dara-core = "=1.0.0"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"

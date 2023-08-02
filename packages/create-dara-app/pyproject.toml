@@ -21,12 +21,13 @@ exclude = ["create_dara_app/templates/"]
 [tool.poetry]
 authors = ["Krzysztof Bielikowicz <krzysztof@causalens.com>"]
 description = "CLI to quickly bootstrap a Dara app"
+homepage = "https://dara.causalens.com/"
 include = ["create_dara_app/templates/**/*"]
 license = "Apache-2.0"
 name = "create-dara-app"
-version = "1.0.0-a.2"
 repository = "https://github.com/causalens/dara"
-homepage = "https://dara.causalens.com/"
+version = "1.0.0"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 click = "=8.1.3"

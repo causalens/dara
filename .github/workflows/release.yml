@@ -24,12 +24,6 @@ jobs:
           git config --global --add safe.directory /__w/dara/dara
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - name: Extract branch name
-        shell: bash
-        run: |
-          raw=$(git branch -r --contains ${{ github.ref }})
-          echo ::set-output name=branch::${raw/origin\/}
-        id: extract_branch
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
@@ -59,6 +53,9 @@ jobs:
         id: set-changelog
         run: |
           echo "::set-output name=changelog::$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})"
+      - name: Update READMEs to work on PyPi before publishing
+        run: |
+          poetry run python ./tooling/scripts/update-readmes.py ${{ github.ref_name }}
       - name: Prepare resources required for packaging
         run: make prepare
       - name: Make packages
