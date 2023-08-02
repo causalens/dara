@@ -25,7 +25,7 @@ license = "Apache-2.0"
 name = "dara-core"
 repository = "https://github.com/causalens/dara"
 version = "1.0.0"
-readme = "../../README.md"
+readme = "README.md"
 
 [[tool.poetry.packages]]
 include = "dara"
