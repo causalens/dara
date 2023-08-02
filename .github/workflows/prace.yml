@@ -18,7 +18,7 @@ on:
 jobs:
   linting:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: "!startsWith(github.ref, 'refs/heads/dependabot/')"
     steps:
       - uses: innerspacetrainings/Prace.js@master
         with:
