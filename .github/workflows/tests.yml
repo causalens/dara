@@ -42,7 +42,7 @@ jobs:
       - name: Link packages
         run: make link
       - name: TEST run update readmes
-        run: poetry run python ./tooling/update-readmes.py VERSION-X
+        run: poetry run python ./tooling/scripts/update-readmes.py VERSION-X
       - name: TEST Print content of README files
         run: |
           for readme in packages/*/README.md; do

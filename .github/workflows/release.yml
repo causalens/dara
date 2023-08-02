@@ -55,7 +55,7 @@ jobs:
           echo "::set-output name=changelog::$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})"
       - name: Update READMEs to work on PyPi before publishing
         run: |
-          poetry run python ./tooling/update-readmes.py ${{ github.ref_name }}
+          poetry run python ./tooling/scripts/update-readmes.py ${{ github.ref_name }}
       - name: Prepare resources required for packaging
         run: make prepare
       - name: Make packages
