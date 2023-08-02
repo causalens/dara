@@ -1,8 +1,8 @@
 # Dara Application Framework
 
 <picture>
-    <source srcset="./img/dara_dark.svg" media="(prefers-color-scheme: dark)">
-    <img src="./img/dara_light.svg" alt="Dara Logo">
+    <source srcset="https://github.com/causalens/dara/blob/master/img/dara_dark.svg?raw=true" media="(prefers-color-scheme: dark)">
+    <img src="https://github.com/causalens/dara/blob/master/img/dara_light.svg?raw=true" alt="Dara Logo">
 </picture>
 
 ![Master tests](https://github.com/causalens/dara/actions/workflows/tests.yml/badge.svg?branch=master)
