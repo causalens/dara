@@ -74,7 +74,6 @@ create-dara-app [OPTIONS] [DIRECTORY]
 - `--debug` - enable debug logging
 - `--no-install` - do not install dependencies after creating the project
 - `--packaging` - choose the packaging tool to use when scaffolding your project. Accepts `poetry` or `pip`, defaults to `poetry`. If `poetry` is not installed, it display a warning and fall back to `pip`.
-- `--pre` - accept pre-release versions of dependencies. This flag is passed to the packaging tool, i.e. `poetry install --allow-prereleases` or `pip install --pre`.
 
 #### PIP setup
 
