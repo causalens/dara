@@ -10,5 +10,6 @@ title:
 body:
   patterns:
     - "[\\s\\S]*\\[x\\] I have implemented all requirements[\\s\\S]*\\[x\\] I am not affecting someone else's work[\\s\\S]*\\[x\\] I have added relevant tests[\\s\\S]*\\[x\\] I have added comments to all the bits that are hard to follow[\\s\\S]*\\[x\\] I have added\/updated Documentation[\\s\\S]*\\[x\\] I have updated the appropriate changelog with a line for my changes[\\s\\S]*"
-  error: Found unchecked checkbox, all checkboxes must be checked
+    - "Dependabot will resolve any conflicts with this PR"
+  error: Found unchecked checkbox, all checkboxes must be checked or the PR must be made by Dependabot
 version: 1
