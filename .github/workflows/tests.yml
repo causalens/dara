@@ -41,6 +41,15 @@ jobs:
           fi
       - name: Link packages
         run: make link
+      - name: TEST run update readmes
+        run: poetry run python ./tooling/update-readmes.py VERSION-X
+      - name: TEST Print content of README files
+        run: |
+          for readme in packages/*/README.md; do
+            echo -e "\nContent of $readme:"
+            cat $readme
+          done
+          exit 1
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
