@@ -20,8 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     if: "!startsWith(github.head_ref, 'dependabot/')"
     steps:
-      - name: Print github.head_ref
-        run: echo "Head ref is ${{ github.head_ref }}"
       - uses: innerspacetrainings/Prace.js@master
         with:
           configuration-path: .github/prace.yml
