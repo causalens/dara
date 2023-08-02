@@ -18,6 +18,7 @@ on:
 jobs:
   linting:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - uses: innerspacetrainings/Prace.js@master
         with:
