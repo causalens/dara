@@ -9,6 +9,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![PyPI](https://img.shields.io/pypi/v/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dara-core.svg?color=dark-green)](https://pypi.org/project/dara-core/)
+[![NPM](https://img.shields.io/npm/v/@darajs/components.svg?color=dark-green)](https://www.npmjs.com/package/@darajs/components)
 
 ### Build decision apps in Python
 
@@ -71,9 +72,9 @@ Check out our [App Gallery](https://dara.causalens.com/gallery) for more inspira
 
 This repository covers the Dara Application Framework first-party packages.
 
-- `dara-core`: The core of the Dara framework, this includes the core framework code for creating applications.
-- `dara-components`: Components for the Dara Framework.
-- `create-dara-app`: A CLI tool for creating new Dara applications.
+-   `dara-core`: The core of the Dara framework, this includes the core framework code for creating applications.
+-   `dara-components`: Components for the Dara Framework.
+-   `create-dara-app`: A CLI tool for creating new Dara applications.
 
 More information on the repository structure can be found in the [CONTRIBUTING.md](https://github.com/causalens/dara/blob/master/CONTRIBUTING.md) file.
 

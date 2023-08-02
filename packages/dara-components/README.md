@@ -9,6 +9,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![PyPI](https://img.shields.io/pypi/v/dara-components.svg?color=dark-green)](https://pypi.org/project/dara-components/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dara-components.svg?color=dark-green)](https://pypi.org/project/dara-components/)
+[![NPM](https://img.shields.io/npm/v/@darajs/components.svg?color=dark-green)](https://www.npmjs.com/package/@darajs/components)
 
 ### Build decision apps in Python
 
