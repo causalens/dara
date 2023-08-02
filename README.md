@@ -44,7 +44,7 @@ poetry run dara start
 dara start
 ```
 
-![Dara App](./img/components_gallery.png)
+![Dara App](https://github.com/causalens/dara/blob/master/img/components_gallery.png?raw=true)
 
 Note: `pip` installation uses [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installs which require `pip >= 21.3` and `setuptools >= 64.0.0`. You can upgrade both with:
 
@@ -59,11 +59,11 @@ For more details check out our [Documentation](https://dara.causalens.com/docs/c
 
 Explore some of our favorite apps - a great way of getting started and getting to know the framework!
 
-| Dara App                                            |                                                                                                    Description                                                                                                    |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ![Large Language Model](./img/llm.png)              |                                                      Demonstrates how to use incorporate a LLM chat box into your decision app to understand model insights                                                       |
-| ![Plot Interactivity](./img/plot_interactivity.png) |                        Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with `Bokeh` or `Plotly` plots                         |
-| ![Graph Editor](./img/graph_viewer.png)             | Demonstrates how to use the `CausalGraphViewer` component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
+| Dara App                                                                                                 | Description                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Large Language Model](https://github.com/causalens/dara/blob/master/img/llm.png?raw=true)              | Demonstrates how to use incorporate a LLM chat box into your decision app to understand model insights                                                                                                            |
+| ![Plot Interactivity](https://github.com/causalens/dara/blob/master/img/plot_interactivity.png?raw=true) | Demonstrates how to enable the user to interact with plots, trigger actions based on clicks, mouse movements and other interactions with `Bokeh` or `Plotly` plots                                                |
+| ![Graph Editor](https://github.com/causalens/dara/blob/master/img/graph_viewer.png?raw=true)             | Demonstrates how to use the `CausalGraphViewer` component to display your graphs or networks, customising the displayed information through colors and tooltips, and updating the page based on user interaction. |
 
 Check out our [App Gallery](https://dara.causalens.com/gallery) for more inspiration!
 
@@ -75,8 +75,8 @@ This repository covers the Dara Application Framework first-party packages.
 - `dara-components`: Components for the Dara Framework.
 - `create-dara-app`: A CLI tool for creating new Dara applications.
 
-More information on the repository structure can be found in the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
+More information on the repository structure can be found in the [CONTRIBUTING.md](https://github.com/causalens/dara/blob/master/CONTRIBUTING.md) file.
 
 ## License
 
-Dara is open-source and licensed under the [Apache 2.0 License](./LICENSE).
+Dara is open-source and licensed under the [Apache 2.0 License](https://github.com/causalens/dara/blob/master/LICENSE).
