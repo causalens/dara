@@ -53,3 +53,6 @@ sessions_registry = Registry[Set[str]]('User session')
 
 pending_tokens_registry = Registry[datetime]('Pending tokens')
 """map of token -> expiry, for tokens pending connection"""
+
+custom_ws_handlers_registry = Registry[Callable[[str, dict], Any]]('Custom WS handlers')
+"""map of custom kind name -> handler function"""
