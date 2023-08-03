@@ -18,7 +18,6 @@ importers:
   packages/dara-components:
     specifiers:
       '@bokeh/bokehjs': ~3.1.1
-      '@codemirror/next': ^0.10.0
       '@darajs/core': 1.0.0
       '@darajs/eslint-config': ~1.0.0
       '@darajs/prettier-config': ~1.0.0
@@ -67,7 +66,6 @@ importers:
       vite: 3.1.8
     dependencies:
       '@bokeh/bokehjs': 3.1.1
-      '@codemirror/next': 0.10.0
       '@darajs/core': link:../dara-core
       '@darajs/styled-components': 1.0.0_react-dom@18.2.0+react@18.2.0
       '@darajs/ui-causal-graph-editor': 1.0.0_7e22bedbdc2835872b75f530fa887b8c
@@ -1706,20 +1704,6 @@ packages:
       '@codemirror/state': 0.19.9
       '@codemirror/view': 0.19.48
       '@lezer/common': 0.15.12
-    dev: false
-
-  /@codemirror/next/0.10.0:
-    resolution: {integrity: sha512-urceKJP2Nwgd7SGyAiBgUzLTwa3kIJEEh/db23L/bZHoXcOoEU5wNSRoNlq43xCrnW2kz/YVsk3mQlZLioUnoQ==}
-    deprecated: The mono-package is no longer being upgraded. Use the package names without /next (i.e. @codemirror/view) instead.
-    dependencies:
-      lezer: 0.10.4
-      lezer-css: 0.10.1
-      lezer-html: 0.10.0
-      lezer-javascript: 0.10.1
-      lezer-python: 0.10.0
-      lezer-tree: 0.10.0
-      style-mod: 2.3.1
-      w3c-keyname: 2.2.8
     dev: false
 
   /@codemirror/panel/0.19.1:
@@ -10059,46 +10043,6 @@ packages:
       type-check: 0.4.0
     dev: true
 
-  /lezer-css/0.10.1:
-    resolution: {integrity: sha512-NlvFFgp2lz/SBeBwSW4CFHiAdqcHdQ1kCGBA9DKjlZsJAEjT+TulowlGWVo3KgziWGTLW85aBHwN2yvj+OTJJQ==}
-    deprecated: This package has been replaced by @lezer/css
-    dependencies:
-      lezer: 0.10.4
-    dev: false
-
-  /lezer-html/0.10.0:
-    resolution: {integrity: sha512-kLZRjP3wSHLpSS1R+x3LpZJ00iTk96Kzw1Lf02fxNxh3xGmcl19Q6+i54zyPwmr65H/3TBJtvXLfeNF0OIRyZw==}
-    deprecated: This package has been replaced by @lezer/html
-    dependencies:
-      lezer: 0.10.4
-    dev: false
-
-  /lezer-javascript/0.10.1:
-    resolution: {integrity: sha512-Ly4EM83H/40VqoKSyQG71GstAfq7dFj9fR2d7X/M7vH8hTeN9kky6lPEiZIEPusnMlcdziq9/XNIXI/RaD33SQ==}
-    deprecated: This package has been replaced by @lezer/javascript
-    dependencies:
-      lezer: 0.10.4
-    dev: false
-
-  /lezer-python/0.10.0:
-    resolution: {integrity: sha512-cMn88O/v3/91sZjvab4AcGZasT0r5QaLoyZi4thzLa3fWhpPXYriRtYSDjeBfQg4nuuRb473ADDInxGZKTllqA==}
-    deprecated: This package has been replaced by @lezer/python
-    dependencies:
-      lezer: 0.10.4
-    dev: false
-
-  /lezer-tree/0.10.0:
-    resolution: {integrity: sha512-77hwilCuD4azYqwazv4A6EL7mKiSPcqgJV4V173hLV3UkAKa6/smNHeROhIzzWHLU6Y5qtR1mRf22RFzE3fVrg==}
-    deprecated: This package has been replaced by @lezer/common
-    dev: false
-
-  /lezer/0.10.4:
-    resolution: {integrity: sha512-ltjjt6A0TRUMFxjgAn/Vnxnj7Mv0D9UFHH2hHiNAjT72incbeKheuuJ77GUaAD+D9jC8NasGuFwUx+zwvi+wxg==}
-    deprecated: This package has been replaced by @lezer/lr
-    dependencies:
-      lezer-tree: 0.10.0
-    dev: false
-
   /libnpmaccess/7.0.2:
     resolution: {integrity: sha512-vHBVMw1JFMTgEk15zRsJuSAg7QtGGHpUSEfnbcRL1/gTBag9iEfJbyjpDmdJmwMhvpoLoNBtdAUCdGnaP32hhw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -13740,10 +13684,6 @@ packages:
 
   /strongly-connected-components/1.0.1:
     resolution: {integrity: sha512-i0TFx4wPcO0FwX+4RkLJi1MxmcTv90jNZgxMu9XRnMXMeFUY1VJlIoXpZunPUvUUqbCT1pg5PEkFqqpcaElNaA==}
-    dev: false
-
-  /style-mod/2.3.1:
-    resolution: {integrity: sha512-mSHi5AHMotMZct9AQZJRrDRDFE+hqquWyV5jw026EgNvE8+y6qXtTZscOY455E/Io87c/9bnROmv2AMjA9u8pA==}
     dev: false
 
   /style-mod/4.0.3:
