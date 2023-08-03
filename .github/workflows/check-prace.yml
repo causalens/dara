@@ -1,0 +1,35 @@
+name: Check Prace
+on:
+  pull_request:
+    types: ["opened", "synchronize"]
+
+jobs:
+  check-prace-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check for prace.yml
+        id: checkfile
+        run: |
+          echo "::set-output name=exists::$(test -f .github/prace.yml && echo true || echo false)"
+        shell: bash
+
+      - name: Assign output to env
+        env:
+          EXISTS: ${{ steps.checkfile.outputs.exists }}
+        run: |
+          echo "File exists: $EXISTS"
+
+      - name: Fail if prace.yml doesn't exist
+        env:
+          EXISTS: ${{ steps.checkfile.outputs.exists }}
+        run: |
+          if [[ "$EXISTS" == "false" ]]; then
+            echo "prace.yml is missing. Please add prace.yml in the .github directory."
+            exit 1
+          else
+            echo "prace.yml exists."
+          fi
+        shell: bash
