@@ -13,7 +13,7 @@ jobs:
       - name: Check for prace.yml
         id: checkfile
         run: |
-          echo "::set-output name=exists::$(test -f .github/prace.yml && echo true || echo false)"
+          echo "::set-output name=exists::$(test -f .github/pracefail.yml && echo true || echo false)"
         shell: bash
 
       - name: Assign output to env
