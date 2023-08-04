@@ -156,7 +156,7 @@ from dara.components import Stack
 Stack(
     ...# some content
     hug=True,
-    overflow='auto,
+    overflow='auto',
 )
 
 ```
@@ -165,7 +165,7 @@ Stack(
 
 The `hug` property is also supported on a few other layout components:
 
-- `Grid.Row` and `Grid.Column`
+- `Grid`, `Grid.Row` and `Grid.Column`
 - `Card`
 - `TabbedCard`
 
