@@ -286,8 +286,10 @@ Matplotlib(fig)
 Sometimes when rendering a graph inside of a Carousel it might end up looking like this:
 ![Carousel with a graph not occupying full space](assets/faq_carousel_graph.png)
 
-The issue is caused when the Graph component is unable to accurately identify how much space it has available to it.
-To debug this, you should try to simplify the structure of the components surround it as much as possible. Try to remove nested Stacks around the graph and components around it. 
-If you come across this issue, would be great to hear from you on github, with more examples we may be able to better diagnose the problem and find a solution to it!
+The problem arises when the Graph component is unable to accurately determine the space available to it. 
+
+**Debugging Steps**
+1. **Simplify Surrounding Structure:** Start by reducing the complexity of the components surrounding the Graph. Attempt to remove any nested Stacks or unnecessary elements around the graph. This can help isolate the issue and make it easier to identify the root cause.
+2. **Provide Feedback if Needed:** If you encounter this issue, we would greatly appreciate your feedback on [GitHub](https://github.com/causalens/dara). Sharing your examples and experiences may shed light on the underlying problem, allowing us to diagnose it more accurately.
 
 </details>
