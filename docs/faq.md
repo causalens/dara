@@ -281,3 +281,13 @@ Matplotlib(fig)
 ```
 
 </details>
+<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my graph not occupying the whole canvas?</h3></summary>
+
+Sometimes when rendering a graph inside of a Carousel it might end up looking like this:
+![Carousel with a graph not occupying full space](assets/faq_carousel_graph.png)
+
+The issue is caused when the Graph component is unable to accurately identify how much space it has available to it.
+To debug this, you should try to simplify the structure of the components surround it as much as possible. Try to remove nested Stacks around the graph and components around it. 
+If you come across this issue, would be great to hear from you on github, with more examples we may be able to better diagnose the problem and find a solution to it!
+
+</details>
