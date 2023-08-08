@@ -9,6 +9,7 @@ const _SwitchDiv = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
+    margin: 0.5rem 0;
 `;
 const SwitchDiv = injectCss(_SwitchDiv);
 
