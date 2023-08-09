@@ -47,7 +47,7 @@
     },
     {
       "type": "category",
-      "label": "Best Practices",
+      "label": "Design Guidelines",
       "collapsible": true,
       "collapsed": true,
       "items": [
