@@ -47,12 +47,12 @@ from dara.core.internal.registries import (
     auth_registry,
     component_registry,
     config_registry,
+    custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
     template_registry,
     utils_registry,
     websocket_registry,
-    custom_ws_handlers_registry
 )
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings

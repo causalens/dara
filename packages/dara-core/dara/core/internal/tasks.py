@@ -43,7 +43,7 @@ from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.store import Store
 from dara.core.internal.utils import run_user_handler
-from dara.core.internal.websocket import DaraServerMessage, WebsocketManager
+from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 
