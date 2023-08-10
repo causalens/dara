@@ -19,6 +19,7 @@ import math
 import uuid
 from typing import Dict, Literal, Optional, Tuple, Any, Union
 from uuid import uuid4
+from fastapi.encoders import jsonable_encoder
 
 from pydantic import BaseModel, Field, parse_obj_as
 import anyio
@@ -41,12 +42,16 @@ class DaraClientMessage(BaseModel):
     channel: str
     message: Any
 
+class CustomClientMessagePayload(BaseModel):
+    kind: str
+    data: Any
+
 class CustomClientMessage(BaseModel):
     """
     Represents a custom message sent by the frontend to the backend.
     """
     type: Literal['custom'] = Field(default='custom', const=True)
-    message: Any
+    message: CustomClientMessagePayload
 
 ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 
@@ -58,12 +63,20 @@ class ServerMessagePayload(BaseModel):
     class Config:
         extra = 'allow'
 
+    def dict(self, *args, **kwargs):
+        # Force by_alias to True to use __rchan name
+        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+
+        # remove rchan if None
+        if '__rchan' in result and result.get('__rchan') is None:
+            result.pop('__rchan')
+
+        return result
+
 
 class CustomServerMessagePayload(ServerMessagePayload):
     kind: str
-
-    class Config:
-        extra = 'allow'
+    data: Any
 
 class DaraServerMessage(BaseModel):
     """
@@ -99,7 +112,7 @@ class WebSocketHandler:
     Stream for the application to send messages to the client.
     """
 
-    receive_stream: MemoryObjectReceiveStream[ClientMessage]
+    receive_stream: MemoryObjectReceiveStream[ServerMessage]
     """
     Stream containing messages to send to the client.
     """
@@ -134,8 +147,6 @@ class WebSocketHandler:
 
         :param message: The message to process
         """
-        data = message.message
-
         if message.type == 'message':
             message_id = message.channel
 
@@ -145,13 +156,27 @@ class WebSocketHandler:
                     event, _ = self.pending_responses[message_id]
 
                     # Store the response and set the event to notify the waiting coroutine
-                    self.pending_responses[message_id] = (event, data)
+                    self.pending_responses[message_id] = (event, message.message)
                     event.set()
 
         if message.type == 'custom':
-            # TODO: lookup custom message handler and call it
-            # TODO: send response back to client
-            pass
+            # import required internals
+            from dara.core.internal.registries import custom_ws_handlers_registry
+            from dara.core.internal.utils import run_user_handler
+
+            data = message.message.data
+            kind = message.message.kind
+
+            try:
+                handler = custom_ws_handlers_registry.get(kind)
+                response = await run_user_handler(handler, self.channel_id, data)
+
+                # If the handler returns a response, send it to the client
+                if response is not None:
+                    await self.send_message(CustomServerMessage(message=CustomServerMessagePayload(kind=kind, data=response)))
+            except KeyError as e:
+                eng_logger.error(f'No handler found for custom message kind {kind}', e)
+                return
 
     async def send_and_wait(self, message: ServerMessage) -> Optional[ClientMessage]:
         """
@@ -323,7 +348,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                     else:
                         try:
                             parsed_data = parse_obj_as(ClientMessage, data)
-                            await handler.process_client_message(parsed_data)
+                            # Process the message in a separate task group to avoid blocking the receive task
+                            tg.start_soon(handler.process_client_message, parsed_data)
                         except Exception as e:
                             eng_logger.error('Error processing client WS message', error=e)
 
@@ -332,10 +358,11 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                 Handle messages sent to the client and pass them via the websocket
                 """
                 async for message in handler.receive_stream:
-                    data = message.message
-                    if isinstance(data, dict) and 'task_id' in data and 'status' in data:
-                        message.message = {key: data[key] for key in data if key != 'result'}
-                    await websocket.send_json(message.dict())
+                    if message.type == 'message' and isinstance(message.message, ServerMessagePayload) and getattr(message.message, 'task_id', None) is not None and getattr(message.message, 'status', None):
+                        data = message.message
+                        # Reconstruct the payload without the result field
+                        message.message = ServerMessagePayload(**{k: v for k, v in data.dict().items() if k != 'result'})
+                    await websocket.send_json(jsonable_encoder(message))
 
             # Start the two tasks to handle sending and receiving messages
             tg.start_soon(receive_from_client)

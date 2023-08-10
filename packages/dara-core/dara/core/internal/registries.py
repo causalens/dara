@@ -32,6 +32,7 @@ from dara.core.interactivity.derived_variable import (
     LatestValueRegistryEntry,
 )
 from dara.core.internal.registry import Registry
+from dara.core.internal.websocket import CustomClientMessagePayload
 
 action_def_registry = Registry[ActionDef]('Action Definition', CORE_ACTIONS)   # all registered actions
 action_registry = Registry[Callable[..., Any]]('Action Handler')   # functions for actions requiring backend calls
@@ -54,5 +55,5 @@ sessions_registry = Registry[Set[str]]('User session')
 pending_tokens_registry = Registry[datetime]('Pending tokens')
 """map of token -> expiry, for tokens pending connection"""
 
-custom_ws_handlers_registry = Registry[Callable[[str, dict], Any]]('Custom WS handlers')
-"""map of custom kind name -> handler function"""
+custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload], Any]]('Custom WS handlers')
+"""map of custom kind name -> handler function(channel: str, message: CustomClientMessagePayload)"""

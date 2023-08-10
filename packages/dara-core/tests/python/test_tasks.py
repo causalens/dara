@@ -71,7 +71,7 @@ async def test_task_manager_run_task(_uid):
 
         # Check ws message is received
         ws_msg = await handler.receive_stream.receive()
-        assert ws_msg == {'result': '3', 'status': 'COMPLETE', 'task_id': 'uid'}
+        assert ws_msg.message.dict() == {'result': '3', 'status': 'COMPLETE', 'task_id': 'uid'}
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
@@ -100,7 +100,7 @@ async def test_task_manager_run_task_track_progress(_uid):
         messages_count = handler.receive_stream.statistics().current_buffer_used
         messages = []
         for i in range(messages_count):
-            messages.append(handler.receive_stream.receive_nowait())
+            messages.append(handler.receive_stream.receive_nowait().message.dict())
 
         # at lesat 5 steps + result
         assert len(messages) >= 6
@@ -149,7 +149,7 @@ async def test_task_manager_cancel_task(_uid):
 
         assert 'cancel' in str(e.value)
 
-        assert await handler.receive_stream.receive() == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert (await handler.receive_stream.receive()).message.dict() == {'status': 'CANCELED', 'task_id': 'uid'}
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
@@ -189,7 +189,7 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         assert 'cancel' in str(e.value)
 
         # Now the task should be canceled
-        assert await handler.receive_stream.receive() == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert (await handler.receive_stream.receive()).message.dict() == {'status': 'CANCELED', 'task_id': 'uid'}
 
         # Check that now the pending task should be removed
         assert store.get('cache_key') is None
