@@ -191,6 +191,7 @@ export interface WebSocketClientInterface {
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
+    sendCustomMessage: (kind: string, data: any) => void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;
     serverTriggers$: (data_id: string) => Observable<ServerTriggerMessage>;
