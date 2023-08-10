@@ -111,7 +111,7 @@ class Select(FormComponent):
     ```
 
     :param id: the key to be used if this component is within a form
-    :param items: An Item list that defines values to render
+    :param items: An array of ListSection, Item or strings that defines the options to render
     :param max_rows: An optional number of rows to fit in a multiselect
     :param multiselect: Boolean, if True more than one item can be selected
     :param onchange: Action triggered when the select value has changed.
@@ -135,6 +135,7 @@ class Select(FormComponent):
         multiselect = values.get('multiselect')
         searchable = values.get('searchable')
         if isinstance(items, NonDataVariable):
+            print('items is a NonDataVariable', items)
             return items
         if not isinstance(items, list):
             raise ValueError('Items must be passed as a list to the select component')
