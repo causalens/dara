@@ -17,41 +17,47 @@ limitations under the License.
 
 import math
 import uuid
-from typing import Dict, Literal, Optional, Tuple, Any, Union
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 from uuid import uuid4
-from fastapi.encoders import jsonable_encoder
 
-from pydantic import BaseModel, Field, parse_obj_as
 import anyio
 from anyio import Event, create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from fastapi import HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
+from pydantic import BaseModel, Field, parse_obj_as
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
 from dara.core.logging import eng_logger
 
+
 # Client message types
 class DaraClientMessage(BaseModel):
     """
     Represents a message sent by Dara internals from the frontend to the backend.
     """
+
     type: Literal['message'] = Field(default='message', const=True)
     channel: str
     message: Any
+
 
 class CustomClientMessagePayload(BaseModel):
     kind: str
     data: Any
 
+
 class CustomClientMessage(BaseModel):
     """
     Represents a custom message sent by the frontend to the backend.
     """
+
     type: Literal['custom'] = Field(default='custom', const=True)
     message: CustomClientMessagePayload
+
 
 ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 
@@ -78,24 +84,29 @@ class CustomServerMessagePayload(ServerMessagePayload):
     kind: str
     data: Any
 
+
 class DaraServerMessage(BaseModel):
     """
     Represents a message sent by Dara internals from the backend to the frontend.
     """
+
     type: Literal['message'] = Field(default='message', const=True)
-    message: ServerMessagePayload # exact messages expected by frontend are defined in js/api/websocket.tsx
+    message: ServerMessagePayload   # exact messages expected by frontend are defined in js/api/websocket.tsx
 
 
 class CustomServerMessage(BaseModel):
     """
     Represents a custom message sent by the backend to the frontend.
     """
+
     type: Literal['custom'] = Field(default='custom', const=True)
     message: CustomServerMessagePayload
+
 
 ServerPayload = Union[ServerMessagePayload, CustomServerMessagePayload]
 LoosePayload = Union[ServerPayload, dict]
 ServerMessage = Union[DaraServerMessage, CustomServerMessage]
+
 
 class WebSocketHandler:
     """
@@ -169,11 +180,13 @@ class WebSocketHandler:
 
             try:
                 handler = custom_ws_handlers_registry.get(kind)
-                response = await run_user_handler(handler, self.channel_id, data)
+                response = await run_user_handler(handler, args=(self.channel_id, data))
 
                 # If the handler returns a response, send it to the client
                 if response is not None:
-                    await self.send_message(CustomServerMessage(message=CustomServerMessagePayload(kind=kind, data=response)))
+                    await self.send_message(
+                        CustomServerMessage(message=CustomServerMessagePayload(kind=kind, data=response))
+                    )
             except KeyError as e:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
                 return
@@ -223,7 +236,6 @@ class WebsocketManager:
         else:
             return DaraServerMessage(message=ServerMessagePayload.parse_obj(payload))
 
-
     def create_handler(self, channel_id: str) -> WebSocketHandler:
         """
         Create and register a new WebSocketHandler for the given channel_id.
@@ -234,7 +246,7 @@ class WebsocketManager:
         self.handlers[channel_id] = handler
         return handler
 
-    async def broadcast(self, message: LoosePayload, custom = False):
+    async def broadcast(self, message: LoosePayload, custom=False):
         """
         Send a message to all connected clients.
 
@@ -244,7 +256,7 @@ class WebsocketManager:
         for handler in self.handlers.values():
             await handler.send_message(self._construct_message(message, custom))
 
-    async def send_message(self, channel_id: str, message: LoosePayload, custom = False):
+    async def send_message(self, channel_id: str, message: LoosePayload, custom=False):
         """
         Send a message to the client associated with the given channel_id.
 
@@ -256,7 +268,7 @@ class WebsocketManager:
         if handler:
             await handler.send_message(self._construct_message(message, custom))
 
-    async def send_and_wait(self, channel_id: str, message: LoosePayload, custom = False):
+    async def send_and_wait(self, channel_id: str, message: LoosePayload, custom=False):
         """
         Send a message to the client associated with the given channel_id and wait for a response.
 
@@ -358,10 +370,17 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                 Handle messages sent to the client and pass them via the websocket
                 """
                 async for message in handler.receive_stream:
-                    if message.type == 'message' and isinstance(message.message, ServerMessagePayload) and getattr(message.message, 'task_id', None) is not None and getattr(message.message, 'status', None):
+                    if (
+                        message.type == 'message'
+                        and isinstance(message.message, ServerMessagePayload)
+                        and getattr(message.message, 'task_id', None) is not None
+                        and getattr(message.message, 'status', None)
+                    ):
                         data = message.message
                         # Reconstruct the payload without the result field
-                        message.message = ServerMessagePayload(**{k: v for k, v in data.dict().items() if k != 'result'})
+                        message.message = ServerMessagePayload(
+                            **{k: v for k, v in data.dict().items() if k != 'result'}
+                        )
                     await websocket.send_json(jsonable_encoder(message))
 
             # Start the two tasks to handle sending and receiving messages

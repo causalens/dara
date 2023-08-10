@@ -48,7 +48,6 @@ from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
 
 
-
 class Configuration(GenericModel):
     """Definition of the main framework configuration"""
 
@@ -72,6 +71,7 @@ class Configuration(GenericModel):
     template_renderers: Dict[str, Callable[..., Template]]
     theme: Union[BaseTheme, str]
     title: str
+    ws_handlers: Dict[str, Callable[[str, Any], Any]]
 
     class Config:
         extra = 'forbid'
@@ -136,6 +136,7 @@ class ConfigurationBuilder:
         self.startup_functions = []
         self.context_components = []
         self.task_module = None
+        self._custom_ws_handlers = {}
 
         self.template = 'default'
         self.theme = BaseTheme(main='light')
@@ -471,4 +472,5 @@ class ConfigurationBuilder:
             template_renderers=self._template_renderers,
             theme=self.theme,
             title=self.title,
+            ws_handlers=self._custom_ws_handlers,
         )

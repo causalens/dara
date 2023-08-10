@@ -392,9 +392,7 @@ def bundle_js(config: Configuration, build_config: BuildConfig, output_dir: Opti
     # If we need to pull from a custom registry in CI where the user is not npm logged in, then add to the npmrc file
     if build_config.npm_token is not None and build_config.npm_registry is not None:
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
-            npmrc_file.write(
-                f'//{build_config.npm_registry}/:_authToken={build_config.npm_token}'
-            )
+            npmrc_file.write(f'//{build_config.npm_registry}/:_authToken={build_config.npm_token}')
 
     # Copy statics
     files = os.listdir(statics)

@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from __future__ import annotations
+
 from importlib.metadata import version
 
 from dara.core.base_definitions import CacheType

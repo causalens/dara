@@ -26,10 +26,7 @@ from click.exceptions import UsageError
 
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.js_tooling.js_utils import (
-    get_js_config,
-    setup_js_scaffolding,
-)
+from dara.core.js_tooling.js_utils import get_js_config, setup_js_scaffolding
 
 LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
 

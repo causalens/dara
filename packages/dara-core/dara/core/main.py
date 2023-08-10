@@ -52,6 +52,7 @@ from dara.core.internal.registries import (
     template_registry,
     utils_registry,
     websocket_registry,
+    custom_ws_handlers_registry
 )
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
@@ -221,6 +222,10 @@ def _start_application(config: Configuration):
             dependencies=route.dependencies,
             methods=[route.method.value],
         )
+
+    # Add WS handlers
+    for kind, handler in config.ws_handlers.items():
+        custom_ws_handlers_registry.register(kind, handler)
 
     # Check which JS build mode the app is ran in
     build_config = get_build_config()
