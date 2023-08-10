@@ -74,6 +74,14 @@ export interface VariableRequestMessage {
     type: 'message';
 }
 
+export interface CustomMessage {
+    message: {
+        data: any;
+        kind: string;
+    };
+    type: 'custom';
+}
+
 export type WebSocketMessage =
     | InitMessage
     | PingPongMessage
@@ -81,7 +89,8 @@ export type WebSocketMessage =
     | ProgressNotificationMessage
     | ServerTriggerMessage
     | ServerErrorMessage
-    | VariableRequestMessage;
+    | VariableRequestMessage
+    | CustomMessage;
 
 function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
     return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
@@ -97,6 +106,10 @@ function isServerErrorMessage(message: WebSocketMessage): message is ServerError
 
 function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
     return message.type === 'message' && 'variable' in message.message;
+}
+
+function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
+    return message.type === 'custom';
 }
 
 const pingMessage: PingPongMessage = {
@@ -175,6 +188,7 @@ function onCloseWs(token: string, liveReload: boolean): void {
 }
 
 export interface WebSocketClientInterface {
+    customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
     sendVariable: (value: any, channel: string) => void;
@@ -305,6 +319,13 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
+     * Get the observable to receive custom messages
+     */
+    customMessages$(): Observable<CustomMessage> {
+        return this.messages$.pipe(filter((msg) => isCustomMessage(msg))) as Observable<CustomMessage>;
+    }
+
+    /**
      * Returns a promise that will resolve when the task is completed. If the task is cancelled then this will throw an
      * error to signify that.
      *
@@ -344,6 +365,26 @@ export class WebSocketClient implements WebSocketClientInterface {
                     message: value,
                     type: 'message',
                 })
+            );
+        }
+    }
+
+    /**
+     * Send custom message to the backend
+     *
+     * @param kind kind of custom message
+     * @param data custom message data
+     */
+    sendCustomMessage(kind: string, data: any): void {
+        if (this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(
+                JSON.stringify({
+                    message: {
+                        data,
+                        kind,
+                    },
+                    type: 'custom',
+                } as CustomMessage)
             );
         }
     }
