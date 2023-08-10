@@ -353,7 +353,11 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                 Handle messages received from the client and pass them to the handler
                 """
                 # Wait for incoming websocket messages and handle them appropriately
-                async for data in websocket.iter_json():
+                while True:
+                    # Note: this must be a while:true rather than a for-await
+                    # as the latter does not properly handle disconnections e.g. when relaoading the server
+                    data = await websocket.receive_json()
+
                     # Heartbeat to keep connection alive
                     if data['type'] == 'ping':
                         await websocket.send_json({'type': 'pong', 'message': None})
