@@ -401,6 +401,114 @@ The action can then be used like any other built-in action.
 Button('Test button', onclick=CustomAction(country='United Kingdom', function=lambda x: f'Greetings, {x}!'))
 ```
 
+### WebSocket communication
+
+In addition to using actions or raw HTTP requests to communicate with the Dara server, custom components can utilise the WebSocket connection if real-time communication is required.
+Dara internally supports a `custom` WS message type which the application can choose to handle in any way it wants; each custom message has a `kind` field which can be used to
+distinguish between different message types.
+
+On the Python side, a custom handler can be registered by calling `config.add_ws_handler`:
+
+```python title=main.py
+from dara.core import ConfigurationBuilder
+
+config = ConfigurationBuilder()
+
+def handle_custom_message(channel: str, message: dict):
+    """
+    channel: The channel the message was received on; unique to each client connection
+    message: The content of the message received
+    """
+    print(f'Received custom message: {message} from channel {str}')
+    # response is sent back to the client, must be JSON-serializable
+    return {'response': 'Hello from Python!'}
+
+config.add_ws_handler(kind='my_custom_kind', handler=handle_custom_message)
+```
+
+The registered handler will be called whenever a message with the specified `kind` is received from the client, receiving a channel ID unique to a specific user connection as well as the message payload.
+The handler can then send a response back to the client if needed.
+
+On the JS side, the `WebSocketContext` provides a client with a `sendCustomMessage` method which can be used to send a custom message to the server,
+as well as a `customMessages$()` observable which emits messages received from the server.
+
+```tsx title=js/custom-component.tsx
+import { WebsocketCtx } from "@darajs/core";
+
+function MyCustomComponent(props: any) {
+  const { client } = useContext(WebsocketCtx);
+
+  useEffect(() => {
+    const sub = client.customMessages$().subscribe((message) => {
+      // Handle custom messages from the server
+      console.log("received message", message);
+    });
+
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [client]);
+
+  const handleClick = () => {
+    // Send a message to the server
+    client.sendCustomMessage("my_custom_type", { some: "content" });
+  };
+
+  return <button onClick={handleClick}>Send custom message</button>;
+}
+```
+
+#### Identifying websocket connections
+
+In some cases, it might be useful to identify websocket connections, i.e. to know which user is connected to which channel. For this purpose, Dara maintains registries
+of websocket connections and their associated user and session identifiers.
+
+```python title=main.py
+from dara.core import ConfigurationBuilder
+from dara.core.internal.registries import sessions_registry, websocket_registry
+
+config = ConfigurationBuilder()
+
+def handle_custom_message(channel: str, message: dict):
+    """
+    channel: The channel the message was received on; unique to each client connection
+    message: The content of the message received
+    """
+    session = None
+    user = None
+
+    # websocket registry maps session_id -> channel_id
+    for session_id, channel_id in websocket_registry.get_all().items():
+        if channel_id == channel:
+            session = session_id
+            break
+
+    # sessions registry maps user_id -> session_id
+    for user_id, session_id in sessions_registry.get_all().items():
+        if session_id == session:
+            user = user_id
+            break
+
+    print(f'Received custom message: {message} from channel {str} for user {user} and session {session}')
+```
+
+The same registries can be used to send WS messages to a specific user or session:
+
+```python
+from dara.core.internal.registries import utils_registry, sessions_registry, websocket_registry
+
+# Some stored user ID
+user_id = 'some_user_id'
+
+# Get the channel associated with the user
+session_id = sessions_registry.get(user_id)
+channel_id = websocket_registry.get(session_id)
+
+# Send a message to the channel
+ws_manager = utils_registry.get('WebsocketManager')
+ws_manager.send_message(channel_id, {'kind': 'my_kind', 'data': 'some_payload'}, custom=True)
+```
+
 ## Distributing custom components and actions
 
 After you have built components and actions you might want to distribute them as a separate package. Users will then be able to use your components and actions without explicitly registering them. The steps to do that are as follows:

@@ -8,7 +8,7 @@ title: Changelog
 
 ```python
 from typing import Any
-from dara import ConfigurationBuilder
+from dara.core import ConfigurationBuilder
 
 config = ConfigurationBuilder()
 
