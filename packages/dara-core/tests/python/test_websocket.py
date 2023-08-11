@@ -51,6 +51,42 @@ async def test_websocket_invalid_token():
             session = client.websocket_connect('/api/core/ws?token=random_token')
             await session.connect()
 
+async def test_custom_ws_handler():
+    builder = ConfigurationBuilder()
+
+    def custom_handler(channel: str, msg):
+        return {
+            'channel': channel,
+            'message': msg,
+            'response': 'response'
+        }
+
+    builder.add_ws_handler(kind='my_custom_kind', handler=custom_handler)
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncTestClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            # Receive the init message
+            init = await websocket.receive_json()
+
+            # Send a message with our custom kind
+            await websocket.send_json({'type': 'custom', 'message': { 'kind': 'my_custom_kind', 'data': 'test'}})
+
+            # Should receive the message back
+            msg = await websocket.receive_json()
+            assert msg == {
+                'type': 'custom',
+                'message': {
+                    'kind': 'my_custom_kind',
+                    'data': {
+                        'channel': init.get('message').get('channel'),
+                        'message': 'test',
+                        'response': 'response'
+                    }
+                }
+            }
 
 async def test_action_handler_error():
     builder = ConfigurationBuilder()

@@ -47,6 +47,7 @@ from dara.core.internal.registries import (
     auth_registry,
     component_registry,
     config_registry,
+    custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
     template_registry,
@@ -221,6 +222,10 @@ def _start_application(config: Configuration):
             dependencies=route.dependencies,
             methods=[route.method.value],
         )
+
+    # Add WS handlers
+    for kind, handler in config.ws_handlers.items():
+        custom_ws_handlers_registry.register(kind, handler)
 
     # Check which JS build mode the app is ran in
     build_config = get_build_config()

@@ -21,13 +21,8 @@ import sys
 import traceback
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from dara.core.internal.websocket import WebsocketManager
-
-if TYPE_CHECKING:
-    from dara.core.internal.message_bus import MessageBus
-
 from dara.core.logging import eng_logger
 
 
@@ -78,6 +73,6 @@ async def send_error_for_session(ws_mgr: WebsocketManager, session_id: str):
             ws_channel = websocket_registry.get(session_id)
 
             if ws_channel:
-                await ws_mgr.send_message(ws_channel, get_error_for_channel())
+                await ws_mgr.send_message(ws_channel, message=get_error_for_channel())
         except KeyError:
             eng_logger.warning('No ws_channel found for session', {'session_id': session_id})

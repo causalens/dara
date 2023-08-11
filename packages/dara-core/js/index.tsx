@@ -106,6 +106,7 @@ export {
     resolveValue,
     useVariableValue,
     normalizeRequest,
+    WebSocketCtx,
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };

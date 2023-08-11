@@ -71,6 +71,7 @@ class Configuration(GenericModel):
     template_renderers: Dict[str, Callable[..., Template]]
     theme: Union[BaseTheme, str]
     title: str
+    ws_handlers: Dict[str, Callable[[str, Any], Any]]
 
     class Config:
         extra = 'forbid'
@@ -103,6 +104,7 @@ class ConfigurationBuilder:
     _static_folders: List[str]
     _package_tags_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     _template_extra_js: str
+    _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
     routes: Set[ApiRoute]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -134,6 +136,7 @@ class ConfigurationBuilder:
         self.startup_functions = []
         self.context_components = []
         self.task_module = None
+        self._custom_ws_handlers = {}
 
         self.template = 'default'
         self.theme = BaseTheme(main='light')
@@ -241,6 +244,42 @@ class ConfigurationBuilder:
         """
         self._static_folders.append(path)
         return path
+
+    def add_ws_handler(self, kind: str, handler: Callable[[str, Any], Any]):
+        """
+        Register a custom websocket handler, which will be called when a message of a given kind is received.
+
+        Example:
+
+        ```python
+        # Received message
+        {
+            "type": "custom",
+            "message": {
+                "kind": "my_custom_kind",
+                "data": "some arbitrary data"
+            }
+        }
+
+        # Handler
+        config.add_ws_handler(kind='my_custom_kind', handler=my_custom_handler)
+
+        def my_custom_handler(channel: str, data: Any):
+            print(f'Received message on channel {channel} with data {data}')
+            return 'some response'
+
+        # Message sent back
+        {
+            "type": "custom",
+            "message": {
+                "kind": "my_custom_kind",
+                "data": "some response"
+            }
+        }
+        ```
+        """
+        self._custom_ws_handlers[kind] = handler
+        return handler
 
     def _migrate_static_data(self):
         """
@@ -433,4 +472,5 @@ class ConfigurationBuilder:
             template_renderers=self._template_renderers,
             theme=self.theme,
             title=self.title,
+            ws_handlers=self._custom_ws_handlers,
         )
