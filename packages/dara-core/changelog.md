@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.0.1
 
 -   Added custom websocket message support. Custom messages can be sent from custom JS components to the server and vice versa.
 
