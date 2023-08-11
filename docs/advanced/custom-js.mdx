@@ -500,7 +500,7 @@ from dara.core.internal.registries import utils_registry, sessions_registry, web
 # Some stored user ID
 user_id = 'some_user_id'
 
-# Get the channel associated with the user
+# Get the channel associated with the user; this lookup will only succeed if the user is currently connected
 session_id = sessions_registry.get(user_id)
 channel_id = websocket_registry.get(session_id)
 
