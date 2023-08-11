@@ -267,7 +267,7 @@ config.add_component(SomeComponent)
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why are there extra matplotlib graphs appearing?</h3></summary>
+<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why do I see unexpected behavior with `plotting.Matplotlib`?</h3></summary>
 
 This is likely caused by the use of pyplot to create a figure. In the context of the framework you should always use matplotlib's Figure object to instantiate your figure. The reason being that pyplot is not thread safe and can cause some unwanted behavior.
 
