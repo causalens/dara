@@ -10,7 +10,7 @@ jobs:
   lint-and-tests:
     runs-on: ubuntu-latest
     container:
-      image: "causalens.jfrog.io/docker-internal/causalens-base:latest"
+      image: "causalens.jfrog.io/docker-open-source/causalens-base:latest"
       credentials:
         username: "${{ secrets.JF_USERNAME }}"
         password: "${{ secrets.JF_PASSWORD }}"

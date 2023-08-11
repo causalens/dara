@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     SingleVariable,
@@ -43,6 +43,10 @@ const StyledSectionedList = injectCss(SectionedList);
 function hasListSection(items: Item[] | ListSection[]): items is ListSection[] {
     return items.length > 0 && 'items' in items[0];
 }
+
+function isStringArray(value: any): value is string[] {
+    return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
 interface SelectProps extends FormComponentProps {
     /** Pass through the className property */
     className: string;
@@ -77,13 +81,21 @@ function Select(props: SelectProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
 
+    // In the case of a Variable or DerivedVariable we could end up with an array of strings instead of items, so we need to convert them if that happens
+    const formattedItems = useMemo(() => {
+        if (isStringArray(items)) {
+            return items.map((item) => ({ badge: null, image: null, label: item, value: item }));
+        }
+        return items;
+    }, [items]);
+
     const [onChangeAction] = useAction(props.onchange);
 
     //  if someone were to update the component rule of Hooks could be broken if items switched from having sections to not, so we use a ref for this to be only run once
     const itemHasListSection = useRef(null);
 
     if (itemHasListSection.current === null) {
-        itemHasListSection.current = hasListSection(items);
+        itemHasListSection.current = hasListSection(formattedItems);
     }
 
     // For multiselect we want to keep the initial value type consistent with later selections
@@ -113,7 +125,7 @@ function Select(props: SelectProps): JSX.Element {
         return (
             <StyledSectionedList
                 $rawCss={css}
-                items={items}
+                items={formattedItems}
                 onSelect={onSelect}
                 selectedItem={selectedItem}
                 style={style}
@@ -122,7 +134,7 @@ function Select(props: SelectProps): JSX.Element {
     }
 
     // We need to redefine items as the type is not known at this point
-    const itemArray = items as Array<Item>;
+    const itemArray = formattedItems as Array<Item>;
 
     if (props.multiselect) {
         const [selectedItems, setSelectedItems] = useState(getMultiselectItems(value, itemArray));
@@ -141,7 +153,7 @@ function Select(props: SelectProps): JSX.Element {
         // the race condition and respect the main value if it is updated elsewhere.
         useEffect(() => {
             setSelectedItems(getMultiselectItems(value, itemArray));
-        }, [items, value]);
+        }, [formattedItems, value]);
         return (
             <StyledMultiSelect
                 $rawCss={css}
@@ -171,7 +183,7 @@ function Select(props: SelectProps): JSX.Element {
     useEffect(() => {
         const selected = itemArray.find((item) => item.value === value);
         setSelectedItem(selected !== undefined ? selected : null);
-    }, [items, value]);
+    }, [formattedItems, value]);
     if (props.searchable) {
         return (
             <StyledComboBox

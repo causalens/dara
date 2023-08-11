@@ -94,6 +94,9 @@ class Carousel(ContentComponent):
 
     ```
 
+    Do note that when passing images in the component of the CarouselItem, the image can cause the Carousel to change height as you scroll through the items. The Carousel automatically resizes to the height of the largest item.
+    However if the image has not been rendered yet, the Carousel will not initially know the height of the image and can result in weird behaviour. To avoid this, you can set an image height if passing it as part of the CarouselItem component prop.
+
     A Carousel can also be controlled by Variables, in the example below it will first render showing the second panel:
 
     ```python
