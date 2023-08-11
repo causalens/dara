@@ -25,9 +25,9 @@ homepage = "https://dara.causalens.com/"
 include = ["create_dara_app/templates/**/*"]
 license = "Apache-2.0"
 name = "create-dara-app"
-repository = "https://github.com/causalens/dara"
-version = "1.0.0"
 readme = "README.md"
+repository = "https://github.com/causalens/dara"
+version = "1.0.1"
 
 [tool.poetry.dependencies]
 click = "=8.1.3"
