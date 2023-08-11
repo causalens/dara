@@ -44,10 +44,28 @@ def cli():
 @click.argument('directory', type=click.Path(exists=False), default='.')
 @click.option('--debug', help='Enable debug logging', is_flag=True, default=False)
 @click.option('--no-install', help='Skip installing dependencies', is_flag=True, default=False)
+@click.option('--no-input', help='Skip all user prompting', is_flag=True, default=False)
+@click.option('--project-name', help='Project name', type=str, default='Decision App')
+@click.option('--package-name', help='Python package name. Example: my_decision_app', type=str)
+@click.option(
+    '--overwrite-if-exists',
+    help='Overwrite the contents of the output directory if it exists.',
+    is_flag=True,
+    default=False,
+)
 @click.option(
     '--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry'
 )
-def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal['pip', 'poetry']):
+def bootstrap(
+    directory: str = '.',
+    debug: bool = False,
+    no_install: bool = False,
+    no_input: bool = False,
+    project_name: str = 'Decision App',
+    package_name: str = '',
+    overwrite_if_exists: bool = False,
+    packaging: Literal['pip', 'poetry'] = 'poetry',
+):
     """
     Creates a new Decision App project under specified parent DIRECTORY with the default template.
     Uses the Dara version matching the CLI's version.
@@ -55,24 +73,32 @@ def bootstrap(directory: str, debug: bool, no_install: bool, packaging: Literal[
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
     dara_version = version('create-dara-app')
-    logger.debug(f'Using create-dara-app version {dara_version}')
+    logger.debug('Using create-dara-app version %s', dara_version)
 
     if packaging == 'poetry':
         # Check if poetry is available
         poetry_path = shutil.which('poetry')
         if poetry_path is None:
-            logger.warn('Poetry not found. Falling back to pip.')
+            logger.warning('Poetry not found. Falling back to pip.')
             packaging = 'pip'
+
+    extra_context = {
+        '__dara_version': dara_version,
+        '__install': not no_install,
+        '__packaging': packaging,
+        'project_name': project_name,
+    }
+
+    if package_name:
+        extra_context['__package_name'] = package_name
 
     try:
         cookiecutter(
             TEMPLATE_DIRECTORY,
             output_dir=directory,
-            extra_context={
-                '__dara_version': dara_version,
-                '__install': not no_install,
-                '__packaging': packaging,
-            },
+            extra_context=extra_context,
+            no_input=no_input,
+            overwrite_if_exists=overwrite_if_exists,
         )
     except OutputDirExistsException as e:
         click.echo(
