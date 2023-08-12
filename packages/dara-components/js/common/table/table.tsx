@@ -294,18 +294,6 @@ function getDatetimeColumns(columns: ColumnProps[]): string[] {
 }
 
 /**
- * Clean up the index column from rows.
- *
- * @param rows rows to remove the index column from
- */
-function cleanIndex(rows: DataRow[]): Omit<DataRow, typeof INDEX_COL>[] {
-    return rows.map((r) => {
-        const { [INDEX_COL]: _, ...rest } = r;
-        return rest;
-    });
-}
-
-/**
  * Type guard for checking whether column is of type `ColumnProps`
  *
  * @param column column to check for
@@ -456,7 +444,7 @@ function Table(props: TableProps): JSX.Element {
                     const selectedRows = await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx)));
 
                     // In multiselect mode, send selected rows
-                    onClickRow(cleanIndex(selectedRows));
+                    onClickRow(selectedRows);
                 } else {
                     onClickRow(null);
                 }
@@ -470,7 +458,7 @@ function Table(props: TableProps): JSX.Element {
 
                 setSelectedRowIndices(newSelectedIndices);
                 const selectedRows = await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx)));
-                onClickRow(cleanIndex(selectedRows));
+                onClickRow(selectedRows);
             }
         },
         [selectedRowIndices, getItem]
