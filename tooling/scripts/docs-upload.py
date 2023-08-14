@@ -15,7 +15,6 @@ version = os.environ['VERSION']
 # Build reference docs
 if os.environ.get('BUILD_REFERENCE') == 'true':
     package_paths = os.environ.get('PACKAGE_PATHS', '').strip().split('\n')
-    print('package paths:', package_paths)
 
     build(
         packages=package_paths,
@@ -45,10 +44,8 @@ artifactory_repository = os.environ['ARTIFACTORY_REPOSITORY']
 
 with open('docs.zip', 'rb') as f:
     url = f"{artifactory_url}/{artifactory_repository}/{package}/{version}/docs.zip"
-    print('requesting', url)
-    print('zip size:', os.path.getsize('docs.zip'))
-    # response = requests.put(url, auth=HTTPBasicAuth(artifactory_user, artifactory_password), data = f)
-    # response.raise_for_status()
+    response = requests.put(url, auth=HTTPBasicAuth(artifactory_user, artifactory_password), data = f)
+    response.raise_for_status()
 
 # Cleanup
 shutil.rmtree('__docs')

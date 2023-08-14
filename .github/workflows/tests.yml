@@ -41,24 +41,6 @@ jobs:
           fi
       - name: Link packages
         run: make link
-      - name: TEST Get version
-        id: set-version
-        # Retrieves version from 'version = "<version>"' line in borg.toml
-        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' borg.toml)"
-      - name: TEST Package and Publish Docs
-        run: make publish-docs
-        env:
-          PACKAGE: dara
-          VERSION: ${{ steps.set-version.outputs.version }}
-          PACKAGE_PATHS: |
-            packages/create-dara-app/create_dara_app
-            packages/dara-components/dara.components
-            packages/dara-core/dara.core
-          BUILD_REFERENCE: true
-          ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
-          ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
-          ARTIFACTORY_REPOSITORY: documentation
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
