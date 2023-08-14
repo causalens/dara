@@ -75,9 +75,9 @@ publish:
 	sed -i '$$ d' .npmrc
 
 publish-docs:
-	poetry source add causalens https://causalens.jfrog.io/artifactory/api/pypi/python-internal/simple/
-	poetry config http-basic.causalens $${JF_USERNAME} $${JF_PASSWORD}
-	poetry add --source=causalens docs_builder
+	poetry source add causalens https://causalens.jfrog.io/artifactory/api/pypi/python-open-source/simple/
+	poetry config http-basic.causalens $${ARTIFACTORY_USERNAME} $${ARTIFACTORY_PASSWORD}
+	poetry add --source=causalens docs-builder@~0.2.0
 	poetry run python ./tooling/scripts/docs-upload.py
 
 # Clean development artifacts from the repository
