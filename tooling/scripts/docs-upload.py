@@ -14,7 +14,7 @@ version = os.environ['VERSION']
 
 # Build reference docs
 if os.environ.get('BUILD_REFERENCE') == 'true':
-    package_paths = os.environ.get('PACKAGE_PATHS', '').split('\n')
+    package_paths = os.environ.get('PACKAGE_PATHS', '').strip().split('\n')
     print('package paths:', package_paths)
 
     build(
