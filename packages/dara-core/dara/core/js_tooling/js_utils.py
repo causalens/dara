@@ -33,7 +33,6 @@ from dara.core.definitions import JsComponentDef
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
-
 class BuildMode(Enum):
     # AutoJS mode - use pre-bundled UMDs
     AUTO_JS = 'AUTO_JS'
@@ -62,6 +61,18 @@ class BuildConfig(BaseModel):
     # Optional npm token for the registry url added above
     npm_token: Optional[str] = None
 
+class BuildCache(BaseModel):
+    static_folders: List[str]
+    """List of static folders registered"""
+
+    static_files_dir: str
+    """Static files output folder"""
+
+    package_map: Dict[str, str]
+    """Map of py_module_name to js_module_name"""
+
+    build_config: BuildConfig
+    """Build configuration used to generate this cache"""
 
 def get_js_config() -> Union[JsConfig, None]:
     """
