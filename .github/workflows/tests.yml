@@ -50,7 +50,7 @@ jobs:
         env:
           PACKAGE: dara
           VERSION: ${{ steps.set-version.outputs.version }}
-          PACKAGE_PATHS: >
+          PACKAGE_PATHS: |
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
