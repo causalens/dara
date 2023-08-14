@@ -68,8 +68,6 @@ jobs:
       - name: Package and Publish Docs
         run: make publish-docs
         env:
-          JF_USERNAME: ${{ secrets.JF_USERNAME }}
-          JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
           PACKAGE: dara
           VERSION: ${{ steps.set-version.outputs.version }}
           PACKAGE_PATHS: >
