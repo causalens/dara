@@ -63,6 +63,7 @@ class Configuration(GenericModel):
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
     startup_functions: List[Callable]
+    static_folders: List[str]
     static_files_dir: str
     package_tag_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     template_extra_js: str
@@ -466,6 +467,7 @@ class ConfigurationBuilder:
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,
             startup_functions=self.startup_functions,
+            static_folders=self._static_folders,
             task_module=self.task_module,
             template=self.template,
             template_extra_js=self._template_extra_js,

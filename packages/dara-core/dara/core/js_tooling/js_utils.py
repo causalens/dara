@@ -22,7 +22,7 @@ import shutil
 import sys
 from enum import Enum
 from importlib.metadata import version
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from packaging.version import Version
 from pydantic import BaseModel
@@ -34,32 +34,55 @@ from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
 class BuildMode(Enum):
-    # AutoJS mode - use pre-bundled UMDs
     AUTO_JS = 'AUTO_JS'
-    # Production mode - vite build from generated entry file (optionally with custom JS)
+    """AutoJS mode - use pre-bundled UMDs"""
+
     PRODUCTION = 'PRODUCTION'
+    """Production mode - vite build from generated entry file (optionally with custom JS)"""
 
 
-class JsConfig(TypedDict):
+class JsConfig(BaseModel):
     # Relative path to the local entrypoint from the package root
     local_entry: str
-    # Extra dependencies to add to package.json before running install
+    """Relative path to the local entrypoint from the package root"""
+
     extra_dependencies: Dict[str, str]
-    # Package manager to use, defaults to npm
-    package_manager: str
+    """Extra dependencies to add to package.json before running install"""
+
+    package_manager: Literal['npm', 'yarn', 'pnpm']
+    """Package manager to use, defaults to npm"""
+
+    @classmethod
+    def from_file(cls, path: str = 'dara.config.json') -> Optional['JsConfig']:
+        """
+        Read from a config file
+
+        :param path: path to the config file, defaults to 'dara.config.json'
+        """
+        if not os.path.exists(path):
+            return None
+
+        return cls.parse_file(path)
 
 
 class BuildConfig(BaseModel):
-    # Build mode set based on CLI settings
+    """
+    Represents the build configuration used
+    """
     mode: BuildMode
-    # Whether HMR is enabled
+    """Build mode set based on CLI settings"""
+
     dev: bool
-    # Custom JS configuration from config file
+    """Whether dev (HMR) mode is enabled"""
+
     js_config: Optional[JsConfig] = None
-    # Optional npm registry url to pull packages from
+    """Custom JS configuration from dara.config.json file"""
+
     npm_registry: Optional[str] = None
-    # Optional npm token for the registry url added above
+    """Optional npm registry url to pull packages from"""
+
     npm_token: Optional[str] = None
+    """Optional npm token for the registry url added above"""
 
 class BuildCache(BaseModel):
     static_folders: List[str]
@@ -73,25 +96,6 @@ class BuildCache(BaseModel):
 
     build_config: BuildConfig
     """Build configuration used to generate this cache"""
-
-def get_js_config() -> Union[JsConfig, None]:
-    """
-    Get the JS configuration from dara.config.json.
-    """
-    js_config_path = os.path.join(os.getcwd(), 'dara.config.json')
-
-    if not os.path.exists(js_config_path):
-        return None
-
-    with open(js_config_path, 'r', encoding='utf-8') as f:
-        js_config = json.loads(f.read())
-
-    # Validate the config
-    if 'package_manager' in js_config:
-        if js_config['package_manager'] not in ['npm', 'yarn', 'pnpm']:
-            raise ValueError('Invalid "package_manager" in "dara.config.json", must be one of "pnpm", "npm" or "yarn"')
-
-    return js_config
 
 
 def setup_js_scaffolding():
