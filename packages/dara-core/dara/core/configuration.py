@@ -58,7 +58,6 @@ class Configuration(GenericModel):
     components: List[ComponentTypeAnnotation]
     context_components: List[ComponentInstance]
     enable_devtools: bool
-    js_module_name: Optional[Tuple[str, str, str]]
     live_reload: bool
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
@@ -114,15 +113,6 @@ class ConfigurationBuilder:
     _components: List[ComponentTypeAnnotation]
     _errors: List[str]
     enable_devtools: bool
-    js_module_name: Optional[Tuple[str, str, str]]
-    """
-    Optional local js_module to include - tuple of (py_module, js_module, version)
-
-    config.js_module_name = ('py_module_name', 'js_module_name', 0.0.1)
-    # or
-    config.js_module_name = ('py_module_name', 'js_module_name', version('py_module_name'))
-    """
-
     live_reload: bool
     _pages: Dict[str, Page]
     _template_renderers: Dict[str, Callable[..., Template]]
@@ -147,7 +137,6 @@ class ConfigurationBuilder:
         self._components = []
         self._errors = []
         self.enable_devtools = False
-        self.js_module_name = None
         self.live_reload = False
         self._package_tags_processors = []
         self._template_extra_js = ''
@@ -484,7 +473,6 @@ class ConfigurationBuilder:
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,
             enable_devtools=self.enable_devtools,
-            js_module_name=self.js_module_name,
             live_reload=self.live_reload,
             package_tag_processors=self._package_tags_processors,
             pages=self._pages,

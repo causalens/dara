@@ -61,6 +61,7 @@ from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.js_tooling.js_utils import (
+    BuildCache,
     BuildMode,
     build_autojs_template,
     get_build_config,
@@ -227,7 +228,9 @@ def _start_application(config: Configuration):
     for kind, handler in config.ws_handlers.items():
         custom_ws_handlers_registry.register(kind, handler)
 
-    # Check which JS build mode the app is ran in
+    # Generate a new build_cache
+    build_cache = BuildCache.from_config(config)
+    build_diff = build_cache.get_diff()
     build_config = get_build_config()
 
     # Check if we need to build any JS
