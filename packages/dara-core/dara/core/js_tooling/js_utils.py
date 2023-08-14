@@ -84,6 +84,19 @@ class BuildConfig(BaseModel):
     npm_token: Optional[str] = None
     """Optional npm token for the registry url added above"""
 
+    @classmethod
+    def from_env(cls):
+        js_config = JsConfig.from_file()
+
+        # Production mode - if --enable-hmr or --production or --docker is set
+        is_production = os.environ.get('DARA_PRODUCTION_MODE', 'FALSE') == 'TRUE'
+        is_hmr = os.environ.get('DARA_HMR_MODE', 'FALSE') == 'TRUE'
+        is_docker = os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE'
+        if is_hmr or is_production or is_docker:
+            return BuildConfig(mode=BuildMode.PRODUCTION, dev=is_hmr, js_config=js_config)
+
+        return BuildConfig(mode=BuildMode.AUTO_JS, dev=False)
+
 class BuildCache(BaseModel):
     static_folders: List[str]
     """List of static folders registered"""
@@ -97,6 +110,20 @@ class BuildCache(BaseModel):
     build_config: BuildConfig
     """Build configuration used to generate this cache"""
 
+    @classmethod
+    def from_config(cls, config: Configuration):
+        """
+        Create a BuildCache from a Configuration
+        """
+        build_config = BuildConfig.from_env()
+
+        return BuildCache(
+            static_folders=config.static_folders,
+            static_files_dir=config.static_files_dir,
+            package_map=config.get_package_map(),
+            build_config=build_config,
+        )
+
 
 def setup_js_scaffolding():
     """
@@ -109,37 +136,6 @@ def setup_js_scaffolding():
 
     js_scaffold_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'custom_js_scaffold')
     shutil.copytree(js_scaffold_path, os.path.join(os.getcwd(), 'js'))
-
-
-def get_build_config() -> BuildConfig:
-    """
-    Get build configuration
-    """
-    js_config = get_js_config()
-
-    # Production mode - if --enable-hmr or --production or --docker is set
-    is_production = os.environ.get('DARA_PRODUCTION_MODE', 'FALSE') == 'TRUE'
-    is_hmr = os.environ.get('DARA_HMR_MODE', 'FALSE') == 'TRUE'
-    is_docker = os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE'
-    if is_hmr or is_production or is_docker:
-        return BuildConfig(mode=BuildMode.PRODUCTION, dev=is_hmr, js_config=js_config)
-
-    return BuildConfig(mode=BuildMode.AUTO_JS, dev=False)
-
-
-def _serialise_build_config(build_config: BuildConfig) -> str:
-    """
-    Helper method to serialise the build_config into a unique string
-    Used as a key in the build cache file
-
-    :param build_config: build configuration
-    """
-    serialised: str = build_config.mode.value
-
-    if build_config.dev:
-        serialised += '_DEV'
-
-    return serialised
 
 
 def _py_version_to_js(package_name: str) -> str:
@@ -165,30 +161,6 @@ def _py_version_to_js(package_name: str) -> str:
 
     return raw_version
 
-
-def _get_required_js_packages(config: Configuration) -> Dict[str, str]:
-    """
-    Based on current Configuration, get a map of required JS packages.
-    Creates a dict of {'py_module_name': 'js_module_name'}
-    """
-    packages = {
-        'dara.core': '@darajs/core',
-    }
-
-    # Discover py modules with js modules to pull in
-    for comp_def in config.components:
-        if isinstance(comp_def, JsComponentDef) and comp_def.js_module is not None:
-            packages[comp_def.py_module] = comp_def.js_module
-
-    for act_def in config.actions:
-        if act_def.js_module is not None:
-            packages[act_def.py_module] = act_def.js_module
-
-    # Handle auth components
-    for comp in config.auth_config.component_config.dict().values():
-        packages[comp['py_module']] = comp['js_module']
-
-    return packages
 
 
 def _get_importers(config: Configuration, build_config: Optional[BuildConfig] = None) -> Dict[str, str]:

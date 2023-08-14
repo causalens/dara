@@ -34,6 +34,7 @@ from dara.core.definitions import (
     ComponentInstanceType,
     ComponentTypeAnnotation,
     EndpointConfiguration,
+    JsComponentDef,
     Page,
     Template,
 )
@@ -76,6 +77,30 @@ class Configuration(GenericModel):
 
     class Config:
         extra = 'forbid'
+
+    def get_package_map(self) -> Dict[str, str]:
+        """
+        Get a map of python package names to js package names, based on currently
+        registered components, actions etc.
+        """
+        packages = {
+            'dara.core': '@darajs/core',
+        }
+
+        # Discover py modules with js modules to pull in
+        for comp_def in self.components:
+            if isinstance(comp_def, JsComponentDef) and comp_def.js_module is not None:
+                packages[comp_def.py_module] = comp_def.js_module
+
+        for act_def in self.actions:
+            if act_def.js_module is not None:
+                packages[act_def.py_module] = act_def.js_module
+
+        # Handle auth components
+        for comp in self.auth_config.component_config.dict().values():
+            packages[comp['py_module']] = comp['js_module']
+
+        return packages
 
 
 class ConfigurationBuilder:
