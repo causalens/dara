@@ -522,7 +522,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.0.1"
+version = "1.0.2"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -613,7 +613,7 @@ files = [
 
 [[package]]
 name = "dara-components"
-version = "1.0.1"
+version = "1.0.2"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -624,7 +624,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.0.1"
-dara-core = "=1.0.1"
+dara-core = "=1.0.2"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -638,7 +638,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.0.1"
+version = "1.0.2"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -675,7 +675,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.0.1)"]
+all = ["dara-components (==1.0.2)"]
 
 [package.source]
 type = "directory"
@@ -2902,4 +2902,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "ea8c5ac884d7e47cc005c9172de3f1d2624defd90f69e7044951dc35bca77857"
+content-hash = "3916ed7067ca7be32b683bc669d92f790f54f523176accfc30cf5a807af9a524"

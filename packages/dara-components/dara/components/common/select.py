@@ -135,7 +135,6 @@ class Select(FormComponent):
         multiselect = values.get('multiselect')
         searchable = values.get('searchable')
         if isinstance(items, NonDataVariable):
-            print('items is a NonDataVariable', items)
             return items
         if not isinstance(items, list):
             raise ValueError('Items must be passed as a list to the select component')
