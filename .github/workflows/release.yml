@@ -65,18 +65,22 @@ jobs:
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
-      - name: Package Open Source Docs
-        uses: causalens/docs-upload-action@v0.0.6
-        with:
-          artifactory-password: ${{ secrets.JF_PASSWORD }}
-          artifactory-username: ${{ secrets.JF_USERNAME }}
-          artifactory-url: https://causalens.jfrog.io/artifactory
-          package-name: dara
-          package-paths: >
+      - name: Package and Publish Docs
+        run: make publish-docs
+        env:
+          JF_USERNAME: ${{ secrets.JF_USERNAME }}
+          JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
+          PACKAGE: dara
+          VERSION: ${{ steps.set-version.outputs.version }}
+          PACKAGE_PATHS: >
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
-          version: ${{ steps.set-version.outputs.version }}
+          BUILD_REFERENCE: true
+          ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
+          ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
+          ARTIFACTORY_REPOSITORY: documentation
       - uses: 8398a7/action-slack@v3
         with:
           status: custom
