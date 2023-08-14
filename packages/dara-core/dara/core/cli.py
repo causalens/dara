@@ -26,7 +26,7 @@ from click.exceptions import UsageError
 
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.js_tooling.js_utils import get_js_config, setup_js_scaffolding
+from dara.core.js_tooling.js_utils import JsConfig, setup_js_scaffolding
 
 LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
 
@@ -157,12 +157,12 @@ def setup_custom_js():
 @cli.command()
 def dev():
     # Run vite dev command, printing output live
-    js_config = get_js_config()
+    js_config = JsConfig.from_file()
 
     package_manager = 'npm'
 
-    if js_config and 'package_manager' in js_config:
-        package_manager = js_config['package_manager']
+    if js_config and js_config.package_manager:
+        package_manager = js_config.package_manager
 
     os.chdir(os.path.join(os.getcwd(), 'dist'))
     with subprocess.Popen(  # nosec B602 # package manager is validated

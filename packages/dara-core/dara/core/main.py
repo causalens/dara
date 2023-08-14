@@ -64,9 +64,7 @@ from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
     build_autojs_template,
-    get_build_config,
     rebuild_js,
-    require_js_build,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 
@@ -229,15 +227,24 @@ def _start_application(config: Configuration):
         custom_ws_handlers_registry.register(kind, handler)
 
     # Generate a new build_cache
-    build_cache = BuildCache.from_config(config)
-    build_diff = build_cache.get_diff()
-    build_config = get_build_config()
+    try:
+        build_cache = BuildCache.from_config(config)
+        build_diff = build_cache.get_diff()
 
-    # Check if we need to build any JS
-    if len(config.pages) > 0 and require_js_build(config, build_config):
-        dev_logger.info('JS Requires a rebuild. Rebuilding...')
-        rebuild_js(config=config, build_config=build_config)
-        dev_logger.info('JS rebuilt successfully!')
+        # Only build if there's pages to build, otherwise assume Dara is only used for API
+        if len(config.pages) > 0:
+            dev_logger.debug(
+                'Building JS...',
+                extra={
+                    'New build cache': build_cache.dict(),
+                    'Difference from last cache': build_diff.dict(),
+                },
+            )
+            rebuild_js(build_cache, build_diff)
+
+    except Exception as e:
+        dev_logger.error('Error building JS', error=e)
+        sys.exit(1)
 
     # Loop over registered components and add to the registry
     eng_logger.info(f'Registering components [{", ".join([c.name for c in config.components])}]')
@@ -326,13 +333,13 @@ def _start_application(config: Configuration):
         # (Required for the chosen routing system in the UI)
 
         # Auto-js mode - serve the built template with UMDs
-        if build_config.mode == BuildMode.AUTO_JS:
+        if build_cache.build_config.mode == BuildMode.AUTO_JS:
             # Load template
             with open(os.path.join(Path(BASE_DIR, 'jinja'), 'index_autojs.html'), 'r', encoding='utf-8') as fp:
                 template = fp.read()
 
             # Generate tags for the template
-            template = build_autojs_template(template, config)
+            template = build_autojs_template(template, build_cache, config)
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
             async def serve_app(request: Request):  # pylint: disable=unused-variable

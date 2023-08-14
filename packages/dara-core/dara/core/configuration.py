@@ -17,7 +17,6 @@ limitations under the License.
 
 import os
 import pathlib
-import shutil
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
@@ -296,37 +295,6 @@ class ConfigurationBuilder:
         self._custom_ws_handlers[kind] = handler
         return handler
 
-    def _migrate_static_data(self):
-        """
-        Migrate data from registered static folders into local ./static folder.
-        """
-        if len(self._static_folders) == 0:
-            return
-
-        local_assets_folder = './static'
-        os.makedirs(local_assets_folder, exist_ok=True)
-
-        # For each static folder registered
-        for static_folder in self._static_folders:
-            if not os.path.isdir(static_folder):
-                dev_logger.warning(f'Provided static folder {static_folder} does not exist')
-                continue
-
-            names = os.listdir(static_folder)
-
-            # For each file or directory in the static folder provided
-            for name in names:
-                file_or_dir_path = os.path.join(static_folder, name)
-                target_path = os.path.join(local_assets_folder, name)
-
-                # Copy the whole tree if it's a directory
-                if os.path.isdir(file_or_dir_path):
-                    shutil.copytree(file_or_dir_path, target_path, dirs_exist_ok=True)
-                else:
-                    # Otherwise copy file if doesn't already exist
-                    if not os.path.exists(os.path.join(local_assets_folder, name)):
-                        shutil.copy(file_or_dir_path, local_assets_folder)
-
     def add_package_tags_processor(self, processor: Callable[[Dict[str, List[str]]], Dict[str, List[str]]]):
         """
         Append a package tag processor. This is a function that takes a dictionary of package names to lists of script/link tags included
@@ -463,8 +431,6 @@ class ConfigurationBuilder:
 
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
-
-        self._migrate_static_data()
 
         return Configuration(
             actions=self._actions,

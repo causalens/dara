@@ -22,16 +22,15 @@ import shutil
 import sys
 from enum import Enum
 from importlib.metadata import version
-from typing import Any, ClassVar, Dict, List, Literal, NewType, Optional, Set, Union, cast
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Set, Union, cast
 
 from packaging.version import Version
 from pydantic import BaseModel
-from typing_extensions import TypedDict
 
 from dara.core.configuration import Configuration
-from dara.core.definitions import JsComponentDef
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
+
 
 class BuildMode(Enum):
     AUTO_JS = 'AUTO_JS'
@@ -69,6 +68,7 @@ class BuildConfig(BaseModel):
     """
     Represents the build configuration used
     """
+
     mode: BuildMode
     """Build mode set based on CLI settings"""
 
@@ -86,24 +86,27 @@ class BuildConfig(BaseModel):
 
     @staticmethod
     def from_env():
-        js_config = JsConfig.from_file()
-
         # Production mode - if --enable-hmr or --production or --docker is set
         is_production = os.environ.get('DARA_PRODUCTION_MODE', 'FALSE') == 'TRUE'
         is_hmr = os.environ.get('DARA_HMR_MODE', 'FALSE') == 'TRUE'
         is_docker = os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE'
+
         if is_hmr or is_production or is_docker:
+            js_config = JsConfig.from_file()
             return BuildConfig(mode=BuildMode.PRODUCTION, dev=is_hmr, js_config=js_config)
 
         return BuildConfig(mode=BuildMode.AUTO_JS, dev=False)
 
+
 BuildCacheKey = Literal['static_folders', 'static_files_dir', 'package_map', 'build_config']
+
 
 class BuildCacheDiff(BaseModel):
     """
     Represents the diff between two BuildCaches.
     Contains a list of keys that have changed.
     """
+
     keys: Set[BuildCacheKey]
 
     def should_rebuild_js(self) -> bool:
@@ -127,6 +130,11 @@ class BuildCacheDiff(BaseModel):
 
 
 class BuildCache(BaseModel):
+    """
+    Represents the build configuration cache. Contains complete information required to determine
+    how to handle the frontend assets and statics.
+    """
+
     static_folders: List[str]
     """List of static folders registered"""
 
@@ -156,7 +164,7 @@ class BuildCache(BaseModel):
 
         # Add default static folder if not already present, it is implicitly always used
         if 'static' not in static_folders:
-            static_folders.append('static')
+            static_folders.insert(0, 'static')
 
         return BuildCache(
             static_folders=static_folders,
@@ -169,9 +177,6 @@ class BuildCache(BaseModel):
         """
         Migrate data from registered static folders into the static_files_dir.
         """
-        if len(self.static_folders) == 0:
-            return
-
         # Make sure the static files dir exists
         os.makedirs(self.static_files_dir, exist_ok=True)
 
@@ -197,13 +202,14 @@ class BuildCache(BaseModel):
 
     def find_favicon(self) -> Optional[str]:
         """
-        Find the favicon in the static files directory, looks for any .ico file
+        Find the favicon in the static files directories, looks for any .ico file
 
         :return: path to favicon if found, None otherwise
         """
-        for name in os.listdir(self.static_files_dir):
-            if name.endswith('.ico'):
-                return os.path.join(self.static_files_dir, name)
+        for static_folder in self.static_folders:
+            for name in os.listdir(static_folder):
+                if name.endswith('.ico'):
+                    return os.path.join(static_folder, name)
 
         return None
 
@@ -324,7 +330,7 @@ class BuildCache(BaseModel):
 
             try:
                 other_cache = BuildCache.parse_file(path)
-            except:
+            except BaseException:
                 return BuildCacheDiff.full_diff()
         else:
             other_cache = other
@@ -340,7 +346,6 @@ class BuildCache(BaseModel):
         if self.package_map != other_cache.package_map:
             diff.add('package_map')
 
-        # TODO: test if this works
         if self.build_config != other_cache.build_config:
             diff.add('build_config')
 
@@ -359,6 +364,7 @@ def setup_js_scaffolding():
     js_scaffold_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'custom_js_scaffold')
     shutil.copytree(js_scaffold_path, os.path.join(os.getcwd(), 'js'))
 
+
 def _copytree(src: str, dst: str):
     """
     Copy a directory recursively.
@@ -372,12 +378,17 @@ def _copytree(src: str, dst: str):
             os.makedirs(os.path.dirname(to_file), exist_ok=True)
             shutil.copy2(from_file, to_file)
 
+
 def _py_version_to_js(package_name: str) -> str:
     """
     Parse a python version string into a JS compatible version string
 
     :param package_name: the name of the package
     """
+    # For dara.* packages, replace . with -
+    if package_name.startswith('dara.'):
+        package_name = package_name.replace('.', '-')
+
     raw_version = version(package_name)
     parsed_version = Version(raw_version)
 
@@ -395,47 +406,8 @@ def _py_version_to_js(package_name: str) -> str:
 
     return raw_version
 
-# def require_js_build(config: Configuration, build_config: BuildConfig) -> bool:
-#     """
-#     Check if we need to build any JS as part of the startup. e.g. If it's a first load or if a new extension has been
-#     loaded. Returns True if a new build is required.
 
-#     :param config: the main app configuration
-#     :param build_config: the build configuration
-#     """
-#     # In docker mode force no build
-#     if os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE':
-#         dev_logger.debug('Docker mode')
-#         return False
-
-#     # Explitily forced to rebuild
-#     if os.environ.get('DARA_JS_REBUILD', 'FALSE') == 'TRUE':
-#         dev_logger.debug('JS rebuild forced explicitly')
-#         return True
-
-#     # Check if build cache exists
-#     build_cache_path = os.path.join(config.static_files_dir, '_build.json')
-#     if not os.path.exists(build_cache_path):
-#         dev_logger.debug('No build cache found')
-#         return True
-
-#     # Compare build cache for current build mode with new importers
-#     with open(build_cache_path, 'r', encoding='utf-8') as f:
-#         build_cache = json.loads(f.read())
-
-#     new_importers = _get_importers(config, build_config)
-#     old_importers = build_cache.get(_serialise_build_config(build_config), None)
-#     importers_changed = new_importers != old_importers
-
-#     if importers_changed:
-#         dev_logger.debug(
-#             f'Extensions loaded changed from {list(old_importers.keys()) if old_importers is not None else []} to {list(new_importers.keys())}'
-#         )
-
-#     return importers_changed
-
-
-def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff):
+def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheDiff.full_diff()):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
 
@@ -470,7 +442,7 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff):
     # Store the new build cache
     build_cache_path = os.path.join(build_cache.static_files_dir, BuildCache.FILENAME)
     with open(build_cache_path, 'w+', encoding='utf-8') as f:
-        json.dump(build_cache, f, indent=4)
+        f.write(build_cache.json(indent=2))
 
 
 def bundle_js(build_cache: BuildCache):
@@ -503,7 +475,9 @@ def bundle_js(build_cache: BuildCache):
     # If we need to pull from a custom registry in CI where the user is not npm logged in, then add to the npmrc file
     if build_cache.build_config.npm_token is not None and build_cache.build_config.npm_registry is not None:
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
-            npmrc_file.write(f'//{build_cache.build_config.npm_registry}/:_authToken={build_cache.build_config.npm_token}')
+            npmrc_file.write(
+                f'//{build_cache.build_config.npm_registry}/:_authToken={build_cache.build_config.npm_token}'
+            )
 
     # Copy dara-core statics, i.e. default favicon, tsconfig, etc.
     files = os.listdir(statics)
@@ -561,7 +535,7 @@ def bundle_js(build_cache: BuildCache):
     os.chdir(cwd)
 
 
-def prepare_autojs_assets(build_cache: BuildCache) -> dict:
+def prepare_autojs_assets(build_cache: BuildCache):
     """
     Prepare the JS (and CSS) assets to use in autoJS mode.
     Copies over UMD pre-bundled files from loaded packages into static_files_dir directory,
