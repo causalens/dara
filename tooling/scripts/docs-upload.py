@@ -32,7 +32,7 @@ with ZipFile('docs.zip', 'w') as archive:
     for file_path in directory.rglob("*"):
         archive.write(
             file_path,
-            arcname=file_path.relative_to(directory)
+            arcname=directory.name / file_path.relative_to(directory)
         )
 
 # Upload to Artifactory
