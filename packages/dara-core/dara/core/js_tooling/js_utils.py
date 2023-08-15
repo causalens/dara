@@ -162,8 +162,8 @@ class BuildCache(BaseModel):
 
         static_folders = config.static_folders
 
-        # Add default static folder if not already present, it is implicitly always used
-        if 'static' not in static_folders:
+        # Add default static folder if not already present, it is implicitly always used if present
+        if 'static' not in static_folders and os.path.isdir('static'):
             static_folders.insert(0, 'static')
 
         return BuildCache(
@@ -207,6 +207,10 @@ class BuildCache(BaseModel):
         :return: path to favicon if found, None otherwise
         """
         for static_folder in self.static_folders:
+            if not os.path.isdir(static_folder):
+                dev_logger.warning(f'Provided static folder {static_folder} does not exist')
+                continue
+
             for name in os.listdir(static_folder):
                 if name.endswith('.ico'):
                     return os.path.join(static_folder, name)
