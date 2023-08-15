@@ -17,7 +17,6 @@ limitations under the License.
 
 import os
 import pathlib
-import shutil
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
@@ -34,6 +33,7 @@ from dara.core.definitions import (
     ComponentInstanceType,
     ComponentTypeAnnotation,
     EndpointConfiguration,
+    JsComponentDef,
     Page,
     Template,
 )
@@ -57,12 +57,12 @@ class Configuration(GenericModel):
     components: List[ComponentTypeAnnotation]
     context_components: List[ComponentInstance]
     enable_devtools: bool
-    js_module_name: Optional[Tuple[str, str, str]]
     live_reload: bool
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
     startup_functions: List[Callable]
+    static_folders: List[str]
     static_files_dir: str
     package_tag_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     template_extra_js: str
@@ -76,6 +76,30 @@ class Configuration(GenericModel):
     class Config:
         extra = 'forbid'
 
+    def get_package_map(self) -> Dict[str, str]:
+        """
+        Get a map of python package names to js package names, based on currently
+        registered components, actions etc.
+        """
+        packages = {
+            'dara.core': '@darajs/core',
+        }
+
+        # Discover py modules with js modules to pull in
+        for comp_def in self.components:
+            if isinstance(comp_def, JsComponentDef) and comp_def.js_module is not None:
+                packages[comp_def.py_module] = comp_def.js_module
+
+        for act_def in self.actions:
+            if act_def.js_module is not None:
+                packages[act_def.py_module] = act_def.js_module
+
+        # Handle auth components
+        for comp in self.auth_config.component_config.dict().values():
+            packages[comp['py_module']] = comp['js_module']
+
+        return packages
+
 
 class ConfigurationBuilder:
     """
@@ -88,15 +112,6 @@ class ConfigurationBuilder:
     _components: List[ComponentTypeAnnotation]
     _errors: List[str]
     enable_devtools: bool
-    js_module_name: Optional[Tuple[str, str, str]]
-    """
-    Optional local js_module to include - tuple of (py_module, js_module, version)
-
-    config.js_module_name = ('py_module_name', 'js_module_name', 0.0.1)
-    # or
-    config.js_module_name = ('py_module_name', 'js_module_name', version('py_module_name'))
-    """
-
     live_reload: bool
     _pages: Dict[str, Page]
     _template_renderers: Dict[str, Callable[..., Template]]
@@ -121,7 +136,6 @@ class ConfigurationBuilder:
         self._components = []
         self._errors = []
         self.enable_devtools = False
-        self.js_module_name = None
         self.live_reload = False
         self._package_tags_processors = []
         self._template_extra_js = ''
@@ -281,37 +295,6 @@ class ConfigurationBuilder:
         self._custom_ws_handlers[kind] = handler
         return handler
 
-    def _migrate_static_data(self):
-        """
-        Migrate data from registered static folders into local ./static folder.
-        """
-        if len(self._static_folders) == 0:
-            return
-
-        local_assets_folder = './static'
-        os.makedirs(local_assets_folder, exist_ok=True)
-
-        # For each static folder registered
-        for static_folder in self._static_folders:
-            if not os.path.isdir(static_folder):
-                dev_logger.warning(f'Provided static folder {static_folder} does not exist')
-                continue
-
-            names = os.listdir(static_folder)
-
-            # For each file or directory in the static folder provided
-            for name in names:
-                file_or_dir_path = os.path.join(static_folder, name)
-                target_path = os.path.join(local_assets_folder, name)
-
-                # Copy the whole tree if it's a directory
-                if os.path.isdir(file_or_dir_path):
-                    shutil.copytree(file_or_dir_path, target_path, dirs_exist_ok=True)
-                else:
-                    # Otherwise copy file if doesn't already exist
-                    if not os.path.exists(os.path.join(local_assets_folder, name)):
-                        shutil.copy(file_or_dir_path, local_assets_folder)
-
     def add_package_tags_processor(self, processor: Callable[[Dict[str, List[str]]], Dict[str, List[str]]]):
         """
         Append a package tag processor. This is a function that takes a dictionary of package names to lists of script/link tags included
@@ -449,8 +432,6 @@ class ConfigurationBuilder:
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
 
-        self._migrate_static_data()
-
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
@@ -458,7 +439,6 @@ class ConfigurationBuilder:
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,
             enable_devtools=self.enable_devtools,
-            js_module_name=self.js_module_name,
             live_reload=self.live_reload,
             package_tag_processors=self._package_tags_processors,
             pages=self._pages,
@@ -466,6 +446,7 @@ class ConfigurationBuilder:
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,
             startup_functions=self.startup_functions,
+            static_folders=self._static_folders,
             task_module=self.task_module,
             template=self.template,
             template_extra_js=self._template_extra_js,

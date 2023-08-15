@@ -104,32 +104,6 @@ def test_add_page_custom_route():
     assert config.pages['Test Page'].icon == 'Test'
     assert config.pages['Test Page'].url_safe_name == 'test-route'
 
-
-def test_add_static_folder():
-    """Test that a static folder can be registered and files from them are copied on ._to_configuration()"""
-    assert not os.path.exists('./static')
-
-    # create synthetic data
-    os.makedirs('./test_data')
-    with open('./test_data/test_file.csv', 'w') as f:
-        f.write('test')
-    assert os.path.exists('./test_data/test_file.csv')
-
-    builder = ConfigurationBuilder()
-    builder.add_static_folder('./test_data')
-    builder._to_configuration()
-
-    # data is moved to './static'
-    assert os.path.exists('./static')
-    assert os.path.exists('./static/test_file.csv')
-    # Old file still exists
-    assert os.path.exists('./test_data/test_file.csv')
-
-    # cleanup data
-    shutil.rmtree('./test_data')
-    shutil.rmtree('./static')
-
-
 def test_add_local_action():
     """Test that a local action can be added"""
 

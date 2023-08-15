@@ -21,5 +21,8 @@ export default defineConfig({
         // Root of assets served in DEV mode
         origin: 'http://localhost:3000',
         port: 3000,
+        fs: {
+            strict: false,
+        },
     },
 });
