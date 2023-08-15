@@ -491,6 +491,9 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     if build_cache.build_config.npm_token is not None and build_cache.build_config.npm_registry is not None:
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
             npmrc_file.write(
+                f'@darajs:registry=https://{build_cache.build_config.npm_registry}\n'
+            )
+            npmrc_file.write(
                 f'//{build_cache.build_config.npm_registry}/:_authToken={build_cache.build_config.npm_token}'
             )
 
