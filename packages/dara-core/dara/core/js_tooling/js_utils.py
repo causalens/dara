@@ -431,6 +431,7 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheD
     # Create static dir if it does not exist
     os.makedirs(build_cache.static_files_dir, exist_ok=True)
 
+
     # JS rebuild required, run mode-specific logic
     if build_diff.should_rebuild_js():
         # If we are in autoJS mode, just prepare pre-built assets to be included directly
@@ -449,12 +450,22 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheD
         f.write(build_cache.json(indent=2))
 
 
-def bundle_js(build_cache: BuildCache):
+def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     """
     Bundle the JS (and CSS) in production mode using Vite
 
     :param build_cache: the build cache
+    :param copy_js: whether to copy JS instead of symlinking it
     """
+    # If custom JS is present, symlink it
+    if build_cache.build_config.js_config is not None:
+        if os.path.isdir(build_cache.build_config.js_config.local_entry):
+            if copy_js:
+                # Just move the directory to output
+                shutil.copytree(build_cache.build_config.js_config.local_entry, build_cache.static_files_dir)
+            else:
+                build_cache.symlink_js()
+
     # Determine template paths
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry.template.tsx')
     vite_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/vite.config.template.ts')
@@ -479,6 +490,9 @@ def bundle_js(build_cache: BuildCache):
     # If we need to pull from a custom registry in CI where the user is not npm logged in, then add to the npmrc file
     if build_cache.build_config.npm_token is not None and build_cache.build_config.npm_registry is not None:
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
+            npmrc_file.write(
+                f'@darajs:registry=https://{build_cache.build_config.npm_registry}\n'
+            )
             npmrc_file.write(
                 f'//{build_cache.build_config.npm_registry}/:_authToken={build_cache.build_config.npm_token}'
             )

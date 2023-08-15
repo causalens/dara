@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal asset build system refactor, the generated build cache file now stores complete information required to run an asset build.
+-   Fixed an issue where static assets were only being copied once when the output (e.g. `dist`) folder is created. They are now copied over at each server start.
+-   Static assets are no longer copied over to the `static` folder before being copied into the output folder. The migration process now copies assets from each static folder directly into the output folder in the order the static folders were added.
+
 ## 1.0.1
 
 -   Added custom websocket message support. Custom messages can be sent from custom JS components to the server and vice versa.
