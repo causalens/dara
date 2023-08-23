@@ -4,6 +4,20 @@ title: Changelog
 
 ## NEXT
 
+-   Exposed `DynamicComponent` as a Python class. Normally used under-the-hood by `@darajs/core` to render dynamic components, it can now be used directly in advanced use cases to serialize components and render them dynamically.
+
+```python
+from dara.core.visual.components import DynamicComponent
+from dara.components import Text, DerivedVariable
+
+derived_text = DerivedVariable(lambda: 'Hello World', variables=[])
+text_cmp = Text(text=derived_text).dict()
+
+config.add_page(name='Dynamic Render', content=DynamicComponent(component=text_cmp))
+```
+
+## 1.1.0
+
 -   Internal asset build system refactor, the generated build cache file now stores complete information required to run an asset build.
 -   Fixed an issue where static assets were only being copied once when the output (e.g. `dist`) folder is created. They are now copied over at each server start.
 -   Static assets are no longer copied over to the `static` folder before being copied into the output folder. The migration process now copies assets from each static folder directly into the output folder in the order the static folders were added.

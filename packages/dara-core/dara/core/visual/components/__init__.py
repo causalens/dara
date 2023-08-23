@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+from dara.core.visual.components.dynamic_component import DynamicComponent, DynamicComponentDef
 from dara.core.visual.components.fallback import (
     DefaultFallbackDef,
     Fallback,
@@ -33,6 +33,8 @@ from dara.core.visual.components.sidebar_frame import SideBarFrame, SideBarFrame
 from dara.core.visual.components.topbar_frame import TopBarFrame, TopBarFrameDef
 
 __all__ = [
+    'DynamicComponent',
+    'DynamicComponentDef',
     'InvalidComponent',
     'ProgressTracker',
     'ProgressTrackerDef',
