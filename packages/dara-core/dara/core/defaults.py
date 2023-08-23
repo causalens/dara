@@ -45,6 +45,8 @@ from dara.core.interactivity.actions import (
 from dara.core.internal.store import Store
 from dara.core.visual.components import (
     DefaultFallbackDef,
+    DynamicComponent,
+    DynamicComponentDef,
     Fallback,
     For,
     ForDef,
@@ -74,6 +76,7 @@ INITIAL_CORE_INTERNALS = {'Store': _store}
 
 # These components are provided by the core JS of this module
 CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
+    DynamicComponent.__name__: DynamicComponentDef,
     Menu.__name__: MenuDef,
     ProgressTracker.__name__: ProgressTrackerDef,
     RouterContent.__name__: RouterContentDef,
