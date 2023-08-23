@@ -52,6 +52,7 @@ class Configuration(GenericModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
+    registry_lookup: Dict[str, Callable]
     actions: List[ActionDef]
     endpoint_configurations: List[EndpointConfiguration]
     components: List[ComponentTypeAnnotation]
@@ -108,6 +109,7 @@ class ConfigurationBuilder:
     """
 
     auth_config: BaseAuthConfig
+    registry_lookup: Dict[str, Callable]
     _actions: List[ActionDef]
     _components: List[ComponentTypeAnnotation]
     _errors: List[str]
@@ -132,6 +134,7 @@ class ConfigurationBuilder:
 
     def __init__(self):
         self.auth_config = DefaultAuthConfig()
+        self.registry_lookup = {}
         self._actions = []
         self._components = []
         self._errors = []
@@ -367,6 +370,11 @@ class ConfigurationBuilder:
 
         return auth
 
+    def add_registry_lookup(self, registry_lookup: Dict):
+        self.registry_lookup = registry_lookup
+
+        return registry_lookup
+
     def set_theme(
         self,
         main_theme: Optional[Union[ThemeDef, Literal['light'], Literal['dark']]] = None,
@@ -435,6 +443,7 @@ class ConfigurationBuilder:
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
+            registry_lookup = self.registry_lookup,
             components=self._components,
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,

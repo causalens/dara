@@ -3,7 +3,9 @@ import { useCallback, useContext } from 'react';
 
 import { RegistriesCtx } from '@/shared/context';
 import { Component, ComponentInstance } from '@/types/core';
-
+import { request } from '@/api';
+import { useSessionToken } from '@/auth';
+import { HTTP_METHOD} from '@darajs/ui-utils';
 interface ComponentRegistryInterface {
     get: (instance: ComponentInstance) => Promise<Component>;
 }
@@ -14,27 +16,31 @@ interface ComponentRegistryInterface {
  */
 function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
     const { componentRegistry: components, refetchComponents } = useContext(RegistriesCtx);
-
+    const token = useSessionToken();
     const get = useCallback(
         async (instance: ComponentInstance): Promise<Component> => {
             let component: Component = null;
             let registry = { ...components };
-
             let i = 0;
-            while (i < maxRetries) {
-                if (registry && registry[instance.name]) {
-                    component = registry[instance.name];
-                    break;
-                } else {
-                    // If component has not been found, it could be a nested py_component, so we refetch the registry
-                    // to see if the component might have been added to the registry in the meantime
-                    // But first wait for 0,5s before retrying, to give time for backend to update the registry
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    const { data } = await refetchComponents();
-                    registry = data;
+            if (registry && registry[instance.name]) {
+                return registry[instance.name];
+            }
+            try{
+                const res = await request(`/api/core/components/${instance.name}`, { method: HTTP_METHOD.GET }, token);
+                return await res.json();
+            }catch{
+                while (i < maxRetries) {
+                        // If component has not been found, it could be a nested py_component, so we refetch the registry
+                        // to see if the component might have been added to the registry in the meantime
+                        // But first wait for 0,5s before retrying, to give time for backend to update the registry
+                        await new Promise((resolve) => setTimeout(resolve, 500));
+                        const { data } = await refetchComponents();
+                        registry = data;
+                        if (registry && registry[instance.name]) {
+                            return registry[instance.name];
+                    }
+                    i++;
                 }
-
-                i++;
             }
 
             if (!component) {

@@ -52,6 +52,7 @@ from dara.core.internal.registries import (
     template_registry,
     utils_registry,
 )
+from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager, TaskManagerError
@@ -114,30 +115,26 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/action/{uid}', dependencies=[Depends(verify_session)])
     async def get_action(uid: str, body: ActionRequestBody):  # pylint: disable=unused-variable
-        try:
-            store: Store = utils_registry.get('Store')
-            task_mgr: TaskManager = utils_registry.get('TaskManager')
-            action = action_registry.get(uid)
-            extras = None
+        store: Store = utils_registry.get('Store')
+        task_mgr: TaskManager = utils_registry.get('TaskManager')
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        action = await registry_mgr.get(action_registry,uid)
+        extras = None
 
-            # If extras was provided, it was normalized
-            if body.extras is not None:
-                extras = denormalize(body.extras.data, body.extras.lookup)
+        # If extras was provided, it was normalized
+        if body.extras is not None:
+            extras = denormalize(body.extras.data, body.extras.lookup)
 
-            ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
+        ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
 
-            result = await execute_action(action, ctx, store, task_mgr)
+        result = await execute_action(action, ctx, store, task_mgr)
 
-            # MetaTask was created so run it and return it's ID
-            if isinstance(result, BaseTask):
-                await task_mgr.run_task(result, body.ws_channel)
-                return {'task_id': result.task_id}
+        # MetaTask was created so run it and return it's ID
+        if isinstance(result, BaseTask):
+            await task_mgr.run_task(result, body.ws_channel)
+            return {'task_id': result.task_id}
 
-            return result
-        except KeyError as e:
-            raise ValueError(
-                f'Could not find an action for uid {uid}, did you register it before the app was initialized?'
-            ).with_traceback(e.__traceback__)
+        return result
 
     @core_api_router.get('/download')
     async def get_download(code: str):   # pylint: disable=unused-variable
@@ -185,10 +182,11 @@ def create_router(config: Configuration):
     async def get_component(component: str, body: ComponentRequestBody):  # pylint: disable=unused-variable
         store: Store = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
-        comp = component_registry.get(component)
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        comp = await registry_mgr.get(component_registry,component)
 
         if isinstance(comp, PyComponentDef):
-            static_kwargs = static_kwargs_registry.get(body.uid)
+            static_kwargs = await registry_mgr.get(static_kwargs_registry,body.uid)
             values = denormalize(body.values.data, body.values.lookup)
 
             response = await render_component(comp, store, task_mgr, values, static_kwargs)
@@ -375,38 +373,34 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/derived-variable/{uid}', dependencies=[Depends(verify_session)])
     async def get_derived_variable(uid: str, body: DerivedStateRequestBody):  # pylint: disable=unused-variable
-        try:
-            task_mgr: TaskManager = utils_registry.get('TaskManager')
-            store: Store = utils_registry.get('Store')
-            variable = derived_variable_registry.get(uid)
-            values = denormalize(body.values.data, body.values.lookup)
+        task_mgr: TaskManager = utils_registry.get('TaskManager')
+        store: Store = utils_registry.get('Store')
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        variable = await registry_mgr.get(derived_variable_registry,uid)
 
-            if body.is_data_variable:
-                # This should only be called by the frontend when requesting a data variable, as a first step to update the cached value
-                result = await DerivedDataVariable.get_value(variable, store, task_mgr, values, body.force)
-            else:
-                result = await DerivedVariable.get_value(variable, store, task_mgr, values, body.force)
+        values = denormalize(body.values.data, body.values.lookup)
 
-            response: Any = result
+        if body.is_data_variable:
+            # This should only be called by the frontend when requesting a data variable, as a first step to update the cached value
+            result = await DerivedDataVariable.get_value(variable, store, task_mgr, values, body.force)
+        else:
+            result = await DerivedVariable.get_value(variable, store, task_mgr, values, body.force)
 
-            if isinstance(result['value'], BaseTask):
-                # Kick off the task
-                await task_mgr.run_task(result['value'], body.ws_channel)
-                response = {'task_id': result['value'].task_id, 'cache_key': result['cache_key']}
+        response: Any = result
 
-            dev_logger.debug(
-                f'DerivedVariable {variable.uid[:3]}..{variable.uid[-3:]}',
-                'return value',
-                {'value': response, 'uid': uid},
-            )
+        if isinstance(result['value'], BaseTask):
+            # Kick off the task
+            await task_mgr.run_task(result['value'], body.ws_channel)
+            response = {'task_id': result['value'].task_id, 'cache_key': result['cache_key']}
 
-            # Return {cache_key: <cache_key>, value: <value>}
-            return response
-        except KeyError as err:
-            raise ValueError(
-                f'Could not find a derived variable for uid: {uid}, did you register it before the app '
-                'was initialized?'
-            ).with_traceback(err.__traceback__)
+        dev_logger.debug(
+            f'DerivedVariable {variable.uid[:3]}..{variable.uid[-3:]}',
+            'return value',
+            {'value': response, 'uid': uid},
+        )
+
+        # Return {cache_key: <cache_key>, value: <value>}
+        return response
 
     @core_api_router.get('/tasks/{task_id}', dependencies=[Depends(verify_session)])
     async def get_task_result(task_id: str):   # pylint: disable=unused-variable

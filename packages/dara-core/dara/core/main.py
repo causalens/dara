@@ -54,6 +54,7 @@ from dara.core.internal.registries import (
     utils_registry,
     websocket_registry,
 )
+from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
 from dara.core.internal.store import Store
@@ -122,6 +123,7 @@ def _start_application(config: Configuration):
         # Store must exist before the app starts as instantiating e.g. Variables
         # requires a store existing
         store: Store = utils_registry.get('Store')
+        utils_registry.set('RegistryLookup', RegistryLookup(config.registry_lookup))
 
         # Create a task group for the application so we can kick off tasks in the background
         async with create_task_group() as task_group:
