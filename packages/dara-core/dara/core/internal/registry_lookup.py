@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 from dara.core.internal.registry import Registry
 
@@ -25,7 +25,7 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: Optional[Dict] = {}):
+    def __init__(self, handlers: Dict[str,Callable]={}):
         self.handlers = handlers
 
     async def get(self, registry: Registry, uid: str):
