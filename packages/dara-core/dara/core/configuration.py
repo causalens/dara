@@ -443,7 +443,7 @@ class ConfigurationBuilder:
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
-            registry_lookup = self.registry_lookup,
+            registry_lookup=self.registry_lookup,
             components=self._components,
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,

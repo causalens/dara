@@ -118,7 +118,7 @@ def create_router(config: Configuration):
         store: Store = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        action = await registry_mgr.get(action_registry,uid)
+        action = await registry_mgr.get(action_registry, uid)
         extras = None
 
         # If extras was provided, it was normalized
@@ -183,10 +183,10 @@ def create_router(config: Configuration):
         store: Store = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        comp = await registry_mgr.get(component_registry,component)
+        comp = await registry_mgr.get(component_registry, component)
 
         if isinstance(comp, PyComponentDef):
-            static_kwargs = await registry_mgr.get(static_kwargs_registry,body.uid)
+            static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
             values = denormalize(body.values.data, body.values.lookup)
 
             response = await render_component(comp, store, task_mgr, values, static_kwargs)
@@ -376,7 +376,7 @@ def create_router(config: Configuration):
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         store: Store = utils_registry.get('Store')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        variable = await registry_mgr.get(derived_variable_registry,uid)
+        variable = await registry_mgr.get(derived_variable_registry, uid)
 
         values = denormalize(body.values.data, body.values.lookup)
 

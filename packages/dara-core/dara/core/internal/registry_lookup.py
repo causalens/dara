@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional,Dict
+from typing import Dict, Optional
 
 from dara.core.internal.registry import Registry
 
@@ -24,17 +24,18 @@ class RegistryLookup:
     """
     Manages registry Lookup.
     """
-    def __init__(self,handlers:Optional[Dict]={}):
+
+    def __init__(self, handlers: Optional[Dict] = {}):
         self.handlers = handlers
 
-    async def get(self,registry:Registry,uid:str):
+    async def get(self, registry: Registry, uid: str):
         try:
             return registry.get(uid)
         except KeyError as e:
             if registry.name in self.handlers:
                 func = self.handlers[registry.name]
                 entry = await func(uid)
-                registry.register(uid,entry)
+                registry.register(uid, entry)
                 return entry
             raise ValueError(
                 f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'

@@ -22,9 +22,10 @@ from typing_extensions import TypeGuard
 from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.pandas_utils import remove_index
+from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager
-from dara.core.internal.registry_lookup import RegistryLookup
+
 
 class ResolvedDerivedVariable(TypedDict):
     deps: List[int]
@@ -97,11 +98,11 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: S
     from dara.core.internal.registries import (
         data_variable_registry,
         derived_variable_registry,
-        utils_registry
+        utils_registry,
     )
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    dv_var = await registry_mgr.get(derived_variable_registry,str(entry.get('uid')))
+    dv_var = await registry_mgr.get(derived_variable_registry, str(entry.get('uid')))
     data_var = data_variable_registry.get(str(entry.get('uid')))
 
     input_values: List[Any] = entry.get('values', [])
@@ -121,10 +122,10 @@ async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, 
     :param store: store instance to use for caching
     :param task_mgr: task manager instance
     """
-    from dara.core.internal.registries import utils_registry,derived_variable_registry
+    from dara.core.internal.registries import derived_variable_registry, utils_registry
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    var = await registry_mgr.get(derived_variable_registry,str(derived_variable_entry.get('uid')))
+    var = await registry_mgr.get(derived_variable_registry, str(derived_variable_entry.get('uid')))
     input_values: List[Any] = derived_variable_entry.get('values', [])
     result = await DerivedVariable.get_value(
         var, store, task_mgr, input_values, derived_variable_entry.get('force', False)
