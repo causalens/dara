@@ -167,7 +167,17 @@ def create_router(config: Configuration):
         return config.auth_config.component_config
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
-    async def get_components():  # pylint: disable=unused-variable
+    async def get_components(name: Optional[str]=None):  # pylint: disable=unused-variable
+        """
+        If name is passed, will only return the specific component
+
+        :param name: the name of component
+        """
+        if name is not None:
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+            comp = await registry_mgr.get(component_registry, name)
+            return {'name': comp.dict(exclude={'func'})}
+
         return {k: comp.dict(exclude={'func'}) for k, comp in component_registry.get_all().items()}
 
     class ComponentRequestBody(BaseModel):

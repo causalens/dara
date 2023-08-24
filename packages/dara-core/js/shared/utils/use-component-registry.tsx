@@ -21,28 +21,24 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
     const token = useSessionToken();
     const get = useCallback(
         async (instance: ComponentInstance): Promise<Component> => {
-            const component: Component = null;
+            let component: Component = null;
             let registry = { ...components };
             let i = 0;
-            if (registry && registry[instance.name]) {
-                return registry[instance.name];
-            }
-            try {
-                const res = await request(`/api/core/components/${instance.name}`, { method: HTTP_METHOD.GET }, token);
-                return await res.json();
-            } catch {
-                while (i < maxRetries) {
-                    // If component has not been found, it could be a nested py_component, so we refetch the registry
-                    // to see if the component might have been added to the registry in the meantime
-                    // But first wait for 0,5s before retrying, to give time for backend to update the registry
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    const { data } = await refetchComponents();
-                    registry = data;
-                    if (registry && registry[instance.name]) {
-                        return registry[instance.name];
-                    }
-                    i++;
+            while (i < maxRetries) {
+                if (registry && registry[instance.name]) {
+                    component = registry[instance.name];
+                    break;
                 }
+                if (i === 0) {
+                    await request(`/api/core/components?name=${instance.name}`, { method: HTTP_METHOD.GET }, token);
+                }
+                // If component has not been found, it could be a nested py_component, so we refetch the registry
+                // to see if the component might have been added to the registry in the meantime
+                // But first wait for 0,5s before retrying, to give time for backend to update the registry
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                const { data } = await refetchComponents();
+                registry = data;
+                i++;
             }
 
             if (!component) {

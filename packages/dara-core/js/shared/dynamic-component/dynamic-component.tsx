@@ -321,12 +321,6 @@ function PythonWrapper(props: PythonWrapperProps): JSX.Element {
     }
 
     if (isRawString(component)) {
-        let res = component.props.content;
-        if (res.startsWith('__dara__')) {
-            res = res.slice(8);
-            const resJson = JSON.parse(res);
-            return <DynamicComponent component={resJson} key={component.uid} />;
-        }
         return <>{component.props.content}</>;
     }
 

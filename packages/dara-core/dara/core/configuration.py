@@ -18,7 +18,7 @@ limitations under the License.
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Coroutine, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
 from pydantic.generics import GenericModel
 
@@ -370,7 +370,28 @@ class ConfigurationBuilder:
 
         return auth
 
-    def add_registry_lookup(self, registry_lookup: Dict):
+    def add_registry_lookup(self, registry_lookup: Dict[str, Callable[[str], Coroutine]]):
+        """
+        Register custom external registry lookup handlers, which will be called when a uid its not in the server registry
+        Example:
+
+        ```python
+        from dara.core import ConfigurationBuilder
+        config = ConfigurationBuilder()
+
+        def get_derived_variable(uid)-> DerivedVariableRegistryEntry:
+            # return derived variable
+
+        def get_action(uid)-> Callable:
+            # return action
+
+        config.add_registry_lookup(
+                    {
+                        'DerivedVariable': get_derived_variable,
+                        'Action Handler': get_action,
+                    }
+                )
+        """
         self.registry_lookup = registry_lookup
 
         return registry_lookup

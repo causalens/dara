@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Dict
+from typing import Callable, Coroutine, Dict
 
 from dara.core.internal.registry import Registry
 
@@ -25,10 +25,17 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: Dict[str,Callable]={}):
+    def __init__(self, handlers: Dict[str,Callable[[str],Coroutine]]={}):
         self.handlers = handlers
 
     async def get(self, registry: Registry, uid: str):
+        """
+        Get the entry from registry by uid.
+        If uid is not in registry and it has a external handler that defined, will execute the handler
+
+        :param registry: target registry
+        :param uid: entry id
+        """
         try:
             return registry.get(uid)
         except KeyError as e:
