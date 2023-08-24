@@ -462,7 +462,11 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
         if os.path.isdir(build_cache.build_config.js_config.local_entry):
             if copy_js:
                 # Just move the directory to output
-                shutil.copytree(build_cache.build_config.js_config.local_entry, build_cache.static_files_dir)
+                js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
+                shutil.copytree(
+                    build_cache.build_config.js_config.local_entry,
+                    os.path.join(build_cache.static_files_dir, js_folder_name)
+                )
             else:
                 build_cache.symlink_js()
 
