@@ -1,9 +1,10 @@
 /* eslint-disable no-await-in-loop */
 import { useCallback, useContext } from 'react';
 
-import { HTTP_METHOD } from '@darajs/ui-utils';
+import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api';
+import { handleAuthErrors } from '@/auth/auth';
 import { useSessionToken } from '@/auth';
 import { RegistriesCtx } from '@/shared/context';
 import { Component, ComponentInstance } from '@/types/core';
@@ -35,6 +36,8 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
                         { method: HTTP_METHOD.GET },
                         token
                     );
+                    await handleAuthErrors(res, true);
+                    await validateResponse(res, 'Failed to fetch the config for this app');
                     registry = await res.json();
                 } else {
                     // If component has not been found, it could be a nested py_component, so we refetch the registry
