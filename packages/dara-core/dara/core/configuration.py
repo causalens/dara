@@ -110,7 +110,7 @@ class ConfigurationBuilder:
     """
 
     auth_config: BaseAuthConfig
-    registry_lookup: Dict[str, Callable]
+    registry_lookup: CustomRegistryLookup
     _actions: List[ActionDef]
     _components: List[ComponentTypeAnnotation]
     _errors: List[str]
@@ -371,7 +371,7 @@ class ConfigurationBuilder:
 
         return auth
 
-    def add_registry_lookup(self, registry_lookup: Dict[str, Callable[[str], Coroutine]]):
+    def add_registry_lookup(self, registry_lookup: CustomRegistryLookup):
         """
         Register custom external registry lookup handlers, which will be called when a uid its not in the server registry
         Example:
