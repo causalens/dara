@@ -18,7 +18,7 @@ limitations under the License.
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Callable, Coroutine, Dict, List, Literal, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
 from pydantic.generics import GenericModel
 

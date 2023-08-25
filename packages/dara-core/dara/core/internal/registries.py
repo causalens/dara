@@ -39,7 +39,9 @@ action_registry = Registry[Callable[..., Any]](RegistryType.ACTION)   # function
 component_registry = Registry[ComponentTypeAnnotation](RegistryType.COMPONENTS, CORE_COMPONENTS)
 config_registry = Registry[EndpointConfiguration](RegistryType.ENDPOINT_CONFIG)
 data_variable_registry = Registry[DataVariableRegistryEntry](RegistryType.DATA_VARIABLE, allow_duplicates=False)
-derived_variable_registry = Registry[DerivedVariableRegistryEntry](RegistryType.DERIVED_VARIABLE, allow_duplicates=False)
+derived_variable_registry = Registry[DerivedVariableRegistryEntry](
+    RegistryType.DERIVED_VARIABLE, allow_duplicates=False
+)
 latest_value_registry = Registry[LatestValueRegistryEntry](RegistryType.LAST_VALUE, allow_duplicates=False)
 template_registry = Registry[Template](RegistryType.TEMPLATE)
 auth_registry = Registry[BaseAuthConfig](RegistryType.AUTH_CONFIG)
@@ -55,5 +57,7 @@ sessions_registry = Registry[Set[str]](RegistryType.USER_SESSION)
 pending_tokens_registry = Registry[datetime](RegistryType.PENDING_TOKENS)
 """map of token -> expiry, for tokens pending connection"""
 
-custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload], Any]](RegistryType.CUSTOM_WS_HANDLERS)
+custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload], Any]](
+    RegistryType.CUSTOM_WS_HANDLERS
+)
 """map of custom kind name -> handler function(channel: str, message: CustomClientMessagePayload)"""

@@ -23,6 +23,7 @@ from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
 T = TypeVar('T')
 
+
 class RegistryType(str, Enum):
     ACTION_DEF = 'Action Definition'
     ACTION = 'Action Handler'
@@ -39,6 +40,7 @@ class RegistryType(str, Enum):
     USER_SESSION = 'User session'
     PENDING_TOKENS = 'Pending tokens'
     CUSTOM_WS_HANDLERS = 'Custom WS handlers'
+
 
 class Registry(Generic[T]):
     """

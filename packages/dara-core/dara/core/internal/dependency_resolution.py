@@ -141,9 +141,9 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: St
     :param data_variable_entry: data var entry
     :param store: the store instance to use for caching
     """
-    from dara.core.internal.registries import data_variable_registry,utils_registry
+    from dara.core.internal.registries import data_variable_registry, utils_registry
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    var = await registry_mgr.get(data_variable_registry,str(data_variable_entry.get('uid')))
+    var = await registry_mgr.get(data_variable_registry, str(data_variable_entry.get('uid')))
     result = DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
     return remove_index(result)

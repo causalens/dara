@@ -167,7 +167,7 @@ def create_router(config: Configuration):
         return config.auth_config.component_config
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
-    async def get_components(name: Optional[str]=None):  # pylint: disable=unused-variable
+    async def get_components(name: Optional[str] = None):  # pylint: disable=unused-variable
         """
         If name is passed, will try to register the component
 

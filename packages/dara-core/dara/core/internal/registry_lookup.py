@@ -19,15 +19,22 @@ from typing import Callable, Coroutine, Dict, Literal
 
 from dara.core.internal.registry import Registry, RegistryType
 
-RegistryLookupKey = Literal[RegistryType.ACTION, RegistryType.COMPONENTS, RegistryType.DATA_VARIABLE, RegistryType.DERIVED_VARIABLE, RegistryType.STATIC_KWARGS]
-CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str],Coroutine]]
+RegistryLookupKey = Literal[
+    RegistryType.ACTION,
+    RegistryType.COMPONENTS,
+    RegistryType.DATA_VARIABLE,
+    RegistryType.DERIVED_VARIABLE,
+    RegistryType.STATIC_KWARGS,
+]
+CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
+
 
 class RegistryLookup:
     """
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers:CustomRegistryLookup={}):
+    def __init__(self, handlers: CustomRegistryLookup = {}):
         self.handlers = handlers
 
     async def get(self, registry: Registry, uid: str):
