@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.1.1
 
 -   Exposed `DynamicComponent` as a Python class. Normally used under-the-hood by `@darajs/core` to render dynamic components, it can now be used directly in advanced use cases to serialize components and render them dynamically.
 
@@ -15,6 +15,8 @@ text_cmp = Text(text=derived_text).dict()
 
 config.add_page(name='Dynamic Render', content=DynamicComponent(component=text_cmp))
 ```
+
+-   Experimental: added `config.add_registry_lookup` API. This is an experimental API that allows you to register a function that will be called when a certain registry is being accessed, meant to be use for advanced use cases where some registry data needs to be fetched from an external source.
 
 ## 1.1.0
 
