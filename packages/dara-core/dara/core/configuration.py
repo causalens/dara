@@ -42,6 +42,7 @@ from dara.core.internal.import_discovery import (
     create_component_definition,
     run_discovery,
 )
+from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
 from dara.core.visual.components import RawString
@@ -52,6 +53,7 @@ class Configuration(GenericModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
+    registry_lookup: CustomRegistryLookup
     actions: List[ActionDef]
     endpoint_configurations: List[EndpointConfiguration]
     components: List[ComponentTypeAnnotation]
@@ -108,6 +110,7 @@ class ConfigurationBuilder:
     """
 
     auth_config: BaseAuthConfig
+    registry_lookup: CustomRegistryLookup
     _actions: List[ActionDef]
     _components: List[ComponentTypeAnnotation]
     _errors: List[str]
@@ -132,6 +135,7 @@ class ConfigurationBuilder:
 
     def __init__(self):
         self.auth_config = DefaultAuthConfig()
+        self.registry_lookup = {}
         self._actions = []
         self._components = []
         self._errors = []
@@ -367,6 +371,32 @@ class ConfigurationBuilder:
 
         return auth
 
+    def add_registry_lookup(self, registry_lookup: CustomRegistryLookup):
+        """
+        Register custom external registry lookup handlers, which will be called when a uid its not in the server registry
+        Example:
+
+        ```python
+        from dara.core import ConfigurationBuilder
+        config = ConfigurationBuilder()
+
+        def get_derived_variable(uid)-> DerivedVariableRegistryEntry:
+            # return derived variable
+
+        def get_action(uid)-> Callable:
+            # return action
+
+        config.add_registry_lookup(
+                    {
+                        'DerivedVariable': get_derived_variable,
+                        'Action Handler': get_action,
+                    }
+                )
+        """
+        self.registry_lookup = registry_lookup
+
+        return registry_lookup
+
     def set_theme(
         self,
         main_theme: Optional[Union[ThemeDef, Literal['light'], Literal['dark']]] = None,
@@ -435,6 +465,7 @@ class ConfigurationBuilder:
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
+            registry_lookup=self.registry_lookup,
             components=self._components,
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,

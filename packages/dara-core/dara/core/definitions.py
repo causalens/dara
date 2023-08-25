@@ -17,6 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import json
 import uuid
 from enum import Enum
 from typing import (
@@ -204,6 +205,9 @@ class ComponentInstance(DaraBaseModel):
             kwargs = {**kwargs, 'uid': uid}
 
         super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '__dara__' + json.dumps(self.dict())
 
     @validator('raw_css', pre=True)
     @classmethod

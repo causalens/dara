@@ -17,6 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import json
 import uuid
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
@@ -312,6 +313,10 @@ def _make_render_safe(handler: Callable):
         if result is None:
             return None
         elif isinstance(result, (str, float, int, bool)):
+            # If it is ComponentInstance string(string start with '__dara__')
+            if isinstance(result, str) and result.startswith('__dara__'):
+                return json.loads(result[8:])
+
             # Handle primitives being returned by just displaying the value as a string
             return RawString(content=str(result))
         elif not isinstance(result, ComponentInstance):
