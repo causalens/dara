@@ -5,7 +5,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth/auth';
-import { useSessionToken } from '@/auth';
+import { useSessionToken } from '@/auth/auth-context';
 import { RegistriesCtx } from '@/shared/context';
 import { Component, ComponentInstance } from '@/types/core';
 
