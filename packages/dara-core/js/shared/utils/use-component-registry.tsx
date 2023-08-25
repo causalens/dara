@@ -30,14 +30,20 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
                     break;
                 }
                 if (i === 0) {
-                    await request(`/api/core/components?name=${instance.name}`, { method: HTTP_METHOD.GET }, token);
+                    const res = await request(
+                        `/api/core/components?name=${instance.name}`,
+                        { method: HTTP_METHOD.GET },
+                        token
+                    );
+                    registry = await res.json();
+                } else {
+                    // If component has not been found, it could be a nested py_component, so we refetch the registry
+                    // to see if the component might have been added to the registry in the meantime
+                    // But first wait for 0,5s before retrying, to give time for backend to update the registry
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    const { data } = await refetchComponents();
+                    registry = data;
                 }
-                // If component has not been found, it could be a nested py_component, so we refetch the registry
-                // to see if the component might have been added to the registry in the meantime
-                // But first wait for 0,5s before retrying, to give time for backend to update the registry
-                await new Promise((resolve) => setTimeout(resolve, 500));
-                const { data } = await refetchComponents();
-                registry = data;
                 i++;
             }
 

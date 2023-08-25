@@ -42,6 +42,7 @@ from dara.core.internal.import_discovery import (
     create_component_definition,
     run_discovery,
 )
+from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
 from dara.core.visual.components import RawString
@@ -52,7 +53,7 @@ class Configuration(GenericModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
-    registry_lookup: Dict[str, Callable]
+    registry_lookup: CustomRegistryLookup
     actions: List[ActionDef]
     endpoint_configurations: List[EndpointConfiguration]
     components: List[ComponentTypeAnnotation]

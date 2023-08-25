@@ -16,12 +16,29 @@ limitations under the License.
 """
 
 import copy
+from enum import Enum
 from typing import Generic, MutableMapping, Optional, TypeVar
 
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
 T = TypeVar('T')
 
+class RegistryType(str, Enum):
+    ACTION_DEF = 'Action Definition'
+    ACTION = 'Action Handler'
+    COMPONENTS = 'Components'
+    ENDPOINT_CONFIG = 'Endpoint Configuration'
+    DATA_VARIABLE = 'DataVariable'
+    DERIVED_VARIABLE = 'DerivedVariable'
+    LAST_VALUE = 'LatestValue'
+    TEMPLATE = 'Template'
+    AUTH_CONFIG = 'Auth Config'
+    UTILS = 'Utils'
+    STATIC_KWARGS = 'Static kwargs'
+    WEBSOCKET_CHANNELS = 'Websocket Channels'
+    USER_SESSION = 'User session'
+    PENDING_TOKENS = 'Pending tokens'
+    CUSTOM_WS_HANDLERS = 'Custom WS handlers'
 
 class Registry(Generic[T]):
     """
@@ -32,7 +49,7 @@ class Registry(Generic[T]):
 
     def __init__(
         self,
-        name: str,
+        name: RegistryType,
         initial_registry: Optional[MutableMapping[str, T]] = None,
         allow_duplicates: Optional[bool] = True,
     ):

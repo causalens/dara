@@ -169,14 +169,13 @@ def create_router(config: Configuration):
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
     async def get_components(name: Optional[str]=None):  # pylint: disable=unused-variable
         """
-        If name is passed, will only return the specific component
+        If name is passed, will try to register the component
 
         :param name: the name of component
         """
         if name is not None:
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            comp = await registry_mgr.get(component_registry, name)
-            return {'name': comp.dict(exclude={'func'})}
+            await registry_mgr.get(component_registry, name)
 
         return {k: comp.dict(exclude={'func'}) for k, comp in component_registry.get_all().items()}
 
@@ -254,7 +253,8 @@ def create_router(config: Configuration):
         try:
             store: Store = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
-            variable = data_variable_registry.get(uid)
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+            variable = await registry_mgr.get(data_variable_registry, uid)
 
             data = None
 
@@ -305,7 +305,8 @@ def create_router(config: Configuration):
     async def get_data_variable_count(uid: str, body: Optional[DataVariableCountRequestBody] = None):
         try:
             store: Store = utils_registry.get('Store')
-            variable = data_variable_registry.get(uid)
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+            variable = await registry_mgr.get(data_variable_registry, uid)
 
             if variable.type == 'plain':
                 return DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
@@ -344,7 +345,8 @@ def create_router(config: Configuration):
 
             if data_uid is not None:
                 try:
-                    variable = data_variable_registry.get(data_uid)
+                    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+                    variable = await registry_mgr.get(data_variable_registry, data_uid)
                 except KeyError:
                     raise ValueError(f'Data Variable {data_uid} does not exist')
 

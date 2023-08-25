@@ -82,7 +82,7 @@ async def resolve_dependency(
         return await _resolve_derived_var(entry, store, task_mgr)
 
     if is_resolved_data_variable(entry):
-        return _resolve_data_var(entry, store)
+        return await _resolve_data_var(entry, store)
 
     return entry
 
@@ -103,7 +103,7 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: S
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
     dv_var = await registry_mgr.get(derived_variable_registry, str(entry.get('uid')))
-    data_var = data_variable_registry.get(str(entry.get('uid')))
+    data_var = await registry_mgr.get(data_variable_registry, str(entry.get('uid')))
 
     input_values: List[Any] = entry.get('values', [])
 
@@ -133,7 +133,7 @@ async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, 
     return result['value']
 
 
-def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Store):
+async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Store):
     """
     Resolve a data variable from the registry and get it's new value based on the dynamic variable mapping passed
     in.
@@ -141,8 +141,9 @@ def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Store):
     :param data_variable_entry: data var entry
     :param store: the store instance to use for caching
     """
-    from dara.core.internal.registries import data_variable_registry
+    from dara.core.internal.registries import data_variable_registry,utils_registry
 
-    var = data_variable_registry.get(str(data_variable_entry.get('uid')))
+    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+    var = await registry_mgr.get(data_variable_registry,str(data_variable_entry.get('uid')))
     result = DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
     return remove_index(result)

@@ -36,6 +36,7 @@ from pydantic import BaseModel
 from dara.core.base_definitions import ActionDef, ActionInstance, TemplateMarker
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
+from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
@@ -311,10 +312,11 @@ class UpdateVariable(ActionInstance):
                 utils_registry,
             )
 
-            var_entry = data_variable_registry.get(str(variable.uid))
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             store = utils_registry.get('Store')
 
             async def data_resolver(ctx):
+                var_entry = await registry_mgr.get(data_variable_registry, str(variable.uid))
                 resolved_value = await run_user_handler(resolver, (ctx,))
                 DataVariable.update_value(var_entry, store, resolved_value)
 

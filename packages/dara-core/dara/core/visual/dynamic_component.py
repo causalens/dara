@@ -314,7 +314,7 @@ def _make_render_safe(handler: Callable):
             return None
         elif isinstance(result, (str, float, int, bool)):
             # If it is ComponentInstance string(string start with '__dara__')
-            if result.startswith('__dara__'):
+            if isinstance(result,str) and result.startswith('__dara__'):
                 return json.loads(result[8:])
 
             # Handle primitives being returned by just displaying the value as a string
