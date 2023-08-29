@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal: fix auth logic consistency in embedded environments
+
 ## 1.1.1
 
 -   Exposed `DynamicComponent` as a Python class. Normally used under-the-hood by `@darajs/core` to render dynamic components, it can now be used directly in advanced use cases to serialize components and render them dynamically.
