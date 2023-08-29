@@ -6,9 +6,9 @@ import ErrorPage from '@/pages/error-page';
 import Center from '@/shared/center/center';
 import { ImportersCtx } from '@/shared/context';
 import PrivateRoute from '@/shared/private-route/private-route';
-import { getEmbedToken, getEmbedTokenKey, isEmbedded } from '@/shared/utils/embed';
+import { getToken, getTokenKey } from '@/shared/utils';
 
-import { AuthComponent, DARA_JWT_TOKEN, useAuthComponents } from './auth';
+import { AuthComponent, useAuthComponents } from './auth';
 import AuthContext from './auth-context';
 
 interface AuthWrapperProps {
@@ -59,17 +59,7 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
  * @param props - the component props
  */
 function AuthWrapper(props: AuthWrapperProps): JSX.Element {
-    const [token, setToken] = useState<string>(() => {
-        // handle being in an iframe
-        if (isEmbedded()) {
-            const embedToken = getEmbedToken();
-            if (embedToken) {
-                return embedToken;
-            }
-        }
-
-        return localStorage.getItem(DARA_JWT_TOKEN);
-    });
+    const [token, setToken] = useState<string>(() => getToken());
     const { data: authComponents, isLoading } = useAuthComponents();
 
     /**
@@ -78,7 +68,7 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
      * @param newToken new token
      */
     function onSetToken(newToken: string): void {
-        const key = isEmbedded() ? getEmbedTokenKey() : DARA_JWT_TOKEN;
+        const key = getTokenKey();
 
         if (newToken) {
             localStorage.setItem(key, newToken);

@@ -4,8 +4,9 @@ import { useHistory, useLocation } from 'react-router-dom';
 import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 import { AuthCtx } from '@/shared/context';
+import { getTokenKey } from '@/shared/utils';
 
-import { DARA_JWT_TOKEN, getSessionToken, verifySessionToken } from '../auth';
+import { getSessionToken, verifySessionToken } from '../auth';
 
 /**
  * The Login component gets a new session token from the backend and stores it in local storage
@@ -31,15 +32,17 @@ function DefaultAuthLogin(): JSX.Element {
     }
 
     useEffect(() => {
+        const key = getTokenKey();
+
         // If we landed on this page with a token already, verify it
         if (token) {
-            const storedToken = localStorage.getItem(DARA_JWT_TOKEN);
+            const storedToken = localStorage.getItem(key);
             if (token !== undefined && token !== null && (!storedToken || storedToken === 'undefined')) {
-                localStorage.setItem(DARA_JWT_TOKEN, token);
+                localStorage.setItem(key, token);
             }
 
             // Grab the token from local storage again as it may have changed
-            verifySessionToken(localStorage.getItem(DARA_JWT_TOKEN)).then((verified) => {
+            verifySessionToken(localStorage.getItem(key)).then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
                     history.replace(from);

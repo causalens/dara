@@ -18,6 +18,9 @@ export {
     replaceMarkers,
     hasTemplateMarkers,
     normalizeRequest,
+    getToken,
+    getTokenKey,
+    DARA_JWT_TOKEN,
 } from './utils';
 export {
     useVariable,

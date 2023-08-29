@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
@@ -30,7 +30,7 @@ function warnUpdateOnDerivedState(): void {
  *
  * @param variable the possible variable to use
  */
-export function useVariable<T>(variable: Variable<T> | T): [value: T, update: (val: T) => void] {
+export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Dispatch<SetStateAction<T>>] {
     const token = useSessionToken();
     const { client: WsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
