@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.1.2
 
 -   Internal: fix auth logic consistency in embedded environments
 
