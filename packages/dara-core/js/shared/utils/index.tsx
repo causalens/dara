@@ -1,6 +1,7 @@
 import type { RawCssProp } from './inject-css';
 
 export { default as cleanSessionCache } from './clean-session-cache';
+export { getToken, getTokenKey, DARA_JWT_TOKEN } from './embed';
 export { default as isJsComponent } from './is-js-component';
 export { default as resolveTheme } from './resolve-theme';
 export { default as useAction } from './use-action';

@@ -9,9 +9,9 @@ import { getSessionToken } from '@/api';
 import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 import { AuthCtx } from '@/shared/context';
-import { getEmbedTokenKey, isEmbedded } from '@/shared/utils/embed';
+import { getTokenKey } from '@/shared/utils';
 
-import { DARA_JWT_TOKEN, verifySessionToken } from '../auth';
+import { verifySessionToken } from '../auth';
 
 const Wrapper = styled.div`
     display: flex;
@@ -161,7 +161,7 @@ function BasicAuthLogin(): JSX.Element {
     };
 
     useEffect(() => {
-        const key = isEmbedded() ? getEmbedTokenKey() : DARA_JWT_TOKEN;
+        const key = getTokenKey();
         // If we landed on this page with a token already, verify it
         if (token) {
             // Grab the token from local storage again as it may have changed

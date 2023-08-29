@@ -77,7 +77,6 @@ export {
     revokeSession,
     verifySessionToken,
     handleAuthErrors,
-    DARA_JWT_TOKEN,
     useUser,
 } from './auth';
 export { request } from './api';
@@ -107,6 +106,9 @@ export {
     useVariableValue,
     normalizeRequest,
     WebSocketCtx,
+    DARA_JWT_TOKEN,
+    getToken,
+    getTokenKey,
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };

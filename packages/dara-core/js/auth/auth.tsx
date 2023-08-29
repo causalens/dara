@@ -3,6 +3,7 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
+import { getTokenKey } from '@/shared/utils/embed';
 import { User, UserData } from '@/types';
 
 import { useSessionToken } from './auth-context';
@@ -56,8 +57,6 @@ function shouldRedirectToLogin(message: AuthenticationError): boolean {
         message.reason
     );
 }
-
-export const DARA_JWT_TOKEN = 'dara-jwt-token';
 
 /**
  * Separate from the main component system, since we can't use component registry
@@ -141,7 +140,7 @@ export async function handleAuthErrors(
     const content = await res.clone().json();
 
     if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors)) {
-        localStorage.removeItem(DARA_JWT_TOKEN);
+        localStorage.removeItem(getTokenKey());
 
         const path = toLogin || shouldRedirectToLogin(content.detail) ? '/login' : `/error?code=${res.status}`;
         window.location.href = `${window.dara.base_url}${path}`;
@@ -188,7 +187,7 @@ export async function getSessionToken(body: User = {}): Promise<string> {
 
     const { token } = parsedResponse;
 
-    localStorage.setItem(DARA_JWT_TOKEN, token);
+    localStorage.setItem(getTokenKey(), token);
     return token;
 }
 
