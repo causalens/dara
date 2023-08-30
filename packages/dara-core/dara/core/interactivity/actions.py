@@ -312,10 +312,10 @@ class UpdateVariable(ActionInstance):
                 utils_registry,
             )
 
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             store = utils_registry.get('Store')
 
             async def data_resolver(ctx):
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                 var_entry = await registry_mgr.get(data_variable_registry, str(variable.uid))
                 resolved_value = await run_user_handler(resolver, (ctx,))
                 DataVariable.update_value(var_entry, store, resolved_value)
