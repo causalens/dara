@@ -324,7 +324,7 @@ class UpdateVariable(ActionInstance):
                     var_entry = data_variable_registry.get(str(variable.uid))
                     resolved_value = await run_user_handler(resolver, (ctx,))
                     DataVariable._update(var_entry, store, resolved_value)
-                    return (var_entry,resolved_value)
+                    return (var_entry, resolved_value)
 
             self.register_resolver(uid, data_resolver)
         else:

@@ -300,6 +300,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     if token is None:
         raise HTTPException(403, 'Token missing from websocket connection query parameter')
 
+    from dara.core.auth.definitions import SESSION_ID, USER, UserData
     from dara.core.internal.registries import (
         pending_tokens_registry,
         sessions_registry,
@@ -333,6 +334,17 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
         sessions_registry.set(user_identifier, previous_sessions)
     else:
         sessions_registry.set(user_identifier, {token_content.session_id})
+
+    # Set Auth context vars for the WS connection
+    USER.set(
+        UserData(
+            identity_id=token_content.identity_id,
+            identity_name=token_content.identity_name,
+            identity_email=token_content.identity_email,
+            groups=token_content.groups,
+        )
+    )
+    SESSION_ID.set(token_content.session_id)
 
     # Change protocol from http to ws - from this point exceptions can't be raised
     await websocket.accept()
