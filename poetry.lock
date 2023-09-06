@@ -14,25 +14,25 @@ files = [
 
 [[package]]
 name = "anyio"
-version = "3.7.1"
+version = "4.0.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "anyio-3.7.1-py3-none-any.whl", hash = "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5"},
-    {file = "anyio-3.7.1.tar.gz", hash = "sha256:44a3c9aba0f5defa43261a8b3efb97891f2bd7d804e0e1f56419befa1adfc780"},
+    {file = "anyio-4.0.0-py3-none-any.whl", hash = "sha256:cfdb2b588b9fc25ede96d8db56ed50848b0b649dca3dd1df0b11f683bb9e0b5f"},
+    {file = "anyio-4.0.0.tar.gz", hash = "sha256:f7ed51751b2c2add651e5747c891b47e26d2a21be5d32d9311dfe9692f3e5d7a"},
 ]
 
 [package.dependencies]
-exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
+exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
 idna = ">=2.8"
 sniffio = ">=1.1"
 
 [package.extras]
-doc = ["Sphinx", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme (>=1.2.2)", "sphinxcontrib-jquery"]
-test = ["anyio[trio]", "coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "mock (>=4)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
-trio = ["trio (<0.22)"]
+doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)"]
+test = ["anyio[trio]", "coverage[toml] (>=7)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
+trio = ["trio (>=0.22)"]
 
 [[package]]
 name = "arrow"
@@ -211,14 +211,14 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.1.2"
+version = "0.2.0"
 description = "A Causal AI package for causal graphs."
 category = "main"
 optional = false
 python-versions = ">=3.8.0,<3.12.0"
 files = [
-    {file = "cai_causal_graph-0.1.2-py3-none-any.whl", hash = "sha256:0740318c29a5e9340db7f5237e6bca597fd977f31694035695a337ee355e94c1"},
-    {file = "cai_causal_graph-0.1.2.tar.gz", hash = "sha256:b88125cd8bee6e8df8bdff6d5bdbd71a2b9b7f8ae495521ce5e9c7c3a0c1f78b"},
+    {file = "cai_causal_graph-0.2.0-py3-none-any.whl", hash = "sha256:f3465fe0e396c54b00eb7ff0dc5a1d2b6441519648b1b1ed5ed14af8b98101c4"},
+    {file = "cai_causal_graph-0.2.0.tar.gz", hash = "sha256:b471f6c2f181f4514a05f4d4518cace63fa87e149c44cf836bf2195fd1cdea40"},
 ]
 
 [package.dependencies]
@@ -522,7 +522,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.1.2"
+version = "1.1.3"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -613,7 +613,7 @@ files = [
 
 [[package]]
 name = "dara-components"
-version = "1.1.2"
+version = "1.1.3"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -624,7 +624,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.1.2"
+dara-core = "=1.1.3"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -638,7 +638,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.1.2"
+version = "1.1.3"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -675,7 +675,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.1.2)"]
+all = ["dara-components (==1.1.3)"]
 
 [package.source]
 type = "directory"
@@ -871,14 +871,14 @@ smmap = ">=3.0.1,<6"
 
 [[package]]
 name = "gitpython"
-version = "3.1.32"
+version = "3.1.34"
 description = "GitPython is a Python library used to interact with Git repositories"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "GitPython-3.1.32-py3-none-any.whl", hash = "sha256:e3d59b1c2c6ebb9dfa7a184daf3b6dd4914237e7488a1730a6d8f6f5d0b4187f"},
-    {file = "GitPython-3.1.32.tar.gz", hash = "sha256:8d9b8cb1e80b9735e8717c9362079d3ce4c6e5ddeebedd0361b228c3a67a62f6"},
+    {file = "GitPython-3.1.34-py3-none-any.whl", hash = "sha256:5d3802b98a3bae1c2b8ae0e1ff2e4aa16bcdf02c145da34d092324f599f01395"},
+    {file = "GitPython-3.1.34.tar.gz", hash = "sha256:85f7d365d1f6bf677ae51039c1ef67ca59091c7ebd5a3509aa399d4eda02d6dd"},
 ]
 
 [package.dependencies]
@@ -2082,14 +2082,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pytest"
-version = "7.4.0"
+version = "7.4.1"
 description = "pytest: simple powerful testing with Python"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pytest-7.4.0-py3-none-any.whl", hash = "sha256:78bf16451a2eb8c7a2ea98e32dc119fd2aa758f1d5d66dbf0a59d69a3969df32"},
-    {file = "pytest-7.4.0.tar.gz", hash = "sha256:b4bf8c45bd59934ed84001ad51e11b4ee40d40a1229d2c79f9c592b0a3f6bd8a"},
+    {file = "pytest-7.4.1-py3-none-any.whl", hash = "sha256:460c9a59b14e27c602eb5ece2e47bec99dc5fc5f6513cf924a7d03a578991b1f"},
+    {file = "pytest-7.4.1.tar.gz", hash = "sha256:2f2301e797521b23e4d2585a0a3d7b5e50fdddaaf7e7d6773ea26ddb17c213ab"},
 ]
 
 [package.dependencies]
@@ -2182,14 +2182,14 @@ unidecode = ["Unidecode (>=1.1.1)"]
 
 [[package]]
 name = "pytz"
-version = "2023.3"
+version = "2023.3.post1"
 description = "World timezone definitions, modern and historical"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytz-2023.3-py2.py3-none-any.whl", hash = "sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb"},
-    {file = "pytz-2023.3.tar.gz", hash = "sha256:1d8ce29db189191fb55338ee6d0387d82ab59f3d00eac103412d64e0ebd0c588"},
+    {file = "pytz-2023.3.post1-py2.py3-none-any.whl", hash = "sha256:ce42d816b81b68506614c11e8937d3aa9e41007ceb50bfdcb0749b921bf646c7"},
+    {file = "pytz-2023.3.post1.tar.gz", hash = "sha256:7b4fddbeb94a1eba4b557da24f19fdf9db575192544270a9101d8509f9f43d7b"},
 ]
 
 [[package]]
@@ -2942,4 +2942,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "2e2f2d2120adcb37484279785de806a4069d464c427b2075457c135af87c77b2"
+content-hash = "1262e40d42e45fed058977a646a8f55a1abc8f31feaa0098a3ac23be6cbfd79e"
