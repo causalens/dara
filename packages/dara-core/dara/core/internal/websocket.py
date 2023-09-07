@@ -138,9 +138,7 @@ class WebSocketHandler:
         arbitrary_types_allowed = True
 
     def __init__(self, channel_id: str):
-        send_stream: MemoryObjectSendStream[ServerMessage]
-        receive_stream: MemoryObjectReceiveStream[ServerMessage]
-        send_stream, receive_stream = create_memory_object_stream(math.inf)
+        send_stream, receive_stream = create_memory_object_stream[ServerMessage](math.inf)
         self.channel_id = channel_id
         self.send_stream = send_stream
         self.receive_stream = receive_stream

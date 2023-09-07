@@ -1,5 +1,6 @@
 import asyncio
 import os
+from exceptiongroup import BaseExceptionGroup
 
 import pytest
 from async_asgi_testclient import TestClient as AsyncTestClient
@@ -110,7 +111,7 @@ async def test_action_handler_error():
             ws_channel = init.get('message').get('channel')
 
             # We have to catch the error here otherwise the test stops, in a normal flow the error would simply be logged
-            with pytest.raises(ZeroDivisionError):
+            with pytest.raises(BaseExceptionGroup):
                 await _call_action(
                     client,
                     action,

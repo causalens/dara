@@ -652,6 +652,7 @@ click = "8.1.3"
 colorama = "^0.4.6"
 croniter = "^1.0.15"
 cryptography = ">=41.0.3"
+exceptiongroup = "^1.1.3"
 fastapi = ">=0.95.1, <0.96.0"
 fastapi-vite = "0.3.1"
 httpx = ">=0.23.0"
@@ -2942,4 +2943,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "1262e40d42e45fed058977a646a8f55a1abc8f31feaa0098a3ac23be6cbfd79e"
+content-hash = "2ca1b34bcf0c30f33aabd0d5dd370fa1629248f59d427fcc97941aa24afac791"
