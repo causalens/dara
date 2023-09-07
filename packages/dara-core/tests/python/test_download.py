@@ -3,6 +3,7 @@ from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from unittest.mock import patch
+from exceptiongroup import BaseExceptionGroup
 
 import jwt
 import pytest
@@ -157,10 +158,10 @@ async def test_file_not_found(_uid):
             },
         )
 
-        with pytest.raises(FileNotFoundError) as err:
+        with pytest.raises(BaseExceptionGroup) as err:
             call_main = await client.get(f'/api/core/download?code={response.json()}')
 
-        assert str(err.value) == 'Download file "test.txt" could not be found at: ./test.txt'
+        assert str(err.value.exceptions[0]) == 'Download file "test.txt" could not be found at: ./test.txt'
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')

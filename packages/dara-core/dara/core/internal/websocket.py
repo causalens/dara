@@ -138,7 +138,7 @@ class WebSocketHandler:
         arbitrary_types_allowed = True
 
     def __init__(self, channel_id: str):
-        send_stream, receive_stream = create_memory_object_stream(math.inf)
+        send_stream, receive_stream = create_memory_object_stream[ServerMessage](math.inf)
         self.channel_id = channel_id
         self.send_stream = send_stream
         self.receive_stream = receive_stream
@@ -300,6 +300,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     if token is None:
         raise HTTPException(403, 'Token missing from websocket connection query parameter')
 
+    from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, UserData
     from dara.core.internal.registries import (
         pending_tokens_registry,
         sessions_registry,
@@ -333,6 +334,18 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
         sessions_registry.set(user_identifier, previous_sessions)
     else:
         sessions_registry.set(user_identifier, {token_content.session_id})
+
+    # Set Auth context vars for the WS connection
+    USER.set(
+        UserData(
+            identity_id=token_content.identity_id,
+            identity_name=token_content.identity_name,
+            identity_email=token_content.identity_email,
+            groups=token_content.groups,
+        )
+    )
+    SESSION_ID.set(token_content.session_id)
+    ID_TOKEN.set(token_content.id_token)
 
     # Change protocol from http to ws - from this point exceptions can't be raised
     await websocket.accept()

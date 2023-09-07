@@ -6,6 +6,7 @@ from typing import Union
 from unittest.mock import Mock, patch
 
 import anyio
+from exceptiongroup import BaseExceptionGroup
 import jwt
 import pytest
 from anyio import create_task_group
@@ -1424,10 +1425,10 @@ async def test_non_task_immediate_reuse():
                 await tg.start(run_coro_until_result, response_1_coro, 'response_1')
                 tg.start_soon(run_coro_until_result, response_2_coro, 'response_2')
 
-            assert isinstance(results['response_1'], Exception)
-            assert 'test exception' in str(results['response_1'])
-            assert isinstance(results['response_2'], Exception)
-            assert 'test exception' in str(results['response_2'])
+            assert isinstance(results['response_1'], BaseExceptionGroup)
+            assert 'test exception' in str(results['response_1'].exceptions[0])
+            assert isinstance(results['response_2'], BaseExceptionGroup)
+            assert 'test exception' in str(results['response_2'].exceptions[0])
 
 
 async def test_calling_an_action():

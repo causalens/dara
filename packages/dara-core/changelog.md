@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.1.3
+
+-   Internal: added a ContextVar in the `any_variable` module to customize `get_current_value` behaviour.
+-   Fixed `ComponentInstance`'s `__repr__` not being able to correctly serialize components in some cases
+
 ## 1.1.2
 
 -   Internal: fix auth logic consistency in embedded environments
