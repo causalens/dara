@@ -1,13 +1,14 @@
+import { transparentize } from 'polished';
+
+import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
+import { Button } from '@darajs/ui-components';
+
 import { useConfig } from '@/api';
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
 import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
 import { ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
-import { transparentize } from 'polished';
-
-import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
-import { Button } from '@darajs/ui-components';
 
 interface SideBarProps {
     width?: string;
