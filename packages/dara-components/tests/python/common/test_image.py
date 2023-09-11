@@ -20,7 +20,7 @@ class TestImageComponent(TestCase):
     @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
     def test_serialization(self, _uid):
         """Test the component serializes to a dict"""
-        cmp = Image(src='static/test.jpg')
+        cmp = Image(src='/static/test.jpg')
         expected_dict = {
             'name': 'Image',
             'props': {
@@ -28,7 +28,7 @@ class TestImageComponent(TestCase):
                 'bold': False,
                 'italic': False,
                 'underline': False,
-                'src': 'static/test.jpg',
+                'src': '/static/test.jpg',
             },
             'uid': 'uid',
         }
