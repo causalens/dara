@@ -200,7 +200,7 @@ def template_renderer(config: Configuration):
     builder.layout = SideBarFrame(
         content=RouterContent(routes=router.content),
         side_bar=Menu(routes=router.links),
-        logo_path='/static/logo.png',
+        logo_path='static/logo.png',
     )
 
     return builder.to_template()
@@ -211,6 +211,6 @@ config.template = 'side-bar'
 
 :::info
 
-The `logo_path` must be provided in the format of `/static/path_to_image.extension`. See `dara.components.common.image.Image` for more information.
+The `logo_path` must be provided in the format of `static/path_to_image.extension`. See `dara.components.common.image.Image` for more information.
 
 :::

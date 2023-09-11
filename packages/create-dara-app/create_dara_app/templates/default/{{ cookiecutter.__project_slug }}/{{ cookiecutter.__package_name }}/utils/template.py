@@ -13,7 +13,7 @@ def template_renderer(config: Configuration):
     builder.layout = SideBarFrame(
         content=RouterContent(routes=router.content),
         side_bar=Menu(routes=router.links),
-        logo_path='/static/dara_light.svg',
+        logo_path='static/dara_light.svg',
     )
 
     return builder.to_template()
