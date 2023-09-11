@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.1.4
+
+-   Fixed an issue where the logo path would be incorrect in embedded environments
+
 ## 1.1.3
 
 -   Internal: added a ContextVar in the `any_variable` module to customize `get_current_value` behaviour.
