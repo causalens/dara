@@ -22,8 +22,7 @@ This covers how to add the the necessary template renderer but you must tell you
 For context, the example below replicates the pre-built `blank` template.
 
 ```python
-from dara.core import ConfigurationBuilder
-from dara.core.definitions import Configuration
+from dara.core.configuration import ConfigurationBuilder, Configuration
 from dara.core.visual.components import RouterContent
 from dara.core.visual.template import TemplateBuilder
 
@@ -47,11 +46,10 @@ config.add_template_renderer('blank', template_renderer)
 config.template = 'blank'
 ```
 
-The example below creates a simple top-bar style layout using the `dara-components` and the `dara.core.visual.components.Menu` component.
+The example below creates a simple top-bar style layout using the `dara-components` and the `dara.core.visual.components.menu.Menu` component.
 
 ```python
-from dara.core import ConfigurationBuilder
-from dara.core.definitions import Configuration
+from dara.core.configuration import ConfigurationBuilder, Configuration
 from dara.core.visual.components import RouterContent, Menu
 from dara.core.visual.template import TemplateBuilder
 from dara.components import Stack, Text
@@ -99,8 +97,7 @@ How does it work under the hood? The `template_renderer` function is called on a
 Below is an example of putting it all together.
 
 ```python python title=main.py
-from dara.core import ConfigurationBuilder
-from dara.core.definitions import Configuration
+from dara.core.configuration import ConfigurationBuilder, Configuration
 from dara.core.visual.components import RouterContent, Menu
 from dara.core.visual.template import TemplateBuilder
 from dara.components import Text, Spacer, Stack
@@ -159,7 +156,7 @@ You can always save your `template_render` function in another file and import i
 - `dara.core.visual.components.sidebar_frame.SidebarFrame`
 - `dara.core.visual.components.topbar_frame.TopbarFrame`
 
-These are used internally to construct the `default`, `top` and `top-menu` templates. However, you can use them to construct your own custom templates. As an example, you might want to customise the look of your app by using a different logo. To achieve that, put a logo image in the `static` folder alongside a `favicon.ico` file.
+These are used internally to construct the `default`, `top` and `top-menu` templates. However, you can use them to construct your own custom templates. As an example, you might want to customize the look of your app by using a different logo. To achieve that, put a logo image in the `static` folder alongside a `favicon.ico` file.
 
 ```
 - static
@@ -180,9 +177,8 @@ If an `.ico` file is found in `./static/`, it is used instead of the default `fa
 Then, you can use the `TopbarFrame` or `SidebarFrame` component to construct a custom template.
 
 ```python title=main.py
-from dara.core import ConfigurationBuilder
-from dara.core.definitions import Configuration
-from dara.core.visual.components import RouterContent
+from dara.core.configuration import ConfigurationBuilder, Configuration
+from dara.core.visual.components import RouterContent, Menu
 from dara.core.visual.template import TemplateBuilder
 from dara.core.visual.themes import Light
 from dara.core.visual.components.sidebar_frame import SidebarFrame
