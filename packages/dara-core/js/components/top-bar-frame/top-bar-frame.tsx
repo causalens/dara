@@ -111,14 +111,14 @@ const LogoutArrow = getIcon('fa-solid fa-arrow-right-from-bracket');
 /**
  * The TopBarFrame component is designed as a root component for an app built using the Dara core framework.
  */
-function SideBarFrame(props: TopBarFrameProps): JSX.Element {
+function TopBarFrame(props: TopBarFrameProps): JSX.Element {
     const theme = useTheme();
     const { data: config } = useConfig();
     const logo = props.logo_path && (
         <LogoImage alt="Logo" src={prependBaseUrl(props.logo_path)} width={props.logo_width} />
     );
     const logoSrc = theme.themeType === 'dark' ? DaraDark : DaraLight;
-    const daraLogo = <img alt="Dara" src={prependBaseUrl(logoSrc)} />;
+    const daraLogo = <img alt="Dara" src={logoSrc} />;
 
     return (
         <Wrapper backgroundColor={theme.colors.background} direction="column">
@@ -149,4 +149,4 @@ function SideBarFrame(props: TopBarFrameProps): JSX.Element {
     );
 }
 
-export default SideBarFrame;
+export default TopBarFrame;
