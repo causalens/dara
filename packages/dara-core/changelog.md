@@ -4,7 +4,7 @@ title: Changelog
 
 ## 1.1.4
 
--   Fixed an issue where the logo path would be incorrect in embedded environments
+-   Fixed an issue where the sidebar logo path would be incorrect in embedded environments
 
 ## 1.1.3
 
