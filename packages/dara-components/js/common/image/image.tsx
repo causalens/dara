@@ -1,4 +1,4 @@
-import { StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
+import { StyledComponentProps, injectCss, prependBaseUrl, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 interface ImageProps extends StyledComponentProps {
@@ -22,8 +22,7 @@ const StyledImg = injectCss(ImageComponent);
 function Image(props: ImageProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
 
-    // prepend base url if set
-    const source = (window.dara?.base_url ?? '') + props.src;
+    const source = prependBaseUrl(props.src);
 
     return (
         <StyledImg $rawCss={css} style={style}>
