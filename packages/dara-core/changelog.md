@@ -5,6 +5,7 @@ title: Changelog
 ## 1.1.5
 
 -   Lock `anyio` to `>=4.0.0`
+-   Internal: added a ContextVar in the `dara.core.visual.dynamic_component` module to keep track of currently executed `py_component`
 
 ## 1.1.4
 
