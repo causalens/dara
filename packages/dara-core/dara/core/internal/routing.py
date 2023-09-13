@@ -59,7 +59,11 @@ from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
-from dara.core.visual.dynamic_component import PyComponentDef, render_component
+from dara.core.visual.dynamic_component import (
+    CURRENT_COMPONENT_ID,
+    PyComponentDef,
+    render_component,
+)
 
 
 def error_decorator(handler: Callable[..., Any]):
@@ -189,6 +193,7 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/components/{component}', dependencies=[Depends(verify_session)])
     async def get_component(component: str, body: ComponentRequestBody):  # pylint: disable=unused-variable
+        CURRENT_COMPONENT_ID.set(body.uid)
         store: Store = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
