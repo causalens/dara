@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.1.5
+
+-   Lock `anyio` to `>=4.0.0`
+
 ## 1.1.4
 
 -   Fixed an issue where the sidebar logo path would be incorrect in embedded environments
