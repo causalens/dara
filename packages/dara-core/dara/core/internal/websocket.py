@@ -407,6 +407,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     except WebSocketDisconnect:
         # Handle forceful disconnection caused by i.e. server reload in dev
         eng_logger.warning('Websocket forcefully disconnected')
+    except Exception as e:
+        eng_logger.error('Error in websocket handler', error=e)
     finally:
         websocket_registry.remove(token_content.session_id)
         ws_mgr.remove_handler(channel)
