@@ -59,9 +59,12 @@ from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
-from dara.core.visual.dynamic_component import PyComponentDef, render_component
+from dara.core.visual.dynamic_component import (
+    CURRENT_COMPONENT_ID,
+    PyComponentDef,
+    render_component,
+)
 
-from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID
 
 def error_decorator(handler: Callable[..., Any]):
     """Wrapper for routes to improve the default error message in the framework"""
