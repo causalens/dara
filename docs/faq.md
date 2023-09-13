@@ -38,11 +38,11 @@ Like any web app, your app can be customized with CSS.
 
 <h4> Components </h4>
 
-The appearance of components can be changed directly through its properties or by passing custom CSS into their `raw_css` property. The [**Customizing Components**](/docs/advanced/styling-components) section shows examples and goes through some basic CSS properties you can use to give your app the right look!
+The appearance of components can be changed directly through its properties or by passing custom CSS into their `raw_css` property. The [**Customizing Components**](./advanced/styling-components) section shows examples and goes through some basic CSS properties you can use to give your app the right look!
 
 <h4> App Themes </h4>
 
-You can also give a specific color-way to your entire application. The [**Themes**](/docs/advanced/custom-themes) section shows examples of how to configure your app with a pre-built theme, along with directing you to a resource on how to make your own themes.
+You can also give a specific color-way to your entire application. The [**Themes**](./advanced/custom-themes) section shows examples of how to configure your app with a pre-built theme, along with directing you to a resource on how to make your own themes.
 
 </details>
 
