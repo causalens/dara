@@ -51,6 +51,8 @@ from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.visual.components import InvalidComponent, RawString
 
+from contextvars import ContextVar
+CURRENT_COMPONENT_ID = ContextVar('current_component_id')
 
 class PyComponentInstance(ComponentInstance):
     func_name: str
