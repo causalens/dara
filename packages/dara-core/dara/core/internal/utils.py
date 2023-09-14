@@ -21,6 +21,8 @@ import inspect
 from importlib import import_module
 from types import ModuleType
 from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Tuple, Union
+import anyio
+from functools import wraps
 
 from starlette.concurrency import run_in_threadpool
 
@@ -108,3 +110,51 @@ def enforce_sso(conf: ConfigurationBuilder):
         raise ValueError(
             'SSO is not enabled. Please install the dara_enterprise package and configure SSO to use this feature.'
         )
+
+
+def async_dedupe(fn):
+    """
+    Decorator to deduplicate concurrent calls to asynchronous functions based on their arguments.
+
+    If multiple concurrent calls are made with the same arguments, the function is executed
+    only once. Subsequent calls will wait for the first one to complete and then return
+    its result.
+
+    This decorator is useful for operations that might be triggered multiple times in parallel
+    but should be executed only once to prevent redundant work or data fetches.
+    """
+    locks = {}
+    results = {}
+    wait_counts = {}
+
+    is_method = 'self' in inspect.signature(fn).parameters
+
+    @wraps(fn)
+    async def wrapped(*args, **kwargs):
+        non_self_args = args[1:] if is_method else args
+        key = (non_self_args, frozenset(kwargs.items()))
+        lock = locks.get(key)
+
+        if not lock:
+            lock = anyio.Lock()
+            locks[key] = lock
+            wait_counts[key] = 1
+        else:
+            wait_counts[key] += 1
+
+        async with lock:
+            if key not in results:
+                results[key] = await fn(*args, **kwargs)
+            result = results[key]
+
+            # Decrement wait count
+            wait_counts[key] -= 1
+            # Cleanup the lock and result if no other tasks are waiting for this key
+            if wait_counts[key] == 0:
+                locks.pop(key, None)
+                results.pop(key, None)
+                wait_counts.pop(key, None)
+
+        return result
+
+    return wrapped
