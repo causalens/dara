@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.1.6
+
+-   Internal: dedupe custom registry lookup calls
+
 ## 1.1.5
 
 -   Lock `anyio` to `>=4.0.0`
