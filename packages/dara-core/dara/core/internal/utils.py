@@ -18,12 +18,23 @@ limitations under the License.
 from __future__ import annotations
 
 import inspect
+from functools import wraps
 from importlib import import_module
 from types import ModuleType
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Tuple, Union
-import anyio
-from functools import wraps
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
+import anyio
 from starlette.concurrency import run_in_threadpool
 
 from dara.core.auth.definitions import SESSION_ID, USER
@@ -112,7 +123,7 @@ def enforce_sso(conf: ConfigurationBuilder):
         )
 
 
-def async_dedupe(fn):
+def async_dedupe(fn: Callable[..., Awaitable]):
     """
     Decorator to deduplicate concurrent calls to asynchronous functions based on their arguments.
 
@@ -123,9 +134,9 @@ def async_dedupe(fn):
     This decorator is useful for operations that might be triggered multiple times in parallel
     but should be executed only once to prevent redundant work or data fetches.
     """
-    locks = {}
-    results = {}
-    wait_counts = {}
+    locks: Dict[Tuple, anyio.Lock] = {}
+    results: Dict[Tuple, Any] = {}
+    wait_counts: Dict[Tuple, int] = {}
 
     is_method = 'self' in inspect.signature(fn).parameters
 
