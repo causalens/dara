@@ -18,7 +18,7 @@ importers:
   packages/dara-components:
     specifiers:
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.1.5
+      '@darajs/core': 1.1.6
       '@darajs/eslint-config': ~1.0.0
       '@darajs/prettier-config': ~1.0.0
       '@darajs/styled-components': ~1.0.0
