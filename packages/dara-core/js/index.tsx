@@ -112,6 +112,7 @@ export {
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };
+export { prependBaseUrl } from './utils';
 
 // Add default export
 export default run;

@@ -18,6 +18,7 @@ limitations under the License.
 from typing import Callable, Coroutine, Dict, Literal
 
 from dara.core.internal.registry import Registry, RegistryType
+from dara.core.internal.utils import async_dedupe
 
 RegistryLookupKey = Literal[
     RegistryType.ACTION,
@@ -37,6 +38,7 @@ class RegistryLookup:
     def __init__(self, handlers: CustomRegistryLookup = {}):
         self.handlers = handlers
 
+    @async_dedupe
     async def get(self, registry: Registry, uid: str):
         """
         Get the entry from registry by uid.

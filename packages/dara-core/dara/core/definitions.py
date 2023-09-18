@@ -35,6 +35,7 @@ from typing import (
     runtime_checkable,
 )
 
+from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
 from pydantic import BaseModel, Field, validator
 from pydantic.generics import GenericModel
@@ -207,7 +208,7 @@ class ComponentInstance(DaraBaseModel):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return '__dara__' + json.dumps(self.dict())
+        return '__dara__' + json.dumps(jsonable_encoder(self))
 
     @validator('raw_css', pre=True)
     @classmethod

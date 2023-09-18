@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from contextvars import ContextVar
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
 from typing import (
@@ -50,6 +51,8 @@ from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.visual.components import InvalidComponent, RawString
+
+CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 
 
 class PyComponentInstance(ComponentInstance):

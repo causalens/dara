@@ -2,6 +2,24 @@
 title: Changelog
 ---
 
+## 1.1.6
+
+-   Internal: dedupe custom registry lookup calls
+
+## 1.1.5
+
+-   Lock `anyio` to `>=4.0.0`
+-   Internal: added a ContextVar in the `dara.core.visual.dynamic_component` module to keep track of currently executed `py_component`
+
+## 1.1.4
+
+-   Fixed an issue where the sidebar logo path would be incorrect in embedded environments
+
+## 1.1.3
+
+-   Internal: added a ContextVar in the `any_variable` module to customize `get_current_value` behaviour.
+-   Fixed `ComponentInstance`'s `__repr__` not being able to correctly serialize components in some cases
+
 ## 1.1.2
 
 -   Internal: fix auth logic consistency in embedded environments

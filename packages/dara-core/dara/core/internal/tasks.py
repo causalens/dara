@@ -27,7 +27,7 @@ from anyio import (
     move_on_after,
 )
 from anyio.abc import TaskGroup
-from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
+from anyio.streams.memory import MemoryObjectSendStream
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -493,9 +493,7 @@ class TaskManager:
                         await self.ws_manager.send_message(channel, message)
 
             # Create a memory object stream to capture messages from the tasks
-            send_stream: MemoryObjectSendStream[TaskMessage]
-            receive_stream: MemoryObjectReceiveStream[TaskMessage]
-            send_stream, receive_stream = create_memory_object_stream(math.inf)
+            send_stream, receive_stream = create_memory_object_stream[TaskMessage](math.inf)
 
             async def handle_messages():
                 async with receive_stream:

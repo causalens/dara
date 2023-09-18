@@ -37,7 +37,7 @@ from bokeh.plotting import figure
 
 from dara.core import ConfigurationBuilder, get_icon
 from dara.components import Bokeh
-from dara.components.palettes import PolarisingLight
+from dara.components.plotting.palettes import PolarisingLight
 
 
 def bokeh_plot():
@@ -63,7 +63,7 @@ An example app using Sequential Palette:
 import plotly.graph_objects as go
 
 from dara.components import Plotly
-from dara.components.palettes import SequentialLight10
+from dara.components.plotting.palettes import SequentialLight10
 
 from dara.core import ConfigurationBuilder, ComponentInstance, get_icon
 

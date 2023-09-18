@@ -431,7 +431,6 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheD
     # Create static dir if it does not exist
     os.makedirs(build_cache.static_files_dir, exist_ok=True)
 
-
     # JS rebuild required, run mode-specific logic
     if build_diff.should_rebuild_js():
         # If we are in autoJS mode, just prepare pre-built assets to be included directly
@@ -465,7 +464,7 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
                 js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
                 shutil.copytree(
                     build_cache.build_config.js_config.local_entry,
-                    os.path.join(build_cache.static_files_dir, js_folder_name)
+                    os.path.join(build_cache.static_files_dir, js_folder_name),
                 )
             else:
                 build_cache.symlink_js()
@@ -494,9 +493,7 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     # If we need to pull from a custom registry in CI where the user is not npm logged in, then add to the npmrc file
     if build_cache.build_config.npm_token is not None and build_cache.build_config.npm_registry is not None:
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
-            npmrc_file.write(
-                f'@darajs:registry=https://{build_cache.build_config.npm_registry}\n'
-            )
+            npmrc_file.write(f'@darajs:registry=https://{build_cache.build_config.npm_registry}\n')
             npmrc_file.write(
                 f'//{build_cache.build_config.npm_registry}/:_authToken={build_cache.build_config.npm_token}'
             )
