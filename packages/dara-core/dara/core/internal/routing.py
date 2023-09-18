@@ -361,8 +361,13 @@ def create_router(config: Configuration):
             content = cast(bytes, await data.read())
 
             if resolver_id is not None:
-                resolver = action_registry.get(resolver_id)
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+                resolver = await registry_mgr.get(action_registry, resolver_id)
                 content = resolver(content, data.filename)
+                import inspect
+
+                if inspect.iscoroutine(content):
+                    content = await content
             # If resolver is not provided, follow roughly the cl_dataset_parser logic
             elif file_type == '.xlsx':
                 file_object_xlsx = io.BytesIO(content)
@@ -376,6 +381,8 @@ def create_router(config: Configuration):
 
             # If a data variable is provided, update it with the new content
             if variable:
+                if isinstance(content, dict):
+                    content = pandas.DataFrame.from_dict(content)
                 DataVariable.update_value(variable, store, content)
 
             return {'status': 'SUCCESS'}
