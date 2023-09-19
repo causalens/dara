@@ -364,11 +364,11 @@ def create_router(config: Configuration):
             if resolver_id is not None:
                 registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                 resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
-                content = resolver(content, data.filename)
-                import inspect
 
-                if inspect.iscoroutine(content):
-                    content = await content
+                from dara.core.internal.utils import run_user_handler
+
+                content = await run_user_handler(handler=resolver, args=(content, data.filename))
+
             # If resolver is not provided, follow roughly the cl_dataset_parser logic
             elif file_type == '.xlsx':
                 file_object_xlsx = io.BytesIO(content)
@@ -382,8 +382,6 @@ def create_router(config: Configuration):
 
             # If a data variable is provided, update it with the new content
             if variable:
-                if isinstance(content, dict):
-                    content = pandas.DataFrame.from_dict(content)
                 DataVariable.update_value(variable, store, content)
 
             return {'status': 'SUCCESS'}
