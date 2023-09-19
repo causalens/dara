@@ -57,7 +57,7 @@ from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager, TaskManagerError
-from dara.core.internal.utils import get_cache_scope
+from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import (
@@ -364,8 +364,6 @@ def create_router(config: Configuration):
             if resolver_id is not None:
                 registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                 resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
-
-                from dara.core.internal.utils import run_user_handler
 
                 content = await run_user_handler(handler=resolver, args=(content, data.filename))
 
