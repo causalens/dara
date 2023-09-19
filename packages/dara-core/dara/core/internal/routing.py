@@ -50,6 +50,7 @@ from dara.core.internal.registries import (
     latest_value_registry,
     static_kwargs_registry,
     template_registry,
+    upload_resolver_registry,
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -362,7 +363,7 @@ def create_router(config: Configuration):
 
             if resolver_id is not None:
                 registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-                resolver = await registry_mgr.get(action_registry, resolver_id)
+                resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
                 content = resolver(content, data.filename)
                 import inspect
 
