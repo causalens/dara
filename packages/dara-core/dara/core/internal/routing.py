@@ -342,6 +342,7 @@ def create_router(config: Configuration):
 
         try:
             store: Store = utils_registry.get('Store')
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable = None
 
             if data.filename is None:
@@ -351,7 +352,6 @@ def create_router(config: Configuration):
 
             if data_uid is not None:
                 try:
-                    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                     variable = await registry_mgr.get(data_variable_registry, data_uid)
                 except KeyError:
                     raise ValueError(f'Data Variable {data_uid} does not exist')
@@ -362,7 +362,6 @@ def create_router(config: Configuration):
             content = cast(bytes, await data.read())
 
             if resolver_id is not None:
-                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                 resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
 
                 content = await run_user_handler(handler=resolver, args=(content, data.filename))
