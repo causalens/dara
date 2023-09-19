@@ -377,7 +377,7 @@ function Table(props: TableProps): JSX.Element {
             const response = await getData(combineFilters('AND', [filtersToFilterQuery(filters), searchQuery]), {
                 index,
                 limit: stopIndex - startIndex,
-                offset: sortingRules[0] ? startIndex + 5 : startIndex,
+                offset: startIndex,
                 sort: sortingRules[0],
             });
 

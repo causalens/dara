@@ -241,7 +241,6 @@ def apply_filters(
     """
     Apply filtering and pagination to a DataFrame.
     """
-
     if data is None:
         return None, 0
 
