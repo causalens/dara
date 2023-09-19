@@ -118,7 +118,7 @@ async def test_upload_data_variable_resolver_csv():
     async with TestClient(app) as client:
         AUTH_HEADERS = await login(client)
 
-        from dara.core.internal.registries import action_registry
+        from dara.core.internal.registries import upload_resolver_registry
 
         def resolver(byt: bytes, filename: str):
             file_object = io.StringIO(byt.decode('utf-8'))
@@ -126,7 +126,7 @@ async def test_upload_data_variable_resolver_csv():
             new_content.columns = new_content.columns.str.replace('Unnamed: *', 'Test Rename ', regex=True)
             return new_content
 
-        action_registry.register('test_id', resolver)
+        upload_resolver_registry.register('test_id', resolver)
 
         with open(os.path.join('./tests/data/churn_data_clean.csv'), 'rb') as f:
             # Manually encode the file together with formdata as asynctestclient does not

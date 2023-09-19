@@ -26,6 +26,7 @@ RegistryLookupKey = Literal[
     RegistryType.DATA_VARIABLE,
     RegistryType.DERIVED_VARIABLE,
     RegistryType.STATIC_KWARGS,
+    RegistryType.UPLOAD_RESOLVER,
 ]
 CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
 

@@ -50,13 +50,14 @@ from dara.core.internal.registries import (
     latest_value_registry,
     static_kwargs_registry,
     template_registry,
+    upload_resolver_registry,
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager, TaskManagerError
-from dara.core.internal.utils import get_cache_scope
+from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import (
@@ -342,6 +343,7 @@ def create_router(config: Configuration):
 
         try:
             store: Store = utils_registry.get('Store')
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable = None
 
             if data.filename is None:
@@ -351,7 +353,6 @@ def create_router(config: Configuration):
 
             if data_uid is not None:
                 try:
-                    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
                     variable = await registry_mgr.get(data_variable_registry, data_uid)
                 except KeyError:
                     raise ValueError(f'Data Variable {data_uid} does not exist')
@@ -362,8 +363,10 @@ def create_router(config: Configuration):
             content = cast(bytes, await data.read())
 
             if resolver_id is not None:
-                resolver = action_registry.get(resolver_id)
-                content = resolver(content, data.filename)
+                resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
+
+                content = await run_user_handler(handler=resolver, args=(content, data.filename))
+
             # If resolver is not provided, follow roughly the cl_dataset_parser logic
             elif file_type == '.xlsx':
                 file_object_xlsx = io.BytesIO(content)

@@ -68,13 +68,13 @@ class UploadDropzone(StyledComponentInstance):
             - if a target is not specified, can be treated as a side effect function to run on the `bytes` received (to i.e. store on disk)
         :param on_drop: optional action triggered when a file is successfully uploaded
         """
-        from dara.core.internal.registries import action_registry
+        from dara.core.internal.registries import upload_resolver_registry
 
         # Register the resolver function if provided
         uid = None
         if resolver is not None:
             uid = str(uuid4())
-            action_registry.register(uid, resolver)
+            upload_resolver_registry.register(uid, resolver)
 
         super().__init__(target=target, on_drop=on_drop, accept=accept, **kwargs)
 
