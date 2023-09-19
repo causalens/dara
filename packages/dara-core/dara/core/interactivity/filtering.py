@@ -33,6 +33,7 @@ class Pagination(BaseModel):
     Model representing pagination to be applied to a dataset.
 
     Retrieves results [offset:offset+limit]
+    If index is defined, retrieves only the row of the specified index
     """
 
     offset: Optional[int] = None
