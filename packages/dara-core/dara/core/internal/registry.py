@@ -27,6 +27,7 @@ T = TypeVar('T')
 class RegistryType(str, Enum):
     ACTION_DEF = 'Action Definition'
     ACTION = 'Action Handler'
+    UPLOAD_RESOLVER = 'Upload Resolver'
     COMPONENTS = 'Components'
     ENDPOINT_CONFIG = 'Endpoint Configuration'
     DATA_VARIABLE = 'DataVariable'
