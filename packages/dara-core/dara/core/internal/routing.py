@@ -254,6 +254,7 @@ def create_router(config: Configuration):
         offset: Optional[int] = None,
         limit: Optional[int] = None,
         order_by: Optional[str] = None,
+        index: Optional[str] = None,
     ):   # pylint: disable=unused-variable
         try:
             store: Store = utils_registry.get('Store')
@@ -277,14 +278,14 @@ def create_router(config: Configuration):
                     body.cache_key,
                     store,
                     body.filters,
-                    Pagination(offset=offset, limit=limit, orderBy=order_by),
+                    Pagination(offset=offset, limit=limit, orderBy=order_by,  index=index),
                 )
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
             elif variable.type == 'plain':
                 data = DataVariable.get_value(
-                    variable, store, body.filters, Pagination(offset=offset, limit=limit, orderBy=order_by)
+                    variable, store, body.filters, Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
                 )
 
             dev_logger.debug(
