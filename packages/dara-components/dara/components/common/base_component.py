@@ -89,7 +89,7 @@ class ContentComponent(BaseDashboardComponent):
 
 class ModifierComponent(BaseDashboardComponent):
     """
-    Any component that's primary role is to modify the behaviour of the nested component should inherit from this class.
+    Any component that's primary role is to modify the behavior of the nested component should inherit from this class.
     """
 
 

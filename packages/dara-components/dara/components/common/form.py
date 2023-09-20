@@ -45,23 +45,25 @@ class Form(LayoutComponent):
     from dara.core.definitions import Variable
     from dara.components.common import Form, Input, Text
 
+    form_variable = Variable({'MyInput' : 'default text'})
+
     Form(
         Text('My first form'),
         Input(id='MyInput'),
-        value=Variable({})
+        value=form_variable,
     )
 
     ```
 
     If you don't need to keep track of the components as they update, but instead only need it once user submits
-    their results you can use the `onsubmit` param:
+    their results, you can use the `onsubmit` param:
 
     ```python
 
     from dara.core.definitions import Variable
     from dara.components.common import Form, Datepicker, RadioGroup
 
-    onsubmit_var = Variable()
+    onsubmit_var = Variable({})
 
     Form(
         Datepicker(id='Datepicker'),
@@ -73,7 +75,7 @@ class Form(LayoutComponent):
 
     Forms may also have pages, check `FormPage` component docs for more info on this.
 
-    :param value: A Variable dictionary recording the state of the form. This dictionaty must have its keys
+    :param value: A Variable dictionary recording the state of the form. This dictionary must have its keys
         matching the ids from the form components. This can also be used to set initial values to these components.
     :param onsubmit: An Action that is triggered when the form is submitted
     """

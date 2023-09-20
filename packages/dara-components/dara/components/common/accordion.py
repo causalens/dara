@@ -159,7 +159,7 @@ class Accordion(LayoutComponent):
     When a section in an Accordion component is opened, it takes the space that the child needs to render. For some
     components this can be a problem, for example a Bokeh, Table and CausalGraphs if not otherwise set will render to
     fill all the available space. This causes a conflict of interests between the Accordion and the child component which
-    can result in weird behaviour of component not showing or sliding to fill max height.
+    can result in weird behavior of component not showing or sliding to fill max height.
     For these components you can set a height, for example:
 
     ```python

@@ -248,7 +248,7 @@ Further recalculations of the layout will use positions provided by the specifie
 Note that third-party layout algorithms might not account for node sizes, so you might have to scale the positions accordingly unless
 they provide a way to specify the node size.
 
-#### Interactivity
+#### Editing the graph
 
 While the `CausalGraphViewer` component can be used as a view-only component, it can also be used for interactive flows by passing `editable=True`.
 
@@ -297,5 +297,54 @@ cg_copy = Variable.create_from_derived(cg_dv)
 CausalGraphViewer(
     causal_graph=cg_copy,
     editable=True
+)
+```
+
+#### Interactivity
+
+In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge` 
+event handlers in order to trigger actions upon clicking on an edge or a node. The following example
+demonstrates how to use the `on_click_node` and `on_click_edge` event handlers to update a variable
+with the name of the clicked node or edge. 
+
+```python
+from dara.core import Variable, py_component
+from dara.core.actions import UpdateVariable
+from dara.components import CausalGraphViewer, Stack, Text
+from dara.components.graphs.graph_layout import PlanarLayout
+
+from cai_causal_graph import CausalGraph
+
+selected_node = Variable(None)
+selected_edge = Variable(None)
+
+causal_graph = CausalGraph()
+causal_graph.add_edge('A', 'B')
+causal_graph.add_edge('B', 'C')
+causal_graph.add_edge('A', 'C')
+
+def resolver_on_click_node(ctx: UpdateVariable.Ctx):
+    if isinstance(ctx.inputs.new, dict):
+        return ctx.inputs.new.get('identifier')
+    return None
+
+def resolver_on_click_edge(ctx: UpdateVariable.Ctx):
+    return f"{ctx.inputs.new.get('source')} -> {ctx.inputs.new.get('destination')}"
+
+@py_component
+def display(selected_node, selected_edge):
+    return Stack(
+        Text(f"Selected Node: {selected_node}"),
+        Text(f"Selected Edge: {selected_edge}"),
+    )
+
+Stack(
+    CausalGraphViewer(
+        causal_graph=causal_graph,
+        graph_layout=PlanarLayout(),
+        on_click_node=UpdateVariable(resolver_on_click_node, variable=selected_node),
+        on_click_edge=UpdateVariable(resolver_on_click_edge, variable=selected_edge),
+    ),
+    display(selected_node, selected_edge),
 )
 ```

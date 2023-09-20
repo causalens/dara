@@ -460,7 +460,7 @@ class Column(BaseModel):
                     or badges[badge].get('label') is None
                 ):
                     raise ValueError(
-                        f'Invalid badge: {badge}: {badges[badge]}, must be a dictionary contaning color and label'
+                        f'Invalid badge: {badge}: {badges[badge]}, must be a dictionary containing color and label'
                     )
                 if not isinstance(badges[badge].get('color'), str):
                     raise ValueError(
@@ -728,7 +728,7 @@ class Table(ContentComponent):
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value.
     :param search_columns: Optional list defining the columns to be searched, only the columns passed are searchable
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
-    :param max_rows: if specified, table height will be fixed to accomodate the specified number of rows
+    :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
     columns: Optional[Union[List[Union[Column, dict, str]], NonDataVariable]]
