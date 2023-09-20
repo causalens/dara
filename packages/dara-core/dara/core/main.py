@@ -69,7 +69,6 @@ from dara.core.js_tooling.js_utils import (
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 
-
 def _start_application(config: Configuration):
     """
     Helper to start the application with a config passed. This is split out from main so that it can be used directly
@@ -368,7 +367,7 @@ def main(extra=None):
 
     Dara applications should not call main directly as the CLI automatically picks up `config` from the entry file
     """
-    print(
+    print( # pylint: disable=print-function
         'Call to deprecated function `main` detected. Your application should not call the main function directly, please remove any calls to `main` from your code.'
     )
     sys.exit(1)
