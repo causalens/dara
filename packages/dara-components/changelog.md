@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `Table` did not return the correct index row when sorted
+-   Fixed an issue where `Table` selection was not persistent. This can now be achieved by passing a `Variable` to `selected_indices` with the `persist_value=True` flag 
 ## 1.1.7
 
 -   Internal: store upload resolvers in a separate registry

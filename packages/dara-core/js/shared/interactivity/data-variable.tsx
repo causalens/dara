@@ -48,6 +48,10 @@ function createDataUrl(path: string, pagination?: Pagination): URL {
         url.searchParams.set('order_by', (pagination.sort.desc ? '-' : '') + pagination.sort.id);
     }
 
+    if (pagination?.index) {
+        url.searchParams.set('index', String(pagination.index));
+    }
+
     return url;
 }
 

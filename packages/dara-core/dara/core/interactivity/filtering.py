@@ -33,11 +33,13 @@ class Pagination(BaseModel):
     Model representing pagination to be applied to a dataset.
 
     Retrieves results [offset:offset+limit]
+    If index is defined, retrieves only the row of the specified index
     """
 
     offset: Optional[int] = None
     limit: Optional[int] = None
     orderBy: Optional[str] = None
+    index: Optional[str] = None
 
 
 class QueryCombinator(str, Enum):
@@ -243,16 +245,22 @@ def apply_filters(
     if data is None:
         return None, 0
 
+    new_data = data
+
     # FILTER
     if filters is not None:
         resolved_query = _resolve_filter_query(data, filters)
         if resolved_query is not None:
-            data = data[resolved_query]
+            new_data = new_data[resolved_query]
 
     # Count before paginating
-    total_count = len(data.index)
+    total_count = len(new_data.index)
 
     if pagination is not None:
+        # ON FETCHING SPECIFIC ROW
+        if pagination.index is not None:
+            return data[int(pagination.index) : int(pagination.index) + 1], total_count
+
         # SORT
         if pagination.orderBy is not None:
             order_by = pagination.orderBy
@@ -263,12 +271,12 @@ def apply_filters(
                 order_by = order_by[1:]
                 ascending = False
 
-            data = data.sort_values(by=order_by, ascending=ascending, inplace=False)
+            new_data = new_data.sort_values(by=order_by, ascending=ascending, inplace=False)
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0
         stop_index = start_index + pagination.limit if pagination.limit is not None else total_count
 
-        data = data[start_index:stop_index]
+        new_data = new_data[start_index:stop_index]
 
-    return data, total_count
+    return new_data, total_count

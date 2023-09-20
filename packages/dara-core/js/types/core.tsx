@@ -49,6 +49,7 @@ export interface Pagination {
     limit?: number;
     offset?: number;
     sort?: SortingRule;
+    index?: number;
 }
 
 type CacheType = 'session' | 'global' | 'user';

@@ -373,12 +373,14 @@ function Table(props: TableProps): JSX.Element {
 
     const datetimeColumns = useMemo(() => getDatetimeColumns(resolvedColumns), [resolvedColumns]);
     const fetchData = useCallback(
-        async (startIndex: number, stopIndex: number) => {
+        async (startIndex?: number, stopIndex?: number, index?: number) => {
             const response = await getData(combineFilters('AND', [filtersToFilterQuery(filters), searchQuery]), {
-                limit: stopIndex - startIndex,
-                offset: startIndex,
+                index,
+                limit: stopIndex !== undefined && startIndex !== undefined ? stopIndex - startIndex : undefined,
+                offset: startIndex !== undefined ? startIndex : undefined,
                 sort: sortingRules[0],
             });
+
             return {
                 data: response.data.map((row: DataRow) => {
                     for (const val of datetimeColumns) {
@@ -401,26 +403,14 @@ function Table(props: TableProps): JSX.Element {
 
     /**
      * Returns a row by index
-     * - first tries to retrieve it from the loader data
-     * - if not found, tries to retrieve it from the extraDataCache
-     * - if not found, fetches a few rows around the index and stores them in the extraDataCache
+     * Fetches a few rows around the index and stores them in the extraDataCache
      *
      * @param idx index of row to get
      */
     async function getRowByIndex(idx: number): Promise<DataRow> {
-        const loaderItem = getItem(idx);
-
-        // item available in current window
-        if (loaderItem) {
-            return loaderItem;
-        }
-
-        // This should only happen if user changes selectedRow from the outside
-        // and the row has not been loaded yet
-
         // populate cache with a few rows around the index if row not in cache
         if (!extraDataCache.current[idx]) {
-            const { data } = await fetchData(idx - 5, idx + 5);
+            const { data } = await fetchData(undefined, undefined, idx);
             for (const row of data) {
                 extraDataCache.current[row[INDEX_COL]] = row;
             }
