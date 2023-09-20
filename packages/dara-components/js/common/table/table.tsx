@@ -410,7 +410,7 @@ function Table(props: TableProps): JSX.Element {
     async function getRowByIndex(idx: number): Promise<DataRow> {
         // populate cache with a few rows around the index if row not in cache
         if (!extraDataCache.current[idx]) {
-            const { data } = await fetchData(idx);
+            const { data } = await fetchData(undefined, undefined, idx);
             for (const row of data) {
                 extraDataCache.current[row[INDEX_COL]] = row;
             }
