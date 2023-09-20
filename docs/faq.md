@@ -280,6 +280,18 @@ fig = Figure()
 Matplotlib(fig)
 ```
 
+In case your `matplotlib` plot is cutting off the axis labels, you can try to use the `tight_layout` method on the figure before passing it to the `Matplotlib` component.
+
+```python
+from matplotlib.figure import Figure
+from dara.components import Matplotlib
+
+fig = Figure()
+...
+fig.tight_layout()
+Matplotlib(fig)
+```
+
 </details>
 <details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my graph not occupying the whole canvas?</h3></summary>
 

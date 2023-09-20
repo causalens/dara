@@ -30,9 +30,111 @@ class CausalGraphViewer(BaseGraphComponent):
     """
     ![Causal Graph Viewer](../../../../../docs/packages/dara-components/graphs/assets/CausalGraphViewer.png)
 
-    Render a causal_graph using the High-Level CausalGraph Viewer JS component.
+    The causal graph is rendered using the High-Level CausalGraph Viewer JS component.
 
-    Supports the following metadata properties on edges and nodes:
+    To use the `CausalGraphViewer`, you need to provide a `CausalGraph` instance, a `Variable` or a `DerivedVariable` containing
+    a causal graph. The causal graph can be provided either as a `CausalGraph` instance, or as a dict.
+
+    ```python
+    from dara.components.graphs import CausalGraphViewer
+
+    from cai_causal_graph import CausalGraph
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+    
+    CausalGraphViewer(causal_graph=causal_graph)
+    ```
+
+    The causal graph can be edited by setting `editable=True`. The editor mode can be set to `EditorMode.DEFAULT`
+    (default), `EditorMode.PAG` or `EditorMode.RESOLVER`. The `EditorMode.DEFAULT` mode assumes all edges
+    are directed (the causal graph is a DAG). The `EditorMode.PAG` mode displays all edge types (beyond directed), while
+    `EditorMode.RESOLVER` allows users to confirm and accept edges. 
+
+    The causal graph can be rendered in a custom layout by providing a `graph_layout` object. The layout can be
+    specified either a `GraphLayout` instance. The following layouts are supported:
+
+    - `PlanarLayout` - a layout that places nodes in a grid-like fashion, with optional support for
+        specifying the direction (horizontal or vertical).
+    - `CircularLayout` - a layout that places nodes in a circle.
+    - `SpringLayout` - a layout that uses a simple force-directed algorithm to place nodes.
+    - `ForceAtlasLayout` - a layout that uses a `ForceAtlas2` algorithm to place nodes.
+    - `FCoseLayout` - a layout that uses a `fCoSE` algorithm to place nodes.
+    - `MarketingLayout` - a layout that uses a force-directed algorithm to place nodes, however it does not
+        offer any protection against edge crossings.
+
+    ```python
+    from dara.components.graphs import CausalGraphViewer
+    from dara.components.graphs.graph_layout import PlanarLayout
+
+    from cai_causal_graph import CausalGraph
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+
+    CausalGraphViewer(
+        causal_graph=causal_graph,
+        editable=True,
+        graph_layout=PlanarLayout(),
+    )
+    ```
+
+    ![Causal Graph Viewer](../../../../../docs/packages/dara-components/graphs/assets/CausalGraphViewerPlanar.png)
+
+    In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge` 
+    event handlers in order to trigger actions upon clicking on an edge or a node. The following example
+    demonstrates how to use the `on_click_node` and `on_click_edge` event handlers to update a variable
+    with the name of the clicked node or edge. 
+    
+    ```python
+    from dara.core import Variable, py_component
+    from dara.core.actions import UpdateVariable
+    from dara.components import CausalGraphViewer, Stack, Text
+    from dara.components.graphs.graph_layout import PlanarLayout
+
+    from cai_causal_graph import CausalGraph
+
+    selected_node = Variable(None)
+    selected_edge = Variable(None)
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+
+    def resolver_on_click_node(ctx: UpdateVariable.Ctx):
+        if isinstance(ctx.inputs.new, dict):
+            return ctx.inputs.new.get('identifier')
+        return None
+
+    def resolver_on_click_edge(ctx: UpdateVariable.Ctx):
+        return f"{ctx.inputs.new.get('source')} -> {ctx.inputs.new.get('destination')}"
+
+    @py_component
+    def display(selected_node, selected_edge):
+        return Stack(
+            Text(f"Selected Node: {selected_node}"),
+            Text(f"Selected Edge: {selected_edge}"),
+        )
+
+    Stack(
+        CausalGraphViewer(
+            causal_graph=causal_graph,
+            graph_layout=PlanarLayout(),
+            on_click_node=UpdateVariable(resolver_on_click_node, variable=selected_node),
+            on_click_edge=UpdateVariable(resolver_on_click_edge, variable=selected_edge),
+        ),
+        display(selected_node, selected_edge),
+    )
+    ```
+
+    ![Causal Graph Viewer](../../../../../docs/packages/dara-components/graphs/assets/CausalGraphViewerUpdate.png)
+
+    The `CausalGraph` supports the following metadata properties on edges and nodes:
 
     `edge.meta.rendering_properties`
     - accepted?: boolean - whether edge was accepted (used by resolver component)
@@ -53,6 +155,47 @@ class CausalGraphViewer(BaseGraphComponent):
     - tooltip?: string | dict[string, string] - extra information to display in tooltip
     - x?: number - x position of node
     - y?: number - y position of node
+
+    To use rendering properties, you can provide them in the metadata of the causal graph, e.g.:
+
+    ```python
+    from dara.components.graphs import CausalGraphViewer
+
+    from cai_causal_graph import CausalGraph
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+
+    causal_graph.nodes[0].meta['rendering_properties'] = {
+        'color': 'salmon',
+        'highlight_color': 'red',
+        'label_color': 'purple',
+        'label_size': 20,
+        'size': 20,
+        'tooltip': 'Node A tooltip',
+    }
+
+    causal_graph.edges[0].meta['rendering_properties'] = {
+        'color': 'blue',
+        'description': 'Edge A -> B',
+        'thickness': 1,
+        'tooltip': 'Edge A -> B tooltip',
+    }
+
+    causal_graph.edges[1].meta['rendering_properties'] = {
+        'color': 'green',
+        'description': 'Edge B -> C',
+        'thickness': 2,
+        'tooltip': 'Edge B -> C tooltip',
+    }
+
+    CausalGraphViewer(causal_graph=causal_graph)
+
+    ```
+
+    ![Causal Graph Viewer](../../../../../docs/packages/dara-components/graphs/assets/CausalGraphViewerStyling.png)
 
     If both `x` and `y` coordinates are provided for all nodes, the graph initializes in the precomputed layout
     rather than running the specified `graph_layout`. Afterwards pressing `Recalculate Layout` will

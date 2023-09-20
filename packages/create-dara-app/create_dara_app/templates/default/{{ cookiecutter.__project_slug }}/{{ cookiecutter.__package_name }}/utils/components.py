@@ -126,16 +126,17 @@ def show_code(variable: Variable, code:str, component_type: str, component_name:
     return Stack(
         Button('Show Source Code', onclick=UpdateVariable(lambda ctx: True, variable), width='200px', styling=ButtonStyle.GHOST),
         Modal(
-            Code(code=code, theme=Code.Themes.LIGHT),
+            Stack(Code(code=code, theme=Code.Themes.LIGHT), scroll=True),
             Stack(
                 Button(
                     'Close',
                     onclick=UpdateVariable(lambda ctx: False, variable),
                     width='200px',
-                    styling=ButtonStyle.ERROR
+                    styling=ButtonStyle.ERROR,
                 ),
                 align='end',
-                justify='end'
+                justify='end',
+                hug=True
             ),
             show=variable,
             height='700px',

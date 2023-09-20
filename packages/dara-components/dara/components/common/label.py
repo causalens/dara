@@ -44,7 +44,7 @@ class Label(ContentComponent):
 
     ```
 
-    For further customisation you can also pass a ComponentInstance to the value param:
+    For further customization you can also pass a ComponentInstance to the value param:
 
     ```python
 
