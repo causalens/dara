@@ -373,11 +373,9 @@ function Table(props: TableProps): JSX.Element {
 
     const datetimeColumns = useMemo(() => getDatetimeColumns(resolvedColumns), [resolvedColumns]);
     const fetchData = useCallback(
-        async (startIndex: number, stopIndex: number, index?: number) => {
+        async (index?: number) => {
             const response = await getData(combineFilters('AND', [filtersToFilterQuery(filters), searchQuery]), {
                 index,
-                limit: stopIndex - startIndex,
-                offset: startIndex,
                 sort: sortingRules[0],
             });
 
@@ -410,7 +408,7 @@ function Table(props: TableProps): JSX.Element {
     async function getRowByIndex(idx: number): Promise<DataRow> {
         // populate cache with a few rows around the index if row not in cache
         if (!extraDataCache.current[idx]) {
-            const { data } = await fetchData(idx - 5, idx + 5, idx);
+            const { data } = await fetchData(idx);
             for (const row of data) {
                 extraDataCache.current[row[INDEX_COL]] = row;
             }
