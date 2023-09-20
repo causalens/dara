@@ -373,9 +373,11 @@ function Table(props: TableProps): JSX.Element {
 
     const datetimeColumns = useMemo(() => getDatetimeColumns(resolvedColumns), [resolvedColumns]);
     const fetchData = useCallback(
-        async (index?: number) => {
+        async (startIndex?: number, stopIndex?: number, index?: number) => {
             const response = await getData(combineFilters('AND', [filtersToFilterQuery(filters), searchQuery]), {
                 index,
+                limit: stopIndex !== undefined && startIndex !== undefined ? stopIndex - startIndex : undefined,
+                offset: startIndex !== undefined ? startIndex : undefined,
                 sort: sortingRules[0],
             });
 
