@@ -535,7 +535,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.1.7"
+version = "1.1.8"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -626,7 +626,7 @@ files = [
 
 [[package]]
 name = "dara-components"
-version = "1.1.7"
+version = "1.1.8"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -637,7 +637,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.1.7"
+dara-core = "=1.1.8"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -651,7 +651,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.1.7"
+version = "1.1.8"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -690,7 +690,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.1.7)"]
+all = ["dara-components (==1.1.8)"]
 
 [package.source]
 type = "directory"
@@ -1042,22 +1042,22 @@ testing = ["flufl.flake8", "importlib-resources (>=1.3)", "packaging", "pyfakefs
 
 [[package]]
 name = "importlib-resources"
-version = "6.0.1"
+version = "6.1.0"
 description = "Read resources from Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "importlib_resources-6.0.1-py3-none-any.whl", hash = "sha256:134832a506243891221b88b4ae1213327eea96ceb4e407a00d790bb0626f45cf"},
-    {file = "importlib_resources-6.0.1.tar.gz", hash = "sha256:4359457e42708462b9626a04657c6208ad799ceb41e5c58c57ffa0e6a098a5d4"},
+    {file = "importlib_resources-6.1.0-py3-none-any.whl", hash = "sha256:aa50258bbfa56d4e33fbd8aa3ef48ded10d1735f11532b8df95388cc6bdb7e83"},
+    {file = "importlib_resources-6.1.0.tar.gz", hash = "sha256:9d48dcccc213325e810fd723e7fbb45ccb39f6cf5c31f00cf2b965f5f10f3cb9"},
 ]
 
 [package.dependencies]
 zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
-docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-ruff", "zipp (>=3.17)"]
 
 [[package]]
 name = "iniconfig"
@@ -2453,14 +2453,14 @@ testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jar
 
 [[package]]
 name = "setuptools-scm"
-version = "8.0.1"
+version = "8.0.2"
 description = "the blessed package to manage your versions by scm tags"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-scm-8.0.1.tar.gz", hash = "sha256:e69bf0b8265fdc8f4e070c98235b1b0816ffa8b7f91153400404bf68496012e3"},
-    {file = "setuptools_scm-8.0.1-py3-none-any.whl", hash = "sha256:c132f5a8dc508c8113f865c709041d1b15f7d500442220174c38397607797a91"},
+    {file = "setuptools-scm-8.0.2.tar.gz", hash = "sha256:e45c8c87719b753b6d47cf09907d1239540c7e150cd44f06f658b602f402b005"},
+    {file = "setuptools_scm-8.0.2-py3-none-any.whl", hash = "sha256:b737bb0f195ae024759188e7080fe15fe6d9353e1b3f6e40b41e4d298f76c147"},
 ]
 
 [package.dependencies]
@@ -3041,4 +3041,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "f5e764bb8890dfd94767066499325bbb4a72af3967131d08fef55c72a0ddaf45"
+content-hash = "5a5c8a7cee9a4ab93d332e8c92b9615285871d2b5a23515a79a63a5dd51fee6e"
