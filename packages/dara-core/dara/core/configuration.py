@@ -18,7 +18,7 @@ limitations under the License.
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union,MutableMapping
+from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
 from pydantic.generics import GenericModel
 
@@ -37,6 +37,7 @@ from dara.core.definitions import (
     Page,
     Template,
 )
+from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
     create_component_definition,
@@ -47,7 +48,7 @@ from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
 from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
-from dara.core.internal.encoder_registry import Encoder
+
 
 class Configuration(GenericModel):
     """Definition of the main framework configuration"""
@@ -74,7 +75,7 @@ class Configuration(GenericModel):
     theme: Union[BaseTheme, str]
     title: str
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    encoder:Dict[Type[Any],Encoder]
+    encoder: Dict[Type[Any], Encoder]
 
     class Config:
         extra = 'forbid'
@@ -124,7 +125,7 @@ class ConfigurationBuilder:
     _package_tags_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     _template_extra_js: str
     _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    _custom_encoder:Dict[Type[Any],Encoder]
+    _custom_encoder: Dict[Type[Any], Encoder]
     routes: Set[ApiRoute]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -301,7 +302,8 @@ class ConfigurationBuilder:
         """
         self._custom_ws_handlers[kind] = handler
         return handler
-    def add_encoder(self,typ:Type[Any],serialize:Callable, deserialize:Callable):
+
+    def add_encoder(self, typ: Type[Any], serialize: Callable, deserialize: Callable):
         """
         Register a custom encoder, which serialize and deserialize the type
 
@@ -313,7 +315,7 @@ class ConfigurationBuilder:
         import numpy
         config.add_encoder(typ=np.array, serialize=lambda x: x.tolist(), deserialize=lambda y: np.array(y))
         """
-        encoder = Encoder(serialize=serialize,deserialize=deserialize)
+        encoder = Encoder(serialize=serialize, deserialize=deserialize)
         self._custom_encoder[typ] = encoder
         return encoder
 

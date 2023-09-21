@@ -29,6 +29,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
+from pydantic.json import ENCODERS_BY_TYPE
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
@@ -41,6 +42,7 @@ from dara.core.defaults import (
 )
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.devtools import send_error_for_session
+from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.registries import (
     action_def_registry,
@@ -68,12 +70,11 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
-from dara.core.internal.encoder_registry import encoder_registry
-from pydantic.json import ENCODERS_BY_TYPE
 
 # Inject the encoder to pydantic ENCODERS_BY_TYPE, which will be called in fastapi jsonable_encoder
-for key,value in encoder_registry.items():
+for key, value in encoder_registry.items():
     ENCODERS_BY_TYPE[key] = value['serialize']
+
 
 def _start_application(config: Configuration):
     """

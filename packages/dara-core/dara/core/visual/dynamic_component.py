@@ -46,12 +46,12 @@ from dara.core.interactivity import (
     Variable,
 )
 from dara.core.internal.dependency_resolution import resolve_dependency
+from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.visual.components import InvalidComponent, RawString
-from dara.core.internal.encoder_registry import encoder_registry
 
 CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 

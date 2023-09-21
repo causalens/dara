@@ -209,7 +209,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     parsed_args.append(typ(**arg))
                     continue
                 elif typ in encoder_registry:
-                    parsed_args.append(encoder_registry[typ]["deserialize"](arg))
+                    parsed_args.append(encoder_registry[typ]['deserialize'](arg))
                     continue
             return parsed_args
 
