@@ -68,7 +68,12 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+from dara.core.internal.encoder_registry import encoder_registry
+from pydantic.json import ENCODERS_BY_TYPE
 
+# Inject the encoder to pydantic ENCODERS_BY_TYPE, which will be called in fastapi jsonable_encoder
+for key,value in encoder_registry.items():
+    ENCODERS_BY_TYPE[key] = value['serialize']
 
 def _start_application(config: Configuration):
     """
@@ -227,6 +232,10 @@ def _start_application(config: Configuration):
     # Add WS handlers
     for kind, handler in config.ws_handlers.items():
         custom_ws_handlers_registry.register(kind, handler)
+
+    # update encoder registry
+    for typ, encoder in config.encoder.items():
+        encoder_registry[typ] = encoder
 
     # Generate a new build_cache
     try:

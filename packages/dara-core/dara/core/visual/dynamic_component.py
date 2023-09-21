@@ -51,6 +51,7 @@ from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.visual.components import InvalidComponent, RawString
+from dara.core.internal.encoder_registry import encoder_registry
 
 CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 
@@ -255,6 +256,8 @@ async def render_component(
             typ = annotations.get(key)
             if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
                 val = typ(**value)
+            elif typ in encoder_registry:
+                val = encoder_registry[typ]['deserialize'](val)
             resolved_dyn_kwargs[key] = val
 
         # Merge resolved dynamic kwargs with static kwargs received
