@@ -235,7 +235,7 @@ def _start_application(config: Configuration):
         custom_ws_handlers_registry.register(kind, handler)
 
     # update encoder registry
-    for typ, encoder in config.encoder.items():
+    for typ, encoder in config.encoders.items():
         encoder_registry[typ] = encoder
 
     # Generate a new build_cache

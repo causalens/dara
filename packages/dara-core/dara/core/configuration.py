@@ -75,7 +75,7 @@ class Configuration(GenericModel):
     theme: Union[BaseTheme, str]
     title: str
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    encoder: Dict[Type[Any], Encoder]
+    encoders: Dict[Type[Any], Encoder]
 
     class Config:
         extra = 'forbid'
@@ -125,7 +125,7 @@ class ConfigurationBuilder:
     _package_tags_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     _template_extra_js: str
     _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    _custom_encoder: Dict[Type[Any], Encoder]
+    _custom_encoders: Dict[Type[Any], Encoder]
     routes: Set[ApiRoute]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -158,7 +158,7 @@ class ConfigurationBuilder:
         self.context_components = []
         self.task_module = None
         self._custom_ws_handlers = {}
-        self._custom_encoder = {}
+        self._custom_encoders = {}
 
         self.template = 'default'
         self.theme = BaseTheme(main='light')
@@ -316,7 +316,7 @@ class ConfigurationBuilder:
         config.add_encoder(typ=np.array, serialize=lambda x: x.tolist(), deserialize=lambda y: np.array(y))
         """
         encoder = Encoder(serialize=serialize, deserialize=deserialize)
-        self._custom_encoder[typ] = encoder
+        self._custom_encoders[typ] = encoder
         return encoder
 
     def add_package_tags_processor(self, processor: Callable[[Dict[str, List[str]]], Dict[str, List[str]]]):
@@ -505,5 +505,5 @@ class ConfigurationBuilder:
             theme=self.theme,
             title=self.title,
             ws_handlers=self._custom_ws_handlers,
-            encoder=self._custom_encoder,
+            encoders=self._custom_encoders,
         )
