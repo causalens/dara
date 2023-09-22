@@ -210,7 +210,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
                     parsed_args.append(typ(**arg))
                 else:
-                    parsed_args.append(typ(**arg))
+                    parsed_args.append(arg)
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest
