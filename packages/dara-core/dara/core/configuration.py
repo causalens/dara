@@ -18,7 +18,19 @@ limitations under the License.
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pydantic.generics import GenericModel
 
@@ -304,7 +316,10 @@ class ConfigurationBuilder:
         return handler
 
     EncoderType = TypeVar('EncoderType')
-    def add_encoder(self,typ: Type[EncoderType],serialize: Callable[[EncoderType], Any],deserialize: Callable[[Any], EncoderType]):
+
+    def add_encoder(
+        self, typ: Type[EncoderType], serialize: Callable[[EncoderType], Any], deserialize: Callable[[Any], EncoderType]
+    ):
         """
         Register a custom encoder, which serialize and deserialize the type
 
