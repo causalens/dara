@@ -17,7 +17,8 @@ limitations under the License.
 
 import re
 from datetime import datetime, timezone
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, List, Optional, Union
+from typing_extensions import TypedDict
 
 import numpy
 from pandas import DataFrame, Series

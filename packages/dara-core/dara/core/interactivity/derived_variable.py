@@ -20,19 +20,10 @@ from __future__ import annotations
 import json
 import uuid
 from inspect import Parameter, isclass, signature
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, validator
+from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask, CacheType, PendingTask
 from dara.core.interactivity.actions import TriggerVariable

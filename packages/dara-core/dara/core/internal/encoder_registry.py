@@ -15,10 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-from typing import Any, Callable, MutableMapping, Type, TypedDict
+from typing import Any, Callable, MutableMapping, Type
 
 import numpy
 import pandas
+from typing_extensions import TypedDict
 
 
 class Encoder(TypedDict):

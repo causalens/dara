@@ -15,21 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import (
-    Any,
-    Generic,
-    List,
-    Mapping,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any, Generic, List, Mapping, Tuple, TypeVar, Union, cast, overload
 
 from pydantic import BaseModel
-from typing_extensions import TypeGuard
+from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.internal.hashing import hash_object
 
