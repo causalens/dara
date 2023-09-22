@@ -8,11 +8,11 @@ from typing import (
     List,
     Mapping,
     Tuple,
-    TypedDict,
     TypeVar,
     Union,
     cast,
 )
+from typing_extensions import TypedDict
 from unittest.mock import MagicMock
 
 import anyio

@@ -17,9 +17,10 @@ limitations under the License.
 
 from contextvars import ContextVar
 from datetime import datetime
-from typing import List, Optional, TypedDict, Union
+from typing import List, Optional, Union
 
 from pydantic import BaseModel
+from typing_extensions import TypedDict
 
 
 class TokenData(BaseModel):

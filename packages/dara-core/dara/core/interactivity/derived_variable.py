@@ -20,24 +20,16 @@ from __future__ import annotations
 import json
 import uuid
 from inspect import Parameter, isclass, signature
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, validator
+from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask, CacheType, PendingTask
 from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import CacheScope, get_cache_scope, run_user_handler
@@ -204,10 +196,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if len(var_arg_idx) == 0:
             for param, arg in zip(parameters, args):
                 typ = param.annotation
-                if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
+                if typ is not None and typ in encoder_registry:
+                    parsed_args.append(encoder_registry[typ]['deserialize'](arg))
+                elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
                     parsed_args.append(typ(**arg))
-                    continue
-                parsed_args.append(arg)
+                else:
+                    parsed_args.append(arg)
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest

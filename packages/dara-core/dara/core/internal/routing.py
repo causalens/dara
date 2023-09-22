@@ -279,7 +279,7 @@ def create_router(config: Configuration):
                     body.cache_key,
                     store,
                     body.filters,
-                    Pagination(offset=offset, limit=limit, orderBy=order_by,  index=index),
+                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
                 )
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)

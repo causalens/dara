@@ -46,6 +46,7 @@ from dara.core.interactivity import (
     Variable,
 )
 from dara.core.internal.dependency_resolution import resolve_dependency
+from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
@@ -253,7 +254,9 @@ async def render_component(
             # returned dict back into an instance of the BaseModel class
             val = value
             typ = annotations.get(key)
-            if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
+            if typ is not None and typ in encoder_registry:
+                val = encoder_registry[typ]['deserialize'](val)
+            elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
                 val = typ(**value)
             resolved_dyn_kwargs[key] = val
 

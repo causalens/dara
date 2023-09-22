@@ -18,7 +18,19 @@ limitations under the License.
 import os
 import pathlib
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pydantic.generics import GenericModel
 
@@ -37,6 +49,7 @@ from dara.core.definitions import (
     Page,
     Template,
 )
+from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
     create_component_definition,
@@ -74,6 +87,7 @@ class Configuration(GenericModel):
     theme: Union[BaseTheme, str]
     title: str
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
+    encoders: Dict[Type[Any], Encoder]
 
     class Config:
         extra = 'forbid'
@@ -123,6 +137,7 @@ class ConfigurationBuilder:
     _package_tags_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     _template_extra_js: str
     _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
+    _custom_encoders: Dict[Type[Any], Encoder]
     routes: Set[ApiRoute]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -155,6 +170,7 @@ class ConfigurationBuilder:
         self.context_components = []
         self.task_module = None
         self._custom_ws_handlers = {}
+        self._custom_encoders = {}
 
         self.template = 'default'
         self.theme = BaseTheme(main='light')
@@ -298,6 +314,26 @@ class ConfigurationBuilder:
         """
         self._custom_ws_handlers[kind] = handler
         return handler
+
+    EncoderType = TypeVar('EncoderType')
+
+    def add_encoder(
+        self, typ: Type[EncoderType], serialize: Callable[[EncoderType], Any], deserialize: Callable[[Any], EncoderType]
+    ):
+        """
+        Register a custom encoder, which serialize and deserialize the type
+
+        :param typ: The type of object
+        :param serialize: The handler to serialize the object to basic python type
+        :param deserialize: The handler to deserialize the object
+
+        Example:
+        import numpy
+        config.add_encoder(typ=np.array, serialize=lambda x: x.tolist(), deserialize=lambda y: np.array(y))
+        """
+        encoder = Encoder(serialize=serialize, deserialize=deserialize)
+        self._custom_encoders[typ] = encoder
+        return encoder
 
     def add_package_tags_processor(self, processor: Callable[[Dict[str, List[str]]], Dict[str, List[str]]]):
         """
@@ -485,4 +521,5 @@ class ConfigurationBuilder:
             theme=self.theme,
             title=self.title,
             ws_handlers=self._custom_ws_handlers,
+            encoders=self._custom_encoders,
         )
