@@ -231,8 +231,7 @@ def _start_application(config: Configuration):
         custom_ws_handlers_registry.register(kind, handler)
 
     # update encoder registry
-    for typ, encoder in config.encoders.items():
-        encoder_registry[typ] = encoder
+    encoder_registry.update(config.encoders)
 
     # Inject the encoder to pydantic ENCODERS_BY_TYPE, which will be called in fastapi jsonable_encoder
     for key, value in encoder_registry.items():
