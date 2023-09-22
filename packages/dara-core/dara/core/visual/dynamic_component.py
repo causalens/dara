@@ -254,10 +254,10 @@ async def render_component(
             # returned dict back into an instance of the BaseModel class
             val = value
             typ = annotations.get(key)
-            if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
-                val = typ(**value)
-            elif typ in encoder_registry:
+            if typ in encoder_registry:
                 val = encoder_registry[typ]['deserialize'](val)
+            elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
+                val = typ(**value)
             resolved_dyn_kwargs[key] = val
 
         # Merge resolved dynamic kwargs with static kwargs received

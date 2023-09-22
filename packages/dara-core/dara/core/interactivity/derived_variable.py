@@ -205,12 +205,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if len(var_arg_idx) == 0:
             for param, arg in zip(parameters, args):
                 typ = param.annotation
-                if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
-                    parsed_args.append(typ(**arg))
-                    continue
-                elif typ in encoder_registry:
+                if typ in encoder_registry:
                     parsed_args.append(encoder_registry[typ]['deserialize'](arg))
-                    continue
+                elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
+                    parsed_args.append(typ(**arg))
+                else:
+                    parsed_args.append(typ(**arg))
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest
