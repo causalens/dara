@@ -1,6 +1,40 @@
 ---
 title: Retaining Correct Variable Types
 ---
+### Adding Type Annotations to Your Resolver
+`dara.core.interactivity.plain_variable.Variable`s are stored in the browser and `dara.core.interactivity.derived_variable.DerivedVariable`s and `py_component`s are calculated on the server. When a `Variable` is passed to one of these, it is serialized into a format that FastApi can handle and becomes a python basic type format on the server side. Eg, a  `numpy.array` will became a  `list`, a `numpy.int8` will become a `int`.
+
+
+By default, Dara supports to serialize all the generic data types in Numpy. See [default data types supported](https://github.com/causalens/dara/blob/master/packages/dara-core/dara/core/internal/encoder_registry.py).
+
+You can also add your custom encoder by using `ConfigurationBuilder.add_encoder()`. Notice, if a Variable is a type that can not be serialized by either default encoder handler or custom encoder handle, it will case a crush.
+```python
+from dara.core import ConfigurationBuilder
+
+config = ConfigurationBuilder()
+config.add_encoder(typ=np.array, serialize=lambda x: x.tolist(), deserialize=lambda y: np.array(y))
+```
+
+As mentioned above, the Variable will be serialized into a format that FastApi can handle and you can deserialize it by adding type annotations to your function.
+```python
+from dara.core import DerivedVariable, Variable,py_component
+import numpy
+
+my_var = Variable(default=numpy.array([1,2,3]))
+
+def dv_func(var: numpy.array):
+  # The var is a numpy.array, you can use the numpy array function to manipulate data
+  return var.sum()
+
+my_der_var = DerivedVariable(dv_func, variables=[my_var])
+
+# Same for py_component
+@py_component
+def my_component(var: numpy.array):
+    return Text(var.tobytes())
+my_component(my_var)
+```
+Currently the serialize/deserialize handler does not work for action resolvers due to their different API shape, which we'll hopefully solve in the near future.
 
 ### Using pydantic
 `dara.core.interactivity.plain_variable.Variable`s are stored in the browser and `dara.core.interactivity.derived_variable.DerivedVariable`s and `py_component`s are calculated on the server. When a `Variable` is passed to one of these, it is serialized into a JSON format which becomes a plain `dict` on the server side.
@@ -45,7 +79,7 @@ from externalpackage import ExternalClass
 class MyClass(ExternalClass):
   def from_dict(self, dict):
       ...
-      
+
 my_var = Variable(MyClass(foo='a'))
 
 # A dict will be passed to resolving function
@@ -53,6 +87,6 @@ def bar(some_var: dict):
   # use from_dict to get back MyClass instance
   var_value = MyClass.from_dict(some_var)
   return var_value.foo
-  
+
 my_der_var = DerivedVariable(bar, variables=[my_var])
 ```
