@@ -254,7 +254,7 @@ async def render_component(
             # returned dict back into an instance of the BaseModel class
             val = value
             typ = annotations.get(key)
-            if typ in encoder_registry:
+            if typ is not None and typ in encoder_registry:
                 val = encoder_registry[typ]['deserialize'](val)
             elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
                 val = typ(**value)
