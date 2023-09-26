@@ -110,7 +110,6 @@ const columnSortTypes: Record<ColumnProps['type'], (a: any, b: any, id: string) 
 const TableSearch = styled.div`
     display: flex;
     justify-content: flex-end;
-    padding: 0rem 1rem;
 `;
 
 function getCellRenderer(formatter: { [k: string]: any }): any {
@@ -541,7 +540,7 @@ function Table(props: TableProps): JSX.Element {
                 flex: '1 1 auto',
                 flexDirection: 'column',
                 // Set a min height so at the very least Table shows header and one row
-                minHeight: props.searchable ? '8.5rem' : '6rem',
+                minHeight: props.searchable ? '9rem' : '6rem',
                 overflow: 'auto',
                 position: 'relative',
                 ...style,
@@ -552,17 +551,17 @@ function Table(props: TableProps): JSX.Element {
                     <Input onChange={onSearchChange} placeholder="Search Table..." />
                 </TableSearch>
             )}
-            {/* Padding is moved to the wrapper otherwise the autosizer calculates the size wrong in some cases */}
+            {/* paddingBottom is needed due to an issue with AutoSizer constantly recalculating the height */}
             {resolvedColumns && (
                 <div
                     style={{
                         bottom: 0,
-                        height: props.searchable ? 'calc(100% - 2.5rem)' : '100%',
+                        height: props.searchable ? 'calc(100% - 3rem)' : '100%',
                         left: 0,
-                        padding: props.searchable ? '0.5rem 1rem 1rem 1rem' : '1rem',
+                        paddingBottom: '1.1rem',
                         position: 'absolute',
                         right: 0,
-                        top: props.searchable ? '2.5rem' : 0,
+                        top: props.searchable ? '3rem' : 0,
                     }}
                 >
                     <UiTable
