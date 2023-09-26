@@ -1,7 +1,7 @@
 ---
 title: Changelog
 ---
-## NETX
+## NEXT
 
 -   Fixed an issue where `Table` search bar was hidden by the table itself
 ## 1.1.8
