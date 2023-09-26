@@ -1,7 +1,9 @@
 ---
 title: Changelog
 ---
+## NETX
 
+-   Fixed an issue where `Table` search bar was hidden by the table itself
 ## 1.1.8
 
 -   Fixed an issue where `Table` did not return the correct index row when sorted
