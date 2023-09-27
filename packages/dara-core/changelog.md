@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.1.9
 
 -   Added serialize/deserialize support to numpy/pandas datatype
 -   Added custom encoder support. User can add encoder to handle serialization/deserialization of a type
