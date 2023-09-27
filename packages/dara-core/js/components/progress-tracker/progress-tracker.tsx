@@ -222,7 +222,9 @@ function ProgressTracker(props: ProgressTrackerProps): JSX.Element {
      * access to the latest state.
      */
     useEffect(() => {
-        if (!latestProgressUpdate) return;
+        if (!latestProgressUpdate) {
+            return;
+        }
 
         // Clear faking process interval if its set
         if (fakeInterval.current) {
