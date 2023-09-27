@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useContext, useMemo } from 'react';
 import * as React from 'react';
 

@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { History } from 'history';
 import { useCallback } from 'react';
 import { BrowserInterface, RecoilURLSyncOptions } from 'recoil-sync';

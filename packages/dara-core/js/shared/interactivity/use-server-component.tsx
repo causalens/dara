@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useContext, useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { RecoilState, RecoilValue, atom, selector, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
