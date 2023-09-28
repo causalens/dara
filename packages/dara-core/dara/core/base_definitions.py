@@ -139,6 +139,7 @@ class Cache:
             """
             return LruCachePolicy(cache_type=type)
 
+CacheArgType = Union[CacheType, BaseCachePolicy]
 
 class CachedRegistryEntry(BaseModel):
     """
@@ -166,13 +167,13 @@ class TaskProgressUpdate(BaseTaskMessage):
 class TaskResult(BaseTaskMessage):
     result: Any
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
 
 
 class TaskError(BaseTaskMessage):
     error: BaseException
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
 
     class Config:
         arbitrary_types_allowed = True
@@ -187,7 +188,7 @@ class BaseTask(abc.ABC):
     """
 
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
     notify_channels: List[str]
     task_id: str
 
@@ -210,6 +211,8 @@ class PendingTask(BaseTask):
     Represents a running pending task.
     Is associated to an underlying task definition.
     """
+    cache_key: None = None
+    reg_entry: None = None
 
     def __init__(self, task_id: str, task_def: BaseTask, ws_channel: Optional[str] = None):
         self.task_id = task_id
@@ -276,6 +279,47 @@ class PendingTask(BaseTask):
         """
         self.subscribers -= 1
 
+
+
+class PendingValue:
+    """
+    An internal class that's used to represent a pending value. Holds a future object that can be awaited by
+    multiple consumers.
+    """
+
+    def __init__(self):
+        self.event = anyio.Event()
+        self._value = None
+        self._error = None
+
+    async def wait(self):
+        """
+        Wait for the underlying event to be set
+        """
+        # Waiting in chunks as otherwise Jupyter blocks the event loop
+        while not self.event.is_set():
+            await anyio.sleep(0.01)
+        if self._error:
+            raise self._error
+        return self._value
+
+    def resolve(self, value: Any):
+        """
+        Resolve the pending state and send values to the waiting code
+
+        :param value: the value to resolve as the result
+        """
+        self._value = value
+        self.event.set()
+
+    def error(self, exc: Exception):
+        """
+        Resolve the pending state with an error and send it to the waiting code
+
+        :param exc: exception to resolve as the result
+        """
+        self._error = exc
+        self.event.set()
 
 class ActionDef(BaseModel):
     """

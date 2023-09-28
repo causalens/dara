@@ -55,7 +55,7 @@ from dara.core.internal.registries import (
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.internal.websocket import ws_handler
@@ -120,7 +120,7 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/action/{uid}', dependencies=[Depends(verify_session)])
     async def get_action(uid: str, body: ActionRequestBody):  # pylint: disable=unused-variable
-        store: Store = utils_registry.get('Store')
+        store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         action = await registry_mgr.get(action_registry, uid)
@@ -195,7 +195,7 @@ def create_router(config: Configuration):
     @core_api_router.post('/components/{component}', dependencies=[Depends(verify_session)])
     async def get_component(component: str, body: ComponentRequestBody):  # pylint: disable=unused-variable
         CURRENT_COMPONENT_ID.set(body.uid)
-        store: Store = utils_registry.get('Store')
+        store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         comp = await registry_mgr.get(component_registry, component)
@@ -219,24 +219,26 @@ def create_router(config: Configuration):
     @core_api_router.get('/derived-variable/{uid}/latest', dependencies=[Depends(verify_session)])
     async def get_latest_derived_variable(uid: str):  # pylint: disable=unused-variable
         try:
-            store: Store = utils_registry.get('Store')
-            latest_value = latest_value_registry.get(uid)
-            variable = derived_variable_registry.get(uid)
+            store: CacheStore = utils_registry.get('Store')
+            latest_value_entry = latest_value_registry.get(uid)
+            variable_entry = derived_variable_registry.get(uid)
 
-            registry_entry = get_cache_scope(variable.cache)
+            # Lookup the latest key in the cache
+            scope = get_cache_scope(variable_entry.cache.cache_type)
+            latest_key = await store.get(latest_value_entry, key=scope)
 
-            if registry_entry in latest_value.cache_keys:
-                value = store.get(latest_value.cache_keys[registry_entry], variable.cache)
-                # If task is still running there is no latest value
-                if isinstance(value, PendingTask):
-                    return 'Pending...'
-                dev_logger.debug(
-                    f'DerivedVariable {variable.uid[:3]}..{variable.uid[-3:]}',
-                    'latest value',
-                    {'value': value, 'uid': uid},
-                )
-                return value
-            return None
+            if latest_key is None:
+                return None
+
+            # Lookup latest value for that key
+            latest_value = await store.get_or_wait(variable_entry,  key=latest_key)
+
+            dev_logger.debug(
+                f'DerivedVariable {variable_entry.uid[:3]}..{variable_entry.uid[-3:]}',
+                'latest value',
+                {'value': latest_value, 'uid': uid},
+            )
+            return latest_value
 
         except KeyError as err:
             raise ValueError(f'Could not find latest value for derived variable with uid: {uid}').with_traceback(
@@ -258,7 +260,7 @@ def create_router(config: Configuration):
         index: Optional[str] = None,
     ):   # pylint: disable=unused-variable
         try:
-            store: Store = utils_registry.get('Store')
+            store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable = await registry_mgr.get(data_variable_registry, uid)
@@ -311,7 +313,7 @@ def create_router(config: Configuration):
     @core_api_router.post('/data-variable/{uid}/count', dependencies=[Depends(verify_session)])
     async def get_data_variable_count(uid: str, body: Optional[DataVariableCountRequestBody] = None):
         try:
-            store: Store = utils_registry.get('Store')
+            store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable = await registry_mgr.get(data_variable_registry, uid)
 
@@ -342,7 +344,7 @@ def create_router(config: Configuration):
             raise HTTPException(400, 'Neither resolver_id or data_uid specified, at least one of them is required')
 
         try:
-            store: Store = utils_registry.get('Store')
+            store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable = None
 
@@ -395,7 +397,7 @@ def create_router(config: Configuration):
     @core_api_router.post('/derived-variable/{uid}', dependencies=[Depends(verify_session)])
     async def get_derived_variable(uid: str, body: DerivedStateRequestBody):  # pylint: disable=unused-variable
         task_mgr: TaskManager = utils_registry.get('TaskManager')
-        store: Store = utils_registry.get('Store')
+        store: CacheStore = utils_registry.get('Store')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         variable = await registry_mgr.get(derived_variable_registry, uid)
 

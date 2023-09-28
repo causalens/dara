@@ -10,6 +10,15 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         self.policy = policy
 
     @abc.abstractmethod
+    async def delete(self, key: str) -> Any:
+        """
+        Delete an entry from the cache.
+
+        :param key: The key of the entry to delete.
+        """
+        ...
+
+    @abc.abstractmethod
     async def get(self, key: str, unpin: bool = False) -> Any:
         """
         Retrieve an entry from the cache.

@@ -47,7 +47,7 @@ from dara.core.interactivity import (
 )
 from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -225,7 +225,7 @@ def py_component(
 
 async def render_component(
     definition: PyComponentDef,
-    store: Store,
+    store: CacheStore,
     task_mgr: TaskManager,
     values: Mapping[str, Any],
     static_kwargs: Mapping[str, Any],
@@ -282,6 +282,7 @@ async def render_component(
                     ]
                 )
             )
+            # Note: no associated registry entry, the result are not persisted in cache
             task = MetaTask(
                 renderer,
                 kwargs=resolved_kwargs,
@@ -336,7 +337,7 @@ def _make_render_safe(handler: Callable):
     return _render_safe
 
 
-async def _resolve_values_to_iter(values: Mapping[str, Any], store: Store, task_mgr: TaskManager):
+async def _resolve_values_to_iter(values: Mapping[str, Any], store: CacheStore, task_mgr: TaskManager):
     """
     Create a generator function that allows for each derived variable to be processed asynchronously in the
     threadpool provided by starlette.

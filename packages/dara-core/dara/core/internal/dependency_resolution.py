@@ -23,7 +23,7 @@ from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVa
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.registry_lookup import RegistryLookup
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 
 
@@ -64,7 +64,7 @@ def is_resolved_data_variable(obj: Any) -> TypeGuard[ResolvedDataVariable]:
 
 async def resolve_dependency(
     entry: Union[ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, Any],
-    store: Store,
+    store: CacheStore,
     task_mgr: TaskManager,
 ):
     """
@@ -87,7 +87,7 @@ async def resolve_dependency(
     return entry
 
 
-async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: Store, task_mgr: TaskManager):
+async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: CacheStore, task_mgr: TaskManager):
     """
     Resolve a derived data variable from the registry
 
@@ -113,7 +113,7 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: S
     return remove_index(result)
 
 
-async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, store: Store, task_mgr: TaskManager):
+async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, store: CacheStore, task_mgr: TaskManager):
     """
     Resolve a derived variable from the registry and get it's new value based on the dynamic variable mapping passed
     in.
@@ -133,7 +133,7 @@ async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, 
     return result['value']
 
 
-async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Store):
+async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: CacheStore):
     """
     Resolve a data variable from the registry and get it's new value based on the dynamic variable mapping passed
     in.

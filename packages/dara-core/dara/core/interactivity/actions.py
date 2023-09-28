@@ -41,6 +41,7 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
+    from dara.core.internal.cache_store import CacheStore
     from dara.core.interactivity import (
         AnyDataVariable,
         AnyVariable,
@@ -312,7 +313,7 @@ class UpdateVariable(ActionInstance):
                 utils_registry,
             )
 
-            store = utils_registry.get('Store')
+            store: CacheStore = utils_registry.get('Store')
 
             async def data_resolver(ctx):
                 if utils_registry.has('RegistryLookup'):

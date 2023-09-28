@@ -5,6 +5,14 @@ import anyio
 from dara.core.base_definitions import KeepAllCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
 
+class Entry:
+    value: Any
+    pin: bool
+
+    def __init__(self, value: Any, pin: bool = False):
+        self.value = value
+        self.pin = pin
+
 class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
     """
     A Keep All Cache.
@@ -15,6 +23,21 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         self.cache: Dict[str, Any] = {}
         self.lock = anyio.Lock()
 
+    async def delete(self, key: str) -> Any:
+        """
+        Delete an entry from the cache.
+
+        :param key: The key of the entry to delete.
+        """
+        async with self.lock:
+            entry = self.cache.get(key)
+
+            # Skip deleting if entry is None or pinned
+            if entry is None or entry.pin:
+                return None
+
+            del self.cache[key]
+
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """
         Retrieve a value from the cache.
@@ -24,7 +47,16 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         :return: The value associated with the key, or None if the key is not in the cache.
         """
         async with self.lock:
-            return self.cache.get(key)
+            entry = self.cache.get(key)
+
+
+            if entry is None:
+                return None
+
+            if unpin:
+                entry.pin = False
+
+            return entry.value
 
     async def set(self, key: str, value: Any, pin: bool = False) -> None:
         """
@@ -35,4 +67,4 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         :param pin: This parameter is ignored in KeepAllCache as entries are never evicted.
         """
         async with self.lock:
-            self.cache[key] = value
+            self.cache[key] = Entry(value, pin)

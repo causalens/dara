@@ -32,36 +32,44 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
     """
     def __init__(self, policy: TTLCachePolicy):
         super().__init__(policy)
-        self.cache: Dict[str, Node] = {}
-        self.expiration_heap: List[Tuple[float, str]] = []  # Stores (expiration_time, key)
+        self.pinned_cache: Dict[str, Node] = {}
+        self.unpinned_cache: Dict[str, Node] = {}
+        self.expiration_heap: List[Tuple[float, str]] = []  # Stores (expiration_time, key) for unpinned items
         self.lock = anyio.Lock()
 
-    async def _evict_expired_entries(self):
+    async def _cleanup(self):
         """
-        Evict expired entries from the cache and the expiration heap, unless they are pinned.
+        Evict expired entries from the cache, unless they are pinned.
         """
         now = time.time()
         while self.expiration_heap and self.expiration_heap[0][0] <= now:
             _, key = heapq.heappop(self.expiration_heap)
-            node = self.cache.get(key)
-            if node and not node.pin and node.expiration_time <= now:
-                del self.cache[key]
+            self.unpinned_cache.pop(key, None)
 
-    async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False) -> Any:
         """
         Retrieve a value from the cache.
 
         :param key: The key of the value to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
-        :return: The value associated with the key, or None if the key is not in the cache or the entry has expired.
+        :return: The value associated with the key, or None if the key is not in the cache.
         """
         async with self.lock:
-            await self._evict_expired_entries()
-            node = self.cache.get(key)
-            if node and (node.pin or node.expiration_time > time.time()):
+            await self._cleanup()
+
+            if key in self.pinned_cache:
+                node = self.pinned_cache[key]
+
+                # If unpin, move the node to the unpinned cache and expiration heap
                 if unpin:
-                    node.pin = False
+                    self.pinned_cache.pop(key)
+                    self.unpinned_cache[key] = node
+                    heapq.heappush(self.expiration_heap, (node.expiration_time, key))
                 return node.value
+            elif key in self.unpinned_cache:
+                return self.unpinned_cache[key].value
+
+            return None
 
     async def set(self, key: str, value: Any, pin: bool = False) -> None:
         """
@@ -72,7 +80,31 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
         :param pin: If true, the entry will not be evicted until read.
         """
         async with self.lock:
+            await self._cleanup()
+
             expiration_time = time.time() + self.policy.ttl
-            self.cache[key] = Node(value, expiration_time, pin)
-            heapq.heappush(self.expiration_heap, (expiration_time, key))
-            await self._evict_expired_entries()
+            node = Node(value, expiration_time, pin)
+            if pin:
+                self.pinned_cache[key] = node
+                self.unpinned_cache.pop(key, None)  # Ensure the key is removed from unpinned cache if it exists
+            else:
+                self.unpinned_cache[key] = node
+                heapq.heappush(self.expiration_heap, (expiration_time, key))
+                self.pinned_cache.pop(key, None)  # Ensure the key is removed from pinned cache if it exists
+
+
+    async def delete(self, key: str) -> None:
+        """
+        Delete a key-value pair from the cache, if it exists.
+
+        :param key: The key to delete.
+        """
+        async with self.lock:
+            await self._cleanup()
+
+            if key in self.unpinned_cache:
+                self.unpinned_cache.pop(key)
+                self.expiration_heap = [(t, k) for t, k in self.expiration_heap if k != key]
+                heapq.heapify(self.expiration_heap)
+            elif key in self.pinned_cache:
+                self.pinned_cache.pop(key, None)

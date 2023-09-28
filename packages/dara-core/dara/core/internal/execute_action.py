@@ -24,7 +24,7 @@ from dara.core.internal.dependency_resolution import (
     is_resolved_derived_variable,
     resolve_dependency,
 )
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger
@@ -33,7 +33,7 @@ from dara.core.logging import dev_logger
 async def execute_action(
     action: Callable,
     ctx: ActionContext,
-    store: Store,
+    store: CacheStore,
     task_mgr: TaskManager,
 ) -> Union[Any, BaseTask]:
     """
@@ -87,6 +87,7 @@ async def execute_action(
                 'Action returning a meta task (because `extras` included one or more `DerivedVariable`s with `run_as_task`)'
             )
 
+            # Note: no associated registry entry, the result are not persisted in cache
             return MetaTask(action, [ctx], notify_channels=notify_channels)
 
     # No tasks - run directly

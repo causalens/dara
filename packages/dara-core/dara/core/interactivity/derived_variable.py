@@ -25,12 +25,12 @@ from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
 
-from dara.core.base_definitions import BaseTask, CacheType, PendingTask
+from dara.core.base_definitions import BaseTask, Cache, CacheArgType, CachedRegistryEntry, PendingTask, PendingValue
 from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.store import PendingValue, Store
+from dara.core.internal.cache_store import  CacheStore
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import CacheScope, get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -55,7 +55,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     recalculated when necessary.
     """
 
-    cache: Optional[CacheType]
+    cache: Optional[Cache.Policy]
     variables: List[AnyVariable]
     polling_interval: Optional[int]
     deps: Optional[List[AnyVariable]]
@@ -70,7 +70,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         self,
         func: Callable[..., VariableType],
         variables: List[AnyVariable],
-        cache: Optional[CacheType] = CacheType.GLOBAL,
+        cache: Optional[CacheArgType] = Cache.Type.GLOBAL,
         run_as_task: bool = False,
         polling_interval: Optional[int] = None,
         deps: Optional[List[AnyVariable]] = None,
@@ -101,6 +101,13 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         - `deps = [var1.get('nested_property')]` - `func` is ran only when the nested property changes, other changes to the variable are ignored
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
+        if isinstance(cache, Cache.Type):
+            cache = Cache.Policy.from_type(cache)
+
+        # Unless user set cache=None, if deps are present we currently can only keep most recent value
+        if deps is not None and cache is not None:
+            cache = Cache.Policy.MostRecent(cache_type=cache.cache_type)
+
         # Explicitly disallow run_as_task within a Jupyter environment
         if run_as_task:
             try:
@@ -216,38 +223,36 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         return parsed_args
 
     @classmethod
-    def add_latest_value(cls, cache_type: Optional[CacheType], uid: str, cache_key: str):
+    async def add_latest_value(cls, store: CacheStore, var_entry: DerivedVariableRegistryEntry, cache_key: str):
         """
         Adds the latest value of this DerivedVariable to the registry. This method considers the cache_type of this DerivedVariable and adds or updates its entry in the registry.
 
-        :param cache_type: the cache type for the DerivedVariable
-        :param uid: the DerivedVariable uid
-        :param value: the latest value to be added for that cache for that DerivedVariable
+        :param var_entry: the registry entry for the derived variable
+        :param cache_key: the cache key for the derived variable
         """
-
         from dara.core.internal.registries import latest_value_registry
 
-        registry_entry = get_cache_scope(cache_type)
+        reg_entry: LatestValueRegistryEntry
 
-        # Tries to register the DerivedVariable to registry, if it ValueErrors then gets the existing value and updates it
-        try:
+        # Make sure we have an entry in the latest value registry for this DerivedVariable
+        if not latest_value_registry.has(var_entry.uid):
+            # Keep latest entry per scope (user,session)
+            reg_entry = LatestValueRegistryEntry(uid=var_entry.uid, cache=Cache.Policy.MostRecent(cache_type=var_entry.cache.cache_type))
             latest_value_registry.register(
-                str(uid),
-                LatestValueRegistryEntry(uid=str(uid), cache_keys={registry_entry: cache_key}),
+                    var_entry.uid,
+                reg_entry
             )
-        except ValueError:
-            latest_value = latest_value_registry.get(str(uid))
-            latest_value.cache_keys[registry_entry] = cache_key
-            latest_value_registry.set(
-                str(uid),
-                latest_value,
-            )
+        else:
+            reg_entry = latest_value_registry.get(var_entry.uid)
+
+        # Update the entry; keep track of scope:value
+        await store.set(reg_entry, key=get_cache_scope(var_entry.cache.cache_type), value=cache_key)
 
     @classmethod
     async def get_value(
         cls,
         var_entry: DerivedVariableRegistryEntry,
-        store: Store,
+        store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
         force: bool = False,
@@ -310,7 +315,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             has_tasks = any(isinstance(arg, BaseTask) for arg in parsed_args)
 
             cache_key = DerivedVariable._get_cache_key(*args, uid=var_entry.uid, deps=var_entry.deps)
-            DerivedVariable.add_latest_value(var_entry.cache, var_entry.uid, cache_key)
+            await DerivedVariable.add_latest_value(store, var_entry, cache_key)
 
             cache_type = var_entry.cache
 
@@ -332,7 +337,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 or var_entry.polling_interval
                 or DerivedVariable.check_polling(var_entry.variables)
             )
-            value = store.get(cache_key, cache_type) if not ignore_cache else None
+            value = store.get(var_entry, key=cache_key) if not ignore_cache else None
 
             eng_logger.debug(
                 f'DerivedVariable {_uid_short}',
@@ -355,7 +360,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     f'DerivedVariable {_uid_short} waiting for pending value',
                     {'uid': var_entry.uid, 'pending_value': value},
                 )
-                return {'cache_key': cache_key, 'value': await store.get_or_wait(cache_key, cache_type)}
+                return {'cache_key': cache_key, 'value': await store.get_or_wait(var_entry, key=cache_key)}
 
             # If there is a value that is not pending then we have the result so return it
             # If force is True, don't return even if value is found and recalculate
@@ -365,13 +370,6 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     {'uid': var_entry.uid, 'cached_value': value},
                 )
                 return {'cache_key': cache_key, 'value': value}
-
-            # If deps is set, delete previous cache entries for the DV
-            if var_entry.deps is not None:
-                eng_logger.warning(
-                    f'DerivedVariable {_uid_short} deleting previous cache entries', {'uid': var_entry.uid}
-                )
-                store.remove_starting_with(f'{var_entry.uid}:', cache_type)
 
             # Setup pending task if it needs it and then return the task
             if var_entry.run_as_task or has_tasks:
@@ -395,7 +393,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         process_as_task=var_entry.run_as_task,
                         cache_key=cache_key,
                         task_id=task_id,
-                        cache_type=cache_type,
+                        reg_entry=var_entry, # task results are set as the DV result
                     )
 
                     return {'cache_key': cache_key, 'value': meta_task}
@@ -459,12 +457,10 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         return {**parent_dict, '__typename': 'DerivedVariable', 'uid': str(parent_dict['uid'])}
 
 
-class DerivedVariableRegistryEntry(BaseModel):
-    cache: Optional[CacheType]
+class DerivedVariableRegistryEntry(CachedRegistryEntry):
     deps: Optional[List[int]]
     func: Callable[..., Any]
     run_as_task: bool
-    uid: str
     variables: List[AnyVariable]
     polling_interval: Optional[int]
 
@@ -472,6 +468,5 @@ class DerivedVariableRegistryEntry(BaseModel):
         extra = 'forbid'
 
 
-class LatestValueRegistryEntry(BaseModel):
-    uid: str
-    cache_keys: Dict[CacheScope, str]
+class LatestValueRegistryEntry(CachedRegistryEntry):
+    pass

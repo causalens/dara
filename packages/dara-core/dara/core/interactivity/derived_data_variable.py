@@ -22,7 +22,7 @@ from uuid import uuid4
 
 from pandas import DataFrame
 
-from dara.core.base_definitions import BaseTask, CacheType, PendingTask
+from dara.core.base_definitions import BaseTask, Cache, CacheArgType, PendingTask
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
     DataVariableRegistryEntry,
@@ -41,7 +41,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -70,7 +70,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             Callable[..., Coroutine[Any, Any, Union[DataFrame, None]]],
         ],
         variables: List[AnyVariable],
-        cache: CacheType = CacheType.GLOBAL,
+        cache: CacheArgType = Cache.Type.GLOBAL,
         run_as_task: bool = False,
         polling_interval: Optional[int] = None,
         deps: Optional[List[AnyVariable]] = None,
@@ -98,6 +98,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         - `deps = [var1, var2]` - `func` is ran whenever one of these vars changes
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
+        if isinstance(cache, Cache.Type):
+            cache = Cache.Policy.from_type(cache)
+
         # Initialize the DV underneath, which puts an entry in the derived variable registry
         super().__init__(
             func=func,
@@ -119,11 +122,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         )
 
     @staticmethod
-    def _filter_data(
+    async def _filter_data(
         data: Union[DataFrame, Any, None],
         count_cache_key: str,
-        cache_type: CacheType,
-        store: Store,
+        var_entry: DataVariableRegistryEntry,
+        store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
         pagination: Optional[Pagination] = None,
     ) -> Optional[DataFrame]:
@@ -133,7 +136,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         :param data: data to filter
         :param count_cache_key: cache key to store the count under
-        :param cache_type: cache type to use for the count
+        :param var_entry: data variable entry
         :param store: store instance
         :param filters: filters to use
         :param pagination: pagination to use
@@ -147,7 +150,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         filtered_data, count = apply_filters(data, coerce_to_filter_query(filters), pagination)
 
         # Cache the count
-        store.set(count_cache_key, count, cache_type)
+        await store.set(var_entry, key=count_cache_key, value=count, pin=True)
 
         return filtered_data
 
@@ -155,7 +158,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
     async def get_value(
         cls,
         var_entry: DerivedVariableRegistryEntry,
-        store: Store,
+        store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
         force: bool = False,
@@ -188,11 +191,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         return {'cache_key': value['cache_key'], 'value': True}
 
     @classmethod
-    def get_data(
+    async def get_data(
         cls,
         var_entry: DataVariableRegistryEntry,
         cache_key: str,
-        store: Store,
+        store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
         pagination: Optional[Pagination] = None,
     ) -> Union[BaseTask, DataFrame, None]:
@@ -209,7 +212,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         data_cache_key = f'{cache_key}_{hash_object(filters or {})}_{hash_object(pagination or {})}'
         count_cache_key = f'{cache_key}_{hash_object(filters or {})}'
 
-        data_store_entry = store.get(data_cache_key, var_entry.cache)
+        data_store_entry = await store.get(var_entry, key=data_cache_key)
 
         # if there's a pending task for this exact request, subscribe to the pending task and return it
         if isinstance(data_store_entry, PendingTask):
@@ -217,7 +220,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             return data_store_entry
 
         # First retrieve the cached data for underlying DV
-        data = store.get(cache_key, var_entry.cache)
+        data = await store.get(var_entry, key=cache_key)
 
         eng_logger.info(
             f'Derived Data Variable {_uid_short} retrieved underlying DV value', {'uid': var_entry.uid, 'value': data}
@@ -238,24 +241,24 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 notify_channels=data.notify_channels,
                 process_as_task=False,
                 cache_key=data_cache_key,
-                cache_type=var_entry.cache,
+                reg_entry=var_entry, # task results are set as the variable result
                 task_id=task_id,
             )
 
         # Run the filtering
-        data = cls._filter_data(data, count_cache_key, var_entry.cache, store, filters, pagination)
+        data = await cls._filter_data(data, count_cache_key, var_entry, store, filters, pagination)
 
         return data
 
     @classmethod
-    def get_total_count(
-        cls, data_entry: DataVariableRegistryEntry, store: Store, cache_key: str, filters: Optional[FilterQuery]
+    async def get_total_count(
+        cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str, filters: Optional[FilterQuery]
     ):
         """
         Get total count of the derived data variable.
         """
         count_cache_key = f'{cache_key}_{hash_object(filters or {})}'
-        entry = store.get(count_cache_key, cache_type=data_entry.cache)
+        entry = await store.get(data_entry, key=count_cache_key, unpin=True)
 
         # No entry means this filter setup has not been done yet, this shouldn't happen
         if entry is None:
@@ -268,7 +271,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         cls,
         data_entry: DataVariableRegistryEntry,
         dv_entry: DerivedVariableRegistryEntry,
-        store: Store,
+        store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
         force: bool,
@@ -278,7 +281,8 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         Helper method to resolve the filtered value of a derived data variable.
         Under the hood runs the underlying DerivedVariable, starts its task if required, and then filters the result.
 
-        :param var: the registry entry for the underlying derived variable
+        :param data_entry: the registry entry for the data variable
+        :param dv_entry: the registry entry for the underlying derived variable
         :param store: the store instance to check for cached values
         :param task_mgr: task manager instance
         :param args: the arguments to call the underlying function with

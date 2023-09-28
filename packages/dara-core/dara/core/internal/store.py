@@ -67,6 +67,7 @@ class PendingValue:
         self._error = exc
         self.event.set()
 
+
 # class StoreEntry(BaseModel):
 #     value: Union[Any, PendingValue]
 #     """
@@ -78,8 +79,6 @@ class PendingValue:
 #     When the entry was created
 #     """
 
-
-CacheTypeArg = Union[CacheType, CachedRegistryEntry]
 
 class Store:
     """
@@ -113,15 +112,6 @@ class Store:
         Notify metrics tracker about current size
         """
         CACHE_METRICS_TRACKER.update_store(self._size)
-
-    def _get_scope(self, cache_type_arg: Optional[CacheTypeArg]) -> str:
-        """
-        Get cache scope for a given cache type argument
-        """
-        if isinstance(cache_type_arg, CacheType) or cache_type_arg is None:
-            return get_cache_scope(cache_type_arg)
-
-        return cache_type_arg.to_store_key()
 
     def get(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> Any:
         """

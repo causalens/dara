@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from anyio import create_task_group
+from dara.core.internal.cache_store import CacheStore
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -59,7 +60,6 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
-from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
@@ -123,7 +123,7 @@ def _start_application(config: Configuration):
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables
         # requires a store existing
-        store: Store = utils_registry.get('Store')
+        store: CacheStore = utils_registry.get('Store')
         utils_registry.set('RegistryLookup', RegistryLookup(config.registry_lookup))
 
         # Create a task group for the application so we can kick off tasks in the background

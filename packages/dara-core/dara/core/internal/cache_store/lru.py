@@ -58,6 +58,34 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         if not self.tail:
             self.tail = node
 
+    async def delete(self, key: str):
+        """
+        Delete an entry from the cache.
+
+        :param key: The key of the entry to delete.
+        """
+        async with self.lock:
+            node = self.cache.get(key)
+            if node is None:
+                return None  # Key not found
+
+            if node.pin:
+                return None  # Entry is pinned, do not delete
+
+            # Delete from the doubly linked list
+            if node.prev:
+                node.prev.next = node.next
+            if node.next:
+                node.next.prev = node.prev
+            if self.head == node:
+                self.head = node.next
+            if self.tail == node:
+                self.tail = node.prev
+
+            # Delete from the dictionary
+            del self.cache[key]
+
+
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """
         Retrieve a value from the cache.

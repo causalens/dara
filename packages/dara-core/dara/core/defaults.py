@@ -42,7 +42,7 @@ from dara.core.interactivity.actions import (
     UpdateVariable,
     UpdateVariableDef,
 )
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.visual.components import (
     DefaultFallbackDef,
     DynamicComponent,
@@ -69,7 +69,7 @@ from dara.core.visual.template import TemplateBuilder
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Store needs to exist earlier
-_store = Store()
+_store = CacheStore()
 
 INITIAL_CORE_INTERNALS = {'Store': _store}
 
