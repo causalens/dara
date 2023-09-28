@@ -81,7 +81,7 @@ class BaseCachePolicy(BaseModel):
     Base class for cache policies.
     """
 
-    cache_type: CacheType
+    cache_type: CacheType = CacheType.GLOBAL
 
 class LruCachePolicy(BaseCachePolicy):
     """
@@ -107,6 +107,16 @@ class KeepAllCachePolicy(BaseCachePolicy):
     """
     pass
 
+class TTLCachePolicy(BaseCachePolicy):
+    """
+    Time-to-live cache policy.
+    Evicts items from the cache after the specified time-to-live.
+
+    :param ttl: time-to-live in seconds
+    """
+
+    ttl: int = 60
+
 class Cache:
     """
     Convenience class aggregating all available cache policies and types
@@ -117,9 +127,10 @@ class Cache:
         """
         Available cache policies
         """
-        Lru = LruCachePolicy
+        LRU = LruCachePolicy
         MostRecent = MostRecentCachePolicy
         KeepAll = KeepAllCachePolicy
+        TTL = TTLCachePolicy
 
         @classmethod
         def from_type(cls, type: CacheType):
@@ -141,7 +152,7 @@ class CachedRegistryEntry(BaseModel):
         """
         Returns a unique store key for this entry.
         """
-        return f'{self.__class__.__name__}_{self.uid}_{self.cache.cache_type}'
+        return f'{self.__class__.__name__}_{self.uid}'
 
 class BaseTaskMessage(BaseModel):
     task_id: str

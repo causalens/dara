@@ -67,16 +67,16 @@ class PendingValue:
         self._error = exc
         self.event.set()
 
-class StoreEntry(BaseModel):
-    value: Union[Any, PendingValue]
-    """
-    The value stored in the entry
-    """
+# class StoreEntry(BaseModel):
+#     value: Union[Any, PendingValue]
+#     """
+#     The value stored in the entry
+#     """
 
-    created_at: datetime
-    """
-    When the entry was created
-    """
+#     created_at: datetime
+#     """
+#     When the entry was created
+#     """
 
 
 CacheTypeArg = Union[CacheType, CachedRegistryEntry]
