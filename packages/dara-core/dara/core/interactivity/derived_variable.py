@@ -30,7 +30,7 @@ from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.store import Store
+from dara.core.internal.store import PendingValue, Store
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import CacheScope, get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -350,7 +350,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 return {'cache_key': cache_key, 'value': value}
 
             # If it's a PendingValue then wait for the value and return it
-            if isinstance(value, store.PendingValue):
+            if isinstance(value, PendingValue):
                 eng_logger.info(
                     f'DerivedVariable {_uid_short} waiting for pending value',
                     {'uid': var_entry.uid, 'pending_value': value},

@@ -15,14 +15,71 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from pydantic import BaseModel
 import anyio
 
-from dara.core.base_definitions import CacheType, PendingTask
+from dara.core.base_definitions import CacheType, CachedRegistryEntry, PendingTask
+from dara.core.internal.registry import RegistryType
 from dara.core.internal.utils import get_cache_scope
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
+
+class PendingValue:
+    """
+    An internal class that's used to represent a pending value. Holds a future object that can be awaited by
+    multiple consumers.
+    """
+
+    def __init__(self):
+        self.event = anyio.Event()
+        self._value = None
+        self._error = None
+
+    async def wait(self):
+        """
+        Wait for the underlying event to be set
+        """
+        # Waiting in chunks as otherwise Jupyter blocks the event loop
+        while not self.event.is_set():
+            await anyio.sleep(0.01)
+        if self._error:
+            raise self._error
+        return self._value
+
+    def resolve(self, value: Any):
+        """
+        Resolve the pending state and send values to the waiting code
+
+        :param value: the value to resolve as the result
+        """
+        self._value = value
+        self.event.set()
+
+    def error(self, exc: Exception):
+        """
+        Resolve the pending state with an error and send it to the waiting code
+
+        :param exc: exception to resolve as the result
+        """
+        self._error = exc
+        self.event.set()
+
+class StoreEntry(BaseModel):
+    value: Union[Any, PendingValue]
+    """
+    The value stored in the entry
+    """
+
+    created_at: datetime
+    """
+    When the entry was created
+    """
+
+
+CacheTypeArg = Union[CacheType, CachedRegistryEntry]
 
 class Store:
     """
@@ -37,49 +94,10 @@ class Store:
     class Config:
         use_enum_values = True
 
-    class PendingValue:
-        """
-        An internal class that's used to represent a pending value. Holds a future object that can be awaited by
-        multiple consumers.
-        """
-
-        def __init__(self):
-            self.event = anyio.Event()
-            self._value = None
-            self._error = None
-
-        async def wait(self):
-            """
-            Wait for the underlying event to be set
-            """
-            # Waiting in chunks as otherwise Jupyter blocks the event loop
-            while not self.event.is_set():
-                await anyio.sleep(0.01)
-            if self._error:
-                raise self._error
-            return self._value
-
-        def resolve(self, value: Any):
-            """
-            Resolve the pending state and send values to the waiting code
-
-            :param value: the value to resolve as the result
-            """
-            self._value = value
-            self.event.set()
-
-        def error(self, exc: Exception):
-            """
-            Resolve the pending state with an error and send it to the waiting code
-
-            :param exc: exception to resolve as the result
-            """
-            self._error = exc
-            self.event.set()
 
     def __init__(self):
         # This dict is the main store of values, the first level of keys is the cache type and the second level are the
-        # value keys. The root key is used for any non-session/user dependant keys that are added.
+        # cache keys, mapping to store entries. The global key is used for any non-session/user dependant keys that are added.
         self._store: Dict[str, Dict[str, Any]] = {'global': {}}
 
         # The size is not totally accurate as we only add/subtract values stored, without accounting for keys
@@ -95,6 +113,15 @@ class Store:
         Notify metrics tracker about current size
         """
         CACHE_METRICS_TRACKER.update_store(self._size)
+
+    def _get_scope(self, cache_type_arg: Optional[CacheTypeArg]) -> str:
+        """
+        Get cache scope for a given cache type argument
+        """
+        if isinstance(cache_type_arg, CacheType) or cache_type_arg is None:
+            return get_cache_scope(cache_type_arg)
+
+        return cache_type_arg.to_store_key()
 
     def get(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> Any:
         """
@@ -119,7 +146,7 @@ class Store:
         cache_key = get_cache_scope(cache_type)
         value = self._store.get(cache_key, {}).get(key)
 
-        if isinstance(value, self.PendingValue):
+        if isinstance(value, PendingValue):
             return await value.wait()
         if isinstance(value, PendingTask):
             return await value.run()
@@ -143,12 +170,13 @@ class Store:
         :param error: optional error; if provided, pending values will be updated with the error
         """
         cache_key = get_cache_scope(cache_type)
+
         if self._store.get(cache_key) is None:
             self._store[cache_key] = {}
             self._size += total_size({})
 
         # If there is a PendingValue set for this key then trigger its resolution
-        if isinstance(self._store[cache_key].get(key), self.PendingValue):
+        if isinstance(self._store[cache_key].get(key), PendingValue):
             if error is not None:
                 self._store[cache_key][key].error(error)
             else:
@@ -175,7 +203,7 @@ class Store:
             self._store[cache_key] = {}
             self._size += total_size({})
 
-        pending_val = self.PendingValue()
+        pending_val = PendingValue()
 
         # Update the size counter
         self._update_size(pending_val, self._store[cache_key].get(key))
@@ -238,7 +266,7 @@ class Store:
                 # Otherwise go through and remove any non-pending values
                 keys = list(cache_type_store.keys())
                 for key in keys:
-                    if not isinstance(cache_type_store[key], (self.PendingValue, PendingTask)):
+                    if not isinstance(cache_type_store[key], (PendingValue, PendingTask)):
                         size_to_remove = total_size(cache_type_store.get(key))
                         cache_type_store.pop(key)
                         self._size -= size_to_remove

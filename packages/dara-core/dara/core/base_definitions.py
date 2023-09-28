@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Union
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionContextType
@@ -76,6 +76,72 @@ class CacheType(str, Enum):
     SESSION = 'session'
     USER = 'user'
 
+class BaseCachePolicy(BaseModel):
+    """
+    Base class for cache policies.
+    """
+
+    cache_type: CacheType
+
+class LruCachePolicy(BaseCachePolicy):
+    """
+    Least-recently-used cache policy.
+    Evicts the least recently used item when adding a new item to the cache if the number of items
+    exceeds the max_size.
+
+    :param max_size: maximum number of items to keep in the cache
+    """
+    max_size: int = 10
+
+class MostRecentCachePolicy(LruCachePolicy):
+    """
+    Most recent cache policy. Only keeps the most recent item in the cache.
+    """
+    max_size: int = Field(const=True, default=1)
+
+class KeepAllCachePolicy(BaseCachePolicy):
+    """
+    Keep all items in the cache, regardless of the number of items.
+
+    Should be used with caution as it can lead to memory leaks.
+    """
+    pass
+
+class Cache:
+    """
+    Convenience class aggregating all available cache policies and types
+    """
+    Type = CacheType
+
+    class Policy:
+        """
+        Available cache policies
+        """
+        Lru = LruCachePolicy
+        MostRecent = MostRecentCachePolicy
+        KeepAll = KeepAllCachePolicy
+
+        @classmethod
+        def from_type(cls, type: CacheType):
+            """
+            Construct a cache policy from a cache type. Defaults to LRU.
+            """
+            return LruCachePolicy(cache_type=type)
+
+
+class CachedRegistryEntry(BaseModel):
+    """
+    Represents a registry item with associated cache entries which can be controlled
+    via the cache policy.
+    """
+    cache: BaseCachePolicy
+    uid: str
+
+    def to_store_key(self):
+        """
+        Returns a unique store key for this entry.
+        """
+        return f'{self.__class__.__name__}_{self.uid}_{self.cache.cache_type}'
 
 class BaseTaskMessage(BaseModel):
     task_id: str
