@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilValueLoadable } from 'recoil';

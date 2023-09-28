@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 

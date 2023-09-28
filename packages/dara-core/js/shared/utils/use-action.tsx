@@ -10,6 +10,7 @@ import useActionRegistry from './use-action-registry';
 // Disabling rules of hook since the followiing function are willingly breaking the rules, making the assumption that the components call
 // the exported functions with values which don't change the hook order etc
 /* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 /**
  * Helper method which converts an action into a list of hooks.

@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { formatISO } from 'date-fns';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -89,8 +91,12 @@ interface ColumnProps {
 }
 
 const coerceValueToUnit = (num: number): number => {
-    if (num < 0) return -1;
-    if (num > 0) return 1;
+    if (num < 0) {
+        return -1;
+    }
+    if (num > 0) {
+        return 1;
+    }
     return 0;
 };
 

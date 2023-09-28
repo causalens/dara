@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useCallback, useRef } from 'react';
 import { atom } from 'recoil';
 

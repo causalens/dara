@@ -48,7 +48,9 @@ export function clearRegistries_TEST(): void {
  * @param variable variable to check
  */
 export function isRegistered<T>(variable: AnyVariable<T>): boolean {
-    if (!isVariable(variable)) return false;
+    if (!isVariable(variable)) {
+        return false;
+    }
 
     switch (variable.__typename) {
         case 'Variable':
