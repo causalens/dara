@@ -41,7 +41,6 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.internal.cache_store import CacheStore
     from dara.core.interactivity import (
         AnyDataVariable,
         AnyVariable,
@@ -49,6 +48,7 @@ if TYPE_CHECKING:
         UrlVariable,
         Variable,
     )
+    from dara.core.internal.cache_store import CacheStore
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
 

@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import Optional
 
 from anyio import create_task_group
-from dara.core.internal.cache_store import CacheStore
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +40,7 @@ from dara.core.defaults import (
     top_menu_template,
     top_template,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
@@ -70,6 +70,7 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+
 
 def _start_application(config: Configuration):
     """
@@ -376,7 +377,7 @@ def main(extra=None):
 
     Dara applications should not call main directly as the CLI automatically picks up `config` from the entry file
     """
-    print( # pylint: disable=print-function
+    print(  # pylint: disable=print-function
         'Call to deprecated function `main` detected. Your application should not call the main function directly, please remove any calls to `main` from your code.'
     )
     sys.exit(1)

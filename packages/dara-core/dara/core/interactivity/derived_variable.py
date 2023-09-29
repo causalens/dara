@@ -25,12 +25,20 @@ from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
 
-from dara.core.base_definitions import BaseCachePolicy, BaseTask, Cache, CacheArgType, CachedRegistryEntry, PendingTask, PendingValue
+from dara.core.base_definitions import (
+    BaseCachePolicy,
+    BaseTask,
+    Cache,
+    CacheArgType,
+    CachedRegistryEntry,
+    PendingTask,
+    PendingValue,
+)
 from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.cache_store import  CacheStore
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -238,20 +246,15 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         # Make sure we have an entry in the latest value registry for this DerivedVariable
         if not latest_value_registry.has(var_entry.uid):
             # Keep latest entry per scope (user,session); if cache_type is None, use GLOBAL
-            reg_entry = LatestValueRegistryEntry(uid=var_entry.uid, cache=Cache.Policy.MostRecent(cache_type=cache_type or Cache.Type.GLOBAL))
-            latest_value_registry.register(
-                    var_entry.uid,
-                reg_entry
+            reg_entry = LatestValueRegistryEntry(
+                uid=var_entry.uid, cache=Cache.Policy.MostRecent(cache_type=cache_type or Cache.Type.GLOBAL)
             )
+            latest_value_registry.register(var_entry.uid, reg_entry)
         else:
             reg_entry = latest_value_registry.get(var_entry.uid)
 
         # Update the entry; keep track of scope:value
-        await store.set(
-            reg_entry,
-            key=get_cache_scope(cache_type),
-            value=cache_key
-        )
+        await store.set(reg_entry, key=get_cache_scope(cache_type), value=cache_key)
 
     @classmethod
     async def get_value(
@@ -398,7 +401,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         process_as_task=var_entry.run_as_task,
                         cache_key=cache_key,
                         task_id=task_id,
-                        reg_entry=var_entry, # task results are set as the DV result
+                        reg_entry=var_entry,  # task results are set as the DV result
                     )
 
                     return {'cache_key': cache_key, 'value': meta_task}
@@ -415,7 +418,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     parsed_args,
                     cache_key=cache_key,
                     task_id=task_id,
-                    reg_entry=var_entry, # task results are set as the DV result
+                    reg_entry=var_entry,  # task results are set as the DV result
                 )
                 return {'cache_key': cache_key, 'value': task}
 
@@ -463,7 +466,6 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
 
 class DerivedVariableRegistryEntry(CachedRegistryEntry):
-    cache: Optional[BaseCachePolicy]
     deps: Optional[List[int]]
     func: Callable[..., Any]
     run_as_task: bool

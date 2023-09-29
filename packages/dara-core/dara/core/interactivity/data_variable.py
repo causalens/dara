@@ -16,8 +16,8 @@ limitations under the License.
 """
 
 from __future__ import annotations
-import asyncio
 
+import asyncio
 from typing import Optional, Union
 
 from anyio.abc import TaskGroup
@@ -35,9 +35,9 @@ from dara.core.interactivity.filtering import (
     apply_filters,
     coerce_to_filter_query,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
-from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
@@ -71,7 +71,11 @@ class DataVariable(AnyDataVariable):
         use_enum_values = True
 
     def __init__(
-        self, data: Optional[DataFrame] = None, cache: CacheArgType = Cache.Type.GLOBAL, uid: Optional[str] = None, **kwargs
+        self,
+        data: Optional[DataFrame] = None,
+        cache: CacheArgType = Cache.Type.GLOBAL,
+        uid: Optional[str] = None,
+        **kwargs,
     ) -> None:
         """
         DataVariable represents a variable that is specifically designed to hold datasets.
@@ -105,7 +109,6 @@ class DataVariable(AnyDataVariable):
             store: CacheStore = utils_registry.get('Store')
             asyncio.create_task(self._update(var_entry, store, data))
 
-
     @staticmethod
     def _get_cache_key(uid: str) -> str:
         """
@@ -126,10 +129,7 @@ class DataVariable(AnyDataVariable):
 
         TODO: for now data is always kept in store, in the future depending on the size data might be cached on disk
         """
-        await store.set(
-            var_entry,
-            key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=append_index(data))
-        )
+        await store.set(var_entry, key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=append_index(data)))
 
     @classmethod
     def update_value(cls, var_entry: DataVariableRegistryEntry, store: CacheStore, data: Optional[DataFrame]):
@@ -146,12 +146,7 @@ class DataVariable(AnyDataVariable):
         task_group: TaskGroup = utils_registry.get('TaskGroup')
 
         # Update store
-        task_group.start_soon(
-            cls._update,
-            var_entry,
-            store,
-            data
-        )
+        task_group.start_soon(cls._update, var_entry, store, data)
 
         # Broadcast the update to all clients
         task_group.start_soon(
@@ -213,7 +208,9 @@ class DataVariable(AnyDataVariable):
         return data
 
     @classmethod
-    async def get_total_count(cls, var_entry: DataVariableRegistryEntry, store: CacheStore, filters: Optional[FilterQuery]):
+    async def get_total_count(
+        cls, var_entry: DataVariableRegistryEntry, store: CacheStore, filters: Optional[FilterQuery]
+    ):
         """
         Get total count of the data variable.
 

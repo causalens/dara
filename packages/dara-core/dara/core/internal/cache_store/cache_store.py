@@ -1,9 +1,17 @@
 from typing import Any, Dict, Generic, Optional, cast
 
-from dara.core.base_definitions import CachedRegistryEntry, KeepAllCachePolicy, LruCachePolicy, MostRecentCachePolicy, PendingTask, PendingValue, TTLCachePolicy
+from dara.core.base_definitions import (
+    CachedRegistryEntry,
+    KeepAllCachePolicy,
+    LruCachePolicy,
+    MostRecentCachePolicy,
+    PendingTask,
+    PendingValue,
+    TTLCachePolicy,
+)
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl, PolicyT
-from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.keep_all import KeepAllCache
+from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
 from dara.core.internal.utils import CacheScope, get_cache_scope
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
@@ -20,12 +28,13 @@ def cache_impl_for_policy(policy: PolicyT) -> CacheStoreImpl[PolicyT]:
     elif isinstance(policy, TTLCachePolicy):
         impl = TTLCache(policy)
     elif isinstance(policy, KeepAllCachePolicy):
-        impl= KeepAllCache(policy)
+        impl = KeepAllCache(policy)
 
     if impl is None:
-        raise NotImplementedError(f"No cache implementation available for policy: {policy}")
+        raise NotImplementedError(f'No cache implementation available for policy: {policy}')
 
     return cast(CacheStoreImpl[PolicyT], impl)
+
 
 class CacheScopeStore(Generic[PolicyT]):
     """
@@ -33,6 +42,7 @@ class CacheScopeStore(Generic[PolicyT]):
     Depending on the policy will store a different cache implementation per entry.
     Keeps entries scoped to the cache scope of current execution.
     """
+
     def __init__(self, policy: PolicyT):
         self.caches: Dict[CacheScope, CacheStoreImpl[PolicyT]] = {}
         self.policy = policy
@@ -68,7 +78,6 @@ class CacheScopeStore(Generic[PolicyT]):
 
         return await cache.get(key, unpin=unpin)
 
-
     async def set(self, key: str, value: Any, pin: bool = False):
         """
         Add an entry to the cache. Depending on the implementation might evict other entries.
@@ -96,7 +105,6 @@ class CacheScopeStore(Generic[PolicyT]):
         for cache in self.caches.values():
             await cache.clear()
         self.caches = {}
-
 
 
 class CacheStore:
@@ -171,7 +179,14 @@ class CacheStore:
 
         return value
 
-    async def set(self, registry_entry: CachedRegistryEntry, key: str, value: Any, error: Optional[Exception] = None, pin: bool = False):
+    async def set(
+        self,
+        registry_entry: CachedRegistryEntry,
+        key: str,
+        value: Any,
+        error: Optional[Exception] = None,
+        pin: bool = False,
+    ):
         """
         Add an entry to the cache for the given registry entry and cache key.
 
@@ -181,6 +196,8 @@ class CacheStore:
         :param error: If set, the value is a PendingValue that will resolve to this error.
         :param pin: If true, the entry will not be evicted until read.
         """
+        assert registry_entry.cache is not None, 'Registry entry must have a cache policy to be used in a CacheStore'
+
         registry_store = self.registry_stores.get(registry_entry.to_store_key())
 
         # No store for this entry yet, create new

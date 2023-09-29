@@ -1,14 +1,18 @@
 import heapq
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
+
 import anyio
+
 from dara.core.base_definitions import TTLCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
+
 
 class Node:
     """
     A node to hold the value, expiration time, and pin status of each cache entry.
     """
+
     def __init__(self, value: Any, expiration_time: float, pin: bool = False):
         """
         Initialize a new node.
@@ -21,6 +25,7 @@ class Node:
         self.expiration_time = expiration_time
         self.pin = pin
 
+
 class TTLCache(CacheStoreImpl[TTLCachePolicy]):
     """
     A Time-to-Live (TTL) Cache implementation that evicts entries after a specified duration.
@@ -30,6 +35,7 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
     On each set or get operation, the cache checks and evicts expired entries based on the TTL policy.
     Pinned entries are not evicted until they are unpinned, regardless of their TTL.
     """
+
     def __init__(self, policy: TTLCachePolicy):
         super().__init__(policy)
         self.pinned_cache: Dict[str, Node] = {}
@@ -91,7 +97,6 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
                 self.unpinned_cache[key] = node
                 heapq.heappush(self.expiration_heap, (expiration_time, key))
                 self.pinned_cache.pop(key, None)  # Ensure the key is removed from pinned cache if it exists
-
 
     async def delete(self, key: str) -> None:
         """

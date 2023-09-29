@@ -5,6 +5,7 @@ import anyio
 from dara.core.base_definitions import LruCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
 
+
 class Node:
     """A node in a doubly linked list."""
 
@@ -23,7 +24,7 @@ class Node:
         self.next: Optional[Node] = None
 
     def __repr__(self) -> str:
-        return f"Node({self.key}, {self.value}, {self.pin})"
+        return f'Node({self.key}, {self.value}, {self.pin})'
 
 
 class LRUCache(CacheStoreImpl[LruCachePolicy]):
@@ -31,6 +32,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
     A Least Recently Used (LRU) Cache.
     Evicts the least recently used items first.
     """
+
     def __init__(self, policy: LruCachePolicy):
         super().__init__(policy)
         self.cache: Dict[str, Node] = {}
@@ -85,7 +87,6 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
             # Delete from the dictionary
             del self.cache[key]
 
-
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """
         Retrieve a value from the cache.
@@ -130,7 +131,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
 
                 # Check and perform eviction
                 while len(self.cache) > self.policy.max_size:
-                    evict_node = self.tail
+                    evict_node: Optional[Node] = self.tail
 
                     # Skip over pinned nodes
                     while evict_node and evict_node.pin:

@@ -39,9 +39,9 @@ from dara.core.interactivity.filtering import (
     apply_filters,
     coerce_to_filter_query,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
-from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -246,7 +246,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 notify_channels=data.notify_channels,
                 process_as_task=False,
                 cache_key=data_cache_key,
-                reg_entry=data_entry, # task results are set as the variable result
+                reg_entry=data_entry,  # task results are set as the variable result
                 task_id=task_id,
             )
 

@@ -353,10 +353,12 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
 
     ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
-    with catch({
-        WebSocketDisconnect: lambda _: eng_logger.warning('Websocket disconnected'),
-        BaseException: lambda e: eng_logger.error('Error in websocket handler', error=e),
-    }):
+    with catch(
+        {
+            WebSocketDisconnect: lambda _: eng_logger.warning('Websocket disconnected'),
+            BaseException: lambda e: eng_logger.error('Error in websocket handler', error=Exception(e)),
+        }
+    ):
         try:
             # Create a handler for this connection
             handler = ws_mgr.create_handler(channel)

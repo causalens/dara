@@ -147,7 +147,6 @@ class Store:
                 if k.startswith(start):
                     cache_entries.pop(k)
 
-
     def empty_stores(self, include_pending: bool = True):
         """
         Empty all of the internal stores

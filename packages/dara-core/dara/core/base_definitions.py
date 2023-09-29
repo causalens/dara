@@ -91,6 +91,7 @@ class BaseCachePolicy(BaseModel, abc.ABC):
     """
     Base class for cache policies.
     """
+
     policy: str
     cache_type: CacheType = CacheType.GLOBAL
 
@@ -104,15 +105,19 @@ class LruCachePolicy(BaseCachePolicy):
     :param max_size: maximum number of items to keep in the cache - globally or per user/session,
         depending on `cache_type` set in the policy
     """
+
     policy: str = Field(const=True, default='lru')
     max_size: int = 10
+
 
 class MostRecentCachePolicy(LruCachePolicy):
     """
     Most recent cache policy. Only keeps the most recent item in the cache.
     """
+
     policy: str = Field(const=True, default='most-recent')
     max_size: int = Field(const=True, default=1)
+
 
 class KeepAllCachePolicy(BaseCachePolicy):
     """
@@ -120,8 +125,9 @@ class KeepAllCachePolicy(BaseCachePolicy):
 
     Should be used with caution as it can lead to memory leaks.
     """
+
     policy: str = Field(const=True, default='keep-all')
-    pass
+
 
 class TTLCachePolicy(BaseCachePolicy):
     """
@@ -130,26 +136,30 @@ class TTLCachePolicy(BaseCachePolicy):
 
     :param ttl: time-to-live in seconds
     """
+
     policy: str = Field(const=True, default='ttl')
     ttl: int
+
 
 class Cache:
     """
     Convenience class aggregating all available cache policies and types
     """
+
     Type = CacheType
 
     class Policy:
         """
         Available cache policies
         """
+
         LRU = LruCachePolicy
         MostRecent = MostRecentCachePolicy
         KeepAll = KeepAllCachePolicy
         TTL = TTLCachePolicy
 
         @classmethod
-        def from_arg(cls, arg: CacheArgType):
+        def from_arg(cls, arg: CacheArgType) -> BaseCachePolicy:
             """
             Construct a cache policy from a cache arg. Defaults to LRU if a type is provided.
             """
@@ -164,16 +174,21 @@ class Cache:
                 if typ := Cache.Type.get_member(arg):
                     return LruCachePolicy(cache_type=typ)
 
-            raise ValueError(f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members')
+            raise ValueError(
+                f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members'
+            )
+
 
 CacheArgType = Union[CacheType, BaseCachePolicy, str]
+
 
 class CachedRegistryEntry(BaseModel):
     """
     Represents a registry item with associated cache entries which can be controlled
     via the cache policy.
     """
-    cache: BaseCachePolicy
+
+    cache: Optional[BaseCachePolicy]
     uid: str
 
     def to_store_key(self):
@@ -184,6 +199,7 @@ class CachedRegistryEntry(BaseModel):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(cache={self.cache}, uid={self.uid})'
+
 
 class BaseTaskMessage(BaseModel):
     task_id: str
@@ -241,6 +257,7 @@ class PendingTask(BaseTask):
     Represents a running pending task.
     Is associated to an underlying task definition.
     """
+
     cache_key: None = None
     reg_entry: None = None
 
@@ -310,7 +327,6 @@ class PendingTask(BaseTask):
         self.subscribers -= 1
 
 
-
 class PendingValue:
     """
     An internal class that's used to represent a pending value. Holds a future object that can be awaited by
@@ -350,6 +366,7 @@ class PendingValue:
         """
         self._error = exc
         self.event.set()
+
 
 class ActionDef(BaseModel):
     """

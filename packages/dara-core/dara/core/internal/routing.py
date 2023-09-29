@@ -30,13 +30,14 @@ from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import BaseTask, PendingTask
+from dara.core.base_definitions import BaseTask
 from dara.core.configuration import Configuration
 from dara.core.interactivity.actions import ActionContext, ActionInputs
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery, Pagination
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import get_by_code
 from dara.core.internal.execute_action import execute_action
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
@@ -55,7 +56,6 @@ from dara.core.internal.registries import (
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
-from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.internal.websocket import ws_handler
@@ -224,14 +224,14 @@ def create_router(config: Configuration):
             variable_entry = derived_variable_registry.get(uid)
 
             # Lookup the latest key in the cache
-            scope = get_cache_scope(variable_entry.cache.cache_type)
+            scope = get_cache_scope(variable_entry.cache.cache_type if variable_entry.cache else None)
             latest_key = await store.get(latest_value_entry, key=scope)
 
             if latest_key is None:
                 return None
 
             # Lookup latest value for that key
-            latest_value = await store.get_or_wait(variable_entry,  key=latest_key)
+            latest_value = await store.get_or_wait(variable_entry, key=latest_key)
 
             dev_logger.debug(
                 f'DerivedVariable {variable_entry.uid[:3]}..{variable_entry.uid[-3:]}',
@@ -291,7 +291,10 @@ def create_router(config: Configuration):
                     return {'task_id': data.task_id}
             elif data_variable_entry.type == 'plain':
                 data = await DataVariable.get_value(
-                    data_variable_entry, store, body.filters, Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
+                    data_variable_entry,
+                    store,
+                    body.filters,
+                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
                 )
 
             dev_logger.debug(

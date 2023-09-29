@@ -21,9 +21,9 @@ from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.registry_lookup import RegistryLookup
-from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 
 
@@ -113,7 +113,9 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: C
     return remove_index(result)
 
 
-async def _resolve_derived_var(derived_variable_entry: ResolvedDerivedVariable, store: CacheStore, task_mgr: TaskManager):
+async def _resolve_derived_var(
+    derived_variable_entry: ResolvedDerivedVariable, store: CacheStore, task_mgr: TaskManager
+):
     """
     Resolve a derived variable from the registry and get it's new value based on the dynamic variable mapping passed
     in.

@@ -28,7 +28,7 @@ from anyio import (
 )
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
-from exceptiongroup import catch, ExceptionGroup
+from exceptiongroup import ExceptionGroup
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -188,6 +188,7 @@ class Task(BaseTask):
 
         pool: TaskPool = utils_registry.get('TaskPool')
         await pool.cancel(self.task_id)
+
 
 class MetaTask(BaseTask):
     """
@@ -584,6 +585,7 @@ class TaskManager:
                 with move_on_after(3, shield=True):
                     await send_stream.aclose()
                     await receive_stream.aclose()
+
 
 TaskResultEntry = CachedRegistryEntry(uid='task-results', cache=Cache.Policy.KeepAll())
 """

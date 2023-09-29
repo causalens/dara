@@ -18,7 +18,6 @@ limitations under the License.
 import abc
 from typing import Literal, Optional
 
-
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.filtering import FilterQuery

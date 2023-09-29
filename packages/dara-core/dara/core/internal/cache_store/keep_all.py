@@ -5,6 +5,7 @@ import anyio
 from dara.core.base_definitions import KeepAllCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
 
+
 class Entry:
     value: Any
     pin: bool
@@ -13,11 +14,13 @@ class Entry:
         self.value = value
         self.pin = pin
 
+
 class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
     """
     A Keep All Cache.
     Keeps all items in the cache indefinitely.
     """
+
     def __init__(self, policy: KeepAllCachePolicy):
         super().__init__(policy)
         self.cache: Dict[str, Any] = {}
@@ -48,7 +51,6 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         """
         async with self.lock:
             entry = self.cache.get(key)
-
 
             if entry is None:
                 return None
