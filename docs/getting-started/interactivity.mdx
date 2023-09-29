@@ -440,6 +440,10 @@ Global caching enables the best performance. The further you go down the list, t
 The `trigger` method takes an optional `force` argument specifying whether you want the forced recalculation to also act as a _cache buster_ , replacing the values stored in the cache and essentially ignoring the caching settings specified on the variable. The default of `force` is True.
 :::
 
+In addition to the cache `type`, you can also specify the `policy` to use, which determines how items are retained or evicted from the cache.The default policy is an `LRU` (Least Recently Used)
+cache with a maximum size of 10 items (globally, or per user/session depending on the `CacheType` set). For a detailed explanation of the available cache policies and how to use them,
+refer to [Cache Policies Documentation](../advanced/cache-policies.mdx).
+
 ## `py_component`
 
 The `py_component` function is a decorator and is the primary method of creating a dynamic layout based on the current state of an application's variables.

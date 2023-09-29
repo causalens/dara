@@ -54,6 +54,17 @@ export interface Pagination {
 
 type CacheType = 'session' | 'global' | 'user';
 
+interface CachePolicy {
+    /**
+     * Cache policy name. Frontend does not use this, but it is used by the backend to determine how to cache the variable.
+     */
+    policy: string;
+    /**
+     * Cache type name, i.e. whether to scope the cached results to the current session, user, or globally.
+     */
+    cache_type: CacheType;
+}
+
 export interface SingleVariable<T> {
     __typename: 'Variable';
     default: T;
@@ -71,7 +82,7 @@ export interface UrlVariable<T> {
 
 export interface DerivedVariable {
     __typename: 'DerivedVariable';
-    cache?: null | CacheType;
+    cache?: null | CachePolicy;
     deps: Array<AnyVariable<any>>;
     nested: string[];
     polling_interval?: number;
@@ -81,7 +92,7 @@ export interface DerivedVariable {
 
 export interface DerivedDataVariable {
     __typename: 'DerivedDataVariable';
-    cache: CacheType;
+    cache: CachePolicy;
     deps: Array<AnyVariable<any>>;
     filters: FilterQuery | null;
     polling_interval?: number;
@@ -95,7 +106,7 @@ export type DataFrame = Array<{
 
 export interface DataVariable {
     __typename: 'DataVariable';
-    cache: CacheType;
+    cache: CachePolicy;
     filters: FilterQuery | null;
     uid: string;
 }

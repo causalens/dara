@@ -131,7 +131,7 @@ class TTLCachePolicy(BaseCachePolicy):
     :param ttl: time-to-live in seconds
     """
     policy: str = Field(const=True, default='ttl')
-    ttl: int = 60
+    ttl: int
 
 class Cache:
     """

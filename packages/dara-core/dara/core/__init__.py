@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import Cache, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.css import CSSProperties, get_icon
 from dara.core.definitions import ComponentInstance, ErrorHandlingConfig, template
@@ -52,6 +52,7 @@ __all__ = [
     'DerivedDataVariable',
     'DataVariable',
     'UrlVariable',
+    'Cache',
     'CacheType',
     'Variable',
     'py_component',
