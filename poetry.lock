@@ -701,24 +701,6 @@ files = [
 ]
 
 [[package]]
-name = "demo-app"
-version = "0.1.0"
-description = "Demo App"
-category = "dev"
-optional = false
-python-versions = ">=3.8.0, <3.12.0"
-files = []
-develop = true
-
-[package.dependencies]
-dara-components = "^1.1.8"
-dara-core = "^1.1.8"
-
-[package.source]
-type = "directory"
-url = "packages/demo-app"
-
-[[package]]
 name = "dill"
 version = "0.3.7"
 description = "serialize all of Python"
@@ -3073,4 +3055,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "22aadce3757d305b5e428f93a61792eb636b1d28ce0318b050d57efd07f30a8b"
+content-hash = "828f0aa2af74dcab73277f0c9b29a132518acb8c0a5f95a369ec1b254996cf25"
