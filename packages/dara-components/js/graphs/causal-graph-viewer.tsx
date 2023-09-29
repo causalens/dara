@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { ComponentProps, useMemo } from 'react';
 
 import {

@@ -2,6 +2,16 @@
 title: Changelog
 ---
 
+## 1.1.10
+
+-   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.  
+
+## 1.1.9
+
+-   Fixed an issue where `Table` search bar was hidden by the table itself
+-   Fixed an issue where `Datepicker` in controlled mode would sometimes end up in an infinite loop.
+-   Fixed an issue where `Datepicker` if range was given did not show end year in the select.
+-   Fixed an issue where `Table` column resizing would not affect cell width.
 ## 1.1.8
 
 -   Fixed an issue where `Table` did not return the correct index row when sorted

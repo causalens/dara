@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useCallback } from 'react';
 
 import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';

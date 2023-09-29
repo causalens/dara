@@ -13,6 +13,7 @@ import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from '
 /* eslint-disable react-hooks/rules-of-hooks */
 /** Disabling no-use-before-define because of functions depending on each other */
 /* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 /**
  * Helper function to warn when trying to update DerivedVariable directly

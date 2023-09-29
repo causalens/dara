@@ -2,72 +2,76 @@
 requires = ["poetry"]
 [tool.poetry]
 name = "borg-meta-package"
-version = "1.1.8"
+version = "1.1.10"
 description = "Borg Meta Package"
 authors = ["borg"]
 
 [tool.poetry.dependencies]
-pyarrow = "*"
-cryptography = ">=41.0.3"
-pandas = ">=1.1.0, <3.0.0"
-python-dotenv = "^0.19.2"
-httpx = ">=0.23.0"
-typing-extensions = ">=4.0.0, <4.6.0"
-openpyxl = "*"
-plotly = ">=5.14.0, <5.15.0"
-click = "=8.1.3"
-pyjwt = ">=2.0.1, <3.0.0"
-cookiecutter = "^2.1.1"
-fastapi = ">=0.95.1, <0.96.0"
 packaging = "^23.1"
-python-multipart = "^0.0.5"
-async-asgi-testclient = "^1.4.11"
-prometheus-client = "^0.14.1"
-cai-causal-graph = ">=0.1.0"
-matplotlib = ">=2.0.0"
-python = ">=3.8.0, <3.12.0"
-seaborn = ">=0.11.0"
-toml = "^0.10.2"
-dara-core = "=1.1.8"
-fastapi-vite = "^0.3.1"
-xlrd = "*"
-anyio = ">=4.0.0"
-responses = "^0.18.0"
-exceptiongroup = "^1.1.3"
-colorama = "^0.4.6"
-pydantic = ">=1.8.1, <2.0.0"
-scipy = "*"
-odfpy = "*"
-pyxlsb = "*"
 dill = ">=0.3.0, <0.4.0"
+toml = "^0.10.2"
+httpx = ">=0.23.0"
+scipy = "*"
+responses = "^0.18.0"
+cai-causal-graph = ">=0.1.0"
+fastapi = ">=0.95.1, <0.96.0"
+python-dotenv = "^0.19.2"
+prometheus-client = "^0.14.1"
 bokeh = ">=3.1.0, <3.2.0"
 croniter = "^1.0.15"
-tblib = "^1.7.0"
+python-multipart = "^0.0.5"
+colorama = "^0.4.6"
+async-asgi-testclient = "^1.4.11"
+fastapi-vite = "^0.3.1"
+typing-extensions = ">=4.0.0, <4.6.0"
+pyjwt = ">=2.0.1, <3.0.0"
+seaborn = ">=0.11.0"
+plotly = ">=5.14.0, <5.15.0"
+exceptiongroup = "^1.1.3"
+click = "=8.1.3"
 jinja2 = ">=2.1.1, <3.1.0"
-
-[tool.poetry.dependencies.dara-components]
-version = "=1.1.8"
-optional = true
+xlrd = "*"
+pyarrow = "*"
+pydantic = ">=1.8.1, <2.0.0"
+dara-core = "=1.1.10"
+cookiecutter = "^2.1.1"
+pandas = ">=1.1.0, <3.0.0"
+anyio = ">=4.0.0"
+matplotlib = ">=2.0.0"
+openpyxl = "*"
+pyxlsb = "*"
+odfpy = "*"
+cryptography = ">=41.0.3"
+python = ">=3.8.0, <3.12.0"
+tblib = "^1.7.0"
 
 [tool.poetry.dependencies.uvicorn]
 version = "^0.22.0"
 
+[tool.poetry.dependencies.dara-components]
+version = "=1.1.10"
+optional = true
+
 [tool.poetry.dependencies.create-dara-app]
-version = "=1.1.8"
+version = "=1.1.10"
 optional = true
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0.0"
-types-requests = "^2.28.1"
-pytest-timeout = "^2.1.0"
-blue = "^0.9.0"
-mypy = "^0.991.0"
-pylint-print = "^1.0.1"
-isort = "^5.10.1"
-types-croniter = "^1.0.10"
-requests = ">=2.25.1, <3.0.0"
-bandit = "^1.7.5"
 pylint = ">=2.6.0, <3.0.0"
+pytest-timeout = "^2.1.0"
+bandit = "^1.7.5"
+pytest = "^7.0.0"
+requests = ">=2.25.1, <3.0.0"
+pylint-print = "^1.0.1"
+mypy = "^0.991.0"
+types-croniter = "^1.0.10"
+blue = "^0.9.0"
+types-requests = "^2.28.1"
+isort = "^5.10.1"
+
+[tool.poetry.dev-dependencies.create-dara-app]
+path = "packages/create-dara-app"
+develop = true
 
 [tool.poetry.dev-dependencies.dara-core]
 path = "packages/dara-core"
@@ -75,9 +79,5 @@ develop = true
 
 [tool.poetry.dev-dependencies.dara-components]
 path = "packages/dara-components"
-develop = true
-
-[tool.poetry.dev-dependencies.create-dara-app]
-path = "packages/create-dara-app"
 develop = true
 [tool.borg.scripts]

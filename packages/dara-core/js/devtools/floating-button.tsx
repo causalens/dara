@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useCallback, useEffect, useRef } from 'react';
 
 import styled from '@darajs/styled-components';

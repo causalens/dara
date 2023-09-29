@@ -9,10 +9,14 @@ import cloneDeep from 'lodash/cloneDeep';
  */
 export function resolveNested<T extends Record<string, any>>(obj: T, nested: string[]): any {
     // Nested not provided
-    if (!nested || nested.length === 0) return obj;
+    if (!nested || nested.length === 0) {
+        return obj;
+    }
 
     // Not an object
-    if (!obj || !(typeof obj === 'object' && !Array.isArray(obj))) return obj;
+    if (!obj || !(typeof obj === 'object' && !Array.isArray(obj))) {
+        return obj;
+    }
 
     let returnVal = obj;
 
@@ -37,10 +41,14 @@ export function resolveNested<T extends Record<string, any>>(obj: T, nested: str
  */
 export function setNested<T extends Record<string, any>>(obj: T, nested: string[], newValue: unknown): T {
     // Nested not provided
-    if (!nested || nested.length === 0) return cloneDeep(obj);
+    if (!nested || nested.length === 0) {
+        return cloneDeep(obj);
+    }
 
     // Not an object
-    if (!obj || !(typeof obj === 'object' && !Array.isArray(obj))) return cloneDeep(obj);
+    if (!obj || !(typeof obj === 'object' && !Array.isArray(obj))) {
+        return cloneDeep(obj);
+    }
 
     // Need to clone to prevent reference issues
     const cloned = clone(obj);

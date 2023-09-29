@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useEffect } from 'react';
 
 import { revokeSession } from '@/auth/auth';

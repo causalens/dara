@@ -1,4 +1,6 @@
 /* eslint-disable no-await-in-loop */
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useCallback, useContext } from 'react';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
