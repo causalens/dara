@@ -165,7 +165,7 @@ importers:
       msw: 1.0.1
       object-hash: ^3.0.0
       polished: ^4.1.1
-      postcss: 8.4.17
+      postcss: ^8.4.30
       query-string: ^7.1.1
       react: ^18.2.0
       react-collapse: ^5.1.1
@@ -256,7 +256,7 @@ importers:
       jest-css-modules: 2.1.0
       jest-environment-jsdom: 29.6.2
       msw: 1.0.1_typescript@5.1.6
-      postcss: 8.4.17
+      postcss: 8.4.30
       react-test-renderer: 17.0.2_react@18.2.0
       rimraf: 3.0.2
       start-server-and-test: 1.15.4
@@ -2103,9 +2103,9 @@ packages:
   /@darajs/stylelint-config/1.2.0:
     resolution: {integrity: sha512-ZSd6KbHk0jTCFg0zAgjGNKn1ITGh9PYpacDjourKylEJMwF4PpMGWGU9wLMLucXK2BL8xCA01K7UhECW4qrUXQ==}
     dependencies:
-      '@stylelint/postcss-css-in-js': 0.37.3_781ea59b5cdbb7ecaceadcb45b015368
-      postcss: 8.4.17
-      postcss-syntax: 0.36.2_postcss@8.4.17
+      '@stylelint/postcss-css-in-js': 0.37.3_827823c15039875d15f293a7580bac68
+      postcss: 8.4.30
+      postcss-syntax: 0.36.2_postcss@8.4.30
       prettier: 2.8.8
       stylelint: 14.0.1
       stylelint-config-clean-order: 5.2.0_stylelint@14.0.1
@@ -3880,7 +3880,7 @@ packages:
       '@sinonjs/commons': 3.0.0
     dev: true
 
-  /@stylelint/postcss-css-in-js/0.37.3_781ea59b5cdbb7ecaceadcb45b015368:
+  /@stylelint/postcss-css-in-js/0.37.3_827823c15039875d15f293a7580bac68:
     resolution: {integrity: sha512-scLk3cSH1H9KggSniseb2KNAU5D9FWc3H7BxCSAIdtU9OWIyw0zkEZ9qEKHryRM+SExYXRKNb7tOOVNAsQ3iwg==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
@@ -3888,8 +3888,8 @@ packages:
       postcss-syntax: '>=0.36.2'
     dependencies:
       '@babel/core': 7.23.0
-      postcss: 8.4.17
-      postcss-syntax: 0.36.2_postcss@8.4.17
+      postcss: 8.4.30
+      postcss-syntax: 0.36.2_postcss@8.4.30
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -12441,7 +12441,7 @@ packages:
       postcss: 8.4.30
     dev: true
 
-  /postcss-syntax/0.36.2_postcss@8.4.17:
+  /postcss-syntax/0.36.2_postcss@8.4.30:
     resolution: {integrity: sha512-nBRg/i7E3SOHWxF3PpF5WnJM/jQ1YpY9000OaVXlAQj6Zp/kIqJxEDWIZ67tAd7NLuk7zqN4yqe9nc0oNAOs1w==}
     peerDependencies:
       postcss: '>=5.0.0'
@@ -12462,7 +12462,7 @@ packages:
       postcss-scss:
         optional: true
     dependencies:
-      postcss: 8.4.17
+      postcss: 8.4.30
     dev: true
 
   /postcss-value-parser/4.2.0:
@@ -12474,15 +12474,6 @@ packages:
     dependencies:
       picocolors: 0.2.1
       source-map: 0.6.1
-    dev: true
-
-  /postcss/8.4.17:
-    resolution: {integrity: sha512-UNxNOLQydcOFi41yHNMcKRZ39NeXlr8AxGuZJsdub8vIb12fHzcq37DTU/QtbI6WLxNg2gF9Z+8qtRwTj1UI1Q==}
-    engines: {node: ^10 || ^12 || >=14}
-    dependencies:
-      nanoid: 3.3.6
-      picocolors: 1.0.0
-      source-map-js: 1.0.2
     dev: true
 
   /postcss/8.4.30:
