@@ -18,7 +18,7 @@ importers:
   packages/dara-components:
     specifiers:
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.1.9
+      '@darajs/core': 1.1.10
       '@darajs/eslint-config': ~1.2.0
       '@darajs/prettier-config': ~1.2.0
       '@darajs/styled-components': ~1.2.0
@@ -2882,6 +2882,7 @@ packages:
       validate-npm-package-name: 5.0.0
       yargs-parser: 20.2.4
     transitivePeerDependencies:
+      - bluebird
       - supports-color
     dev: false
 
@@ -3032,6 +3033,8 @@ packages:
       promise-retry: 2.0.1
       semver: 7.5.4
       which: 3.0.1
+    transitivePeerDependencies:
+      - bluebird
     dev: false
 
   /@npmcli/installed-package-contents/2.0.2:
@@ -10379,6 +10382,7 @@ packages:
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
+      - bluebird
       - debug
       - encoding
       - supports-color
@@ -12070,6 +12074,7 @@ packages:
       ssri: 10.0.4
       tar: 6.1.11
     transitivePeerDependencies:
+      - bluebird
       - supports-color
     dev: false
 
@@ -12572,6 +12577,11 @@ packages:
 
   /promise-inflight/1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
+    peerDependencies:
+      bluebird: '*'
+    peerDependenciesMeta:
+      bluebird:
+        optional: true
     dev: false
 
   /promise-retry/2.0.1:
