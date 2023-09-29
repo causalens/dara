@@ -58,14 +58,14 @@ os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
 
 @pytest.fixture(autouse=True)
-def reset_data_variable_cache():
+async def reset_data_variable_cache():
     """
     Reset the data variable cache between tests
     """
     from dara.core.internal.registries import data_variable_registry, utils_registry
 
     data_variable_registry.replace({})
-    utils_registry.get('Store').empty_stores()
+    await utils_registry.get('Store').clear()
     yield
 
 
@@ -103,6 +103,7 @@ async def test_fetching_global_data_variable():
 
     async with AsyncClient(app) as client:
         response = await client.post('/api/core/data-variable/uid', json={'filters': None}, headers=AUTH_HEADERS)
+        print(response.text)
 
         assert response.status_code == 200
         assert response.json() == FINAL_TEST_DATA.to_dict(orient='records')

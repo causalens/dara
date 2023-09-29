@@ -38,3 +38,10 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         :param pin: If true, the entry will not be evicted until read.
         """
         ...
+
+    @abc.abstractmethod
+    async def clear(self):
+        """
+        Empty the store.
+        """
+        ...

@@ -24,7 +24,7 @@ from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from dara.core.base_definitions import Cache, CacheArgType
+from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
     DataVariableRegistryEntry,
@@ -63,7 +63,7 @@ class DataVariable(AnyDataVariable):
 
     uid: str
     filters: Optional[FilterQuery] = None
-    cache: Optional[Cache.Policy] = None
+    cache: Optional[BaseCachePolicy] = None
 
     class Config:
         extra = 'forbid'
@@ -81,8 +81,7 @@ class DataVariable(AnyDataVariable):
         :param filters: a dictionary of filters to apply to the data
         :param cache: how to cache the result; 'user' per user, 'session' per session, 'global' for all users
         """
-        if isinstance(cache, Cache.Type):
-            cache = Cache.Policy.from_type(cache)
+        cache = Cache.Policy.from_arg(cache)
 
         if data is not None and cache.cache_type is not Cache.Type.GLOBAL:
             raise ValueError('Data cannot be cached per session or per user if provided upfront')
@@ -129,7 +128,7 @@ class DataVariable(AnyDataVariable):
         """
         await store.set(
             var_entry,
-            key=cls._get_cache_key(str(var_entry.uid)), value=DataStoreEntry(data=append_index(data))
+            key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=append_index(data))
         )
 
     @classmethod
@@ -141,13 +140,20 @@ class DataVariable(AnyDataVariable):
         :param data: the data to update
         :param store: store instance
         """
-        asyncio.create_task(cls._update(var_entry, store, data))
-
-        # Broadcast the update to all clients
         from dara.core.internal.registries import utils_registry
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
         task_group: TaskGroup = utils_registry.get('TaskGroup')
+
+        # Update store
+        task_group.start_soon(
+            cls._update,
+            var_entry,
+            store,
+            data
+        )
+
+        # Broadcast the update to all clients
         task_group.start_soon(
             ws_mgr.broadcast,
             {
@@ -182,7 +188,7 @@ class DataVariable(AnyDataVariable):
         )
 
         if entry is None:
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
             return None
 
         data = None
@@ -191,9 +197,9 @@ class DataVariable(AnyDataVariable):
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
             data = filtered_data
             # Store count for given filters
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True)
         else:
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
 
         # TODO: once path is supported, stream&filter from disk
         if entry.path:
@@ -216,7 +222,7 @@ class DataVariable(AnyDataVariable):
         :param filters: filters to get count for
         """
         cache_key = cls._get_count_cache_key(var_entry.uid, filters)
-        entry = await store.get(var_entry, key=cache_key)
+        entry = await store.get(var_entry, key=cache_key, unpin=True)
 
         if entry is None:
             raise ValueError('Requested count for filter setup which has not been performed yet')

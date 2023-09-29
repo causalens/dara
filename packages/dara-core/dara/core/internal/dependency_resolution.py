@@ -145,5 +145,5 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Ca
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
     var = await registry_mgr.get(data_variable_registry, str(data_variable_entry.get('uid')))
-    result = DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
+    result = await DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
     return remove_index(result)

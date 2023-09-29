@@ -108,3 +108,12 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
                 heapq.heapify(self.expiration_heap)
             elif key in self.pinned_cache:
                 self.pinned_cache.pop(key, None)
+
+    async def clear(self):
+        """
+        Empty the store.
+        """
+        async with self.lock:
+            self.pinned_cache = {}
+            self.unpinned_cache = {}
+            self.expiration_heap = []

@@ -1,5 +1,4 @@
 from typing import Any, Dict, Generic, Optional, cast
-import anyio
 
 from dara.core.base_definitions import CachedRegistryEntry, KeepAllCachePolicy, LruCachePolicy, MostRecentCachePolicy, PendingTask, PendingValue, TTLCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl, PolicyT
@@ -89,6 +88,14 @@ class CacheScopeStore(Generic[PolicyT]):
         await cache.set(key, value, pin=pin)
 
         return value
+
+    async def clear(self):
+        """
+        Empty the store.
+        """
+        for cache in self.caches.values():
+            await cache.clear()
+        self.caches = {}
 
 
 
@@ -202,3 +209,11 @@ class CacheStore:
         :param key: The key of the entry to set.
         """
         return await self.set(registry_entry, key, PendingValue())
+
+    async def clear(self):
+        """
+        Empty all stores.
+        """
+        for registry_store in self.registry_stores.values():
+            await registry_store.clear()
+        self.registry_stores = {}

@@ -174,34 +174,3 @@ async def test_wait_and_get():
     assert await var1 == 'value'
     assert await var2 == 'value'
 
-
-async def test_remove_starting_with():
-    """
-    Test the purge function
-    """
-    store = Store()
-    # Add to global
-    store.set('uid1:key1', 'value1')
-    store.set('uid2:key2', 'value2')
-    # Add to session
-    SESSION_ID.set('session_1')
-    store.set('uid1:session_key1', 'value1', cache_type=CacheType.SESSION)
-    store.set('uid2:session_key2', 'value2', cache_type=CacheType.SESSION)
-
-    # Before removal
-    assert store.list() == ['uid1:key1', 'uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1', 'uid2:session_key2']
-
-    # Remove uid1 from global
-    size_before = store._size
-    store.remove_starting_with('uid1')
-    assert store._size < size_before
-
-    assert store.list() == ['uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1', 'uid2:session_key2']
-
-    # Remove uid2 from session
-    store.remove_starting_with('uid2', cache_type=CacheType.SESSION)
-
-    assert store.list() == ['uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1']

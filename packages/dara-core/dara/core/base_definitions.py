@@ -76,12 +76,24 @@ class CacheType(str, Enum):
     SESSION = 'session'
     USER = 'user'
 
-class BaseCachePolicy(BaseModel):
+    @classmethod
+    def get_member(cls, value: str):
+        """
+        Get a member of the enum by value
+        """
+        try:
+            return cls(value)
+        except ValueError:
+            return None
+
+
+class BaseCachePolicy(BaseModel, abc.ABC):
     """
     Base class for cache policies.
     """
-
+    policy: str
     cache_type: CacheType = CacheType.GLOBAL
+
 
 class LruCachePolicy(BaseCachePolicy):
     """
@@ -91,12 +103,14 @@ class LruCachePolicy(BaseCachePolicy):
 
     :param max_size: maximum number of items to keep in the cache
     """
+    policy: str = Field(const=True, default='lru')
     max_size: int = 10
 
 class MostRecentCachePolicy(LruCachePolicy):
     """
     Most recent cache policy. Only keeps the most recent item in the cache.
     """
+    policy: str = Field(const=True, default='most-recent')
     max_size: int = Field(const=True, default=1)
 
 class KeepAllCachePolicy(BaseCachePolicy):
@@ -105,6 +119,7 @@ class KeepAllCachePolicy(BaseCachePolicy):
 
     Should be used with caution as it can lead to memory leaks.
     """
+    policy: str = Field(const=True, default='keep-all')
     pass
 
 class TTLCachePolicy(BaseCachePolicy):
@@ -114,7 +129,7 @@ class TTLCachePolicy(BaseCachePolicy):
 
     :param ttl: time-to-live in seconds
     """
-
+    policy: str = Field(const=True, default='ttl')
     ttl: int = 60
 
 class Cache:
@@ -133,13 +148,24 @@ class Cache:
         TTL = TTLCachePolicy
 
         @classmethod
-        def from_type(cls, type: CacheType):
+        def from_arg(cls, arg: CacheArgType):
             """
-            Construct a cache policy from a cache type. Defaults to LRU.
+            Construct a cache policy from a cache arg. Defaults to LRU if a type is provided.
             """
-            return LruCachePolicy(cache_type=type)
+            if isinstance(arg, BaseCachePolicy):
+                return arg
 
-CacheArgType = Union[CacheType, BaseCachePolicy]
+            if isinstance(arg, Cache.Type):
+                return LruCachePolicy(cache_type=arg)
+
+            if isinstance(arg, str):
+                # Check that the string is one of allowed cache members
+                if typ := Cache.Type.get_member(arg):
+                    return LruCachePolicy(cache_type=typ)
+
+            raise ValueError(f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members')
+
+CacheArgType = Union[CacheType, BaseCachePolicy, str]
 
 class CachedRegistryEntry(BaseModel):
     """
@@ -154,6 +180,9 @@ class CachedRegistryEntry(BaseModel):
         Returns a unique store key for this entry.
         """
         return f'{self.__class__.__name__}_{self.uid}'
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(cache={self.cache}, uid={self.uid})'
 
 class BaseTaskMessage(BaseModel):
     task_id: str

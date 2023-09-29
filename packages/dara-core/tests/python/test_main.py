@@ -575,19 +575,7 @@ async def test_fetching_latest_derived_variable_value_run_as_task():
 
             response = await _get_latest_derived_variable(client, derived)
             assert get_value.status_code == 200
-            assert response.json() == 'Pending...'
-
-            task_id = get_value.json().get('task_id')
-            # mock_func.assert_called_once()
-
-            # Listen on the websocket channel for the notification of task completion
-            data = await websocket.receive_json()
-            assert data == {'message': {'status': 'COMPLETE', 'task_id': str(task_id)}, 'type': 'message'}
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '15'
+            assert response.json() == '15'
 
             # Hit the endpoint again with the same arguments and make sure the result is passed to latest value registry
             get_value = await _get_derived_variable(

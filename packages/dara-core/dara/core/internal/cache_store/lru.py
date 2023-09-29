@@ -144,3 +144,12 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                     else:
                         # all nodes are pinned, can't evict
                         break
+
+    async def clear(self):
+        """
+        Empty the store.
+        """
+        async with self.lock:
+            self.cache = {}
+            self.head = None
+            self.tail = None

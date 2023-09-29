@@ -68,3 +68,10 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         """
         async with self.lock:
             self.cache[key] = Entry(value, pin)
+
+    async def clear(self):
+        """
+        Empty the store.
+        """
+        async with self.lock:
+            self.cache = {}

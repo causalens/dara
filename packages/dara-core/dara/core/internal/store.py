@@ -21,63 +21,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pydantic import BaseModel
 import anyio
 
-from dara.core.base_definitions import CacheType, CachedRegistryEntry, PendingTask
+from dara.core.base_definitions import CacheType, CachedRegistryEntry, PendingTask, PendingValue
 from dara.core.internal.registry import RegistryType
 from dara.core.internal.utils import get_cache_scope
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
-
-
-class PendingValue:
-    """
-    An internal class that's used to represent a pending value. Holds a future object that can be awaited by
-    multiple consumers.
-    """
-
-    def __init__(self):
-        self.event = anyio.Event()
-        self._value = None
-        self._error = None
-
-    async def wait(self):
-        """
-        Wait for the underlying event to be set
-        """
-        # Waiting in chunks as otherwise Jupyter blocks the event loop
-        while not self.event.is_set():
-            await anyio.sleep(0.01)
-        if self._error:
-            raise self._error
-        return self._value
-
-    def resolve(self, value: Any):
-        """
-        Resolve the pending state and send values to the waiting code
-
-        :param value: the value to resolve as the result
-        """
-        self._value = value
-        self.event.set()
-
-    def error(self, exc: Exception):
-        """
-        Resolve the pending state with an error and send it to the waiting code
-
-        :param exc: exception to resolve as the result
-        """
-        self._error = exc
-        self.event.set()
-
-
-# class StoreEntry(BaseModel):
-#     value: Union[Any, PendingValue]
-#     """
-#     The value stored in the entry
-#     """
-
-#     created_at: datetime
-#     """
-#     When the entry was created
-#     """
 
 
 class Store:
@@ -138,8 +85,7 @@ class Store:
 
         if isinstance(value, PendingValue):
             return await value.wait()
-        if isinstance(value, PendingTask):
-            return await value.run()
+
         return value
 
     def set(
@@ -172,10 +118,6 @@ class Store:
             else:
                 self._store[cache_key][key].resolve(value)
 
-        # Update the size counter
-        self._update_size(value, self._store[cache_key].get(key))
-        self._update_metrics()
-
         self._store[cache_key][key] = value
 
     def set_pending_value(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL):
@@ -194,74 +136,16 @@ class Store:
             self._size += total_size({})
 
         pending_val = PendingValue()
-
-        # Update the size counter
-        self._update_size(pending_val, self._store[cache_key].get(key))
-        self._update_metrics()
-
         self._store[cache_key][key] = pending_val
 
-    def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: Optional[CacheType] = CacheType.GLOBAL):
-        """
-        Store a pending task state for a given key in the store. This will trigger the async behavior of the get call if subsequent
-        requests ask for the same key. The PendingTask will be resolved once the underlying task is completed.
-
-        :param key: the key to set as pending
-        :param pending_task: the PendingTask to store
-        :param cache_type: whether to pull the value from the specified cache specific store or the global one, defaults to
-                            the global one
-        """
-        cache_key = get_cache_scope(cache_type)
-        if self._store.get(cache_key) is None:
-            self._store[cache_key] = {}
-
-        # Update the size counter
-        self._update_size(pending_task, self._store[cache_key].get(key))
-        self._update_metrics()
-
-        self._store[cache_key][key] = pending_task
-
-    def remove_starting_with(self, start: str, cache_type: Optional[CacheType] = CacheType.GLOBAL):
-        """
-        Remove any entries stored under keys starting with given string
-
-        :param start: string to use to remove entries
-        :param cache_type: whether to pull the value from the specified cache specific store or the global one, defaults to
-                            the global one
-        """
-        cache_key = get_cache_scope(cache_type)
-        cache_entries = self._store.get(cache_key)
-        if cache_entries is not None:
-            for k in list(cache_entries.keys()):
-                if k.startswith(start):
-                    size_to_remove = total_size(cache_entries.get(k))
-                    cache_entries.pop(k)
-                    self._size -= size_to_remove
-
-        self._update_metrics()
-
-    def empty_stores(self, include_pending: bool = True):
+    def empty_stores(self):
         """
         Empty all of the internal stores
 
         :param include_pending: whether to also remove pending values and tasks from store
         """
         for cache_type, cache_type_store in self._store.items():
-            # If we're including pending, just empty the whole store
-            if include_pending:
-                size_to_remove = total_size(cache_type_store)
-                self._store[cache_type] = {}
-                self._size = self._size - size_to_remove + total_size({})
-            else:
-                # Otherwise go through and remove any non-pending values
-                keys = list(cache_type_store.keys())
-                for key in keys:
-                    if not isinstance(cache_type_store[key], (PendingValue, PendingTask)):
-                        size_to_remove = total_size(cache_type_store.get(key))
-                        cache_type_store.pop(key)
-                        self._size -= size_to_remove
-
-        self._update_metrics()
+            self._store[cache_type] = {}
 
     def list(self, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> List[str]:
         """

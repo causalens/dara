@@ -98,10 +98,10 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         - `deps = [var1, var2]` - `func` is ran whenever one of these vars changes
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
-        if isinstance(cache, Cache.Type):
-            cache = Cache.Policy.from_type(cache)
+        cache = Cache.Policy.from_arg(cache)
 
         # Initialize the DV underneath, which puts an entry in the derived variable registry
+        print('cache:', cache)
         super().__init__(
             func=func,
             cache=cache,
@@ -193,7 +193,8 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
     @classmethod
     async def get_data(
         cls,
-        var_entry: DataVariableRegistryEntry,
+        dv_entry: DerivedVariableRegistryEntry,
+        data_entry: DataVariableRegistryEntry,
         cache_key: str,
         store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
@@ -208,45 +209,50 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         :param filters: the filters to apply to the data
         :param pagination: the pagination to apply to the data
         """
-        _uid_short = f'{var_entry.uid[:3]}..{var_entry.uid[-3:]}'
+        _uid_short = f'{data_entry.uid[:3]}..{data_entry.uid[-3:]}'
         data_cache_key = f'{cache_key}_{hash_object(filters or {})}_{hash_object(pagination or {})}'
         count_cache_key = f'{cache_key}_{hash_object(filters or {})}'
 
-        data_store_entry = await store.get(var_entry, key=data_cache_key)
+        # Check for cached result of the entire data variable
+        data_store_entry = await store.get(data_entry, key=data_cache_key)
 
         # if there's a pending task for this exact request, subscribe to the pending task and return it
         if isinstance(data_store_entry, PendingTask):
             data_store_entry.add_subscriber()
             return data_store_entry
 
+        # Found cached result
+        if isinstance(data_store_entry, DataFrame):
+            return data_store_entry
+
         # First retrieve the cached data for underlying DV
-        data = await store.get(var_entry, key=cache_key)
+        data = await store.get(dv_entry, key=cache_key)
 
         eng_logger.info(
-            f'Derived Data Variable {_uid_short} retrieved underlying DV value', {'uid': var_entry.uid, 'value': data}
+            f'Derived Data Variable {_uid_short} retrieved underlying DV value', {'uid': dv_entry.uid, 'value': data}
         )
 
         # if the DV returned a task (Task/PendingTask), return a MetaTask which will do the filtering on the task result
         if isinstance(data, BaseTask):
-            task_id = f'{var_entry.uid}_Filter_MetaTask_{str(uuid4())}'
+            task_id = f'{dv_entry.uid}_Filter_MetaTask_{str(uuid4())}'
 
             eng_logger.info(
                 f'Derived Data Variable {_uid_short} creating filtering metatask',
-                {'uid': var_entry.uid, 'task_id': task_id, 'cache_key': data_cache_key},
+                {'uid': dv_entry.uid, 'task_id': task_id, 'cache_key': data_cache_key},
             )
 
             return MetaTask(
                 cls._filter_data,
-                [data, count_cache_key, var_entry.cache, store, filters, pagination],
+                [data, count_cache_key, data_entry, store, filters, pagination],
                 notify_channels=data.notify_channels,
                 process_as_task=False,
                 cache_key=data_cache_key,
-                reg_entry=var_entry, # task results are set as the variable result
+                reg_entry=data_entry, # task results are set as the variable result
                 task_id=task_id,
             )
 
         # Run the filtering
-        data = await cls._filter_data(data, count_cache_key, var_entry, store, filters, pagination)
+        data = await cls._filter_data(data, count_cache_key, data_entry, store, filters, pagination)
 
         return data
 
@@ -297,7 +303,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         if isinstance(dv_result['value'], (Task, MetaTask)):
             await task_mgr.run_task(dv_result['value'], None)
 
-        return cls.get_data(data_entry, dv_result['cache_key'], store, filters)
+        return await cls.get_data(dv_entry, data_entry, dv_result['cache_key'], store, filters)
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)

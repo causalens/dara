@@ -1,7 +1,7 @@
 import os
 from typing import List, Mapping, Union
 
-from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import CacheType, BaseCachePolicy, Cache
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import (
     AnyVariable,
@@ -22,7 +22,12 @@ JsonLike = Union[Mapping, List]
 def assert_dict_equal(a: JsonLike, b: JsonLike):
     for key, val in _loop(a):
         if key == 'cache':
-            assert val in CacheType._value2member_map_
+            if isinstance(val, BaseCachePolicy):
+                assert val == b[key]
+            elif isinstance(val, str):
+                assert Cache.Policy.from_arg(val) == b[key]
+            elif isinstance(val, CacheType):
+                assert val in CacheType._value2member_map_
         elif isinstance(val, (dict, list)):
             assert_dict_equal(val, b[key])
         else:

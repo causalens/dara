@@ -263,11 +263,11 @@ def create_router(config: Configuration):
             store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable = await registry_mgr.get(data_variable_registry, uid)
+            data_variable_entry = await registry_mgr.get(data_variable_registry, uid)
 
             data = None
 
-            if variable.type == 'derived':
+            if data_variable_entry.type == 'derived':
                 if body.cache_key is None:
                     raise HTTPException(status_code=400, detail='Cache key is required for derived data variables')
 
@@ -276,8 +276,11 @@ def create_router(config: Configuration):
                         status_code=400, detail='Websocket channel is required for derived data variables'
                     )
 
-                data = DerivedDataVariable.get_data(
-                    variable,
+                derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
+
+                data = await DerivedDataVariable.get_data(
+                    derived_variable_entry,
+                    data_variable_entry,
                     body.cache_key,
                     store,
                     body.filters,
@@ -286,13 +289,13 @@ def create_router(config: Configuration):
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
-            elif variable.type == 'plain':
-                data = DataVariable.get_value(
-                    variable, store, body.filters, Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
+            elif data_variable_entry.type == 'plain':
+                data = await DataVariable.get_value(
+                    data_variable_entry, store, body.filters, Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
                 )
 
             dev_logger.debug(
-                f'DataVariable {variable.uid[:3]}..{variable.uid[-3:]}',
+                f'DataVariable {data_variable_entry.uid[:3]}..{data_variable_entry.uid[-3:]}',
                 'return value',
                 {'value': data.describe() if data is not None else None, 'uid': uid},  # type: ignore
             )
@@ -318,14 +321,14 @@ def create_router(config: Configuration):
             variable = await registry_mgr.get(data_variable_registry, uid)
 
             if variable.type == 'plain':
-                return DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
+                return await DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
                     status_code=400, detail="Cache key is required when requesting DerivedDataVariable's count"
                 )
 
-            return DerivedDataVariable.get_total_count(variable, store, body.cache_key, body.filters)
+            return await DerivedDataVariable.get_total_count(variable, store, body.cache_key, body.filters)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -429,7 +432,7 @@ def create_router(config: Configuration):
     async def get_task_result(task_id: str):   # pylint: disable=unused-variable
         try:
             task_mgr: TaskManager = utils_registry.get('TaskManager')
-            res = task_mgr.get_result(task_id)
+            res = await task_mgr.get_result(task_id)
 
             dev_logger.debug(
                 f'Retrieving result for Task {task_id}',

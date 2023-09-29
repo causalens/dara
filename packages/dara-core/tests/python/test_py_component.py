@@ -2,6 +2,7 @@ import os
 from unittest.mock import Mock, patch
 
 import anyio
+from dara.core.base_definitions import Cache
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pydantic.main import BaseModel
@@ -568,7 +569,7 @@ async def test_derived_variables_with_polling():
         # Retrieve the component from the response and check polling_interval and cache
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval') == 2
-        assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == 'global'
+        assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == Cache.Policy.from_arg('global')
 
 
 async def test_chained_derived_variables():
