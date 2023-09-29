@@ -5,9 +5,10 @@ import anyio
 import pytest
 from anyio import create_task_group
 
+from dara.core.base_definitions import Cache
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.store import Store
-from dara.core.internal.tasks import Task, TaskManager
+from dara.core.internal.cache_store import CacheStore
+from dara.core.internal.tasks import Task, TaskManager, TaskResultEntry, CachedRegistryEntry
 from dara.core.internal.websocket import WebsocketManager
 
 from tests.python.tasks import calc_task, track_task
@@ -18,6 +19,8 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture(autouse=True)
 async def setup_pool():
     from dara.core.internal.registries import utils_registry
+
+    await utils_registry.get('Store').clear()
 
     async with create_task_group() as tg:
         async with TaskPool(
@@ -37,10 +40,11 @@ async def test_async_creating_task_with_function():
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
 async def test_task_manager_run_task(_uid):
     """Test that we can run a task via the TaskManager and notify the websocket manager of the result"""
-    task = Task(calc_task, [1, 2], cache_key='uid')
+    reg_entry = CachedRegistryEntry(uid='test_uid', cache=Cache.Policy.KeepAll())
+    task = Task(calc_task, [1, 2], cache_key='uid', reg_entry=reg_entry)
 
     async with create_task_group() as tg:
-        store = Store()
+        store = CacheStore()
         ws_mgr = WebsocketManager()
         task_manager = TaskManager(tg, ws_mgr, store)
 
@@ -58,7 +62,7 @@ async def test_task_manager_run_task(_uid):
         assert handler.receive_stream.statistics().current_buffer_used == 0
 
         # Stored value is the pending task
-        assert store.get('uid') == pending_task
+        assert await store.get(reg_entry, key='uid') == pending_task
 
         # Wait for the task to complete
         result = await pending_task.run()
@@ -67,7 +71,10 @@ async def test_task_manager_run_task(_uid):
         assert pending_task.event.is_set() == True
 
         # Check the result is stored
-        assert task_manager.get_result('uid') == '3'
+        assert await task_manager.get_result('uid') == '3'
+
+        # Check the cache entry is also updated
+        assert await store.get(reg_entry, key='uid') == '3'
 
         # Check ws message is received
         ws_msg = await handler.receive_stream.receive()
@@ -83,7 +90,7 @@ async def test_task_manager_run_task_track_progress(_uid):
     task = Task(track_task, [], cache_key='uid')
 
     async with create_task_group() as tg:
-        store = Store()
+        store = CacheStore()
         ws_mgr = WebsocketManager()
         task_manager = TaskManager(tg, ws_mgr, store)
 
@@ -118,7 +125,7 @@ async def test_task_manager_run_task_track_progress(_uid):
         assert {'result': 'result', 'status': 'COMPLETE', 'task_id': 'uid'} in messages
 
         # Check fetching the result from the store
-        assert task_manager.get_result('uid') == 'result'
+        assert await task_manager.get_result('uid') == 'result'
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
@@ -127,7 +134,7 @@ async def test_task_manager_cancel_task(_uid):
     task = Task(calc_task, [1, 2], cache_key='uid')
 
     async with create_task_group() as tg:
-        store = Store()
+        store = CacheStore()
         ws_mgr = WebsocketManager()
         task_manager = TaskManager(tg, ws_mgr, store)
 
@@ -155,10 +162,12 @@ async def test_task_manager_cancel_task(_uid):
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
 async def test_task_manager_cancel_task_with_subs(_uid):
     """Test that a task with multiple subscribers does not get cancelled, but that the subscriber count gets reduced"""
-    task = Task(calc_task, [1, 2], cache_key='cache_key')
+    # Task will write back to the store under the cache key
+    reg_entry = CachedRegistryEntry(uid='test_uid', cache=Cache.Policy.KeepAll())
+    task = Task(calc_task, [1, 2], cache_key='cache_key', reg_entry=reg_entry)
 
     async with create_task_group() as tg:
-        store = Store()
+        store = CacheStore()
         ws_mgr = WebsocketManager()
         task_manager = TaskManager(tg, ws_mgr, store)
 
@@ -169,7 +178,7 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         # Create a PendingTask with multiple subscribers in the store
         pending_task = await task_manager.run_task(task, return_channel)
         pending_task.add_subscriber()
-        assert store.get('cache_key').subscribers == 2
+        assert (await store.get(reg_entry, key='cache_key')).subscribers == 2
 
         # Yield to let the task start
         await anyio.sleep(0.1)
@@ -179,7 +188,7 @@ async def test_task_manager_cancel_task_with_subs(_uid):
 
         # Check that the WS wasn't called, but that a subscriber was subtracted
         assert handler.receive_stream.statistics().current_buffer_used == 0
-        assert store.get('cache_key').subscribers == 1
+        assert (await store.get(reg_entry, 'cache_key')).subscribers == 1
 
         # Cancel the task
         await task_manager.cancel_task(task.task_id)
@@ -192,4 +201,4 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         assert (await handler.receive_stream.receive()).message.dict() == {'status': 'CANCELED', 'task_id': 'uid'}
 
         # Check that now the pending task should be removed
-        assert store.get('cache_key') is None
+        assert await store.get(reg_entry, 'cache_key') is None

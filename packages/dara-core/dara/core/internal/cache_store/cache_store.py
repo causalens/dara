@@ -100,6 +100,10 @@ class CacheScopeStore(Generic[PolicyT]):
 
 
 class CacheStore:
+    """
+    Key-value store class which stores a separate CacheScopeStore per registry entry.
+    """
+
     def __init__(self):
         self.registry_stores: Dict[str, CacheScopeStore] = {}
         # The size is not totally accurate as we only add/subtract values stored, without accounting for keys

@@ -15,16 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
-import anyio
-
-from dara.core.base_definitions import CacheType, CachedRegistryEntry, PendingTask, PendingValue
-from dara.core.internal.registry import RegistryType
+from dara.core.base_definitions import CacheType, PendingTask, PendingValue
 from dara.core.internal.utils import get_cache_scope
-from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
 
 class Store:
@@ -40,25 +34,10 @@ class Store:
     class Config:
         use_enum_values = True
 
-
     def __init__(self):
         # This dict is the main store of values, the first level of keys is the cache type and the second level are the
-        # cache keys, mapping to store entries. The global key is used for any non-session/user dependant keys that are added.
+        # value keys. The root key is used for any non-session/user dependant keys that are added.
         self._store: Dict[str, Dict[str, Any]] = {'global': {}}
-
-        # The size is not totally accurate as we only add/subtract values stored, without accounting for keys
-        # or extra memory due to hash collisions etc; its a 'good enough' approximation though
-        self._size = total_size(self._store)
-
-    def _update_size(self, value: Any, previous_value: Any):
-        previous_value_size = total_size(previous_value) if previous_value is not None else 0
-        self._size = self._size - previous_value_size + total_size(value)
-
-    def _update_metrics(self):
-        """
-        Notify metrics tracker about current size
-        """
-        CACHE_METRICS_TRACKER.update_store(self._size)
 
     def get(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> Any:
         """
@@ -85,7 +64,8 @@ class Store:
 
         if isinstance(value, PendingValue):
             return await value.wait()
-
+        if isinstance(value, PendingTask):
+            return await value.run()
         return value
 
     def set(
@@ -106,10 +86,8 @@ class Store:
         :param error: optional error; if provided, pending values will be updated with the error
         """
         cache_key = get_cache_scope(cache_type)
-
         if self._store.get(cache_key) is None:
             self._store[cache_key] = {}
-            self._size += total_size({})
 
         # If there is a PendingValue set for this key then trigger its resolution
         if isinstance(self._store[cache_key].get(key), PendingValue):
@@ -133,19 +111,59 @@ class Store:
         cache_key = get_cache_scope(cache_type)
         if self._store.get(cache_key) is None:
             self._store[cache_key] = {}
-            self._size += total_size({})
 
         pending_val = PendingValue()
+
         self._store[cache_key][key] = pending_val
 
-    def empty_stores(self):
+    def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: Optional[CacheType] = CacheType.GLOBAL):
+        """
+        Store a pending task state for a given key in the store. This will trigger the async behavior of the get call if subsequent
+        requests ask for the same key. The PendingTask will be resolved once the underlying task is completed.
+
+        :param key: the key to set as pending
+        :param pending_task: the PendingTask to store
+        :param cache_type: whether to pull the value from the specified cache specific store or the global one, defaults to
+                            the global one
+        """
+        cache_key = get_cache_scope(cache_type)
+        if self._store.get(cache_key) is None:
+            self._store[cache_key] = {}
+
+        self._store[cache_key][key] = pending_task
+
+    def remove_starting_with(self, start: str, cache_type: Optional[CacheType] = CacheType.GLOBAL):
+        """
+        Remove any entries stored under keys starting with given string
+
+        :param start: string to use to remove entries
+        :param cache_type: whether to pull the value from the specified cache specific store or the global one, defaults to
+                            the global one
+        """
+        cache_key = get_cache_scope(cache_type)
+        cache_entries = self._store.get(cache_key)
+        if cache_entries is not None:
+            for k in list(cache_entries.keys()):
+                if k.startswith(start):
+                    cache_entries.pop(k)
+
+
+    def empty_stores(self, include_pending: bool = True):
         """
         Empty all of the internal stores
 
         :param include_pending: whether to also remove pending values and tasks from store
         """
         for cache_type, cache_type_store in self._store.items():
-            self._store[cache_type] = {}
+            # If we're including pending, just empty the whole store
+            if include_pending:
+                self._store[cache_type] = {}
+            else:
+                # Otherwise go through and remove any non-pending values
+                keys = list(cache_type_store.keys())
+                for key in keys:
+                    if not isinstance(cache_type_store[key], (PendingValue, PendingTask)):
+                        cache_type_store.pop(key)
 
     def list(self, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> List[str]:
         """

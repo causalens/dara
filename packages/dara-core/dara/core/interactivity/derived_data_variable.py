@@ -101,7 +101,6 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         cache = Cache.Policy.from_arg(cache)
 
         # Initialize the DV underneath, which puts an entry in the derived variable registry
-        print('cache:', cache)
         super().__init__(
             func=func,
             cache=cache,

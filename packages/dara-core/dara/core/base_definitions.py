@@ -101,7 +101,8 @@ class LruCachePolicy(BaseCachePolicy):
     Evicts the least recently used item when adding a new item to the cache if the number of items
     exceeds the max_size.
 
-    :param max_size: maximum number of items to keep in the cache
+    :param max_size: maximum number of items to keep in the cache - globally or per user/session,
+        depending on `cache_type` set in the policy
     """
     policy: str = Field(const=True, default='lru')
     max_size: int = 10

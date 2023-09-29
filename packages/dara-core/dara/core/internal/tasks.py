@@ -28,6 +28,7 @@ from anyio import (
 )
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
+from exceptiongroup import catch, ExceptionGroup
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -566,7 +567,7 @@ class TaskManager:
                             )
                         )
                         eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
-            except Exception as err:
+            except (Exception, ExceptionGroup) as err:
                 # Mark pending task as failed
                 self.tasks[task.task_id].fail(err)
 
