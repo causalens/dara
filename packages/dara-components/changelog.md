@@ -1,6 +1,11 @@
 ---
 title: Changelog
 ---
+
+## 1.1.10
+
+-   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.  
+
 ## 1.1.9
 
 -   Fixed an issue where `Table` search bar was hidden by the table itself
