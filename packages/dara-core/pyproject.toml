@@ -75,6 +75,7 @@ version = "^0.22.0"
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
 blue = "^0.9.0"
+freezegun = "^1.2.2"
 isort = "^5.10.1"
 mypy = "^0.991.0"
 pylint = ">=2.6.0, <3.0.0"
@@ -92,9 +93,6 @@ docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 
 [tool.poetry.scripts]
 dara = "dara.core.cli:cli"
-
-[tool.poetry.group.dev.dependencies]
-freezegun = "^1.2.2"
 
 [tool.pytest.ini_options]
 timeout = 300
