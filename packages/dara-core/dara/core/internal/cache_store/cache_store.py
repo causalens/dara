@@ -47,7 +47,7 @@ class CacheScopeStore(Generic[PolicyT]):
         self.caches: Dict[CacheScope, CacheStoreImpl[PolicyT]] = {}
         self.policy = policy
 
-    async def delete(self, key: str):
+    async def delete(self, key: str) -> Any:
         """
         Delete an entry from the cache.
 
@@ -58,9 +58,9 @@ class CacheScopeStore(Generic[PolicyT]):
 
         # No cache for this scope yet
         if cache is None:
-            return
+            return None
 
-        await cache.delete(key)
+        return await cache.delete(key)
 
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """
@@ -129,7 +129,7 @@ class CacheStore:
         """
         CACHE_METRICS_TRACKER.update_store(self._size)
 
-    async def delete(self, registry_entry: CachedRegistryEntry, key: str):
+    async def delete(self, registry_entry: CachedRegistryEntry, key: str)  -> Any:
         """
         Delete an entry from the cache for the given registry entry and cache key.
 
@@ -140,9 +140,15 @@ class CacheStore:
 
         # No store for this entry yet
         if registry_store is None:
-            return
+            return None
 
-        await registry_store.delete(key)
+        prev_entry = await registry_store.delete(key)
+
+        # Update size
+        self._update_size(prev_entry, None)
+        self._update_metrics()
+
+        return prev_entry
 
     async def get(self, registry_entry: CachedRegistryEntry, key: str, unpin: bool = False) -> Optional[Any]:
         """
@@ -238,3 +244,5 @@ class CacheStore:
         for registry_store in self.registry_stores.values():
             await registry_store.clear()
         self.registry_stores = {}
+        self._size = 0
+        self._update_metrics()

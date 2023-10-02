@@ -40,6 +40,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
                 return None
 
             del self.cache[key]
+            return entry
 
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """

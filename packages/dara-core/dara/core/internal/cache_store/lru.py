@@ -60,7 +60,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         if not self.tail:
             self.tail = node
 
-    async def delete(self, key: str):
+    async def delete(self, key: str) -> Any:
         """
         Delete an entry from the cache.
 
@@ -86,6 +86,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
 
             # Delete from the dictionary
             del self.cache[key]
+            return node.value
 
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
         """
