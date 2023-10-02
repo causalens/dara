@@ -79,7 +79,7 @@ async def reset_data_variable_cache():
 
     data_variable_registry.replace({})
     derived_variable_registry.replace({})
-    utils_registry.get('Store').empty_stores()
+    await utils_registry.get('Store').clear()
 
     yield
 
@@ -597,6 +597,7 @@ async def test_derived_data_variable_filter_metatask(cache):
 
     var1 = Variable()
 
+    print('Cache:', cache)
     derived = DerivedDataVariable(data_task, variables=[var1], uid='uid', run_as_task=True, cache=cache)
 
     builder.add_page('Test', content=MockComponent(text=derived))

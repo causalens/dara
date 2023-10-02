@@ -29,7 +29,6 @@ describe('Normalization', () => {
                 path.join(__dirname, '../data/normalization', dir, 'denormalized.json'),
                 {}
             );
-
             expect(denormalize(normalizedData, lookupData)).toMatchObject(denormalizedData);
         }
     });

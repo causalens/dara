@@ -31,7 +31,7 @@ from pydantic import BaseModel
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
 from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity.condition import Condition, Operator
-from dara.core.internal.store import Store
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
@@ -69,7 +69,7 @@ async def get_current_value(variable: dict, timeout: float = 3) -> Any:
     )
 
     ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-    store: Store = utils_registry.get('Store')
+    store: CacheStore = utils_registry.get('Store')
     task_mgr: TaskManager = utils_registry.get('TaskManager')
 
     auth_config = auth_registry.get('auth_config')

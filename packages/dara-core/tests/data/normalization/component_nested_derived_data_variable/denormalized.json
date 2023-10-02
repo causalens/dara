@@ -6,11 +6,19 @@
         "name": "MockText",
         "props": {
           "text": {
-            "cache": "global",
+            "cache": {
+              "cache_type": "global",
+              "policy": "lru",
+              "max_size": 10
+            },
             "uid": "{{dv_3_uid}}",
             "variables": [
               {
-                "cache": "global",
+                "cache": {
+                  "cache_type": "global",
+                  "policy": "lru",
+                  "max_size": 10
+                },
                 "uid": "{{dv_1_uid}}",
                 "variables": [
                   {
@@ -39,7 +47,11 @@
                 "__typename": "DerivedDataVariable"
               },
               {
-                "cache": "global",
+                "cache": {
+                  "cache_type": "global",
+                  "policy": "lru",
+                  "max_size": 10
+                },
                 "uid": "{{dv_2_uid}}",
                 "variables": [
                   {
@@ -76,7 +88,11 @@
             "polling_interval": null,
             "deps": [
               {
-                "cache": "global",
+                "cache": {
+                  "cache_type": "global",
+                  "policy": "lru",
+                  "max_size": 10
+                },
                 "uid": "{{dv_1_uid}}",
                 "variables": [
                   {
@@ -105,7 +121,11 @@
                 "__typename": "DerivedDataVariable"
               },
               {
-                "cache": "global",
+                "cache": {
+                  "cache_type": "global",
+                  "policy": "lru",
+                  "max_size": 10
+                },
                 "uid": "{{dv_2_uid}}",
                 "variables": [
                   {

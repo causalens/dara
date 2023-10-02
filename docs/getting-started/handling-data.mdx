@@ -180,6 +180,20 @@ Additionally, if you are doing any data processing in your app that is not based
 and loaded into your app already processed.
 :::
 
+## Caching
+
+Just like in `DerivedVariable`s, the `cache` setting on data variables can also accept a policy object to determine how the data
+will be preserved and evicted. Learn more about the available cache policies and how to use them in the [Cache Policies Documentation](../advanced/cache-policies.mdx).
+
+:::warning
+
+For a `DataVariable` the size-based `LRU` cache does not make a difference, as there is always one copy of the data in memory per
+the cache scope (i.e. one global copy with `cache_type='global'`, one copy per user or per session respectively with `'user'` and `'session'` types).
+
+The `TTL` cache can be still used to evict data after a certain amount of time.
+
+:::
+
 ## Data Utilities
 
 The data utilities provide extra functionalities for interacting with data, built on top of the core `DataVariable` concepts.

@@ -48,6 +48,7 @@ if TYPE_CHECKING:
         UrlVariable,
         Variable,
     )
+    from dara.core.internal.cache_store import CacheStore
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
 
@@ -312,7 +313,7 @@ class UpdateVariable(ActionInstance):
                 utils_registry,
             )
 
-            store = utils_registry.get('Store')
+            store: CacheStore = utils_registry.get('Store')
 
             async def data_resolver(ctx):
                 if utils_registry.has('RegistryLookup'):

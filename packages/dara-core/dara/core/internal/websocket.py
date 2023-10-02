@@ -23,6 +23,7 @@ from uuid import uuid4
 import anyio
 from anyio import Event, create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
+from exceptiongroup import catch
 from fastapi import HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
@@ -352,63 +353,63 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
 
     ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
-    try:
-        # Create a handler for this connection
-        handler = ws_mgr.create_handler(channel)
+    with catch(
+        {
+            WebSocketDisconnect: lambda _: eng_logger.warning('Websocket disconnected'),
+            BaseException: lambda e: eng_logger.error('Error in websocket handler', error=Exception(e)),
+        }
+    ):
+        try:
+            # Create a handler for this connection
+            handler = ws_mgr.create_handler(channel)
 
-        # Send the init message to tell the client it's channel
-        await websocket.send_json({'type': 'init', 'message': {'channel': channel}})
+            # Send the init message to tell the client it's channel
+            await websocket.send_json({'type': 'init', 'message': {'channel': channel}})
 
-        async with create_task_group() as tg:
+            async with create_task_group() as tg:
 
-            async def receive_from_client():
-                """
-                Handle messages received from the client and pass them to the handler
-                """
-                # Wait for incoming websocket messages and handle them appropriately
-                while True:
-                    # Note: this must be a while:true rather than a for-await
-                    # as the latter does not properly handle disconnections e.g. when relaoading the server
-                    data = await websocket.receive_json()
+                async def receive_from_client():
+                    """
+                    Handle messages received from the client and pass them to the handler
+                    """
+                    # Wait for incoming websocket messages and handle them appropriately
+                    while True:
+                        # Note: this must be a while:true rather than a for-await
+                        # as the latter does not properly handle disconnections e.g. when relaoading the server
+                        data = await websocket.receive_json()
 
-                    # Heartbeat to keep connection alive
-                    if data['type'] == 'ping':
-                        await websocket.send_json({'type': 'pong', 'message': None})
-                    else:
-                        try:
-                            parsed_data = parse_obj_as(ClientMessage, data)
-                            # Process the message in a separate task group to avoid blocking the receive task
-                            tg.start_soon(handler.process_client_message, parsed_data)
-                        except Exception as e:
-                            eng_logger.error('Error processing client WS message', error=e)
+                        # Heartbeat to keep connection alive
+                        if data['type'] == 'ping':
+                            await websocket.send_json({'type': 'pong', 'message': None})
+                        else:
+                            try:
+                                parsed_data = parse_obj_as(ClientMessage, data)
+                                # Process the message in a separate task group to avoid blocking the receive task
+                                tg.start_soon(handler.process_client_message, parsed_data)
+                            except Exception as e:
+                                eng_logger.error('Error processing client WS message', error=e)
 
-            async def send_to_client():
-                """
-                Handle messages sent to the client and pass them via the websocket
-                """
-                async for message in handler.receive_stream:
-                    if (
-                        message.type == 'message'
-                        and isinstance(message.message, ServerMessagePayload)
-                        and getattr(message.message, 'task_id', None) is not None
-                        and getattr(message.message, 'status', None)
-                    ):
-                        data = message.message
-                        # Reconstruct the payload without the result field
-                        message.message = ServerMessagePayload(
-                            **{k: v for k, v in data.dict().items() if k != 'result'}
-                        )
-                    await websocket.send_json(jsonable_encoder(message))
+                async def send_to_client():
+                    """
+                    Handle messages sent to the client and pass them via the websocket
+                    """
+                    async for message in handler.receive_stream:
+                        if (
+                            message.type == 'message'
+                            and isinstance(message.message, ServerMessagePayload)
+                            and getattr(message.message, 'task_id', None) is not None
+                            and getattr(message.message, 'status', None)
+                        ):
+                            data = message.message
+                            # Reconstruct the payload without the result field
+                            message.message = ServerMessagePayload(
+                                **{k: v for k, v in data.dict().items() if k != 'result'}
+                            )
+                        await websocket.send_json(jsonable_encoder(message))
 
-            # Start the two tasks to handle sending and receiving messages
-            tg.start_soon(receive_from_client)
-            tg.start_soon(send_to_client)
-
-    except WebSocketDisconnect:
-        # Handle forceful disconnection caused by i.e. server reload in dev
-        eng_logger.warning('Websocket forcefully disconnected')
-    except Exception as e:
-        eng_logger.error('Error in websocket handler', error=e)
-    finally:
-        websocket_registry.remove(token_content.session_id)
-        ws_mgr.remove_handler(channel)
+                # Start the two tasks to handle sending and receiving messages
+                tg.start_soon(receive_from_client)
+                tg.start_soon(send_to_client)
+        finally:
+            websocket_registry.remove(token_content.session_id)
+            ws_mgr.remove_handler(channel)

@@ -17,13 +17,14 @@ limitations under the License.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Optional, Union
 
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
     DataVariableRegistryEntry,
@@ -34,9 +35,9 @@ from dara.core.interactivity.filtering import (
     apply_filters,
     coerce_to_filter_query,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
-from dara.core.internal.store import Store
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
@@ -62,7 +63,7 @@ class DataVariable(AnyDataVariable):
 
     uid: str
     filters: Optional[FilterQuery] = None
-    cache: Optional[CacheType] = None
+    cache: Optional[BaseCachePolicy] = None
 
     class Config:
         extra = 'forbid'
@@ -70,7 +71,11 @@ class DataVariable(AnyDataVariable):
         use_enum_values = True
 
     def __init__(
-        self, data: Optional[DataFrame] = None, cache: CacheType = CacheType.GLOBAL, uid: Optional[str] = None, **kwargs
+        self,
+        data: Optional[DataFrame] = None,
+        cache: CacheArgType = Cache.Type.GLOBAL,
+        uid: Optional[str] = None,
+        **kwargs,
     ) -> None:
         """
         DataVariable represents a variable that is specifically designed to hold datasets.
@@ -80,7 +85,9 @@ class DataVariable(AnyDataVariable):
         :param filters: a dictionary of filters to apply to the data
         :param cache: how to cache the result; 'user' per user, 'session' per session, 'global' for all users
         """
-        if data is not None and cache is not CacheType.GLOBAL:
+        cache = Cache.Policy.from_arg(cache)
+
+        if data is not None and cache.cache_type is not Cache.Type.GLOBAL:
             raise ValueError('Data cannot be cached per session or per user if provided upfront')
 
         super().__init__(cache=cache, uid=uid, **kwargs)
@@ -99,8 +106,8 @@ class DataVariable(AnyDataVariable):
         if data is not None:
             from dara.core.internal.registries import utils_registry
 
-            store: Store = utils_registry.get('Store')
-            self._update(var_entry, store, data)
+            store: CacheStore = utils_registry.get('Store')
+            asyncio.create_task(self._update(var_entry, store, data))
 
     @staticmethod
     def _get_cache_key(uid: str) -> str:
@@ -116,18 +123,16 @@ class DataVariable(AnyDataVariable):
         return f'{cls._get_cache_key(uid)}_{hash_object(filters)}'
 
     @classmethod
-    def _update(cls, var_entry: DataVariableRegistryEntry, store: Store, data: Optional[DataFrame]):
+    async def _update(cls, var_entry: DataVariableRegistryEntry, store: CacheStore, data: Optional[DataFrame]):
         """
         Internal helper which updates the data variable entry in store.
 
         TODO: for now data is always kept in store, in the future depending on the size data might be cached on disk
         """
-        store.set(
-            cls._get_cache_key(str(var_entry.uid)), DataStoreEntry(data=append_index(data)), cache_type=var_entry.cache
-        )
+        await store.set(var_entry, key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=append_index(data)))
 
     @classmethod
-    def update_value(cls, var_entry: DataVariableRegistryEntry, store: Store, data: Optional[DataFrame]):
+    def update_value(cls, var_entry: DataVariableRegistryEntry, store: CacheStore, data: Optional[DataFrame]):
         """
         Update the data entry and notify all clients about the update.
 
@@ -135,13 +140,15 @@ class DataVariable(AnyDataVariable):
         :param data: the data to update
         :param store: store instance
         """
-        cls._update(var_entry, store, data)
-
-        # Broadcast the update to all clients
         from dara.core.internal.registries import utils_registry
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
         task_group: TaskGroup = utils_registry.get('TaskGroup')
+
+        # Update store
+        task_group.start_soon(cls._update, var_entry, store, data)
+
+        # Broadcast the update to all clients
         task_group.start_soon(
             ws_mgr.broadcast,
             {
@@ -150,10 +157,10 @@ class DataVariable(AnyDataVariable):
         )
 
     @classmethod
-    def get_value(
+    async def get_value(
         cls,
         var_entry: DataVariableRegistryEntry,
-        store: Store,
+        store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
         pagination: Optional[Pagination] = None,
     ) -> Optional[DataFrame]:
@@ -167,7 +174,7 @@ class DataVariable(AnyDataVariable):
         )
 
         cache_key = cls._get_cache_key(var_entry.uid)
-        entry = store.get(cache_key, cache_type=var_entry.cache)
+        entry = await store.get(var_entry, key=cache_key)
 
         eng_logger.debug(
             f'Data Variable {_uid_short}',
@@ -176,7 +183,7 @@ class DataVariable(AnyDataVariable):
         )
 
         if entry is None:
-            store.set(cls._get_count_cache_key(var_entry.uid, filters), 0, cache_type=var_entry.cache)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
             return None
 
         data = None
@@ -185,9 +192,9 @@ class DataVariable(AnyDataVariable):
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
             data = filtered_data
             # Store count for given filters
-            store.set(cls._get_count_cache_key(var_entry.uid, filters), count, cache_type=var_entry.cache)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True)
         else:
-            store.set(cls._get_count_cache_key(var_entry.uid, filters), 0, cache_type=var_entry.cache)
+            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
 
         # TODO: once path is supported, stream&filter from disk
         if entry.path:
@@ -201,7 +208,9 @@ class DataVariable(AnyDataVariable):
         return data
 
     @classmethod
-    def get_total_count(cls, var_entry: DataVariableRegistryEntry, store: Store, filters: Optional[FilterQuery]):
+    async def get_total_count(
+        cls, var_entry: DataVariableRegistryEntry, store: CacheStore, filters: Optional[FilterQuery]
+    ):
         """
         Get total count of the data variable.
 
@@ -210,7 +219,7 @@ class DataVariable(AnyDataVariable):
         :param filters: filters to get count for
         """
         cache_key = cls._get_count_cache_key(var_entry.uid, filters)
-        entry = store.get(cache_key, cache_type=var_entry.cache)
+        entry = await store.get(var_entry, key=cache_key, unpin=True)
 
         if entry is None:
             raise ValueError('Requested count for filter setup which has not been performed yet')

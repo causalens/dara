@@ -28,20 +28,22 @@ from anyio import (
 )
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
+from exceptiongroup import ExceptionGroup
 
 from dara.core.base_definitions import (
     BaseTask,
-    CacheType,
+    Cache,
+    CachedRegistryEntry,
     PendingTask,
     TaskError,
     TaskMessage,
     TaskProgressUpdate,
     TaskResult,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.store import Store
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
@@ -64,19 +66,19 @@ class Task(BaseTask):
         func: Callable,
         args: Union[List[Any], None] = None,
         kwargs: Union[Dict[str, Any], None] = None,
+        reg_entry: Optional[CachedRegistryEntry] = None,
         notify_channels: Optional[List[str]] = None,
         cache_key: Optional[str] = None,
-        cache_type: Optional[CacheType] = None,
         task_id: Optional[str] = None,
     ):
         """
         :param func: The function to execute within the process
+        :param reg_entry: The associated registry entry for this task
         :param args: The arguments to pass to that function
         :param kwargs: The keyword arguments to pass to that function
         :param notify_channels: If this task is run in a TaskManager instance these channels will also be notified on
                                 completion
         :param cache_key: Optional cache key if there is a PendingTask in the store associated with this task
-        :param cache_type: Optional cache type user, session or global if there is a PendingTask in the store associated with this task
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
         """
         self._func_name = self._verify_function(func)
@@ -84,7 +86,7 @@ class Task(BaseTask):
         self._kwargs = kwargs if kwargs is not None else {}
         self.notify_channels = notify_channels if notify_channels is not None else []
         self.cache_key = cache_key
-        self.cache_type = cache_type
+        self.reg_entry = reg_entry
 
         super().__init__(task_id)
 
@@ -146,7 +148,7 @@ class Task(BaseTask):
                                 task_id=self.task_id,
                                 result=result,
                                 cache_key=self.cache_key,
-                                cache_type=self.cache_type,
+                                reg_entry=self.reg_entry,
                             )
                         )
                     except ClosedResourceError:
@@ -157,7 +159,7 @@ class Task(BaseTask):
                     try:
                         await send_stream.send(
                             TaskError(
-                                task_id=self.task_id, error=exc, cache_key=self.cache_key, cache_type=self.cache_type
+                                task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry
                             )
                         )
                     except ClosedResourceError:
@@ -200,21 +202,21 @@ class MetaTask(BaseTask):
         process_result: Callable[..., Any],
         args: Optional[List[Any]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        reg_entry: Optional[CachedRegistryEntry] = None,
         notify_channels: Optional[List[str]] = None,
         process_as_task: bool = False,
         cache_key: Optional[str] = None,
-        cache_type: Optional[CacheType] = None,
         task_id: Optional[str] = None,
     ):
         """
         :param process result: A function to process the result of the other tasks
+        :param reg_entry: The associated registry entry for this task
         :param args: The arguments to pass to that function
         :param kwargs: The keyword arguments to pass to that function
         :param notify_channels: If this task is run in a TaskManager instance these channels will also be notified on
                                 completion
         :param process_as_task: Whether to run the process_result function as a task or not, defaults to False
         :param cache_key: Optional cache key if there is a PendingTask in the store associated with this task
-        :param cache_type: Optional cache type user, session or global if there is a PendingTask in the store associated with this task
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
         """
         self.args = args if args is not None else []
@@ -224,7 +226,7 @@ class MetaTask(BaseTask):
         self.process_as_task = process_as_task
         self.cancel_scope: Optional[CancelScope] = None
         self.cache_key = cache_key
-        self.cache_type = cache_type
+        self.reg_entry = reg_entry
 
         super().__init__(task_id)
 
@@ -271,7 +273,7 @@ class MetaTask(BaseTask):
             except BaseException as e:
                 if send_stream is not None:
                     await send_stream.send(
-                        TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, cache_type=self.cache_type)
+                        TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
                     )
                 raise
             finally:
@@ -331,13 +333,13 @@ class MetaTask(BaseTask):
             # of MetaTasks so we need to make sure intermediate results are also sent
             if send_stream is not None:
                 await send_stream.send(
-                    TaskResult(task_id=self.task_id, result=res, cache_key=self.cache_key, cache_type=self.cache_type)
+                    TaskResult(task_id=self.task_id, result=res, cache_key=self.cache_key, reg_entry=self.reg_entry)
                 )
         except BaseException as e:
             # Recover from error - update the pending value to prevent subsequent requests getting stuck
             if send_stream is not None:
                 await send_stream.send(
-                    TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, cache_type=self.cache_type)
+                    TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
                 )
             raise
 
@@ -370,7 +372,7 @@ class TaskManager:
     When a task is cancelled, it is removed from the tasks dict and the store entry is updated with None.
     """
 
-    def __init__(self, task_group: TaskGroup, ws_manager: WebsocketManager, store: Store):
+    def __init__(self, task_group: TaskGroup, ws_manager: WebsocketManager, store: CacheStore):
         self.tasks: Dict[str, PendingTask] = {}
         self.task_group = task_group
         self.ws_manager = ws_manager
@@ -391,18 +393,20 @@ class TaskManager:
                     self.tasks[task.task_id].notify_channels.append(ws_channel)
                 return self.tasks[task.task_id]
 
+            assert task.task_def.reg_entry is not None, 'PendingTask must have a registry entry'
+
             # Otherwise if the task is not in the tasks dict, it already finished
             # and we can return the result
             return (
-                self.store.get(task.task_def.cache_key, task.task_def.cache_type)
+                await self.store.get(task.task_def.reg_entry, task.task_def.cache_key)
                 if task.task_def.cache_key is not None
                 else self.get_result(task.task_id)
             )
 
         # Create and store the pending task
         pending_task = PendingTask(task.task_id, task, ws_channel)
-        if task.cache_key is not None:
-            self.store.set_pending_task(task.cache_key, pending_task, task.cache_type)
+        if task.cache_key is not None and task.reg_entry is not None:
+            await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
 
         self.tasks[task.task_id] = pending_task
 
@@ -439,8 +443,8 @@ class TaskManager:
 
             # Then remove the pending task from cache so next requests would recalculate rather than receive
             # a broken pending task
-            if task.task_def.cache_key is not None:
-                self.store.set(task.task_def.cache_key, None, task.task_def.cache_type)
+            if task.task_def.cache_key is not None and task.task_def.reg_entry is not None:
+                await self.store.set(task.task_def.reg_entry, key=task.task_def.cache_key, value=None)
 
             # Remove from running tasks
             self.tasks.pop(task_id, None)
@@ -458,13 +462,24 @@ class TaskManager:
             except Exception as e:
                 eng_logger.error(f'Failed to close down task with id: {task_id}', e)
 
-    def get_result(self, task_id: str):
+    async def get_result(self, task_id: str):
         """
-        Fetch the result of a task by it's id
+        Fetch the result of a task by its id
 
         :param task_id: the id of the task to fetch
         """
-        return self.store.get(task_id)
+        result = await self.store.get(TaskResultEntry, key=task_id)
+
+        # Clean up the result afterwards
+        await self.store.delete(TaskResultEntry, key=task_id)
+
+        return result
+
+    async def set_result(self, task_id: str, value: Any):
+        """
+        Set the result of a task by its id
+        """
+        return await self.store.set(TaskResultEntry, key=task_id, value=value)
 
     async def _run_task_and_notify(self, task: BaseTask, ws_channel: Optional[str]):
         """
@@ -513,8 +528,8 @@ class TaskManager:
                             if message.task_id in self.tasks:
                                 self.tasks[task.task_id].resolve(message.result)
                             # If the task has a cache key, update the cached value
-                            if message.cache_key is not None:
-                                self.store.set(message.cache_key, message.result, message.cache_type)
+                            if message.cache_key is not None and message.reg_entry is not None:
+                                await self.store.set(message.reg_entry, key=message.cache_key, value=message.result)
                             # Notify the channels of the task's completion
                             await notify_channels(
                                 {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id}
@@ -526,8 +541,8 @@ class TaskManager:
 
                             # If the task has a cache key, set cached value to None
                             # This makes it so that the next request will recalculate the value rather than keep failing
-                            if message.cache_key is not None:
-                                self.store.set(message.cache_key, None, message.cache_type)
+                            if message.cache_key is not None and message.reg_entry is not None:
+                                await self.store.set(message.reg_entry, key=message.cache_key, value=None)
 
             try:
                 async with create_task_group() as tg:
@@ -540,23 +555,25 @@ class TaskManager:
                         while isinstance(result, BaseTask):
                             result = await task.run(send_stream)
 
-                        self.store.set(task.task_id, result)
+                        # Set final result
+                        await self.set_result(task.task_id, result)
+
                         # Notify any channels that need to be notified about the whole task being completed
                         await send_stream.send(
                             TaskResult(
                                 task_id=task.task_id,
                                 result=result,
                                 cache_key=task.cache_key,
-                                cache_type=task.cache_type,
+                                reg_entry=task.reg_entry,
                             )
                         )
                         eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
-            except Exception as err:
+            except (Exception, ExceptionGroup) as err:
                 # Mark pending task as failed
                 self.tasks[task.task_id].fail(err)
 
                 dev_logger.error('Task failed', err, {'task_id': task.task_id})
-                self.store.set(task.task_id, {'error': str(err)})
+                await self.set_result(task.task_id, {'error': str(err)})
 
                 # Notify any channels that need to be notified
                 await notify_channels({'status': 'ERROR', 'task_id': task.task_id}, get_error_for_channel())
@@ -568,3 +585,10 @@ class TaskManager:
                 with move_on_after(3, shield=True):
                     await send_stream.aclose()
                     await receive_stream.aclose()
+
+
+TaskResultEntry = CachedRegistryEntry(uid='task-results', cache=Cache.Policy.KeepAll())
+"""
+Global registry entry for task results.
+This is global because task ids are unique and accessed one time only so it's effectively a one-time use random key.
+"""

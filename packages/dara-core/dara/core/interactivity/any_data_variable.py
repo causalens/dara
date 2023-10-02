@@ -18,9 +18,7 @@ limitations under the License.
 import abc
 from typing import Literal, Optional
 
-from pydantic import BaseModel
-
-from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.filtering import FilterQuery
 
@@ -43,13 +41,11 @@ class AnyDataVariable(AnyVariable, abc.ABC):
         return self.copy(update={'filters': filters}, deep=True)
 
 
-class DataVariableRegistryEntry(BaseModel):
+class DataVariableRegistryEntry(CachedRegistryEntry):
     """
     Registry entry for DataVariable.
     """
 
-    cache: CacheType
-    uid: str
     type: Literal['plain', 'derived']
 
     class Config:

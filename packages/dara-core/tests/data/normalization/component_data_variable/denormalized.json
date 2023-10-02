@@ -12,7 +12,11 @@
               "value": "test1",
               "operator": "EQ"
             },
-            "cache": "user",
+            "cache": {
+              "cache_type": "user",
+              "policy": "lru",
+              "max_size": 10
+            },
             "__typename": "DataVariable"
           }
         },
@@ -28,7 +32,11 @@
               "value": "test2",
               "operator": "EQ"
             },
-            "cache": "user",
+            "cache": {
+              "cache_type": "user",
+              "policy": "lru",
+              "max_size": 10
+            },
             "__typename": "DataVariable"
           }
         },

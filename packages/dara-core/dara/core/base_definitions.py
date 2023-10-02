@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Union
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionContextType
@@ -76,6 +76,130 @@ class CacheType(str, Enum):
     SESSION = 'session'
     USER = 'user'
 
+    @classmethod
+    def get_member(cls, value: str):
+        """
+        Get a member of the enum by value
+        """
+        try:
+            return cls(value)
+        except ValueError:
+            return None
+
+
+class BaseCachePolicy(BaseModel, abc.ABC):
+    """
+    Base class for cache policies.
+    """
+
+    policy: str
+    cache_type: CacheType = CacheType.GLOBAL
+
+
+class LruCachePolicy(BaseCachePolicy):
+    """
+    Least-recently-used cache policy.
+    Evicts the least recently used item when adding a new item to the cache if the number of items
+    exceeds the max_size.
+
+    :param max_size: maximum number of items to keep in the cache - globally or per user/session,
+        depending on `cache_type` set in the policy
+    """
+
+    policy: str = Field(const=True, default='lru')
+    max_size: int = 10
+
+
+class MostRecentCachePolicy(LruCachePolicy):
+    """
+    Most recent cache policy. Only keeps the most recent item in the cache.
+    """
+
+    policy: str = Field(const=True, default='most-recent')
+    max_size: int = Field(const=True, default=1)
+
+
+class KeepAllCachePolicy(BaseCachePolicy):
+    """
+    Keep all items in the cache, regardless of the number of items.
+
+    Should be used with caution as it can lead to memory leaks.
+    """
+
+    policy: str = Field(const=True, default='keep-all')
+
+
+class TTLCachePolicy(BaseCachePolicy):
+    """
+    Time-to-live cache policy.
+    Evicts items from the cache after the specified time-to-live.
+
+    :param ttl: time-to-live in seconds
+    """
+
+    policy: str = Field(const=True, default='ttl')
+    ttl: int
+
+
+class Cache:
+    """
+    Convenience class aggregating all available cache policies and types
+    """
+
+    Type = CacheType
+
+    class Policy:
+        """
+        Available cache policies
+        """
+
+        LRU = LruCachePolicy
+        MostRecent = MostRecentCachePolicy
+        KeepAll = KeepAllCachePolicy
+        TTL = TTLCachePolicy
+
+        @classmethod
+        def from_arg(cls, arg: CacheArgType) -> BaseCachePolicy:
+            """
+            Construct a cache policy from a cache arg. Defaults to LRU if a type is provided.
+            """
+            if isinstance(arg, BaseCachePolicy):
+                return arg
+
+            if isinstance(arg, Cache.Type):
+                return LruCachePolicy(cache_type=arg)
+
+            if isinstance(arg, str):
+                # Check that the string is one of allowed cache members
+                if typ := Cache.Type.get_member(arg):
+                    return LruCachePolicy(cache_type=typ)
+
+            raise ValueError(
+                f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members'
+            )
+
+
+CacheArgType = Union[CacheType, BaseCachePolicy, str]
+
+
+class CachedRegistryEntry(BaseModel):
+    """
+    Represents a registry item with associated cache entries which can be controlled
+    via the cache policy.
+    """
+
+    cache: Optional[BaseCachePolicy]
+    uid: str
+
+    def to_store_key(self):
+        """
+        Returns a unique store key for this entry.
+        """
+        return f'{self.__class__.__name__}_{self.uid}'
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(cache={self.cache}, uid={self.uid})'
+
 
 class BaseTaskMessage(BaseModel):
     task_id: str
@@ -89,13 +213,13 @@ class TaskProgressUpdate(BaseTaskMessage):
 class TaskResult(BaseTaskMessage):
     result: Any
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
 
 
 class TaskError(BaseTaskMessage):
     error: BaseException
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
 
     class Config:
         arbitrary_types_allowed = True
@@ -110,7 +234,7 @@ class BaseTask(abc.ABC):
     """
 
     cache_key: Optional[str]
-    cache_type: Optional[CacheType]
+    reg_entry: Optional[CachedRegistryEntry]
     notify_channels: List[str]
     task_id: str
 
@@ -133,6 +257,9 @@ class PendingTask(BaseTask):
     Represents a running pending task.
     Is associated to an underlying task definition.
     """
+
+    cache_key: None = None
+    reg_entry: None = None
 
     def __init__(self, task_id: str, task_def: BaseTask, ws_channel: Optional[str] = None):
         self.task_id = task_id
@@ -198,6 +325,47 @@ class PendingTask(BaseTask):
         Remove 1 from the subscriber count
         """
         self.subscribers -= 1
+
+
+class PendingValue:
+    """
+    An internal class that's used to represent a pending value. Holds a future object that can be awaited by
+    multiple consumers.
+    """
+
+    def __init__(self):
+        self.event = anyio.Event()
+        self._value = None
+        self._error = None
+
+    async def wait(self):
+        """
+        Wait for the underlying event to be set
+        """
+        # Waiting in chunks as otherwise Jupyter blocks the event loop
+        while not self.event.is_set():
+            await anyio.sleep(0.01)
+        if self._error:
+            raise self._error
+        return self._value
+
+    def resolve(self, value: Any):
+        """
+        Resolve the pending state and send values to the waiting code
+
+        :param value: the value to resolve as the result
+        """
+        self._value = value
+        self.event.set()
+
+    def error(self, exc: Exception):
+        """
+        Resolve the pending state with an error and send it to the waiting code
+
+        :param exc: exception to resolve as the result
+        """
+        self._error = exc
+        self.event.set()
 
 
 class ActionDef(BaseModel):

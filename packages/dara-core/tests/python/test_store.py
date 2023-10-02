@@ -10,10 +10,8 @@ pytestmark = pytest.mark.anyio
 async def test_simple_store_behavior():
     """Test that the store works as a simple key value store"""
     store = Store()
-    size_before = store._size
     store.set('test', 'value')
 
-    assert store._size > size_before
     assert store.get('test') == 'value'
 
 
@@ -21,45 +19,13 @@ async def test_empty_store():
     """Test the empty store method"""
     store = Store()
 
-    size_before = store._size
     store.set('test', 'value')
-    assert store._size > size_before
 
-    size_before = store._size
     store.set('test1', 'value1')
-    assert store._size > size_before
 
-    size_before = store._size
     store.empty_stores()
-    assert store._size < size_before
     assert store.get('test') is None
     assert store.get('test1') is None
-
-
-# async def test_empty_store_does_not_remove_pending():
-#     """Test that the empty store does not remove pending keys"""
-#     store = Store()
-
-#     size_before = store._size
-#     store.set_pending_task('test1', PendingTask('task_id_1'))
-#     assert store._size > size_before
-
-#     size_before = store._size
-#     store.set_pending_value('test2')
-#     assert store._size > size_before
-
-#     size_before = store._size
-#     store.set('test3', 'val3')
-#     assert store._size > size_before
-
-#     size_before = store._size
-#     store.empty_stores(include_pending=False)
-#     assert store._size < size_before
-
-#     # Pending values should still be there
-#     assert isinstance(store.get('test1'), PendingTask)
-#     assert isinstance(store.get('test2'), Store.PendingValue)
-#     assert store.get('test3') is None
 
 
 async def test_session_store_behavior():
@@ -174,34 +140,3 @@ async def test_wait_and_get():
     assert await var1 == 'value'
     assert await var2 == 'value'
 
-
-async def test_remove_starting_with():
-    """
-    Test the purge function
-    """
-    store = Store()
-    # Add to global
-    store.set('uid1:key1', 'value1')
-    store.set('uid2:key2', 'value2')
-    # Add to session
-    SESSION_ID.set('session_1')
-    store.set('uid1:session_key1', 'value1', cache_type=CacheType.SESSION)
-    store.set('uid2:session_key2', 'value2', cache_type=CacheType.SESSION)
-
-    # Before removal
-    assert store.list() == ['uid1:key1', 'uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1', 'uid2:session_key2']
-
-    # Remove uid1 from global
-    size_before = store._size
-    store.remove_starting_with('uid1')
-    assert store._size < size_before
-
-    assert store.list() == ['uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1', 'uid2:session_key2']
-
-    # Remove uid2 from session
-    store.remove_starting_with('uid2', cache_type=CacheType.SESSION)
-
-    assert store.list() == ['uid2:key2']
-    assert store.list(cache_type=CacheType.SESSION) == ['uid1:session_key1']

@@ -6,7 +6,11 @@
         "name": "MockText",
         "props": {
           "text": {
-            "cache": "global",
+            "cache": {
+              "cache_type": "global",
+              "policy": "lru",
+              "max_size": 10
+            },
             "uid": "{{dv_1_uid}}",
             "variables": [
               {

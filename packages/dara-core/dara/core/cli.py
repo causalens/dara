@@ -174,7 +174,7 @@ def dev():
         for line in vite_process.stdout:
             decoded_line = line.decode('utf-8').strip()
             if decoded_line != '':
-                print(decoded_line) # pylint: disable=print-function
+                print(decoded_line)   # pylint: disable=print-function
 
 
 @cli.command()

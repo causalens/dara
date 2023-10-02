@@ -40,6 +40,7 @@ from dara.core.defaults import (
     top_menu_template,
     top_template,
 )
+from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
@@ -59,7 +60,6 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
-from dara.core.internal.store import Store
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
@@ -70,6 +70,7 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+
 
 def _start_application(config: Configuration):
     """
@@ -123,7 +124,7 @@ def _start_application(config: Configuration):
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables
         # requires a store existing
-        store: Store = utils_registry.get('Store')
+        store: CacheStore = utils_registry.get('Store')
         utils_registry.set('RegistryLookup', RegistryLookup(config.registry_lookup))
 
         # Create a task group for the application so we can kick off tasks in the background
@@ -376,7 +377,7 @@ def main(extra=None):
 
     Dara applications should not call main directly as the CLI automatically picks up `config` from the entry file
     """
-    print( # pylint: disable=print-function
+    print(  # pylint: disable=print-function
         'Call to deprecated function `main` detected. Your application should not call the main function directly, please remove any calls to `main` from your code.'
     )
     sys.exit(1)

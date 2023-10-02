@@ -1,0 +1,141 @@
+---
+title: Cache Policies
+---
+
+## Introduction
+
+Caching is a technique used to store computed results temporarily so that future requests for the same computation can be served faster.
+In Dara, caching is a powerful feature that allows the results of server-driven variable computations (i.e. `DerivedVariable`, `DataVariable`, `DerivedDataVariable`) to be stored and reused.
+This helps in significantly reducing the computation time, especially for expensive or frequently used computations.
+
+However, not all caching strategies are suited for every scenario. The nature of your data, the computation, and the usage patterns should guide the choice of caching policy. Dara offers a variety of cache policies to provide flexibility in managing how your data is cached.
+
+## Cache Types
+
+Before diving into cache policies, it's important to understand the `cache_type` which defines the scope of the cache:
+
+- **Global Cache (`Cache.Type.GLOBAL`)**: Stores calculation results in a global cache across all users. Best suited for computations with results that are common to all users.
+- **Session Cache (`Cache.Type.SESSION`)**: Caches results per session. Useful when the results are relevant within a single session.
+- **User Cache (`Cache.Type.USER`)**: Caches results per user across sessions. Ideal for personalized data that remains relevant across user sessions.
+
+## Available Cache Policies
+
+### 1. Keep All (`Cache.Policy.KeepAll`)
+
+The Keep All policy retains all cached values without evicting any of them.
+This is useful for small-sized results that are accessed frequently, ideally with a known range of results. However, caution should be exercised for large-sized results as it may lead to excessive memory usage.
+
+```python
+from dara.core import Cache
+
+policy = Cache.Policy.KeepAll(cache_type=Cache.Type.GLOBAL)
+```
+
+### 2. Least Recently Used (LRU) (`Cache.Policy.LRU`)
+
+The LRU policy retains a specified number of most recently accessed values, evicting the least recently accessed ones as the cache reaches its maximum size.
+Ideal for scenarios with large-sized results where only a subset is accessed frequently.
+
+```python
+from dara.core import Cache
+
+policy = Cache.Policy.LRU(max_size=10, cache_type=Cache.Type.USER)
+```
+
+### 3. Most Recent (`Cache.Policy.MostRecent`)
+
+This policy keeps only the most recent result in the cache. Suitable for scenarios where caching isn't desired but re-running the computation for subsequent requests with the same arguments is not optimal.
+
+```python
+from dara.core import Cache
+
+policy = Cache.Policy.MostRecent(cache_type=Cache.Type.SESSION)
+```
+
+### 4. Time-To-Live (TTL) (`Cache.Policy.TTL`)
+
+The TTL policy holds values for a specified duration. Ideal for values that become stale or invalid after a certain time, e.g. fetched from remote resources.
+
+```python
+from dara.core import Cache
+
+
+policy = Cache.Policy.TTL(ttl=3600, cache_type=Cache.Type.GLOBAL) # 1 hour TTL
+
+```
+
+## Choosing the Right Cache Policy
+
+The choice of cache policy depends on several factors including:
+
+- **Size of the Results**: Large-sized results may fill up the cache quickly, making policies like LRU more suitable.
+- **Access Patterns**: Frequently accessed results benefit from being cached. LRU or Keep All might be good choices depending on the size and variety of results.
+- **Data Freshness**: If the data changes over time or becomes stale, a TTL policy could be a better choice.
+
+### Example 1: Weather Forecast Data (TTL Policy)
+
+Imagine you are building a dashboard that displays weather forecast data. The data is fetched from a remote API and is updated every hour. In this scenario, the freshness of data is crucial as displaying outdated weather forecasts could mislead users.
+
+```python
+from dara.core import Cache, DerivedVariable, Variable
+
+# Assume fetch_weather_forecast is a function that fetches the weather forecast data from a remote API.
+def fetch_weather_forecast(location):
+    ...
+
+location = Variable()
+weather_data = DerivedVariable(fetch_weather_forecast, variables=[location], cache=Cache.Policy.TTL(ttl=3600, cache_type=Cache.Type.GLOBAL))
+```
+
+In the code above:
+
+- We use a `TTL` cache policy with a `ttl` of 3600 seconds (1 hour) to ensure that the cached weather data is kept up to date with the remote API.
+- We set the `cache_type` to `GLOBAL` as the weather data is the same for all users and there's no need to maintain separate caches per user or session.
+
+### Example 2: User Preferences (Keep All Policy)
+
+Suppose you have an application that stores user preferences which don't change frequently. The user preferences are used in various parts of the application, making them a good candidate for caching to improve performance.
+
+```python
+from dara.core import Cache, DerivedVariable, Variable
+
+# Assume fetch_user_preferences is a function that fetches the user preferences from a database.
+def fetch_user_preferences(user_id):
+    ...
+
+user_id = Variable()
+user_preferences = DerivedVariable(fetch_user_preferences, variables=[user_id], cache=Cache.Policy.KeepAll(cache_type=Cache.Type.USER))
+```
+
+In the code above:
+
+- We use the `Keep All` cache policy as the user preferences data is small in size and doesn't change frequently.
+- We set the `cache_type` to `USER` to maintain a separate cache for each user, ensuring that each user sees their own preferences.
+
+### Example 3: Expensive Computation (LRU Policy)
+
+Consider a scenario where you have a function performing an expensive computation that generates large-sized results. The function is called frequently with different arguments, but only a subset of the results is accessed often.
+
+```python
+from dara.core import Cache, DerivedVariable, Variable
+
+# Assume expensive_computation is a function that performs some heavy computation.
+def expensive_computation(arg1, arg2):
+    ...
+
+arg1 = Variable()
+arg2 = Variable()
+computed_result = DerivedVariable(expensive_computation, variables=[arg1, arg2], cache=Cache.Policy.LRU(max_size=5, cache_type=Cache.Type.GLOBAL))
+```
+
+In the code above:
+
+- We use the `LRU` cache policy with a `max_size` of 5 to keep the most frequently accessed results in the cache while evicting the least recently used ones when the cache reaches its maximum size.
+- We set the `cache_type` to `GLOBAL` assuming that the computation results are the same for all users and sessions.
+
+By considering the specifics of each use case, you can choose the most suitable cache policy to optimize the performance and resource utilization of your Derived Variables.
+
+## Conclusion
+
+Choosing an appropriate cache policy can significantly enhance the performance and efficiency of your server-driven variables in Dara.
+Experiment with different cache policies to find what works best for your use case, and adjust the settings as your data and usage patterns evolve.

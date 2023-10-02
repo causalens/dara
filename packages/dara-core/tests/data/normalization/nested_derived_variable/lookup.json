@@ -7,7 +7,11 @@
     "__typename": "Variable"
   },
   "DerivedVariable:{{dv_1_uid}}": {
-    "cache": "global",
+    "cache": {
+      "cache_type": "global",
+      "policy": "lru",
+      "max_size": 10
+    },
     "default": null,
     "uid": "{{dv_1_uid}}",
     "variables": [
@@ -25,7 +29,11 @@
     "__typename": "DerivedVariable"
   },
   "DerivedVariable:{{dv_2_uid}}": {
-    "cache": "global",
+    "cache": {
+      "cache_type": "global",
+      "policy": "lru",
+      "max_size": 10
+    },
     "default": null,
     "uid": "{{dv_2_uid}}",
     "variables": [
@@ -43,7 +51,11 @@
     "__typename": "DerivedVariable"
   },
   "DerivedVariable:{{dv_3_uid}}": {
-    "cache": "global",
+    "cache": {
+      "cache_type": "global",
+      "policy": "lru",
+      "max_size": 10
+    },
     "default": null,
     "uid": "{{dv_3_uid}}",
     "variables": [
