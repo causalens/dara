@@ -422,7 +422,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 )
                 return {'cache_key': cache_key, 'value': task}
 
-            await store.set_pending(var_entry, key=cache_key)
+            # only set pending value if cache is not None, otherwise subsequent requests calculate the value again
+            if var_entry.cache is not None:
+                await store.set_pending(var_entry, key=cache_key)
 
             try:
                 result = await run_user_handler(var_entry.func, args=parsed_args)
@@ -443,7 +445,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
                 return {'cache_key': cache_key, 'value': result}
 
-            await store.set(var_entry, key=cache_key, value=result)
+            # only set the value if cache is not None, otherwise subsequent requests calculate the value again
+            if var_entry.cache is not None:
+                await store.set(var_entry, key=cache_key, value=result)
 
             eng_logger.info(
                 f'DerivedVariable {_uid_short} returning result',
