@@ -21,6 +21,7 @@ import asyncio
 from typing import Optional, Union
 
 from anyio.abc import TaskGroup
+from anyio.from_thread import start_blocking_portal
 from pandas import DataFrame
 from pydantic import BaseModel
 
@@ -107,7 +108,16 @@ class DataVariable(AnyDataVariable):
             from dara.core.internal.registries import utils_registry
 
             store: CacheStore = utils_registry.get('Store')
-            asyncio.create_task(self._update(var_entry, store, data))
+
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # We are in a worker thread without an event loop, so we need to use a blocking portal
+                with start_blocking_portal() as portal:
+                    portal.start_task_soon(self._update, var_entry, store, data)
+            else:
+                # There's a running loop, just spawn the task directly in the loop
+                asyncio.create_task(self._update(var_entry, store, data))
 
     @staticmethod
     def _get_cache_key(uid: str) -> str:

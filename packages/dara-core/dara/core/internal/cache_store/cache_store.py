@@ -129,7 +129,7 @@ class CacheStore:
         """
         CACHE_METRICS_TRACKER.update_store(self._size)
 
-    async def delete(self, registry_entry: CachedRegistryEntry, key: str)  -> Any:
+    async def delete(self, registry_entry: CachedRegistryEntry, key: str) -> Any:
         """
         Delete an entry from the cache for the given registry entry and cache key.
 
