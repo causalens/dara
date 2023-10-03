@@ -18,6 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 import abc
+import inspect
 import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -57,7 +58,12 @@ async def get_current_value(variable: dict, timeout: float = 3) -> Any:
     """
     getter_override = GET_VALUE_OVERRIDE.get()
     if getter_override is not None:
-        return getter_override(variable)
+        result = getter_override(variable)
+
+        if inspect.iscoroutine(result):
+            return await result
+
+        return result
 
     from dara.core.internal.dependency_resolution import resolve_dependency
     from dara.core.internal.registries import (
