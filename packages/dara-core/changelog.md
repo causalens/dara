@@ -2,13 +2,13 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.2.0
 
 -   Introduced more granular cache configuration for Derived and Data variables. In addition to previously supported 'cache type' (i.e. `'global'`, `'session'`, `'user'` scopes as per `dara.core.CacheType` enum), you can now also specify a cache policy. Available cache policies are:
 
 1. `keep-all` - previous default, keeps all cached values without clearing them. Useful for small-sized results that are used frequently, ideally with a known range of results. Should be used with caution for large-sized results.
 2. `lru`: least-recently-used cache; can be configured to hold `max_size` values (globally or per user/session depending on `cache_type` set). This is the new default with `max_size=10`, as it will keep the most often accessed values in cache and discard the least often accessed ones.
-3. `most-recent`: keeps only the most recent result in cache. Useful for situations where caching is generally not desired, but `most-recent` will still repvent `re-computation` on subsequent runs with the same inputs.
+3. `most-recent`: keeps only the most recent result in cache. Useful for situations where caching is generally not desired, but `most-recent` will still prevent re-computation on subsequent runs with the same inputs.
 4. `ttl`: time-to-live cache; can be configured to hold values for `ttl` seconds. Useful for e.g. values which fetch from a remote resource where the results become stale/invalid after a certain amount of time.
 
 ```python

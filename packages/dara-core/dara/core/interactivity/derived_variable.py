@@ -430,7 +430,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 result = await run_user_handler(var_entry.func, args=parsed_args)
             except Exception as e:
                 # Set the store value to None before raising, so subsequent requests don't hang on a PendingValue
-                await store.set(var_entry, key=cache_key, value=None, error=e)
+                if var_entry.cache is not None:
+                    await store.set(var_entry, key=cache_key, value=None, error=e)
                 raise
 
             # If a task is returned then update pending value to pending task and return it

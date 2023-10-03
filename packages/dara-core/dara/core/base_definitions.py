@@ -178,6 +178,27 @@ class Cache:
                 f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members'
             )
 
+        @classmethod
+        def from_dict(cls, arg: dict) -> Optional[BaseCachePolicy]:
+            """
+            Construct a cache policy from its serialized dict represetnation
+            """
+            if arg is None or not isinstance(arg, dict):
+                return None
+
+            policy_name = arg.get('policy')
+
+            if policy_name == 'lru':
+                return LruCachePolicy(**arg)
+            elif policy_name == 'most-recent':
+                return MostRecentCachePolicy(**arg)
+            elif policy_name == 'keep-all':
+                return KeepAllCachePolicy(**arg)
+            elif policy_name == 'ttl':
+                return TTLCachePolicy(**arg)
+            else:
+                raise ValueError(f'Invalid cache policy: {arg}')
+
 
 CacheArgType = Union[CacheType, BaseCachePolicy, str]
 
