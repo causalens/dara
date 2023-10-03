@@ -543,7 +543,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.2.0"
+version = "1.2.1"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -638,7 +638,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.2.0"
+version = "1.2.1"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -649,7 +649,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.2.0"
+dara-core = "=1.2.1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -663,7 +663,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.2.0"
+version = "1.2.1"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -702,11 +702,29 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.2.0)"]
+all = ["dara-components (==1.2.1)"]
 
 [package.source]
 type = "directory"
 url = "packages/dara-core"
+
+[[package]]
+name = "decision-app"
+version = "1.2.1"
+description = "Decision App"
+category = "dev"
+optional = false
+python-versions = ">=3.8.0, <3.12.0"
+files = []
+develop = true
+
+[package.dependencies]
+dara-components = "=1.2.1"
+dara-core = "=1.2.1"
+
+[package.source]
+type = "directory"
+url = "packages/decision-app"
 
 [[package]]
 name = "defusedxml"
@@ -3075,4 +3093,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "2544af2608dba96cbc54e477ccf8f8d9ba6cb1f46e9a13fb7d41d15ce3ab05ba"
+content-hash = "67e68ef689f9bcf89726b78d5a78be7387a174cd0fa4a1e5419c872761c78c17"
