@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.2.0
 
 -   Introduced more granular cache configuration for Derived and Data variables. In addition to previously supported 'cache type' (i.e. `'global'`, `'session'`, `'user'` scopes as per `dara.core.CacheType` enum), you can now also specify a cache policy. Available cache policies are:
 
