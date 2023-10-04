@@ -85,7 +85,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.arrays.IntegerArray: _get_pandas_array_encoder(pandas.arrays.IntegerArray, numpy.dtype('int')),
     pandas.arrays.FloatingArray: _get_pandas_array_encoder(pandas.arrays.FloatingArray, numpy.dtype('float')),
     pandas.arrays.StringArray: _get_pandas_array_encoder(pandas.arrays.StringArray, str),
-    pandas.arrays.BooleanArray: _get_pandas_array_encoder(pandas.arrays.BooleanArray, numpy.dtype('bool')),
+    pandas.arrays.BooleanArray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x, dtype='boolean')),
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
