@@ -216,14 +216,14 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.2.4"
+version = "0.2.5"
 description = "A Causal AI package for causal graphs."
 category = "main"
 optional = false
 python-versions = ">=3.8.0,<3.12.0"
 files = [
-    {file = "cai_causal_graph-0.2.4-py3-none-any.whl", hash = "sha256:fc267e8cfb30c4b6622af9f955fa2410d058e34806d52dc9f78d6791b7250f91"},
-    {file = "cai_causal_graph-0.2.4.tar.gz", hash = "sha256:3c76cae8ae1f7b0012ce9053634b0ad575da6efa1ba2d7758865bc2ccccda280"},
+    {file = "cai_causal_graph-0.2.5-py3-none-any.whl", hash = "sha256:991269e24c8b8a33059927b60e2f2bc006a6bd9f6864f2b18c18974f7bdbda35"},
+    {file = "cai_causal_graph-0.2.5.tar.gz", hash = "sha256:8ac10d5e761937757c4ffd67fd8cd32072d2259bc9773dda8d15c56deb9cc707"},
 ]
 
 [package.dependencies]
@@ -543,7 +543,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.2.1"
+version = "1.2.2"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -638,7 +638,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.2.1"
+version = "1.2.2"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -649,7 +649,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.2.1"
+dara-core = "=1.2.2"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -663,7 +663,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.2.1"
+version = "1.2.2"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -702,7 +702,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.2.1)"]
+all = ["dara-components (==1.2.2)"]
 
 [package.source]
 type = "directory"
@@ -3075,4 +3075,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "13b400f6340014dfcd98bea779ab1cbea8d0ef38fab89702bfd3a0e0c84ea5df"
+content-hash = "9e9ed9455e9986961243c2cde9aec8b4c5b3ac32186007d60026aa1a6bfa86b1"
