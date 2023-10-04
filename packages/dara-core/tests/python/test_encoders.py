@@ -32,7 +32,7 @@ from dara.core.internal.encoder_registry import encoder_registry
     (numpy.void, numpy.void(b'test'), False),
     (numpy.bool_, numpy.bool_(True), False),
     (numpy.datetime64, numpy.datetime64('2023-10-04'), False),
-    (pandas.arrays.IntervalArray, pandas.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)]), False),
+    (pandas.arrays.IntervalArray, pandas.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)]), True),
     (pandas.arrays.PeriodArray, pandas.period_range(start='2000Q1', end='2000Q2', freq='Q').array, True),
     (pandas.arrays.DatetimeArray, pandas.to_datetime(['2000-01-01', '2000-01-02']).array, False),
     (pandas.arrays.IntegerArray, pandas.array([1, 2, 3], dtype='Int32'), False),
