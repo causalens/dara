@@ -19,6 +19,7 @@ from typing import Any, Callable, MutableMapping, Type
 
 import numpy
 import pandas
+from pandas.core.arrays.base import ExtensionArray
 from typing_extensions import TypedDict
 
 
@@ -54,8 +55,8 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     numpy.float32: _get_numpy_dtypes_encoder(numpy.float32),
     numpy.float64: _get_numpy_dtypes_encoder(numpy.float64),
     numpy.longdouble: _get_numpy_dtypes_encoder(numpy.longdouble),
-    numpy.complex64: _get_numpy_dtypes_encoder(numpy.complex64),
-    numpy.complex128: _get_numpy_dtypes_encoder(numpy.complex128),
+    numpy.complex64: Encoder(serialize=lambda x: str(x), deserialize=lambda x: numpy.complex64(x)),
+    numpy.complex128: Encoder(serialize=lambda x: str(x), deserialize=lambda x: numpy.complex128(x)),
     numpy.clongdouble: _get_numpy_dtypes_encoder(numpy.clongdouble),
     numpy.bytes_: _get_numpy_dtypes_encoder(numpy.bytes_),
     numpy.str_: _get_numpy_dtypes_encoder(numpy.str_),
@@ -63,8 +64,8 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     numpy.record: _get_numpy_dtypes_encoder(numpy.record),
     numpy.bool_: _get_numpy_dtypes_encoder(numpy.bool_),
     numpy.datetime64: _get_numpy_dtypes_encoder(numpy.datetime64),
-    pandas.array: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x)),
+    ExtensionArray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x)),
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
-    pandas.Timestamp: Encoder(serialize=lambda x: x.date(), deserialize=lambda x: pandas.Timestamp(x)),
+    pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
 }
