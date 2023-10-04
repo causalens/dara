@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.2.1
+
+-   Fixed an issue where `DataVariable` would fail to initialize with data when created within a synchronous handler function
+
 ## 1.2.0
 
 -   Introduced more granular cache configuration for Derived and Data variables. In addition to previously supported 'cache type' (i.e. `'global'`, `'session'`, `'user'` scopes as per `dara.core.CacheType` enum), you can now also specify a cache policy. Available cache policies are:
