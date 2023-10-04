@@ -4,7 +4,7 @@ title: Changelog
 
 ## 1.2.2
 
--   Fixed an issue where the default encoders for `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
+-   Fixed an issue where the default encoders for certain types such as `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
 
 ## 1.2.1
 
