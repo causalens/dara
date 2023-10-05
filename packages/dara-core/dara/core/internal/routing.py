@@ -21,6 +21,7 @@ import os
 from functools import wraps
 from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional, cast
+from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry
 
 import pandas
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
@@ -30,7 +31,7 @@ from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import ActionResolverDef, BaseTask
 from dara.core.configuration import Configuration
 from dara.core.interactivity.actions import ActionContext, ActionInputs
 from dara.core.interactivity.data_variable import DataVariable
@@ -123,7 +124,7 @@ def create_router(config: Configuration):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        action = await registry_mgr.get(action_registry, uid)
+        action_def: ActionResolverDef = await registry_mgr.get(action_registry, uid)
         extras = None
 
         # If extras was provided, it was normalized
@@ -132,7 +133,7 @@ def create_router(config: Configuration):
 
         ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
 
-        result = await execute_action(action, ctx, store, task_mgr)
+        result = await action_def.execute_action(action_def.resolver, ctx, store, task_mgr)
 
         # MetaTask was created so run it and return it's ID
         if isinstance(result, BaseTask):
@@ -198,15 +199,15 @@ def create_router(config: Configuration):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        comp = await registry_mgr.get(component_registry, component)
+        comp_def = await registry_mgr.get(component_registry, component)
 
-        if isinstance(comp, PyComponentDef):
+        if isinstance(comp_def, PyComponentDef):
             static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
             values = denormalize(body.values.data, body.values.lookup)
 
-            response = await render_component(comp, store, task_mgr, values, static_kwargs)
+            response = await comp_def.render_component(comp_def, store, task_mgr, values, static_kwargs)
 
-            dev_logger.debug(f'PyComponent {comp.func.__name__}', 'return value', {'value': response})
+            dev_logger.debug(f'PyComponent {comp_def.func.__name__}', 'return value', {'value': response})
 
             if isinstance(response, BaseTask):
                 await task_mgr.run_task(response, body.ws_channel)
@@ -263,7 +264,7 @@ def create_router(config: Configuration):
             store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            data_variable_entry = await registry_mgr.get(data_variable_registry, uid)
+            data_variable_entry: DataVariableRegistryEntry = await registry_mgr.get(data_variable_registry, uid)
 
             data = None
 
@@ -278,7 +279,7 @@ def create_router(config: Configuration):
 
                 derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
 
-                data = await DerivedDataVariable.get_data(
+                data = await data_variable_entry.get_data(
                     derived_variable_entry,
                     data_variable_entry,
                     body.cache_key,
@@ -290,7 +291,7 @@ def create_router(config: Configuration):
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
             elif data_variable_entry.type == 'plain':
-                data = await DataVariable.get_value(
+                data = await data_variable_entry.get_data(
                     data_variable_entry,
                     store,
                     body.filters,
@@ -321,17 +322,17 @@ def create_router(config: Configuration):
         try:
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable = await registry_mgr.get(data_variable_registry, uid)
+            variable_def = await registry_mgr.get(data_variable_registry, uid)
 
-            if variable.type == 'plain':
-                return await DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
+            if variable_def.type == 'plain':
+                return await variable_def.get_total_count(variable_def, store, body.filters if body is not None else None)
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
                     status_code=400, detail="Cache key is required when requesting DerivedDataVariable's count"
                 )
 
-            return await DerivedDataVariable.get_total_count(variable, store, body.cache_key, body.filters)
+            return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -405,15 +406,11 @@ def create_router(config: Configuration):
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         store: CacheStore = utils_registry.get('Store')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        variable = await registry_mgr.get(derived_variable_registry, uid)
+        variable_def = await registry_mgr.get(derived_variable_registry, uid)
 
         values = denormalize(body.values.data, body.values.lookup)
 
-        if body.is_data_variable:
-            # This should only be called by the frontend when requesting a data variable, as a first step to update the cached value
-            result = await DerivedDataVariable.get_value(variable, store, task_mgr, values, body.force)
-        else:
-            result = await DerivedVariable.get_value(variable, store, task_mgr, values, body.force)
+        result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force)
 
         response: Any = result
 
@@ -423,7 +420,7 @@ def create_router(config: Configuration):
             response = {'task_id': result['value'].task_id, 'cache_key': result['cache_key']}
 
         dev_logger.debug(
-            f'DerivedVariable {variable.uid[:3]}..{variable.uid[-3:]}',
+            f'DerivedVariable {variable_def.uid[:3]}..{variable_def.uid[-3:]}',
             'return value',
             {'value': response, 'uid': uid},
         )

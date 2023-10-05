@@ -22,6 +22,7 @@ import uuid
 from enum import Enum
 from typing import (
     Any,
+    Awaitable,
     Callable,
     ClassVar,
     Generic,
@@ -408,6 +409,9 @@ class PyComponentDef(BaseModel):
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
     fallback: Optional[BaseFallback] = None
     polling_interval: Optional[int] = None
+    render_component: Callable[..., Awaitable[Any]]
+    """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
+
     type: str = Field(default=ComponentType.PY, const=True)
 
 

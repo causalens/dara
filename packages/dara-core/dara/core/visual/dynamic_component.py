@@ -141,6 +141,7 @@ def py_component(
                     dynamic_kwargs={},
                     fallback=fallback_component,
                     polling_interval=polling_interval,
+                    render_component=render_component
                 )
                 component_registry.register(str(uid), py_comp)
 

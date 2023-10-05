@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import abc
-from typing import Literal, Optional
+from typing import Any, Awaitable, Callable, Literal, Optional
 
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.any_variable import AnyVariable
@@ -47,6 +47,11 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
     """
 
     type: Literal['plain', 'derived']
+    get_data: Callable[..., Awaitable[Any]]
+    """Handler to get the data from the data variable. Defaults to DataVariable.get_value for type=plain, and DerivedDataVariable.get_data for type=derived"""
+
+    get_total_count: Callable[..., Awaitable[int]]
+    """Handler to get the total number of rows in the data variable. Defaults to DataVariable.get_total_count for type=plain, and DerivedDataVariable.get_total_count for type=derived"""
 
     class Config:
         extra = 'forbid'

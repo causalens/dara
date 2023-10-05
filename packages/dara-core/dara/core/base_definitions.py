@@ -403,6 +403,11 @@ class ActionDef(BaseModel):
     py_module: str
     js_module: Optional[str]
 
+class ActionResolverDef(BaseModel):
+    resolver: Callable
+    """Resolver function for the action"""
+    execute_action: Callable
+    """Execute function for the action, default dara.core.internal.execute_action"""
 
 class ActionInstance(DaraBaseModel):
     """
@@ -437,8 +442,9 @@ class ActionInstance(DaraBaseModel):
         :param resolver: action resolver for which context will be passed to
         """
         from dara.core.internal.registries import action_registry
+        from dara.core.internal.execute_action import execute_action
 
-        action_registry.register(uid, resolver)
+        action_registry.register(uid, ActionResolverDef(resolver=resolver, execute_action=execute_action))
 
 
 Action = Union[ActionInstance, List[ActionInstance]]
