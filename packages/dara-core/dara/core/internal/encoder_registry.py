@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-from typing import Any, Callable, MutableMapping, Optional, Type
+from typing import Any, Callable, MutableMapping, Type
 
 import numpy
 import pandas
@@ -46,7 +46,7 @@ def _get_numpy_str_encoder(typ: Type[Any]):
     """
     return Encoder(serialize=lambda x: str(x), deserialize=lambda x: typ(x))
 
-def _get_pandas_array_encoder(array_type: Type[Any], dtype: Type[Any], raise_: bool = False):
+def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = False):
     return Encoder(
         serialize=lambda x: x.astype(str).tolist(),
         deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype)
