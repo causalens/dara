@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Coroutine, Dict, Literal
+from typing import Callable, Coroutine, Dict, Literal, TypeVar
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -31,6 +31,9 @@ RegistryLookupKey = Literal[
 CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
 
 
+KeyT = TypeVar('KeyT', bound=str)
+ValueT = TypeVar('ValueT')
+
 class RegistryLookup:
     """
     Manages registry Lookup.
@@ -40,22 +43,22 @@ class RegistryLookup:
         self.handlers = handlers
 
     @async_dedupe
-    async def get(self, registry: Registry, uid: str):
+    async def get(self, registry: Registry[KeyT, ValueT], key: KeyT) -> ValueT:
         """
-        Get the entry from registry by uid.
-        If uid is not in registry and it has a external handler that defined, will execute the handler
+        Get the entry from registry by key.
+        If key is not in registry and it has a external handler that defined, will execute the handler
 
         :param registry: target registry
-        :param uid: entry id
+        :param key: entry key
         """
         try:
-            return registry.get(uid)
+            return registry.get(key)
         except KeyError as e:
             if registry.name in self.handlers:
                 func = self.handlers[registry.name]  # type: ignore
-                entry = await func(uid)
-                registry.register(uid, entry)
+                entry = await func(key)
+                registry.register(key, entry)
                 return entry
             raise ValueError(
-                f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
+                f'Could not find uid {key} in {registry.name} registry, did you register it before the app was initialized?'
             ).with_traceback(e.__traceback__)

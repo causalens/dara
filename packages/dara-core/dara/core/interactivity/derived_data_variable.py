@@ -117,7 +117,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         data_variable_registry.register(
             str(self.uid),
-            DataVariableRegistryEntry(type='derived', cache=cache, uid=str(self.uid)),
+            DataVariableRegistryEntry(type='derived', cache=cache, uid=str(self.uid))
         )
 
     @staticmethod

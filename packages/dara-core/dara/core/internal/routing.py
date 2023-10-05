@@ -21,6 +21,7 @@ import os
 from functools import wraps
 from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional, cast
+from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry
 
 import pandas
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
@@ -33,13 +34,10 @@ from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import BaseTask
 from dara.core.configuration import Configuration
 from dara.core.interactivity.actions import ActionContext, ActionInputs
-from dara.core.interactivity.data_variable import DataVariable
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
-from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.derived_variable import DerivedVariableRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import get_by_code
-from dara.core.internal.execute_action import execute_action
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
@@ -51,19 +49,18 @@ from dara.core.internal.registries import (
     latest_value_registry,
     static_kwargs_registry,
     template_registry,
-    upload_resolver_registry,
     utils_registry,
+    handlers_registry
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
-from dara.core.internal.utils import get_cache_scope, run_user_handler
+from dara.core.internal.utils import get_cache_scope, run_handler_by_name
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import (
     CURRENT_COMPONENT_ID,
     PyComponentDef,
-    render_component,
 )
 
 
@@ -132,7 +129,7 @@ def create_router(config: Configuration):
 
         ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
 
-        result = await execute_action(action, ctx, store, task_mgr)
+        result = await run_handler_by_name('execute_action', args=(action, ctx, store, task_mgr))
 
         # MetaTask was created so run it and return it's ID
         if isinstance(result, BaseTask):
@@ -198,15 +195,15 @@ def create_router(config: Configuration):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        comp = await registry_mgr.get(component_registry, component)
+        comp_entry = await registry_mgr.get(component_registry, component)
 
-        if isinstance(comp, PyComponentDef):
+        if isinstance(comp_entry, PyComponentDef):
             static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
             values = denormalize(body.values.data, body.values.lookup)
 
-            response = await render_component(comp, store, task_mgr, values, static_kwargs)
+            response = await run_handler_by_name('render_component', args=(comp_entry, store, task_mgr, values, static_kwargs))
 
-            dev_logger.debug(f'PyComponent {comp.func.__name__}', 'return value', {'value': response})
+            dev_logger.debug(f'PyComponent {comp_entry.func.__name__}', 'return value', {'value': response})
 
             if isinstance(response, BaseTask):
                 await task_mgr.run_task(response, body.ws_channel)
@@ -278,24 +275,25 @@ def create_router(config: Configuration):
 
                 derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
 
-                data = await DerivedDataVariable.get_data(
-                    derived_variable_entry,
+                data = await run_handler_by_name(
+                    'DerivedDataVariable.get_data',
+                    args=(derived_variable_entry,
                     data_variable_entry,
                     body.cache_key,
                     store,
                     body.filters,
-                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
+                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index))
                 )
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
             elif data_variable_entry.type == 'plain':
-                data = await DataVariable.get_value(
+                data = await run_handler_by_name('DataVariable.get_value', args=(
                     data_variable_entry,
                     store,
                     body.filters,
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
-                )
+                ))
 
             dev_logger.debug(
                 f'DataVariable {data_variable_entry.uid[:3]}..{data_variable_entry.uid[-3:]}',
@@ -324,14 +322,14 @@ def create_router(config: Configuration):
             variable = await registry_mgr.get(data_variable_registry, uid)
 
             if variable.type == 'plain':
-                return await DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
+                return await run_handler_by_name('DataVariable.get_total_count', args=(variable, store, body.filters if body is not None else None))
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
                     status_code=400, detail="Cache key is required when requesting DerivedDataVariable's count"
                 )
 
-            return await DerivedDataVariable.get_total_count(variable, store, body.cache_key, body.filters)
+            return await run_handler_by_name('DerivedDataVariable.get_total_count', args=(variable, store, body.cache_key, body.filters))
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -350,45 +348,7 @@ def create_router(config: Configuration):
             raise HTTPException(400, 'Neither resolver_id or data_uid specified, at least one of them is required')
 
         try:
-            store: CacheStore = utils_registry.get('Store')
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable = None
-
-            if data.filename is None:
-                raise HTTPException(status_code=400, detail='Filename not provided')
-
-            _name, file_type = os.path.splitext(data.filename)
-
-            if data_uid is not None:
-                try:
-                    variable = await registry_mgr.get(data_variable_registry, data_uid)
-                except KeyError:
-                    raise ValueError(f'Data Variable {data_uid} does not exist')
-
-                if variable.type == 'derived':
-                    raise HTTPException(status_code=400, detail='Cannot upload data to DerivedDataVariable')
-
-            content = cast(bytes, await data.read())
-
-            if resolver_id is not None:
-                resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
-
-                content = await run_user_handler(handler=resolver, args=(content, data.filename))
-
-            # If resolver is not provided, follow roughly the cl_dataset_parser logic
-            elif file_type == '.xlsx':
-                file_object_xlsx = io.BytesIO(content)
-                content = pandas.read_excel(file_object_xlsx, index_col=None)
-                content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
-            else:
-                # default to csv
-                file_object_csv = io.StringIO(content.decode('utf-8'))
-                content = pandas.read_csv(file_object_csv, index_col=0)
-                content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
-
-            # If a data variable is provided, update it with the new content
-            if variable:
-                DataVariable.update_value(variable, store, content)
+            await run_handler_by_name('upload', args=(data, data_uid, resolver_id))
 
             return {'status': 'SUCCESS'}
         except Exception as e:
@@ -409,11 +369,10 @@ def create_router(config: Configuration):
 
         values = denormalize(body.values.data, body.values.lookup)
 
-        if body.is_data_variable:
-            # This should only be called by the frontend when requesting a data variable, as a first step to update the cached value
-            result = await DerivedDataVariable.get_value(variable, store, task_mgr, values, body.force)
-        else:
-            result = await DerivedVariable.get_value(variable, store, task_mgr, values, body.force)
+        result = await run_handler_by_name(
+            'DerivedDataVariable.get_value' if body.is_data_variable else 'DerivedVariable.get_value',
+            args=(variable, store, task_mgr, values, body.force)
+        )
 
         response: Any = result
 

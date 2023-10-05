@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict, Literal
 
 from dara.core.base_definitions import ActionDef
 from dara.core.configuration import Configuration
@@ -42,6 +42,12 @@ from dara.core.interactivity.actions import (
     UpdateVariable,
     UpdateVariableDef,
 )
+from dara.core.interactivity.any_data_variable import upload
+from dara.core.interactivity.any_variable import get_current_value
+from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.internal.execute_action import execute_action
 from dara.core.internal.cache_store import CacheStore
 from dara.core.visual.components import (
     DefaultFallbackDef,
@@ -62,6 +68,7 @@ from dara.core.visual.components import (
     TopBarFrame,
     TopBarFrameDef,
 )
+from dara.core.visual.dynamic_component import render_component
 from dara.core.visual.template import TemplateBuilder
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -71,8 +78,27 @@ from dara.core.visual.template import TemplateBuilder
 # Store needs to exist earlier
 _store = CacheStore()
 
-INITIAL_CORE_INTERNALS = {'Store': _store}
+UtilsKeys = Literal[
+    'Store', 'RegistryLookup', 'TaskGroup', 'WebsocketManager', 'TaskManager', 'TaskPool',
+]
+INITIAL_CORE_INTERNALS: Dict[UtilsKeys, Any] = {'Store': _store, 'RegistryLookup': None, 'TaskGroup': None, 'WebsocketManager': None, 'TaskManager': None, 'TaskPool': None,}
 
+HandlerKeys = Literal[
+    'execute_action', 'upload', 'render_component', 'get_current_value', 'DataVariable.get_value', 'DataVariable.get_total_count', 'DerivedVariable.get_value', 'DerivedDataVariable.get_data', 'DerivedDataVariable.get_value', 'DerivedDataVariable.get_total_count'
+]
+INITIAL_HANDLERS: Dict[HandlerKeys, Any] = {
+    'execute_action': execute_action,
+    'upload': upload,
+    'render_component': render_component,
+    'get_current_value': get_current_value,
+    'DataVariable.get_value': DataVariable.get_value,
+    'DataVariable.get_total_count': DataVariable.get_total_count,
+    'DerivedVariable.get_value': DerivedVariable.get_value,
+    'DerivedDataVariable.get_data': DerivedDataVariable.get_data,
+    'DerivedDataVariable.get_value': DerivedDataVariable.get_value,
+    'DerivedDataVariable.get_total_count': DerivedDataVariable.get_total_count,
+}
+"""This stores the core internal functions that are used by dara.core. Can be overriden to swap out the implementation"""
 
 # These components are provided by the core JS of this module
 CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
