@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.2.2
+
+-   Fixed an issue where the default encoders for certain types such as `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
+
 ## 1.2.1
 
 -   Fixed an issue where `DataVariable` would fail to initialize with data when created within a synchronous handler function

@@ -20,8 +20,8 @@ from __future__ import annotations
 import asyncio
 from typing import Optional, Union
 
-from anyio.abc import TaskGroup
 from anyio import from_thread
+from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pydantic import BaseModel
 
@@ -121,7 +121,6 @@ class DataVariable(AnyDataVariable):
                     # Fallback - we're in an external thread without an event loop, so we need to use a blocking portal
                     with from_thread.start_blocking_portal() as portal:
                         portal.call(self._update, var_entry, store, data)
-
 
     @staticmethod
     def _get_cache_key(uid: str) -> str:
