@@ -44,7 +44,6 @@ from dara.core.logging import dev_logger
 
 if TYPE_CHECKING:
     from dara.core.configuration import ConfigurationBuilder
-    from dara.core.defaults import HandlerKeys
 
 
 # CacheScope stores as a key an user if cache is set to users, a session_id if cache is sessions or is set to 'global' otherwise
@@ -89,21 +88,6 @@ async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict 
         else:
             return await run_in_threadpool(handler, *args, **kwargs)
 
-async def run_handler_by_name(handler_name: HandlerKeys, args: Sequence = [], kwargs: dict = {}) -> Any:
-    """
-    Run a handler function from the handlers registry.
-
-    :param handler_name: name of the handler function
-    :param args: list of arguments to pass to the function
-    :param kwargs: dict of kwargs to past to the function
-    """
-    from dara.core.internal.registries import handlers_registry, utils_registry
-    from dara.core.internal.registry_lookup import RegistryLookup
-
-    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    handler = await registry_mgr.get(handlers_registry, handler_name)
-
-    return await run_user_handler(handler, args, kwargs)
 
 def import_config(config_path: str) -> Tuple[ModuleType, ConfigurationBuilder]:
     """

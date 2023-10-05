@@ -18,10 +18,12 @@ limitations under the License.
 from __future__ import annotations
 
 import abc
+import inspect
 import uuid
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import anyio
 from fastapi.encoders import jsonable_encoder
@@ -33,10 +35,15 @@ from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.internal.utils import run_handler_by_name
 from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
+
+GET_VALUE_OVERRIDE = ContextVar[Optional[Callable[[dict], Any]]]('GET_VALUE_OVERRIDE', default=None)
+"""
+Optional context variable which can be used to override the default behaviour of `get_current_value()`.
+"""
+
 
 async def get_current_value(variable: dict, timeout: float = 3) -> Any:
     """
@@ -49,6 +56,15 @@ async def get_current_value(variable: dict, timeout: float = 3) -> Any:
     :param variable: dict representation of the variable
     :param timeout: time to wait for a value before raising a TimeoutError
     """
+    getter_override = GET_VALUE_OVERRIDE.get()
+    if getter_override is not None:
+        result = getter_override(variable)
+
+        if inspect.iscoroutine(result):
+            return await result
+
+        return result
+
     from dara.core.internal.dependency_resolution import resolve_dependency
     from dara.core.internal.registries import (
         auth_registry,
@@ -286,4 +302,4 @@ class AnyVariable(BaseModel, abc.ABC):
 
         :param timeout: time to wait for a value before raising a TimeoutError
         """
-        return await run_handler_by_name('get_current_value', args=(jsonable_encoder(self), timeout))
+        return await get_current_value(jsonable_encoder(self), timeout)
