@@ -45,7 +45,7 @@ Optional context variable which can be used to override the default behaviour of
 """
 
 
-async def get_current_value(variable: dict, timeout: float = 3) -> Any:
+async def get_current_value(variable: dict, timeout: float = 3, raw: bool = False) -> Any:
     """
     Retrieve the current value of the variable for the current user
 
@@ -55,6 +55,7 @@ async def get_current_value(variable: dict, timeout: float = 3) -> Any:
 
     :param variable: dict representation of the variable
     :param timeout: time to wait for a value before raising a TimeoutError
+    :param raw: whether to return the raw result
     """
     getter_override = GET_VALUE_OVERRIDE.get()
     if getter_override is not None:
@@ -199,6 +200,11 @@ async def get_current_value(variable: dict, timeout: float = 3) -> Any:
 
             # Skip values from clients where the variable is not registered
             if raw_result == NOT_REGISTERED:
+                continue
+
+            # If returning raw results, skip resolving at this point
+            if raw:
+                results[session] = raw_result
                 continue
 
             # Impersonate the session so session-based caching works correctly

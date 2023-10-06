@@ -278,6 +278,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         :param args: the arguments to call the underlying function with
         :param force: whether to ignore cache
         """
+        assert var_entry.func is not None, 'DerivedVariable function is not defined'
+
         histogram = RUNTIME_METRICS_TRACKER.get_dv_histogram(var_entry.uid)
 
         if var_entry.run_as_task:
@@ -474,7 +476,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
 class DerivedVariableRegistryEntry(CachedRegistryEntry):
     deps: Optional[List[int]]
-    func: Callable[..., Any]
+    func: Optional[Callable[..., Any]]
     run_as_task: bool
     variables: List[AnyVariable]
     polling_interval: Optional[int]

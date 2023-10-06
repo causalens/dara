@@ -404,7 +404,7 @@ class JsComponentDef(BaseModel):
 class PyComponentDef(BaseModel):
     """Definition of a Python Component"""
 
-    func: Callable[..., Any]
+    func: Optional[Callable[..., Any]]
     name: str
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
     fallback: Optional[BaseFallback] = None
