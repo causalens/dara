@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal: allow handler implementation substitution for variables, `py_component`, upload resolver and action resolver on a registry entry level
+
 ## 1.2.2
 
 -   Fixed an issue where the default encoders for certain types such as `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
