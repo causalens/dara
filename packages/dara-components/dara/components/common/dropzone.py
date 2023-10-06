@@ -20,7 +20,7 @@ from uuid import uuid4
 
 from pandas import DataFrame
 
-from dara.core.base_definitions import Action
+from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import DataVariable
 
@@ -69,12 +69,11 @@ class UploadDropzone(StyledComponentInstance):
         :param on_drop: optional action triggered when a file is successfully uploaded
         """
         from dara.core.internal.registries import upload_resolver_registry
+        from dara.core.interactivity.any_data_variable import upload
 
         # Register the resolver function if provided
-        uid = None
-        if resolver is not None:
-            uid = str(uuid4())
-            upload_resolver_registry.register(uid, resolver)
+        uid = str(uuid4())
+        upload_resolver_registry.register(uid, UploadResolverDef(resolver=resolver, upload=upload))
 
         super().__init__(target=target, on_drop=on_drop, accept=accept, **kwargs)
 
