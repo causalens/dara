@@ -573,13 +573,11 @@ class DownloadContent(ActionInstance):
         """
         uid = str(uuid.uuid4())
 
-        from dara.core.internal.registries import action_registry
-
         async def download_file_code(ctx: ComponentActionContext):
             resolved_path = await run_user_handler(resolver, (ctx,))
             return generate_download_code(resolved_path, cleanup_file)
 
-        action_registry.register(uid, download_file_code)
+        self.register_resolver(uid, download_file_code)
 
         super().__init__(uid=uid, extras=extras)
 

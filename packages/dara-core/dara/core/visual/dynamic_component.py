@@ -141,6 +141,7 @@ def py_component(
                     dynamic_kwargs={},
                     fallback=fallback_component,
                     polling_interval=polling_interval,
+                    render_component=render_component,
                 )
                 component_registry.register(str(uid), py_comp)
 
@@ -239,6 +240,8 @@ async def render_component(
     :param values: mapping of var names to current values for dynamic arguments
     :param static_kwargs: mapping of var names to current values for static arguments
     """
+    assert definition.func is not None, 'PyComponent must have a function defined'
+
     eng_logger.info(
         f'PyComponent {definition.func.__name__} rendering',
         {'uid': definition.name, 'values': values, 'static_kwargs': static_kwargs},

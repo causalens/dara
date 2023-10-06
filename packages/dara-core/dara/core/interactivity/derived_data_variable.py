@@ -109,6 +109,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             polling_interval=polling_interval,
             deps=deps,
             run_as_task=run_as_task,
+            _get_value=DerivedDataVariable.get_value,
         )
 
         # Also put an entry in the data variable registry under the same uid; this way we can send a request
@@ -117,7 +118,13 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         data_variable_registry.register(
             str(self.uid),
-            DataVariableRegistryEntry(type='derived', cache=cache, uid=str(self.uid)),
+            DataVariableRegistryEntry(
+                type='derived',
+                cache=cache,
+                uid=str(self.uid),
+                get_data=DerivedDataVariable.get_data,
+                get_total_count=DerivedDataVariable.get_total_count,
+            ),
         )
 
     @staticmethod

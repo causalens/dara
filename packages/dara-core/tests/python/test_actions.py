@@ -24,7 +24,7 @@ def test_side_effect():
         'extras': [var.dict()],
         'block': False,
     }
-    assert action_registry.get(action.uid)(2) == 4
+    assert action_registry.get(action.uid).resolver(2) == 4
 
 
 def test_navigate_to():
@@ -50,7 +50,7 @@ def test_navigate_to():
         'url': None,
         'extras': None,
     }
-    assert action_registry.get(action.uid)('test') == 'url/test'
+    assert action_registry.get(action.uid).resolver('test') == 'url/test'
 
 
 def test_update_var():
@@ -70,7 +70,7 @@ def test_update_var():
         'variable': var.dict(),
         'extras': [var2.dict()],
     }
-    assert action_registry.get(action.uid)() == 'test'
+    assert action_registry.get(action.uid).resolver() == 'test'
 
 
 def test_update_url_var():
@@ -84,7 +84,7 @@ def test_update_url_var():
     action = UpdateVariable(resolver, var)
 
     assert action.dict() == {'name': 'UpdateVariable', 'uid': action.uid, 'variable': var.dict(), 'extras': None}
-    assert action_registry.get(action.uid)() == 'test'
+    assert action_registry.get(action.uid).resolver() == 'test'
 
 
 def test_download_var():

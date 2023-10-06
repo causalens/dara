@@ -20,7 +20,17 @@ from __future__ import annotations
 import json
 import uuid
 from inspect import Parameter, isclass, signature
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
@@ -83,6 +93,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         polling_interval: Optional[int] = None,
         deps: Optional[List[AnyVariable]] = None,
         uid: Optional[str] = None,
+        _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
     ):
         """
         A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other
@@ -149,6 +160,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 uid=str(self.uid),
                 variables=variables,
                 deps=deps_indexes,
+                get_value=_get_value or DerivedVariable.get_value,
             ),
         )
 
@@ -276,6 +288,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         :param args: the arguments to call the underlying function with
         :param force: whether to ignore cache
         """
+        assert var_entry.func is not None, 'DerivedVariable function is not defined'
+
         histogram = RUNTIME_METRICS_TRACKER.get_dv_histogram(var_entry.uid)
 
         if var_entry.run_as_task:
@@ -472,10 +486,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
 class DerivedVariableRegistryEntry(CachedRegistryEntry):
     deps: Optional[List[int]]
-    func: Callable[..., Any]
+    func: Optional[Callable[..., Any]]
     run_as_task: bool
     variables: List[AnyVariable]
     polling_interval: Optional[int]
+    get_value: Callable[..., Awaitable[Any]]
+    """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
 
     class Config:
         extra = 'forbid'

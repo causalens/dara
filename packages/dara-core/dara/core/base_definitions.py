@@ -404,6 +404,15 @@ class ActionDef(BaseModel):
     js_module: Optional[str]
 
 
+class ActionResolverDef(BaseModel):
+    uid: str
+
+    resolver: Optional[Callable]
+    """Resolver function for the action"""
+    execute_action: Callable
+    """Execute function for the action, default dara.core.internal.execute_action"""
+
+
 class ActionInstance(DaraBaseModel):
     """
     Base class for actions
@@ -436,12 +445,20 @@ class ActionInstance(DaraBaseModel):
         :param uid: unique action indentifier
         :param resolver: action resolver for which context will be passed to
         """
+        from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
 
-        action_registry.register(uid, resolver)
+        action_registry.register(uid, ActionResolverDef(uid=uid, resolver=resolver, execute_action=execute_action))
 
 
 Action = Union[ActionInstance, List[ActionInstance]]
+
+
+class UploadResolverDef(BaseModel):
+    resolver: Optional[Callable]
+    """Optional custom resolver function for the upload"""
+    upload: Callable
+    """Upload handling function, default dara.core.interactivity.any_data_variable.upload"""
 
 
 class ComponentType(Enum):

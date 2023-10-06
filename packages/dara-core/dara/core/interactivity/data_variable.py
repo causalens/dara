@@ -96,7 +96,13 @@ class DataVariable(AnyDataVariable):
         # Register the variable with the dataset
         from dara.core.internal.registries import data_variable_registry
 
-        var_entry = DataVariableRegistryEntry(cache=cache, uid=str(self.uid), type='plain')
+        var_entry = DataVariableRegistryEntry(
+            cache=cache,
+            uid=str(self.uid),
+            type='plain',
+            get_data=DataVariable.get_value,
+            get_total_count=DataVariable.get_total_count,
+        )
         data_variable_registry.register(
             str(self.uid),
             var_entry,

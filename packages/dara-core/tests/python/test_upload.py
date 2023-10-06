@@ -6,10 +6,11 @@ from typing import Optional, Union
 import numpy
 import pytest
 from dara.core.auth import BasicAuthConfig
-from dara.core.base_definitions import Action
+from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import DataVariable
+from dara.core.interactivity.any_data_variable import upload as upload_impl
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.main import _start_application
 from async_asgi_testclient import TestClient
@@ -126,7 +127,7 @@ async def test_upload_data_variable_resolver_csv():
             new_content.columns = new_content.columns.str.replace('Unnamed: *', 'Test Rename ', regex=True)
             return new_content
 
-        upload_resolver_registry.register('test_id', resolver)
+        upload_resolver_registry.register('test_id', UploadResolverDef(resolver=resolver, upload=upload_impl))
 
         with open(os.path.join('./tests/data/churn_data_clean.csv'), 'rb') as f:
             # Manually encode the file together with formdata as asynctestclient does not

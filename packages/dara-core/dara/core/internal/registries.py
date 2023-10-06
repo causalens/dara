@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Any, Callable, Mapping, Set
 
 from dara.core.auth import BaseAuthConfig
-from dara.core.base_definitions import ActionDef
+from dara.core.base_definitions import ActionDef, ActionResolverDef, UploadResolverDef
 from dara.core.defaults import CORE_ACTIONS, CORE_COMPONENTS, INITIAL_CORE_INTERNALS
 from dara.core.definitions import (
     ComponentTypeAnnotation,
@@ -35,8 +35,8 @@ from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
 
 action_def_registry = Registry[ActionDef](RegistryType.ACTION_DEF, CORE_ACTIONS)   # all registered actions
-action_registry = Registry[Callable[..., Any]](RegistryType.ACTION)   # functions for actions requiring backend calls
-upload_resolver_registry = Registry[Callable[..., Any]](
+action_registry = Registry[ActionResolverDef](RegistryType.ACTION)   # functions for actions requiring backend calls
+upload_resolver_registry = Registry[UploadResolverDef](
     RegistryType.UPLOAD_RESOLVER
 )   # functions for upload resolvers requiring backend calls
 component_registry = Registry[ComponentTypeAnnotation](RegistryType.COMPONENTS, CORE_COMPONENTS)

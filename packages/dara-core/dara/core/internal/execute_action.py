@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Callable, Union
+from typing import Any, Union
 
-from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import ActionResolverDef, BaseTask
 from dara.core.interactivity import ActionContext, ActionInputs
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import (
@@ -31,7 +31,7 @@ from dara.core.logging import dev_logger
 
 
 async def execute_action(
-    action: Callable,
+    action_def: ActionResolverDef,
     ctx: ActionContext,
     store: CacheStore,
     task_mgr: TaskManager,
@@ -42,11 +42,15 @@ async def execute_action(
     Resolves 'extras' passed into an Action - DerivedVariables encountered are resolved into their values.
     If any of them are a Task/PendingTask, returns a MetaTask that can be awaited to retrieve the action.
 
-    :param action: callable to execute with provided values
+    :param action_def: resolver definition
     :param inputs: action inputs to pass into callable
     :param store: the store instance to check for cached values
     :param extras: extras to resolve and pass into callable
     """
+    action = action_def.resolver
+
+    assert action is not None, 'Action resolver must be defined'
+
     resolved_extras = []
 
     if ctx.inputs is not None:

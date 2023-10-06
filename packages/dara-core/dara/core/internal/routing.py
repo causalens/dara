@@ -16,11 +16,10 @@ limitations under the License.
 """
 
 import inspect
-import io
 import os
 from functools import wraps
 from importlib.metadata import version
-from typing import Any, Callable, List, Mapping, Optional, cast
+from typing import Any, Callable, List, Mapping, Optional
 
 import pandas
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
@@ -30,16 +29,13 @@ from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
 from dara.core.interactivity.actions import ActionContext, ActionInputs
-from dara.core.interactivity.data_variable import DataVariable
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
-from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import get_by_code
-from dara.core.internal.execute_action import execute_action
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
@@ -57,13 +53,12 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
-from dara.core.internal.utils import get_cache_scope, run_user_handler
+from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import (
     CURRENT_COMPONENT_ID,
     PyComponentDef,
-    render_component,
 )
 
 
@@ -123,7 +118,7 @@ def create_router(config: Configuration):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        action = await registry_mgr.get(action_registry, uid)
+        action_def: ActionResolverDef = await registry_mgr.get(action_registry, uid)
         extras = None
 
         # If extras was provided, it was normalized
@@ -132,7 +127,7 @@ def create_router(config: Configuration):
 
         ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
 
-        result = await execute_action(action, ctx, store, task_mgr)
+        result = await action_def.execute_action(action_def, ctx, store, task_mgr)
 
         # MetaTask was created so run it and return it's ID
         if isinstance(result, BaseTask):
@@ -198,15 +193,19 @@ def create_router(config: Configuration):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        comp = await registry_mgr.get(component_registry, component)
+        comp_def = await registry_mgr.get(component_registry, component)
 
-        if isinstance(comp, PyComponentDef):
+        if isinstance(comp_def, PyComponentDef):
             static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
             values = denormalize(body.values.data, body.values.lookup)
 
-            response = await render_component(comp, store, task_mgr, values, static_kwargs)
+            response = await comp_def.render_component(comp_def, store, task_mgr, values, static_kwargs)
 
-            dev_logger.debug(f'PyComponent {comp.func.__name__}', 'return value', {'value': response})
+            dev_logger.debug(
+                f'PyComponent {comp_def.func.__name__ if comp_def.func else "anonymous"}',
+                'return value',
+                {'value': response},
+            )
 
             if isinstance(response, BaseTask):
                 await task_mgr.run_task(response, body.ws_channel)
@@ -263,7 +262,7 @@ def create_router(config: Configuration):
             store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            data_variable_entry = await registry_mgr.get(data_variable_registry, uid)
+            data_variable_entry: DataVariableRegistryEntry = await registry_mgr.get(data_variable_registry, uid)
 
             data = None
 
@@ -278,7 +277,7 @@ def create_router(config: Configuration):
 
                 derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
 
-                data = await DerivedDataVariable.get_data(
+                data = await data_variable_entry.get_data(
                     derived_variable_entry,
                     data_variable_entry,
                     body.cache_key,
@@ -290,7 +289,7 @@ def create_router(config: Configuration):
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
             elif data_variable_entry.type == 'plain':
-                data = await DataVariable.get_value(
+                data = await data_variable_entry.get_data(
                     data_variable_entry,
                     store,
                     body.filters,
@@ -300,7 +299,7 @@ def create_router(config: Configuration):
             dev_logger.debug(
                 f'DataVariable {data_variable_entry.uid[:3]}..{data_variable_entry.uid[-3:]}',
                 'return value',
-                {'value': data.describe() if data is not None else None, 'uid': uid},  # type: ignore
+                {'value': data.describe() if isinstance(data, pandas.DataFrame) else None, 'uid': uid},  # type: ignore
             )
 
             if data is None:
@@ -308,7 +307,9 @@ def create_router(config: Configuration):
 
             # Explicitly convert to JSON to avoid implicit serialization;
             # return as records as that makes more sense in a JSON structure
-            return Response(df_to_json(data))   # type: ignore
+            return Response(
+                content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data, media_type='application/json'
+            )   # type: ignore
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -321,22 +322,24 @@ def create_router(config: Configuration):
         try:
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable = await registry_mgr.get(data_variable_registry, uid)
+            variable_def = await registry_mgr.get(data_variable_registry, uid)
 
-            if variable.type == 'plain':
-                return await DataVariable.get_total_count(variable, store, body.filters if body is not None else None)
+            if variable_def.type == 'plain':
+                return await variable_def.get_total_count(
+                    variable_def, store, body.filters if body is not None else None
+                )
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
                     status_code=400, detail="Cache key is required when requesting DerivedDataVariable's count"
                 )
 
-            return await DerivedDataVariable.get_total_count(variable, store, body.cache_key, body.filters)
+            return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
-    async def upload(
+    async def upload_data(
         data_uid: Optional[str] = None,
         data: UploadFile = File(),
         resolver_id: Optional[str] = Form(default=None),
@@ -346,49 +349,19 @@ def create_router(config: Configuration):
         Can run a custom resolver_id (if previously registered, otherwise runs a default one)
         and update a data variable with its return value (if target is specified).
         """
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
         if data_uid is None and resolver_id is None:
             raise HTTPException(400, 'Neither resolver_id or data_uid specified, at least one of them is required')
 
         try:
-            store: CacheStore = utils_registry.get('Store')
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable = None
-
-            if data.filename is None:
-                raise HTTPException(status_code=400, detail='Filename not provided')
-
-            _name, file_type = os.path.splitext(data.filename)
-
-            if data_uid is not None:
-                try:
-                    variable = await registry_mgr.get(data_variable_registry, data_uid)
-                except KeyError:
-                    raise ValueError(f'Data Variable {data_uid} does not exist')
-
-                if variable.type == 'derived':
-                    raise HTTPException(status_code=400, detail='Cannot upload data to DerivedDataVariable')
-
-            content = cast(bytes, await data.read())
-
-            if resolver_id is not None:
-                resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
-
-                content = await run_user_handler(handler=resolver, args=(content, data.filename))
-
-            # If resolver is not provided, follow roughly the cl_dataset_parser logic
-            elif file_type == '.xlsx':
-                file_object_xlsx = io.BytesIO(content)
-                content = pandas.read_excel(file_object_xlsx, index_col=None)
-                content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
+            # If resolver id is provided, run the custom
+            if resolver_id:
+                upload_resolver_def: UploadResolverDef = await registry_mgr.get(upload_resolver_registry, resolver_id)
+                await upload_resolver_def.upload(data, data_uid, resolver_id)
             else:
-                # default to csv
-                file_object_csv = io.StringIO(content.decode('utf-8'))
-                content = pandas.read_csv(file_object_csv, index_col=0)
-                content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
-
-            # If a data variable is provided, update it with the new content
-            if variable:
-                DataVariable.update_value(variable, store, content)
+                # Run the default logic as a fallback, e.g. programmatic upload
+                await upload(data, data_uid, resolver_id)
 
             return {'status': 'SUCCESS'}
         except Exception as e:
@@ -405,15 +378,11 @@ def create_router(config: Configuration):
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         store: CacheStore = utils_registry.get('Store')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-        variable = await registry_mgr.get(derived_variable_registry, uid)
+        variable_def = await registry_mgr.get(derived_variable_registry, uid)
 
         values = denormalize(body.values.data, body.values.lookup)
 
-        if body.is_data_variable:
-            # This should only be called by the frontend when requesting a data variable, as a first step to update the cached value
-            result = await DerivedDataVariable.get_value(variable, store, task_mgr, values, body.force)
-        else:
-            result = await DerivedVariable.get_value(variable, store, task_mgr, values, body.force)
+        result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force)
 
         response: Any = result
 
@@ -423,7 +392,7 @@ def create_router(config: Configuration):
             response = {'task_id': result['value'].task_id, 'cache_key': result['cache_key']}
 
         dev_logger.debug(
-            f'DerivedVariable {variable.uid[:3]}..{variable.uid[-3:]}',
+            f'DerivedVariable {variable_def.uid[:3]}..{variable_def.uid[-3:]}',
             'return value',
             {'value': response, 'uid': uid},
         )
