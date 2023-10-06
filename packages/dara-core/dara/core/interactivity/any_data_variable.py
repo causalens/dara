@@ -23,7 +23,7 @@ from typing import Any, Awaitable, Callable, Literal, Optional, cast
 import pandas
 from fastapi import UploadFile
 
-from dara.core.base_definitions import CachedRegistryEntry
+from dara.core.base_definitions import CachedRegistryEntry, UploadResolverDef
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store.cache_store import CacheStore
@@ -102,11 +102,15 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
 
     content = cast(bytes, await data.read())
 
+    resolver = None
+
+    # If Id is provided, lookup the definition from registry
     if resolver_id is not None:
-        resolver = await registry_mgr.get(upload_resolver_registry, resolver_id)
+        resolver_def: UploadResolverDef = await registry_mgr.get(upload_resolver_registry, resolver_id)
+        resolver = resolver_def.resolver
 
+    if resolver:
         content = await run_user_handler(handler=resolver, args=(content, data.filename))
-
     # If resolver is not provided, follow roughly the cl_dataset_parser logic
     elif file_type == '.xlsx':
         file_object_xlsx = io.BytesIO(content)
