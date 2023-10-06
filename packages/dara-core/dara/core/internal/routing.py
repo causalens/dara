@@ -16,12 +16,10 @@ limitations under the License.
 """
 
 import inspect
-import io
 import os
 from functools import wraps
 from importlib.metadata import version
-from typing import Any, Callable, List, Mapping, Optional, cast
-from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
+from typing import Any, Callable, List, Mapping, Optional
 
 import pandas
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
@@ -34,13 +32,10 @@ from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
 from dara.core.interactivity.actions import ActionContext, ActionInputs
-from dara.core.interactivity.data_variable import DataVariable
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
-from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import get_by_code
-from dara.core.internal.execute_action import execute_action
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
@@ -58,13 +53,12 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
-from dara.core.internal.utils import get_cache_scope, run_user_handler
+from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import (
     CURRENT_COMPONENT_ID,
     PyComponentDef,
-    render_component,
 )
 
 
@@ -207,7 +201,11 @@ def create_router(config: Configuration):
 
             response = await comp_def.render_component(comp_def, store, task_mgr, values, static_kwargs)
 
-            dev_logger.debug(f'PyComponent {comp_def.func.__name__ if comp_def.func else "anonymous"}', 'return value', {'value': response})
+            dev_logger.debug(
+                f'PyComponent {comp_def.func.__name__ if comp_def.func else "anonymous"}',
+                'return value',
+                {'value': response},
+            )
 
             if isinstance(response, BaseTask):
                 await task_mgr.run_task(response, body.ws_channel)
@@ -309,7 +307,9 @@ def create_router(config: Configuration):
 
             # Explicitly convert to JSON to avoid implicit serialization;
             # return as records as that makes more sense in a JSON structure
-            return Response(content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data, media_type='application/json')   # type: ignore
+            return Response(
+                content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data, media_type='application/json'
+            )   # type: ignore
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -325,7 +325,9 @@ def create_router(config: Configuration):
             variable_def = await registry_mgr.get(data_variable_registry, uid)
 
             if variable_def.type == 'plain':
-                return await variable_def.get_total_count(variable_def, store, body.filters if body is not None else None)
+                return await variable_def.get_total_count(
+                    variable_def, store, body.filters if body is not None else None
+                )
 
             if body is None or body.cache_key is None:
                 raise HTTPException(

@@ -118,7 +118,13 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         data_variable_registry.register(
             str(self.uid),
-            DataVariableRegistryEntry(type='derived', cache=cache, uid=str(self.uid), get_data=DerivedDataVariable.get_data, get_total_count=DerivedDataVariable.get_total_count),
+            DataVariableRegistryEntry(
+                type='derived',
+                cache=cache,
+                uid=str(self.uid),
+                get_data=DerivedDataVariable.get_data,
+                get_total_count=DerivedDataVariable.get_total_count,
+            ),
         )
 
     @staticmethod

@@ -20,14 +20,15 @@ import io
 import os
 from typing import Any, Awaitable, Callable, Literal, Optional, cast
 
+import pandas
+from fastapi import UploadFile
+
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
-from fastapi import UploadFile
-import pandas
 
 
 class AnyDataVariable(AnyVariable, abc.ABC):
@@ -52,6 +53,7 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
     """
     Registry entry for DataVariable.
     """
+
     type: Literal['plain', 'derived']
     get_data: Callable[..., Awaitable[Any]]
     """Handler to get the data from the data variable. Defaults to DataVariable.get_value for type=plain, and DerivedDataVariable.get_data for type=derived"""
@@ -63,6 +65,7 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
         extra = 'forbid'
         arbitrary_types_allowed = True
 
+
 async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: Optional[str] = None):
     """
     Handler for uploading data.
@@ -72,7 +75,11 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
     :param resolver_id: optional id of the upload resolver to use, falls back to default handlers for csv/xlsx
     """
     from dara.core.interactivity.data_variable import DataVariable
-    from dara.core.internal.registries import data_variable_registry, upload_resolver_registry, utils_registry
+    from dara.core.internal.registries import (
+        data_variable_registry,
+        upload_resolver_registry,
+        utils_registry,
+    )
 
     store: CacheStore = utils_registry.get('Store')
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')

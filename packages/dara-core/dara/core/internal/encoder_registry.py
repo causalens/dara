@@ -27,8 +27,10 @@ class Encoder(TypedDict):
     serialize: Callable
     deserialize: Callable
 
+
 def _not_implemented(x, dtype):
     raise NotImplementedError(f'No deserialization implementation for item {x} of dtype {dtype}')
+
 
 def _get_numpy_dtypes_encoder(typ: Type[Any]):
     """
@@ -38,6 +40,7 @@ def _get_numpy_dtypes_encoder(typ: Type[Any]):
     """
     return Encoder(serialize=lambda x: x.item(), deserialize=lambda x: typ(x))
 
+
 def _get_numpy_str_encoder(typ: Type[Any]):
     """
     Construct numpy str datatype
@@ -46,11 +49,13 @@ def _get_numpy_str_encoder(typ: Type[Any]):
     """
     return Encoder(serialize=lambda x: str(x), deserialize=lambda x: typ(x))
 
+
 def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = False):
     return Encoder(
         serialize=lambda x: x.astype(str).tolist(),
-        deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype)
+        deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype),
     )
+
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
@@ -60,7 +65,9 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     numpy.int32: _get_numpy_dtypes_encoder(numpy.int32),
     numpy.int64: _get_numpy_dtypes_encoder(numpy.int64),
     numpy.longlong: _get_numpy_dtypes_encoder(numpy.longlong),
-    numpy.timedelta64:  Encoder(serialize=lambda x: x.astype('timedelta64[ns]').item(), deserialize=lambda x: numpy.timedelta64(int(x), 'ns')),
+    numpy.timedelta64: Encoder(
+        serialize=lambda x: x.astype('timedelta64[ns]').item(), deserialize=lambda x: numpy.timedelta64(int(x), 'ns')
+    ),
     numpy.uint8: _get_numpy_dtypes_encoder(numpy.uint8),
     numpy.uint16: _get_numpy_dtypes_encoder(numpy.uint16),
     numpy.uint32: _get_numpy_dtypes_encoder(numpy.uint32),
@@ -79,13 +86,15 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     numpy.bool_: _get_numpy_dtypes_encoder(numpy.bool_),
     numpy.datetime64: Encoder(serialize=lambda x: x.item().isoformat(), deserialize=lambda x: numpy.datetime64(x)),
     ExtensionArray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x)),
-    pandas.arrays.IntervalArray: _get_pandas_array_encoder(pandas.arrays.IntervalArray, pandas.Interval,True),
-    pandas.arrays.PeriodArray: _get_pandas_array_encoder(pandas.arrays.PeriodArray, pandas.Period,True),
+    pandas.arrays.IntervalArray: _get_pandas_array_encoder(pandas.arrays.IntervalArray, pandas.Interval, True),
+    pandas.arrays.PeriodArray: _get_pandas_array_encoder(pandas.arrays.PeriodArray, pandas.Period, True),
     pandas.arrays.DatetimeArray: _get_pandas_array_encoder(pandas.arrays.DatetimeArray, numpy.dtype('datetime64[ns]')),
     pandas.arrays.IntegerArray: _get_pandas_array_encoder(pandas.arrays.IntegerArray, numpy.dtype('int')),
     pandas.arrays.FloatingArray: _get_pandas_array_encoder(pandas.arrays.FloatingArray, numpy.dtype('float')),
     pandas.arrays.StringArray: _get_pandas_array_encoder(pandas.arrays.StringArray, str),
-    pandas.arrays.BooleanArray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x, dtype='boolean')),
+    pandas.arrays.BooleanArray: Encoder(
+        serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x, dtype='boolean')
+    ),
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
