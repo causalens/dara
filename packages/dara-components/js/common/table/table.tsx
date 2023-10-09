@@ -568,6 +568,7 @@ function Table(props: TableProps): JSX.Element {
                         position: 'absolute',
                         right: 0,
                         top: props.searchable ? '3rem' : 0,
+                        width: 'calc(100% - 1px)',
                     }}
                 >
                     <UiTable
