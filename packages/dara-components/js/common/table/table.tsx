@@ -558,6 +558,7 @@ function Table(props: TableProps): JSX.Element {
                 </TableSearch>
             )}
             {/* paddingBottom is needed due to an issue with AutoSizer constantly recalculating the height */}
+            {/* width is needed due to an issue with AutoSizer miscalculating the width to be a value greater than it should be */}
             {resolvedColumns && (
                 <div
                     style={{
@@ -568,6 +569,7 @@ function Table(props: TableProps): JSX.Element {
                         position: 'absolute',
                         right: 0,
                         top: props.searchable ? '3rem' : 0,
+                        width: 'calc(100% - 1px)',
                     }}
                 >
                     <UiTable
