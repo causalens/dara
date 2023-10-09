@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.3.0
 
 -   Internal: allow handler implementation substitution for variables, `py_component`, upload resolver and action resolver on a registry entry level
 
