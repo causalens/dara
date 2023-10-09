@@ -1,7 +1,8 @@
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
-import type { AnyVariable } from '@/types';
+import type { ActionInstance, AnyVariable } from '@/types';
+import { ActionImpl } from '@/types/core';
 
 const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
@@ -74,6 +75,24 @@ export interface VariableRequestMessage {
     type: 'message';
 }
 
+export interface ActionMessage {
+    message: {
+        /**
+         * Action implementation instance
+         */
+        action: ActionImpl;
+        /**
+         * Timestamp of the action, used to ensure
+         */
+        timestamp: number;
+        /**
+         * Execution uid
+         */
+        uid: string;
+    };
+    type: 'message';
+}
+
 export interface CustomMessage {
     message: {
         data: any;
@@ -90,6 +109,7 @@ export type WebSocketMessage =
     | ServerTriggerMessage
     | ServerErrorMessage
     | VariableRequestMessage
+    | ActionMessage
     | CustomMessage;
 
 function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
@@ -106,6 +126,10 @@ function isServerErrorMessage(message: WebSocketMessage): message is ServerError
 
 function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
     return message.type === 'message' && 'variable' in message.message;
+}
+
+function isActionMessage(message: WebSocketMessage): message is ActionMessage {
+    return message.type === 'message' && 'action' in message.message;
 }
 
 function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
@@ -188,6 +212,7 @@ function onCloseWs(token: string, liveReload: boolean): void {
 }
 
 export interface WebSocketClientInterface {
+    actionMessages$: (executionId: string) => Observable<ActionImpl>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
@@ -224,6 +249,10 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.messages$ = new Subject();
         this.socket.addEventListener('message', (ev) => {
             const msg = JSON.parse(ev.data) as WebSocketMessage;
+            if (msg.type === 'message') {
+                console.log('raw msg:', msg);
+            }
+
             this.messages$.next(msg);
         });
 
@@ -284,12 +313,12 @@ export class WebSocketClient implements WebSocketClientInterface {
     progressUpdates$(...task_ids: string[]): Observable<ProgressNotificationMessage> {
         return this.messages$.pipe(
             filter(
-                (msg) =>
+                (msg): msg is ProgressNotificationMessage =>
                     isTaskNotification(msg) &&
                     msg.message.status === TaskStatus.PROGRESS &&
                     task_ids.includes(msg.message.task_id)
             )
-        ) as Observable<ProgressNotificationMessage>;
+        );
     }
 
     /**
@@ -299,24 +328,34 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     serverTriggers$(dataId: string): Observable<ServerTriggerMessage> {
         return this.messages$.pipe(
-            filter((msg) => isServerTriggerMessage(msg) && msg.message?.data_id === dataId)
-        ) as Observable<ServerTriggerMessage>;
+            filter((msg): msg is ServerTriggerMessage => isServerTriggerMessage(msg) && msg.message?.data_id === dataId)
+        );
     }
 
     /**
      * Get the observable to receive server error messages
      */
     serverErrors$(): Observable<ServerErrorMessage> {
-        return this.messages$.pipe(filter((msg) => isServerErrorMessage(msg))) as Observable<ServerErrorMessage>;
+        return this.messages$.pipe(filter((msg): msg is ServerErrorMessage => isServerErrorMessage(msg)));
     }
 
     /**
      * Get the observable to receive variable request messages
      */
     variableRequests$(): Observable<VariableRequestMessage> {
+        return this.messages$.pipe(filter((msg): msg is VariableRequestMessage => isVariableRequestMessage(msg)));
+    }
+
+    /**
+     * Get the observable to receive action implementations to execute for a given execution id
+     *
+     * @param executionId id of the execution to receive action implementations for
+     */
+    actionMessages$(executionId: string): Observable<ActionImpl> {
         return this.messages$.pipe(
-            filter((msg) => isVariableRequestMessage(msg))
-        ) as Observable<VariableRequestMessage>;
+            filter((msg): msg is ActionMessage => isActionMessage(msg) && msg.message.uid === executionId),
+            map((msg) => msg.message.action)
+        );
     }
 
     /**

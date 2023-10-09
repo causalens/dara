@@ -1,10 +1,10 @@
 import { useCallback, useContext } from 'react';
 
 import RegistriesCtx from '@/shared/context/registries-context';
-import { ActionDef, ActionInstance } from '@/types/core';
+import { ActionDef, ActionImpl } from '@/types/core';
 
 interface ActionRegistryInterface {
-    get: (instance: ActionInstance) => ActionDef;
+    get: (instance: ActionImpl) => ActionDef;
 }
 
 /**
@@ -15,11 +15,11 @@ function useActionRegistry(): ActionRegistryInterface {
     const { actionRegistry: actions } = useContext(RegistriesCtx);
 
     const get = useCallback(
-        (instance: ActionInstance): ActionDef => {
-            if (actions && actions[instance.name]) {
-                return actions[instance.name];
+        (impl: ActionImpl): ActionDef => {
+            if (actions && actions[impl.name]) {
+                return actions[impl.name];
             }
-            throw new Error(`Attempted to load an action (${instance.name}) that is not in the registry`);
+            throw new Error(`Attempted to load an action (${impl.name}) that is not in the registry`);
         },
         [actions]
     );

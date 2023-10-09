@@ -17,27 +17,25 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 
 from dara.core.base_definitions import ActionDef
-from dara.core.configuration import Configuration
-from dara.core.definitions import ComponentTypeAnnotation, Template
 from dara.core.interactivity.actions import (
-    DownloadContent,
+    # DownloadContent,
     DownloadContentDef,
-    DownloadVariable,
+    # DownloadVariable,
     DownloadVariableDef,
-    Logout,
+    # Logout,
     LogoutDef,
-    NavigateTo,
+    # NavigateTo,
     NavigateToDef,
-    Notify,
+    # Notify,
     NotifyDef,
-    ResetVariables,
+    # ResetVariables,
     ResetVariablesDef,
-    SideEffect,
+    # SideEffect,
     SideEffectDef,
-    TriggerVariable,
+    # TriggerVariable,
     TriggerVariableDef,
     UpdateVariable,
     UpdateVariableDef,
@@ -64,6 +62,10 @@ from dara.core.visual.components import (
 )
 from dara.core.visual.template import TemplateBuilder
 
+if TYPE_CHECKING:
+    from dara.core.configuration import Configuration
+    from dara.core.definitions import ComponentTypeAnnotation, Template
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # This file defines the defaults for the dara_core platform #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -89,15 +91,15 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
 
 # These actions are provided by the core JS of this module
 CORE_ACTIONS: Dict[str, ActionDef] = {
-    NavigateTo.__name__: NavigateToDef,
+    # NavigateTo.__name__: NavigateToDef,
     UpdateVariable.__name__: UpdateVariableDef,
-    TriggerVariable.__name__: TriggerVariableDef,
-    SideEffect.__name__: SideEffectDef,
-    ResetVariables.__name__: ResetVariablesDef,
-    DownloadVariable.__name__: DownloadVariableDef,
-    DownloadContent.__name__: DownloadContentDef,
-    Notify.__name__: NotifyDef,
-    Logout.__name__: LogoutDef,
+    # TriggerVariable.__name__: TriggerVariableDef,
+    # SideEffect.__name__: SideEffectDef,
+    # ResetVariables.__name__: ResetVariablesDef,
+    # DownloadVariable.__name__: DownloadVariableDef,
+    # DownloadContent.__name__: DownloadContentDef,
+    # Notify.__name__: NotifyDef,
+    # Logout.__name__: LogoutDef,
 }
 
 # Define a default layout template

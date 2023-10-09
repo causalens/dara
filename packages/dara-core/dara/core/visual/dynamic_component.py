@@ -47,7 +47,7 @@ from dara.core.interactivity import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
-from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.encoder_registry import deserialize, encoder_registry
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -158,6 +158,7 @@ def py_component(
                 else:
                     all_kwargs[param.name] = args[idx]
 
+            print('all kwargs, py_comp', all_kwargs)
             # Verify types are correct
             for key, value in all_kwargs.items():
                 if key in func.__annotations__:
@@ -169,7 +170,7 @@ def py_component(
                     if not valid_value:
                         raise TypeError(
                             f'Argument: {key} was passed as a {type(value)}, but it should be '
-                            f'{func.__annotations__[key]}, Variable or DerivedVariable instance'
+                            f'{func.__annotations__[key]}, or a Variable instance'
                         )
 
             # Split args based on whether they are static or dynamic
@@ -252,16 +253,12 @@ async def render_component(
     if values is not None:
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}
-        async for key, value in _resolve_values_to_iter(values, store, task_mgr):
-            # If the expected type of the Variable being passed back is an instance of BaseModel then convert the
-            # returned dict back into an instance of the BaseModel class
-            val = value
+
+        for key, value in values.items():
+            val = await resolve_dependency(value, store, task_mgr)
             typ = annotations.get(key)
-            if typ is not None and typ in encoder_registry:
-                val = encoder_registry[typ]['deserialize'](val)
-            elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
-                val = typ(**value)
-            resolved_dyn_kwargs[key] = val
+
+            resolved_dyn_kwargs[key] = deserialize(val, typ)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}
@@ -338,19 +335,3 @@ def _make_render_safe(handler: Callable):
         return result
 
     return _render_safe
-
-
-async def _resolve_values_to_iter(values: Mapping[str, Any], store: CacheStore, task_mgr: TaskManager):
-    """
-    Create a generator function that allows for each derived variable to be processed asynchronously in the
-    threadpool provided by starlette.
-
-    :param values: the values passed in the from the UI
-    :param store: the store instance to use for caching
-    """
-    items = list(values.items())
-    idx = 0
-    while idx < len(items):
-        key, value = items[idx]
-        yield key, await resolve_dependency(value, store, task_mgr)
-        idx += 1

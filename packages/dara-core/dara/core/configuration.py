@@ -36,7 +36,7 @@ from pydantic.generics import GenericModel
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
-from dara.core.base_definitions import ActionDef, ActionInstance
+from dara.core.base_definitions import ActionDef
 from dara.core.definitions import (
     AnyVariable,
     ApiRoute,
@@ -49,6 +49,7 @@ from dara.core.definitions import (
     Page,
     Template,
 )
+from dara.core.interactivity.actions import ActionImpl
 from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
@@ -176,7 +177,7 @@ class ConfigurationBuilder:
         self.theme = BaseTheme(main='light')
         self.title = 'decisionApp'
 
-    def add_action(self, action: Type[ActionInstance], local: bool = False):
+    def add_action(self, action: Type[ActionImpl], local: bool = False):
         """
         Register an Action with the application.
 
@@ -187,7 +188,7 @@ class ConfigurationBuilder:
         Note that in most cases explicitly registering a action is not necessary in most cases
         for non-local actionts. Actions are auto-discovered based on imports within your application.
 
-        :param action: ActionInstance-subclass definition
+        :param action: ActionImpl-subclass definition
         :param local: whether the action is a local one.
         For local actions js_module is not required, as their location is defined via dara.config.json
         """

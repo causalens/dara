@@ -2,6 +2,8 @@ import { DefaultTheme } from '@darajs/styled-components';
 import { NotificationPayload } from '@darajs/ui-notifications';
 import { SortingRule } from '@darajs/ui-utils';
 
+import { CallbackInterface } from 'recoil';
+
 import { WebSocketClientInterface } from '@/api/websocket';
 
 export interface NormalizedPayload<T> {
@@ -302,19 +304,35 @@ export interface Condition<T> {
 }
 
 export interface ActionDef {
-    js_module?: string;
+    /**
+     * Action name
+     */
     name: string;
+    /**
+     * Name of the JS module containing the action implementation
+     */
+    js_module: string;
+    /**
+     * Name of the Python module containing the action implementation
+     */
     py_module: string;
+}
+
+export interface ActionImpl {
+    /**
+     * Name of the action implementation
+     */
+    name: string;
+}
+
+export interface UpdateVariableImpl extends ActionImpl {
+    target: Variable<any>;
+    value: any;
 }
 
 export interface ActionInstance {
     name: string;
     uid: string;
-}
-
-export interface ActionBodyContext {
-    extras?: NormalizedPayload<Record<string | number, any>>;
-    inputs?: Record<string, any>;
 }
 
 export interface SideEffectInstance extends ActionInstance {
@@ -367,11 +385,7 @@ export interface LogoutInstance extends ActionInstance {
 /**
  * Object injected into actions
  */
-export interface ActionContext<T> {
-    /**
-     * Helper function to execute an action on the server
-     */
-    fetchAction: (uid: string, body: ActionBodyContext) => Promise<T>;
+export interface ActionContext extends CallbackInterface {
     /**
      * Current auth session token
      */
@@ -383,10 +397,23 @@ export interface ActionContext<T> {
 }
 
 /**
- * Signature of an ActionHook
+ * Signature of an ActionHandler
  */
-export interface ActionHook<ActionReturnType, ActionInstanceType extends ActionInstance = ActionInstance> {
-    (action: ActionInstanceType, actionContext: ActionContext<ActionReturnType>): (value: any) => Promise<void>;
+export interface ActionHandler<ActionImplType extends ActionImpl = ActionImpl> {
+    (actionContext: ActionContext, action: ActionImplType): Promise<void>;
 }
 
-export type Action = ActionInstance | ActionInstance[];
+export interface Action {
+    /***
+     * Uid of the action instance - a specific usage of the annotated function
+     */
+    uid: string;
+    /**
+     * Uid of the action definition - a particular @action annotated function
+     */
+    definition_uid: string;
+    /**
+     * Dynamic kwargs passed to the action
+     */
+    dynamic_kwargs: Record<string, any>;
+}

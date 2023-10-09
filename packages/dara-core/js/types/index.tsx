@@ -1,10 +1,9 @@
 import type { User, UserData } from './auth';
 import type {
     Action,
-    ActionBodyContext,
     ActionContext,
     ActionDef,
-    ActionHook,
+    ActionHandler,
     ActionInstance,
     AnyDataVariable,
     AnyVariable,
@@ -45,10 +44,9 @@ import type {
 
 export type {
     Action,
-    ActionBodyContext,
     ActionDef,
     ActionInstance,
-    ActionHook,
+    ActionHandler,
     ActionContext,
     Condition,
     Config,

@@ -14,11 +14,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from __future__ import annotations
 
-from typing import Any, Union
+from contextvars import ContextVar
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional, Union
+import uuid
+import anyio
 
 from dara.core.base_definitions import ActionResolverDef, BaseTask
-from dara.core.interactivity import ActionContext, ActionInputs
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import (
     is_resolved_derived_data_variable,
@@ -27,72 +32,126 @@ from dara.core.internal.dependency_resolution import (
 )
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
+from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
+from fastapi import BackgroundTasks
 
+from dara.core.interactivity.actions import ActionContext, ActionImpl
+
+CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
+
+async def _execute_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+    try:
+        await run_user_handler(handler, args=(ctx, ), kwargs=dict(values))
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        # TODO: handle error, send to frontend
+    finally:
+        await ctx._end_execution()
+
+
+async def _stream_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+    try:
+        async with anyio.create_task_group() as tg:
+            # Execute the handler and a stream consumer in parallel
+            tg.start_soon(_execute_action, handler, ctx, values)
+            tg.start_soon(ctx._handle_results)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+    finally:
+        await ctx._on_action(None)
 
 async def execute_action(
     action_def: ActionResolverDef,
-    ctx: ActionContext,
+    inp: Any,
+    values: Mapping[str, Any],
+    static_kwargs: Mapping[str, Any],
+    execution_id: str,
+    ws_channel: str,
     store: CacheStore,
     task_mgr: TaskManager,
+    background_tasks: BackgroundTasks
 ) -> Union[Any, BaseTask]:
     """
-    Execute a given action with the provided value and extras.
+    Execute a given action with the provided context.
 
-    Resolves 'extras' passed into an Action - DerivedVariables encountered are resolved into their values.
-    If any of them are a Task/PendingTask, returns a MetaTask that can be awaited to retrieve the action.
+    # !Resolves 'extras' passed into an Action - DerivedVariables encountered are resolved into their values.
+    # !If any of them are a Task/PendingTask, returns a MetaTask that can be awaited to retrieve the action.
 
     :param action_def: resolver definition
-    :param inputs: action inputs to pass into callable
+    :param inp: input to the action
+    :param values: values from the frontend
+    :param static_kwargs: mapping of var names to current values for static arguments
+    :param execution_id: random execution id to differentiate between multiple executions of the same action
+    :param uid: action instance uid
+    :param ws_channel: websocket channel to send messages to
     :param store: the store instance to check for cached values
-    :param extras: extras to resolve and pass into callable
+    :param task_mgr: the task manager instance to use for running tasks
     """
-    action = action_def.resolver
+    from dara.core.internal.registries import utils_registry
+    ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
+    action = action_def.resolver
     assert action is not None, 'Action resolver must be defined'
 
-    resolved_extras = []
+    # Construct a context which handles action messages by sending them to the frontend
+    async def handle_action(act_impl: Optional[ActionImpl]):
+        print('Sending:', act_impl)
+        await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
 
-    if ctx.inputs is not None:
-        resolved_inputs = {}
+    ctx = ActionContext(inp, handle_action)
 
-        # Resolve each input, in case it is a ResolvedDataVariable
-        for input_name, input_value in ctx.inputs:
-            resolved_input_value = await resolve_dependency(input_value, store, task_mgr)
-            assert not isinstance(resolved_input_value, BaseTask), 'Action inputs cannot be tasks'
-            resolved_inputs[input_name] = resolved_input_value
+    resolved_kwargs = {}
 
-        ctx.inputs = ActionInputs(**resolved_inputs)
+    if values is not None:
+        annotations = action.__annotations__
 
-    if ctx.extras is not None:
-        for extra in ctx.extras:
+        for key, value in values.items():
             # Override `force` property to be false
-            if is_resolved_derived_variable(extra) or is_resolved_derived_data_variable(extra):
-                extra['force'] = False
+            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
+                value['force'] = False
 
-            extra_value = await resolve_dependency(extra, store, task_mgr)
-            resolved_extras.append(extra_value)
+            typ = annotations.get(key)
+            val = await resolve_dependency(value, store, task_mgr)
+            resolved_kwargs[key] = deserialize(val, typ)
 
-        ctx.extras = resolved_extras
-        # If any tasks were encountered, create a MetaTask to wrap them
-        has_tasks = any(isinstance(extra, BaseTask) for extra in resolved_extras)
-        if has_tasks:
-            notify_channels = list(
-                set(
-                    [
-                        channel
-                        for extra in resolved_extras
-                        if isinstance(extra, BaseTask)
-                        for channel in extra.notify_channels
-                    ]
-                )
+    # Merge resolved dynamic kwargs with static kwargs received
+    resolved_kwargs = {**resolved_kwargs, **static_kwargs}
+
+    # Check if there are any Tasks to be run in the args
+    has_tasks = any(isinstance(extra, BaseTask) for extra in resolved_kwargs.values())
+
+    if has_tasks:
+        notify_channels = list(
+            set(
+                [
+                    channel
+                    for extra in resolved_kwargs
+                    if isinstance(extra, BaseTask)
+                    for channel in extra.notify_channels
+                ]
             )
-            dev_logger.debug(
-                'Action returning a meta task (because `extras` included one or more `DerivedVariable`s with `run_as_task`)'
+        )
+        dev_logger.debug(
+            'Action returning a meta task (because `extras` included one or more `DerivedVariable`s with `run_as_task`)'
+        )
+
+        # Note: no associated registry entry, the result are not persisted in cache
+        # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
+        await task_mgr.run_task(
+            MetaTask(
+                process_result=_stream_action,
+                args=[action, ctx, resolved_kwargs],
+                notify_channels=notify_channels
             )
+        )
+        return execution_id
 
-            # Note: no associated registry entry, the result are not persisted in cache
-            return MetaTask(action, [ctx], notify_channels=notify_channels)
 
-    # No tasks - run directly
-    return await run_user_handler(action, [ctx])
+    # No tasks - run directly as bg task and return execution id
+    background_tasks.add_task(_stream_action, action, ctx, resolved_kwargs)
+    return execution_id

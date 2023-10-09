@@ -27,16 +27,10 @@ from dara.core.interactivity import (
     DataVariable,
     DerivedDataVariable,
     DerivedVariable,
-    DownloadContent,
-    DownloadVariable,
-    NavigateTo,
-    Notify,
-    ResetVariables,
-    SideEffect,
-    TriggerVariable,
     UpdateVariable,
     UrlVariable,
     Variable,
+    action
 )
 from dara.core.visual.components import Fallback, For
 from dara.core.visual.dynamic_component import py_component
@@ -47,6 +41,7 @@ __version__ = version('dara-core')
 # Top-level imports for most commonly used APIs for ease of use
 
 __all__ = [
+    'action',
     'ConfigurationBuilder',
     'DerivedVariable',
     'DerivedDataVariable',
@@ -56,14 +51,6 @@ __all__ = [
     'CacheType',
     'Variable',
     'py_component',
-    'DownloadVariable',
-    'DownloadContent',
-    'NavigateTo',
-    'Notify',
-    'ResetVariables',
-    'SideEffect',
-    'TriggerVariable',
-    'UpdateVariable',
     'get_icon',
     'CSSProperties',
     'ProgressUpdater',
