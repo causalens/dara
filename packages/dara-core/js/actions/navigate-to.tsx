@@ -1,5 +1,7 @@
 // /* eslint-disable react-hooks/exhaustive-deps */
 
+import { ActionHandler, NavigateToImpl } from '@/types/core';
+
 // import { useCallback } from 'react';
 // import { useHistory } from 'react-router-dom';
 
@@ -11,22 +13,22 @@
 // import { normalizeRequest } from '@/shared/utils/normalization';
 // import { ActionHandler, NavigateToInstance } from '@/types/core';
 
-// /**
-//  * Check whether the passed url is a valid url
-//  *
-//  * @param url the url to check
-//  */
-// function isValidHttpUrl(url: string): boolean {
-//     let newUrl;
+/**
+ * Check whether the passed url is a valid url
+ *
+ * @param url the url to check
+ */
+function isValidHttpUrl(url: string): boolean {
+    let newUrl;
 
-//     try {
-//         newUrl = new URL(url);
-//     } catch {
-//         return false;
-//     }
+    try {
+        newUrl = new URL(url);
+    } catch {
+        return false;
+    }
 
-//     return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
-// }
+    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
+}
 
 // /**
 //  * Front-end handler for NavigateTo action.
@@ -79,3 +81,19 @@
 // };
 
 // export default NavigateTo;
+
+const NavigateTo: ActionHandler<NavigateToImpl> = async (ctx, actionImpl): Promise<void> => {
+    const isValidUrl = isValidHttpUrl(actionImpl.url);
+
+    if (!isValidUrl) {
+        // TODO: show error
+    }
+
+    if (actionImpl.new_tab) {
+        window.open(actionImpl.url, actionImpl.new_tab ? '_blank' : undefined);
+    } else {
+        ctx.history.push(actionImpl.url);
+    }
+};
+
+export default NavigateTo;

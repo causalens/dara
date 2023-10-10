@@ -1,6 +1,7 @@
 import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload } from '@darajs/ui-notifications';
+import { NotificationPayload, useNotifications } from '@darajs/ui-notifications';
 import { SortingRule } from '@darajs/ui-utils';
+import { type History } from 'history';
 
 import { CallbackInterface } from 'recoil';
 
@@ -335,6 +336,13 @@ export interface TriggerVariableImpl extends ActionImpl {
     force: boolean;
 }
 
+export interface NavigateToImpl extends ActionImpl {
+    url: string;
+    new_tab: boolean;
+}
+
+export type NotifyImpl = ActionImpl & NotificationPayload;
+
 export interface ActionInstance {
     name: string;
     uid: string;
@@ -399,6 +407,14 @@ export interface ActionContext extends CallbackInterface {
      * Websocket Client instance
      */
     wsClient: WebSocketClientInterface;
+    /**
+     * History object
+     */
+    history: History;
+    /**
+     * Notification context
+     */
+    notificationCtx: ReturnType<typeof useNotifications>;
 }
 
 /**

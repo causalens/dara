@@ -61,11 +61,11 @@ export {
     UpdateVariable,
     TriggerVariable,
     // SideEffect,
-    // NavigateTo,
+    NavigateTo,
     // ResetVariables,
     // DownloadVariable,
     // DownloadContent,
-    // Notify,
+    Notify,
     // Logout,
 } from './actions';
 export {

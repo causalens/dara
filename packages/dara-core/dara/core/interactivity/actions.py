@@ -137,6 +137,28 @@ class TriggerVariable(ActionImpl):
     variable: DerivedVariable
     force: bool
 
+class NavigateTo(ActionImpl):
+    new_tab: bool
+    url: Optional[str]
+
+class NotificationStatus(str, Enum):
+    CANCELED = 'CANCELED'
+    CREATED = 'CREATED'
+    ERROR = 'ERROR'
+    FAILED = 'FAILED'
+    NONE = ''
+    QUEUED = 'QUEUED'
+    RUNNING = 'RUNNING'
+    SUCCESS = 'SUCCESS'
+    WARNING = 'WARNING'
+
+class Notify(ActionImpl):
+    key: Optional[str] = None
+    message: str
+    status: NotificationStatus
+    title: str
+
+    Status = NotificationStatus
 
 VariableT = TypeVar('VariableT')
 
@@ -166,6 +188,9 @@ class ActionContext(BaseModel):
     async def update(self, target: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
 
     async def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
+        """
+        Update a given variable to provided value
+        """
         return await UpdateVariable(target=target, value=value).execute(self)
 
     async def trigger(self, variable: DerivedVariable, force: bool = True):
@@ -173,6 +198,18 @@ class ActionContext(BaseModel):
         Trigger a given DerivedVariable to recalculate
         """
         return await TriggerVariable(variable=variable, force=force).execute(self)
+
+    async def navigate(self, url: str, new_tab: bool = False):
+        """
+        Navigate to a given url
+        """
+        return await NavigateTo(url=url, new_tab=new_tab).execute(self)
+
+    async def notify(self, message: str, title: str, status: NotificationStatus, key: Optional[str] = None):
+        """
+        Display a notification on the frontend
+        """
+        return await Notify(key=key, message=message, status=status, title=title).execute(self)
 
     async def _handle_results(self):
         """
@@ -804,18 +841,6 @@ DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core',
 
 
 NotifyDef = ActionDef(name='Notify', js_module='@darajs/core', py_module='dara.core')
-
-
-# class NotificationStatus(Enum):
-#     CANCELED = 'CANCELED'
-#     CREATED = 'CREATED'
-#     ERROR = 'ERROR'
-#     FAILED = 'FAILED'
-#     NONE = ''
-#     QUEUED = 'QUEUED'
-#     RUNNING = 'RUNNING'
-#     SUCCESS = 'SUCCESS'
-#     WARNING = 'WARNING'
 
 
 # class Notify(ActionInstance):

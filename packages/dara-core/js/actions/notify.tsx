@@ -1,27 +1,12 @@
-// /* eslint-disable react-hooks/rules-of-hooks */
-// /* eslint-disable react-hooks/exhaustive-deps */
+import { ActionHandler, NotifyImpl } from '@/types/core';
 
-// import { useCallback } from 'react';
+const Notify: ActionHandler<NotifyImpl> = async (ctx, actionImpl): Promise<void> => {
+    ctx.notificationCtx.pushNotification({
+        key: actionImpl.key ?? actionImpl.title,
+        message: actionImpl.message,
+        status: actionImpl.status,
+        title: actionImpl.title,
+    });
+};
 
-// import { useNotifications } from '@darajs/ui-notifications';
-
-// import { ActionHandler, NotifyInstance } from '@/types/core';
-
-// /**
-//  * Frontend handler for Notify action
-//  * Pushes a notification with the data given in the action
-//  */
-// const Notify: ActionHandler<never, NotifyInstance> = (action) => {
-//     const { pushNotification } = useNotifications();
-
-//     return useCallback(
-//         (): Promise<void> =>
-//             new Promise((resolve) => {
-//                 pushNotification(action);
-//                 resolve();
-//             }),
-//         [action]
-//     );
-// };
-
-// export default Notify;
+export default Notify;

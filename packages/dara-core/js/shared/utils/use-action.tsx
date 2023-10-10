@@ -1,10 +1,11 @@
 import { useCallback, useContext, useState } from 'react';
-import { useLocation } from 'react-router';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useRecoilCallback } from 'recoil';
 import { Observable } from 'rxjs';
 import { concatMap, finalize, takeWhile } from 'rxjs/operators';
 import shortid from 'shortid';
 
+import { useNotifications } from '@darajs/ui-notifications';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
@@ -109,7 +110,9 @@ export default function useAction(action: Action): [(input: any) => Promise<void
     const { client: wsClient } = useContext(WebSocketCtx);
     const importers = useContext(ImportersCtx);
     const { get: getAction } = useActionRegistry();
+    const notificationCtx = useNotifications();
     const sessionToken = useSessionToken();
+    const history = useHistory();
     const taskContext = useTaskContext();
     const { search } = useLocation();
     const [isLoading, setIsLoading] = useState(false);
@@ -186,7 +189,7 @@ export default function useAction(action: Action): [(input: any) => Promise<void
                 .subscribe(async ([handler, actionImpl]) => {
                     // TODO: handle error being sent as actionimpl? show toast
                     console.log('calling handler', actionImpl);
-                    await handler({ sessionToken, wsClient, ...cbInterface }, actionImpl);
+                    await handler({ history, notificationCtx, sessionToken, wsClient, ...cbInterface }, actionImpl);
                 });
 
             // now request the action to be executed
