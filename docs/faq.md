@@ -306,3 +306,27 @@ The problem arises when the Graph component is unable to accurately determine th
 3. **Provide Feedback if Needed:** If you encounter this issue, we would greatly appreciate your feedback on [GitHub](https://github.com/causalens/dara). Sharing your examples and experiences may shed light on the underlying problem, allowing us to diagnose it more accurately.
 
 </details>
+<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why am I getting `ValueError` with Plotly?</h3></summary>
+
+Sometimes, when rendering multiple Plotly graphs on a page, one can encounter a `ValueError`. This error appears inconsistently, varying between re-renders of the page.
+This seems to be a [known issue](https://github.com/plotly/plotly.py/issues/3441) with Plotly.
+The first workaround can be found [here](https://community.plotly.com/t/inconsistent-callback-error-updating-scatter-plot/46754/8), where you can wrap your figure in a try and except to force it to load again if it fails the first time:
+
+```python
+import plotly.express as px
+try:
+    fig = px.scatter(...)
+except Exception:
+    fig = px.scatter(...)  # Exact same line as previously
+return fig
+```
+
+Another approach that may also work is to instantiate using Plotly's graph object `Figure` and setting the layout explicitly:\
+
+```python
+import plotly.graph_objects as go
+
+fig = go.Figure(layout=dict(template='plotly'))
+```
+
+</details>
