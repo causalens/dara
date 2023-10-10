@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from __future__ import annotations
+import asyncio
 
 import inspect
 from functools import wraps
@@ -26,6 +27,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
+    Coroutine,
     Dict,
     Literal,
     Optional,
@@ -35,6 +37,8 @@ from typing import (
 )
 
 import anyio
+from anyio import from_thread
+from anyio.abc import TaskGroup
 from starlette.concurrency import run_in_threadpool
 
 from dara.core.auth.definitions import SESSION_ID, USER
@@ -88,6 +92,29 @@ async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict 
         else:
             return await run_in_threadpool(handler, *args, **kwargs)
 
+def call_async(handler: Callable[..., Coroutine], *args):
+    """
+    Run an async function from a sync context.
+
+    :param handler: async function to run
+    :param args: arguments to pass to the function
+    """
+    try:
+        # Check if there's a loop running
+        asyncio.get_running_loop()
+
+        # Just spawn the task directly in the loop
+        asyncio.create_task(handler(*args))
+    except RuntimeError:
+        try:
+            # We might be in an anyio worker thread without an event loop, so try using the from_thread.run API
+            print('3')
+            from_thread.run(handler, *args)
+        except RuntimeError:
+            # Fallback - we're in an external thread without an event loop, so we need to use a blocking portal
+            print('4')
+            with from_thread.start_blocking_portal() as portal:
+                portal.call(handler, *args)
 
 def import_config(config_path: str) -> Tuple[ModuleType, ConfigurationBuilder]:
     """

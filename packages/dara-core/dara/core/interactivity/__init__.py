@@ -20,6 +20,7 @@ from __future__ import annotations
 from dara.core.interactivity.actions import (
     action,
     UpdateVariable,
+    TriggerVariable
 )
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable
@@ -45,7 +46,7 @@ refs = {
 # NavigateTo.update_forward_refs(**refs)
 # ResetVariables.update_forward_refs(**refs)
 # SideEffect.update_forward_refs(**refs)
-# TriggerVariable.update_forward_refs(**refs)
+TriggerVariable.update_forward_refs(**refs)
 UpdateVariable.update_forward_refs(**refs)
 Condition.update_forward_refs(**refs)
 # Notify.update_forward_refs(**refs)

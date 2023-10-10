@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from __future__ import annotations
+from contextvars import ContextVar
 import inspect
 
 import uuid
@@ -32,12 +33,14 @@ from typing import (
     Literal,
     Optional,
     TypeVar,
-    Union
+    Union,
+    overload
 )
 from typing_extensions import ParamSpec, Concatenate
 from functools import wraps
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
+from pandas import DataFrame
 
 from pydantic import BaseModel
 
@@ -61,7 +64,6 @@ if TYPE_CHECKING:
     from dara.core.internal.cache_store import CacheStore
 
 
-
 class ActionImpl(DaraBaseModel):
     """
     Base class for action implementations
@@ -75,7 +77,7 @@ class ActionImpl(DaraBaseModel):
 
     # TODO: if there is a need, this could also support required_routes just like ComponentInstance
 
-    def execute(self, ctx: ActionContext) -> Any:
+    async def execute(self, ctx: ActionContext) -> Any:
         """
         Execute the action.
 
@@ -85,7 +87,7 @@ class ActionImpl(DaraBaseModel):
         :param context: action context
         :return: the result of the action
         """
-        ctx._push_action(self)
+        await ctx._push_action(self)
 
     def dict(self, *args, **kwargs):
         # TODO: some serialized form to be understood by frontend
@@ -111,9 +113,32 @@ class UpdateVariable(ActionImpl):
 
     Ctx = Foo # TODO: remove, backwards compat
 
-    def execute(self, ctx: ActionContext) -> Any:
-        # TODO: custom logic for data variables
-        return super().execute(ctx)
+    async def execute(self, ctx: ActionContext) -> Any:
+        if self.target.__class__.__name__ == 'DataVariable':
+            # Update on the backend
+            from dara.core.internal.registries import (
+                data_variable_registry,
+                utils_registry,
+            )
+
+            store: CacheStore = utils_registry.get('Store')
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+            var_entry = await registry_mgr.get(data_variable_registry, self.target.uid)
+            DataVariable.update_value(var_entry, store, self.value)
+            # Don't notify frontend explicitly, all clients will be notified by update_value above
+            return None
+
+
+        # for non-data variables just ping frontend with the new value
+        return await super().execute(ctx)
+
+class TriggerVariable(ActionImpl):
+    variable: DerivedVariable
+    force: bool
+
+
+VariableT = TypeVar('VariableT')
 
 class ActionContext(BaseModel):
     _action_send_stream: MemoryObjectSendStream[ActionImpl]
@@ -127,18 +152,27 @@ class ActionContext(BaseModel):
 
 
     def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
-        super().__init__(
-            input=_input
-        )
+        super().__init__(input=_input)
         self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
         self._on_action = _on_action
 
-    def _push_action(self, action: ActionImpl):
-        self._action_send_stream.send_nowait(action)
+    async def _push_action(self, action: ActionImpl):
+        await self._action_send_stream.send(action)
 
-    # TODO: overload, DataVariable->DataFrame, different impl?
-    def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
-        UpdateVariable(target=target, value=value).execute(self)
+    @overload
+    async def update(self, target: DataVariable, value: Optional[DataFrame]): ...
+
+    @overload
+    async def update(self, target: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
+
+    async def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
+        return await UpdateVariable(target=target, value=value).execute(self)
+
+    async def trigger(self, variable: DerivedVariable, force: bool = True):
+        """
+        Trigger a given DerivedVariable to recalculate
+        """
+        return await TriggerVariable(variable=variable, force=force).execute(self)
 
     async def _handle_results(self):
         """
@@ -153,6 +187,8 @@ class ActionContext(BaseModel):
         """
         self._action_send_stream.close()
 
+ACTION_CONTEXT = ContextVar[Optional[ActionContext]]('action_context', default=None)
+"""Current execution context"""
 
 P = ParamSpec('P')
 
@@ -194,7 +230,6 @@ def action(func: Callable[Concatenate[ActionContext, P], Any]) -> Callable[..., 
             else:
                 all_kwargs[param.name] = args[idx]
 
-        print('all kwargs', all_kwargs)
         # Verify types are correct
         for key, value in all_kwargs.items():
             if key in func.__annotations__:

@@ -36,7 +36,7 @@ from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
 from fastapi import BackgroundTasks
 
-from dara.core.interactivity.actions import ActionContext, ActionImpl
+from dara.core.interactivity.actions import ACTION_CONTEXT, ActionContext, ActionImpl
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
@@ -104,6 +104,7 @@ async def execute_action(
         await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
 
     ctx = ActionContext(inp, handle_action)
+    ACTION_CONTEXT.set(ctx)
 
     resolved_kwargs = {}
 

@@ -35,7 +35,7 @@ from dara.core.interactivity.actions import (
     ResetVariablesDef,
     # SideEffect,
     SideEffectDef,
-    # TriggerVariable,
+    TriggerVariable,
     TriggerVariableDef,
     UpdateVariable,
     UpdateVariableDef,
@@ -93,7 +93,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
 CORE_ACTIONS: Dict[str, ActionDef] = {
     # NavigateTo.__name__: NavigateToDef,
     UpdateVariable.__name__: UpdateVariableDef,
-    # TriggerVariable.__name__: TriggerVariableDef,
+    TriggerVariable.__name__: TriggerVariableDef,
     # SideEffect.__name__: SideEffectDef,
     # ResetVariables.__name__: ResetVariablesDef,
     # DownloadVariable.__name__: DownloadVariableDef,

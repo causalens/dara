@@ -1,5 +1,8 @@
 // import { useCallback } from 'react';
 
+import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
+import { ActionHandler, TriggerVariableImpl } from '@/types/core';
+
 // import { useTriggerVariable } from '@/shared/interactivity';
 // import { ActionHandler, TriggerVariableInstance } from '@/types/core';
 
@@ -17,3 +20,17 @@
 // };
 
 // export default TriggerVariable;
+
+const TriggerVariable: ActionHandler<TriggerVariableImpl> = async (ctx, actionImpl): Promise<void> => {
+    console.log(actionImpl);
+
+    const triggerAtom = getOrRegisterTrigger(actionImpl.variable);
+    console.log(triggerAtom);
+
+    ctx.set(triggerAtom, (triggerIndexValue) => ({
+        force: actionImpl.force,
+        inc: triggerIndexValue.inc + 1,
+    }));
+};
+
+export default TriggerVariable;

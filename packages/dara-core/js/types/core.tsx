@@ -330,6 +330,11 @@ export interface UpdateVariableImpl extends ActionImpl {
     value: any;
 }
 
+export interface TriggerVariableImpl extends ActionImpl {
+    variable: DerivedVariable;
+    force: boolean;
+}
+
 export interface ActionInstance {
     name: string;
     uid: string;

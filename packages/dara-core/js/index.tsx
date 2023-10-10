@@ -59,7 +59,7 @@ export type {
 export {
     // useActionContext,
     UpdateVariable,
-    // TriggerVariable,
+    TriggerVariable,
     // SideEffect,
     // NavigateTo,
     // ResetVariables,

@@ -31,6 +31,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from dara.core.interactivity.actions import ACTION_CONTEXT
 
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
@@ -50,7 +51,7 @@ from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import deserialize, encoder_registry
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
-from dara.core.internal.utils import get_cache_scope, run_user_handler
+from dara.core.internal.utils import call_async, get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 
@@ -185,7 +186,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         :param force: whether the recalculation should ignore any caching settings, defaults to True
         """
-        return TriggerVariable(variable=self, force=force)
+        # If within an action context, call ctx.trigger()
+        if ACTION_CONTEXT.get():
+            raise NotImplementedError('Cannot call trigger inside an action')
+
+        # TODO: implement standalone actions
+        return None
 
     @staticmethod
     def _get_cache_key(*args, uid: str, deps: Optional[List[int]] = None):

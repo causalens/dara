@@ -115,7 +115,7 @@ export default function useAction(action: Action): [(input: any) => Promise<void
     const [isLoading, setIsLoading] = useState(false);
 
     const fetchAction = useCallback(
-        async (input: any, resolvedKwargs: Record<string, any>, executionId: string): Promise<string> => {
+        async (input: any, resolvedKwargs: Record<string, any>, executionId: string): Promise<void> => {
             const ws_channel = await wsClient.getChannel();
             const res = await request(
                 `/api/core/action/${action.definition_uid}`,
@@ -133,8 +133,6 @@ export default function useAction(action: Action): [(input: any) => Promise<void
             );
 
             await validateResponse(res, `Failed to fetch the action value with uid: ${action.uid}`);
-
-            return res.json();
         },
         [sessionToken, wsClient, action]
     );
@@ -186,15 +184,18 @@ export default function useAction(action: Action): [(input: any) => Promise<void
                     finalize(() => setIsLoading(false))
                 )
                 .subscribe(async ([handler, actionImpl]) => {
+                    // TODO: handle error being sent as actionimpl? show toast
                     console.log('calling handler', actionImpl);
-
                     await handler({ sessionToken, wsClient, ...cbInterface }, actionImpl);
                 });
 
             // now request the action to be executed
-            await fetchAction(input, resolvedKwargs, executionId);
-
-            // TODO: handle error and unsub
+            try {
+                await fetchAction(input, resolvedKwargs, executionId);
+            } catch (e) {
+                // TODO: show toast
+                sub.unsubscribe();
+            }
         },
         [fetchAction, action, search, taskContext]
     );
