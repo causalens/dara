@@ -54,7 +54,7 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.base_definitions import Action
+    from dara.core.base_definitions import AnnotatedAction
     from dara.core.interactivity import (
         AnyDataVariable,
         AnyVariable,
@@ -88,12 +88,13 @@ class ActionImpl(DaraBaseModel):
         :param context: action context
         :return: the result of the action
         """
-        await ctx._push_action(self)
+        await ctx.__push_action(self)
 
     def dict(self, *args, **kwargs):
         # TODO: some serialized form to be understood by frontend
         dict_form = super().dict(*args, **kwargs)
         dict_form['name'] = self.__class__.__name__
+        dict_form['__typename'] = 'ActionImpl'
         return dict_form
 
 class Foo(BaseModel):
@@ -174,24 +175,17 @@ class DownloadVariable(ActionImpl):
 
 VariableT = TypeVar('VariableT')
 
-class ActionContext(BaseModel):
-    _action_send_stream: MemoryObjectSendStream[ActionImpl]
-    _action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
-    _on_action: Callable[[Optional[ActionImpl]], Awaitable]
+class ActionContext:
+    __action_send_stream: MemoryObjectSendStream[ActionImpl]
+    __action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
+    __on_action: Callable[[Optional[ActionImpl]], Awaitable]
 
     input: Any
 
-    class Config:
-        underscore_attrs_are_private = True
-
-
     def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
-        super().__init__(input=_input)
-        self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
-        self._on_action = _on_action
-
-    async def _push_action(self, action: ActionImpl):
-        await self._action_send_stream.send(action)
+        self.input= _input
+        self.__action_send_stream, self.__action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
+        self.__on_action = _on_action
 
     @overload
     async def update(self, target: DataVariable, value: Optional[DataFrame]): ...
@@ -202,18 +196,27 @@ class ActionContext(BaseModel):
     async def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
         Update a given variable to provided value
+
+        :param target: the variable to update
+        :param value: the new value for the variable
         """
         return await UpdateVariable(target=target, value=value).execute(self)
 
     async def trigger(self, variable: DerivedVariable, force: bool = True):
         """
         Trigger a given DerivedVariable to recalculate
+
+        :param variable: the variable to trigger
+        :param force: whether to force the recalculation, defaults to True
         """
         return await TriggerVariable(variable=variable, force=force).execute(self)
 
     async def navigate(self, url: str, new_tab: bool = False):
         """
         Navigate to a given url
+
+        :param url: the url to navigate to
+        :param new_tab: whether to open the url in a new tab, defaults to False
         """
         return await NavigateTo(url=url, new_tab=new_tab).execute(self)
 
@@ -226,6 +229,11 @@ class ActionContext(BaseModel):
     async def notify(self, message: str, title: str, status: NotificationStatus, key: Optional[str] = None):
         """
         Display a notification on the frontend
+
+        :param message: the message to display
+        :param title: the title of the notification
+        :param status: the status of the notification
+        :param key: optional key for the notification
         """
         return await Notify(key=key, message=message, status=status, title=title).execute(self)
 
@@ -259,19 +267,24 @@ class ActionContext(BaseModel):
         """
         return await DownloadVariable(variable=variable, file_name=file_name, type=type).execute(self)
 
+    async def __push_action(self, action: ActionImpl):
+        """
+        Push an action to the frontend
+        """
+        await self.__action_send_stream.send(action)
 
-    async def _handle_results(self):
+    async def __handle_results(self):
         """
         Main loop for handling actions being pushed to the context
         """
-        async for msg in self._action_receive_stream:
-            await self._on_action(msg)
+        async for msg in self.__action_receive_stream:
+            await self.__on_action(msg)
 
-    async def _end_execution(self):
+    async def __end_execution(self):
         """
         End execution of the action
         """
-        self._action_send_stream.close()
+        self.__action_send_stream.close()
 
 ACTION_CONTEXT = ContextVar[Optional[ActionContext]]('action_context', default=None)
 """Current execution context"""
@@ -302,8 +315,8 @@ class action:
         update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
         self.__signature__ = self.new_sig  # type: ignore
 
-    def __call__(self, *args, **kwargs) -> Action:
-        from dara.core.base_definitions import Action
+    def __call__(self, *args, **kwargs) -> AnnotatedAction:
+        from dara.core.base_definitions import AnnotatedAction
         from dara.core.interactivity.any_variable import AnyVariable
         from dara.core.internal.registries import static_kwargs_registry
 
@@ -348,7 +361,7 @@ class action:
         static_kwargs_registry.register(instance_uid, static_kwargs)
 
         # Register the instance
-        instance = Action(
+        instance = AnnotatedAction(
             dynamic_kwargs=dynamic_kwargs,
             uid=instance_uid,
             definition_uid=self.definition_uid  # Link to the definition

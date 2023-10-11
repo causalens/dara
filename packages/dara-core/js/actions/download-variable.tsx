@@ -1,8 +1,6 @@
 import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { Status } from '@darajs/ui-utils';
-
 import { getVariableValue } from '@/shared/interactivity/use-variable-value';
 import { ActionHandler, DownloadVariableImpl } from '@/types/core';
 
@@ -154,13 +152,7 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
     }
     const matrix = createMatrixFromValue(value);
     if (!matrix) {
-        ctx.notificationCtx.pushNotification({
-            key: ctx.uid,
-            message: 'Try again or contact the application owner',
-            status: Status.ERROR,
-            title: 'Error downloading file',
-        });
-        return Promise.resolve();
+        throw new Error('Unable to create matrix from value');
     }
     const notExcel = !actionImpl.type || actionImpl.type !== 'xlsx';
     const blob = notExcel ? createCsvFromMatrix(matrix) : await createXLFromMatrix(fileName, matrix);

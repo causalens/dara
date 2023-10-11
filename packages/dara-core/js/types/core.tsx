@@ -325,6 +325,10 @@ export interface ActionImpl {
      * Name of the action implementation
      */
     name: string;
+    /**
+     * Marker to indicate this is an action implementation
+     */
+    __typename: 'ActionImpl';
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
@@ -415,10 +419,6 @@ export interface LogoutInstance extends ActionInstance {
  */
 export interface ActionContext extends CallbackInterface {
     /**
-     * Action instance uid
-     */
-    uid: string;
-    /**
      * Current auth session token
      */
     sessionToken: string;
@@ -451,13 +451,16 @@ export interface ActionHandler<ActionImplType extends ActionImpl = ActionImpl> {
     (actionContext: ActionContext, action: ActionImplType): void | Promise<void>;
 }
 
-export interface Action {
+/**
+ * Serialized representation of an invoked @action-annotated function
+ */
+export interface AnnotatedAction {
     /***
      * Uid of the action instance - a specific usage of the annotated function
      */
     uid: string;
     /**
-     * Uid of the action definition - a particular @action annotated function
+     * Uid of the action definition - a particular @action-annotated function
      */
     definition_uid: string;
     /**
@@ -465,3 +468,5 @@ export interface Action {
      */
     dynamic_kwargs: Record<string, any>;
 }
+
+export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;

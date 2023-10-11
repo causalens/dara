@@ -1,4 +1,5 @@
 import {
+    ActionImpl,
     AnyVariable,
     DataVariable,
     DerivedDataVariable,
@@ -108,4 +109,8 @@ export function isResolvedDerivedDataVariable(
         value.type === 'derived-data' &&
         'uid' in value
     );
+}
+
+export function isActionImpl(action: any): action is ActionImpl {
+    return action && typeof action === 'object' && action.__typename === 'ActionImpl';
 }

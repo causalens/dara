@@ -387,7 +387,7 @@ class PendingValue:
 
 
 
-class Action(BaseModel):
+class AnnotatedAction(BaseModel):
     """TODO: this should be the type returned by @action"""
     uid: str
     """Instance uid of the action. Used to find static kwargs for the instance"""
@@ -397,7 +397,6 @@ class Action(BaseModel):
 
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
-
 
 
 class ActionDef(BaseModel):

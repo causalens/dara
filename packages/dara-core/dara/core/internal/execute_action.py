@@ -49,7 +49,7 @@ async def _execute_action(handler: Callable, ctx: ActionContext, values: Mapping
         traceback.print_exc()
         # TODO: handle error, send to frontend
     finally:
-        await ctx._end_execution()
+        await ctx.__end_execution()
 
 
 async def _stream_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
@@ -57,13 +57,13 @@ async def _stream_action(handler: Callable, ctx: ActionContext, values: Mapping[
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
             tg.start_soon(_execute_action, handler, ctx, values)
-            tg.start_soon(ctx._handle_results)
+            tg.start_soon(ctx.__handle_results)
     except Exception as e:
         import traceback
 
         traceback.print_exc()
     finally:
-        await ctx._on_action(None)
+        await ctx.__on_action(None)
 
 async def execute_action(
     action_def: ActionResolverDef,
