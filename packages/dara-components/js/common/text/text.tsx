@@ -54,10 +54,10 @@ function Text(props: TextProps): JSX.Element {
             as={tag}
             className={props.className}
             style={{
-                ...style,
                 color,
                 margin: '0',
                 textAlign: props.align,
+                ...style,
             }}
         >
             {text}
