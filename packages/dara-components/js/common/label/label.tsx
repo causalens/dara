@@ -36,8 +36,8 @@ function Label(props: LabelProps): JSX.Element {
             $rawCss={css}
             className={props.className}
             style={{
-                ...style,
                 flexDirection: props.direction === 'horizontal' ? 'row' : 'column',
+                ...style,
             }}
         >
             {typeof props.value === 'string' ? (
