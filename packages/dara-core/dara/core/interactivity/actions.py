@@ -206,10 +206,13 @@ class ActionContext(BaseModel):
         """
         return await NavigateTo(url=url, new_tab=new_tab).execute(self)
 
-    async def notify(self, message: str, title: str, status: NotificationStatus, key: Optional[str] = None):
+    async def notify(self, message: str, title: str, status: Union[NotificationStatus, str], key: Optional[str] = None):
         """
         Display a notification on the frontend
         """
+        if isinstance(status, str):
+            status = NotificationStatus(status)
+
         return await Notify(key=key, message=message, status=status, title=title).execute(self)
 
     async def _handle_results(self):
