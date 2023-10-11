@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fixed an issue where `Table` would always overflow
+-   Fixed an issue where one could not set `margin` to `Text` component
 
 ## 1.1.10
 
