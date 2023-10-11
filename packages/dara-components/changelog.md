@@ -6,6 +6,7 @@ title: Changelog
 
 -   Fixed an issue where `Table` would always overflow
 -   Fixed an issue where `NaN` was not handled in `Input` with `type=number`
+-   Fixed an issue where one could not set `margin` to `Text` component
 
 ## 1.1.10
 
