@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed usage of `resource` package which is not supported on Windows. Attempting to use `CGROUP_MEMORY_LIMIT_ENABLED` on Windows is now a noop and emits a warning.
+
 ## 1.2.2
 
 -   Fixed an issue where the default encoders for certain types such as `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
