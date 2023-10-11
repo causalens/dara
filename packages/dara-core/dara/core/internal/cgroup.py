@@ -18,9 +18,9 @@ limitations under the License.
 from __future__ import annotations
 
 import os
-import resource
+import sys
 
-from dara.core.logging import eng_logger
+from dara.core.logging import dev_logger, eng_logger
 
 CGROUP_V2_INDICATOR_PATH = '/sys/fs/cgroup/cgroup.controllers'   # Used to determine whether we're using cgroupv2
 
@@ -37,6 +37,12 @@ def set_memory_limit():
     Set memory limit for Python to limits defined in the cgroup.
     Works with both cgroupv1 and cgroupv2.
     """
+    if sys.platform == "win32":
+        dev_logger.warning('Memory limit is not supported on Windows platforms')
+        return
+
+    import resource
+
     # Get current limits
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
 
