@@ -32,7 +32,6 @@ function Text(props: TextProps): JSX.Element {
                 $rawCss={css}
                 className={props.className}
                 style={{
-                    ...style,
                     border: props?.border ?? 'none',
                     color,
                     fontStyle: props.italic ? 'italic' : 'normal',
@@ -40,6 +39,7 @@ function Text(props: TextProps): JSX.Element {
                     marginRight: '0.1em',
                     textAlign: props.align,
                     textDecoration: props.underline ? 'underline' : '',
+                    ...style,
                 }}
             >
                 {`${typeof text === 'string' ? text.trimEnd() : text} `}
@@ -54,10 +54,10 @@ function Text(props: TextProps): JSX.Element {
             as={tag}
             className={props.className}
             style={{
-                ...style,
                 color,
                 margin: '0',
                 textAlign: props.align,
+                ...style,
             }}
         >
             {text}
