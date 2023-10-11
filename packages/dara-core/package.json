@@ -64,7 +64,7 @@
     "jest-css-modules": "^2.1.0",
     "jest-environment-jsdom": "^29.5.0",
     "msw": "1.0.1",
-    "postcss": "^8.4.30",
+    "postcss": "^8.4.31",
     "react-test-renderer": "^17.0.2",
     "rimraf": "^3.0.2",
     "start-server-and-test": "^1.14.0",
