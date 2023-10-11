@@ -21,7 +21,7 @@ import { ActionHandler, TriggerVariableImpl } from '@/types/core';
 
 // export default TriggerVariable;
 
-const TriggerVariable: ActionHandler<TriggerVariableImpl> = async (ctx, actionImpl): Promise<void> => {
+const TriggerVariable: ActionHandler<TriggerVariableImpl> = (ctx, actionImpl): void => {
     console.log(actionImpl);
 
     const triggerAtom = getOrRegisterTrigger(actionImpl.variable);

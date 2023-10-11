@@ -1,6 +1,6 @@
 import { ActionHandler, NotifyImpl } from '@/types/core';
 
-const Notify: ActionHandler<NotifyImpl> = async (ctx, actionImpl): Promise<void> => {
+const Notify: ActionHandler<NotifyImpl> = (ctx, actionImpl): void => {
     ctx.notificationCtx.pushNotification({
         key: actionImpl.key ?? actionImpl.title,
         message: actionImpl.message,

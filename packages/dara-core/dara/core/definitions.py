@@ -41,7 +41,7 @@ from fastapi.params import Depends
 from pydantic import BaseModel, Field, validator
 from pydantic.generics import GenericModel
 
-from dara.core.base_definitions import ComponentType, DaraBaseModel, TemplateMarker
+from dara.core.base_definitions import Action, ComponentType, DaraBaseModel, TemplateMarker
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 
@@ -577,7 +577,7 @@ class Page(BaseModel):
     sub_pages: Optional[List['Page']] = []
     url_safe_name: str
     include_in_menu: Optional[bool]
-    reset_vars_on_load: Optional[List[AnyVariable]] = []
+    on_load: Optional[Action] = None
 
     class Config:
         extra = 'forbid'
@@ -595,7 +595,7 @@ class TemplateRoute(BaseModel):
     name: str
     route: str
     include_in_menu: Optional[bool]
-    reset_vars_on_load: Optional[List[AnyVariable]] = []
+    on_load: Optional[Action] = None
 
 
 class TemplateRouterLink(BaseModel):
@@ -611,7 +611,7 @@ class TemplateRouterContent(BaseModel):
 
     content: ComponentInstance
     route: str
-    reset_vars_on_load: Optional[List[AnyVariable]] = []
+    on_load: Optional[Action] = None
     name: Optional[str]
 
 

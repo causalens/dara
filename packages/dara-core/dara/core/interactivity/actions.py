@@ -115,7 +115,7 @@ class UpdateVariable(ActionImpl):
     Ctx = Foo # TODO: remove, backwards compat
 
     async def execute(self, ctx: ActionContext) -> Any:
-        if self.target.__class__.__name__ == 'DataVariable':
+        if isinstance(self.target, DataVariable):
             # Update on the backend
             from dara.core.internal.registries import (
                 data_variable_registry,
@@ -142,16 +142,21 @@ class NavigateTo(ActionImpl):
     new_tab: bool
     url: Optional[str]
 
-class NotificationStatus(str, Enum):
-    CANCELED = 'CANCELED'
-    CREATED = 'CREATED'
-    ERROR = 'ERROR'
-    FAILED = 'FAILED'
-    NONE = ''
-    QUEUED = 'QUEUED'
-    RUNNING = 'RUNNING'
-    SUCCESS = 'SUCCESS'
-    WARNING = 'WARNING'
+class ResetVariables(ActionImpl):
+    variables: List[AnyVariable]
+
+NotificationStatus = Literal[
+    'CANCELED',
+    'CREATED',
+    'ERROR',
+    'FAILED',
+    'NONE',
+    'QUEUED',
+    'RUNNING',
+    'SUCCESS',
+    'WARNING',
+    '',
+]
 
 class Notify(ActionImpl):
     key: Optional[str] = None
@@ -159,7 +164,13 @@ class Notify(ActionImpl):
     status: NotificationStatus
     title: str
 
-    Status = NotificationStatus
+class DownloadContent(ActionImpl):
+    code: str
+
+class DownloadVariable(ActionImpl):
+    variable: Union[Variable, DerivedVariable, AnyDataVariable]
+    file_name: Optional[str] = None
+    type: Union[Literal['csv'], Literal['xlsx'], Literal['json']] = 'csv'
 
 VariableT = TypeVar('VariableT')
 
@@ -206,14 +217,48 @@ class ActionContext(BaseModel):
         """
         return await NavigateTo(url=url, new_tab=new_tab).execute(self)
 
-    async def notify(self, message: str, title: str, status: Union[NotificationStatus, str], key: Optional[str] = None):
+    async def logout(self):
+        """
+        Logout the current user.
+        """
+        return await NavigateTo(url='/logout', new_tab=False).execute(self)
+
+    async def notify(self, message: str, title: str, status: NotificationStatus, key: Optional[str] = None):
         """
         Display a notification on the frontend
         """
-        if isinstance(status, str):
-            status = NotificationStatus(status)
-
         return await Notify(key=key, message=message, status=status, title=title).execute(self)
+
+    async def reset_variables(self, variables: Union[List[AnyVariable], AnyVariable]):
+        """
+        Reset a list of variables to their default values
+
+        :param variables: a variable or list of variables to reset
+        """
+        variables = [variables] if not isinstance(variables, list) else variables
+        return await ResetVariables(variables=variables).execute(self)
+
+    async def download_file(self, path: str, cleanup: bool = False):
+        """
+        Download a given file.
+
+        :param path: the path to the file to download
+        :param cleanup: whether to delete the file after download
+        """
+        code = await generate_download_code(path, cleanup)
+        return await DownloadContent(code=code).execute(self)
+
+    async def download_variable(self, variable: Union[Variable, DerivedVariable, AnyDataVariable], file_name: Optional[str] = None, type: Union[Literal['csv'], Literal['xlsx'], Literal['json']] = 'csv'):
+        """
+        Download the content of a given variable as a file.
+        Note that the content of the file must be valid for the given type.
+
+        :param variable: the variable to download
+        :param file_name: optional name of the file to download
+        :param type: the type of the file to download, defaults to csv
+        """
+        return await DownloadVariable(variable=variable, file_name=file_name, type=type).execute(self)
+
 
     async def _handle_results(self):
         """

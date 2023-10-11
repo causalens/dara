@@ -1,6 +1,6 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { useRecoilCallback } from 'recoil';
+import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Observable } from 'rxjs';
 import { concatMap, finalize, takeWhile } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -12,14 +12,11 @@ import { request } from '@/api/http';
 import { useSessionToken } from '@/auth/auth-context';
 import { ImportersCtx, WebSocketCtx, useTaskContext } from '@/shared/context';
 import { Action, ActionHandler } from '@/types';
-import { ActionImpl } from '@/types/core';
+import { ActionContext, ActionImpl } from '@/types/core';
 
 import { resolveVariable } from '../interactivity/resolve-variable';
 import { normalizeRequest } from './normalization';
 import useActionRegistry from './use-action-registry';
-
-// Disabling rules of hook since the followiing function are willingly breaking the rules, making the assumption that the components call
-// the exported functions with values which don't change the hook order etc
 
 // /**
 //  * Helper method which converts an action into a list of hooks.
@@ -106,20 +103,32 @@ import useActionRegistry from './use-action-registry';
 
 const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
 
-export default function useAction(action: Action): [(input: any) => Promise<void>, boolean] {
+export default function useAction(action: Action): [(input?: any) => Promise<void>, boolean] {
     const { client: wsClient } = useContext(WebSocketCtx);
     const importers = useContext(ImportersCtx);
     const { get: getAction } = useActionRegistry();
     const notificationCtx = useNotifications();
     const sessionToken = useSessionToken();
     const history = useHistory();
-    const taskContext = useTaskContext();
-    const { search } = useLocation();
+    const taskCtx = useTaskContext();
+    const location = useLocation();
     const [isLoading, setIsLoading] = useState(false);
+
+    // keep actionCtx in a ref to avoid re-creating the callbacks
+    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface>>();
+    actionCtx.current = {
+        history,
+        location,
+        notificationCtx,
+        sessionToken,
+        taskCtx,
+        uid: action?.uid,
+        wsClient,
+    };
 
     const fetchAction = useCallback(
         async (input: any, resolvedKwargs: Record<string, any>, executionId: string): Promise<void> => {
-            const ws_channel = await wsClient.getChannel();
+            const ws_channel = await actionCtx.current.wsClient.getChannel();
             const res = await request(
                 `/api/core/action/${action.definition_uid}`,
                 {
@@ -132,12 +141,12 @@ export default function useAction(action: Action): [(input: any) => Promise<void
                     }),
                     method: HTTP_METHOD.POST,
                 },
-                sessionToken
+                actionCtx.current.sessionToken
             );
 
             await validateResponse(res, `Failed to fetch the action value with uid: ${action.uid}`);
         },
-        [sessionToken, wsClient, action]
+        [action]
     );
 
     const callback = useRecoilCallback(
@@ -146,10 +155,16 @@ export default function useAction(action: Action): [(input: any) => Promise<void
             // 0. resolve kwargs to primitives, this registers variables if not already registered
             const resolvedKwargs = Object.keys(action.dynamic_kwargs).reduce((acc, k) => {
                 const value = action.dynamic_kwargs[k];
-                acc[k] = resolveVariable(value, wsClient, taskContext, search, sessionToken, (v) =>
-                    // This is only called for primitive variables so it should always resolve successfully
-                    // hence not using a promise
-                    cbInterface.snapshot.getLoadable(v).getValue()
+                acc[k] = resolveVariable(
+                    value,
+                    actionCtx.current.wsClient,
+                    actionCtx.current.taskCtx,
+                    actionCtx.current.location.search,
+                    actionCtx.current.sessionToken,
+                    (v) =>
+                        // This is only called for primitive variables so it should always resolve successfully
+                        // hence not using a promise
+                        cbInterface.snapshot.getLoadable(v).getValue()
                 );
                 return acc;
             }, {} as Record<string, any>);
@@ -189,7 +204,11 @@ export default function useAction(action: Action): [(input: any) => Promise<void
                 .subscribe(async ([handler, actionImpl]) => {
                     // TODO: handle error being sent as actionimpl? show toast
                     console.log('calling handler', actionImpl);
-                    await handler({ history, notificationCtx, sessionToken, wsClient, ...cbInterface }, actionImpl);
+                    const result = handler({ ...actionCtx.current, ...cbInterface }, actionImpl);
+                    // If it's a promise, await it to ensure sequential execution
+                    if (result instanceof Promise) {
+                        await result;
+                    }
                 });
 
             // now request the action to be executed
@@ -200,8 +219,13 @@ export default function useAction(action: Action): [(input: any) => Promise<void
                 sub.unsubscribe();
             }
         },
-        [fetchAction, action, search, taskContext]
+        [fetchAction, action]
     );
+
+    // return a noop if no action is passed
+    if (!action) {
+        return [() => Promise.resolve(), false];
+    }
 
     return [callback, isLoading];
 }

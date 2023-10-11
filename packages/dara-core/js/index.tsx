@@ -57,16 +57,13 @@ export type {
 };
 
 export {
-    // useActionContext,
     UpdateVariable,
     TriggerVariable,
-    // SideEffect,
     NavigateTo,
-    // ResetVariables,
-    // DownloadVariable,
-    // DownloadContent,
+    ResetVariables,
+    DownloadVariable,
+    DownloadContent,
     Notify,
-    // Logout,
 } from './actions';
 export {
     useAuthCtx,

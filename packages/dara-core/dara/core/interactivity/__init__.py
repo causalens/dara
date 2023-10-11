@@ -20,7 +20,12 @@ from __future__ import annotations
 from dara.core.interactivity.actions import (
     action,
     UpdateVariable,
-    TriggerVariable
+    TriggerVariable,
+    ResetVariables,
+    NavigateTo,
+    Notify,
+    DownloadContent,
+    DownloadVariable
 )
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable
@@ -41,20 +46,18 @@ refs = {
     'DataVariable': DataVariable,
     'UrlVariable': UrlVariable,
 }
-# DownloadVariable.update_forward_refs(**refs)
-# DownloadContent.update_forward_refs(**refs)
-# NavigateTo.update_forward_refs(**refs)
-# ResetVariables.update_forward_refs(**refs)
-# SideEffect.update_forward_refs(**refs)
+DownloadVariable.update_forward_refs(**refs)
+DownloadContent.update_forward_refs(**refs)
+NavigateTo.update_forward_refs(**refs)
+ResetVariables.update_forward_refs(**refs)
 TriggerVariable.update_forward_refs(**refs)
 UpdateVariable.update_forward_refs(**refs)
 Condition.update_forward_refs(**refs)
-# Notify.update_forward_refs(**refs)
+Notify.update_forward_refs(**refs)
 
 
 __all__ = [
     'action',
-    # 'ActionInputs',
     'AnyVariable',
     'AnyDataVariable',
     'DataVariable',
@@ -65,11 +68,10 @@ __all__ = [
     'UrlVariable',
     # 'DownloadVariable',
     # 'DownloadContent',
-    # 'NavigateTo',
-    # 'Notify',
-    # 'ResetVariables',
-    # 'SideEffect',
-    # 'TriggerVariable',
+    'NavigateTo',
+    'Notify',
+    'ResetVariables',
+    'TriggerVariable',
     'UpdateVariable',
     'Condition',
     'Operator',

@@ -82,7 +82,7 @@ function isValidHttpUrl(url: string): boolean {
 
 // export default NavigateTo;
 
-const NavigateTo: ActionHandler<NavigateToImpl> = async (ctx, actionImpl): Promise<void> => {
+const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
     const isValidUrl = isValidHttpUrl(actionImpl.url);
 
     if (!isValidUrl) {

@@ -1,11 +1,12 @@
 import { DefaultTheme } from '@darajs/styled-components';
 import { NotificationPayload, useNotifications } from '@darajs/ui-notifications';
 import { SortingRule } from '@darajs/ui-utils';
-import { type History } from 'history';
+import { type History, type Location } from 'history';
 
 import { CallbackInterface } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api/websocket';
+import { GlobalTaskContext } from '@/shared/context/global-task-context';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -267,8 +268,8 @@ export interface TemplateMarker {
 export interface RouteContent {
     content: ComponentInstance;
     name: string;
-    /** Variables to reset upon visiting the page */
-    reset_vars_on_load: Variable<any>[];
+    /** Action to execute upon visiting the page */
+    on_load: Action;
     route: string;
 }
 
@@ -343,6 +344,20 @@ export interface NavigateToImpl extends ActionImpl {
 
 export type NotifyImpl = ActionImpl & NotificationPayload;
 
+export interface ResetVariablesImpl extends ActionImpl {
+    variables: Variable<any>[];
+}
+
+export interface DownloadContentImpl extends ActionImpl {
+    code: string;
+}
+
+export interface DownloadVariableImpl extends ActionImpl {
+    file_name?: string;
+    type?: 'csv' | 'xlsx' | 'json';
+    variable: AnyVariable<any>;
+}
+
 export interface ActionInstance {
     name: string;
     uid: string;
@@ -400,6 +415,10 @@ export interface LogoutInstance extends ActionInstance {
  */
 export interface ActionContext extends CallbackInterface {
     /**
+     * Action instance uid
+     */
+    uid: string;
+    /**
      * Current auth session token
      */
     sessionToken: string;
@@ -412,6 +431,14 @@ export interface ActionContext extends CallbackInterface {
      */
     history: History;
     /**
+     * Location object
+     */
+    location: Location;
+    /**
+     * Task context
+     */
+    taskCtx: GlobalTaskContext;
+    /**
      * Notification context
      */
     notificationCtx: ReturnType<typeof useNotifications>;
@@ -421,7 +448,7 @@ export interface ActionContext extends CallbackInterface {
  * Signature of an ActionHandler
  */
 export interface ActionHandler<ActionImplType extends ActionImpl = ActionImpl> {
-    (actionContext: ActionContext, action: ActionImplType): Promise<void>;
+    (actionContext: ActionContext, action: ActionImplType): void | Promise<void>;
 }
 
 export interface Action {

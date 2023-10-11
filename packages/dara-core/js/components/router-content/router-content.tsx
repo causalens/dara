@@ -25,10 +25,16 @@ interface RouterContentProps {
 function RouterContent(props: RouterContentProps): JSX.Element {
     return (
         <Switch>
-            {props.routes.map(({ content, route, reset_vars_on_load, name }) => (
-                <PrivateRoute key={route} name={name} path={route} reset_vars_on_load={reset_vars_on_load}>
-                    <DynamicComponent component={content} />
-                </PrivateRoute>
+            {props.routes.map(({ content, route, on_load, name }) => (
+                <Route
+                    key={route}
+                    path={route}
+                    render={() => (
+                        <PrivateRoute name={name} on_load={on_load}>
+                            <DynamicComponent component={content} />
+                        </PrivateRoute>
+                    )}
+                />
             ))}
             <Route exact path="/" render={() => <Redirect to={props.routes[0].route} />} />
             <Route component={PageNotFound} />

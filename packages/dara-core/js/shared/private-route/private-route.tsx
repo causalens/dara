@@ -1,24 +1,21 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { ReactNode, useEffect } from 'react';
-import { Redirect, Route } from 'react-router-dom';
+import { Redirect } from 'react-router-dom';
 
 import { useSessionToken } from '@/auth/auth-context';
-import { useResetVariables } from '@/shared/interactivity';
+import { DefaultFallback } from '@/components';
+import useAction from '@/shared/utils/use-action';
 import useWindowTitle from '@/shared/utils/use-window-title';
-import { Variable } from '@/types';
+import { Action } from '@/types';
 
 interface PrivateRouteProps {
     /** The children to wrap */
     children: ReactNode;
-    /** To have exact matching for the route path */
-    exact?: boolean;
     /** Name of the page this route links to */
     name?: string;
-    /** The route for the private route */
-    path: string;
     /** Variables which should be reset upon visiting the page */
-    reset_vars_on_load?: Variable<any>[];
+    on_load?: Action;
 }
 
 /**
@@ -27,36 +24,22 @@ interface PrivateRouteProps {
  *
  * @param props - the component props
  */
-function PrivateRoute({ children, path, exact, reset_vars_on_load, name, ...rest }: PrivateRouteProps): JSX.Element {
+function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode {
     const token = useSessionToken();
-    const resetVariables = useResetVariables(reset_vars_on_load ?? []);
+    const [onLoad, isLoading] = useAction(on_load);
 
     useWindowTitle(name);
 
     useEffect(() => {
-        // On mount, reset variables which were specified
-        resetVariables();
+        // On mount, call the on_load action
+        onLoad();
     }, []);
 
-    return (
-        <Route
-            {...rest}
-            exact={exact}
-            path={path}
-            render={({ location }) =>
-                token ? (
-                    children
-                ) : (
-                    <Redirect
-                        to={{
-                            pathname: '/login',
-                            state: { from: location },
-                        }}
-                    />
-                )
-            }
-        />
-    );
+    if (!token) {
+        return <Redirect to="/login" />;
+    }
+
+    return isLoading ? <DefaultFallback /> : children;
 }
 
 export default PrivateRoute;

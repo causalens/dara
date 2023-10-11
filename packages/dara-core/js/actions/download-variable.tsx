@@ -1,185 +1,170 @@
-// /* eslint-disable react-hooks/rules-of-hooks */
-// /* eslint-disable react-hooks/exhaustive-deps */
+import * as xl from 'exceljs';
+import { saveAs } from 'file-saver';
 
-// import * as xl from 'exceljs';
-// import { saveAs } from 'file-saver';
-// import { useCallback } from 'react';
+import { Status } from '@darajs/ui-utils';
 
-// import { useNotifications } from '@darajs/ui-notifications';
-// import { Status } from '@darajs/ui-utils';
+import { getVariableValue } from '@/shared/interactivity/use-variable-value';
+import { ActionHandler, DownloadVariableImpl } from '@/types/core';
 
-// import { useVariableValue } from '@/shared/interactivity';
-// import { ActionHandler, DownloadVariableInstance } from '@/types/core';
+const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
+    const headings: string[] = [];
+    const indexes: Record<string, number> = {};
+    content.forEach((c) => {
+        Object.keys(c).forEach((k) => {
+            if (!headings.includes(k)) {
+                headings.push(k);
+                indexes[k] = headings.length - 1;
+            }
+        });
+    });
 
-// function isPromise(p: any): p is Promise<any> {
-//     if (typeof p === 'object' && typeof p.then === 'function') {
-//         return true;
-//     }
-//     return false;
-// }
+    const headingsLength = headings.length;
 
-// const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
-//     const headings: string[] = [];
-//     const indexes: Record<string, number> = {};
-//     content.forEach((c) => {
-//         Object.keys(c).forEach((k) => {
-//             if (!headings.includes(k)) {
-//                 headings.push(k);
-//                 indexes[k] = headings.length - 1;
-//             }
-//         });
-//     });
+    const matrix: any[][] = [];
 
-//     const headingsLength = headings.length;
+    content.forEach((c) => {
+        const row: any[] = new Array(headingsLength);
+        Object.entries(c).forEach(([k, v]) => {
+            row[indexes[k]] = v;
+        });
 
-//     const matrix: any[][] = [];
+        matrix.push(row);
+    });
 
-//     content.forEach((c) => {
-//         const row: any[] = new Array(headingsLength);
-//         Object.entries(c).forEach(([k, v]) => {
-//             row[indexes[k]] = v;
-//         });
+    matrix.unshift(headings);
 
-//         matrix.push(row);
-//     });
+    return matrix;
+};
 
-//     matrix.unshift(headings);
+/**
+ * Process a cell value - convert it to a string and wrap in quotes if required
+ */
+const processCell = (cell: any): string => {
+    let cellValue = cell === null ? '' : String(cell);
 
-//     return matrix;
-// };
+    // Wrap the cell in quotes if it has a quote itself, a comma or a newline (outside of the 0 index)
+    if (cellValue.search(/("|,|\n)/g) > 0) {
+        cellValue = `"${cellValue}"`;
+    }
 
-// /**
-//  * Process a cell value - convert it to a string and wrap in quotes if required
-//  */
-// const processCell = (cell: any): string => {
-//     let cellValue = cell === null ? '' : String(cell);
+    return cellValue;
+};
 
-//     // Wrap the cell in quotes if it has a quote itself, a comma or a newline (outside of the 0 index)
-//     if (cellValue.search(/("|,|\n)/g) > 0) {
-//         cellValue = `"${cellValue}"`;
-//     }
+const createCsvFromMatrix = (matrix: any[][]): Blob => {
+    const csv = matrix.map((col) => col.map((cell) => processCell(cell)).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    return blob;
+};
 
-//     return cellValue;
-// };
+const createJsonBlob = (jso: any): Blob => {
+    const json = JSON.stringify(jso, null, 2);
+    return new Blob([json], { type: 'application/json' });
+};
 
-// const createCsvFromMatrix = (matrix: any[][]): Blob => {
-//     const csv = matrix.map((col) => col.map((cell) => processCell(cell)).join(',')).join('\n');
-//     const blob = new Blob([csv], { type: 'text/csv' });
-//     return blob;
-// };
+const createXLFromMatrix = async (name: string, matrix: any[][]): Promise<Blob> => {
+    const wb = new xl.Workbook();
 
-// const createJsonBlob = (jso: any): Blob => {
-//     const json = JSON.stringify(jso, null, 2);
-//     return new Blob([json], { type: 'application/json' });
-// };
+    const ws = wb.addWorksheet(name);
 
-// const createXLFromMatrix = async (name: string, matrix: any[][]): Promise<Blob> => {
-//     const wb = new xl.Workbook();
+    const columns = matrix[0].map((h) => ({
+        filterButton: true,
+        name: h,
+    }));
 
-//     const ws = wb.addWorksheet(name);
+    const rows = [...matrix];
+    rows.shift();
 
-//     const columns = matrix[0].map((h) => ({
-//         filterButton: true,
-//         name: h,
-//     }));
+    ws.addTable({
+        columns,
+        headerRow: true,
+        name: 'DataTable',
+        ref: 'B2',
+        rows,
+        style: {
+            showRowStripes: true,
+            theme: 'TableStyleMedium2',
+        },
+        totalsRow: false,
+    });
 
-//     const rows = [...matrix];
-//     rows.shift();
+    const buff = await wb.xlsx.writeBuffer();
 
-//     ws.addTable({
-//         columns,
-//         headerRow: true,
-//         name: 'DataTable',
-//         ref: 'B2',
-//         rows,
-//         style: {
-//             showRowStripes: true,
-//             theme: 'TableStyleMedium2',
-//         },
-//         totalsRow: false,
-//     });
+    const blob = new Blob([buff], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-//     const buff = await wb.xlsx.writeBuffer();
+    return blob;
+};
 
-//     const blob = new Blob([buff], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[][] => {
+    let isMatrix = false;
+    let isArrayOfObjects = false;
 
-//     return blob;
-// };
+    if (Array.isArray(val) && val.length > 0) {
+        const first = val[0];
+        if (Array.isArray(first)) {
+            isMatrix = true;
+        }
+        if (typeof val === 'object') {
+            isArrayOfObjects = true;
+        }
+    }
 
-// const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[][] => {
-//     let isMatrix = false;
-//     let isArrayOfObjects = false;
+    if (isArrayOfObjects) {
+        return createMatrixFromArrayOfObjects(val);
+    }
 
-//     if (Array.isArray(val) && val.length > 0) {
-//         const first = val[0];
-//         if (Array.isArray(first)) {
-//             isMatrix = true;
-//         }
-//         if (typeof val === 'object') {
-//             isArrayOfObjects = true;
-//         }
-//     }
+    if (isMatrix) {
+        return val as any[][];
+    }
 
-//     if (isArrayOfObjects) {
-//         return createMatrixFromArrayOfObjects(val);
-//     }
+    return undefined;
+};
 
-//     if (isMatrix) {
-//         return val as any[][];
-//     }
+/**
+ * Frontend handler for DownloadVariable action
+ * Retrieves the variable value and downloads the variable as either a csv, json or xl file
+ */
+const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
+    let value = getVariableValue(actionImpl.variable, true, {
+        client: ctx.wsClient,
+        search: ctx.location.search,
+        snapshot: ctx.snapshot,
+        taskContext: ctx.taskCtx,
+        token: ctx.sessionToken,
+    });
 
-//     return undefined;
-// };
+    if (value instanceof Promise) {
+        value = await value;
+    }
 
-// /**
-//  * Frontend handler for DownloadVariable action
-//  * Retrieves the variable value and downloads the variable as either a csv or xl file
-//  */
-// const DownloadVariable: ActionHandler<any, DownloadVariableInstance> = (action) => {
-//     const valResolver = useVariableValue(action.variable, true);
-//     const { pushNotification } = useNotifications();
+    // strip the __index__ column from data vars
+    if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
+        for (const row of value) {
+            if ('__index__' in row) {
+                delete row.__index__;
+            }
+        }
+    }
 
-//     return useCallback(async (): Promise<void> => {
-//         const valOrPromise = valResolver();
-//         const val = isPromise(valOrPromise) ? await valOrPromise : valOrPromise;
+    const fileName = actionImpl.file_name || 'Data';
+    const fileNameWithExt = `${fileName}.${actionImpl.type}`;
+    if (actionImpl.type === 'json') {
+        const blob = createJsonBlob(value);
+        saveAs(blob, fileNameWithExt);
+        return Promise.resolve();
+    }
+    const matrix = createMatrixFromValue(value);
+    if (!matrix) {
+        ctx.notificationCtx.pushNotification({
+            key: ctx.uid,
+            message: 'Try again or contact the application owner',
+            status: Status.ERROR,
+            title: 'Error downloading file',
+        });
+        return Promise.resolve();
+    }
+    const notExcel = !actionImpl.type || actionImpl.type !== 'xlsx';
+    const blob = notExcel ? createCsvFromMatrix(matrix) : await createXLFromMatrix(fileName, matrix);
+    saveAs(blob, fileNameWithExt);
+};
 
-//         // strip the __index__ column from data vars
-//         if (action.variable.__typename === 'DataVariable' || action.variable.__typename === 'DerivedDataVariable') {
-//             for (const row of val) {
-//                 if ('__index__' in row) {
-//                     delete row.__index__;
-//                 }
-//             }
-//         }
-
-//         const fileName = action.file_name || 'Data';
-//         const fileNameWithExt = `${fileName}.${action.type}`;
-
-//         if (action.type === 'json') {
-//             const blob = createJsonBlob(val);
-//             saveAs(blob, fileNameWithExt);
-//             return Promise.resolve();
-//         }
-
-//         const matrix = createMatrixFromValue(val);
-
-//         if (!matrix) {
-//             pushNotification({
-//                 key: action.uid,
-//                 message: 'Try again or contact the application owner',
-//                 status: Status.ERROR,
-//                 title: 'Error downloading file',
-//             });
-//             return Promise.resolve();
-//         }
-
-//         const notExcel = !action.type || action.type !== 'xlsx';
-//         const blob = notExcel ? createCsvFromMatrix(matrix) : await createXLFromMatrix(fileName, matrix);
-
-//         saveAs(blob, fileNameWithExt);
-
-//         return Promise.resolve();
-//     }, [action]);
-// };
-
-// export default DownloadVariable;
+export default DownloadVariable;

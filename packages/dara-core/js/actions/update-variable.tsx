@@ -4,7 +4,7 @@ import { ActionHandler, UpdateVariableImpl } from '@/types/core';
 /**
  * Front-end handler for UpdateVariable action.
  */
-const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl): Promise<void> => {
+const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
     return ctx.set(getAtom(actionImpl.target), actionImpl.value);
 };
 

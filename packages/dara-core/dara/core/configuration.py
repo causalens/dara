@@ -36,7 +36,7 @@ from pydantic.generics import GenericModel
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
-from dara.core.base_definitions import ActionDef
+from dara.core.base_definitions import Action, ActionDef
 from dara.core.definitions import (
     AnyVariable,
     ApiRoute,
@@ -352,7 +352,7 @@ class ConfigurationBuilder:
         icon: Optional[str] = None,
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
-        reset_vars_on_load: Optional[List[AnyVariable]] = [],
+        on_load: Optional[Action] = None
     ):
         """
         Add a new page to the layout of the platform. Switching between pages relies on the template implementing a
@@ -364,7 +364,7 @@ class ConfigurationBuilder:
         :param icon: an optional icon for the page, see dara_core.css.get_icon for more detail
         :param route: an optional url for the page, if not provided it's generated based on the page name
         :param include_in_menu: an optional flag for not including the page in the main menu
-        :param reset_vars_on_load: optional list of variables to reset upon visiting the page
+        :param on_load: optional action to execute upon visiting the page
         """
         url_safe_name = route if route is not None else name.lower().replace(' ', '-').strip()
         if isinstance(content, str):
@@ -386,7 +386,7 @@ class ConfigurationBuilder:
             name=name,
             url_safe_name=url_safe_name,
             include_in_menu=include_in_menu,
-            reset_vars_on_load=reset_vars_on_load,
+            on_load=on_load,
         )
         self._pages[name] = page
         return page

@@ -106,7 +106,7 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
                     </Route>
                 ))}
                 <Route component={ErrorPage} path="/error" />
-                <PrivateRoute path="/">{props.children}</PrivateRoute>
+                <Route path="/" render={() => <PrivateRoute>{props.children}</PrivateRoute>} />
             </Switch>
         </AuthContext.Provider>
     );

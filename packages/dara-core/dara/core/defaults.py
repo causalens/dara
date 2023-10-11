@@ -21,20 +21,16 @@ from typing import Dict, TYPE_CHECKING
 
 from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
-    # DownloadContent,
+    DownloadContent,
     DownloadContentDef,
-    # DownloadVariable,
+    DownloadVariable,
     DownloadVariableDef,
-    # Logout,
-    LogoutDef,
     NavigateTo,
     NavigateToDef,
     Notify,
     NotifyDef,
-    # ResetVariables,
+    ResetVariables,
     ResetVariablesDef,
-    # SideEffect,
-    SideEffectDef,
     TriggerVariable,
     TriggerVariableDef,
     UpdateVariable,
@@ -94,12 +90,10 @@ CORE_ACTIONS: Dict[str, ActionDef] = {
     NavigateTo.__name__: NavigateToDef,
     UpdateVariable.__name__: UpdateVariableDef,
     TriggerVariable.__name__: TriggerVariableDef,
-    # SideEffect.__name__: SideEffectDef,
-    # ResetVariables.__name__: ResetVariablesDef,
-    # DownloadVariable.__name__: DownloadVariableDef,
-    # DownloadContent.__name__: DownloadContentDef,
+    ResetVariables.__name__: ResetVariablesDef,
+    DownloadVariable.__name__: DownloadVariableDef,
+    DownloadContent.__name__: DownloadContentDef,
     Notify.__name__: NotifyDef,
-    # Logout.__name__: LogoutDef,
 }
 
 # Define a default layout template

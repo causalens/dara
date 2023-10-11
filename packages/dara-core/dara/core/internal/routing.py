@@ -20,10 +20,11 @@ import os
 from functools import wraps
 from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional
+import anyio
 
 import pandas
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Response, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
@@ -35,7 +36,7 @@ from dara.core.internal.execute_action import CURRENT_ACTION_ID
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.download import get_by_code
+from dara.core.internal.download import DownloadDataEntry, DownloadRegistryEntry
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
@@ -145,20 +146,34 @@ def create_router(config: Configuration):
 
     @core_api_router.get('/download')
     async def get_download(code: str):   # pylint: disable=unused-variable
-        path, file_name, cleanup_file, _ = get_by_code(code)
+        store: CacheStore = utils_registry.get('Store')
 
-        def cleanup():
-            if cleanup_file:
-                os.remove(path)
+        try:
+            data_entry = await store.get(DownloadRegistryEntry, key=code)
 
-        if os.path.exists(path):
-            return FileResponse(
-                path,
+            if data_entry is None:
+                raise ValueError('Invalid or expired download code')
+
+            async_file, cleanup = await data_entry.download(data_entry)
+
+            file_name = os.path.basename(data_entry.file_path)
+
+            async def stream_file():
+                has_content = True
+                chunk_size = 64 * 1024
+                while has_content:
+                    chunk = await async_file.read(chunk_size)
+                    has_content = chunk_size == len(chunk)
+                    yield chunk
+
+            return StreamingResponse(
+                content=stream_file(),
                 headers={'Content-Disposition': f'attachment; filename={file_name}'},
-                background=BackgroundTask(cleanup),
+                background=BackgroundTask(cleanup)
             )
-        else:
-            raise FileNotFoundError(f'Download file "{file_name}" could not be found at: {path}')
+
+        except KeyError:
+            raise ValueError('Invalid or expired download code')
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
     async def get_config():  # pylint: disable=unused-variable
