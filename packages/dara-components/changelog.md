@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fixed an issue where `Table` would always overflow
+-   Fixed an issue where `NaN` was not handled in `Input` with `type=number`
 
 ## 1.1.10
 
