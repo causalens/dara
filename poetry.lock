@@ -216,14 +216,14 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.2.6"
+version = "0.2.8"
 description = "A Causal AI package for causal graphs."
 category = "main"
 optional = false
 python-versions = ">=3.8.0,<3.12.0"
 files = [
-    {file = "cai_causal_graph-0.2.6-py3-none-any.whl", hash = "sha256:a6733ee5057d7fd36241021ed735a8e6f290480175fb8bddc1801807a0e102b6"},
-    {file = "cai_causal_graph-0.2.6.tar.gz", hash = "sha256:620dcbef64c0746507c98126a3f88224881c52841d42ef8d56cc363fffce2d1e"},
+    {file = "cai_causal_graph-0.2.8-py3-none-any.whl", hash = "sha256:7629408386c7cfebe51d447d91ecb4e3e7379dc210e47fd36cf2ddb0991e0aac"},
+    {file = "cai_causal_graph-0.2.8.tar.gz", hash = "sha256:cd6294754b9ea33bc086f392c43fbf30ebb5c15259df074f92fe3d9085ad1d18"},
 ]
 
 [package.dependencies]
@@ -543,7 +543,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.3.0"
+version = "1.3.1"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -622,14 +622,14 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "cycler"
-version = "0.12.0"
+version = "0.12.1"
 description = "Composable style cycles"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "cycler-0.12.0-py3-none-any.whl", hash = "sha256:7896994252d006771357777d0251f3e34d266f4fa5f2c572247a80ab01440947"},
-    {file = "cycler-0.12.0.tar.gz", hash = "sha256:8cc3a7b4861f91b1095157f9916f748549a617046e67eb7619abed9b34d2c94a"},
+    {file = "cycler-0.12.1-py3-none-any.whl", hash = "sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30"},
+    {file = "cycler-0.12.1.tar.gz", hash = "sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c"},
 ]
 
 [package.extras]
@@ -638,7 +638,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.3.0"
+version = "1.3.1"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -649,7 +649,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.3.0"
+dara-core = "=1.3.1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -663,7 +663,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.3.0"
+version = "1.3.1"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -702,7 +702,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.3.0)"]
+all = ["dara-components (==1.3.1)"]
 
 [package.source]
 type = "directory"
@@ -2188,14 +2188,14 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-timeout"
-version = "2.1.0"
+version = "2.2.0"
 description = "pytest plugin to abort hanging tests"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "pytest-timeout-2.1.0.tar.gz", hash = "sha256:c07ca07404c612f8abbe22294b23c368e2e5104b521c1790195561f37e1ac3d9"},
-    {file = "pytest_timeout-2.1.0-py3-none-any.whl", hash = "sha256:f6f50101443ce70ad325ceb4473c4255e9d74e3c7cd0ef827309dfa4c0d975c6"},
+    {file = "pytest-timeout-2.2.0.tar.gz", hash = "sha256:3b0b95dabf3cb50bac9ef5ca912fa0cfc286526af17afc806824df20c2f72c90"},
+    {file = "pytest_timeout-2.2.0-py3-none-any.whl", hash = "sha256:bde531e096466f49398a59f2dde76fa78429a09a12411466f88a07213e220de2"},
 ]
 
 [package.dependencies]
@@ -3075,4 +3075,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "bebcd6d5a13194070134ca7b4023acb2294b7a9ba0c780c73efb7c40479521b5"
+content-hash = "c8f170c5ff1c093269b7a188925187cf18c401528d10d5526ffbf35e7f2f27d8"
