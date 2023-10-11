@@ -32,12 +32,13 @@ from typing import (
     List,
     Literal,
     Optional,
+    Type,
     TypeVar,
     Union,
     overload
 )
 from typing_extensions import ParamSpec, Concatenate
-from functools import wraps
+from functools import update_wrapper, wraps
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
@@ -229,36 +230,41 @@ ACTION_CONTEXT = ContextVar[Optional[ActionContext]]('action_context', default=N
 
 P = ParamSpec('P')
 
-def action(func: Callable[Concatenate[ActionContext, P], Any]) -> Callable[..., Action]:
-    from dara.core.base_definitions import Action
-    from dara.core.internal.execute_action import execute_action
-    from dara.core.internal.registries import action_registry, static_kwargs_registry
-    from dara.core.interactivity import (
-        AnyVariable,
-    )
+class action:
+    ctx: Type[ActionContext] = ActionContext
 
-    definition_uid = str(uuid.uuid4())
+    def __init__(self, func: Callable[Concatenate[ActionContext, P], Any]):
+        from dara.core.internal.execute_action import execute_action
+        from dara.core.internal.registries import action_registry
 
-    # Register the definition
-    act_def = ActionResolverDef(resolver=func, uid=definition_uid, execute_action=execute_action)
-    action_registry.register(definition_uid, act_def)
+        self.func = func
+        self.definition_uid = str(uuid.uuid4())
 
-    signature = inspect.signature(func)
+        # Register the definition
+        act_def = ActionResolverDef(resolver=func, uid=self.definition_uid, execute_action=execute_action)
+        action_registry.register(self.definition_uid, act_def)
 
-    # Create a modified sig which shows the func can be called without the ActionContext
-    new_params = list(signature.parameters.values())
-    new_params.pop(0)
-    new_sig = signature.replace(parameters=new_params)
+        # Modify the function signature
+        signature = inspect.signature(func)
+        new_params = list(signature.parameters.values())
+        new_params.pop(0)  # Remove the first parameter (ctx)
+        self.new_sig = signature.replace(parameters=new_params)
 
-    @wraps(func)
-    def _inner_func(*args, **kwargs) -> Action:
+        # Update the function's __signature__ attribute for correct introspection
+        update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
+        self.__signature__ = self.new_sig  # type: ignore
+
+    def __call__(self, *args, **kwargs) -> Action:
+        from dara.core.base_definitions import Action
+        from dara.core.interactivity.any_variable import AnyVariable
+        from dara.core.internal.registries import static_kwargs_registry
+
         instance_uid = str(uuid.uuid4())
 
         # Create kwargs for every argument based on the function signature and then split them into dynamic vs static
         all_kwargs = {**kwargs}
-        for idx, param in enumerate(new_sig.parameters.values()):
+        for idx, param in enumerate(self.new_sig.parameters.values()):
             if idx >= len(args):
-                # If it was passed as a kwarg already then skip this
                 if param.name in all_kwargs:
                     continue
                 if param.default == inspect.Parameter.empty:
@@ -269,16 +275,16 @@ def action(func: Callable[Concatenate[ActionContext, P], Any]) -> Callable[..., 
 
         # Verify types are correct
         for key, value in all_kwargs.items():
-            if key in func.__annotations__:
+            if key in self.func.__annotations__:
                 valid_value = True
                 try:
-                    valid_value = isinstance(value, (func.__annotations__[key], AnyVariable))
+                    valid_value = isinstance(value, (self.func.__annotations__[key], AnyVariable))
                 except Exception:
                     pass  # The type is either not set or something tricky to verify, e.g. union
                 if not valid_value:
                     raise TypeError(
                         f'Argument: {key} was passed as a {type(value)}, but it should be '
-                        f'{func.__annotations__[key]}, or a Variable instance'
+                        f'{self.func.__annotations__[key]}, or a Variable instance'
                     )
 
         # Split args based on whether they are static or dynamic
@@ -297,15 +303,10 @@ def action(func: Callable[Concatenate[ActionContext, P], Any]) -> Callable[..., 
         instance = Action(
             dynamic_kwargs=dynamic_kwargs,
             uid=instance_uid,
-            definition_uid=definition_uid # Link to the definition
+            definition_uid=self.definition_uid  # Link to the definition
         )
 
         return instance
-
-    # Update _inner_func sig
-    _inner_func.__signature__ = new_sig # type: ignore
-
-    return _inner_func
 
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
