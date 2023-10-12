@@ -41,7 +41,8 @@ from dara.core.internal.encoder_registry import encoder_registry
     (pandas.arrays.BooleanArray, pandas.array([True, False, True]), False),
     (pandas.Series, pandas.Series([1, 2, 3]), False),
     (pandas.Index, pandas.Index([1, 2, 3]), False),
-    (pandas.Timestamp, pandas.Timestamp('2023-10-04'), False)
+    (pandas.Timestamp, pandas.Timestamp('2023-10-04'), False),
+    (pandas.DataFrame, pandas.DataFrame({'col': [1.0,2.2,3.3,numpy.nan]}), False)
 ])
 def test_serialization_deserialization(type_, value, raise_):
     encoder = encoder_registry[type_]
@@ -60,5 +61,7 @@ def test_serialization_deserialization(type_, value, raise_):
     # Handle pandas arrays
     elif isinstance(value, ExtensionArray):
         assert numpy.array_equal(value, deserialized)
+    elif isinstance(value,pandas.DataFrame):
+        pandas.testing.assert_frame_equal(value,deserialized)
     else:
         assert numpy.array_equal(value, deserialized) or value == deserialized
