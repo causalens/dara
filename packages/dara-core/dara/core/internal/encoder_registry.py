@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
+
 # pylint: disable=unnecessary-lambda
 from typing import Any, Callable, MutableMapping, Type
 
@@ -52,6 +54,21 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
         deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype)
     )
 
+
+def _df_decode_resolver(df: Any):
+    """
+    Construct pandas DataFrame datatype
+
+    :param df: The original data need to be transform to DataFrame
+    """
+    if isinstance(df, str):
+        return pandas.DataFrame.from_dict(json.loads(df))
+    if isinstance(df, dict):
+        return pandas.DataFrame.from_dict(df)
+    else:
+        return df
+
+
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
     numpy.ndarray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: numpy.array(x)),
@@ -89,4 +106,5 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
+    pandas.DataFrame: Encoder(serialize=lambda x: x.to_json(orient='records'), deserialize=lambda x: _df_decode_resolver(x)),
 }
