@@ -2,6 +2,7 @@ lockfileVersion: 5.3
 
 overrides:
   prettier: ^2.8
+  headers-polyfill: 3.1.2
 
 packageExtensionsChecksum: 8f08057861f748787e601035c44efebc
 
@@ -188,7 +189,7 @@ importers:
       typescript: ^5.0.4
       use-async-resource: ^2.2.2
       vite: 3.1.8
-      whatwg-fetch: ^3.6.2
+      whatwg-fetch: ^3.6.1
     dependencies:
       '@darajs/styled-components': 1.2.1_78192202c283c0ec40a630972acdcc20
       '@darajs/ui-components': 1.2.1_@babel+core@7.23.0
@@ -263,7 +264,7 @@ importers:
       stylelint: 14.5.3
       tsc-alias: 1.8.8
       vite: 3.1.8
-      whatwg-fetch: 3.6.19
+      whatwg-fetch: 3.6.17
 
 packages:
 
@@ -2905,15 +2906,15 @@ packages:
       set-cookie-parser: 2.6.0
     dev: true
 
-  /@mswjs/interceptors/0.17.10:
-    resolution: {integrity: sha512-N8x7eSLGcmUFNWZRxT1vsHvypzIRgQYdG0rJey/rZCy6zT/30qDt8Joj7FxzGNLSwXbeZqJOMqDurp7ra4hgbw==}
+  /@mswjs/interceptors/0.17.9:
+    resolution: {integrity: sha512-4LVGt03RobMH/7ZrbHqRxQrS9cc2uh+iNKSj8UWr8M26A2i793ju+csaB5zaqYltqJmA2jUq4VeYfKmVqvsXQg==}
     engines: {node: '>=14'}
     dependencies:
       '@open-draft/until': 1.0.3
       '@types/debug': 4.1.9
       '@xmldom/xmldom': 0.8.10
       debug: 4.3.4
-      headers-polyfill: 3.2.5
+      headers-polyfill: 3.1.2
       outvariant: 1.4.0
       strict-event-emitter: 0.2.8
       web-encoding: 1.1.5
@@ -8788,12 +8789,8 @@ packages:
       space-separated-tokens: 2.0.2
     dev: false
 
-  /headers-polyfill/3.2.5:
-    resolution: {integrity: sha512-tUCGvt191vNSQgttSyJoibR+VO+I6+iCHIUdhzEMJKE+EAL8BwCN7fUOZlY4ofOelNHsK+gEjxB/B+9N3EWtdA==}
-    dev: true
-
-  /headers-polyfill/3.3.0:
-    resolution: {integrity: sha512-5e57etwBpNcDc0b6KCVWEh/Ro063OxPvzVimUdM0/tsYM/T7Hfy3kknIGj78SFTOhNd8AZY41U8mOHoO4LzmIQ==}
+  /headers-polyfill/3.1.2:
+    resolution: {integrity: sha512-tWCK4biJ6hcLqTviLXVR9DTRfYGQMXEIUj3gwJ2rZ5wO/at3XtkI4g8mCvFdUF9l1KMBNCfmNAdnahm1cgavQA==}
     dev: true
 
   /heap/0.2.7:
@@ -11285,7 +11282,7 @@ packages:
         optional: true
     dependencies:
       '@mswjs/cookies': 0.2.2
-      '@mswjs/interceptors': 0.17.10
+      '@mswjs/interceptors': 0.17.9
       '@open-draft/until': 1.0.3
       '@types/cookie': 0.4.1
       '@types/js-levenshtein': 1.1.1
@@ -11293,7 +11290,7 @@ packages:
       chokidar: 3.5.3
       cookie: 0.4.2
       graphql: 16.8.1
-      headers-polyfill: 3.3.0
+      headers-polyfill: 3.1.2
       inquirer: 8.2.6
       is-node-process: 1.2.0
       js-levenshtein: 1.1.6
@@ -15042,8 +15039,8 @@ packages:
       iconv-lite: 0.6.3
     dev: true
 
-  /whatwg-fetch/3.6.19:
-    resolution: {integrity: sha512-d67JP4dHSbm2TrpFj8AbO8DnL1JXL5J9u0Kq2xW6d0TFDbCA3Muhdt8orXC22utleTVj7Prqt82baN6RBvnEgw==}
+  /whatwg-fetch/3.6.17:
+    resolution: {integrity: sha512-c4ghIvG6th0eudYwKZY5keb81wtFz9/WeAHAoy8+r18kcWlitUIrmGFQ2rWEl4UCKUilD3zCLHOIPheHx5ypRQ==}
     dev: true
 
   /whatwg-mimetype/3.0.0:
