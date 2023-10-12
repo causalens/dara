@@ -56,15 +56,7 @@ export type {
     BaseComponentProps,
 };
 
-export {
-    UpdateVariable,
-    TriggerVariable,
-    NavigateTo,
-    ResetVariables,
-    DownloadVariable,
-    DownloadContent,
-    Notify,
-} from './actions';
+export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
 export {
     useAuthCtx,
     useSessionToken,

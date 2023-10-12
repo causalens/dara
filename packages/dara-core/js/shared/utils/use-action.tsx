@@ -1,12 +1,12 @@
 import { useCallback, useContext, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { concatMap, finalize, takeWhile } from 'rxjs/operators';
 import shortid from 'shortid';
 
 import { useNotifications } from '@darajs/ui-notifications';
-import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
+import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
 import { useSessionToken } from '@/auth/auth-context';
@@ -115,6 +115,8 @@ async function fetchAction(
     annotatedAction: AnnotatedAction,
     actionCtx: ActionContext
 ): Promise<void> {
+    console.log({ actionCtx });
+
     // resolve kwargs to primitives, this registers variables if not already registered
     const resolvedKwargs = Object.keys(annotatedAction.dynamic_kwargs).reduce((acc, k) => {
         const value = annotatedAction.dynamic_kwargs[k];
@@ -179,6 +181,8 @@ async function executeAction(
 ): Promise<void> {
     // if it's a simple action implementation, run the handler directly
     if (isActionImpl(action)) {
+        console.log('simple impl!');
+
         const handler = await resolveActionImpl(action, getAction, importers);
         const result = handler(actionCtx, action);
 
@@ -193,8 +197,34 @@ async function executeAction(
 
     const observable = actionCtx.wsClient.actionMessages$(executionId);
 
-    return new Promise((resolve) => {
-        const sub = observable
+    console.log('starting execution...');
+
+    return new Promise((resolve, reject) => {
+        let activeTasks = 0; // Counter to keep track of active tasks
+        let streamCompleted = false; // Flag to check if the stream is completed
+
+        const checkForCompletion = (): void => {
+            if (streamCompleted && activeTasks === 0) {
+                console.log('All actions processed');
+                resolve();
+            }
+        };
+
+        let sub: Subscription;
+
+        const onError = (error: Error): void => {
+            console.error('Error executing action:', error);
+            actionCtx.notificationCtx.pushNotification({
+                key: executionId,
+                message: 'Try again or contact the application owner',
+                status: Status.ERROR,
+                title: 'Error executing action',
+            });
+            sub.unsubscribe();
+            reject();
+        };
+
+        sub = observable
             .pipe(
                 concatMap(async (actionImpl) => {
                     console.log('actionImpl', actionImpl);
@@ -206,21 +236,35 @@ async function executeAction(
 
                     return null;
                 }),
-                takeWhile((res) => !!res), // stop when falsy is returned from concatMap
-                finalize(() => resolve())
+                takeWhile((res) => !!res) // stop when falsy is returned from concatMap
             )
-            .subscribe(async ([handler, actionImpl]) => {
-                // TODO: handle error? show toast
-                console.log('calling handler', actionImpl);
-                const result = handler(actionCtx, actionImpl);
-                // If it's a promise, await it to ensure sequential execution
-                if (result instanceof Promise) {
-                    await result;
-                }
+            .subscribe({
+                complete: () => {
+                    activeTasks -= 1;
+                    console.log('sub complete');
+                    streamCompleted = true; // Set the flag when the stream is complete
+                    checkForCompletion();
+                },
+                error: (error) => {
+                    activeTasks -= 1;
+                    console.error('Error in the stream:', error);
+                    onError(error); // Reject the promise if there's an error in the stream
+                },
+                next: async ([handler, actionImpl]) => {
+                    activeTasks += 1;
+                    // TODO: handle error? show toast
+                    console.log('calling handler', actionImpl);
+
+                    const result = handler(actionCtx, actionImpl);
+                    // If it's a promise, await it to ensure sequential execution
+                    if (result instanceof Promise) {
+                        await result;
+                    }
+                },
             });
 
         // now request the action to be executed
-        fetchAction(input, executionId, action, actionCtx).catch(() => sub.unsubscribe());
+        fetchAction(input, executionId, action, actionCtx).catch(onError);
     });
 }
 
@@ -254,14 +298,26 @@ export default function useAction(action: Action): [(input?: any) => Promise<voi
 
             // execute actions sequentially
             for (const actionToExecute of actionsToExecute) {
+                console.log('executing action...', actionToExecute);
+
                 // eslint-disable-next-line no-await-in-loop
                 await executeAction(
                     input,
                     actionToExecute,
-                    { ...actionCtx.current, ...cbInterface },
+                    {
+                        ...actionCtx.current,
+                        // Recoil callback interface cannot be spread as it is a Proxy
+                        gotoSnapshot: cbInterface.gotoSnapshot,
+                        refresh: cbInterface.refresh,
+                        reset: cbInterface.reset,
+                        set: cbInterface.set,
+                        snapshot: cbInterface.snapshot,
+                        transact_UNSTABLE: cbInterface.transact_UNSTABLE,
+                    },
                     getAction,
                     importers
                 );
+                console.log('executed', actionToExecute);
             }
 
             setIsLoading(false);

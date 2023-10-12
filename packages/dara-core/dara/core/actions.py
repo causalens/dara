@@ -23,4 +23,5 @@ from dara.core.interactivity import (
     ResetVariables,
     TriggerVariable,
     UpdateVariable,
+    Notify
 )

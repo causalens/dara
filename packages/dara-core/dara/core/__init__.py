@@ -20,7 +20,7 @@ from __future__ import annotations
 from importlib.metadata import version
 from typing import List, Union
 
-from dara.core.base_definitions import AnnotatedAction, Cache, CacheType
+from dara.core.base_definitions import Cache, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.css import CSSProperties, get_icon
 from dara.core.definitions import ComponentInstance, ErrorHandlingConfig, template
@@ -31,24 +31,13 @@ from dara.core.interactivity import (
     UrlVariable,
     Variable,
 )
-from dara.core.interactivity.actions import action, ActionImpl
+from dara.core.interactivity.actions import action, UpdateVariable
 from dara.core.visual.components import Fallback, For
 from dara.core.visual.dynamic_component import py_component
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
 
 __version__ = version('dara-core')
 
-# TODO: remove List[AnnotatedAction] support in 2.0
-Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionImpl]]]
-"""
-Definition of an action that can be executed by the frontend.
-Supports:
-- AnnotatedAction: an @action annotated function
-- ActionImpl: a subclass of ActionImpl
-- a list of either of the above
-
-@deprecated when passing a list only ActionImpl will be supported in dara 2.0
-"""
 
 # Top-level imports for most commonly used APIs for ease of use
 
@@ -72,4 +61,5 @@ __all__ = [
     'template',
     'For',
     'Fallback',
+    'UpdateVariable'
 ]

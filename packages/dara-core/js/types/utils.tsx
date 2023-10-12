@@ -111,6 +111,11 @@ export function isResolvedDerivedDataVariable(
     );
 }
 
+/**
+ * Check f a value is an ActionImpl
+ *
+ * @param action value to check
+ */
 export function isActionImpl(action: any): action is ActionImpl {
     return action && typeof action === 'object' && action.__typename === 'ActionImpl';
 }

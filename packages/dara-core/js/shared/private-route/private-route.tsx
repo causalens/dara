@@ -39,6 +39,7 @@ function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode
         return <Redirect to="/login" />;
     }
 
+    // Show fallback while the onLoad action is in progress
     return isLoading ? <DefaultFallback /> : children;
 }
 

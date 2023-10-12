@@ -22,12 +22,14 @@ from __future__ import annotations
 import abc
 import uuid
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Union
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
 from pydantic import BaseModel, Field
 
+if TYPE_CHECKING:
+    from dara.core.interactivity.actions import ActionContext
 
 
 class DaraBaseModel(BaseModel):
@@ -398,6 +400,46 @@ class AnnotatedAction(BaseModel):
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
 
+class ActionImpl(DaraBaseModel):
+    """
+    Base class for action implementations
+
+    :param js_module: JS module including the implementation of the action.
+    Required for non-local actions which have a JS implementation.
+    """
+
+    js_module: ClassVar[Optional[str]] = None
+
+    async def execute(self, ctx: ActionContext) -> Any:
+        """
+        Execute the action.
+
+        Default implementation sends the args to the frontend. Can be called by subclasses
+        to send the args to the frontend.
+
+        :param context: ActionContext instance
+        :return: the result of the action
+        """
+        await ctx._push_action(self)
+
+    def dict(self, *args, **kwargs):
+        # TODO: some serialized form to be understood by frontend
+        dict_form = super().dict(*args, **kwargs)
+        dict_form['name'] = self.__class__.__name__
+        dict_form['__typename'] = 'ActionImpl'
+        return dict_form
+
+# TODO: remove List[AnnotatedAction] support in 2.0
+Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionImpl]]]
+"""
+Definition of an action that can be executed by the frontend.
+Supports:
+- AnnotatedAction: an @action annotated function
+- ActionImpl: a subclass of ActionImpl
+- a list of either of the above
+
+@deprecated when passing a list only ActionImpl will be supported in dara 2.0
+"""
 
 class ActionDef(BaseModel):
     """

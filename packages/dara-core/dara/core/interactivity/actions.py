@@ -45,7 +45,7 @@ from pandas import DataFrame
 
 from pydantic import BaseModel
 
-from dara.core.base_definitions import ActionDef, ActionResolverDef, DaraBaseModel, TemplateMarker
+from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, DaraBaseModel, TemplateMarker
 
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
@@ -65,37 +65,6 @@ if TYPE_CHECKING:
     from dara.core.internal.cache_store import CacheStore
 
 
-class ActionImpl(DaraBaseModel):
-    """
-    Base class for action implementations
-
-    :param js_module: JS module including the implementation of the action.
-    Required for non-local actions which have a JS implementation.
-    """
-
-    js_module: ClassVar[Optional[str]] = None
-
-
-    # TODO: if there is a need, this could also support required_routes just like ComponentInstance
-
-    async def execute(self, ctx: ActionContext) -> Any:
-        """
-        Execute the action.
-
-        Default implementation sends the args to the frontend. Can be called by subclasses
-        to send the args to the frontend.
-
-        :param context: action context
-        :return: the result of the action
-        """
-        await ctx.__push_action(self)
-
-    def dict(self, *args, **kwargs):
-        # TODO: some serialized form to be understood by frontend
-        dict_form = super().dict(*args, **kwargs)
-        dict_form['name'] = self.__class__.__name__
-        dict_form['__typename'] = 'ActionImpl'
-        return dict_form
 
 class Foo(BaseModel):
     pass
@@ -176,16 +145,16 @@ class DownloadVariable(ActionImpl):
 VariableT = TypeVar('VariableT')
 
 class ActionContext:
-    __action_send_stream: MemoryObjectSendStream[ActionImpl]
-    __action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
-    __on_action: Callable[[Optional[ActionImpl]], Awaitable]
+    _action_send_stream: MemoryObjectSendStream[ActionImpl]
+    _action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
+    _on_action: Callable[[Optional[ActionImpl]], Awaitable]
 
     input: Any
 
     def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
         self.input= _input
-        self.__action_send_stream, self.__action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
-        self.__on_action = _on_action
+        self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
+        self._on_action = _on_action
 
     @overload
     async def update(self, target: DataVariable, value: Optional[DataFrame]): ...
@@ -254,7 +223,7 @@ class ActionContext:
         :param cleanup: whether to delete the file after download
         """
         code = await generate_download_code(path, cleanup)
-        return await DownloadContent(code=code).execute(self)
+        return await NavigateTo(url=f'/api/core/download?code={code}', new_tab=True).execute(self)
 
     async def download_variable(self, variable: Union[Variable, DerivedVariable, AnyDataVariable], file_name: Optional[str] = None, type: Union[Literal['csv'], Literal['xlsx'], Literal['json']] = 'csv'):
         """
@@ -267,24 +236,24 @@ class ActionContext:
         """
         return await DownloadVariable(variable=variable, file_name=file_name, type=type).execute(self)
 
-    async def __push_action(self, action: ActionImpl):
+    async def _push_action(self, action: ActionImpl):
         """
         Push an action to the frontend
         """
-        await self.__action_send_stream.send(action)
+        await self._action_send_stream.send(action)
 
-    async def __handle_results(self):
+    async def _handle_results(self):
         """
         Main loop for handling actions being pushed to the context
         """
-        async for msg in self.__action_receive_stream:
-            await self.__on_action(msg)
+        async for msg in self._action_receive_stream:
+            await self._on_action(msg)
 
-    async def __end_execution(self):
+    async def _end_execution(self):
         """
         End execution of the action
         """
-        self.__action_send_stream.close()
+        self._action_send_stream.close()
 
 ACTION_CONTEXT = ContextVar[Optional[ActionContext]]('action_context', default=None)
 """Current execution context"""

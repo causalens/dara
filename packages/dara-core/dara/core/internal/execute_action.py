@@ -41,29 +41,40 @@ from dara.core.interactivity.actions import ACTION_CONTEXT, ActionContext, Actio
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
 async def _execute_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+    """
+    Execute the action handler within the given action context, handling any exceptions that occur.
+
+    :param handler: the action handler to execute
+    :param ctx: the action context to use
+    :param values: the resolved values to pass to the handler
+    """
     try:
         await run_user_handler(handler, args=(ctx, ), kwargs=dict(values))
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        # TODO: handle error, send to frontend
+        dev_logger.error('Error executing action', e)
+        await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
     finally:
-        await ctx.__end_execution()
+        await ctx._end_execution()
 
 
 async def _stream_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+    """
+    Run the action handler and stream the results to the frontend.
+    Executes two tasks in parallel:
+    - The handler itself
+    - A stream consumer which sends the results to the frontend
+
+    :param handler: the action handler to execute
+    :param ctx: the action context to use
+    :param values: the resolved values to pass to the handler
+    """
     try:
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
             tg.start_soon(_execute_action, handler, ctx, values)
-            tg.start_soon(ctx.__handle_results)
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
+            tg.start_soon(ctx._handle_results)
     finally:
-        await ctx.__on_action(None)
+        await ctx._on_action(None)
 
 async def execute_action(
     action_def: ActionResolverDef,
