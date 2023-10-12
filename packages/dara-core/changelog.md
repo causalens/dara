@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.2.3
 
 -   Fixed usage of `resource` package which is not supported on Windows. Attempting to use `CGROUP_MEMORY_LIMIT_ENABLED` on Windows is now a noop and emits a warning.
 
