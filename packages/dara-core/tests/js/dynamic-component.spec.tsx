@@ -12,7 +12,9 @@ import { server, wrappedRender } from './utils';
 
 describe('DynamicComponent', () => {
     beforeEach(() => {
-        server.listen();
+        server.listen({
+            onUnhandledRequest: 'error',
+        });
 
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
