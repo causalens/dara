@@ -60,8 +60,11 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
 
 
 def _df_decode_resolver(df: Any):
-    if df is pandas.DataFrame:
-        return df
+    """
+    Construct pandas DataFrame datatype
+
+    :param df: The original data need to be transform to DataFrame
+    """
     if isinstance(df, str):
         return pandas.DataFrame.from_dict(json.loads(df))
     if isinstance(df, dict):
