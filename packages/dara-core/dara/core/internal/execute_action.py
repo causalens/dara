@@ -36,11 +36,11 @@ from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
 from fastapi import BackgroundTasks
 
-from dara.core.interactivity.actions import ACTION_CONTEXT, ActionContext, ActionImpl
+from dara.core.interactivity.actions import ACTION_CONTEXT, ActionCtx, ActionImpl
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
-async def _execute_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
     """
     Execute the action handler within the given action context, handling any exceptions that occur.
 
@@ -57,7 +57,7 @@ async def _execute_action(handler: Callable, ctx: ActionContext, values: Mapping
         await ctx._end_execution()
 
 
-async def _stream_action(handler: Callable, ctx: ActionContext, values: Mapping[str, Any]):
+async def _stream_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
     """
     Run the action handler and stream the results to the frontend.
     Executes two tasks in parallel:
@@ -114,7 +114,7 @@ async def execute_action(
         print('Sending:', act_impl)
         await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
 
-    ctx = ActionContext(inp, handle_action)
+    ctx = ActionCtx(inp, handle_action)
     ACTION_CONTEXT.set(ctx)
 
     resolved_kwargs = {}

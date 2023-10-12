@@ -20,6 +20,7 @@ from __future__ import annotations
 from dara.core.interactivity.actions import (
     action,
     UpdateVariable,
+    UpdateVariableImpl,
     TriggerVariable,
     ResetVariables,
     NavigateTo,
@@ -51,7 +52,7 @@ DownloadContent.update_forward_refs(**refs)
 NavigateTo.update_forward_refs(**refs)
 ResetVariables.update_forward_refs(**refs)
 TriggerVariable.update_forward_refs(**refs)
-UpdateVariable.update_forward_refs(**refs)
+UpdateVariableImpl.update_forward_refs(**refs)
 Condition.update_forward_refs(**refs)
 Notify.update_forward_refs(**refs)
 

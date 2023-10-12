@@ -237,13 +237,13 @@ class MetaTask(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-        from dara.core.interactivity.actions import ActionContext
+        from dara.core.interactivity.actions import ActionCtx
 
         tasks: List[BaseTask] = []
         is_action = False
 
         # Checks if it is getting an action so that extras can be appended
-        if len(self.args) > 0 and isinstance(self.args[0], ActionContext):
+        if len(self.args) > 0 and isinstance(self.args[0], ActionCtx):
             is_action = True
             tasks.extend(x for x in self.args[0].extras if isinstance(x, BaseTask))
         else:

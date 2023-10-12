@@ -37,7 +37,7 @@ from typing import (
     Union,
     overload
 )
-from typing_extensions import ParamSpec, Concatenate
+from typing_extensions import ParamSpec, Concatenate, deprecated
 from functools import update_wrapper, wraps
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
@@ -65,11 +65,26 @@ if TYPE_CHECKING:
     from dara.core.internal.cache_store import CacheStore
 
 
+class ActionInputs(BaseModel):
+    """
+    Base class for all action inputs
+    """
 
-class Foo(BaseModel):
-    pass
+    class Config:
+        extra = 'allow'
 
-class UpdateVariable(ActionImpl):
+
+@deprecated('Used in deprecated action wrappers')
+class ActionContext(BaseModel):
+    """
+    Base class for action context
+    """
+
+    extras: List[Any] = []
+    inputs: ActionInputs
+
+
+class UpdateVariableImpl(ActionImpl):
     """
     UpdateVariable action implementation.
 
@@ -79,12 +94,12 @@ class UpdateVariable(ActionImpl):
         "value": ...value...
     }
     """
+    py_name = 'UpdateVariable'
+
     target: Union[Variable, UrlVariable, DataVariable]
     value: Any
 
-    Ctx = Foo # TODO: remove, backwards compat
-
-    async def execute(self, ctx: ActionContext) -> Any:
+    async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.target, DataVariable):
             # Update on the backend
             from dara.core.internal.registries import (
@@ -103,6 +118,119 @@ class UpdateVariable(ActionImpl):
 
         # for non-data variables just ping frontend with the new value
         return await super().execute(ctx)
+
+
+UpdateVariableDef = ActionDef(name='UpdateVariable', js_module='@darajs/core', py_module='dara.core')
+
+
+class UpdateVariableInputs(ActionInputs):
+    old: Any
+    new: Any
+
+
+class UpdateVariableContext(ActionContext):
+    inputs: UpdateVariableInputs
+
+
+@deprecated('Use @action or `UpdateVariableImpl` for simple cases')
+def UpdateVariable(resolver: Callable[[UpdateVariableContext], Any], variable: Union[Variable, DataVariable, UrlVariable], extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None) -> AnnotatedAction:
+    """
+    @deprecated: Passing in resolvers is deprecated, use `ctx.update` in an `@action` or `UpdateVariableImpl` instead.
+    `UpdateVariableImpl` will be renamed to `UpdateVariable` in Dara 2.0.
+
+    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable, UrlVariable or DataVariable.
+    The resolver function takes a Context param which will feed the `inputs`: `old` and `new` as well as any `extras` passed through.
+
+    Below an example of how a resolver might look:
+
+    ```python
+    from dara.core import Variable, UpdateVariable
+    from dara_dashboarding_extension import Button
+
+    my_var = Variable(0)
+    x = Variable(1)
+    y = Variable(2)
+    z = Variable(3)
+
+    def my_resolver(ctx: UpdateVariable.Ctx):
+        # The UpdateVariable action has two inputs predefined, old, which is the value of
+        # the variable before update, and new which would have for example the selected value
+        # of a `Select` component.
+        old = ctx.inputs.old
+        new = ctx.inputs.new
+
+        # The resolved values of any extras passed are returned as a list
+        x, y, z = ctx.extras
+
+        return old + x + y * z
+
+    Button(
+        'UpdateVariable',
+        onclick=UpdateVariable(variable=my_var, resolver=my_resolver, extras=[x,y,z]),
+    )
+
+    ```
+
+    Example of how you could use `UpdateVariable` to toggle between true and false:
+
+    ```python
+
+    from dara.core import Variable, UpdateVariable
+    from dara_dashboarding_extension import Button
+
+    var = Variable(True)
+
+    Button(
+        'Toggle',
+        onclick=UpdateVariable(variable=var, resolver=lambda ctx: not ctx.inputs.old),
+    )
+    ```
+
+    Example of using `UpdateVariable` to sync values:
+
+    ```python
+
+    from dara.core import Variable, UpdateVariable
+    from dara_dashboarding_extension import Select
+
+    var = Variable('first')
+
+    Select(
+        value=Variable('first'),
+        items=['first', 'second', 'third'],
+        onchange=UpdateVariable(lambda ctx: ctx.inputs.new, var),
+    )
+
+    ```
+    """
+    async def _update(ctx: action.ctx, **kwargs):
+        old = kwargs.pop('old')
+        extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
+        old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(
+            old=old,
+            new=ctx.input
+        ), extras=extras)
+        result = await run_user_handler(resolver, (old_ctx, ))
+        await ctx.update(variable, result)
+
+    # Update the signature of _update to match so @action decorator works
+    params = [
+        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.ctx),
+        inspect.Parameter('old', inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        *[
+            inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            for idx in range(len(extras or []))
+        ]
+    ]
+    _update.__signature__ = inspect.Signature(params)
+
+    # Pass in variable and extras as kwargs
+    kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
+    kwargs['old'] = variable
+
+    return action(_update)(**kwargs)
+
+UpdateVariable.Ctx = UpdateVariableContext
 
 class TriggerVariable(ActionImpl):
     variable: DerivedVariable
@@ -144,7 +272,10 @@ class DownloadVariable(ActionImpl):
 
 VariableT = TypeVar('VariableT')
 
-class ActionContext:
+class ActionCtx:
+    """
+    Action execution context.
+    """
     _action_send_stream: MemoryObjectSendStream[ActionImpl]
     _action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
     _on_action: Callable[[Optional[ActionImpl]], Awaitable]
@@ -169,7 +300,7 @@ class ActionContext:
         :param target: the variable to update
         :param value: the new value for the variable
         """
-        return await UpdateVariable(target=target, value=value).execute(self)
+        return await UpdateVariableImpl(target=target, value=value).execute(self)
 
     async def trigger(self, variable: DerivedVariable, force: bool = True):
         """
@@ -255,15 +386,15 @@ class ActionContext:
         """
         self._action_send_stream.close()
 
-ACTION_CONTEXT = ContextVar[Optional[ActionContext]]('action_context', default=None)
+ACTION_CONTEXT = ContextVar[Optional[ActionCtx]]('action_context', default=None)
 """Current execution context"""
 
 P = ParamSpec('P')
 
 class action:
-    ctx: Type[ActionContext] = ActionContext
+    ctx: Type[ActionCtx] = ActionCtx
 
-    def __init__(self, func: Callable[Concatenate[ActionContext, P], Any]):
+    def __init__(self, func: Callable[Concatenate[ActionCtx, P], Any]):
         from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
 
@@ -341,23 +472,6 @@ class action:
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
 
-
-# class ActionInputs(BaseModel):
-#     """
-#     Base class for all action inputs
-#     """
-
-#     class Config:
-#         extra = 'allow'
-
-
-# class ActionContext(BaseModel):
-#     """
-#     Base class for action context
-#     """
-
-#     extras: List[Any] = []
-#     inputs: ActionInputs
 
 
 # ActionContextType = TypeVar('ActionContextType', bound=ActionContext)
@@ -489,17 +603,6 @@ NavigateToDef = ActionDef(name='NavigateTo', js_module='@darajs/core', py_module
 
 #         super().__init__(uid=uid, url=url if isinstance(url, str) else None, new_tab=new_tab, extras=extras)
 
-
-UpdateVariableDef = ActionDef(name='UpdateVariable', js_module='@darajs/core', py_module='dara.core')
-
-
-# class UpdateVariableInputs(ActionInputs):
-#     old: Any
-#     new: Any
-
-
-# class UpdateVariableContext(ActionContext):
-#     inputs: UpdateVariableInputs
 
 
 # class UpdateVariable(ActionInstance):

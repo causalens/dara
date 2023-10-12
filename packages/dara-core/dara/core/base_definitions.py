@@ -29,7 +29,7 @@ from anyio.streams.memory import MemoryObjectSendStream
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from dara.core.interactivity.actions import ActionContext
+    from dara.core.interactivity.actions import ActionCtx
 
 
 class DaraBaseModel(BaseModel):
@@ -409,8 +409,9 @@ class ActionImpl(DaraBaseModel):
     """
 
     js_module: ClassVar[Optional[str]] = None
+    py_name: ClassVar[Optional[str]] = None
 
-    async def execute(self, ctx: ActionContext) -> Any:
+    async def execute(self, ctx: ActionCtx) -> Any:
         """
         Execute the action.
 
@@ -425,7 +426,7 @@ class ActionImpl(DaraBaseModel):
     def dict(self, *args, **kwargs):
         # TODO: some serialized form to be understood by frontend
         dict_form = super().dict(*args, **kwargs)
-        dict_form['name'] = self.__class__.__name__
+        dict_form['name'] = self.__class__.py_name or self.__class__.__name__
         dict_form['__typename'] = 'ActionImpl'
         return dict_form
 
