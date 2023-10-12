@@ -419,7 +419,6 @@ class ActionImpl(DaraBaseModel):
         to send the args to the frontend.
 
         :param context: ActionContext instance
-        :return: the result of the action
         """
         await ctx._push_action(self)
 

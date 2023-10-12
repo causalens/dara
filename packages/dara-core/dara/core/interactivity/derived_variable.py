@@ -45,7 +45,7 @@ from dara.core.base_definitions import (
     PendingTask,
     PendingValue,
 )
-# from dara.core.interactivity.actions import TriggerVariable
+from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
@@ -186,12 +186,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         :param force: whether the recalculation should ignore any caching settings, defaults to True
         """
-        # If within an action context, call ctx.trigger()
+        # Shortcut not allowed in action context
         if ACTION_CONTEXT.get():
-            raise NotImplementedError('Cannot call trigger inside an action')
+            raise ValueError('Shortcut actions cannot be used within an @action, use `ctx.trigger` instead')
 
-        # TODO: implement standalone actions
-        return None
+        return TriggerVariable(variable=self, force=force)
 
     @staticmethod
     def _get_cache_key(*args, uid: str, deps: Optional[List[int]] = None):
