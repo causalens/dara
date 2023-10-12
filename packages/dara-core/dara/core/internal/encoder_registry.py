@@ -114,5 +114,5 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
-    pandas.DataFrame: Encoder(serialize=lambda x: x.to_json(), deserialize=lambda x: _df_decode_resolver(x)),
+    pandas.DataFrame: Encoder(serialize=lambda x: x.to_json(orient='records'), deserialize=lambda x: _df_decode_resolver(x)),
 }
