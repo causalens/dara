@@ -45,7 +45,7 @@ from pandas import DataFrame
 
 from pydantic import BaseModel
 
-from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, DaraBaseModel, TemplateMarker
+from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef,  TemplateMarker
 
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
@@ -56,14 +56,12 @@ from dara.core.internal.utils import run_user_handler
 if TYPE_CHECKING:
     from dara.core.base_definitions import AnnotatedAction
     from dara.core.interactivity import (
-        AnyDataVariable,
         AnyVariable,
         DerivedVariable,
         UrlVariable,
         Variable,
     )
     from dara.core.internal.cache_store import CacheStore
-
 
 class ActionInputs(BaseModel):
     """
@@ -99,18 +97,35 @@ class ComponentActionContext(ActionContext):
 
 class UpdateVariableImpl(ActionImpl):
     """
-    UpdateVariable action implementation.
+    Update a given variable to provided value. Can be used standalone for updating to static values.
+    For more complex cases use the `@action` decorator and the `ctx.update` method on the injected context.
 
-    {
-        "type": "UpdateVariable",
-        "target": ...var...,
-        "value": ...value...
-    }
+    ```python
+    from dara.core import Variable, UpdateVariableImpl
+    from dara.components import Button
+
+    my_var = Variable(0)
+
+    Button(
+        'UpdateVariable',
+        onclick=UpdateVariableImpl(my_var, 5),
+    )
+
+    ```
+
+    :param target: the variable to update
+    :param value: the new value for the variable
     """
     py_name = 'UpdateVariable'
 
     target: Union[Variable, UrlVariable, DataVariable]
     value: Any
+
+    INPUT: ClassVar[str] = '__dara_input__'
+    """Special value for `value` that will be replaced with the input value"""
+
+    TOGGLE: ClassVar[str] = '__dara_toggle__'
+    """Special value for `value` that will toggle the variable value"""
 
     async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.target, DataVariable):
@@ -216,7 +231,7 @@ def UpdateVariable(resolver: Callable[[UpdateVariableContext], Any], variable: U
 
     ```
     """
-    async def _update(ctx: action.ctx, **kwargs):
+    async def _update(ctx: action.Ctx, **kwargs):
         old = kwargs.pop('old')
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(
@@ -228,7 +243,7 @@ def UpdateVariable(resolver: Callable[[UpdateVariableContext], Any], variable: U
 
     # Update the signature of _update to match so @action decorator works
     params = [
-        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.ctx),
+        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
         inspect.Parameter('old', inspect.Parameter.POSITIONAL_OR_KEYWORD),
         *[
             inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
@@ -251,14 +266,12 @@ TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core',
 
 class TriggerVariable(ActionImpl):
     """
-    The TriggerVariable action can be passed to any `ComponentInstance` prop accepting an `ActionInstance` and force a recalculation of a
-    DerivedVariable
+    Force a recalculation of a DerivedVariable.
 
     ```python
 
-    from dara.core import Variable, UpdateVariable, DerivedVariable, TriggerVariable
+    from dara.core import action, ConfigurationBuilder, Variable, DerivedVariable, TriggerVariable
     from dara.core.configuration import ConfigurationBuilder
-    from dara.core.css import get_icon
     from dara.components import Stack, Button, Text
 
     config = ConfigurationBuilder()
@@ -267,6 +280,9 @@ class TriggerVariable(ActionImpl):
     var2 = Variable(2)
     der_var = DerivedVariable(lambda x, y: x + y, variables=[var1, var2], deps=[var2])
 
+    @action
+    async def update(ctx: action.Ctx, previous_value: int):
+        await ctx.update(var_1, previous_value + 1)
 
     def test_page():
         return Stack(
@@ -274,7 +290,7 @@ class TriggerVariable(ActionImpl):
             Button('Trigger der_var', onclick=TriggerVariable(variable=der_var)),
 
             # Because var1 is not a deps of der_var changing its value does not trigger an update
-            Button('Add 1 to var1', onclick=UpdateVariable(variable=var1, resolver=lambda ctx: ctx.inputs.old + 1)),
+            Button('Add 1 to var1', onclick=update(var_1)),
 
             Stack(Text('der_var: '), Text(der_var), direction='horizontal'),
             Stack(Text('var1: '), Text(var1), direction='horizontal'),
@@ -282,7 +298,7 @@ class TriggerVariable(ActionImpl):
         )
 
 
-    config.add_page(name='Trigger Variable', content=test_page(), icon=get_icon('dove'))
+    config.add_page(name='Trigger Variable', content=test_page())
 
     ```
     """
@@ -294,6 +310,37 @@ class TriggerVariable(ActionImpl):
 NavigateToDef = ActionDef(name='NavigateTo', js_module='@darajs/core', py_module='dara.core')
 
 class NavigateToImpl(ActionImpl):
+    """
+    Navigate to a given url.
+
+    Basic example of how to use `NavigateToImpl`:
+
+    ```python
+
+    from dara.core import NavigateToImpl, Variable, ConfigurationBuilder
+    from dara.components import Stack, Button, Select
+
+    config = ConfigurationBuilder()
+
+    def test_page():
+        return Stack(
+            # open in the same tab
+            Button('Go to Another Page', onclick=NavigateToImpl(url='/another-page')),
+        )
+
+
+    def another_page():
+        return Stack(
+            # open in a new tab
+            Button('Go to Another Page', onclick=NavigateToImpl(url='/test-page', new_tab=True)),
+        )
+
+
+    config.add_page(name='Test Page', content=test_page())
+    config.add_page(name='Another Page', content=another_page())
+
+    ```
+    """
     py_name = 'NavigateTo'
 
     url: Optional[str]
@@ -349,7 +396,7 @@ def NavigateTo(url: Union[str, Callable[[Any], str]], new_tab: bool = False, ext
 
     # Otherwise create a new @action with the provided resolver
 
-    async def _navigate(ctx: action.ctx, **kwargs):
+    async def _navigate(ctx: action.Ctx, **kwargs):
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(
             inputs=ComponentActionInputs(value=ctx.input),
@@ -361,7 +408,7 @@ def NavigateTo(url: Union[str, Callable[[Any], str]], new_tab: bool = False, ext
 
     # Update the signature of _navigate to match so @action decorator works
     params = [
-        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.ctx),
+        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
         *[
             inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
             for idx in range(len(extras or []))
@@ -385,11 +432,8 @@ def Logout():
 
     ```python
 
-    from dara.core.interactivity.actions import Logout
-    from dara.core.configuration import ConfigurationBuilder
-    from dara.core.css import get_icon
+    from dara.core import ConfigurationBuilder, Logout
     from dara.core.auth import BasicAuthConfig
-
     from dara.components import Stack, Button
 
     config = ConfigurationBuilder()
@@ -400,7 +444,7 @@ def Logout():
         return Stack(Button('Logout', onclick=Logout()))
 
 
-    config.add_page(name='Logout Page', content=test_page(), icon=get_icon('paper-plane'))
+    config.add_page(name='Logout Page', content=test_page())
 
     ```
     """
@@ -413,8 +457,7 @@ ResetVariablesDef = ActionDef(name='ResetVariables', js_module='@darajs/core', p
 
 class ResetVariables(ActionImpl):
     """
-    The ResetVariables action can be passed to any `ComponentInstance` prop accepting an `ActionInstance` in order to reset a number of variables to their
-    default values
+    Reset a number of variables to their default values
 
     Basic example of resetting a Variable:
 
@@ -459,6 +502,7 @@ class NotificationStatus(str, Enum):
     SUCCESS = 'SUCCESS'
     WARNING = 'WARNING'
 
+NotificationStatusString = Literal['CANCELED', 'CREATED', 'ERROR', 'FAILED', '', 'QUEUED', 'RUNNING', 'SUCCESS', 'WARNING']
 
 
 NotifyDef = ActionDef(name='Notify', js_module='@darajs/core', py_module='dara.core')
@@ -470,9 +514,7 @@ class Notify(ActionImpl):
 
     ```python
 
-    from dara.core.interactivity.actions import Notify, NotificationStatus
-    from dara.core.configuration import ConfigurationBuilder
-    from dara.core.css import get_icon
+    from dara.core import Notify, ConfigurationBuilder
 
     from dara.components import Stack, Button
 
@@ -484,13 +526,13 @@ class Notify(ActionImpl):
             Button(
                 'Notify',
                 onclick=Notify(
-                    message='This is the notification message', title='Example', status=NotificationStatus.SUCCESS
+                    message='This is the notification message', title='Example', status=Notify.Status.SUCCESS
                 ),
             )
         )
 
 
-    config.add_page(name='Notify Example', content=test_page(), icon=get_icon('bell'))
+    config.add_page(name='Notify Example', content=test_page())
 
     ```
     """
@@ -525,12 +567,8 @@ def DownloadContent(
 
     ```python
 
-    from dara.core.configuration import ConfigurationBuilder
-    from dara.core.interactivity.actions import DownloadContent
+    from dara.core import action, ConfigurationBuilder, DataVariable, DownloadContent
     from dara.components.components import Button, Stack
-    from dara.core.definitions import ComponentInstance
-    from dara.core.interactivity import DataVariable
-    from dara.core.css import get_icon
 
 
     # generate data, alternatively you could load it from a file
@@ -552,7 +590,7 @@ def DownloadContent(
         return '<PATH_TO_CSV.csv>'
 
 
-    def test_page() -> ComponentInstance:
+    def test_page():
         return Stack(
             Button(
                 'Download File', onclick=DownloadContent(resolver=return_csv, extras=[my_var], cleanup_file=False)
@@ -560,11 +598,11 @@ def DownloadContent(
         )
 
 
-    config.add_page(name='Download Content', content=test_page, icon=get_icon('file-arrow-down'))
+    config.add_page(name='Download Content', content=test_page)
 
     ```
     """
-    async def _download(ctx: action.ctx, **kwargs):
+    async def _download(ctx: action.Ctx, **kwargs):
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(
             inputs=ComponentActionInputs(value=ctx.input),
@@ -575,7 +613,7 @@ def DownloadContent(
 
     # Update the signature of _download to match so @action decorator works
     params = [
-        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.ctx),
+        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
         *[
             inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
             for idx in range(len(extras or []))
@@ -600,15 +638,12 @@ class DownloadVariable(ActionImpl):
 
     ```python
 
-    from dara.core.configuration import ConfigurationBuilder
-    from dara.core.css import get_icon
-    from dara.core import DownloadVariable, Variable
+    from dara.core import ConfigurationBuilder, DownloadVariable, Variable
     from dara.components import Stack, Button
 
     config = ConfigurationBuilder()
 
-    my_var = Variable('example')
-
+    my_var = Variable({'foo': 'bar'})
 
     def test_page():
         return Stack(
@@ -619,13 +654,13 @@ class DownloadVariable(ActionImpl):
         )
 
 
-    config.add_page(name='Download Variable', content=test_page(), icon=get_icon('download'))
+    config.add_page(name='Download Variable', content=test_page())
 
-    ```
+     ```
     """
-    variable: Union[Variable, DerivedVariable, AnyDataVariable]
+    variable: AnyVariable
     file_name: Optional[str] = None
-    type: Union[Literal['csv'], Literal['xlsx'], Literal['json']] = 'csv'
+    type: Literal['csv', 'xlsx', 'json'] = 'csv'
 
 
 
@@ -667,7 +702,7 @@ def SideEffect(function: Callable[[ComponentActionContext], Any], extras: Option
     config.add_page(name='SideEffect', content=test_page(), icon=get_icon('kiwi-bird'))
     ```
     """
-    async def _effect(ctx: action.ctx, **kwargs):
+    async def _effect(ctx: action.Ctx, **kwargs):
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(
             inputs=ComponentActionInputs(value=ctx.input),
@@ -678,7 +713,7 @@ def SideEffect(function: Callable[[ComponentActionContext], Any], extras: Option
 
     # Update the signature of _effect to match so @action decorator works
     params = [
-        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.ctx),
+        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
         *[
             inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
             for idx in range(len(extras or []))
@@ -700,8 +735,13 @@ class ActionCtx:
     Action execution context.
     """
     _action_send_stream: MemoryObjectSendStream[ActionImpl]
+    """Memory object send stream for pushing actions to send to the frontend."""
+
     _action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
+    """Memory object receive stream for receiving actions to send to the frontend."""
+
     _on_action: Callable[[Optional[ActionImpl]], Awaitable]
+    """Callback for when an action is pushed to the stream."""
 
     input: Any
 
@@ -718,7 +758,68 @@ class ActionCtx:
 
     async def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
-        Update a given variable to provided value
+        Update a given variable to provided value.
+
+        ```python
+        from dara.core import action, Variable
+        from dara.components import Button
+
+        my_var = Variable(0)
+        x = Variable(1)
+        y = Variable(2)
+        z = Variable(3)
+
+        @action
+        def update(ctx: action.Ctx, my_var_value, x_value, y_value, z_value):
+            # The passed in variables are resolved to their values
+            return my_var_value + x_value * y_value * z_value
+
+        Button(
+            'UpdateVariable',
+            onclick=update(my_var, x, y, z),
+        )
+
+        ```
+
+        Example of how you could use `ctx.update` to toggle between true and false:
+
+        ```python
+
+        from dara.core import action, Variable
+        from dara.components import Button
+
+        var = Variable(True)
+
+        @action
+        async def toggle(ctx: action.Ctx, var_value):
+            return not var_value
+
+        Button(
+            'Toggle',
+            onclick=toggle(var),
+        )
+        ```
+
+        Example of using `ctx.update` to sync values:
+
+        ```python
+
+        from dara.core import action, Variable
+        from dara.components import Select
+
+        var = Variable('first')
+
+        @action
+        async def sync_var(ctx: action.Ctx):
+            await ctx.update(var, ctx.input)
+
+        Select(
+            value=Variable('first'),
+            items=['first', 'second', 'third'],
+            onchange=sync_var(),
+        )
+
+        ```
 
         :param target: the variable to update
         :param value: the new value for the variable
@@ -727,7 +828,45 @@ class ActionCtx:
 
     async def trigger(self, variable: DerivedVariable, force: bool = True):
         """
-        Trigger a given DerivedVariable to recalculate
+        Trigger a given DerivedVariable to recalculate.
+
+        ```python
+
+        from dara.core import action, ConfigurationBuilder, Variable, DerivedVariable
+        from dara.core.configuration import ConfigurationBuilder
+        from dara.components import Stack, Button, Text
+
+        config = ConfigurationBuilder()
+
+        var1 = Variable(1)
+        var2 = Variable(2)
+        der_var = DerivedVariable(lambda x, y: x + y, variables=[var1, var2], deps=[var2])
+
+        @action
+        async def update(ctx: action.Ctx, previous_value: int):
+            await ctx.update(var_1, previous_value + 1)
+
+        @action
+        async def trigger(ctx: action.Ctx):
+            await ctx.trigger(der_var)
+
+        def test_page():
+            return Stack(
+                # When clicking this button der_var syncs and calculates latest sum value
+                Button('Trigger der_var', onclick=trigger()),
+
+                # Because var1 is not a deps of der_var changing its value does not trigger an update
+                Button('Add 1 to var1', onclick=update(var_1)),
+
+                Stack(Text('der_var: '), Text(der_var), direction='horizontal'),
+                Stack(Text('var1: '), Text(var1), direction='horizontal'),
+                Stack(Text('var2: '), Text(var2), direction='horizontal'),
+            )
+
+
+        config.add_page(name='Trigger Variable', content=test_page())
+
+        ```
 
         :param variable: the variable to trigger
         :param force: whether to force the recalculation, defaults to True
@@ -738,6 +877,44 @@ class ActionCtx:
         """
         Navigate to a given url
 
+        ```python
+
+        from dara.core import action, ConfigurationBuilder, Variable
+        from dara.components import Stack, Button, Select
+
+        config = ConfigurationBuilder()
+
+        @action
+        async def navigate_to(ctx: action.Ctx, url: str):
+            # Navigate to the url provided
+            await ctx.navigate(url)
+
+
+        def test_page():
+            return Stack(
+                Button('Go to Another Page', onclick=navigate_to('/another-page')),
+            )
+
+        @action
+        async def navigate_to_input(ctx: action.Ctx):
+            # Navigate to the value of the input provided to the action
+            await ctx.navigate(ctx.input)
+
+        def another_page():
+            return Stack(
+                Select(
+                    value=Variable('/test-page'),
+                    items=['/test-page', '/another-page', 'https://www.google.com/'],
+                    onchange=navigate_to_input(),
+                )
+            )
+
+
+        config.add_page(name='Test Page', content=test_page())
+        config.add_page(name='Another Page', content=another_page())
+
+        ```
+
         :param url: the url to navigate to
         :param new_tab: whether to open the url in a new tab, defaults to False
         """
@@ -746,23 +923,104 @@ class ActionCtx:
     async def logout(self):
         """
         Logout the current user.
+
+        ```python
+
+        from dara.core import ConfigurationBuilder, action
+        from dara.core.auth import BasicAuthConfig
+        from dara.components import Stack, Button
+
+        config = ConfigurationBuilder()
+        config.add_auth(BasicAuthConfig(username='test', password='test'))
+
+        @action
+        async def logout(ctx: action.Ctx):
+            await ctx.logout()
+
+        def test_page():
+            return Stack(Button('Logout', onclick=logout()))
+
+
+        config.add_page(name='Logout Page', content=test_page())
+
+        ```
         """
         return await Logout().execute(self)
 
-    async def notify(self, message: str, title: str, status: NotificationStatus, key: Optional[str] = None):
+    async def notify(self, message: str, title: str, status: Union[NotificationStatus, NotificationStatusString], key: Optional[str] = None):
         """
-        Display a notification on the frontend
+        Display a notification toast on the frontend
+
+        ```python
+
+        from dara.core import action, ConfigurationBuilder
+        from dara.components import Stack, Button
+
+        config = ConfigurationBuilder()
+
+        @action
+        async def notify(ctx: action.Ctx):
+            await ctx.notify(
+                message='This is the notification message', title='Example', status='SUCCESS'
+            )
+
+        def test_page():
+            return Stack(
+                Button(
+                    'Notify',
+                    onclick=notify()
+                )
+            )
+
+
+        config.add_page(name='Notify Example', content=test_page())
+
+        ```
 
         :param message: the message to display
         :param title: the title of the notification
         :param status: the status of the notification
         :param key: optional key for the notification
         """
+        if isinstance(status, str):
+            status = NotificationStatus(status)
+
         return await Notify(key=key, message=message, status=status, title=title).execute(self)
 
     async def reset_variables(self, variables: Union[List[AnyVariable], AnyVariable]):
         """
-        Reset a list of variables to their default values
+        Reset a list of variables to their default values.
+
+        ```python
+
+        from dara.core import Variable, action, ConfigurationBuilder
+        from dara.components import Stack, Button, Text
+
+        config = ConfigurationBuilder()
+
+        my_var = Variable(0)
+
+        @action
+        async def update(ctx: action.Ctx, my_var_value):
+            await ctx.update(my_var, my_var_value + 1)
+
+        @action
+        async def reset(ctx: action.Ctx):
+            await ctx.reset_variables(my_var)
+
+        def test_page():
+            return Stack(
+                Text(my_var),
+                # when clicked, 1 is added to my_var
+                Button('Add', onclick=update(my_var)),
+                # when clicked my_var goes back to its initial value: 0
+                Button('Reset', onclick=reset()),
+            )
+
+
+        config.add_page(name='ResetVariable', content=test_page(), icon=get_icon('shrimp'))
+
+        ```
 
         :param variables: a variable or list of variables to reset
         """
@@ -773,16 +1031,82 @@ class ActionCtx:
         """
         Download a given file.
 
+        ```python
+
+        from dara.core import action, ConfigurationBuilder, DataVariable, DownloadContent
+        from dara.components.components import Button, Stack
+
+
+        # generate data, alternatively you could load it from a file
+        df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
+        my_var = DataVariable(df)
+
+        config = ConfigurationBuilder()
+
+        @action
+        async def download_csv(ctx: action.Ctx, my_var_value: DataFrame) -> str:
+            # The file can be created and saved dynamically here, it should then return a string with a path to it
+            # To get the component value, e.g. a select component would return the selected value
+            component_value = ctx.input
+
+            # Getting the value of data passed as extras to the action
+            data = my_var_value
+
+            # save the data to csv
+            data.to_csv('<PATH_TO_CSV.csv>')
+
+            # Instruct the frontend to download the file
+            await ctx.download_file(path='<PATH_TO_CSV.csv>', cleanup=False)
+
+
+        def test_page():
+            return Stack(
+                Button(
+                    'Download File', onclick=download_csv(my_var)
+                ),
+            )
+
+
+        config.add_page(name='Download Content', content=test_page)
+
+        ```
+
         :param path: the path to the file to download
         :param cleanup: whether to delete the file after download
         """
         code = await generate_download_code(path, cleanup)
         return await NavigateToImpl(url=f'/api/core/download?code={code}', new_tab=True).execute(self)
 
-    async def download_variable(self, variable: Union[Variable, DerivedVariable, AnyDataVariable], file_name: Optional[str] = None, type: Union[Literal['csv'], Literal['xlsx'], Literal['json']] = 'csv'):
+    async def download_variable(self, variable: AnyVariable, file_name: Optional[str] = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'):
         """
         Download the content of a given variable as a file.
         Note that the content of the file must be valid for the given type.
+
+        ```python
+
+        from dara.core import action, ConfigurationBuilder, Variable
+        from dara.components import Stack, Button
+
+        config = ConfigurationBuilder()
+
+        my_var = Variable({'foo': 'bar'})
+
+        @action
+        async def download(ctx: action.Ctx):
+            await ctx.download_variable(variable=my_var, file_name='test_file', type='json')
+
+        def test_page():
+            return Stack(
+                Button(
+                    'Download Variable',
+                    onclick=download(),
+                )
+            )
+
+
+        config.add_page(name='Download Variable', content=test_page())
+
+        ```
 
         :param variable: the variable to download
         :param file_name: optional name of the file to download
@@ -812,6 +1136,16 @@ class ActionCtx:
 ACTION_CONTEXT = ContextVar[Optional[ActionCtx]]('action_context', default=None)
 """Current execution context"""
 
+def assert_no_context(alternative: str):
+    """
+    Assert that no action context is active.
+
+    This is used to ensure shortcut actions are not used within an @action as they are synchronous
+    and return a simple object, while to execute it once needs to await its execution.
+    """
+    if ACTION_CONTEXT.get():
+        raise ValueError(f'Shortcut actions cannot be used within an @action, use `{alternative}` instead')
+
 P = ParamSpec('P')
 
 class action:
@@ -825,7 +1159,7 @@ class action:
     as-is to the decorated function, while the Variable arguments will be passed as the current value of the Variable.
     """
 
-    ctx: Type[ActionCtx] = ActionCtx
+    Ctx: Type[ActionCtx] = ActionCtx
 
     def __init__(self, func: Callable[Concatenate[ActionCtx, P], Any]):
         from dara.core.internal.execute_action import execute_action

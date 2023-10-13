@@ -280,7 +280,7 @@ export default function useAction(action: Action): [(input?: any) => Promise<voi
     const [isLoading, setIsLoading] = useState(false);
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
-    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface>>();
+    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
     actionCtx.current = {
         history,
         location,
@@ -298,14 +298,14 @@ export default function useAction(action: Action): [(input?: any) => Promise<voi
 
             // execute actions sequentially
             for (const actionToExecute of actionsToExecute) {
-                console.log('executing action...', actionToExecute);
-
                 // eslint-disable-next-line no-await-in-loop
                 await executeAction(
                     input,
                     actionToExecute,
+                    /* eslint-disable sort-keys-fix/sort-keys-fix */
                     {
                         ...actionCtx.current,
+                        input,
                         // Recoil callback interface cannot be spread as it is a Proxy
                         gotoSnapshot: cbInterface.gotoSnapshot,
                         refresh: cbInterface.refresh,
@@ -314,10 +314,10 @@ export default function useAction(action: Action): [(input?: any) => Promise<voi
                         snapshot: cbInterface.snapshot,
                         transact_UNSTABLE: cbInterface.transact_UNSTABLE,
                     },
+                    /* eslint-enable sort-keys-fix/sort-keys-fix */
                     getAction,
                     importers
                 );
-                console.log('executed', actionToExecute);
             }
 
             setIsLoading(false);

@@ -234,6 +234,30 @@ class DataVariable(AnyDataVariable):
 
         return entry
 
+    def reset(self):
+        raise NotImplementedError('DataVariable cannot be reset')
+
+    def update(self, value: Optional[DataFrame]):
+        """
+        Create an action to update the value of this Variable to a provided value.
+
+        ```python
+        import pandas as pd
+        from dara.core import DataVariable
+        from dara.components import Button
+
+        data = DataVariable(pd.DataFrame({'a': [1, 2, 3]}))
+
+        Button(
+            'Empty Data',
+            onclick=data.update(None),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import UpdateVariableImpl
+        return UpdateVariableImpl(target=self, value=value)
+
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)
         if 'data' in parent_dict:

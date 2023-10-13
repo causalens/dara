@@ -415,8 +415,7 @@ class ActionImpl(DaraBaseModel):
         """
         Execute the action.
 
-        Default implementation sends the args to the frontend. Can be called by subclasses
-        to send the args to the frontend.
+        Default implementation sends the args to the frontend which can be called by subclasses.
 
         :param context: ActionContext instance
         """

@@ -31,7 +31,7 @@ from typing import (
     TypeVar,
     Union,
 )
-from dara.core.interactivity.actions import ACTION_CONTEXT
+from dara.core.interactivity.actions import ACTION_CONTEXT, assert_no_context
 
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
@@ -186,10 +186,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         :param force: whether the recalculation should ignore any caching settings, defaults to True
         """
-        # Shortcut not allowed in action context
-        if ACTION_CONTEXT.get():
-            raise ValueError('Shortcut actions cannot be used within an @action, use `ctx.trigger` instead')
-
+        assert_no_context('ctx.trigger')
         return TriggerVariable(variable=self, force=force)
 
     @staticmethod

@@ -298,6 +298,31 @@ class AnyVariable(BaseModel, abc.ABC):
     def __lt__(self, value: Any) -> Condition:
         return Condition(operator=Operator.LESS_THAN, other=value, variable=self)
 
+
+    def reset(self):
+        """
+        Create an action to reset the value of this Variable to it's default value.
+
+        For derived variables this will trigger the function to be re-run.
+
+        ```python
+
+        from dara.core import Variable
+        from dara.components import Button
+
+        counter = Variable(default=0)
+
+        Button(
+            'Reset',
+            onclick=var.reset(),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import ResetVariables, assert_no_context
+        assert_no_context('ctx.reset')
+        return ResetVariables(variables=[self])
+
     async def get_current_value(self, timeout: float = 3) -> Any:
         """
         Retrieve the current value of the variable for the current user

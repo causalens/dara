@@ -48,8 +48,6 @@ refs = {
     'UrlVariable': UrlVariable,
 }
 DownloadVariable.update_forward_refs(**refs)
-DownloadContent.update_forward_refs(**refs)
-NavigateTo.update_forward_refs(**refs)
 ResetVariables.update_forward_refs(**refs)
 TriggerVariable.update_forward_refs(**refs)
 UpdateVariableImpl.update_forward_refs(**refs)
@@ -67,8 +65,8 @@ __all__ = [
     'DerivedVariable',
     'DerivedDataVariable',
     'UrlVariable',
-    # 'DownloadVariable',
-    # 'DownloadContent',
+    'DownloadVariable',
+    'DownloadContent',
     'NavigateTo',
     'Notify',
     'ResetVariables',

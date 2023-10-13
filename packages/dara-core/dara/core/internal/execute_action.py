@@ -111,7 +111,6 @@ async def execute_action(
 
     # Construct a context which handles action messages by sending them to the frontend
     async def handle_action(act_impl: Optional[ActionImpl]):
-        print('Sending:', act_impl)
         await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
 
     ctx = ActionCtx(inp, handle_action)

@@ -435,6 +435,10 @@ export interface ActionContext extends CallbackInterface {
      */
     location: Location;
     /**
+     * Input value passed from the invoking component
+     */
+    input: any;
+    /**
      * Task context
      */
     taskCtx: GlobalTaskContext;
