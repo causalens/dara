@@ -2,11 +2,27 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.3.2
 
 -   Fixed an issue where `Table` would always overflow
 -   Fixed an issue where `NaN` was not handled in `Input` with `type=number`
 -   Fixed an issue where one could not set `margin` to `Text` component
+-   Fixed an issue where `Input` with `type='number'` width could not be changed.
+-   Fixed an issue where `Input` with `type='number'` overflowed when hovered.
+-   Fixed an issue where `Input` with `type='number'` did not take full space available to it.
+-   Fixed an issue where `Datepicker` could be overlapped by other components in a horizontal container.
+-   Fixed an issue where `Select`'s (with `multiselect=True`) input took too much space
+
+## 1.2.3
+
+-   **Backported** Fixed an issue where `Table` would always overflow
+-   **Backported** Fixed an issue where `NaN` was not handled in `Input` with `type=number`
+-   **Backported** Fixed an issue where one could not set `margin` to `Text` component
+-   **Backported** Fixed an issue where `Input` with `type='number'` width could not be changed.
+-   **Backported** Fixed an issue where `Input` with `type='number'` overflowed when hovered.
+-   **Backported** Fixed an issue where `Input` with `type='number'` did not take full space available to it.
+-   **Backported** Fixed an issue where `Datepicker` could be overlapped by other components in a horizontal container.
+-   **Backported** Fixed an issue where `Select`'s (with `multiselect=True`) input took too much space
 
 ## 1.1.10
 
