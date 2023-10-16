@@ -2,9 +2,17 @@
 title: Changelog
 ---
 
+## 1.3.1
+
+-   Fixed usage of `resource` package which is not supported on Windows. Attempting to use `CGROUP_MEMORY_LIMIT_ENABLED` on Windows is now a noop and emits a warning.
+
 ## 1.3.0
 
 -   Internal: allow handler implementation substitution for variables, `py_component`, upload resolver and action resolver on a registry entry level
+
+## 1.2.3
+
+-   **Backported** Fixed usage of `resource` package which is not supported on Windows. Attempting to use `CGROUP_MEMORY_LIMIT_ENABLED` on Windows is now a noop and emits a warning.
 
 ## 1.2.2
 

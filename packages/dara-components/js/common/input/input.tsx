@@ -41,11 +41,14 @@ function Input(props: InputProps): JSX.Element {
     const debouncedUpdateForm = useMemo(() => _debounce(formCtx.updateForm, 500), [formCtx.updateForm]);
 
     function handleChange(val: string | number): void {
+        let newValue = val;
+        if (props.type === 'number') {
+            newValue = Number.isNaN(Number(newValue)) ? null : Number(newValue);
+        }
         // Immmediately update internal state
-        setInternalValue(props.type === 'number' ? Number(val) : val);
-
+        setInternalValue(newValue);
         // Debounce the update to the variable and the form to prevent multiple updates being fired at once
-        debouncedSetValue(props.type === 'number' ? Number(val) : val);
+        debouncedSetValue(newValue);
         debouncedAction(val);
         debouncedUpdateForm(val);
     }
