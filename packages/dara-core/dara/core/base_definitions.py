@@ -390,7 +390,11 @@ class PendingValue:
 
 
 class AnnotatedAction(BaseModel):
-    """TODO: this should be the type returned by @action"""
+    """
+    Represents a single @action-annotated action.
+
+    Returned by the @action decorator.
+    """
     uid: str
     """Instance uid of the action. Used to find static kwargs for the instance"""
 
@@ -422,7 +426,9 @@ class ActionImpl(DaraBaseModel):
         await ctx._push_action(self)
 
     def dict(self, *args, **kwargs):
-        # TODO: some serialized form to be understood by frontend
+        """
+        This structure is expected by the frontend, must match the JS implementation
+        """
         dict_form = super().dict(*args, **kwargs)
         dict_form['name'] = self.__class__.py_name or self.__class__.__name__
         dict_form['__typename'] = 'ActionImpl'
@@ -434,7 +440,7 @@ Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionIm
 Definition of an action that can be executed by the frontend.
 Supports:
 - AnnotatedAction: an @action annotated function
-- ActionImpl: a subclass of ActionImpl
+- ActionImpl: an instance of a subclass of ActionImpl
 - a list of either of the above
 
 @deprecated when passing a list only ActionImpl will be supported in dara 2.0

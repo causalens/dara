@@ -92,7 +92,6 @@ export {
     injectCss,
     useAnyVariable,
     resolveValue,
-    useVariableValue,
     normalizeRequest,
     WebSocketCtx,
     DARA_JWT_TOKEN,

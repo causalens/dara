@@ -314,7 +314,7 @@ export default function useAction(
                         } else {
                             actionCtx.current.notificationCtx.pushNotification({
                                 key: '_actionError', // same key so action errors don't stack
-                                message: `Action "${error.actionImpl.name}" not registered.`,
+                                message: `Action "${error.actionImpl.name}" not registered`,
                                 status: Status.ERROR,
                                 title: 'Error executing action',
                             });

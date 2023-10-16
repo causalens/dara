@@ -1,32 +1,23 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useContext } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Snapshot, useRecoilCallback } from 'recoil';
-
-import { useDeepCompare } from '@darajs/ui-utils';
+import { Snapshot } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle
-import { WebSocketClientInterface } from '@/api';
-import { useSessionToken } from '@/auth/auth-context';
-import { WebSocketCtx, useTaskContext } from '@/shared/context';
+import { WebSocketClientInterface } from '@/api/websocket';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import {
     AnyVariable,
     DataFrame,
-    DataVariable,
     DerivedDataVariable,
     DerivedVariable,
     ResolvedDataVariable,
     ResolvedDerivedDataVariable,
     ResolvedDerivedVariable,
-    Variable,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
-    isVariable,
 } from '@/types';
 
 import { GlobalTaskContext } from '../context/global-task-context';
@@ -123,44 +114,4 @@ export function getVariableValue<VV, B extends boolean = false>(
 
         return resp.value;
     }) as Promise<VV>;
-}
-
-/**
- * A helper hook that turns a Variable class into the actual value.
- * As opposed to the `useVariable` hook, this one returns a callback to retrieve the latest value
- * without subscribing the component using it to updates.
- * For derived (data) variables, instead of returning its value directly - its resolved to its
- * uid and dependency values.
- *
- * @param variable the variable to use
- * @param shouldFetchVariable if true, if the variable is a derived (data) variable, the request to fetch the variable value will be made
- * @returns Returns the value if the Variable is not derived/data. A Resolved(Data/Derived/DerivedData)Variable if shouldFetchVariable = false, and a Promise for fetching the variable if true.
- */
-export default function useVariableValue<VV, B extends boolean = false>(
-    variable: VV | Variable<VV> | DataVariable | DerivedVariable | DerivedDataVariable,
-    shouldFetchVariable: B = false as B
-): () => ReturnType<typeof getVariableValue<VV, B>> {
-    const taskContext = useTaskContext();
-    const { client } = useContext(WebSocketCtx);
-    const { search } = useLocation();
-    const token = useSessionToken();
-
-    if (!isVariable<VV>(variable)) {
-        return () => variable;
-    }
-
-    return useRecoilCallback(
-        ({ snapshot }) => {
-            return () => {
-                return getVariableValue<VV, B>(variable, shouldFetchVariable, {
-                    client,
-                    search,
-                    snapshot,
-                    taskContext,
-                    token,
-                });
-            };
-        },
-        [variable.uid, useDeepCompare(taskContext), client, search, token]
-    );
 }
