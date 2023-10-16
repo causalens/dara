@@ -13,7 +13,7 @@ from anyio import create_task_group
 from anyio.abc import TaskStatus
 from async_asgi_testclient import TestClient as AsyncClient
 
-from dara.core import DerivedVariable, Variable, py_component
+from dara.core import DerivedVariable, Variable, py_component, action
 from dara.core.auth.definitions import JWT_ALGO
 from dara.core.auth.basic import MultiBasicAuthConfig
 from dara.core.base_definitions import CacheType
@@ -1481,6 +1481,49 @@ async def test_calling_async_action():
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['value'] == 'test_current'
 
+async def test_calling_annotated_action():
+    """
+    Test calling a custom @action annotated action
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var = Variable()
+
+    @action
+    async def test_action(ctx: action.Ctx, previous_value, static_kwarg):
+        await ctx.update(target=var, value=previous_value + ctx.input + static_kwarg + 1)
+        await ctx.reset_variables(var)
+
+    action_instance = test_action(previous_value=var, static_kwarg=10)
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client, action_instance,
+                {
+                    'input': 5,
+                    'values': {
+                        'previous_value': 10,
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid
+                }
+            )
+            assert res.status_code == 200
+
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 2
+
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 26 # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+
+            assert actions[1]['name'] == 'ResetVariables'
+            assert actions[1]['variables'] == [var.dict()]
 
 async def test_calling_an_action_with_extras():
     """Test that an action with extras can be called via the rest api"""
