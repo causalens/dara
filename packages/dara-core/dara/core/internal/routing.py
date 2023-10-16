@@ -139,10 +139,13 @@ def create_router(config: Configuration):
         static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
 
         # Execute the action - kick off a background task to run the handler
-        execution_id = await action_def.execute_action(action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr, bg_tasks)
+        response = await action_def.execute_action(action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr, bg_tasks)
 
-        # Return the id for client to listen for actions
-        return execution_id
+        if isinstance(response, BaseTask):
+            await task_mgr.run_task(response, body.ws_channel)
+            return {'task_id': response.task_id}
+
+        return {'execution_id': response}
 
     @core_api_router.get('/download')
     async def get_download(code: str):   # pylint: disable=unused-variable

@@ -28,7 +28,6 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Iterable,
     List,
     Literal,
     Optional,
@@ -38,7 +37,7 @@ from typing import (
     overload
 )
 from typing_extensions import ParamSpec, Concatenate, deprecated
-from functools import update_wrapper, wraps
+from functools import update_wrapper
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
@@ -72,10 +71,11 @@ class ActionInputs(BaseModel):
         extra = 'allow'
 
 
-@deprecated('Used in deprecated action wrappers')
 class ActionContext(BaseModel):
     """
     Base class for action context
+
+    @deprecated: used in deprecated action wrappers
     """
 
     extras: List[Any] = []
@@ -259,6 +259,7 @@ def UpdateVariable(resolver: Callable[[UpdateVariableContext], Any], variable: U
     return action(_update)(**kwargs)
 
 UpdateVariable.Ctx = UpdateVariableContext
+"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
@@ -542,6 +543,8 @@ class Notify(ActionImpl):
     title: str
 
     Status = NotificationStatus
+    Ctx = ComponentActionContext
+    """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
 class DownloadContentImpl(ActionImpl):
@@ -626,6 +629,8 @@ def DownloadContent(
 
     return action(_download)(**kwargs)
 
+DownloadContent.Ctx = ComponentActionContext
+"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
 
@@ -727,12 +732,16 @@ def SideEffect(function: Callable[[ComponentActionContext], Any], extras: Option
     return action(_effect)(**kwargs)
 
 SideEffect.Ctx = ComponentActionContext
+"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 VariableT = TypeVar('VariableT')
 
 class ActionCtx:
     """
-    Action execution context.
+    Action execution context passed to an @action-annotated action when it is being executed.
+
+    Exposes `input`, the input value passed to the action by the invoking components,
+    and an collection of methods for interacting with the frontend.
     """
     _action_send_stream: MemoryObjectSendStream[ActionImpl]
     """Memory object send stream for pushing actions to send to the frontend."""
@@ -747,7 +756,7 @@ class ActionCtx:
 
     def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
         self.input= _input
-        self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream(item_type=ActionImpl, max_buffer_size=0)
+        self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream[ActionImpl](max_buffer_size=0)
         self._on_action = _on_action
 
     @overload
@@ -1153,7 +1162,8 @@ class action:
     A decorator for creating actions. Actions are used to trigger changes in the UI, such as updating a variable, navigating to a new page, etc.
 
     The decorator injects an `ActionCtx` object as the first argument to the decorated function, which can be used to access the available
-    actions as well as the input value of the component that triggered the action.
+    actions as well as the input value of the component that triggered the action. Note that the context methods are asynchronous,
+    so the decorated function must be async to use them.
 
     An @action-decorated function can be called with a list of Variable and non-Variable arguments. The non-Variable arguments will be passed
     as-is to the decorated function, while the Variable arguments will be passed as the current value of the Variable.

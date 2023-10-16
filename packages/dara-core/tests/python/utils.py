@@ -14,8 +14,10 @@ from typing import (
 )
 from typing_extensions import TypedDict
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 import anyio
+from dara.core.base_definitions import ActionImpl, AnnotatedAction
 import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.websocket import WebSocketSession
@@ -223,14 +225,20 @@ async def _get_py_component(
         assert response.status_code == 200
     return response
 
+class ActionRequestBody(TypedDict):
+    values: Mapping[str, Any]
+    input: Any
+    ws_channel: str
 
-async def _call_action(client: AsyncClient, action, data: dict):
-    if 'extras' in data:
-        normalized_extras, lookup = normalize_request(data['extras'], action.extras)
-        data['extras'] = {'data': normalized_extras, 'lookup': lookup}
+async def _call_action(client: AsyncClient, action: AnnotatedAction, data: ActionRequestBody):
+    normalized_values, lookup = normalize_request(data['values'], action.dynamic_kwargs)
+    data['values'] = {'data': normalized_values, 'lookup': lookup}
+
+    data.setdefault('execution_id', str(uuid4()))
+    data['uid'] = action.uid
 
     response = await client.post(
-        f'/api/core/action/{action.uid}',
+        f'/api/core/action/{action.definition_uid}',
         json=data,
         headers=AUTH_HEADERS,
     )
@@ -319,6 +327,29 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict
 
     return messages
 
+async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> List[dict]:
+    """
+    Wait for action results until timeout is passed.
+    """
+    actions = []
+
+    while True:
+        with anyio.move_on_after(timeout) as scope:
+            msg = await ws.receive_json()
+            # Valid message
+            if 'message' in msg:
+                # Action message
+                if 'action' in msg['message'] and msg['message']['uid'] == execution_id:
+                    # Sentinel to end listening
+                    if (action := msg['message']['action']) is None:
+                        break
+                    else:
+                        actions.append(action)
+
+        if scope.cancel_called:
+            break
+
+    return actions
 
 def create_app(configuration: ConfigurationBuilder, use_tasks=False):
     """

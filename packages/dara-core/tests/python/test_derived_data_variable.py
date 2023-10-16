@@ -38,6 +38,7 @@ from tests.python.utils import (
     create_app,
     get_ws_messages,
     wait_assert,
+    get_action_results
 )
 
 from .tasks import data_task
@@ -1030,43 +1031,39 @@ async def test_update_variable_extras_derived_data_variable_run_as_task():
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         async with _async_ws_connect(client) as websocket:
             init = await websocket.receive_json()
             act = action.get()
 
+            exec_uid = 'exec_uid'
             response = await _call_action(
                 client,
                 act,
                 data={
-                    'inputs': {'old': None, 'new': None},
-                    'extras': [
-                        {
+                    'input': None,
+                    'values': {
+                        'old': None,
+                        'kwarg_0': {
                             # Returns 2 rows
                             'type': 'derived-data',
                             'values': [1],
                             'uid': 'data_uid',
                             'filters': ValueQuery(column='col1', value=2).dict(),
                         },
-                    ],
+                    },
+                    'execution_id': exec_uid,
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
             )
-
             assert 'task_id' in response.json()
-            task_id = response.json().get('task_id')
 
-            raw_messages = await get_ws_messages(websocket, timeout=6)
-            assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)
-            messages = set(data['message']['task_id'] for data in raw_messages)
+            # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
+            # if all went well
+            actions = await get_action_results(websocket, exec_uid, timeout=6)
 
-            assert str(task_id) in messages
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == 2
-
+            assert len(actions) == 1
+            assert actions[0]['value'] == 2 #  2 rows
+            assert actions[0]['name'] == 'UpdateVariable'
 
 async def test_update_variable_extras_derived_data_variable():
     builder = ConfigurationBuilder()
@@ -1090,24 +1087,33 @@ async def test_update_variable_extras_derived_data_variable():
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
-        response = await _call_action(
-            client,
-            action.get(),
-            data={
-                'inputs': {'old': None, 'new': None},
-                'extras': [
-                    {
-                        'type': 'derived-data',
-                        'values': [],
-                        'uid': 'data_uid',
-                        'filters': ValueQuery(column='col1', value=1).dict(),
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_uid'
+            response = await _call_action(
+                client,
+                action.get(),
+                data={
+                    'input': None,
+                    'values': {
+                        'old': None,
+                        'kwarg_0': {
+                            'type': 'derived-data',
+                            'values': [],
+                            'uid': 'data_uid',
+                            'filters': ValueQuery(column='col1', value=1).dict(),
+                        },
                     },
-                ],
-                'ws_channel': 'uid',
-            },
-        )
-        assert response.json() == 2
+                    'execution_id': exec_uid,
+                    'ws_channel': init.get('message', {}).get('channel'),
+                },
+            )
+            assert response.json()['execution_id'] == exec_uid
+            actions = await get_action_results(websocket, exec_uid)
+
+            assert len(actions) == 1
+            assert actions[0]['value'] == 2 #  2 rows
+            assert actions[0]['name'] == 'UpdateVariable'
 
 
 async def test_derived_data_variable_with_derived_variable():

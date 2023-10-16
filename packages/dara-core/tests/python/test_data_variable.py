@@ -26,10 +26,12 @@ from dara.core.visual.dynamic_component import py_component
 from tests.python.utils import (
     AUTH_HEADERS,
     TEST_JWT_SECRET,
+    _async_ws_connect,
     _call_action,
     _get_derived_variable,
     _get_py_component,
     _get_template,
+    get_action_results,
 )
 
 pytestmark = pytest.mark.anyio
@@ -204,18 +206,27 @@ async def test_update_variable_extras_data_variable(_uid):
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        response = await _call_action(
-            client,
-            action.get(),
-            data={
-                'inputs': {'old': None, 'new': None},
-                'extras': [
-                    {'type': 'data', 'uid': 'data_uid', 'filters': ValueQuery(column='col1', value=1).dict()},
-                ],
-                'ws_channel': 'uid',
-            },
-        )
-        assert response.json() == 2
+        async with _async_ws_connect(client) as ws:
+            exec_uid = 'execution_id'
+            response = await _call_action(
+                client,
+                action.get(),
+                data={
+                    'input': None,
+                    'values': {
+                        'old': None,
+                        'kwarg_0': {'type': 'data', 'uid': 'data_uid', 'filters': ValueQuery(column='col1', value=1).dict()}
+                    },
+                    'ws_channel': 'uid',
+                    'execution_id': exec_uid
+                },
+            )
+            actions = await get_action_results(ws, exec_uid)
+            assert len(actions) == 1
+            assert actions[0]['value'] == 2
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['target']['uid'] == 'uid'
+
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -264,8 +275,10 @@ async def test_update_variable_session_data_variable(_uid1, _uid2):
             client,
             action.get(),
             data={
-                'inputs': {'old': None, 'new': None},
-                'extras': [],
+                'input': None,
+                'values': {
+                    'old': None,
+                },
                 'ws_channel': 'uid',
             },
         )
@@ -359,8 +372,10 @@ async def test_update_variable_user_data_variable(_uid1, _uid2):
             client,
             action.get(),
             data={
-                'inputs': {'old': None, 'new': None},
-                'extras': [],
+                'input': None,
+                'values': {
+                    'old': None,
+                },
                 'ws_channel': 'uid',
             },
         )

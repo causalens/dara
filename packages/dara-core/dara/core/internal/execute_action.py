@@ -17,9 +17,7 @@ limitations under the License.
 from __future__ import annotations
 
 from contextvars import ContextVar
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional, Union
-import uuid
+from typing import Any, Callable, Mapping, Optional, Union
 import anyio
 
 from dara.core.base_definitions import ActionResolverDef, BaseTask
@@ -57,7 +55,7 @@ async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str
         await ctx._end_execution()
 
 
-async def _stream_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
+async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[str, Any]):
     """
     Run the action handler and stream the results to the frontend.
     Executes two tasks in parallel:
@@ -90,8 +88,8 @@ async def execute_action(
     """
     Execute a given action with the provided context.
 
-    # !Resolves 'extras' passed into an Action - DerivedVariables encountered are resolved into their values.
-    # !If any of them are a Task/PendingTask, returns a MetaTask that can be awaited to retrieve the action.
+    Resolves 'values' passed into an Action - DerivedVariables encountered are resolved into their values.
+    If any of them are a Task/PendingTask, returns a MetaTask that can be awaited to retrieve the action.
 
     :param action_def: resolver definition
     :param inp: input to the action
@@ -153,16 +151,14 @@ async def execute_action(
 
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
-        await task_mgr.run_task(
-            MetaTask(
-                process_result=_stream_action,
-                args=[action, ctx, resolved_kwargs],
-                notify_channels=notify_channels
-            )
+        return MetaTask(
+            process_result=_stream_action,
+            args=[action, ctx],
+            kwargs=resolved_kwargs,
+            notify_channels=notify_channels
         )
-        return execution_id
 
 
     # No tasks - run directly as bg task and return execution id
-    background_tasks.add_task(_stream_action, action, ctx, resolved_kwargs)
+    background_tasks.add_task(_stream_action, action, ctx, **resolved_kwargs)
     return execution_id

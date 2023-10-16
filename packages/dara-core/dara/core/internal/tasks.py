@@ -44,7 +44,7 @@ from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.utils import run_user_handler
+from dara.core.internal.utils import resolve_exception_group, run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
@@ -240,16 +240,10 @@ class MetaTask(BaseTask):
         from dara.core.interactivity.actions import ActionCtx
 
         tasks: List[BaseTask] = []
-        is_action = False
 
-        # Checks if it is getting an action so that extras can be appended
-        if len(self.args) > 0 and isinstance(self.args[0], ActionCtx):
-            is_action = True
-            tasks.extend(x for x in self.args[0].extras if isinstance(x, BaseTask))
-        else:
-            # Collect up the tasks that need to be run and kick them off without awaiting them.
-            tasks.extend(x for x in self.args if isinstance(x, BaseTask))
-            tasks.extend(x for x in self.kwargs.values() if isinstance(x, BaseTask))
+        # Collect up the tasks that need to be run and kick them off without awaiting them.
+        tasks.extend(x for x in self.args if isinstance(x, BaseTask))
+        tasks.extend(x for x in self.kwargs.values() if isinstance(x, BaseTask))
 
         eng_logger.info(f'MetaTask {self.task_id} running sub-tasks', {'task_ids': [x.task_id for x in tasks]})
 
@@ -287,33 +281,22 @@ class MetaTask(BaseTask):
         args = []
         kwargs = {}
 
-        if is_action:
-            # Rebuild the extras with the results of the underlying tasks
-            extras = []
-            for idx, extra in enumerate(self.args[0].extras):
-                if isinstance(extra, BaseTask):
-                    extras.append(remove_index(result_values[idx]))
-                else:
-                    extras.append(self.args[0].extras[idx])
-            args.append(self.args[0].copy(update={'extras': extras}))
-            eng_logger.debug(f'MetaTask {self.task_id}', 'processing result', {'context': args[0]})
-        else:
-            # Rebuild the args and kwargs with the results of the underlying tasks
-            # Here the task results could be DataFrames so make sure we clean the internal __index__ col from them
-            # before passing into the task function
-            for arg in self.args:
-                if isinstance(arg, BaseTask):
-                    args.append(remove_index(result_values.pop(0)))
-                else:
-                    args.append(arg)
+        # Rebuild the args and kwargs with the results of the underlying tasks
+        # Here the task results could be DataFrames so make sure we clean the internal __index__ col from them
+        # before passing into the task function
+        for arg in self.args:
+            if isinstance(arg, BaseTask):
+                args.append(remove_index(result_values.pop(0)))
+            else:
+                args.append(arg)
 
-            for k, val in self.kwargs.items():
-                if isinstance(val, BaseTask):
-                    kwargs[k] = remove_index(result_values.pop(0))
-                else:
-                    kwargs[k] = val
+        for k, val in self.kwargs.items():
+            if isinstance(val, BaseTask):
+                kwargs[k] = remove_index(result_values.pop(0))
+            else:
+                kwargs[k] = val
 
-            eng_logger.debug(f'MetaTask {self.task_id}', 'processing result', {'args': args, 'kwargs': kwargs})
+        eng_logger.debug(f'MetaTask {self.task_id}', 'processing result', {'args': args, 'kwargs': kwargs})
 
         # Run the process result function with the completed set of args and kwargs
         if self.process_as_task:
@@ -569,6 +552,8 @@ class TaskManager:
                         )
                         eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
             except (Exception, ExceptionGroup) as err:
+                err = resolve_exception_group(err)
+
                 # Mark pending task as failed
                 self.tasks[task.task_id].fail(err)
 

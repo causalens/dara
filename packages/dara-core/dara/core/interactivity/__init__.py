@@ -24,9 +24,12 @@ from dara.core.interactivity.actions import (
     TriggerVariable,
     ResetVariables,
     NavigateTo,
+    NavigateToImpl,
     Notify,
     DownloadContent,
-    DownloadVariable
+    DownloadContentImpl,
+    DownloadVariable,
+    SideEffect
 )
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable
@@ -67,11 +70,14 @@ __all__ = [
     'UrlVariable',
     'DownloadVariable',
     'DownloadContent',
+    'DownloadContentImpl',
     'NavigateTo',
+    'NavigateToImpl',
     'Notify',
     'ResetVariables',
     'TriggerVariable',
     'UpdateVariable',
+    'SideEffect',
     'Condition',
     'Operator',
 ]

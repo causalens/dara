@@ -20,10 +20,9 @@ import sys
 from types import ModuleType
 from typing import Any, List, Set, Tuple, Type, Union
 
-from dara.core.base_definitions import ActionDef
+from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
 from dara.core.interactivity.any_variable import AnyVariable
-from dara.core.interactivity.actions import ActionImpl
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import py_component
 
@@ -199,4 +198,4 @@ def create_action_definition(action: Type[ActionImpl], local: bool = False):
 
     act_module = 'LOCAL' if local else _get_symbol_module(action)
 
-    return ActionDef(name=action.__name__, py_module=act_module, js_module=action.js_module)
+    return ActionDef(name=action.py_name or action.__name__, py_module=act_module, js_module=action.js_module)

@@ -37,6 +37,7 @@ from tests.python.utils import (
     _get_py_component,
     _get_template,
     create_app,
+    get_action_results,
     get_ws_messages,
 )
 
@@ -1428,10 +1429,19 @@ async def test_calling_an_action():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        res = await _call_action(client, action, {'inputs': {'value': 'test'}, 'extras': [], 'ws_channel': 'uid'})
-
-        assert res.status_code == 200
-        assert res.json() == 'url/test'
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client,
+                action,
+                {'input': 'value', 'values': {}, 'ws_channel': init.get('message', {}).get('channel'), 'execution_id': exec_uid}
+            )
+            assert res.status_code == 200
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'NavigateTo'
+            assert actions[0]['url'] == 'url/value'
 
 
 async def test_calling_async_action():
@@ -1449,13 +1459,27 @@ async def test_calling_async_action():
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client, action,
+                {
+                    'input': 'test',
+                    'values': {
+                        'old': 'current',
 
-        res = await _call_action(
-            client, action, {'inputs': {'new': 'test', 'old': 'current'}, 'extras': [], 'ws_channel': 'uid'}
-        )
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid
+                }
+            )
+            assert res.status_code == 200
 
-        assert res.status_code == 200
-        assert res.json() == 'test_current'
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 'test_current'
 
 
 async def test_calling_an_action_with_extras():
@@ -1473,13 +1497,28 @@ async def test_calling_an_action_with_extras():
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client, action,
+                {
+                    'input': 'test',
+                    'values': {
+                        'old': 'current',
+                        'kwarg_0': 'val2'
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid
+                }
+            )
 
-        res = await _call_action(
-            client, action, {'inputs': {'new': 'test', 'old': 'current'}, 'extras': ['val2'], 'ws_channel': 'uid'}
-        )
+            assert res.status_code == 200
 
-        assert res.status_code == 200
-        assert res.json() == 'test_current_val2'
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 'test_current_val2'
 
 
 async def test_calling_an_action_returns_task():
@@ -1501,44 +1540,33 @@ async def test_calling_an_action_returns_task():
     app = _start_application(config)
     async with AsyncClient(app) as client:
         payload = {
-            'inputs': {'old': None, 'new': None},
-            'extras': [
-                {
+            'input': None,
+            'values': {
+                'old': None,
+                'kwarg_0': {
                     'type': 'derived',
                     'uid': str(derived.uid),
                     'values': [5, 10],
                 },
-            ],
+            }
         }
 
         async with _async_ws_connect(client) as websocket:
             # Receive the init message
             init = await websocket.receive_json()
-
+            exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
+                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
             )
+            assert 'task_id' in response.json()
 
-            task_id = response.json().get('task_id')
+            # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
+            # if all went well
+            actions = await get_action_results(websocket, exec_uid, timeout=6)
 
-            # Listen on the websocket channel for the notification of task completion
-            data = await websocket.receive_json()
-            # This message is for the metatask completing so task_id won't match
-            assert data['message']['status'] == 'COMPLETE'
-
-            # Wait a little bit for the task to complete, flaky in CI
-            await anyio.sleep(1)
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '15'
-
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
-            )
-            assert result.json() == '15'
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == '15'
 
 
 async def test_calling_an_action_returns_meta_task():
@@ -1566,53 +1594,41 @@ async def test_calling_an_action_returns_meta_task():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         payload = {
-            'inputs': {'old': None, 'new': None},
-            'extras': [
-                {
+            'input': None,
+            'values': {
+                'old': None,
+                'kwarg_0': {
                     'type': 'derived',
                     'uid': str(derived_var_1.uid),
                     'values': [5, 10],
                 },
-                {
+                'kwarg_1': {
                     'type': 'derived',
                     'uid': str(derived_var_2.uid),
                     'values': [7, 9],
                 },
-            ],
+            }
         }
 
         async with _async_ws_connect(client) as websocket:
             # Receive the init message
             init = await websocket.receive_json()
-
+            exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
+                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
             )
 
             response_json = response.json()
             assert 'task_id' in response_json
 
-            meta_task_id = response_json['task_id']
+            # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
+            # if all went well
+            actions = await get_action_results(websocket, exec_uid, timeout=6)
 
-            # Underlying task completion messages
-            messages = await get_ws_messages(websocket)
-            assert all([m['message']['status'] == 'COMPLETE' for m in messages])
-
-            # MetaTask completion message
-            assert {'message': {'status': 'COMPLETE', 'task_id': meta_task_id}, 'type': 'message'} in messages
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '15_16'
-
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
-            )
-            assert result.json() == '15_16'
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == '15_16'
 
 
 async def test_calling_an_action_returns_task_loop():
@@ -1637,11 +1653,11 @@ async def test_calling_an_action_returns_task_loop():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         payload = {
-            'inputs': {'old': None, 'new': None},
-            'extras': [
-                {
+            'input': None,
+            'values': {
+                'old': None,
+                'kwarg_0': {
                     'type': 'derived',
                     'uid': str(parent_var.uid),
                     'values': [
@@ -1669,36 +1685,26 @@ async def test_calling_an_action_returns_task_loop():
                         },
                     ],
                 },
-            ],
+            }
         }
 
         async with _async_ws_connect(client) as websocket:
             # Receive the init message
             init = await websocket.receive_json()
-
+            exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
+                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
             )
             response_json = response.json()
             assert 'task_id' in response_json
 
-            meta_task_id = response_json['task_id']
+            # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
+            # if all went well
+            actions = await get_action_results(websocket, exec_uid, timeout=6)
 
-            # Wait for all websocket messages to come in
-            messages = await get_ws_messages(websocket)
-            assert all(data['message']['status'] == 'COMPLETE' for data in messages)
-            assert any(data['message']['task_id'] == meta_task_id for data in messages)
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == 11
-
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _call_action(
-                client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
-            )
-            assert result.json() == 11
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 11
 
 
 async def test_api_404s():

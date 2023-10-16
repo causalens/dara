@@ -1,4 +1,4 @@
-import { useCallback, useContext } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 
 import RegistriesCtx from '@/shared/context/registries-context';
 import { ActionDef, ActionImpl } from '@/types/core';
@@ -23,8 +23,7 @@ function useActionRegistry(): ActionRegistryInterface {
         },
         [actions]
     );
-
-    return { get };
+    return useMemo(() => ({ get }), [get]);
 }
 
 export default useActionRegistry;

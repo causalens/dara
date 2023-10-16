@@ -1,3 +1,4 @@
+from dara.core.base_definitions import ActionImpl
 import pytest
 
 from dara.core import (
@@ -11,46 +12,31 @@ from dara.core import (
 )
 from dara.core.internal.registries import action_registry
 
+pytestmark = pytest.mark.anyio
 
-def test_side_effect():
+
+async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
     test_function = lambda x: x * x
     var = Variable(0)
     action = SideEffect(function=test_function, extras=[var])
-    assert action.dict() == {
-        'name': 'SideEffect',
-        'uid': action.uid,
-        'function': test_function,
-        'extras': [var.dict()],
-        'block': False,
-    }
-    assert action_registry.get(action.uid).resolver(2) == 4
+
+    # SideEffect is an AnnotatedAction instance
+    serialized = action.dict()
+    assert serialized['dynamic_kwargs'] == {'kwarg_0': var}
+
+    assert action_registry.has(serialized['definition_uid'])
 
 
 def test_navigate_to():
     """Test that the NavigateTo action serializes correctly and registers the action"""
+    # Just a simple impl
     action = NavigateTo(url='http://www.google.com')
+    assert isinstance(action, ActionImpl)
 
-    assert action.dict() == {
-        'name': 'NavigateTo',
-        'new_tab': False,
-        'uid': action.uid,
-        'url': 'http://www.google.com',
-        'extras': None,
-    }
-    with pytest.raises(KeyError):
-        action_registry.get(action.uid)
-
+    # Legacy API - resolver
     action = NavigateTo(url=lambda x: f'url/{x}')
-
-    assert action.dict() == {
-        'name': 'NavigateTo',
-        'new_tab': False,
-        'uid': action.uid,
-        'url': None,
-        'extras': None,
-    }
-    assert action_registry.get(action.uid).resolver('test') == 'url/test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_update_var():
@@ -63,14 +49,7 @@ def test_update_var():
     var2 = Variable()
 
     action = UpdateVariable(resolver, var, extras=[var2])
-
-    assert action.dict() == {
-        'name': 'UpdateVariable',
-        'uid': action.uid,
-        'variable': var.dict(),
-        'extras': [var2.dict()],
-    }
-    assert action_registry.get(action.uid).resolver() == 'test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_update_url_var():
@@ -82,9 +61,7 @@ def test_update_url_var():
     var = UrlVariable(query='url_value', default='default_value')
 
     action = UpdateVariable(resolver, var)
-
-    assert action.dict() == {'name': 'UpdateVariable', 'uid': action.uid, 'variable': var.dict(), 'extras': None}
-    assert action_registry.get(action.uid).resolver() == 'test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_download_var():
@@ -93,14 +70,7 @@ def test_download_var():
     var = Variable()
 
     action = DownloadVariable(variable=var, file_name='Name', type='csv')
-
-    assert action.dict() == {
-        'name': 'DownloadVariable',
-        'uid': action.uid,
-        'variable': var.dict(),
-        'file_name': 'Name',
-        'type': 'csv',
-    }
+    assert isinstance(action, ActionImpl)
 
 
 def test_download_content():
@@ -112,10 +82,4 @@ def test_download_content():
         return './test/path'
 
     action = DownloadContent(test_func, extras=[var_a])
-
-    assert action.dict() == {
-        'name': 'DownloadContent',
-        'uid': action.uid,
-        'extras': [var_a.dict()],
-        'cleanup_file': None,
-    }
+    assert action_registry.has(action.definition_uid)

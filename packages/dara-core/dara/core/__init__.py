@@ -18,7 +18,6 @@ limitations under the License.
 from __future__ import annotations
 
 from importlib.metadata import version
-from typing import List, Union
 
 from dara.core.base_definitions import Cache, CacheType
 from dara.core.configuration import ConfigurationBuilder
@@ -30,6 +29,14 @@ from dara.core.interactivity import (
     DerivedVariable,
     UrlVariable,
     Variable,
+    DownloadContent,
+    DownloadContentImpl,
+    DownloadVariable,
+    NavigateTo,
+    NavigateToImpl,
+    SideEffect,
+    UpdateVariable,
+    UpdateVariableImpl
 )
 from dara.core.interactivity.actions import action, UpdateVariable
 from dara.core.visual.components import Fallback, For
@@ -61,5 +68,13 @@ __all__ = [
     'template',
     'For',
     'Fallback',
-    'UpdateVariable'
+    'UpdateVariable',
+    'DownloadVariable',
+    'DownloadContent',
+    'NavigateTo',
+    'SideEffect',
+    'UpdateVariable',
+    'UpdateVariableImpl',
+    'DownloadContentImpl',
+    'NavigateToImpl',
 ]

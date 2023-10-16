@@ -249,7 +249,7 @@ async def render_component(
     )
 
     renderer = _make_render_safe(definition.func)
-
+#
     if values is not None:
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}

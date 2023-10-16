@@ -1,5 +1,6 @@
 import asyncio
 import os
+from uuid import uuid4
 from exceptiongroup import BaseExceptionGroup
 
 import pytest
@@ -110,21 +111,21 @@ async def test_action_handler_error():
             init = await websocket.receive_json()
             ws_channel = init.get('message').get('channel')
 
-            # We have to catch the error here otherwise the test stops, in a normal flow the error would simply be logged
-            with pytest.raises(BaseExceptionGroup):
-                await _call_action(
-                    client,
-                    action,
-                    {'inputs': {'new': 'test', 'old': 'current'}, 'extras': ['val2'], 'ws_channel': ws_channel},
-                )
+            # The error will be send as a websocket message
+            await _call_action(
+                client,
+                action,
+                {'ws_channel': ws_channel, 'input': 'test', 'values': {'old':'current', 'kwarg_0': 'val2' }}
+            )
 
-            # Websocket should receive error message
+            # Websocket should receive a Notify action about the error
             msg = await websocket.receive_json()
 
-            # The message should contain traceback and current time
-            assert 'error' in msg.get('message')
-            assert msg.get('message').get('error').startswith('Traceback')
-            assert 'time' in msg.get('message')
+            assert 'action' in msg.get('message')
+            action = msg.get('message').get('action')
+
+            assert action.get('name') == 'Notify'
+            assert action.get('status') == 'ERROR'
 
 
 async def test_action_task_error():
@@ -150,14 +151,15 @@ async def test_action_task_error():
 
     async with AsyncTestClient(app) as client:
         payload = {
-            'inputs': {'old': None, 'new': None},
-            'extras': [
-                {
+            'input': None,
+            'values': {
+                'old': None,
+                'kwarg_0': {
                     'type': 'derived',
                     'uid': str(derived.uid),
                     'values': [],
                 },
-            ],
+            }
         }
 
         async with _async_ws_connect(client) as websocket:
@@ -168,23 +170,20 @@ async def test_action_task_error():
             response = await _call_action(
                 client, action, {**payload, 'ws_channel': init.get('message', {}).get('channel')}
             )
-            assert 'task_id' in response.json()
-            task_id = response.json().get('task_id')
+            task_id = response.json()['task_id']
 
-            # Wait a bit, websocket should receive an error message and a traceback
+            # Wait a bit, websocket should receive an error message
             messages = await get_ws_messages(websocket)
-            assert len(messages) == 2
 
-            traceback_msg = next(filter(lambda m: 'error' in m['message'], messages))
-
-            # Check it's a valid error message containing the traceback
-            assert traceback_msg.get('message').get('error').startswith('Traceback')
-            assert 'time' in traceback_msg.get('message')
-
-            # Check that the other message is the task result as an error
+            # Check ws got an error notification for the task
             task_result_msg = next(filter(lambda m: 'status' in m['message'], messages))
             assert task_result_msg.get('message').get('status') == 'ERROR'
             assert task_result_msg.get('message').get('task_id') == task_id
+
+            # Check we got a traceback message
+            traceback_msg = next(filter(lambda m: 'error' in m['message'], messages))
+            assert traceback_msg.get('message').get('error').startswith('Traceback')
+            assert 'time' in traceback_msg.get('message')
 
             # Task should have error stored as its result
             result = (await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)).json()

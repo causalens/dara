@@ -18,6 +18,7 @@ limitations under the License.
 from __future__ import annotations
 import asyncio
 
+from exceptiongroup import ExceptionGroup
 import inspect
 from functools import wraps
 from importlib import import_module
@@ -196,3 +197,15 @@ def async_dedupe(fn: Callable[..., Awaitable]):
         return result
 
     return wrapped
+
+def resolve_exception_group(error: Any):
+    """
+    Simplify an ExceptionGroup to a single exception if possible
+
+    :param error: The error to resolve
+    """
+    if isinstance(error, ExceptionGroup):
+        if len(error.exceptions) == 1:
+            return resolve_exception_group(error.exceptions[0])
+
+    return error
