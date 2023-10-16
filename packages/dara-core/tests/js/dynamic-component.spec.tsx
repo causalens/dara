@@ -7,7 +7,7 @@ import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
 import { Action, DerivedVariable, SingleVariable, Variable } from '../../js/types';
-import { DerivedDataVariable, TriggerVariableInstance } from '../../js/types/core';
+import { DerivedDataVariable, TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
 
 describe('DynamicComponent', () => {
@@ -385,10 +385,10 @@ describe('DynamicComponent', () => {
             variables: [variableA, variableB],
         };
 
-        const triggerAction: TriggerVariableInstance = {
+        const triggerAction: TriggerVariableImpl = {
+            __typename: 'ActionImpl',
             force: false,
             name: 'TriggerVariable',
-            uid: 'triggerAction',
             variable: variableEmpty,
         };
 
@@ -491,10 +491,10 @@ describe('DynamicComponent', () => {
             variables: [intermediateVariable],
         };
 
-        const triggerAction: TriggerVariableInstance = {
+        const triggerAction: TriggerVariableImpl = {
+            __typename: 'ActionImpl',
             force: true,
             name: 'TriggerVariable',
-            uid: 'triggerAction',
             variable: intermediateVariable,
         };
 
@@ -1010,10 +1010,10 @@ describe('DynamicComponent', () => {
             variables: [variableA, variableB],
         };
 
-        const triggerAction: TriggerVariableInstance = {
+        const triggerAction: TriggerVariableImpl = {
+            __typename: 'ActionImpl',
             force: false,
             name: 'TriggerVariable',
-            uid: 'triggerAction',
             variable: variableEmpty,
         };
 

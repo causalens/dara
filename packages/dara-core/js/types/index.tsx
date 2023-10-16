@@ -4,7 +4,7 @@ import type {
     ActionContext,
     ActionDef,
     ActionHandler,
-    ActionInstance,
+    ActionImpl,
     AnyDataVariable,
     AnyVariable,
     BaseComponentProps,
@@ -45,7 +45,7 @@ import type {
 export type {
     Action,
     ActionDef,
-    ActionInstance,
+    ActionImpl,
     ActionHandler,
     ActionContext,
     Condition,

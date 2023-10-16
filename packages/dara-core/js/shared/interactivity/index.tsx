@@ -2,7 +2,6 @@ export { useVariable } from './use-variable';
 export { useAnyVariable } from './use-any-variable';
 export { getVariableValue } from './use-variable-value';
 export { resolveValue } from './resolve-value';
-export { default as useTriggerVariable } from './use-trigger-variable';
 export { TriggerIndexValue, getAtom } from './store';
 export { useDataVariable } from './use-data-variable';
 export { combineFilters } from './filtering';

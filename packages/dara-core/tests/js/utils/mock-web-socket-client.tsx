@@ -1,7 +1,11 @@
 import { Observable, Subject } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
+import { ActionImpl } from '@/types/core';
+import { isActionImpl } from '@/types/utils';
+
 import {
+    CustomMessage,
     ProgressNotificationMessage,
     ServerErrorMessage,
     TaskStatus,
@@ -29,13 +33,16 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         this.messages$ = new Subject();
     }
 
+    actionMessages$(executionId: string): Observable<ActionImpl> {
+        return this.messages$.pipe(
+            filter((msg: any) => 'action' in msg.message && msg.message.uid === executionId),
+            map((msg: any) => msg.message.action)
+        );
+    }
+
     getChannel(): Promise<string> {
         return Promise.resolve(this.mock_channel);
     }
-
-    sendVariable: (value: any, channel: string) => void;
-
-    serverErrors$: () => Observable<ServerErrorMessage>;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     waitForTask(task_id: string): Promise<any> {

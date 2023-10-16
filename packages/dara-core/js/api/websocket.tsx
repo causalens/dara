@@ -1,8 +1,7 @@
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
-import type { ActionInstance, AnyVariable } from '@/types';
-import { ActionImpl } from '@/types/core';
+import type { ActionImpl, AnyVariable } from '@/types';
 
 const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
@@ -81,10 +80,6 @@ export interface ActionMessage {
          * Action implementation instance
          */
         action: ActionImpl;
-        /**
-         * Timestamp of the action, used to ensure
-         */
-        timestamp: number;
         /**
          * Execution uid
          */

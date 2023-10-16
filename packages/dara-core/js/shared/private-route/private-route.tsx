@@ -4,7 +4,7 @@ import { ReactNode, useEffect } from 'react';
 import { Redirect } from 'react-router-dom';
 
 import { useSessionToken } from '@/auth/auth-context';
-import { DefaultFallback } from '@/components';
+import DefaultFallback from '@/components/fallback/default';
 import useAction from '@/shared/utils/use-action';
 import useWindowTitle from '@/shared/utils/use-window-title';
 import { Action } from '@/types';

@@ -346,73 +346,11 @@ export interface NavigateToImpl extends ActionImpl {
     new_tab: boolean;
 }
 
-export type NotifyImpl = ActionImpl & NotificationPayload;
-
 export interface ResetVariablesImpl extends ActionImpl {
-    variables: Variable<any>[];
+    variables: Array<AnyVariable<any>>;
 }
 
-export interface DownloadContentImpl extends ActionImpl {
-    code: string;
-}
-
-export interface DownloadVariableImpl extends ActionImpl {
-    file_name?: string;
-    type?: 'csv' | 'xlsx' | 'json';
-    variable: AnyVariable<any>;
-}
-
-export interface ActionInstance {
-    name: string;
-    uid: string;
-}
-
-export interface SideEffectInstance extends ActionInstance {
-    block?: boolean;
-    extras?: Array<Variable<any>>;
-    name: 'SideEffect';
-}
-export interface NavigateToInstance extends ActionInstance {
-    extras?: Array<Variable<any>>;
-    name: 'NavigateTo';
-    new_tab: boolean;
-    url?: string;
-}
-
-export interface UpdateVariableInstance extends ActionInstance {
-    extras?: Array<Variable<any>>;
-    name: 'UpdateVariable';
-    variable: Variable<any>;
-}
-
-export interface TriggerVariableInstance extends ActionInstance {
-    force: boolean;
-    name: 'TriggerVariable';
-    variable: DerivedVariable | DerivedDataVariable;
-}
-
-export interface ResetVariablesInstance extends ActionInstance {
-    name: 'ResetVariables';
-    variables: Variable<any>[];
-}
-
-export interface DownloadVariableInstance extends ActionInstance {
-    file_name?: string;
-    name: 'DownloadVariable';
-    type?: 'csv' | 'xlsx' | 'json';
-    variable: AnyVariable<any>;
-}
-
-export interface DownloadContentInstance extends ActionInstance {
-    extras?: Array<AnyVariable<any>>;
-    name: 'DownloadContent';
-}
-
-export type NotifyInstance = ActionInstance & NotificationPayload;
-
-export interface LogoutInstance extends ActionInstance {
-    name: 'Logout';
-}
+export type NotifyImpl = ActionImpl & NotificationPayload;
 
 /**
  * Object injected into actions

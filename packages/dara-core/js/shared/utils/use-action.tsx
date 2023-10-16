@@ -72,6 +72,7 @@ async function invokeAction(
     await validateResponse(res, `Failed to fetch the action value with uid: ${annotatedAction.uid}`);
 
     const resContent = await res.json();
+    console.log({ resContent });
 
     // for tasks, wait for it to finish and fetch the result
     // this is only used to pick up errors in the task execution

@@ -7,7 +7,7 @@ import { getSessionKey } from '../../js/shared/interactivity/plain-variable';
 import { clearRegistries_TEST } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Action, DerivedVariable, SingleVariable, UrlVariable, Variable } from '../../js/types';
-import { DataVariable, TriggerVariableInstance } from '../../js/types/core';
+import { DataVariable, TriggerVariableImpl } from '../../js/types/core';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
@@ -798,10 +798,10 @@ describe('useVariable', () => {
                 variables: [variableA, variableB],
             };
 
-            const triggerAction: TriggerVariableInstance = {
+            const triggerAction: TriggerVariableImpl = {
+                __typename: 'ActionImpl',
                 force: true,
                 name: 'TriggerVariable',
-                uid: 'triggerAction',
                 variable: variableEmpty,
             };
 
@@ -910,10 +910,10 @@ describe('useVariable', () => {
                 variables: [intermediateVariable],
             };
 
-            const triggerAction: TriggerVariableInstance = {
+            const triggerAction: TriggerVariableImpl = {
+                __typename: 'ActionImpl',
                 force: true,
                 name: 'TriggerVariable',
-                uid: 'triggerAction',
                 variable: intermediateVariable,
             };
 
