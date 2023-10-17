@@ -74,44 +74,6 @@ _`CausalGraphViewer` component_
 
 ### Customising Causal Graph Viewer
 
-#### Available activations and aggregations
-
-By default the extension provides a default set of basic node aggregations and edge activations. To customise them, provide your own list of activations
-and aggregations to `CausalGraphViewer`. This impacts the lists of activations and aggregations users see in the side panel
-when they click on a node or edge.
-
-```python
-from cai_causal_graph import CausalGraph
-from dara.components import CausalGraphViewer
-from dara.core import ConfigurationBuilder, get_icon, ComponentInstance
-
-# Example activations
-edge_activations = [
-    'bias',
-    'linear'
-]
-
-# Example aggregations
-node_aggregations = [
-    'min',
-    'max',
-    'mlp'
-]
-
-config = ConfigurationBuilder()
-
-# Using default_causal_graph from previous example
-def causal_graph_viewer_content() -> ComponentInstance:
-    return CausalGraphViewer(
-        activations=edge_activations,
-        aggregations=node_aggregations,
-        causal_graph=default_causal_graph()
-    )
-
-
-config.add_page(name='CausalGraph', content=causal_graph_viewer_content(), icon=get_icon('diagram-project'))
-```
-
 #### Rendering properties
 
 The rendering of nodes and edges can be customised via the `rendering_properties` metadata. The following properties are available:
