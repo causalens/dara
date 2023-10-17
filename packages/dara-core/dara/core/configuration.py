@@ -38,7 +38,6 @@ from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
 from dara.core.base_definitions import Action, ActionDef
 from dara.core.definitions import (
-    AnyVariable,
     ApiRoute,
     CallableClassComponent,
     ComponentInstance,
@@ -352,7 +351,7 @@ class ConfigurationBuilder:
         icon: Optional[str] = None,
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
-        on_load: Optional[Action] = None
+        on_load: Optional[Action] = None,
     ):
         """
         Add a new page to the layout of the platform. Switching between pages relies on the template implementing a

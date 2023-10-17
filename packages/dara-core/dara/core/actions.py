@@ -19,9 +19,14 @@ limitations under the License.
 # pylint: disable=unused-import
 from dara.core.interactivity import (
     DownloadContent,
+    DownloadContentImpl,
     DownloadVariable,
+    NavigateTo,
+    NavigateToImpl,
+    Notify,
     ResetVariables,
+    SideEffect,
     TriggerVariable,
     UpdateVariable,
-    Notify
+    UpdateVariableImpl,
 )

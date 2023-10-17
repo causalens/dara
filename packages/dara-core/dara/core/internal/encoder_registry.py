@@ -18,14 +18,13 @@ import json
 
 # pylint: disable=unnecessary-lambda
 from inspect import isclass
-from typing import Any, Callable, MutableMapping, Type
+from typing import Any, Callable, MutableMapping, Optional, Type
 
 import numpy
 import pandas
 from pandas.core.arrays.base import ExtensionArray
-from typing_extensions import TypedDict
-
 from pydantic import BaseModel
+from typing_extensions import TypedDict
 
 
 class Encoder(TypedDict):
@@ -117,10 +116,13 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
-    pandas.DataFrame: Encoder(serialize=lambda x: x.to_json(orient='records'), deserialize=lambda x: _df_decode_resolver(x)),
+    pandas.DataFrame: Encoder(
+        serialize=lambda x: x.to_json(orient='records'), deserialize=lambda x: _df_decode_resolver(x)
+    ),
 }
 
-def deserialize(value: Any, typ: Type):
+
+def deserialize(value: Any, typ: Optional[Type]):
     """
     Deserialize a value into a given type.
 

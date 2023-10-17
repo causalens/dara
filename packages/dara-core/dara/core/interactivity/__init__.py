@@ -18,18 +18,18 @@ limitations under the License.
 from __future__ import annotations
 
 from dara.core.interactivity.actions import (
-    action,
-    UpdateVariable,
-    UpdateVariableImpl,
-    TriggerVariable,
-    ResetVariables,
-    NavigateTo,
-    NavigateToImpl,
-    Notify,
     DownloadContent,
     DownloadContentImpl,
     DownloadVariable,
-    SideEffect
+    NavigateTo,
+    NavigateToImpl,
+    Notify,
+    ResetVariables,
+    SideEffect,
+    TriggerVariable,
+    UpdateVariable,
+    UpdateVariableImpl,
+    action,
 )
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable

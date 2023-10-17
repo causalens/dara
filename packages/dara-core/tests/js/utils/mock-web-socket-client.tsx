@@ -2,12 +2,9 @@ import { Observable, Subject } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
 import { ActionImpl } from '@/types/core';
-import { isActionImpl } from '@/types/utils';
 
 import {
-    CustomMessage,
     ProgressNotificationMessage,
-    ServerErrorMessage,
     TaskStatus,
     VariableRequestMessage,
     WebSocketClientInterface,

@@ -157,7 +157,7 @@ class BuildCache(BaseModel):
         :param config: Configuration to use
         :param build_config: BuildConfig to use, defaults to BuildConfig.from_env()
         """
-        if not build_config:
+        if build_config is None:
             build_config = BuildConfig.from_env()
 
         static_folders = config.static_folders

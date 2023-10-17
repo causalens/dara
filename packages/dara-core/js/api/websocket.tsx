@@ -244,10 +244,6 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.messages$ = new Subject();
         this.socket.addEventListener('message', (ev) => {
             const msg = JSON.parse(ev.data) as WebSocketMessage;
-            if (msg.type === 'message') {
-                console.log('raw msg:', msg);
-            }
-
             this.messages$.next(msg);
         });
 

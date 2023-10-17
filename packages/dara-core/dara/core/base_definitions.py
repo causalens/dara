@@ -22,7 +22,17 @@ from __future__ import annotations
 import abc
 import uuid
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    ClassVar,
+    List,
+    Mapping,
+    Optional,
+    Union,
+)
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
@@ -388,13 +398,22 @@ class PendingValue:
         self.event.set()
 
 
-
 class AnnotatedAction(BaseModel):
     """
-    Represents a single @action-annotated action.
+    Represents a single call to an @action-annotated action.
 
-    Returned by the @action decorator.
+    ```python
+    from dara.core import action
+
+    @action
+    def my_action(ctx: action.Ctx, ...):
+        ...
+
+    result = my_action(...)
+    type(result) == AnnotatedAction
+    ```
     """
+
     uid: str
     """Instance uid of the action. Used to find static kwargs for the instance"""
 
@@ -403,6 +422,7 @@ class AnnotatedAction(BaseModel):
 
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
+
 
 class ActionImpl(DaraBaseModel):
     """
@@ -434,6 +454,7 @@ class ActionImpl(DaraBaseModel):
         dict_form['__typename'] = 'ActionImpl'
         return dict_form
 
+
 # TODO: remove List[AnnotatedAction] support in 2.0
 Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionImpl]]]
 """
@@ -445,6 +466,7 @@ Supports:
 
 @deprecated when passing a list only ActionImpl will be supported in dara 2.0
 """
+
 
 class ActionDef(BaseModel):
     """

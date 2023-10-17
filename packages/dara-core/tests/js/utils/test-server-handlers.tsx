@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { rest } from 'msw';
 
-import { ActionBodyContext, ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
+import { ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
 
 const mockComponents: Record<string, JsComponent | PyComponent> = {
     ProgressTracker: {

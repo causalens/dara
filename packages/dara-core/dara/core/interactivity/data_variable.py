@@ -17,12 +17,9 @@ limitations under the License.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Optional, Union
 
-from anyio import from_thread
 from anyio.abc import TaskGroup
-from dara.core.internal.utils import call_async
 from pandas import DataFrame
 from pydantic import BaseModel
 
@@ -40,6 +37,7 @@ from dara.core.interactivity.filtering import (
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
@@ -256,6 +254,7 @@ class DataVariable(AnyDataVariable):
         ```
         """
         from dara.core.interactivity.actions import UpdateVariableImpl
+
         return UpdateVariableImpl(target=self, value=value)
 
     def dict(self, *args, **kwargs):

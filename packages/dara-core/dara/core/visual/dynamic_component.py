@@ -34,8 +34,6 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel
-
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
 from dara.core.interactivity import (
@@ -47,7 +45,7 @@ from dara.core.interactivity import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
-from dara.core.internal.encoder_registry import deserialize, encoder_registry
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -158,7 +156,6 @@ def py_component(
                 else:
                     all_kwargs[param.name] = args[idx]
 
-            print('all kwargs, py_comp', all_kwargs)
             # Verify types are correct
             for key, value in all_kwargs.items():
                 if key in func.__annotations__:
@@ -249,7 +246,7 @@ async def render_component(
     )
 
     renderer = _make_render_safe(definition.func)
-#
+
     if values is not None:
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}

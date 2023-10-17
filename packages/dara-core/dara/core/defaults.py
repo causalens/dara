@@ -17,15 +17,13 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
-    DownloadContent,
     DownloadContentDef,
     DownloadVariable,
     DownloadVariableDef,
-    NavigateTo,
     NavigateToDef,
     Notify,
     NotifyDef,
@@ -33,7 +31,6 @@ from dara.core.interactivity.actions import (
     ResetVariablesDef,
     TriggerVariable,
     TriggerVariableDef,
-    UpdateVariable,
     UpdateVariableDef,
 )
 from dara.core.internal.cache_store import CacheStore
@@ -87,12 +84,12 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
 
 # These actions are provided by the core JS of this module
 CORE_ACTIONS: Dict[str, ActionDef] = {
-    NavigateTo.__name__: NavigateToDef,
-    UpdateVariable.__name__: UpdateVariableDef,
+    'NavigateTo': NavigateToDef,
+    'UpdateVariable': UpdateVariableDef,
     TriggerVariable.__name__: TriggerVariableDef,
     ResetVariables.__name__: ResetVariablesDef,
     DownloadVariable.__name__: DownloadVariableDef,
-    DownloadContent.__name__: DownloadContentDef,
+    'DownloadContent': DownloadContentDef,
     Notify.__name__: NotifyDef,
 }
 

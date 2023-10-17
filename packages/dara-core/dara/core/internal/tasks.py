@@ -237,8 +237,6 @@ class MetaTask(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-        from dara.core.interactivity.actions import ActionCtx
-
         tasks: List[BaseTask] = []
 
         # Collect up the tasks that need to be run and kick them off without awaiting them.

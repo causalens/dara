@@ -31,7 +31,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from dara.core.interactivity.actions import ACTION_CONTEXT, assert_no_context
 
 from pydantic import BaseModel, validator
 from typing_extensions import TypedDict
@@ -45,13 +44,13 @@ from dara.core.base_definitions import (
     PendingTask,
     PendingValue,
 )
-from dara.core.interactivity.actions import TriggerVariable
+from dara.core.interactivity.actions import TriggerVariable, assert_no_context
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.encoder_registry import deserialize, encoder_registry
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
-from dara.core.internal.utils import call_async, get_cache_scope, run_user_handler
+from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 

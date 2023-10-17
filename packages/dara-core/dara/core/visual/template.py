@@ -16,10 +16,9 @@ limitations under the License.
 """
 
 from typing import List, Optional
-from dara.core.base_definitions import Action
 
+from dara.core.base_definitions import Action
 from dara.core.definitions import (
-    AnyVariable,
     ComponentInstance,
     Page,
     Template,
@@ -84,9 +83,7 @@ class TemplateRouter:
         Return the router as a set of content pages for the UI to consume
         """
         return [
-            TemplateRouterContent(
-                route=r.route, content=r.content, on_load=r.on_load, name=r.name
-            )
+            TemplateRouterContent(route=r.route, content=r.content, on_load=r.on_load, name=r.name)
             for r in self._routes
         ]
 

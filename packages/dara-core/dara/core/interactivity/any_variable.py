@@ -298,7 +298,6 @@ class AnyVariable(BaseModel, abc.ABC):
     def __lt__(self, value: Any) -> Condition:
         return Condition(operator=Operator.LESS_THAN, other=value, variable=self)
 
-
     def reset(self):
         """
         Create an action to reset the value of this Variable to it's default value.
@@ -320,6 +319,7 @@ class AnyVariable(BaseModel, abc.ABC):
         ```
         """
         from dara.core.interactivity.actions import ResetVariables, assert_no_context
+
         assert_no_context('ctx.reset')
         return ResetVariables(variables=[self])
 

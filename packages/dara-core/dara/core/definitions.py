@@ -41,7 +41,12 @@ from fastapi.params import Depends
 from pydantic import BaseModel, Field, validator
 from pydantic.generics import GenericModel
 
-from dara.core.base_definitions import Action, ComponentType, DaraBaseModel, TemplateMarker
+from dara.core.base_definitions import (
+    Action,
+    ComponentType,
+    DaraBaseModel,
+    TemplateMarker,
+)
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 
@@ -413,8 +418,6 @@ class PyComponentDef(BaseModel):
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 
     type: str = Field(default=ComponentType.PY, const=True)
-
-
 
 
 ComponentT = TypeVar('ComponentT', bound=ComponentInstance)

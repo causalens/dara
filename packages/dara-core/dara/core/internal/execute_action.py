@@ -18,25 +18,26 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from typing import Any, Callable, Mapping, Optional, Union
+
 import anyio
+from fastapi import BackgroundTasks
 
 from dara.core.base_definitions import ActionResolverDef, BaseTask
-from dara.core.internal.encoder_registry import deserialize
+from dara.core.interactivity.actions import ACTION_CONTEXT, ActionCtx, ActionImpl
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import (
     is_resolved_derived_data_variable,
     is_resolved_derived_variable,
     resolve_dependency,
 )
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
-from fastapi import BackgroundTasks
-
-from dara.core.interactivity.actions import ACTION_CONTEXT, ActionCtx, ActionImpl
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
+
 
 async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
     """
@@ -47,7 +48,7 @@ async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str
     :param values: the resolved values to pass to the handler
     """
     try:
-        await run_user_handler(handler, args=(ctx, ), kwargs=dict(values))
+        await run_user_handler(handler, args=(ctx,), kwargs=dict(values))
     except Exception as e:
         dev_logger.error('Error executing action', e)
         await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
@@ -72,7 +73,9 @@ async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[st
             tg.start_soon(_execute_action, handler, ctx, values)
             tg.start_soon(ctx._handle_results)
     finally:
+        # None is treated as a sentinel value to stop waiting for new actions to come in on the client
         await ctx._on_action(None)
+
 
 async def execute_action(
     action_def: ActionResolverDef,
@@ -83,7 +86,7 @@ async def execute_action(
     ws_channel: str,
     store: CacheStore,
     task_mgr: TaskManager,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
 ) -> Union[Any, BaseTask]:
     """
     Execute a given action with the provided context.
@@ -102,6 +105,7 @@ async def execute_action(
     :param task_mgr: the task manager instance to use for running tasks
     """
     from dara.core.internal.registries import utils_registry
+
     ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
     action = action_def.resolver
@@ -152,12 +156,8 @@ async def execute_action(
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
         return MetaTask(
-            process_result=_stream_action,
-            args=[action, ctx],
-            kwargs=resolved_kwargs,
-            notify_channels=notify_channels
+            process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
         )
-
 
     # No tasks - run directly as bg task and return execution id
     background_tasks.add_task(_stream_action, action, ctx, **resolved_kwargs)
