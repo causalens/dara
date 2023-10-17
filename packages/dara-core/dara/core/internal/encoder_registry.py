@@ -14,12 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from fastapi.encoders import jsonable_encoder
 # pylint: disable=unnecessary-lambda
 from typing import Any, Callable, MutableMapping, Type
 
 import numpy
 import pandas
+from fastapi.encoders import jsonable_encoder
 from pandas.core.arrays.base import ExtensionArray
 from typing_extensions import TypedDict
 
@@ -56,6 +56,7 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
         serialize=lambda x: x.astype(str).tolist(),
         deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype),
     )
+
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
@@ -99,6 +100,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
-        serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')), deserialize=lambda x: _not_implemented(x,pandas.DataFrame)
-    )
+        serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')),
+        deserialize=lambda x: _not_implemented(x, pandas.DataFrame),
+    ),
 }
