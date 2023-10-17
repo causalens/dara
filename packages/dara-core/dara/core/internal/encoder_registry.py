@@ -16,7 +16,7 @@ limitations under the License.
 """
 import json
 from collections.abc import Mapping
-
+from fastapi.encoders import jsonable_encoder
 # pylint: disable=unnecessary-lambda
 from typing import Any, Callable, MutableMapping, Type
 
@@ -118,6 +118,6 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
-        serialize=lambda x: x.to_dict(orient='records'), deserialize=lambda x: _df_decode_resolver(x)
-    ),
+        serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')), deserialize=lambda x: _not_implemented(x,pandas.DataFrame)
+    )
 }
