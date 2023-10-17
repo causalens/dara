@@ -174,20 +174,27 @@ async function executeAction(
     return new Promise((resolve, reject) => {
         let activeTasks = 0; // Counter to keep track of active tasks
         let streamCompleted = false; // Flag to check if the stream is completed
+        let isSettled = false;
+
+        let sub: Subscription;
 
         const checkForCompletion = (): void => {
-            if (streamCompleted && activeTasks === 0) {
+            if (!isSettled && streamCompleted && activeTasks === 0) {
+                isSettled = true;
+                sub.unsubscribe();
                 resolve();
             }
         };
 
-        let sub: Subscription;
-
         const onError = (error: Error): void => {
             // eslint-disable-next-line no-console
             console.error('Error executing action:', error);
-            sub.unsubscribe();
-            reject(error);
+
+            if (!isSettled) {
+                isSettled = true;
+                sub.unsubscribe();
+                reject(error);
+            }
         };
 
         sub = observable
@@ -204,21 +211,25 @@ async function executeAction(
             )
             .subscribe({
                 complete: () => {
-                    activeTasks -= 1;
                     streamCompleted = true; // Set the flag when the stream is complete
                     checkForCompletion();
                 },
-                error: (error) => {
-                    activeTasks -= 1;
-                    onError(error); // Reject the promise if there's an error in the stream
-                },
+                error: onError, // Reject the promise if there's an error in the stream
                 next: async ([handler, actionImpl]) => {
-                    activeTasks += 1;
-
-                    const result = handler(actionCtx, actionImpl);
-                    // If it's a promise, await it to ensure sequential execution
-                    if (result instanceof Promise) {
-                        await result;
+                    try {
+                        activeTasks += 1;
+                        const result = handler(actionCtx, actionImpl);
+                        // If it's a promise, await it to ensure sequential execution
+                        if (result instanceof Promise) {
+                            await result;
+                        }
+                    } catch (error) {
+                        onError(error);
+                    } finally {
+                        if (activeTasks > 0) {
+                            activeTasks -= 1;
+                        }
+                        checkForCompletion();
                     }
                 },
             });

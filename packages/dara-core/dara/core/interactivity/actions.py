@@ -44,6 +44,7 @@ from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
 from dara.core.base_definitions import (
+    AnnotatedAction,
     ActionDef,
     ActionImpl,
     ActionResolverDef,
@@ -56,7 +57,6 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.base_definitions import AnnotatedAction
     from dara.core.interactivity import (
         AnyVariable,
         DerivedVariable,
@@ -162,13 +162,8 @@ class UpdateVariableInputs(ActionInputs):
 class UpdateVariableContext(ActionContext):
     inputs: UpdateVariableInputs
 
-
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
-def UpdateVariable(
-    resolver: Callable[[UpdateVariableContext], Any],
-    variable: Union[Variable, DataVariable, UrlVariable],
-    extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
-) -> AnnotatedAction:
+class UpdateVariable(AnnotatedAction):
     """
     @deprecated: Passing in resolvers is deprecated, use `ctx.update` in an `@action` or `UpdateVariableImpl` instead.
     `UpdateVariableImpl` will be renamed to `UpdateVariable` in Dara 2.0.
@@ -239,33 +234,55 @@ def UpdateVariable(
     ```
     """
 
-    async def _update(ctx: action.Ctx, **kwargs):
-        old = kwargs.pop('old')
-        extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
-        old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
-        result = await run_user_handler(resolver, args=(old_ctx,))
-        await ctx.update(variable, result)
+    Ctx = UpdateVariableContext
 
-    # Update the signature of _update to match so @action decorator works
-    params = [
-        inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
-        inspect.Parameter('old', inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        *[
-            inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
-            for idx in range(len(extras or []))
-        ],
-    ]
-    _update.__signature__ = inspect.Signature(params)   # type: ignore
+    variable: Union[Variable, DataVariable, UrlVariable]
+    extras: Optional[List[Union[AnyVariable, TemplateMarker]]]
 
-    # Pass in variable and extras as kwargs
-    kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
-    kwargs['old'] = variable
+    def __init__(
+        self,
+        resolver: Callable[[UpdateVariableContext], Any],
+        variable: Union[Variable, DataVariable, UrlVariable],
+        extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None
+    ):
+        """
+        :param resolver: a function to resolve the new value for the variable.  Takes one arguments: containing a context of type `Updatevariable.Ctx`
+        :param variable: the variable or url variable to update with a new value upon triggering the action
+        :param extras: any extra variables to resolve and pass to the resolution function context
+        """
+        async def _update(ctx: action.Ctx, **kwargs):
+            old = kwargs.pop('old')
+            extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
+            old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
+            result = await run_user_handler(resolver, args=(old_ctx,))
+            await ctx.update(variable, result)
 
-    return action(_update)(**kwargs)
+        # Update the signature of _update to match so @action decorator works
+        params = [
+            inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=action.Ctx),
+            inspect.Parameter('old', inspect.Parameter.POSITIONAL_OR_KEYWORD),
+            *[
+                inspect.Parameter(f'kwarg_{idx}', inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                for idx in range(len(extras or []))
+            ],
+        ]
+        _update.__signature__ = inspect.Signature(params)   # type: ignore
 
+        # Pass in variable and extras as kwargs
+        kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
+        kwargs['old'] = variable
 
-UpdateVariable.Ctx = UpdateVariableContext   # type: ignore
-"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
+        # Construct the annotated action
+        annotated_action = action(_update)(**kwargs)
+
+        # Construct the UpdateVariable instance to retain class-like behaviour
+        super().__init__(
+            uid=annotated_action.uid,
+            definition_uid=annotated_action.definition_uid,
+            dynamic_kwargs=annotated_action.dynamic_kwargs,
+            variable=variable, # type: ignore
+            extras=extras # type: ignore
+        )
 
 
 TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
@@ -1224,7 +1241,6 @@ class action:
         self.__signature__ = self.new_sig  # type: ignore
 
     def __call__(self, *args, **kwargs) -> AnnotatedAction:
-        from dara.core.base_definitions import AnnotatedAction
         from dara.core.interactivity.any_variable import AnyVariable
         from dara.core.internal.registries import static_kwargs_registry
 

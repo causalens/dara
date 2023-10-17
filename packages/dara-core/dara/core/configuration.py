@@ -371,9 +371,8 @@ class ConfigurationBuilder:
         if reset_vars_on_load is not None and len(reset_vars_on_load) > 0:
             if on_load is not None:
                 raise ValueError('reset_vars_on_load and on_load cannot be used together')
-            else:
-                dev_logger.warning('reset_vars_on_load is deprecated, please use on_load instead')
-                on_load = ResetVariables(variables=reset_vars_on_load)
+            dev_logger.warning('reset_vars_on_load is deprecated, please use on_load instead')
+            on_load = ResetVariables(variables=reset_vars_on_load)
 
         url_safe_name = route if route is not None else name.lower().replace(' ', '-').strip()
         if isinstance(content, str):
