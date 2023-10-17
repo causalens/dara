@@ -20,7 +20,8 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=pylint_print
+load-plugins=pylint.extensions.bad_builtin
+bad-functions=print
 
 # Use multiple processes to speed up Pylint.
 jobs=1
@@ -426,4 +427,4 @@ analyse-fallback-blocks=no
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "Exception"
-overgeneral-exceptions=Exception
+overgeneral-exceptions=builtins.Exception

@@ -370,19 +370,6 @@ def _start_application(config: Configuration):
 
     return app
 
-
-def main(extra=None):
-    """
-    Deprecated since v1.12.4
-
-    Dara applications should not call main directly as the CLI automatically picks up `config` from the entry file
-    """
-    print(  # pylint: disable=print-function
-        'Call to deprecated function `main` detected. Your application should not call the main function directly, please remove any calls to `main` from your code.'
-    )
-    sys.exit(1)
-
-
 def start(extra=None):
     """
     The start function reads the Configuration for an application from DARA_CONFIG_PATH env var
