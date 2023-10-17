@@ -23,7 +23,7 @@ class TestButtonComponent(unittest.TestCase):
                 'bold': False,
                 'children': [Text(text='Click Here').dict(exclude_none=True)],
                 'italic': False,
-                'onclick': {'name': 'NavigateTo', 'new_tab': False, 'uid': str(action.uid), 'url': '/test'},
+                'onclick': action.dict(),
                 'styling': ButtonStyle.PRIMARY.value,
                 'outline': False,
                 'position': 'relative',
