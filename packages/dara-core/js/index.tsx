@@ -4,7 +4,7 @@ import type {
     Action,
     ActionDef,
     ActionHandler,
-    ActionInstance,
+    ActionImpl,
     AnyDataVariable,
     AnyVariable,
     BaseComponentProps,
@@ -33,7 +33,7 @@ export * as Notifications from '@darajs/ui-notifications';
 export type {
     Action,
     ActionHandler,
-    ActionInstance,
+    ActionImpl,
     ActionDef,
     Condition,
     Template,

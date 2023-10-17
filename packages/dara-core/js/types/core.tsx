@@ -350,6 +350,12 @@ export interface ResetVariablesImpl extends ActionImpl {
     variables: Array<AnyVariable<any>>;
 }
 
+export interface DownloadVariableImpl extends ActionImpl {
+    variable: AnyVariable<any>;
+    file_name?: string;
+    type: 'csv' | 'json' | 'xlsx';
+}
+
 export type NotifyImpl = ActionImpl & NotificationPayload;
 
 /**
