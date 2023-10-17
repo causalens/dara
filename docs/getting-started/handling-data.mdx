@@ -56,7 +56,7 @@ from DerivedVariable import Table, Bokeh
 @py_component
 def plot_data(data: pandas.DataFrame)
     p = figure(title='My Plot')
-    p.line(x=data['X Data'], y=data['Y Data'])
+    p.line(x=data['a'], y=data['b'])
     return Bokeh(p)
 
 data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
