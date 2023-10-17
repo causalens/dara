@@ -48,7 +48,8 @@ from dara.core.definitions import (
     Page,
     Template,
 )
-from dara.core.interactivity.actions import ActionImpl
+from dara.core.interactivity.actions import ActionImpl, ResetVariables
+from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
@@ -351,6 +352,7 @@ class ConfigurationBuilder:
         icon: Optional[str] = None,
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
+        reset_vars_on_load: Optional[List[AnyVariable]] = [],
         on_load: Optional[Action] = None,
     ):
         """
@@ -365,6 +367,14 @@ class ConfigurationBuilder:
         :param include_in_menu: an optional flag for not including the page in the main menu
         :param on_load: optional action to execute upon visiting the page
         """
+        # Backwards compatibility - deprecated
+        if reset_vars_on_load is not None and len(reset_vars_on_load) > 0:
+            if on_load is not None:
+                raise ValueError('reset_vars_on_load and on_load cannot be used together')
+            else:
+                dev_logger.warning('reset_vars_on_load is deprecated, please use on_load instead')
+                on_load = ResetVariables(variables=reset_vars_on_load)
+
         url_safe_name = route if route is not None else name.lower().replace(' ', '-').strip()
         if isinstance(content, str):
             content = RawString(content=content)

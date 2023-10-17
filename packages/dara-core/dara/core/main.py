@@ -370,6 +370,7 @@ def _start_application(config: Configuration):
 
     return app
 
+
 def start(extra=None):
     """
     The start function reads the Configuration for an application from DARA_CONFIG_PATH env var
