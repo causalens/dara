@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+from collections.abc import Mapping
 
 # pylint: disable=unnecessary-lambda
 from typing import Any, Callable, MutableMapping, Type
@@ -67,7 +68,9 @@ def _df_decode_resolver(df: Any):
     """
     if isinstance(df, str):
         return pandas.DataFrame.from_dict(json.loads(df))
-    if isinstance(df, dict):
+
+    # df.to_dict() could return dict, list or collections.abc.Mapping
+    if isinstance(df, (dict, list, Mapping)):
         return pandas.DataFrame.from_dict(df)
     else:
         return df
@@ -114,5 +117,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
-    pandas.DataFrame: Encoder(serialize=lambda x: x.to_json(orient='records'), deserialize=lambda x: _df_decode_resolver(x)),
+    pandas.DataFrame: Encoder(
+        serialize=lambda x: x.to_dict(orient='records'), deserialize=lambda x: _df_decode_resolver(x)
+    ),
 }
