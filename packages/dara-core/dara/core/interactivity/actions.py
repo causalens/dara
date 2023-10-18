@@ -18,6 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 import inspect
+import math
 import uuid
 from contextvars import ContextVar
 from enum import Enum
@@ -789,7 +790,7 @@ class ActionCtx:
     def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
         self.input = _input
         self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream[ActionImpl](
-            max_buffer_size=0
+            max_buffer_size=math.inf
         )
         self._on_action = _on_action
 
@@ -1204,7 +1205,6 @@ def assert_no_context(alternative: str):
 
 P = ParamSpec('P')
 
-
 class action:
     """
     A decorator for creating actions. Actions are used to trigger changes in the UI, such as updating a variable, navigating to a new page, etc.
@@ -1215,6 +1215,28 @@ class action:
 
     An @action-decorated function can be called with a list of Variable and non-Variable arguments. The non-Variable arguments will be passed
     as-is to the decorated function, while the Variable arguments will be passed as the current value of the Variable.
+
+    ```python
+    from dara.core import action, Variable
+    from dara.components import Select, Item
+
+    some_variable = Variable()
+
+    @action
+    async def my_action(ctx: action.Ctx, inp):
+        # Value coming from the component, in this case the selected item
+        value = ctx.input
+        # Your action logic...
+
+        # Update `some_variable` to `value` multiplied by 2
+        await ctx.update(target=some_variable, value=value * 2)
+
+
+    Select(
+        items=[Item(label='item1', value=1), Item(label='item2', value=2)],
+        onchange=my_action(2)
+    )
+    ```
     """
 
     Ctx: ClassVar = ActionCtx
@@ -1240,7 +1262,29 @@ class action:
         update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
         self.__signature__ = self.new_sig  # type: ignore
 
-    def __call__(self, *args, **kwargs) -> AnnotatedAction:
+    @overload
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+    @overload
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:
+        ...
+
+    def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
+        # The decorated function is called within another action context
+        if ACTION_CONTEXT.get():
+            if len(args) < 1 or not isinstance(args[0], ActionCtx):
+                raise TypeError(f'When calling an @action-decorated function within an @action, the ActionCtx must be passed in explicitly')
+
+            # Call it directly
+            # Note: this makes this return a coroutine which must be awaited if self.func was async
+            return self.func(*args, **kwargs)
+
+
+        # We're not in an @action, check that args[0] is not an ActionCtx
+        if len(args) >= 1 and isinstance(args[0], ActionCtx):
+            raise TypeError(f'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime')
+
         from dara.core.interactivity.any_variable import AnyVariable
         from dara.core.internal.registries import static_kwargs_registry
 
