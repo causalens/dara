@@ -211,10 +211,14 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if len(var_arg_idx) == 0:
             for param, arg in zip(parameters, args):
                 typ = param.annotation
-                if typ is not None and typ in encoder_registry:
-                    parsed_args.append(encoder_registry[typ]['deserialize'](arg))
-                elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
-                    parsed_args.append(typ(**arg))
+                if not isinstance(arg, BaseTask):
+                # Only try to deserialize when the arg is not a task
+                    if typ is not None and typ in encoder_registry:
+                        parsed_args.append(encoder_registry[typ]['deserialize'](arg))
+                    elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
+                        parsed_args.append(typ(**arg))
+                    else:
+                        parsed_args.append(arg)
                 else:
                     parsed_args.append(arg)
             return parsed_args
