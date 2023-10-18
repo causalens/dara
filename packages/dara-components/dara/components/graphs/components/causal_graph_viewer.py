@@ -137,24 +137,24 @@ class CausalGraphViewer(BaseGraphComponent):
     The `CausalGraph` supports the following metadata properties on edges and nodes:
 
     `edge.meta.rendering_properties`
-    - accepted?: boolean - whether edge was accepted (used by resolver component)
-    - color?: string - edge color
-    - description?: string - description/note displayed in side panel
-    - forced?: boolean - whether edge was forced by constraints from domain knowledge
-    - thickness?: number - edge thickness; provided values are normalized and scaled across all edge thicknesses provided
-    - tooltip?: string | dict[string, string] - extra information to display in tooltip
+    - accepted: boolean - whether edge was accepted (used by resolver component)
+    - color: string - edge color, defaults to `Theme.colors.grey5`
+    - description: string - description/note displayed in side panel
+    - forced: boolean - whether edge was forced by constraints from domain knowledge
+    - thickness: number - edge thickness; provided values are normalized and scaled across all edge thicknesses provided
+    - tooltip: string | dict[string, string] - extra information to display in tooltip
 
     `node.meta.rendering_properties`
-    - color?: string - whether edge was accepted (used by resolver component)
-    - highlight_color?: string - color used for border and selected shadow
-    - label?: string - human-readable alternative label to display instead of the node name
-    - label_color?: string - node font color
-    - label_size?: string | number - node font size
-    - latent?: boolean - whether the node is latent; if not provided, computed based on available_inputs set
-    - size?: number - node radius in pixels
-    - tooltip?: string | dict[string, string] - extra information to display in tooltip
-    - x?: number - x position of node
-    - y?: number - y position of node
+    - color: string - node color, defaults to `Theme.colors.background` for latent nodes, `Theme.colors.secondary` for output nodes and to `Theme.colors.blue4` for other nodes
+    - highlight_color: string - color used for border and selected shadow, defaults to `Theme.colors.primary`
+    - label: string - human-readable alternative label to display instead of the node name
+    - label_color: string - node font color
+    - label_size: string | number - node font size
+    - latent: boolean - whether the node is latent; if not provided, computed based on available_inputs set
+    - size: number - node radius in pixels
+    - tooltip: string | dict[string, string] - extra information to display in tooltip
+    - x: number - x position of node
+    - y: number - y position of node
 
     To use rendering properties, you can provide them in the metadata of the causal graph, e.g.:
 
