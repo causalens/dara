@@ -101,6 +101,6 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
         serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')),
-        deserialize=lambda x: _not_implemented(x, pandas.DataFrame),
+        deserialize=lambda x: x if isinstance(x,pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
     ),
 }
