@@ -45,10 +45,10 @@ from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
 from dara.core.base_definitions import (
-    AnnotatedAction,
     ActionDef,
     ActionImpl,
     ActionResolverDef,
+    AnnotatedAction,
     TemplateMarker,
 )
 from dara.core.interactivity.data_variable import DataVariable
@@ -163,6 +163,7 @@ class UpdateVariableInputs(ActionInputs):
 class UpdateVariableContext(ActionContext):
     inputs: UpdateVariableInputs
 
+
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
 class UpdateVariable(AnnotatedAction):
     """
@@ -244,13 +245,14 @@ class UpdateVariable(AnnotatedAction):
         self,
         resolver: Callable[[UpdateVariableContext], Any],
         variable: Union[Variable, DataVariable, UrlVariable],
-        extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None
+        extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
     ):
         """
         :param resolver: a function to resolve the new value for the variable.  Takes one arguments: containing a context of type `Updatevariable.Ctx`
         :param variable: the variable or url variable to update with a new value upon triggering the action
         :param extras: any extra variables to resolve and pass to the resolution function context
         """
+
         async def _update(ctx: action.Ctx, **kwargs):
             old = kwargs.pop('old')
             extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
@@ -281,8 +283,8 @@ class UpdateVariable(AnnotatedAction):
             uid=annotated_action.uid,
             definition_uid=annotated_action.definition_uid,
             dynamic_kwargs=annotated_action.dynamic_kwargs,
-            variable=variable, # type: ignore
-            extras=extras # type: ignore
+            variable=variable,  # type: ignore
+            extras=extras,  # type: ignore
         )
 
 
@@ -1205,6 +1207,7 @@ def assert_no_context(alternative: str):
 
 P = ParamSpec('P')
 
+
 class action:
     """
     A decorator for creating actions. Actions are used to trigger changes in the UI, such as updating a variable, navigating to a new page, etc.
@@ -1274,16 +1277,19 @@ class action:
         # The decorated function is called within another action context
         if ACTION_CONTEXT.get():
             if len(args) < 1 or not isinstance(args[0], ActionCtx):
-                raise TypeError(f'When calling an @action-decorated function within an @action, the ActionCtx must be passed in explicitly')
+                raise TypeError(
+                    'When calling an @action-decorated function within an @action, the ActionCtx must be passed in explicitly'
+                )
 
             # Call it directly
             # Note: this makes this return a coroutine which must be awaited if self.func was async
             return self.func(*args, **kwargs)
 
-
         # We're not in an @action, check that args[0] is not an ActionCtx
         if len(args) >= 1 and isinstance(args[0], ActionCtx):
-            raise TypeError(f'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime')
+            raise TypeError(
+                'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
+            )
 
         from dara.core.interactivity.any_variable import AnyVariable
         from dara.core.internal.registries import static_kwargs_registry

@@ -454,6 +454,7 @@ class ActionImpl(DaraBaseModel):
         dict_form['__typename'] = 'ActionImpl'
         return dict_form
 
+
 ActionInstance = Union[ActionImpl, AnnotatedAction]
 """
 @deprecated alias for backwards compatibility

@@ -59,7 +59,6 @@ Condition.update_forward_refs(**refs)
 Notify.update_forward_refs(**refs)
 
 
-
 __all__ = [
     'action',
     'AnyVariable',

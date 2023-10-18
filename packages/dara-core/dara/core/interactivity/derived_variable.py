@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from inspect import Parameter, isclass, signature
+from inspect import Parameter, signature
 from typing import (
     Any,
     Awaitable,
@@ -32,7 +32,7 @@ from typing import (
     Union,
 )
 
-from pydantic import BaseModel, validator
+from pydantic import validator
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (

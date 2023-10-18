@@ -17,7 +17,6 @@ limitations under the License.
 # pylint: disable=unnecessary-lambda
 from inspect import isclass
 from typing import Any, Callable, MutableMapping, Optional, Type
-from dara.core.base_definitions import BaseTask
 
 import numpy
 import pandas
@@ -25,6 +24,8 @@ from fastapi.encoders import jsonable_encoder
 from pandas.core.arrays.base import ExtensionArray
 from pydantic import BaseModel
 from typing_extensions import TypedDict
+
+from dara.core.base_definitions import BaseTask
 
 
 class Encoder(TypedDict):
@@ -104,7 +105,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
         serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')),
-        deserialize=lambda x: x if isinstance(x,pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
+        deserialize=lambda x: x if isinstance(x, pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
     ),
 }
 
