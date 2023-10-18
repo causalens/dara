@@ -256,11 +256,13 @@ async def render_component(
             # If the expected type of the Variable being passed back is an instance of BaseModel then convert the
             # returned dict back into an instance of the BaseModel class
             val = value
-            typ = annotations.get(key)
-            if typ is not None and typ in encoder_registry:
-                val = encoder_registry[typ]['deserialize'](val)
-            elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
-                val = typ(**value)
+            if not isinstance(val, BaseTask):
+                # Only try to deserialize when the arg is not a task
+                typ = annotations.get(key)
+                if typ is not None and typ in encoder_registry:
+                    val = encoder_registry[typ]['deserialize'](val)
+                elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
+                    val = typ(**value)
             resolved_dyn_kwargs[key] = val
 
         # Merge resolved dynamic kwargs with static kwargs received
