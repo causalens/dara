@@ -27,25 +27,26 @@ The action methods on `ActionCtx` are `async` and must be `await`-ed, so your de
 from dara.core import action, Variable
 from dara.components import Select, Item
 
-some_variable = Variable()
+some_variable = Variable(1)
+other_variable = Variable(2)
 
 @action
-async def my_action(ctx: action.Ctx, inp):
+async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     # Value coming from the component, in this case the selected item
     value = ctx.input
     # Your action logic...
 
     # Update `some_variable` to `value` multiplied by 2
-    await ctx.update(target=some_variable, value=value * 2)
+    await ctx.update(target=some_variable, value=value * arg_1 * arg_2)
 
 
 Select(
     items=[Item(label='item1', value=1), Item(label='item2', value=2)],
-    onchange=my_action(2)
+    onchange=my_action(2, other_variable)
 )
 ```
 
-The example above shows how to use the `@action` decorator to create an action that updates a `Variable` with the value of the selected item in a `Select` component.
+The example above shows how to use the `@action` decorator to create an action that updates a `Variable` with the value of the selected item in a `Select` component multiplied by the static `2` argument and current value of `other_variable`.
 
 Similarly to `py_component`s, the `@action`-decorated function can take a mixture of regular Python variables and Dara `Variable`-based arguments in any combination. The `@action` decorator will automatically resolve the `Variable`-based arguments so your function will receive the current value of the `Variable` instead of the `Variable` instance.
 
@@ -75,7 +76,7 @@ To see how `update` works, consider the example below:
 
 ```python
 from dara.core import action, ConfigurationBuilder, Variable
-from dara.components import Button, Stack
+from dara.components import Button, Stack, Text
 
 config = ConfigurationBuilder()
 
@@ -372,7 +373,7 @@ The variable content must be a valid value for the given type.
 See the following example:
 
 ```python
-from dara.core import action, ConfigurationBuilder, Variable, get_icon
+from dara.core import action, ConfigurationBuilder, Variable
 from dara.components import Stack, Button
 
 config = ConfigurationBuilder()
@@ -398,7 +399,7 @@ config.add_page(name='Download Variable', content=test_page())
 ## Shortcut actions
 
 Shortcut actions are convenience methods on variable instances that can be used to perform common actions.
-Beside being more consise and easier to read, they are also more performant as they do not require a roundtrip to the server in order
+Beside being more concise and easier to read, they are also more performant as they do not require a roundtrip to the server in order
 to execute the `@action`-annotated function.
 
 :::warning
@@ -515,10 +516,10 @@ from dara.components import Button
 var = Variable(default=False)
 
 @action
-async def toggle_action(ctx: action.Ctx):
-    await ctx.update(target=var, value=not ctx.input)
+async def toggle_action(ctx: action.Ctx, var_value: boolean):
+    await ctx.update(target=var, value=not var_value)
 
-Button('toggle', onclick=toggle_action())
+Button('toggle', onclick=toggle_action(var))
 Button('toggle', onclick=var.toggle())
 ```
 
@@ -545,7 +546,7 @@ der_var = DerivedVariable(lambda x: float(x) ** 2 , variables=[my_var], deps=[])
 
 @action
 async def trigger_my_var(ctx: action.Ctx):
-    await ctx.trigger(variable=my_var)
+    await ctx.trigger(variable=der_var)
 
 def test_page():
     return Stack(
@@ -614,18 +615,15 @@ As mentioned above, an action can be one of the following:
 This means that one way you can compose actions by passing a list of actions to a component's callback. The actions will be executed in the order they are passed to the callback.
 
 ```python
-from dara.core import action, Variable, NavigateToImpl
+from dara.core import action, Variable
+from dara.components import Button
 
 var = Variable(default=0)
-var_2 = Variable(False)
 
 @action
 async def action1(ctx: action.Ctx, previous_value: int):
     await ctx.update(target=var, value=1)
 
-@action
-async def action2(ctx: action.Ctx):
-    await ctx.update(target=var, value=2)
 
 # Mixing an @action-annotated action with shortcut actions/action implementation objects
 Button('composing different action types', onclick=[action1(var), var.reset()])
