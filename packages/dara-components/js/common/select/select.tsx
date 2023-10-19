@@ -169,7 +169,11 @@ function Select(props: SelectProps): JSX.Element {
             />
         );
     }
-    const [selectedItem, setSelectedItem] = useState(itemArray.find((item) => String(item.value) === String(value)));
+    const explicitValue =
+        typeof value === 'string' || typeof value === 'number' ? { label: String(value), value } : value;
+    const [selectedItem, setSelectedItem] = useState(
+        itemArray.find((item) => String(item.value) === String(value)) ?? explicitValue
+    );
     const onSelect = useCallback(
         (item: Item) => {
             if (item) {
@@ -183,7 +187,7 @@ function Select(props: SelectProps): JSX.Element {
     );
     // See explanation above
     useEffect(() => {
-        const selected = itemArray.find((item) => item.value === value);
+        const selected = itemArray.find((item) => item.value === value) ?? explicitValue;
         setSelectedItem(selected !== undefined ? selected : null);
     }, [formattedItems, value]);
     if (props.searchable) {
