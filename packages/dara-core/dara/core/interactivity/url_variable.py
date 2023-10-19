@@ -63,7 +63,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         var = UrlVariable('first', query='num')
 
         Select(
-            value=UrlVariable('first'),
+            value=var,
             items=['first', 'second', 'third'],
             onchange=var.sync(),
         )
@@ -117,7 +117,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
 
         Button(
             'Hide',
-            onclick=var.update(False),
+            onclick=show.update(False),
         )
 
         ```

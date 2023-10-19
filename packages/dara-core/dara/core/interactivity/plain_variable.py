@@ -101,7 +101,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         var = Variable('first')
 
         Select(
-            value=Variable('first'),
+            value=var,
             items=['first', 'second', 'third'],
             onchange=var.sync(),
         )

@@ -10,7 +10,7 @@ A valid argument to an action parameter is one of the following three options:
 - an instance of an individual static action object
 - a list of a combination of the above two options
 
-In this section we will go through all the different ways to create actions and how to use them.
+In this section you will learn all the different ways to create actions and how to use them.
 
 ## `@action` decorator
 
