@@ -332,7 +332,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    target: Variable<any>;
+    variable: Variable<any>;
     value: any;
 }
 

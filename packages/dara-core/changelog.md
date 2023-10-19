@@ -10,21 +10,22 @@ title: Changelog
 from dara.core import action, Variable
 from dara.components import Select, Item
 
-some_variable = Variable()
+some_variable = Variable(1)
+other_variable = Variable(2)
 
 @action
-async def my_action(ctx: action.Ctx, inp):
+async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     # Value coming from the component, in this case the selected item
     value = ctx.input
     # Your action logic...
 
     # Update `some_variable` to `value` multiplied by 2
-    await ctx.update(target=some_variable, value=value * 2)
+    await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
 Select(
     items=[Item(label='item1', value=1), Item(label='item2', value=2)],
-    onchange=my_action(2)
+    onchange=my_action(2, other_variable)
 )
 ```
 

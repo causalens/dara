@@ -225,7 +225,7 @@ async def test_update_variable_extras_data_variable(_uid):
             assert len(actions) == 1
             assert actions[0]['value'] == 2
             assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['target']['uid'] == 'uid'
+            assert actions[0]['variable']['uid'] == 'uid'
 
 
 

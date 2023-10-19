@@ -117,13 +117,13 @@ class UpdateVariableImpl(ActionImpl):
 
     ```
 
-    :param target: the variable to update
+    :param variable: the variable to update
     :param value: the new value for the variable
     """
 
     py_name = 'UpdateVariable'
 
-    target: Union[Variable, UrlVariable, DataVariable]
+    variable: Union[Variable, UrlVariable, DataVariable]
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -133,7 +133,7 @@ class UpdateVariableImpl(ActionImpl):
     """Special value for `value` that will toggle the variable value"""
 
     async def execute(self, ctx: ActionCtx) -> Any:
-        if isinstance(self.target, DataVariable):
+        if isinstance(self.variable, DataVariable):
             # Update on the backend
             from dara.core.internal.registries import (
                 data_variable_registry,
@@ -143,7 +143,7 @@ class UpdateVariableImpl(ActionImpl):
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-            var_entry = await registry_mgr.get(data_variable_registry, self.target.uid)
+            var_entry = await registry_mgr.get(data_variable_registry, self.variable.uid)
             DataVariable.update_value(var_entry, store, self.value)
             # Don't notify frontend explicitly, all clients will be notified by update_value above
             return None
@@ -821,14 +821,14 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, target: DataVariable, value: Optional[DataFrame]):
+    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
         ...
 
     @overload
-    async def update(self, target: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
+    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
         ...
 
-    async def update(self, target: Union[Variable, UrlVariable, DataVariable], value: Any):
+    async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
         Update a given variable to provided value.
 
@@ -893,10 +893,10 @@ class ActionCtx:
 
         ```
 
-        :param target: the variable to update
+        :param variable: the variable to update
         :param value: the new value for the variable
         """
-        return await UpdateVariableImpl(target=target, value=value).execute(self)
+        return await UpdateVariableImpl(variable=variable, value=value).execute(self)
 
     async def trigger(self, variable: DerivedVariable, force: bool = True):
         """
@@ -1257,7 +1257,7 @@ class action:
         # Your action logic...
 
         # Update `some_variable` to `value` multiplied by 2
-        await ctx.update(target=some_variable, value=value * arg_1 * arg_2)
+        await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
     Select(
@@ -1314,7 +1314,6 @@ class action:
         if len(args) >= 1 and isinstance(args[0], ActionCtx):
             raise TypeError(
                 'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
-
             )
 
         from dara.core.interactivity.any_variable import AnyVariable

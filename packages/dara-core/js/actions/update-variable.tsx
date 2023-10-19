@@ -15,7 +15,7 @@ const TOGGLE = '__dara_toggle__';
  * Front-end handler for UpdateVariable action.
  */
 const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
-    const varAtom = getAtom(actionImpl.target);
+    const varAtom = getAtom(actionImpl.variable);
 
     if (actionImpl.value === INPUT) {
         return ctx.set(varAtom, ctx.input);

@@ -82,8 +82,8 @@ describe('useAction', () => {
         const action: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable,
             value: 'updated',
+            variable,
         };
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
@@ -127,8 +127,8 @@ describe('useAction', () => {
         const action: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable,
             value: 'updated',
+            variable,
         };
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
@@ -180,14 +180,14 @@ describe('useAction', () => {
         const action1: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable1,
             value: '2',
+            variable: variable1,
         };
         const action2: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable2,
             value: '2',
+            variable: variable2,
         };
 
         const MockComponent = (props: { action: Action; var1: Variable<any>; var2: Variable<any> }): JSX.Element => {
@@ -264,8 +264,8 @@ describe('useAction', () => {
         const action: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable,
             value: 'updated',
+            variable,
         };
         const annotated: AnnotatedAction = {
             dynamic_kwargs: {
@@ -382,8 +382,8 @@ describe('useAction', () => {
         const updateAction: UpdateVariableImpl = {
             __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            target: variable,
             value: 'updated',
+            variable,
         };
 
         const MockComponent = (props: {

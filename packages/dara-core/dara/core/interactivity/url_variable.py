@@ -128,7 +128,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=value)
+        return UpdateVariableImpl(variable=self, value=value)
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)

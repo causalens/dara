@@ -1492,7 +1492,7 @@ async def test_calling_annotated_action():
 
     @action
     async def test_action(ctx: action.Ctx, previous_value, static_kwarg):
-        await ctx.update(target=var, value=previous_value + ctx.input + static_kwarg + 1)
+        await ctx.update(variable=var, value=previous_value + ctx.input + static_kwarg + 1)
         await ctx.reset_variables(var)
 
     action_instance = test_action(previous_value=var, static_kwarg=10)

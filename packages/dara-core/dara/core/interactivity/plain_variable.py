@@ -166,7 +166,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=value)
+        return UpdateVariableImpl(variable=self, value=value)
 
     @classmethod
     def create_from_derived(cls, other: DerivedVariable):

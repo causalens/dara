@@ -37,7 +37,7 @@ async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     # Your action logic...
 
     # Update `some_variable` to `value` multiplied by 2
-    await ctx.update(target=some_variable, value=value * arg_1 * arg_2)
+    await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
 Select(
@@ -60,14 +60,14 @@ The `ActionCtx` instance injected into the decorated function has the following 
 
 ```python
 async def update(
-    target: Variable | UrlVariable | DataVariable,
+    variable: Variable | UrlVariable | DataVariable,
     value: Any
 )
 ```
 
 `update` is a method to trigger an update of a `Variable`, `DataVariable` or `UrlVariable`. It takes the following arguments:
 
-- `target` - a `Variable`, `DataVariable` or `UrlVariable` instance to update with a new value upon triggering the action
+- `variable` - a `Variable`, `DataVariable` or `UrlVariable` instance to update with a new value upon triggering the action
 - `value` - the new value to update the `Variable`, `DataVariable` or `UrlVariable` with
 
 Note that the value passed to `update` must be a valid value for the variable type. In particular, updating a `DataVariable` should be done with a `pandas.DataFrame` instance or `None`.
@@ -84,7 +84,7 @@ my_var = Variable(5)
 
 @action
 async def increment(ctx: action.Ctx, previous_value: int):
-    await ctx.update(target=my_var, value=previous_value + 1)
+    await ctx.update(variable=my_var, value=previous_value + 1)
 
 def test_page():
     return Stack(
@@ -176,7 +176,7 @@ my_var = Variable(0)
 
 @action
 async def increment(ctx: action.Ctx, previous_value: int):
-    await ctx.update(target=my_var, value=previous_value + 1)
+    await ctx.update(variable=my_var, value=previous_value + 1)
 
 @action
 async def reset(ctx: action.Ctx):
@@ -455,7 +455,7 @@ items=[Item(label='item1', value=1), Item(label='item2', value=2)],
 
 @action
 async def sync_action(ctx: action.Ctx):
-    await ctx.update(target=some_variable, value=ctx.input)
+    await ctx.update(variable=some_variable, value=ctx.input)
 
 # Long form
 Select(
@@ -490,7 +490,7 @@ var = Variable(default=False)
 
 @action
 async def manual_action(ctx: action.Ctx):
-    await ctx.update(target=var, value=True)
+    await ctx.update(variable=var, value=True)
 
 Button('set to True', onclick=manual_action())
 Button('set to True', onclick=var.update(value=True))
@@ -517,7 +517,7 @@ var = Variable(default=False)
 
 @action
 async def toggle_action(ctx: action.Ctx, var_value: boolean):
-    await ctx.update(target=var, value=not var_value)
+    await ctx.update(variable=var, value=not var_value)
 
 Button('toggle', onclick=toggle_action(var))
 Button('toggle', onclick=var.toggle())
@@ -622,7 +622,7 @@ var = Variable(default=0)
 
 @action
 async def action1(ctx: action.Ctx, previous_value: int):
-    await ctx.update(target=var, value=1)
+    await ctx.update(variable=var, value=1)
 
 
 # Mixing an @action-annotated action with shortcut actions/action implementation objects
@@ -641,11 +641,11 @@ var = Variable(default=0)
 
 @action
 async def action1(ctx: action.Ctx, previous_value: int):
-    await ctx.update(target=var, value=previous_value + 1)
+    await ctx.update(variable=var, value=previous_value + 1)
 
 @action
 async def action2(ctx: action.Ctx):
-    await ctx.update(target=var, value=2)
+    await ctx.update(variable=var, value=2)
 
 @action
 async def action3(ctx: action.Ctx, previous_value: int):

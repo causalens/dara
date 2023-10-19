@@ -255,7 +255,7 @@ class DataVariable(AnyDataVariable):
         """
         from dara.core.interactivity.actions import UpdateVariableImpl
 
-        return UpdateVariableImpl(target=self, value=value)
+        return UpdateVariableImpl(variable=self, value=value)
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)
