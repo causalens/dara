@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { isArray } from 'lodash';
+import { isArray, isEmpty } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -143,7 +143,8 @@ function Select(props: SelectProps): JSX.Element {
     const itemArray = formattedItems as Array<Item>;
     if (props.multiselect) {
         const explicitValues = isArray(value) ? value.map(toItem) : value;
-        const [selectedItems, setSelectedItems] = useState(explicitValues ?? getMultiselectItems(value, itemArray));
+        const foundItems = getMultiselectItems(value, itemArray);
+        const [selectedItems, setSelectedItems] = useState(isEmpty(foundItems) ? explicitValues : foundItems);
         const onSelect = useCallback(
             (_items: Array<Item>) => {
                 const currentSelection = _items.map((item: Item) => item.value);
@@ -175,7 +176,7 @@ function Select(props: SelectProps): JSX.Element {
     }
     const explicitValue = toItem(value);
     const [selectedItem, setSelectedItem] = useState(
-        explicitValue ?? itemArray.find((item) => String(item.value) === String(value))
+        itemArray.find((item) => String(item.value) === String(value)) ?? explicitValue
     );
     const onSelect = useCallback(
         (item: Item) => {
@@ -190,7 +191,7 @@ function Select(props: SelectProps): JSX.Element {
     );
     // See explanation above
     useEffect(() => {
-        const selected = explicitValue ?? itemArray.find((item) => item.value === value);
+        const selected = itemArray.find((item) => item.value === value) ?? explicitValue;
         setSelectedItem(selected !== undefined ? selected : null);
     }, [formattedItems, value]);
     if (props.searchable) {
