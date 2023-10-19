@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
+import { isArray } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -36,6 +37,9 @@ export function getMultiselectItems(values: Array<any>, items: Array<Item>): Arr
         return acc;
     }, []);
 }
+
+const toItem = (value: any): Item | undefined | null =>
+    typeof value === 'string' || typeof value === 'number' ? { label: String(value), value } : value;
 
 const StyledSelect = injectCss(UiSelect);
 const StyledMultiSelect = injectCss(MultiSelect);
@@ -137,9 +141,9 @@ function Select(props: SelectProps): JSX.Element {
 
     // We need to redefine items as the type is not known at this point
     const itemArray = formattedItems as Array<Item>;
-
     if (props.multiselect) {
-        const [selectedItems, setSelectedItems] = useState(getMultiselectItems(value, itemArray));
+        const explicitValues = isArray(value) ? value.map(toItem) : value;
+        const [selectedItems, setSelectedItems] = useState(explicitValues ?? getMultiselectItems(value, itemArray));
         const onSelect = useCallback(
             (_items: Array<Item>) => {
                 const currentSelection = _items.map((item: Item) => item.value);
@@ -169,10 +173,9 @@ function Select(props: SelectProps): JSX.Element {
             />
         );
     }
-    const explicitValue =
-        typeof value === 'string' || typeof value === 'number' ? { label: String(value), value } : value;
+    const explicitValue = toItem(value);
     const [selectedItem, setSelectedItem] = useState(
-        itemArray.find((item) => String(item.value) === String(value)) ?? explicitValue
+        explicitValue ?? itemArray.find((item) => String(item.value) === String(value))
     );
     const onSelect = useCallback(
         (item: Item) => {
@@ -187,7 +190,7 @@ function Select(props: SelectProps): JSX.Element {
     );
     // See explanation above
     useEffect(() => {
-        const selected = itemArray.find((item) => item.value === value) ?? explicitValue;
+        const selected = explicitValue ?? itemArray.find((item) => item.value === value);
         setSelectedItem(selected !== undefined ? selected : null);
     }, [formattedItems, value]);
     if (props.searchable) {
