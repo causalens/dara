@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## Next
+
+-   Added support for displaying a `value` in `Select` that may not be part of the `items` list.
+
 ## 1.3.2
 
 -   Fixed an issue where `Table` would always overflow
