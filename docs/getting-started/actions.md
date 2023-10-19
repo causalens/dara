@@ -291,6 +291,8 @@ config.add_page(name='Test Page', content=test_page())
 config.add_page(name='Another Page', content=another_page())
 ```
 
+In the example above, on 'Test Page', clicking on a button 'Go to Another Page' takes you to the 'Another Page' page. This demonstrates how you can pass a static URL to the `navigate` action method. On the 'Another Page' page, you can see how to control `navigate` by using a dynamic URL - in this case the selected value of a `Select` component.
+
 ### `logout`
 
 ```python
