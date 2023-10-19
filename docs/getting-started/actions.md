@@ -36,7 +36,7 @@ async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     value = ctx.input
     # Your action logic...
 
-    # Update `some_variable` to `value` multiplied by 2
+    # Update `some_variable` to `value` multiplied by arg_1 and arg_2
     await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
