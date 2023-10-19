@@ -81,9 +81,6 @@ config = ConfigurationBuilder()
 
 my_var = Variable(5)
 
-def add_one(ctx: UpdateVariable.Ctx):
-    return ctx.inputs.old + 1
-
 @action
 async def increment(ctx: action.Ctx, previous_value: int):
     await ctx.update(target=my_var, value=previous_value + 1)

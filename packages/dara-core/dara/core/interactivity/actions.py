@@ -580,6 +580,30 @@ class Notify(ActionImpl):
 
 
 class DownloadContentImpl(ActionImpl):
+    """
+    Download action, downloads a given file
+
+    ```python
+
+    from dara.core import ConfigurationBuilder, DownloadContentImpl
+    from dara.components.components import Button, Stack
+
+
+    config = ConfigurationBuilder()
+
+    def test_page():
+        return Stack(
+            Button(
+                'Download File', onclick=DownloadContentImpl(path='/path/to/file', cleanup_file=False)
+            ),
+        )
+
+
+    config.add_page(name='Download Content', content=test_page)
+
+    ```
+    """
+
     code: str
 
     py_name = 'DownloadContent'
@@ -1289,6 +1313,7 @@ class action:
         if len(args) >= 1 and isinstance(args[0], ActionCtx):
             raise TypeError(
                 'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
+
             )
 
         from dara.core.interactivity.any_variable import AnyVariable

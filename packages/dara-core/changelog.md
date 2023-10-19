@@ -30,6 +30,9 @@ Select(
 
 -   Added more shortcut actions for common operations, similar to existing `DerivedVariable.trigger()` - `AnyVariable.reset()`, `Variable.sync()`, `Variable.toggle()`, `Variable.update()`. See the updated `actions` documentation page for a full list of available actions.
 
+-   Added `on_load` prop on the `ConfigurationBuilder.add_page` method. It accepts any valid action which will be executed as the page is loaded
+-   **Deprecation Notice**: using `reset_vars_on_load` on `ConfigurationBuilder.add_page` is now deprecated, use `on_load` instead. The existing API will continue to work and will be removed in a future release.
+
 -   **Deprecation Notice**: Passing in resolvers to the existing actions (`UpdateVariable`, `DownloadContent`, `NavigateTo`) is now deprecated and will be removed in a future release. The existing API should continue to work as-is, but users are encouraged to migrate to the new API.
 
 ## 1.3.1
