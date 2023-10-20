@@ -21,7 +21,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
-from dara.core.interactivity.actions import NavigateTo, UpdateVariable
+from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable
 from dara.core.internal.tasks import Task
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
@@ -1492,6 +1492,7 @@ async def test_calling_annotated_action():
 
     @action
     async def test_action(ctx: action.Ctx, previous_value, static_kwarg):
+        assert ACTION_CONTEXT.get() == ctx
         await ctx.update(variable=var, value=previous_value + ctx.input + static_kwarg + 1)
         await ctx.reset_variables(var)
 

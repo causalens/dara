@@ -1,5 +1,5 @@
 from dara.core.base_definitions import ActionImpl
-from dara.core.interactivity.actions import ResetVariables, TriggerVariable, UpdateVariableImpl
+from dara.core.interactivity.actions import ACTION_CONTEXT, ResetVariables, TriggerVariable, UpdateVariableImpl
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
@@ -20,6 +20,11 @@ from dara.core.internal.registries import action_registry
 
 pytestmark = pytest.mark.anyio
 
+@pytest.fixture(autouse=True)
+def reset_context():
+    ACTION_CONTEXT.set(None)
+    yield
+    ACTION_CONTEXT.set(None)
 
 async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
@@ -100,6 +105,11 @@ def test_reset_shortcut():
     with pytest.raises(NotImplementedError):
         data_vara.reset()
 
+    # set context so it's not empty - check calling the shortcut is illegal
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        var.reset()
+
 def test_sync_shortcut():
     plain_var = Variable()
     action = plain_var.sync()
@@ -113,6 +123,10 @@ def test_sync_shortcut():
     assert action.variable == url_var
     assert action.value == UpdateVariableImpl.INPUT
 
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.sync()
+
 def test_toggle_shortcut():
     plain_var = Variable()
     action = plain_var.toggle()
@@ -125,6 +139,10 @@ def test_toggle_shortcut():
     assert isinstance(action, UpdateVariableImpl)
     assert action.variable == url_var
     assert action.value == UpdateVariableImpl.TOGGLE
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.toggle()
 
 def test_update_shortcut():
     plain_var = Variable()
@@ -147,6 +165,10 @@ def test_update_shortcut():
     assert isinstance(action.value, DataFrame)
     assert action.value.equals(data)
 
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.update('test')
+
 def test_trigger_shortcut():
     der_var = DerivedVariable(lambda x: x, variables=[])
     action = der_var.trigger()
@@ -157,3 +179,7 @@ def test_trigger_shortcut():
     action = der_data_var.trigger()
     assert isinstance(action, TriggerVariable)
     assert action.variable == der_data_var
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        der_var.trigger()
