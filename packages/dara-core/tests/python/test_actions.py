@@ -1,3 +1,10 @@
+from dara.core.base_definitions import ActionImpl
+from dara.core.interactivity.actions import ACTION_CONTEXT, ResetVariables, TriggerVariable, UpdateVariableImpl
+from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.derived_variable import DerivedVariable
+from pandas import DataFrame
 import pytest
 
 from dara.core import (
@@ -11,46 +18,36 @@ from dara.core import (
 )
 from dara.core.internal.registries import action_registry
 
+pytestmark = pytest.mark.anyio
 
-def test_side_effect():
+@pytest.fixture(autouse=True)
+def reset_context():
+    ACTION_CONTEXT.set(None)
+    yield
+    ACTION_CONTEXT.set(None)
+
+async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
     test_function = lambda x: x * x
     var = Variable(0)
     action = SideEffect(function=test_function, extras=[var])
-    assert action.dict() == {
-        'name': 'SideEffect',
-        'uid': action.uid,
-        'function': test_function,
-        'extras': [var.dict()],
-        'block': False,
-    }
-    assert action_registry.get(action.uid).resolver(2) == 4
+
+    # SideEffect is an AnnotatedAction instance
+    serialized = action.dict()
+    assert serialized['dynamic_kwargs'] == {'kwarg_0': var}
+
+    assert action_registry.has(serialized['definition_uid'])
 
 
 def test_navigate_to():
     """Test that the NavigateTo action serializes correctly and registers the action"""
+    # Just a simple impl
     action = NavigateTo(url='http://www.google.com')
+    assert isinstance(action, ActionImpl)
 
-    assert action.dict() == {
-        'name': 'NavigateTo',
-        'new_tab': False,
-        'uid': action.uid,
-        'url': 'http://www.google.com',
-        'extras': None,
-    }
-    with pytest.raises(KeyError):
-        action_registry.get(action.uid)
-
+    # Legacy API - resolver
     action = NavigateTo(url=lambda x: f'url/{x}')
-
-    assert action.dict() == {
-        'name': 'NavigateTo',
-        'new_tab': False,
-        'uid': action.uid,
-        'url': None,
-        'extras': None,
-    }
-    assert action_registry.get(action.uid).resolver('test') == 'url/test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_update_var():
@@ -63,14 +60,7 @@ def test_update_var():
     var2 = Variable()
 
     action = UpdateVariable(resolver, var, extras=[var2])
-
-    assert action.dict() == {
-        'name': 'UpdateVariable',
-        'uid': action.uid,
-        'variable': var.dict(),
-        'extras': [var2.dict()],
-    }
-    assert action_registry.get(action.uid).resolver() == 'test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_update_url_var():
@@ -82,9 +72,7 @@ def test_update_url_var():
     var = UrlVariable(query='url_value', default='default_value')
 
     action = UpdateVariable(resolver, var)
-
-    assert action.dict() == {'name': 'UpdateVariable', 'uid': action.uid, 'variable': var.dict(), 'extras': None}
-    assert action_registry.get(action.uid).resolver() == 'test'
+    assert action_registry.has(action.definition_uid)
 
 
 def test_download_var():
@@ -93,14 +81,7 @@ def test_download_var():
     var = Variable()
 
     action = DownloadVariable(variable=var, file_name='Name', type='csv')
-
-    assert action.dict() == {
-        'name': 'DownloadVariable',
-        'uid': action.uid,
-        'variable': var.dict(),
-        'file_name': 'Name',
-        'type': 'csv',
-    }
+    assert isinstance(action, ActionImpl)
 
 
 def test_download_content():
@@ -112,10 +93,93 @@ def test_download_content():
         return './test/path'
 
     action = DownloadContent(test_func, extras=[var_a])
+    assert action_registry.has(action.definition_uid)
 
-    assert action.dict() == {
-        'name': 'DownloadContent',
-        'uid': action.uid,
-        'extras': [var_a.dict()],
-        'cleanup_file': None,
-    }
+def test_reset_shortcut():
+    var = AnyVariable()
+    action = var.reset()
+    assert isinstance(action, ResetVariables)
+    assert action.variables == [var]
+
+    data_vara  = DataVariable()
+    with pytest.raises(NotImplementedError):
+        data_vara.reset()
+
+    # set context so it's not empty - check calling the shortcut is illegal
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        var.reset()
+
+def test_sync_shortcut():
+    plain_var = Variable()
+    action = plain_var.sync()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == UpdateVariableImpl.INPUT
+
+    url_var = UrlVariable(query='test')
+    action = url_var.sync()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == UpdateVariableImpl.INPUT
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.sync()
+
+def test_toggle_shortcut():
+    plain_var = Variable()
+    action = plain_var.toggle()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == UpdateVariableImpl.TOGGLE
+
+    url_var = UrlVariable(query='test')
+    action = url_var.toggle()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == UpdateVariableImpl.TOGGLE
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.toggle()
+
+def test_update_shortcut():
+    plain_var = Variable()
+    action = plain_var.update('test')
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == 'test'
+
+    url_var = UrlVariable(query='test')
+    action = url_var.update('test')
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == 'test'
+
+    data_var = DataVariable()
+    data = DataFrame()
+    action = data_var.update(data)
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == data_var
+    assert isinstance(action.value, DataFrame)
+    assert action.value.equals(data)
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        plain_var.update('test')
+
+def test_trigger_shortcut():
+    der_var = DerivedVariable(lambda x: x, variables=[])
+    action = der_var.trigger()
+    assert isinstance(action, TriggerVariable)
+    assert action.variable == der_var
+
+    der_data_var = DerivedDataVariable(lambda x: x, variables=[])
+    action = der_data_var.trigger()
+    assert isinstance(action, TriggerVariable)
+    assert action.variable == der_data_var
+
+    ACTION_CONTEXT.set('foo')
+    with pytest.raises(ValueError):
+        der_var.trigger()

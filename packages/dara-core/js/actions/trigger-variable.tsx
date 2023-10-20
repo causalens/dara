@@ -1,19 +1,17 @@
-import { useCallback } from 'react';
-
-import { useTriggerVariable } from '@/shared/interactivity';
-import { ActionHook, TriggerVariableInstance } from '@/types/core';
+import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
+import { ActionHandler, TriggerVariableImpl } from '@/types/core';
 
 /**
  * Front-end handler for TriggerVariable action.
  * Forces the recalculation of a particular DerivedVariable.
  */
-const TriggerVariable: ActionHook<never, TriggerVariableInstance> = (action) => {
-    // Use force flag based on setting on the Python side in the action def
-    const trigger = useTriggerVariable(action.variable, action.force);
-    return useCallback(async () => {
-        trigger();
-        return Promise.resolve();
-    }, [trigger]);
+const TriggerVariable: ActionHandler<TriggerVariableImpl> = (ctx, actionImpl): void => {
+    const triggerAtom = getOrRegisterTrigger(actionImpl.variable);
+
+    ctx.set(triggerAtom, (triggerIndexValue) => ({
+        force: actionImpl.force,
+        inc: triggerIndexValue.inc + 1,
+    }));
 };
 
 export default TriggerVariable;

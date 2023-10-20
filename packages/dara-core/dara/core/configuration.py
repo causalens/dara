@@ -36,9 +36,8 @@ from pydantic.generics import GenericModel
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
-from dara.core.base_definitions import ActionDef, ActionInstance
+from dara.core.base_definitions import Action, ActionDef
 from dara.core.definitions import (
-    AnyVariable,
     ApiRoute,
     CallableClassComponent,
     ComponentInstance,
@@ -49,6 +48,8 @@ from dara.core.definitions import (
     Page,
     Template,
 )
+from dara.core.interactivity.actions import ActionImpl, ResetVariables
+from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
@@ -176,7 +177,7 @@ class ConfigurationBuilder:
         self.theme = BaseTheme(main='light')
         self.title = 'decisionApp'
 
-    def add_action(self, action: Type[ActionInstance], local: bool = False):
+    def add_action(self, action: Type[ActionImpl], local: bool = False):
         """
         Register an Action with the application.
 
@@ -187,7 +188,7 @@ class ConfigurationBuilder:
         Note that in most cases explicitly registering a action is not necessary in most cases
         for non-local actionts. Actions are auto-discovered based on imports within your application.
 
-        :param action: ActionInstance-subclass definition
+        :param action: ActionImpl-subclass definition
         :param local: whether the action is a local one.
         For local actions js_module is not required, as their location is defined via dara.config.json
         """
@@ -352,6 +353,7 @@ class ConfigurationBuilder:
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
         reset_vars_on_load: Optional[List[AnyVariable]] = [],
+        on_load: Optional[Action] = None,
     ):
         """
         Add a new page to the layout of the platform. Switching between pages relies on the template implementing a
@@ -363,8 +365,15 @@ class ConfigurationBuilder:
         :param icon: an optional icon for the page, see dara_core.css.get_icon for more detail
         :param route: an optional url for the page, if not provided it's generated based on the page name
         :param include_in_menu: an optional flag for not including the page in the main menu
-        :param reset_vars_on_load: optional list of variables to reset upon visiting the page
+        :param on_load: optional action to execute upon visiting the page
         """
+        # Backwards compatibility - deprecated
+        if reset_vars_on_load is not None and len(reset_vars_on_load) > 0:
+            if on_load is not None:
+                raise ValueError('reset_vars_on_load and on_load cannot be used together')
+            dev_logger.warning('reset_vars_on_load is deprecated, please use on_load instead')
+            on_load = ResetVariables(variables=reset_vars_on_load)
+
         url_safe_name = route if route is not None else name.lower().replace(' ', '-').strip()
         if isinstance(content, str):
             content = RawString(content=content)
@@ -385,7 +394,7 @@ class ConfigurationBuilder:
             name=name,
             url_safe_name=url_safe_name,
             include_in_menu=include_in_menu,
-            reset_vars_on_load=reset_vars_on_load,
+            on_load=on_load,
         )
         self._pages[name] = page
         return page

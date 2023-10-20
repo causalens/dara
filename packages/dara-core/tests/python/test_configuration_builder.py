@@ -4,7 +4,7 @@ import shutil
 import pytest
 
 from dara.core.auth import BasicAuthConfig
-from dara.core.base_definitions import ActionDef, ActionInstance
+from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance, HttpMethod, JsComponentDef, Page
 from dara.core.http import get
@@ -109,7 +109,7 @@ def test_add_local_action():
 
     builder = ConfigurationBuilder()
 
-    class TestAction(ActionInstance):
+    class TestAction(ActionImpl):
         pass
 
     builder.add_action(TestAction, local=True)
@@ -128,7 +128,7 @@ def test_add_nonlocal_action():
 
     builder = ConfigurationBuilder()
 
-    class TestAction(ActionInstance):
+    class TestAction(ActionImpl):
         js_module = 'test_module'
 
     builder.add_action(TestAction)
@@ -146,7 +146,7 @@ def test_add_nonlocal_action_raises_without_js():
     """Test that a non-local Action raises when attempting to add without js module defined"""
     builder = ConfigurationBuilder()
 
-    class TestWithoutJs(ActionInstance):
+    class TestWithoutJs(ActionImpl):
         pass
 
     with pytest.raises(RuntimeError) as e:

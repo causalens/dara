@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Generic, List, Optional, TypeVar
+from typing import Any, Generic, List, Optional, TypeVar
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
@@ -88,6 +88,87 @@ class Variable(NonDataVariable, Generic[VariableType]):
         ```
         """
         return self.copy(update={'nested': [*self.nested, key]}, deep=True)
+
+    def sync(self):
+        """
+        Create an action to synchronise the value of this Variable with input value sent from the component.
+
+        ```python
+
+        from dara.core import Variable
+        from dara.components import Select
+
+        var = Variable('first')
+        another_var = Variable()
+
+        Select(
+            value=var,
+            items=['first', 'second', 'third'],
+            # syncing value to `another_var` in addition to `var`
+            onchange=another_var.sync(),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
+
+    def toggle(self):
+        """
+        Create an action to toggle the value of this Variable. Note this only works for boolean variables.
+
+        ```python
+
+        from dara.core import Variable
+        from dara.components import Button
+
+        var = Variable(True)
+
+        Button(
+            'Toggle',
+            onclick=var.toggle(),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
+
+    def update(self, value: Any):
+        """
+        Create an action to update the value of this Variable to a provided value.
+
+        ```python
+
+        from dara.core import Variable
+        from dara.components import Button
+
+        show = Variable(True)
+
+        Button(
+            'Hide',
+            onclick=var.update(False),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=value)
 
     @classmethod
     def create_from_derived(cls, other: DerivedVariable):

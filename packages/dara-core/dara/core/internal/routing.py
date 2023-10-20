@@ -22,8 +22,17 @@ from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional
 
 import pandas
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Response,
+    UploadFile,
+)
+from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
@@ -31,11 +40,11 @@ from starlette.background import BackgroundTask
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
-from dara.core.interactivity.actions import ActionContext, ActionInputs
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.download import get_by_code
+from dara.core.internal.download import DownloadRegistryEntry
+from dara.core.internal.execute_action import CURRENT_ACTION_ID
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
@@ -56,10 +65,7 @@ from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import ws_handler
 from dara.core.logging import dev_logger
-from dara.core.visual.dynamic_component import (
-    CURRENT_COMPONENT_ID,
-    PyComponentDef,
-)
+from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
 
 def error_decorator(handler: Callable[..., Any]):
@@ -101,57 +107,84 @@ def create_router(config: Configuration):
     """
     core_api_router = APIRouter()
 
-    class ActionRequestBody(BaseModel):
-        # Extra values passed into action context - could contain ResolvedDerivedVariable constructs
-        extras: Optional[NormalizedPayload[List[Any]]]
-        # Inputs passed to the action context
-        inputs: dict
-        # Websocket channel assigned to the client
-        ws_channel: str
-
     @core_api_router.get('/actions', dependencies=[Depends(verify_session)])
     async def get_actions():   # pylint: disable=unused-variable
         return action_def_registry.get_all().items()
 
+    class ActionRequestBody(BaseModel):
+        values: NormalizedPayload[Mapping[str, Any]]
+        """Dynamic kwarg values"""
+
+        input: Any
+        """Input from the component"""
+
+        ws_channel: str
+        """Websocket channel assigned to the client"""
+
+        uid: str
+        """Instance uid"""
+
+        execution_id: str
+        """Execution id, unique to this request"""
+
     @core_api_router.post('/action/{uid}', dependencies=[Depends(verify_session)])
-    async def get_action(uid: str, body: ActionRequestBody):  # pylint: disable=unused-variable
+    async def get_action(
+        uid: str, body: ActionRequestBody, bg_tasks: BackgroundTasks
+    ):  # pylint: disable=unused-variable
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         action_def: ActionResolverDef = await registry_mgr.get(action_registry, uid)
-        extras = None
 
-        # If extras was provided, it was normalized
-        if body.extras is not None:
-            extras = denormalize(body.extras.data, body.extras.lookup)
+        CURRENT_ACTION_ID.set(body.uid)
 
-        ctx = ActionContext(inputs=ActionInputs(**body.inputs), extras=extras)
+        # Denormalize the values
+        values = denormalize(body.values.data, body.values.lookup)
 
-        result = await action_def.execute_action(action_def, ctx, store, task_mgr)
+        # Fetch static kwargs
+        static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
 
-        # MetaTask was created so run it and return it's ID
-        if isinstance(result, BaseTask):
-            await task_mgr.run_task(result, body.ws_channel)
-            return {'task_id': result.task_id}
+        # Execute the action - kick off a background task to run the handler
+        response = await action_def.execute_action(
+            action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr, bg_tasks
+        )
 
-        return result
+        if isinstance(response, BaseTask):
+            await task_mgr.run_task(response, body.ws_channel)
+            return {'task_id': response.task_id}
+
+        return {'execution_id': response}
 
     @core_api_router.get('/download')
     async def get_download(code: str):   # pylint: disable=unused-variable
-        path, file_name, cleanup_file, _ = get_by_code(code)
+        store: CacheStore = utils_registry.get('Store')
 
-        def cleanup():
-            if cleanup_file:
-                os.remove(path)
+        try:
+            data_entry = await store.get(DownloadRegistryEntry, key=code)
 
-        if os.path.exists(path):
-            return FileResponse(
-                path,
+            if data_entry is None:
+                raise ValueError('Invalid or expired download code')
+
+            async_file, cleanup = await data_entry.download(data_entry)
+
+            file_name = os.path.basename(data_entry.file_path)
+
+            async def stream_file():
+                has_content = True
+                chunk_size = 64 * 1024
+                while has_content:
+                    chunk = await async_file.read(chunk_size)
+                    has_content = chunk_size == len(chunk)
+                    yield chunk
+
+            return StreamingResponse(
+                content=stream_file(),
                 headers={'Content-Disposition': f'attachment; filename={file_name}'},
                 background=BackgroundTask(cleanup),
             )
-        else:
-            raise FileNotFoundError(f'Download file "{file_name}" could not be found at: {path}')
+
+        except KeyError:
+            raise ValueError('Invalid or expired download code')
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
     async def get_config():  # pylint: disable=unused-variable

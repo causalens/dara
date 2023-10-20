@@ -22,15 +22,24 @@ from __future__ import annotations
 import abc
 import uuid
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    ClassVar,
+    List,
+    Mapping,
+    Optional,
+    Union,
+)
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from dara.core.interactivity.actions import ActionContextType
-    from dara.core.internal.store import Store
+    from dara.core.interactivity.actions import ActionCtx
 
 
 class DaraBaseModel(BaseModel):
@@ -389,9 +398,85 @@ class PendingValue:
         self.event.set()
 
 
+class AnnotatedAction(BaseModel):
+    """
+    Represents a single call to an @action-annotated action.
+
+    ```python
+    from dara.core import action
+
+    @action
+    def my_action(ctx: action.Ctx, ...):
+        ...
+
+    result = my_action(...)
+    type(result) == AnnotatedAction
+    ```
+    """
+
+    uid: str
+    """Instance uid of the action. Used to find static kwargs for the instance"""
+
+    definition_uid: str
+    """Uid of the action definition"""
+
+    dynamic_kwargs: Mapping[str, Any]
+    """Dynamic kwargs of the action; uid -> variable instance"""
+
+
+class ActionImpl(DaraBaseModel):
+    """
+    Base class for action implementations
+
+    :param js_module: JS module including the implementation of the action.
+    Required for non-local actions which have a JS implementation.
+    """
+
+    js_module: ClassVar[Optional[str]] = None
+    py_name: ClassVar[Optional[str]] = None
+
+    async def execute(self, ctx: ActionCtx) -> Any:
+        """
+        Execute the action.
+
+        Default implementation sends the args to the frontend which can be called by subclasses.
+
+        :param context: ActionContext instance
+        """
+        await ctx._push_action(self)
+
+    def dict(self, *args, **kwargs):
+        """
+        This structure is expected by the frontend, must match the JS implementation
+        """
+        dict_form = super().dict(*args, **kwargs)
+        dict_form['name'] = self.__class__.py_name or self.__class__.__name__
+        dict_form['__typename'] = 'ActionImpl'
+        return dict_form
+
+
+ActionInstance = Union[ActionImpl, AnnotatedAction]
+"""
+@deprecated alias for backwards compatibility
+"""
+
+# TODO: remove List[AnnotatedAction] support in 2.0
+Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionImpl]]]
+"""
+Definition of an action that can be executed by the frontend.
+Supports:
+- AnnotatedAction: an @action annotated function
+- ActionImpl: an instance of a subclass of ActionImpl
+- a list of either of the above
+
+@deprecated when passing a list only ActionImpl will be supported in dara 2.0
+"""
+
+
 class ActionDef(BaseModel):
     """
-    Action definition required to register actions in the app
+    Action definition required to register actions in the app.
+    Links the name of the action with its JS implementation.
 
     :param name: name of the action, must match the Python definition and JS implementation
     :param py_module: name of the PY module with action definition, used for versioning
@@ -406,52 +491,13 @@ class ActionDef(BaseModel):
 
 class ActionResolverDef(BaseModel):
     uid: str
+    """Unique id of the action definition"""
 
     resolver: Optional[Callable]
     """Resolver function for the action"""
-    execute_action: Callable
-    """Execute function for the action, default dara.core.internal.execute_action"""
 
-
-class ActionInstance(DaraBaseModel):
-    """
-    Base class for actions
-
-    :param uid: unique action indentifier
-    :param js_module: JS module including the implementation of the action.
-    Required for non-local actions.
-    """
-
-    uid: Optional[str] = None
-    js_module: ClassVar[Optional[str]] = None
-
-    # TODO: if there is a need, this could also support required_routes just like ComponentInstance
-
-    def __init__(self, *args, **kwargs):
-        uid = kwargs.pop('uid', None)
-        if uid is None:
-            uid = str(uuid.uuid4())
-        super().__init__(uid=uid, *args, **kwargs)
-
-    def dict(self, *args, **kwargs):
-        props = super().dict(*args, **kwargs)
-        props.pop('uid')
-        return {'name': type(self).__name__, **props, 'uid': self.uid}
-
-    def register_resolver(self, uid: str, resolver: Callable[[ActionContextType], Any]):
-        """
-        Registers the action resolver to the registry
-
-        :param uid: unique action indentifier
-        :param resolver: action resolver for which context will be passed to
-        """
-        from dara.core.internal.execute_action import execute_action
-        from dara.core.internal.registries import action_registry
-
-        action_registry.register(uid, ActionResolverDef(uid=uid, resolver=resolver, execute_action=execute_action))
-
-
-Action = Union[ActionInstance, List[ActionInstance]]
+    execute_action: Callable[..., Awaitable[Any]]
+    """Handler to execute the action, default dara.core.internal.execute_action.execute_action"""
 
 
 class UploadResolverDef(BaseModel):

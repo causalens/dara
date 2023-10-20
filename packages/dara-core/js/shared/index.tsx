@@ -22,13 +22,6 @@ export {
     getTokenKey,
     DARA_JWT_TOKEN,
 } from './utils';
-export {
-    useVariable,
-    useDataVariable,
-    combineFilters,
-    useAnyVariable,
-    useVariableValue,
-    resolveValue,
-} from './interactivity';
+export { useVariable, useDataVariable, combineFilters, useAnyVariable, resolveValue } from './interactivity';
 export { default as Wrapper } from './wrapper/wrapper';
 export type { RawCssProp };

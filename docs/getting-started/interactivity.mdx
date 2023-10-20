@@ -140,48 +140,81 @@ In the above example, whenever the `Input` field changes, it updates the value o
 
 ### Interaction Through Actions
 
-The components mentioned above offer a way to directly update Variables. Another way to update Variables is through actions. Actions can be found in the core framework along with `Variable` and they work by being passed to a component's callback. A callback is simply a function that is passed as an argument to another function.
+The components mentioned above offer a way to directly update Variables. Another way to update Variables is through actions. Actions can be found in the core framework along with `Variable` and they work
+by being passed to a component's callback parameter. A callback is simply a function that is passed as an argument to another function.
 
-#### `UpdateVariable`
+The primary way to create actions in Dara is the `@action` decorator. This decorator takes a function and returns an action that can be passed to a component's callback.
+It injects an `ActionCtx` object as the first argument of the function, which contains the input sent from the component and exposes action methods to update the state of the application.
 
-The `dara.core.interactivity.actions.UpdateVariable` action can be passed to any component prop accepting an Action and trigger the update of a `dara.core.interactivity.plain_variable.Variable`, `dara.core.interactivity.data_variable.DataVariable` or `dara.core.interactivity.url_variable.UrlVariable`.
+:::note
 
-It takes the following arguments:
+The action methods on `ActionCtx` are `async` and must be `await`-ed, so your decorated function should be `async` as well.
+To learn more about `async` and `await` in Python, check out [this blogpost](https://realpython.com/async-io-python/).
 
-- `resolver`: a function to resolve the new value for the `Variable`, `DataVariable` or `UrlVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
-- `variable`: the `Variable`, `DataVariable` or `UrlVariable` to update with a new value upon triggering the action
-- `extras`: any extra variables to resolve and pass to the resolver function, you can obtain a list of the resolved values of all the extras passed with `ctx.extras` in the resolver function
-
-To see how the `UpdateVariable` works, consider the example below:
+:::
 
 ```python
-from dara.core import Variable, UpdateVariable
-from dara.components import Button, Stack
+from dara.core import action, Variable
+from dara.components import Select, Item
 
-my_var = Variable(5)
+some_variable = Variable(1)
+other_variable = Variable(2)
 
-def add_one(ctx: UpdateVariable.Ctx):
-    return ctx.inputs.old + 1
+@action
+async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
+    # Value coming from the component, in this case the selected item
+    value = ctx.input
+    # Your action logic...
 
-def test_page():
-    return Stack(
-        Text(my_var),
-        Button(
-            'Add One',
-            onclick=UpdateVariable(add_one, variable=my_var)
-        ),
-    )
+    # Update `some_variable` to `value` multiplied by 2 by arg_1 and arg_2
+    await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
-config.add_page(name='Increment Variable', content=test_page())
+
+Select(
+    items=[Item(label='item1', value=1), Item(label='item2', value=2)],
+    onchange=my_action(2, other_variable)
+)
 ```
 
-The `dara.components.common.button.Button` component has a parameter `onclick` which is the component's callback. You can pass it an action, which in this case is an `UpdateVariable` instance.
+The example above shows how to use the `@action` decorator to create an action that updates a `Variable` with the value of the selected item in a `Select` component multiplied by the static `2` argument and current value of `other_variable`.
+The `@action`-decorated function can take a mixture of regular Python variables and Dara `Variable`-based arguments in any combination. The `@action` decorator will automatically resolve the `Variable`-based arguments so your function will receive the current value of the `Variable` instead of the `Variable` instance.
 
-The example's resolver is the function `add_one` and it takes the current value of the `Variable` and adds one to it, assuming it is an integer. If you were to click on the button, the `Variable`'s value would be updated to six. The new value in the resolver is not used as `Button`s do not provide a new value to the `Variable` and it will be equal to `None`. Other components like `Input`s do provide a new value. For `Input` components, the new value is whatever is typed into the `Input` box.
+The `dara.components.common.button.Select` component has an `onchange` parameter which accepts an action. A valid argument to an action parameter is one of the following three options:
 
-Other components like `Select`s have corresponding callbacks. The callback for a `dara.components.common.select.Select` component is the `onchange` argument.
+- An instance of an `@action`-decorated function (as in the example above).
+- An instance of an individual static action object.
+- A list of a combination of the above two options.
 
-In summary, to trigger an update based on user interaction simply pass an action to your component's callback. `UpdateVariable` is just one of the actions to inspire you on what you can do with your app. To see more actions checkout the [Actions](./actions.md).
+:::warning
+
+Passing a list of `@action`-decorated functions to an action prop is deprecated and will not be supported in future versions of Dara. This is because it requires
+the app to make a request to the backend server for each action in the list, which is not performant. Instead, you should use the `@action` decorator to create a single action
+and compose them. Learn more about composing actions [here](./actions.md#composing-actions).
+
+:::
+
+One example of a static action object is the result of calling `sync` on a `Variable` or `UrlVariable` instance. This creates an action object which, when passed to an action prop,
+will update the variable with the value of the input sent from the component.
+
+```python
+from dara.core import action, Variable
+from dara.components import Select, Item
+
+some_variable = Variable()
+
+Select(
+    items=[Item(label='item1', value=1), Item(label='item2', value=2)],
+    onchange=some_variable.sync()
+)
+```
+
+The example above shows how to use the `sync` method to create an action that updates a `Variable` with the value of the selected item in a `Select` component.
+Other interactive components like `Button`s have corresponding callback parameters, e.g. `onclick`, `onchange` or similar.
+
+In summary, to trigger an update based on user interaction simply pass an action to your component's callback. The `@action` decorator allows you to create
+a complex action flow with multiple steps, control flow and error handling. For simpler use cases, you can use shortcuts like `sync` to create one-off actions for
+common operations like updating a variable with the value of the input sent from a component.
+To see more actions checkout the [Actions](./actions.md).
 
 ### `DerivedVariable`
 

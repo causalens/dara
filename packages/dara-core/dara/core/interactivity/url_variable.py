@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Generic, List, Optional, TypeVar
+from typing import Any, Generic, List, Optional, TypeVar
 
 from dara.core.interactivity.non_data_variable import NonDataVariable
 
@@ -50,6 +50,86 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
         super().__init__(query=query, default=default, uid=uid)
+
+    def sync(self):
+        """
+        Create an action to synchronise the value of this UrlVariable with input value sent from the component.
+
+        ```python
+
+        from dara.core import UrlVariable
+        from dara.components import Select
+
+        var = UrlVariable('first', query='num')
+        another_var = UrlVariable('second', query='num_two')
+
+        Select(
+            value=var,
+            items=['first', 'second', 'third'],
+            onchange=another_var.sync(),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
+
+    def toggle(self):
+        """
+        Create an action to toggle the value of this UrlVariable. Note this only works for boolean variables.
+
+        ```python
+
+        from dara.core import UrlVariable
+        from dara.components import Button
+
+        var = UrlVariable(True, query='show')
+
+        Button(
+            'Toggle',
+            onclick=var.toggle(),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
+
+    def update(self, value: Any):
+        """
+        Create an action to update the value of this UrlVariable to a provided value.
+
+        ```python
+
+        from dara.core import UrlVariable
+        from dara.components import Button
+
+        show = UrlVariable(True, query='show')
+
+        Button(
+            'Hide',
+            onclick=show.update(False),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
+
+        assert_no_context('ctx.update')
+        return UpdateVariableImpl(variable=self, value=value)
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)

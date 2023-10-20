@@ -2,6 +2,40 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Implement new action API in the form of the `@action` decorator. This decorator takes a function and returns an action that can be passed to a component's callback. It injects an `ActionCtx` object (aliased as `action.Ctx`) as the first argument of the function, which contains the input sent from the component and exposes action methods. This allows for full control over the action's behaviour, including the ability to conditionally execute specific actions with control flow, error handling etc. See the updated `actions` documentation page for more details on the new API and migration guide for the existing APIs.
+
+```python
+from dara.core import action, Variable
+from dara.components import Select, Item
+
+some_variable = Variable(1)
+other_variable = Variable(2)
+
+@action
+async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
+    # Value coming from the component, in this case the selected item
+    value = ctx.input
+    # Your action logic...
+
+    # Update `some_variable` to `value` multiplied by arg_1 and arg_2
+    await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
+
+
+Select(
+    items=[Item(label='item1', value=1), Item(label='item2', value=2)],
+    onchange=my_action(2, other_variable)
+)
+```
+
+-   Added more shortcut actions for common operations, similar to existing `DerivedVariable.trigger()` - `AnyVariable.reset()`, `Variable.sync()`, `Variable.toggle()`, `Variable.update()`. See the updated `actions` documentation page for a full list of available actions.
+
+-   Added `on_load` prop on the `ConfigurationBuilder.add_page` method. It accepts any valid action which will be executed as the page is loaded
+-   **Deprecation Notice**: using `reset_vars_on_load` on `ConfigurationBuilder.add_page` is now deprecated, use `on_load` instead. The existing API will continue to work and will be removed in a future release.
+
+-   **Deprecation Notice**: Passing in resolvers to the existing actions (`UpdateVariable`, `DownloadContent`, `NavigateTo`) is now deprecated and will be removed in a future release. The existing API should continue to work as-is, but users are encouraged to migrate to the new API.
+
 ## 1.3.1
 
 -   Fixed usage of `resource` package which is not supported on Windows. Attempting to use `CGROUP_MEMORY_LIMIT_ENABLED` on Windows is now a noop and emits a warning.

@@ -1,11 +1,10 @@
 import type { User, UserData } from './auth';
 import type {
     Action,
-    ActionBodyContext,
     ActionContext,
     ActionDef,
-    ActionHook,
-    ActionInstance,
+    ActionHandler,
+    ActionImpl,
     AnyDataVariable,
     AnyVariable,
     BaseComponentProps,
@@ -45,10 +44,9 @@ import type {
 
 export type {
     Action,
-    ActionBodyContext,
     ActionDef,
-    ActionInstance,
-    ActionHook,
+    ActionImpl,
+    ActionHandler,
     ActionContext,
     Condition,
     Config,

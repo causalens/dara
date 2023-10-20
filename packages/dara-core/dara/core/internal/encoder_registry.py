@@ -15,13 +15,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-from typing import Any, Callable, MutableMapping, Type
+from inspect import isclass
+from typing import Any, Callable, MutableMapping, Optional, Type
 
 import numpy
 import pandas
 from fastapi.encoders import jsonable_encoder
 from pandas.core.arrays.base import ExtensionArray
+from pydantic import BaseModel
 from typing_extensions import TypedDict
+
+from dara.core.base_definitions import BaseTask
 
 
 class Encoder(TypedDict):
@@ -101,6 +105,30 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
         serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')),
-        deserialize=lambda x: x if isinstance(x,pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
+        deserialize=lambda x: x if isinstance(x, pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
     ),
 }
+
+
+def deserialize(value: Any, typ: Optional[Type]):
+    """
+    Deserialize a value into a given type.
+
+    Looks up the type in the encoder_registry and uses the deserializer to convert the value into the given type.
+
+    :param value: the value to deserialize
+    :param typ: the type to deserialize into
+    """
+    if isinstance(value, BaseTask):
+        return value
+
+    if typ is None:
+        return value
+
+    if typ in encoder_registry:
+        return encoder_registry[typ]['deserialize'](value)
+
+    if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
+        return typ(**value)
+
+    return value

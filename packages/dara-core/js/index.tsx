@@ -3,8 +3,8 @@ import type { RawCssProp } from './shared';
 import type {
     Action,
     ActionDef,
-    ActionHook,
-    ActionInstance,
+    ActionHandler,
+    ActionImpl,
     AnyDataVariable,
     AnyVariable,
     BaseComponentProps,
@@ -32,8 +32,8 @@ export * as Notifications from '@darajs/ui-notifications';
 
 export type {
     Action,
-    ActionHook,
-    ActionInstance,
+    ActionHandler,
+    ActionImpl,
     ActionDef,
     Condition,
     Template,
@@ -56,18 +56,7 @@ export type {
     BaseComponentProps,
 };
 
-export {
-    useActionContext,
-    UpdateVariable,
-    TriggerVariable,
-    SideEffect,
-    NavigateTo,
-    ResetVariables,
-    DownloadVariable,
-    DownloadContent,
-    Notify,
-    Logout,
-} from './actions';
+export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
 export {
     useAuthCtx,
     useSessionToken,
@@ -103,7 +92,6 @@ export {
     injectCss,
     useAnyVariable,
     resolveValue,
-    useVariableValue,
     normalizeRequest,
     WebSocketCtx,
     DARA_JWT_TOKEN,

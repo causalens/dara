@@ -1,10 +1,57 @@
 import { renderHook } from '@testing-library/react';
+import { useContext } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useRecoilCallback } from 'recoil';
 
-import { useVariableValue } from '../../js/shared/interactivity';
-import { DerivedDataVariable, DerivedVariable, SingleVariable } from '../../js/types';
+import { useSessionToken } from '@/auth/auth-context';
+import { WebSocketCtx } from '@/shared/context';
+import { useTaskContext } from '@/shared/context/global-task-context';
+
+import { getVariableValue } from '../../js/shared/interactivity';
+import {
+    DataVariable,
+    DerivedDataVariable,
+    DerivedVariable,
+    SingleVariable,
+    Variable,
+    isVariable,
+} from '../../js/types';
 import { Wrapper, server } from './utils';
 
-describe('useVariableValue', () => {
+/**
+ * Test hook - wraps getVariableValue in a RecoilCallback and provides all the required contexts
+ */
+function useVariableValue<VV, B extends boolean = false>(
+    variable: VV | Variable<VV> | DataVariable | DerivedVariable | DerivedDataVariable,
+    shouldFetchVariable: B = false as B
+): () => ReturnType<typeof getVariableValue<VV, B>> {
+    const taskContext = useTaskContext();
+    const { client } = useContext(WebSocketCtx);
+    const { search } = useLocation();
+    const token = useSessionToken();
+
+    if (!isVariable<VV>(variable)) {
+        return () => variable;
+    }
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useRecoilCallback(
+        ({ snapshot }) => {
+            return () => {
+                return getVariableValue<VV, B>(variable, shouldFetchVariable, {
+                    client,
+                    search,
+                    snapshot,
+                    taskContext,
+                    token,
+                });
+            };
+        },
+        [variable.uid, taskContext, client, search, token]
+    );
+}
+
+describe('getVariableValue', () => {
     beforeEach(() => server.listen());
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());

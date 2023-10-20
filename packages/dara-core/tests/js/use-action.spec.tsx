@@ -7,17 +7,17 @@ import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { useAction, useVariable } from '../../js/shared';
 import {
     Action,
+    AnnotatedAction,
     DerivedDataVariable,
     DerivedVariable,
-    NavigateToInstance,
-    ResetVariablesInstance,
-    SideEffectInstance,
+    NavigateToImpl,
+    ResetVariablesImpl,
     SingleVariable,
-    UpdateVariableInstance,
+    UpdateVariableImpl,
     UrlVariable,
     Variable,
 } from '../../js/types/core';
-import { Wrapper, server, wrappedRender } from './utils';
+import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
 
 describe('useAction', () => {
     beforeEach(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -32,10 +32,12 @@ describe('useAction', () => {
         const { result } = renderHook(
             () =>
                 useAction({
+                    __typename: 'ActionImpl',
                     name: 'NavigateTo',
                     new_tab: false,
                     uid: 'uid',
-                } as NavigateToInstance),
+                    url: 'foo',
+                } as NavigateToImpl),
             { wrapper }
         );
 
@@ -45,16 +47,18 @@ describe('useAction', () => {
         });
     });
 
-    it('should handle the NAVIGATE_TO action with a fixed url passed', async () => {
+    it('should handle the NAVIGATE_TO action', async () => {
         const history = createMemoryHistory();
 
         const { result } = renderHook(
             () =>
                 useAction({
+                    __typename: 'ActionImpl',
                     name: 'NavigateTo',
+                    new_tab: false,
                     uid: 'uid',
                     url: '/simple/url',
-                } as NavigateToInstance),
+                } as NavigateToImpl),
             { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
         );
         await waitFor(() => {
@@ -67,43 +71,7 @@ describe('useAction', () => {
         await waitFor(() => expect(history.location.pathname).toBe('/simple/url'));
     });
 
-    it('should handle the NAVIGATE_TO action without a fixed url', async () => {
-        const history = createMemoryHistory();
-
-        const { result } = renderHook(
-            () =>
-                useAction({
-                    name: 'NavigateTo',
-                    uid: 'uid',
-                } as NavigateToInstance),
-            { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
-        );
-        await waitFor(() => {
-            expect(result.current[0]).toBeInstanceOf(Function);
-        });
-
-        act(() => {
-            result.current[0]('test');
-        });
-        await waitFor(() => expect(history.location.pathname).toBe('/res/test'));
-    });
-
-    it('should handle the SIDE_EFFECT action', async () => {
-        const wrapper = ({ children }: any): JSX.Element => <Wrapper>{children}</Wrapper>;
-        const { result } = renderHook(
-            () =>
-                useAction({
-                    name: 'SideEffect',
-                    uid: 'uid',
-                } as SideEffectInstance),
-            { wrapper }
-        );
-        await waitFor(() => {
-            expect(result.current[0]).toBeInstanceOf(Function);
-        });
-    });
-
-    it('should handle UPDATE_VARIABLE action without extras', async () => {
+    it('should handle UPDATE_VARIABLE action', async () => {
         const variable: SingleVariable<string> = {
             __typename: 'Variable',
             default: 'value',
@@ -111,9 +79,10 @@ describe('useAction', () => {
             uid: 'uid',
         };
 
-        const action: UpdateVariableInstance = {
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid',
+            value: 'updated',
             variable,
         };
 
@@ -131,12 +100,6 @@ describe('useAction', () => {
                 </>
             );
         };
-
-        server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                return res(ctx.json('updated'));
-            })
-        );
 
         const { getByTestId } = wrappedRender(<MockComponent action={action} var={variable} />);
 
@@ -161,9 +124,10 @@ describe('useAction', () => {
             uid: 'uid',
         };
 
-        const action: UpdateVariableInstance = {
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid',
+            value: 'updated',
             variable,
         };
 
@@ -181,12 +145,6 @@ describe('useAction', () => {
                 </>
             );
         };
-
-        server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                return res(ctx.json('updated'));
-            })
-        );
 
         const { getByTestId } = render(<MockComponent action={action} var={variable} />, {
             wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper>,
@@ -219,14 +177,16 @@ describe('useAction', () => {
             uid: 'uid2',
         };
 
-        const action1: UpdateVariableInstance = {
+        const action1: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid1',
+            value: '2',
             variable: variable1,
         };
-        const action2: UpdateVariableInstance = {
+        const action2: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid2',
+            value: '2',
             variable: variable2,
         };
 
@@ -247,12 +207,6 @@ describe('useAction', () => {
             );
         };
 
-        server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                return res(ctx.json('2'));
-            })
-        );
-
         const { getByTestId } = render(
             <MockComponent action={[action1, action2]} var1={variable1} var2={variable2} />,
             { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
@@ -271,7 +225,9 @@ describe('useAction', () => {
         });
     });
 
-    it('should handle UPDATE_VARIABLE action with extras', async () => {
+    it('should handle AnnotatedAction with UPDATE_VARIABLE action', async () => {
+        const wsClient = new MockWebSocketClient('uid');
+
         const variable: SingleVariable<string> = {
             __typename: 'Variable',
             default: 'value',
@@ -305,11 +261,18 @@ describe('useAction', () => {
             variables: [variableB],
         };
 
-        const action: UpdateVariableInstance = {
-            extras: [variableResult, dataVariableResult],
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid',
+            value: 'updated',
             variable,
+        };
+        const annotated: AnnotatedAction = {
+            dynamic_kwargs: {
+                var: variableResult,
+                var2: dataVariableResult,
+            },
+            uid: 'uid',
         };
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
@@ -320,20 +283,32 @@ describe('useAction', () => {
                 <>
                     <span data-testid="result">{typeof a === 'string' ? a : JSON.stringify(a)}</span>
                     {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
-                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                    <button data-testid="update" onClick={() => update('input')} type="button">
                         update
                     </button>
                 </>
             );
         };
 
+        // store received message
+        let serverReceivedMessage: object = null;
+
         server.use(
             rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                return res(ctx.json(req.body));
+                serverReceivedMessage = req.body as object;
+                return res(
+                    ctx.json({
+                        execution_id: 'execution_uid',
+                    })
+                );
             })
         );
 
-        const { getByTestId } = wrappedRender(<MockComponent action={action} var={variable} />);
+        const { getByTestId } = render(
+            <Wrapper client={wsClient}>
+                <MockComponent action={annotated} var={variable} />
+            </Wrapper>
+        );
 
         await waitFor(() => expect(getByTestId('result').innerHTML).toBe('value'));
 
@@ -342,23 +317,48 @@ describe('useAction', () => {
             fireEvent.click(button);
         });
 
-        await waitFor(() => expect(getByTestId('result').innerHTML).not.toBe('value'));
+        await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
 
-        expect(JSON.parse(getByTestId('result').innerHTML)).toEqual({
-            extras: {
-                data: [
-                    { force: false, type: 'derived', uid: 'result', values: [{ __ref: 'Variable:b' }] },
-                    {
+        act(() => {
+            // get execution id from the received message
+            const executionId = serverReceivedMessage.execution_id;
+            wsClient.receiveMessage({
+                message: {
+                    action,
+                    uid: executionId,
+                },
+                type: 'message',
+            });
+            wsClient.receiveMessage({
+                message: {
+                    action: null,
+                    uid: executionId,
+                },
+                type: 'message',
+            });
+        });
+
+        await waitFor(() => expect(getByTestId('result').innerHTML).not.toBe('value'));
+        expect(getByTestId('result').innerHTML).toBe('updated');
+
+        expect(serverReceivedMessage).toMatchObject({
+            execution_id: expect.any(String),
+            input: 'input',
+            values: {
+                data: {
+                    var: { type: 'derived', uid: 'result', values: [{ __ref: 'Variable:b' }] },
+                    var2: {
                         filters: { column: 'col1', value: 'val1' },
-                        force: false,
+
                         type: 'derived-data',
                         uid: 'result2',
                         values: [{ __ref: 'Variable:b' }],
                     },
-                ],
-                lookup: { 'Variable:b': 2 },
+                },
+                lookup: {
+                    'Variable:b': 2,
+                },
             },
-            inputs: { new: 'updated', old: 'value' },
             ws_channel: 'uid',
         });
     });
@@ -373,15 +373,16 @@ describe('useAction', () => {
             uid: 'uid',
         };
 
-        const resetAction: ResetVariablesInstance = {
+        const resetAction: ResetVariablesImpl = {
+            __typename: 'ActionImpl',
             name: 'ResetVariables',
-            uid: 'uid',
             variables: [variable],
         };
 
-        const updateAction: UpdateVariableInstance = {
+        const updateAction: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
             name: 'UpdateVariable',
-            uid: 'uid',
+            value: 'updated',
             variable,
         };
 
@@ -408,13 +409,6 @@ describe('useAction', () => {
                 </>
             );
         };
-
-        server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                return res(ctx.json('updated'));
-            })
-        );
-
         const { getByTestId } = render(
             <MockComponent resetAction={resetAction} updateAction={updateAction} var={variable} />,
             { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }

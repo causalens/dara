@@ -1,8 +1,12 @@
 import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload } from '@darajs/ui-notifications';
+import { NotificationPayload, useNotifications } from '@darajs/ui-notifications';
 import { SortingRule } from '@darajs/ui-utils';
+import { type History, type Location } from 'history';
+
+import { CallbackInterface } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api/websocket';
+import { GlobalTaskContext } from '@/shared/context/global-task-context';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -264,8 +268,8 @@ export interface TemplateMarker {
 export interface RouteContent {
     content: ComponentInstance;
     name: string;
-    /** Variables to reset upon visiting the page */
-    reset_vars_on_load: Variable<any>[];
+    /** Action to execute upon visiting the page */
+    on_load: Action;
     route: string;
 }
 
@@ -302,76 +306,62 @@ export interface Condition<T> {
 }
 
 export interface ActionDef {
-    js_module?: string;
+    /**
+     * Action name
+     */
     name: string;
+    /**
+     * Name of the JS module containing the action implementation
+     */
+    js_module: string;
+    /**
+     * Name of the Python module containing the action implementation
+     */
     py_module: string;
 }
 
-export interface ActionInstance {
+export interface ActionImpl {
+    /**
+     * Name of the action implementation
+     */
     name: string;
-    uid: string;
+    /**
+     * Marker to indicate this is an action implementation
+     */
+    __typename: 'ActionImpl';
 }
 
-export interface ActionBodyContext {
-    extras?: NormalizedPayload<Record<string | number, any>>;
-    inputs?: Record<string, any>;
-}
-
-export interface SideEffectInstance extends ActionInstance {
-    block?: boolean;
-    extras?: Array<Variable<any>>;
-    name: 'SideEffect';
-}
-export interface NavigateToInstance extends ActionInstance {
-    extras?: Array<Variable<any>>;
-    name: 'NavigateTo';
-    new_tab: boolean;
-    url?: string;
-}
-
-export interface UpdateVariableInstance extends ActionInstance {
-    extras?: Array<Variable<any>>;
-    name: 'UpdateVariable';
+export interface UpdateVariableImpl extends ActionImpl {
     variable: Variable<any>;
+    value: any;
 }
 
-export interface TriggerVariableInstance extends ActionInstance {
+export interface TriggerVariableImpl extends ActionImpl {
+    variable: DerivedVariable;
     force: boolean;
-    name: 'TriggerVariable';
-    variable: DerivedVariable | DerivedDataVariable;
 }
 
-export interface ResetVariablesInstance extends ActionInstance {
-    name: 'ResetVariables';
-    variables: Variable<any>[];
+export interface NavigateToImpl extends ActionImpl {
+    url: string;
+    new_tab: boolean;
 }
 
-export interface DownloadVariableInstance extends ActionInstance {
-    file_name?: string;
-    name: 'DownloadVariable';
-    type?: 'csv' | 'xlsx' | 'json';
+export interface ResetVariablesImpl extends ActionImpl {
+    variables: Array<AnyVariable<any>>;
+}
+
+export interface DownloadVariableImpl extends ActionImpl {
     variable: AnyVariable<any>;
+    file_name?: string;
+    type: 'csv' | 'json' | 'xlsx';
 }
 
-export interface DownloadContentInstance extends ActionInstance {
-    extras?: Array<AnyVariable<any>>;
-    name: 'DownloadContent';
-}
-
-export type NotifyInstance = ActionInstance & NotificationPayload;
-
-export interface LogoutInstance extends ActionInstance {
-    name: 'Logout';
-}
+export type NotifyImpl = ActionImpl & NotificationPayload;
 
 /**
  * Object injected into actions
  */
-export interface ActionContext<T> {
-    /**
-     * Helper function to execute an action on the server
-     */
-    fetchAction: (uid: string, body: ActionBodyContext) => Promise<T>;
+export interface ActionContext extends CallbackInterface {
     /**
      * Current auth session token
      */
@@ -380,13 +370,51 @@ export interface ActionContext<T> {
      * Websocket Client instance
      */
     wsClient: WebSocketClientInterface;
+    /**
+     * History object
+     */
+    history: History;
+    /**
+     * Location object
+     */
+    location: Location;
+    /**
+     * Input value passed from the invoking component
+     */
+    input: any;
+    /**
+     * Task context
+     */
+    taskCtx: GlobalTaskContext;
+    /**
+     * Notification context
+     */
+    notificationCtx: ReturnType<typeof useNotifications>;
 }
 
 /**
- * Signature of an ActionHook
+ * Signature of an ActionHandler
  */
-export interface ActionHook<ActionReturnType, ActionInstanceType extends ActionInstance = ActionInstance> {
-    (action: ActionInstanceType, actionContext: ActionContext<ActionReturnType>): (value: any) => Promise<void>;
+export interface ActionHandler<ActionImplType extends ActionImpl = ActionImpl> {
+    (actionContext: ActionContext, action: ActionImplType): void | Promise<void>;
 }
 
-export type Action = ActionInstance | ActionInstance[];
+/**
+ * Serialized representation of an invoked @action-annotated function
+ */
+export interface AnnotatedAction {
+    /***
+     * Uid of the action instance - a specific usage of the annotated function
+     */
+    uid: string;
+    /**
+     * Uid of the action definition - a particular @action-annotated function
+     */
+    definition_uid: string;
+    /**
+     * Dynamic kwargs passed to the action
+     */
+    dynamic_kwargs: Record<string, any>;
+}
+
+export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;

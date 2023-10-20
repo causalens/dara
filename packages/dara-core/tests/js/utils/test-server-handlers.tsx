@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { rest } from 'msw';
 
-import { ActionBodyContext, ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
+import { ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
 
 const mockComponents: Record<string, JsComponent | PyComponent> = {
     ProgressTracker: {
@@ -112,9 +112,11 @@ const handlers = [
         );
     }),
     rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-        const context = req.body as ActionBodyContext;
-        const value = context?.inputs?.value;
-        return res(ctx.json(`res/${value as string}`));
+        return res(
+            ctx.json({
+                execution_id: 'uid',
+            })
+        );
     }),
     rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
         return res(

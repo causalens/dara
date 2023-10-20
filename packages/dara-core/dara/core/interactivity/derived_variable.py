@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from inspect import Parameter, isclass, signature
+from inspect import Parameter, signature
 from typing import (
     Any,
     Awaitable,
@@ -32,7 +32,7 @@ from typing import (
     Union,
 )
 
-from pydantic import BaseModel, validator
+from pydantic import validator
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (
@@ -44,11 +44,11 @@ from dara.core.base_definitions import (
     PendingTask,
     PendingValue,
 )
-from dara.core.interactivity.actions import TriggerVariable
+from dara.core.interactivity.actions import TriggerVariable, assert_no_context
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -185,6 +185,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         :param force: whether the recalculation should ignore any caching settings, defaults to True
         """
+        assert_no_context('ctx.trigger')
         return TriggerVariable(variable=self, force=force)
 
     @staticmethod
@@ -223,25 +224,14 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if len(var_arg_idx) == 0:
             for param, arg in zip(parameters, args):
                 typ = param.annotation
-                if not isinstance(arg, BaseTask):
-                # Only try to deserialize when the arg is not a task
-                    if typ is not None and typ in encoder_registry:
-                        parsed_args.append(encoder_registry[typ]['deserialize'](arg))
-                    elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
-                        parsed_args.append(typ(**arg))
-                    else:
-                        parsed_args.append(arg)
-                else:
-                    parsed_args.append(arg)
+                parsed_args.append(deserialize(arg, typ))
+
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest
         for param, arg in zip(parameters[: var_arg_idx[0]], args[: var_arg_idx[0]]):
             typ = param.annotation
-            if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
-                parsed_args.append(typ(**arg))
-                continue
-            parsed_args.append(arg)
+            parsed_args.append(deserialize(arg, typ))
 
         parsed_args.extend(args[var_arg_idx[0] :])
         return parsed_args

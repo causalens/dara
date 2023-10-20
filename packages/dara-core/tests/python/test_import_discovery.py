@@ -53,10 +53,10 @@ def test_discovers_module_with_variable():
         """\
 from dara.core import Variable
 from dara.core.definitions import ComponentInstance
-from dara.core.base_definitions import ActionInstance
+from dara.core.base_definitions import ActionImpl
 
 
-class CustomAction(ActionInstance):
+class CustomAction(ActionImpl):
     pass
 
 class CustomComponent(ComponentInstance):
@@ -93,9 +93,9 @@ def test_discovers_nested_components_and_actions():
         'tests.component_discovery.nested_module',
         """\
 from dara.core.definitions import ComponentInstance
-from dara.core.base_definitions import ActionInstance
+from dara.core.base_definitions import ActionImpl
 
-class NestedAction(ActionInstance):
+class NestedAction(ActionImpl):
     pass
 
 class NestedComponent(ComponentInstance):
@@ -107,11 +107,11 @@ class NestedComponent(ComponentInstance):
         'tests.component_discovery.module',
         """\
 from dara.core.definitions import ComponentInstance
-from dara.core.base_definitions import ActionInstance
+from dara.core.base_definitions import ActionImpl
 
 from tests.component_discovery.nested_module import NestedComponent, NestedAction
 
-class CustomAction(ActionInstance):
+class CustomAction(ActionImpl):
     pass
 
 class CustomComponent(ComponentInstance):

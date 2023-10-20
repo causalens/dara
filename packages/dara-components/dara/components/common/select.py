@@ -163,7 +163,7 @@ def _parse_item(item: Any, return_listsection: bool = False):
             items = item.get('items')
             if not isinstance(items, list):
                 raise ValueError(f"Dictionary 'items' value for SectionedList must be a list, got {items}")
-            return ListSection(label=item.get('label'), items=_parse_item(items))
+            return ListSection(label=str(item.get('label')), items=_parse_item(items))
         return Item.to_item(item)
     if isinstance(item, ListSection):
         return item

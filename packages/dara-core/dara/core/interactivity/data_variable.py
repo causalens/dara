@@ -17,10 +17,8 @@ limitations under the License.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Optional, Union
 
-from anyio import from_thread
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -39,6 +37,7 @@ from dara.core.interactivity.filtering import (
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
@@ -114,19 +113,7 @@ class DataVariable(AnyDataVariable):
             from dara.core.internal.registries import utils_registry
 
             store: CacheStore = utils_registry.get('Store')
-
-            try:
-                asyncio.get_running_loop()
-                # There's a running loop, just spawn the task directly in the loop
-                asyncio.create_task(self._update(var_entry, store, data))
-            except RuntimeError:
-                try:
-                    # We might be in an anyio worker thread without an event loop, so try using the from_thread.run API
-                    from_thread.run(self._update, var_entry, store, data)
-                except RuntimeError:
-                    # Fallback - we're in an external thread without an event loop, so we need to use a blocking portal
-                    with from_thread.start_blocking_portal() as portal:
-                        portal.call(self._update, var_entry, store, data)
+            call_async(self._update, var_entry, store, data)
 
     @staticmethod
     def _get_cache_key(uid: str) -> str:
@@ -244,6 +231,31 @@ class DataVariable(AnyDataVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
+
+    def reset(self):
+        raise NotImplementedError('DataVariable cannot be reset')
+
+    def update(self, value: Optional[DataFrame]):
+        """
+        Create an action to update the value of this Variable to a provided value.
+
+        ```python
+        import pandas as pd
+        from dara.core import DataVariable
+        from dara.components import Button
+
+        data = DataVariable(pd.DataFrame({'a': [1, 2, 3]}))
+
+        Button(
+            'Empty Data',
+            onclick=data.update(None),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import UpdateVariableImpl
+
+        return UpdateVariableImpl(variable=self, value=value)
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)

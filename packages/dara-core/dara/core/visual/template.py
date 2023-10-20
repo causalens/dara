@@ -17,8 +17,8 @@ limitations under the License.
 
 from typing import List, Optional
 
+from dara.core.base_definitions import Action
 from dara.core.definitions import (
-    AnyVariable,
     ComponentInstance,
     Page,
     Template,
@@ -44,7 +44,7 @@ class TemplateRouter:
         content: ComponentInstance,
         icon: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
-        reset_vars_on_load: Optional[List[AnyVariable]] = [],
+        on_load: Optional[Action] = None,
     ):
         """
         Add a single route to the router.
@@ -61,7 +61,7 @@ class TemplateRouter:
             content=content,
             icon=icon,
             include_in_menu=include_in_menu,
-            reset_vars_on_load=reset_vars_on_load,
+            on_load=on_load,
         )
         self._routes.append(template_route)
         return template_route
@@ -83,9 +83,7 @@ class TemplateRouter:
         Return the router as a set of content pages for the UI to consume
         """
         return [
-            TemplateRouterContent(
-                route=r.route, content=r.content, reset_vars_on_load=r.reset_vars_on_load, name=r.name
-            )
+            TemplateRouterContent(route=r.route, content=r.content, on_load=r.on_load, name=r.name)
             for r in self._routes
         ]
 
@@ -107,7 +105,7 @@ class TemplateRouter:
                 route=route,
                 content=content,
                 include_in_menu=page.include_in_menu,
-                reset_vars_on_load=page.reset_vars_on_load,
+                on_load=page.on_load,
             )
         return router
 

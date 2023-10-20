@@ -18,16 +18,18 @@ limitations under the License.
 from __future__ import annotations
 
 from dara.core.interactivity.actions import (
-    ActionContext,
-    ActionInputs,
     DownloadContent,
+    DownloadContentImpl,
     DownloadVariable,
     NavigateTo,
+    NavigateToImpl,
     Notify,
     ResetVariables,
     SideEffect,
     TriggerVariable,
     UpdateVariable,
+    UpdateVariableImpl,
+    action,
 )
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable
@@ -49,20 +51,16 @@ refs = {
     'UrlVariable': UrlVariable,
 }
 DownloadVariable.update_forward_refs(**refs)
-DownloadContent.update_forward_refs(**refs)
-NavigateTo.update_forward_refs(**refs)
 ResetVariables.update_forward_refs(**refs)
-SideEffect.update_forward_refs(**refs)
 TriggerVariable.update_forward_refs(**refs)
 UpdateVariable.update_forward_refs(**refs)
+UpdateVariableImpl.update_forward_refs(**refs)
 Condition.update_forward_refs(**refs)
-ActionContext.update_forward_refs(**refs)
 Notify.update_forward_refs(**refs)
 
 
 __all__ = [
-    'ActionContext',
-    'ActionInputs',
+    'action',
     'AnyVariable',
     'AnyDataVariable',
     'DataVariable',
@@ -73,12 +71,14 @@ __all__ = [
     'UrlVariable',
     'DownloadVariable',
     'DownloadContent',
+    'DownloadContentImpl',
     'NavigateTo',
+    'NavigateToImpl',
     'Notify',
     'ResetVariables',
-    'SideEffect',
     'TriggerVariable',
     'UpdateVariable',
+    'SideEffect',
     'Condition',
     'Operator',
 ]

@@ -37,7 +37,7 @@ def set_memory_limit():
     Set memory limit for Python to limits defined in the cgroup.
     Works with both cgroupv1 and cgroupv2.
     """
-    if sys.platform == "win32":
+    if sys.platform == 'win32':
         dev_logger.warning('Memory limit is not supported on Windows platforms')
         return
 

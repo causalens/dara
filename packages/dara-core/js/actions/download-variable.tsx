@@ -1,22 +1,8 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
-import { useCallback } from 'react';
 
-import { useNotifications } from '@darajs/ui-notifications';
-import { Status } from '@darajs/ui-utils';
-
-import { useVariableValue } from '@/shared/interactivity';
-import { ActionHook, DownloadVariableInstance } from '@/types/core';
-
-function isPromise(p: any): p is Promise<any> {
-    if (typeof p === 'object' && typeof p.then === 'function') {
-        return true;
-    }
-    return false;
-}
+import { getVariableValue } from '@/shared/interactivity/use-variable-value';
+import { ActionHandler, DownloadVariableImpl } from '@/types/core';
 
 const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
     const headings: string[] = [];
@@ -133,53 +119,44 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
 
 /**
  * Frontend handler for DownloadVariable action
- * Retrieves the variable value and downloads the variable as either a csv or xl file
+ * Retrieves the variable value and downloads the variable as either a csv, json or xl file
  */
-const DownloadVariable: ActionHook<any, DownloadVariableInstance> = (action) => {
-    const valResolver = useVariableValue(action.variable, true);
-    const { pushNotification } = useNotifications();
+const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
+    let value = getVariableValue(actionImpl.variable, true, {
+        client: ctx.wsClient,
+        search: ctx.location.search,
+        snapshot: ctx.snapshot,
+        taskContext: ctx.taskCtx,
+        token: ctx.sessionToken,
+    });
 
-    return useCallback(async (): Promise<void> => {
-        const valOrPromise = valResolver();
-        const val = isPromise(valOrPromise) ? await valOrPromise : valOrPromise;
+    if (value instanceof Promise) {
+        value = await value;
+    }
 
-        // strip the __index__ column from data vars
-        if (action.variable.__typename === 'DataVariable' || action.variable.__typename === 'DerivedDataVariable') {
-            for (const row of val) {
-                if ('__index__' in row) {
-                    delete row.__index__;
-                }
+    // strip the __index__ column from data vars
+    if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
+        for (const row of value) {
+            if ('__index__' in row) {
+                delete row.__index__;
             }
         }
+    }
 
-        const fileName = action.file_name || 'Data';
-        const fileNameWithExt = `${fileName}.${action.type}`;
-
-        if (action.type === 'json') {
-            const blob = createJsonBlob(val);
-            saveAs(blob, fileNameWithExt);
-            return Promise.resolve();
-        }
-
-        const matrix = createMatrixFromValue(val);
-
-        if (!matrix) {
-            pushNotification({
-                key: action.uid,
-                message: 'Try again or contact the application owner',
-                status: Status.ERROR,
-                title: 'Error downloading file',
-            });
-            return Promise.resolve();
-        }
-
-        const notExcel = !action.type || action.type !== 'xlsx';
-        const blob = notExcel ? createCsvFromMatrix(matrix) : await createXLFromMatrix(fileName, matrix);
-
+    const fileName = actionImpl.file_name || 'Data';
+    const fileNameWithExt = `${fileName}.${actionImpl.type}`;
+    if (actionImpl.type === 'json') {
+        const blob = createJsonBlob(value);
         saveAs(blob, fileNameWithExt);
-
         return Promise.resolve();
-    }, [action]);
+    }
+    const matrix = createMatrixFromValue(value);
+    if (!matrix) {
+        throw new Error('Unable to create matrix from value');
+    }
+    const notExcel = !actionImpl.type || actionImpl.type !== 'xlsx';
+    const blob = notExcel ? createCsvFromMatrix(matrix) : await createXLFromMatrix(fileName, matrix);
+    saveAs(blob, fileNameWithExt);
 };
 
 export default DownloadVariable;
