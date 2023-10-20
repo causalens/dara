@@ -139,7 +139,7 @@ def deserialize(value: Any, typ: Optional[Type]):
     if type(value) == typ:
         return value
 
-    # Handle Optional[foo] -> call deserialize(value, foo)
+    # Handle Optional[foo] / Union[foo, None] -> call deserialize(value, foo)
     if get_origin(typ) == Union:
         args = get_args(typ)
         if len(args) == 2 and type(None) in args:
