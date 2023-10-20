@@ -1,5 +1,6 @@
 from inspect import Parameter
 import json
+from typing import Optional, Union
 from dara.core.base_definitions import PendingTask
 from dara.core.internal.tasks import Task
 
@@ -111,3 +112,11 @@ def test_deserialize_error_falls_back_to_value():
     # Test that if deserialize errors, the value is returned raw instead
     assert deserialize('foo', int) == 'foo'
 
+
+def test_deserialize_complex_type():
+    """Complex types e.g. unions work, they are simply ignored"""
+    typ = Union[str, int]
+    assert deserialize('foo', typ) == 'foo'
+
+    assert deserialize(None, Optional[str]) == None
+    assert deserialize('foo', Optional[str]) == 'foo'
