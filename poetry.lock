@@ -538,7 +538,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.3.2"
+version = "1.4.0"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -633,7 +633,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.3.2"
+version = "1.4.0"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -644,7 +644,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.3.2"
+dara-core = "=1.4.0"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -658,7 +658,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.3.2"
+version = "1.4.0"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -697,7 +697,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.3.2)"]
+all = ["dara-components (==1.4.0)"]
 
 [package.source]
 type = "directory"
@@ -901,14 +901,14 @@ python-dateutil = ">=2.7"
 
 [[package]]
 name = "gitdb"
-version = "4.0.10"
+version = "4.0.11"
 description = "Git Object Database"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "gitdb-4.0.10-py3-none-any.whl", hash = "sha256:c286cf298426064079ed96a9e4a9d39e7f3e9bf15ba60701e95f5492f28415c7"},
-    {file = "gitdb-4.0.10.tar.gz", hash = "sha256:6eb990b69df4e15bad899ea868dc46572c3f75339735663b81de79b06f17eb9a"},
+    {file = "gitdb-4.0.11-py3-none-any.whl", hash = "sha256:81a3407ddd2ee8df444cbacea00e2d038e40150acfa3001696fe0dcf1d3adfa4"},
+    {file = "gitdb-4.0.11.tar.gz", hash = "sha256:bf5421126136d6d0af55bc1e7c1af1c397a34f5b7bd79e776cd3e89785c2b04b"},
 ]
 
 [package.dependencies]
@@ -2979,4 +2979,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "e8597f0531904b9555b4001c6b3ac0d4227ed12332307e80c1c8dab8bbbe3764"
+content-hash = "ef7483519e0b9ecaa72283a691f459001d5ff98dbafad168dd2366a5f5923180"
