@@ -149,6 +149,7 @@ It injects an `ActionCtx` object as the first argument of the function, which co
 :::note
 
 The action methods on `ActionCtx` are `async` and must be `await`-ed, so your decorated function should be `async` as well.
+To learn more about `async` and `await` in Python, check out [this blogpost](https://realpython.com/async-io-python/).
 
 :::
 
@@ -180,9 +181,9 @@ The `@action`-decorated function can take a mixture of regular Python variables 
 
 The `dara.components.common.button.Select` component has an `onchange` parameter which accepts an action. A valid argument to an action parameter is one of the following three options:
 
-- an instance of an `@action`-decorated function (as in the example above)
-- an instance of an individual static action object
-- a list of a combination of the above two options
+- An instance of an `@action`-decorated function (as in the example above).
+- An instance of an individual static action object.
+- A list of a combination of the above two options.
 
 :::warning
 

@@ -6,9 +6,9 @@ Actions are a way to add interactivity to your Dara app in response to some user
 
 A valid argument to an action parameter is one of the following three options:
 
-- an instance of an `@action`-decorated function (as in the example above)
-- an instance of an individual static action object
-- a list of a combination of the above two options
+- An instance of an `@action`-decorated function (as in the example above).
+- An instance of an individual static action object.
+- A list of a combination of the above two options.
 
 In this section you will learn all the different ways to create actions and how to use them.
 
@@ -20,6 +20,7 @@ It injects an `ActionCtx` object as the first argument of the function, which co
 :::note
 
 The action methods on `ActionCtx` are `async` and must be `await`-ed, so your decorated function should be `async` as well.
+To learn more about `async` and `await` in Python, check out [this blogpost](https://realpython.com/async-io-python/).
 
 :::
 
@@ -610,9 +611,9 @@ See the [Deprecated action API](#deprecated-action-api) section for more details
 
 As mentioned above, an action can be one of the following:
 
-- an instance of an `@action`-decorated function
-- an instance of an individual static action object
-- a list of a combination of the above two options
+- An instance of an `@action`-decorated function.
+- An instance of an individual static action object.
+- A list of a combination of the above two options.
 
 This means that one way you can compose actions by passing a list of actions to a component's callback. The actions will be executed in the order they are passed to the callback.
 
