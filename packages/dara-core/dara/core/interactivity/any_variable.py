@@ -313,7 +313,7 @@ class AnyVariable(BaseModel, abc.ABC):
 
         Button(
             'Reset',
-            onclick=var.reset(),
+            onclick=counter.reset(),
         )
 
         ```

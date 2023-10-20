@@ -122,10 +122,13 @@ def deserialize(value: Any, typ: Optional[Type]):
     if isinstance(value, BaseTask):
         return value
 
-    if typ is not None and typ in encoder_registry:
+    if typ is None:
+        return value
+
+    if typ in encoder_registry:
         return encoder_registry[typ]['deserialize'](value)
 
-    if typ is not None and isclass(typ) and issubclass(typ, BaseModel) and value is not None:
+    if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
         return typ(**value)
 
     return value

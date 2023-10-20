@@ -99,11 +99,13 @@ class Variable(NonDataVariable, Generic[VariableType]):
         from dara.components import Select
 
         var = Variable('first')
+        another_var = Variable()
 
         Select(
             value=var,
             items=['first', 'second', 'third'],
-            onchange=var.sync(),
+            # syncing value to `another_var` in addition to `var`
+            onchange=another_var.sync(),
         )
 
         ```
@@ -114,7 +116,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=UpdateVariableImpl.INPUT)
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
 
     def toggle(self):
         """
@@ -140,7 +142,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=UpdateVariableImpl.TOGGLE)
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
 
     def update(self, value: Any):
         """

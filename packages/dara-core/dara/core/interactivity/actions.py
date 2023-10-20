@@ -298,7 +298,6 @@ class TriggerVariable(ActionImpl):
     ```python
 
     from dara.core import action, ConfigurationBuilder, Variable, DerivedVariable, TriggerVariable
-    from dara.core.configuration import ConfigurationBuilder
     from dara.components import Stack, Button, Text
 
     config = ConfigurationBuilder()

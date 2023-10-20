@@ -1,4 +1,10 @@
 from dara.core.base_definitions import ActionImpl
+from dara.core.interactivity.actions import ResetVariables, TriggerVariable, UpdateVariableImpl
+from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.derived_variable import DerivedVariable
+from pandas import DataFrame
 import pytest
 
 from dara.core import (
@@ -83,3 +89,71 @@ def test_download_content():
 
     action = DownloadContent(test_func, extras=[var_a])
     assert action_registry.has(action.definition_uid)
+
+def test_reset_shortcut():
+    var = AnyVariable()
+    action = var.reset()
+    assert isinstance(action, ResetVariables)
+    assert action.variables == [var]
+
+    data_vara  = DataVariable()
+    with pytest.raises(NotImplementedError):
+        data_vara.reset()
+
+def test_sync_shortcut():
+    plain_var = Variable()
+    action = plain_var.sync()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == UpdateVariableImpl.INPUT
+
+    url_var = UrlVariable(query='test')
+    action = url_var.sync()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == UpdateVariableImpl.INPUT
+
+def test_toggle_shortcut():
+    plain_var = Variable()
+    action = plain_var.toggle()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == UpdateVariableImpl.TOGGLE
+
+    url_var = UrlVariable(query='test')
+    action = url_var.toggle()
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == UpdateVariableImpl.TOGGLE
+
+def test_update_shortcut():
+    plain_var = Variable()
+    action = plain_var.update('test')
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == plain_var
+    assert action.value == 'test'
+
+    url_var = UrlVariable(query='test')
+    action = url_var.update('test')
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == url_var
+    assert action.value == 'test'
+
+    data_var = DataVariable()
+    data = DataFrame()
+    action = data_var.update(data)
+    assert isinstance(action, UpdateVariableImpl)
+    assert action.variable == data_var
+    assert isinstance(action.value, DataFrame)
+    assert action.value.equals(data)
+
+def test_trigger_shortcut():
+    der_var = DerivedVariable(lambda x: x, variables=[])
+    action = der_var.trigger()
+    assert isinstance(action, TriggerVariable)
+    assert action.variable == der_var
+
+    der_data_var = DerivedDataVariable(lambda x: x, variables=[])
+    action = der_data_var.trigger()
+    assert isinstance(action, TriggerVariable)
+    assert action.variable == der_data_var

@@ -61,11 +61,12 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         from dara.components import Select
 
         var = UrlVariable('first', query='num')
+        another_var = UrlVariable('second', query='num_two')
 
         Select(
             value=var,
             items=['first', 'second', 'third'],
-            onchange=var.sync(),
+            onchange=another_var.sync(),
         )
 
         ```
@@ -76,7 +77,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=UpdateVariableImpl.INPUT)
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
 
     def toggle(self):
         """
@@ -102,7 +103,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         )
 
         assert_no_context('ctx.update')
-        return UpdateVariableImpl(target=self, value=UpdateVariableImpl.TOGGLE)
+        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
 
     def update(self, value: Any):
         """
