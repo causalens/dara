@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## Next
+## 1.4.0
 
 -   Added support for displaying a `value` in `Select` that may not be part of the `items` list.
 
@@ -30,7 +30,7 @@ title: Changelog
 
 ## 1.1.10
 
--   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.  
+-   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.
 
 ## 1.1.9
 
@@ -38,10 +38,12 @@ title: Changelog
 -   Fixed an issue where `Datepicker` in controlled mode would sometimes end up in an infinite loop.
 -   Fixed an issue where `Datepicker` if range was given did not show end year in the select.
 -   Fixed an issue where `Table` column resizing would not affect cell width.
+
 ## 1.1.8
 
 -   Fixed an issue where `Table` did not return the correct index row when sorted
--   Fixed an issue where `Table` selection was not persistent. This can now be achieved by passing a `Variable` to `selected_indices` with the `persist_value=True` flag 
+-   Fixed an issue where `Table` selection was not persistent. This can now be achieved by passing a `Variable` to `selected_indices` with the `persist_value=True` flag
+
 ## 1.1.7
 
 -   Internal: store upload resolvers in a separate registry

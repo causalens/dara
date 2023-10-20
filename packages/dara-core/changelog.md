@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.0
 
 -   Implement new action API in the form of the `@action` decorator. This decorator takes a function and returns an action that can be passed to a component's callback. It injects an `ActionCtx` object (aliased as `action.Ctx`) as the first argument of the function, which contains the input sent from the component and exposes action methods. This allows for full control over the action's behaviour, including the ability to conditionally execute specific actions with control flow, error handling etc. See the updated `actions` documentation page for more details on the new API and migration guide for the existing APIs.
 

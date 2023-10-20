@@ -169,6 +169,7 @@ def create_router(config: Configuration):
 
             file_name = os.path.basename(data_entry.file_path)
 
+            # This mirrors builtin's FastAPI FileResponse implementation
             async def stream_file():
                 has_content = True
                 chunk_size = 64 * 1024
