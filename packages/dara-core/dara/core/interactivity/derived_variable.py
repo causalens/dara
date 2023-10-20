@@ -211,6 +211,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
     @staticmethod
     def _restore_pydantic_models(func: Callable[..., Any], *args):
+        """
+        Restore argument types based on their annotations.
+
+        :param func: the function to restore the arguments for
+        :param args: the arguments to restore
+        """
         parsed_args = []
         parameters = list(signature(func).parameters.values())
         # Scan the list for any var arg or kwarg arguments

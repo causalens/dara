@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-from inspect import isclass
+from inspect import Parameter, isclass
 from typing import Any, Callable, MutableMapping, Optional, Type
 
 import numpy
@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask
+from dara.core.logging import dev_logger
 
 
 class Encoder(TypedDict):
@@ -64,6 +65,9 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
+    int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
+    float: Encoder(serialize=lambda x: x, deserialize=lambda x: float(x)),
+    str: Encoder(serialize=lambda x: x, deserialize=lambda x: str(x)),
     numpy.ndarray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: numpy.array(x)),
     numpy.int8: _get_numpy_dtypes_encoder(numpy.int8),
     numpy.int16: _get_numpy_dtypes_encoder(numpy.int16),
@@ -119,16 +123,32 @@ def deserialize(value: Any, typ: Optional[Type]):
     :param value: the value to deserialize
     :param typ: the type to deserialize into
     """
+    # This funtion is commonly used to deserialize parameters, which can be empty rather than None
+    if typ == Parameter.empty:
+        return value
+
+    # Tasks cannot be deserialized
     if isinstance(value, BaseTask):
         return value
 
+    # No annotation provided
     if typ is None:
         return value
 
-    if typ in encoder_registry:
-        return encoder_registry[typ]['deserialize'](value)
+    # Already matches type
+    if type(value) == typ:
+        return value
 
-    if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
-        return typ(**value)
+    try:
+        # Explicit encoder found
+        if typ in encoder_registry:
+            return encoder_registry[typ]['deserialize'](value)
 
+        # Generic handling for pydantic models
+        if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
+            return typ(**value)
+    except Exception as e:
+        dev_logger.error(f'Failed to deserialize value {value} into type {typ}', e)
+
+    # Fall back to returning the value
     return value

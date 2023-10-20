@@ -1,16 +1,21 @@
+from inspect import Parameter
 import json
+from dara.core.base_definitions import PendingTask
+from dara.core.internal.tasks import Task
 
 import numpy
 import pandas
+from pydantic import BaseModel
 import pytest
 from pandas.core.arrays.base import ExtensionArray
 
-from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.encoder_registry import deserialize, encoder_registry
 
 dates = pandas.date_range(start='2021-01-01', end='2021-01-02', freq='D')
 timestamp = pandas.Timestamp('2023-10-04')
 df_with_datetime_index = pandas.DataFrame({'col1': [1.0, numpy.nan], 'col2': [timestamp, timestamp]}, index=dates)
 
+pytestmark = pytest.mark.anyio
 
 @pytest.mark.parametrize(
     'type_, value, raise_',
@@ -71,3 +76,38 @@ def test_serialization_deserialization(type_, value, raise_):
         assert numpy.array_equal(value, deserialized)
     else:
         assert numpy.array_equal(value, deserialized) or value == deserialized
+
+def test_deserialize_empty_param():
+    assert deserialize('foo', Parameter.empty) == 'foo'
+
+# Must be async so async runtime is initialized
+async def test_deserialize_task():
+    task = PendingTask(None, None)
+    assert deserialize(task, str) == task
+
+def test_deserialize_no_type():
+    assert deserialize('foo', None) == 'foo'
+
+def test_deserialize_same_type():
+    assert deserialize('foo', str) == 'foo'
+    assert deserialize(1, int) == 1
+    assert deserialize(1.0, float) == 1.0
+
+    # Class instance
+    class Foo:
+        pass
+
+    foo = Foo()
+    assert deserialize(foo, Foo) == foo
+
+    # Pydantic base model
+    class Bar(BaseModel):
+        value: str
+
+    bar = Bar(value='foo')
+    assert deserialize(bar, Bar) == bar
+
+def test_deserialize_error_falls_back_to_value():
+    # Test that if deserialize errors, the value is returned raw instead
+    assert deserialize('foo', int) == 'foo'
+
