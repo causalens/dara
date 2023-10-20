@@ -155,7 +155,7 @@ def deserialize(value: Any, typ: Optional[Type]):
         if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
             return typ(**value)
     except Exception as e:
-        dev_logger.error(f'Failed to deserialize value {value} into type {typ}', e)
+        dev_logger.error(f'Failed to deserialize value {value} into expected type {typ}. Consider defining a custom deserializer for the type using the `config.add_encoder` API', e)
 
     # Fall back to returning the value
     return value
