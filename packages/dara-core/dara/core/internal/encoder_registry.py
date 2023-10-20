@@ -16,7 +16,7 @@ limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
 from inspect import Parameter, isclass
-from typing import Any, Callable, MutableMapping, Optional, Type
+from typing import Union, get_args, get_origin, Any, Callable, MutableMapping, Optional, Type
 
 import numpy
 import pandas
@@ -131,13 +131,20 @@ def deserialize(value: Any, typ: Optional[Type]):
     if isinstance(value, BaseTask):
         return value
 
-    # No annotation provided
-    if typ is None:
+    # No annotation provided or none value
+    if typ is None or value is None:
         return value
 
     # Already matches type
     if type(value) == typ:
         return value
+
+    # Handle Optional[foo] -> call deserialize(value, foo)
+    if get_origin(typ) == Union:
+        args = get_args(typ)
+        if len(args) == 2 and type(None) in args:
+            not_none_arg = args[0] if args[0] != type(None) else args[1]
+            return deserialize(value, not_none_arg)
 
     try:
         # Explicit encoder found

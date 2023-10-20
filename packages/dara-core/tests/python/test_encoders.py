@@ -113,10 +113,14 @@ def test_deserialize_error_falls_back_to_value():
     assert deserialize('foo', int) == 'foo'
 
 
-def test_deserialize_complex_type():
-    """Complex types e.g. unions work, they are simply ignored"""
+def test_deserialize_UNION_type():
+    """Unions are not supported"""
     typ = Union[str, int]
     assert deserialize('foo', typ) == 'foo'
 
-    assert deserialize(None, Optional[str]) == None
-    assert deserialize('foo', Optional[str]) == 'foo'
+def test_deserialize_optional():
+    assert deserialize(None, Optional[int]) == None
+    assert deserialize('123', Optional[int]) == 123
+    assert deserialize('123', Union[int, None]) == 123
+    assert deserialize('123', Union[None, int]) == 123
+
