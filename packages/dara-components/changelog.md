@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   **Backported:** Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show
+
 ## 1.2.3
 
 -   Fixed an issue where `Table` would always overflow

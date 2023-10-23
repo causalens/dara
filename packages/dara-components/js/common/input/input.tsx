@@ -59,8 +59,13 @@ function Input(props: InputProps): JSX.Element {
         debouncedSetValue.cancel();
         debouncedUpdateForm.cancel();
 
+        // If value has been coerced to string convert it back to number for NumericInput
+        let newValue = value;
+        if (props.type === 'number') {
+            newValue = Number.isNaN(Number(newValue)) ? null : Number(newValue);
+        }
         // Sync the internal value with the variable value when the variable value changes
-        setInternalValue(value);
+        setInternalValue(newValue);
     }, [value]);
 
     if (props.type === 'number') {
