@@ -26,7 +26,6 @@ from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask
-from dara.core.logging import dev_logger
 
 
 class Encoder(TypedDict):
@@ -123,7 +122,7 @@ def deserialize(value: Any, typ: Optional[Type]):
     :param value: the value to deserialize
     :param typ: the type to deserialize into
     """
-    # This funtion is commonly used to deserialize parameters, which can be empty rather than None
+    # This funtion is commonly used to deserialize parameters, which can be Parameter.empty rather than None
     if typ == Parameter.empty:
         return value
 
