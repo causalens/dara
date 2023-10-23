@@ -266,6 +266,59 @@ async def test_derived_variables():
         assert response.json() == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
         assert mock_func.call_count == 2
 
+async def test_derived_variables_with_df_nan():
+    """
+    Check that the py_component decorator returns a PyComponentDef when DerivedVariables are passed in and that it
+    processes DerivedVariables correctly when passed back in
+    """
+    import pandas
+    import numpy
+
+    builder = ConfigurationBuilder()
+
+    var = Variable()
+
+    # Test DerivedVariable can handle df with nan correctly
+    def func(var:pandas.DataFrame|None):
+        return pandas.DataFrame({'a':[1,2,numpy.nan]})
+
+    derived = DerivedVariable(func, variables=[var])
+
+    @py_component
+    def TestBasicComp(input_val: pandas.DataFrame):
+        return MockComponent(text=input_val.to_string())
+
+    builder.add_page('Test', content=TestBasicComp(derived))
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+
+        response, status = await _get_template(client)
+
+        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
+        assert 'input_val' in component.get('props').get('dynamic_kwargs')
+
+        # Check that the component can be fetched via the api, with input_val passed in the body
+        response = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': derived},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {'type': 'derived', 'uid': str(derived.uid), 'values': pandas.DataFrame({'a':[1,2,numpy.nan]})},
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {'name': 'MockComponent', 'props': {'text': '     a\n0  1.0\n1  2.0\n2  NaN'}, 'uid': 'uid'}
 
 async def test_mixed_inputs():
     """
