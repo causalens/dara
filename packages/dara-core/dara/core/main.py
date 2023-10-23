@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import asyncio
 import os
 import sys
@@ -42,6 +41,7 @@ from dara.core.defaults import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
+from dara.core.internal.custom_response import CustomResponse
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.pool import TaskPool
@@ -182,7 +182,10 @@ def _start_application(config: Configuration):
                 eng_logger.debug('Task pool shut down')
 
     app = FastAPI(
-        lifespan=lifespan, docs_url=None if is_production else '/docs', redoc_url=None if is_production else '/redoc'
+        lifespan=lifespan,
+        docs_url=None if is_production else '/docs',
+        redoc_url=None if is_production else '/redoc',
+        default_response_class=CustomResponse,
     )
 
     # Define catch-all mechanisms
