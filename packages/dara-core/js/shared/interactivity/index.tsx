@@ -1,6 +1,6 @@
 export { useVariable } from './use-variable';
 export { useAnyVariable } from './use-any-variable';
-export { getVariableValue } from './use-variable-value';
+export { default as useVariableValue, getVariableValue } from './use-variable-value';
 export { resolveValue } from './resolve-value';
 export { TriggerIndexValue, getAtom } from './store';
 export { useDataVariable } from './use-data-variable';
