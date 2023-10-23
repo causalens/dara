@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.1
 
 -   Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show.
 
