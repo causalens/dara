@@ -46,7 +46,7 @@ from dara.core.interactivity import (
     Variable,
 )
 from dara.core.internal.dependency_resolution import resolve_dependency
-from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.encoder_registry import deserialize, encoder_registry
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
@@ -250,17 +250,10 @@ async def render_component(
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}
         async for key, value in _resolve_values_to_iter(values, store, task_mgr):
-            # If the expected type of the Variable being passed back is an instance of BaseModel then convert the
-            # returned dict back into an instance of the BaseModel class
             val = value
-            if not isinstance(val, BaseTask):
-                # Only try to deserialize when the arg is not a task
-                typ = annotations.get(key)
-                if typ is not None and typ in encoder_registry:
-                    val = encoder_registry[typ]['deserialize'](val)
-                elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and isinstance(value, dict):
-                    val = typ(**value)
-            resolved_dyn_kwargs[key] = val
+            typ = annotations.get(key)
+
+            resolved_dyn_kwargs[key] = deserialize(val, typ)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}

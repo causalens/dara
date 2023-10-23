@@ -400,6 +400,49 @@ async def test_base_model_args_are_restored():
         assert response.status_code == 200
         assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
 
+async def test_base_model_not_restored_when_already_instance():
+    """Test that when a type is expected by a PyComponent handler that an already instantiated instance is not restored"""
+    builder = ConfigurationBuilder()
+
+    class InputClass(BaseModel):
+        val: str
+
+    @py_component
+    def TestBasicComp(input_val: InputClass):
+        return MockComponent(text=input_val.val)
+
+    var = Variable('foo')
+    dv = DerivedVariable(lambda x: InputClass(val=x), variables=[var])
+    builder.add_page('Test', content=TestBasicComp(dv))
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+
+        # Get the components ID from the template
+        response, status = await _get_template(client)
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+
+        # Check that the component can be fetched via the api, with input dict passed in the body
+        response = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': dv},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'derived',
+                        'uid': str(dv.uid),
+                        'values': ['foo']
+                    }
+                },
+                'ws_channel': 'test_channel'
+            },
+        )
+        assert response.status_code == 200
+        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'foo'}, 'uid': 'uid'}
 
 async def test_compatibility_with_polling():
     """Test that a py_component with polling gets passed the param correctly"""
