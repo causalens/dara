@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import anyio
 from exceptiongroup import BaseExceptionGroup
 import jwt
+from pydantic import BaseModel
 import pytest
 from anyio import create_task_group
 from anyio.abc import TaskStatus
@@ -238,6 +239,57 @@ async def test_fetching_async_derived_variable():
         assert response.status_code == 200
         assert response.json()['value'] == 15
 
+async def test_restoring_args_derived_variable():
+    """Test that when a DerivedVariable is expecting a given type of an arg, the serialized value is restored to that type"""
+    builder = ConfigurationBuilder()
+
+    class CustomClass:
+        value: int
+
+        def __init__(self, value: int):
+            self.value = value
+
+    def serialize(value: CustomClass):
+        return value.value
+
+    def deserialize(value: Union[int, str]):
+        return CustomClass(int(value))
+
+    mock_deserialize = Mock(wraps=deserialize, side_effect=deserialize)
+    mock_serialize = Mock(wraps=serialize, side_effect=serialize)
+
+    builder.add_encoder(typ=CustomClass, serialize=mock_serialize, deserialize=mock_deserialize)
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Define a mock function that can be spied on so we can check the caching system
+    def calc(a: CustomClass, b: int):
+        assert isinstance(a, CustomClass)
+        assert isinstance(b, int)
+        return CustomClass(a.value + b)
+
+    derived = DerivedVariable(calc, variables=[var1, var2])
+
+    builder.add_page('Test', content=MockComponent(text=derived))
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+
+        response = await _get_derived_variable(
+            client, derived, {'values': ['5', '10'], 'ws_channel': 'test_channel', 'force': False}
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 15
+
+        assert mock_deserialize.call_count == 1
+        assert mock_deserialize.call_args[0][0] == '5'
+
+        assert mock_serialize.call_count == 1
 
 async def test_chained_derived_variable():
     """Test that derived variables can be chained"""
@@ -1525,6 +1577,52 @@ async def test_calling_annotated_action():
 
             assert actions[1]['name'] == 'ResetVariables'
             assert actions[1]['variables'] == [var.dict()]
+
+async def test_calling_action_restores_args():
+    """
+    Test calling an @action annotated action restores arguments to their original types based on type annotations
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var = Variable()
+
+    class CustomClass(BaseModel):
+        value: int
+
+    @action
+    async def test_action(ctx: action.Ctx, class_1: CustomClass, class_2: CustomClass):
+        await ctx.update(variable=var, value=class_1.value + class_2.value)
+
+    action_instance = test_action(class_1=var, class_2=CustomClass(value=10))
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client, action_instance,
+                {
+                    'input': None,
+                    'values': {
+                        'class_1': {'value': 10}
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid
+                }
+            )
+            assert res.status_code == 200
+
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 1
+
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 20
+
+
+
 
 async def test_calling_an_action_with_extras():
     """Test that an action with extras can be called via the rest api"""

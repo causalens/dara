@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-from inspect import isclass
-from typing import Any, Callable, MutableMapping, Optional, Type
+from inspect import Parameter, isclass
+from typing import Union, get_args, get_origin, Any, Callable, MutableMapping, Optional, Type
 
 import numpy
 import pandas
@@ -64,6 +64,9 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
+    int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
+    float: Encoder(serialize=lambda x: x, deserialize=lambda x: float(x)),
+    str: Encoder(serialize=lambda x: x, deserialize=lambda x: str(x)),
     numpy.ndarray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: numpy.array(x)),
     numpy.int8: _get_numpy_dtypes_encoder(numpy.int8),
     numpy.int16: _get_numpy_dtypes_encoder(numpy.int16),
@@ -119,16 +122,39 @@ def deserialize(value: Any, typ: Optional[Type]):
     :param value: the value to deserialize
     :param typ: the type to deserialize into
     """
+    # This funtion is commonly used to deserialize parameters, which can be Parameter.empty rather than None
+    if typ == Parameter.empty:
+        return value
+
+    # Tasks cannot be deserialized
     if isinstance(value, BaseTask):
         return value
 
-    if typ is None:
+    # No annotation provided or none value
+    if typ is None or value is None:
         return value
 
-    if typ in encoder_registry:
-        return encoder_registry[typ]['deserialize'](value)
+    # Already matches type
+    if type(value) == typ:
+        return value
 
-    if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
-        return typ(**value)
+    # Handle Optional[foo] / Union[foo, None] -> call deserialize(value, foo)
+    if get_origin(typ) == Union:
+        args = get_args(typ)
+        if len(args) == 2 and type(None) in args:
+            not_none_arg = args[0] if args[0] != type(None) else args[1]
+            return deserialize(value, not_none_arg)
 
+    try:
+        # Explicit encoder found
+        if typ in encoder_registry:
+            return encoder_registry[typ]['deserialize'](value)
+
+        # Generic handling for pydantic models
+        if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
+            return typ(**value)
+    except Exception as e:
+        raise ValueError(f'Failed to deserialize value "{value}" into expected type "{typ}". Consider defining a custom deserializer for the type using the `config.add_encoder` API or removing the type annotation and handling the raw value manually') from e
+
+    # Fall back to returning the value
     return value
