@@ -108,9 +108,10 @@ def test_deserialize_same_type():
     bar = Bar(value='foo')
     assert deserialize(bar, Bar) == bar
 
-def test_deserialize_error_falls_back_to_value():
-    # Test that if deserialize errors, the value is returned raw instead
-    assert deserialize('foo', int) == 'foo'
+def test_deserialize_error_raises():
+    # Test that if deserialize errors, an error is raised
+    with pytest.raises(ValueError):
+        deserialize('foo', int)
 
 
 def test_deserialize_UNION_type():
