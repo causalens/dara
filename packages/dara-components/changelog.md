@@ -4,13 +4,17 @@ title: Changelog
 
 ## NEXT
 
+-   **Backported**: Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show.
+
+## 1.3.2
+
 -   Fixed an issue where `Table` would always overflow
 -   Fixed an issue where `NaN` was not handled in `Input` with `type=number`
 -   Fixed an issue where one could not set `margin` to `Text` component
 
 ## 1.1.10
 
--   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.  
+-   Internal: `parseLayoutDefinition` and `GraphLayoutDefinition` are now exposed on js side `CausalGraph` object can now accept extras.
 
 ## 1.1.9
 
@@ -18,10 +22,12 @@ title: Changelog
 -   Fixed an issue where `Datepicker` in controlled mode would sometimes end up in an infinite loop.
 -   Fixed an issue where `Datepicker` if range was given did not show end year in the select.
 -   Fixed an issue where `Table` column resizing would not affect cell width.
+
 ## 1.1.8
 
 -   Fixed an issue where `Table` did not return the correct index row when sorted
--   Fixed an issue where `Table` selection was not persistent. This can now be achieved by passing a `Variable` to `selected_indices` with the `persist_value=True` flag 
+-   Fixed an issue where `Table` selection was not persistent. This can now be achieved by passing a `Variable` to `selected_indices` with the `persist_value=True` flag
+
 ## 1.1.7
 
 -   Internal: store upload resolvers in a separate registry
