@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show.
+
 ## 1.4.0
 
 -   Added support for displaying a `value` in `Select` that may not be part of the `items` list.
