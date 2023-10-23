@@ -14,10 +14,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import asyncio
+import json
 import os
 import sys
+import typing
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
@@ -26,10 +27,12 @@ from typing import Optional
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
 from pydantic.json import ENCODERS_BY_TYPE
+from starlette.background import BackgroundTask
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
@@ -182,7 +185,10 @@ def _start_application(config: Configuration):
                 eng_logger.debug('Task pool shut down')
 
     app = FastAPI(
-        lifespan=lifespan, docs_url=None if is_production else '/docs', redoc_url=None if is_production else '/redoc'
+        lifespan=lifespan,
+        docs_url=None if is_production else '/docs',
+        redoc_url=None if is_production else '/redoc',
+        default_response_class=CustomResponse,
     )
 
     # Define catch-all mechanisms
@@ -423,3 +429,40 @@ def start(extra=None):
     config._run_discovery(config_module)
 
     return _start_application(config=config._to_configuration())
+
+
+class CustomResponse(Response):
+    media_type = 'application/json'
+
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
+    def render(self, content: typing.Any) -> bytes:
+        import math
+
+        custom_encoder = {}
+        custom_encoder[float] = lambda x: None if math.isnan(x) or math.isinf(x) else x
+        try:
+            return json.dumps(
+                content,
+                ensure_ascii=False,
+                allow_nan=False,
+                indent=None,
+                separators=(',', ':'),
+            ).encode('utf-8')
+        except ValueError:
+            serialized = jsonable_encoder(content, custom_encoder=custom_encoder)
+            return json.dumps(
+                serialized,
+                ensure_ascii=False,
+                allow_nan=False,
+                indent=None,
+                separators=(',', ':'),
+            ).encode('utf-8')
