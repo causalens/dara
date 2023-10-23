@@ -7,6 +7,7 @@ from async_asgi_testclient import TestClient as AsyncClient
 from pydantic.main import BaseModel
 
 from dara.core import DerivedVariable, Variable, py_component
+from dara.core.base_definitions import Cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import BaseFallback, ComponentInstance
 from dara.core.internal.normalization import denormalize
@@ -264,7 +265,6 @@ async def test_derived_variables():
         assert response.status_code == 200
         assert response.json() == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
         assert mock_func.call_count == 2
-
 
 async def test_mixed_inputs():
     """

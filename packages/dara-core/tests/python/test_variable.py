@@ -1,10 +1,17 @@
 import unittest
 
+import pytest
+from async_asgi_testclient import TestClient as AsyncClient
+
 from dara.core import DerivedVariable, Variable
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.main import _start_application
+
+from tests.python.utils import _get_derived_variable, create_app
 
 from .tasks import root
 
-
+pytestmark = pytest.mark.anyio
 def test_resolver(*args):
     pass
 
@@ -70,3 +77,31 @@ class TestVariables(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),
+
+async def test_derived_variables_with_df_nan():
+    """
+    Test derived variable can return dataframe with nan and inf
+    """
+    import numpy
+    import pandas
+
+    builder = ConfigurationBuilder()
+
+    dummy_var = Variable()
+
+    def func(dummy_var):
+        # Test DerivedVariable can handle df with nan/inf correctly
+        return pandas.DataFrame({'a':[1,numpy.inf,numpy.nan],'b':[2,float('nan'),float('inf')]})
+
+    derived = DerivedVariable(func, variables=[dummy_var])
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Check that the component can be fetched via the api, with input_val passed in the body
+        response = await _get_derived_variable(
+            client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+        )
+        assert response.status_code == 200
+        assert response.json()['value'] == {'a': {'0': 1.0, '1': None, '2': None}, 'b': {'0': 2.0, '1': None, '2': None}}
