@@ -1,6 +1,9 @@
 ---
 title: Changelog
 ---
+## NEXT
+
+-   **Backport:** Fix an issue where argument restoration for actions, derived variables and `py_component`s would attempt to restore a value to the annotated type even when the value was already of the correct type
 
 ## 1.2.3
 
