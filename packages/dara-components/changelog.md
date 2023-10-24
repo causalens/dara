@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--   Fixed an issue where `Input` of type number displayed zero istead of null when null value was set.
+-   Fixed an issue where `Input` of type number displayed zero instead of null when null value was set.
 
 ## 1.4.1
 
