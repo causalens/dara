@@ -24,6 +24,9 @@ interface InputProps extends FormComponentProps {
 const StyledInput = injectCss(UiInput);
 const StyledNumericInput = injectCss(UiNumericInput);
 
+function getNumericValue(value: string | number): number {
+    return value == null || Number.isNaN(+value) ? null : +value;
+}
 /**
  * The input component accepts a value Variable from the backend and allows the user to view and edit that variable.
  *
@@ -43,7 +46,7 @@ function Input(props: InputProps): JSX.Element {
     function handleChange(val: string | number): void {
         let newValue = val;
         if (props.type === 'number') {
-            newValue = Number.isNaN(Number(newValue)) ? null : Number(newValue);
+            newValue = getNumericValue(newValue);
         }
         // Immmediately update internal state
         setInternalValue(newValue);
@@ -62,7 +65,7 @@ function Input(props: InputProps): JSX.Element {
         // If value has been coerced to string convert it back to number for NumericInput
         let newValue = value;
         if (props.type === 'number') {
-            newValue = Number.isNaN(Number(newValue)) ? null : Number(newValue);
+            newValue = getNumericValue(newValue);
         }
         // Sync the internal value with the variable value when the variable value changes
         setInternalValue(newValue);
