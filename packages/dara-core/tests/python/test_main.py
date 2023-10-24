@@ -1520,7 +1520,6 @@ async def test_calling_async_action():
                     'input': 'test',
                     'values': {
                         'old': 'current',
-
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
                     'execution_id': exec_uid
@@ -1532,6 +1531,41 @@ async def test_calling_async_action():
             assert len(actions) == 1
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['value'] == 'test_current'
+
+async def test_calling_update_action_with_get_api():
+    """Test UpdateVariable with variable.get() as the target"""
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var = Variable({'nested': 'value'})
+
+    action = UpdateVariable(lambda ctx: ctx.inputs.new, var.get('nested'))
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client, action,
+                {
+                    'input': 'test',
+                    'values': {
+                        'old': None
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid
+                }
+            )
+            assert res.status_code == 200
+
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 1
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 'test'
+            # Check nested property is passed through correctly
+            assert actions[0]['variable']['nested'] == ['nested']
+
 
 async def test_calling_annotated_action():
     """
