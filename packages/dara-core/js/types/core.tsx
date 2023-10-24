@@ -332,7 +332,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    variable: Variable<any>;
+    variable: SingleVariable<any> | UrlVariable<any> | DataVariable;
     value: any;
 }
 
