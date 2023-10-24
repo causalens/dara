@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `Input` of type number displayed zero instead of null when null value was set.
+
 ## 1.4.1
 
 -   Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show.
