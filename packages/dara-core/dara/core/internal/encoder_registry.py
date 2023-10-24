@@ -16,7 +16,16 @@ limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
 from inspect import Parameter, isclass
-from typing import Union, get_args, get_origin, Any, Callable, MutableMapping, Optional, Type
+from typing import (
+    Any,
+    Callable,
+    MutableMapping,
+    Optional,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 import numpy
 import pandas
@@ -154,7 +163,9 @@ def deserialize(value: Any, typ: Optional[Type]):
         if isclass(typ) and issubclass(typ, BaseModel) and value is not None:
             return typ(**value)
     except Exception as e:
-        raise ValueError(f'Failed to deserialize value "{value}" into expected type "{typ}". Consider defining a custom deserializer for the type using the `config.add_encoder` API or removing the type annotation and handling the raw value manually') from e
+        raise ValueError(
+            f'Failed to deserialize value "{value}" into expected type "{typ}". Consider defining a custom deserializer for the type using the `config.add_encoder` API or removing the type annotation and handling the raw value manually'
+        ) from e
 
     # Fall back to returning the value
     return value
