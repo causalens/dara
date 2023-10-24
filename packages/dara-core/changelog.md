@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `.get()` API on `Variable` would not behave correctly when used as the update target within actions (either legacy `UpdateVariable` or new `ActionCtx.update` method)
+
 ## 1.4.1
 
 -   Fixed an issue where argument restoration for actions, derived variables and `py_component`s would attempt to restore a value to the annotated type even when the value was already of the correct type
