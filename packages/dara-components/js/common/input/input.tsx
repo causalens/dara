@@ -25,7 +25,7 @@ const StyledInput = injectCss(UiInput);
 const StyledNumericInput = injectCss(UiNumericInput);
 
 function getNumericValue(value: string | number): number {
-    return value == null || Number.isNaN(+value) ? null : +value;
+    return value == null || Number.isNaN(Number(value)) ? null : Number(value);
 }
 /**
  * The input component accepts a value Variable from the backend and allows the user to view and edit that variable.
