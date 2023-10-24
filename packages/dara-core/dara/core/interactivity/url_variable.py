@@ -32,7 +32,6 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
     """
 
     default: Optional[VariableType]
-    nested: List[str] = []
     query: str
     uid: str
 

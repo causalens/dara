@@ -2,6 +2,7 @@ import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/re
 import { createMemoryHistory } from 'history';
 import { rest } from 'msw';
 
+import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { useAction, useVariable } from '../../js/shared';
@@ -27,7 +28,7 @@ describe('useAction', () => {
     });
     afterAll(() => server.close());
 
-    it('should accept an action as an argument and return a handler that will call the backend', async () => {
+    it('should accept an action as an argument and return a handler', async () => {
         const wrapper = ({ children }: any): JSX.Element => <Wrapper>{children}</Wrapper>;
         const { result } = renderHook(
             () =>
@@ -113,6 +114,339 @@ describe('useAction', () => {
         await waitFor(() => expect(getByTestId('result').innerHTML).not.toBe('value'));
 
         expect(getByTestId('result').innerHTML).toBe('updated');
+    });
+
+    it('should handle UPDATE_VARIABLE action with nested property', async () => {
+        const variable: SingleVariable<any> = {
+            __typename: 'Variable',
+            default: {
+                nested: {
+                    inner_nested: {
+                        key: 'value',
+                    },
+                    key: 'value',
+                },
+            },
+            nested: [],
+            uid: 'uid',
+        };
+
+        const actionNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: 'updated',
+            variable: {
+                ...variable,
+                nested: ['nested', 'key'],
+            },
+        };
+
+        const actionInnerNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: 'updated',
+            variable: {
+                ...variable,
+                nested: ['nested', 'inner_nested', 'key'],
+            },
+        };
+
+        const MockComponent = (): JSX.Element => {
+            const [a] = useVariable(variable);
+            const [updateNested] = useAction(actionNested);
+            const [updateInnerNested] = useAction(actionInnerNested);
+
+            return (
+                <>
+                    <span data-testid="result">{JSON.stringify(a)}</span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="updateNested" onClick={() => updateNested('updated')} type="button">
+                        update
+                    </button>
+                    <button data-testid="updateInnerNested" onClick={() => updateInnerNested('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent />);
+
+        const getContent = (): Record<string, any> => JSON.parse(getByTestId('result').innerHTML);
+
+        await waitFor(() => expect(getContent()).toEqual(variable.default));
+
+        act(() => {
+            const button = getByTestId('updateNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual(variable.default));
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } });
+
+        act(() => {
+            const button = getByTestId('updateInnerNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() =>
+            expect(getContent()).not.toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } })
+        );
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: 'updated' }, key: 'updated' } });
+    });
+
+    it('should handle UPDATE_VARIABLE TOGGLE action', async () => {
+        const variable: SingleVariable<any> = {
+            __typename: 'Variable',
+            default: false,
+            nested: [],
+            uid: 'uid',
+        };
+
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: TOGGLE,
+            variable,
+        };
+
+        const MockComponent = (): JSX.Element => {
+            const [a] = useVariable(variable);
+            const [update] = useAction(action);
+
+            return (
+                <>
+                    <span data-testid="result">{JSON.stringify(a)}</span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent />);
+
+        const getContent = (): Record<string, any> => JSON.parse(getByTestId('result').innerHTML);
+
+        await waitFor(() => expect(getContent()).toEqual(variable.default));
+
+        act(() => {
+            const button = getByTestId('update');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual(variable.default));
+
+        expect(getContent()).toEqual(true);
+    });
+
+    it('should handle UPDATE_VARIABLE TOGGLE action with nested property', async () => {
+        const variable: SingleVariable<any> = {
+            __typename: 'Variable',
+            default: {
+                nested: {
+                    inner_nested: {
+                        key: false,
+                    },
+                    key: false,
+                },
+            },
+            nested: [],
+            uid: 'uid',
+        };
+
+        const actionNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: TOGGLE,
+            variable: {
+                ...variable,
+                nested: ['nested', 'key'],
+            },
+        };
+
+        const actionInnerNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: TOGGLE,
+            variable: {
+                ...variable,
+                nested: ['nested', 'inner_nested', 'key'],
+            },
+        };
+
+        const MockComponent = (): JSX.Element => {
+            const [a] = useVariable(variable);
+            const [updateNested] = useAction(actionNested);
+            const [updateInnerNested] = useAction(actionInnerNested);
+
+            return (
+                <>
+                    <span data-testid="result">{JSON.stringify(a)}</span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="updateNested" onClick={() => updateNested('updated')} type="button">
+                        update
+                    </button>
+                    <button data-testid="updateInnerNested" onClick={() => updateInnerNested('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent />);
+
+        const getContent = (): Record<string, any> => JSON.parse(getByTestId('result').innerHTML);
+
+        await waitFor(() => expect(getContent()).toEqual(variable.default));
+
+        act(() => {
+            const button = getByTestId('updateNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual(variable.default));
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: false }, key: true } });
+
+        act(() => {
+            const button = getByTestId('updateInnerNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual({ nested: { inner_nested: { key: false }, key: true } }));
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: true }, key: true } });
+    });
+
+    it('should handle UPDATE_VARIABLE SYNC action', async () => {
+        const variable: SingleVariable<any> = {
+            __typename: 'Variable',
+            default: 'value',
+            nested: [],
+            uid: 'uid',
+        };
+
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: INPUT,
+            variable,
+        };
+
+        const MockComponent = (): JSX.Element => {
+            const [a] = useVariable(variable);
+            const [update] = useAction(action);
+
+            return (
+                <>
+                    <span data-testid="result">{JSON.stringify(a)}</span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent />);
+
+        const getContent = (): Record<string, any> => JSON.parse(getByTestId('result').innerHTML);
+
+        await waitFor(() => expect(getContent()).toEqual(variable.default));
+
+        act(() => {
+            const button = getByTestId('update');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual(variable.default));
+
+        expect(getContent()).toEqual('updated');
+    });
+
+    it('should handle UPDATE_VARIABLE SYNC action with nested property', async () => {
+        const variable: SingleVariable<any> = {
+            __typename: 'Variable',
+            default: {
+                nested: {
+                    inner_nested: {
+                        key: 'value',
+                    },
+                    key: 'value',
+                },
+            },
+            nested: [],
+            uid: 'uid',
+        };
+
+        const actionNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: INPUT,
+            variable: {
+                ...variable,
+                nested: ['nested', 'key'],
+            },
+        };
+
+        const actionInnerNested: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: INPUT,
+            variable: {
+                ...variable,
+                nested: ['nested', 'inner_nested', 'key'],
+            },
+        };
+
+        const MockComponent = (): JSX.Element => {
+            const [a] = useVariable(variable);
+            const [updateNested] = useAction(actionNested);
+            const [updateInnerNested] = useAction(actionInnerNested);
+
+            return (
+                <>
+                    <span data-testid="result">{JSON.stringify(a)}</span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="updateNested" onClick={() => updateNested('updated')} type="button">
+                        update
+                    </button>
+                    <button data-testid="updateInnerNested" onClick={() => updateInnerNested('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent />);
+
+        const getContent = (): Record<string, any> => JSON.parse(getByTestId('result').innerHTML);
+
+        await waitFor(() => expect(getContent()).toEqual(variable.default));
+
+        act(() => {
+            const button = getByTestId('updateNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getContent()).not.toEqual(variable.default));
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } });
+
+        act(() => {
+            const button = getByTestId('updateInnerNested');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() =>
+            expect(getContent()).not.toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } })
+        );
+
+        expect(getContent()).toEqual({ nested: { inner_nested: { key: 'updated' }, key: 'updated' } });
     });
 
     it('should handle UPDATE_VARIABLE for UrlVariable', async () => {
