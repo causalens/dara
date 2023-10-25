@@ -882,7 +882,7 @@ async def test_py_component_with_derived_data_variable():
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': data_v.get(), 'input_val_2': dv.get()},
@@ -915,7 +915,7 @@ async def test_py_component_with_derived_data_variable():
         )
 
         # Should return (2 + len(df, where df.col1=3)) + len(df, where df.col1=1), so (2 + 1 + 2) = 5
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}
 
 
 async def test_py_component_with_derived_data_variable_run_as_task():
@@ -990,8 +990,8 @@ async def test_py_component_with_derived_data_variable_run_as_task():
                 },
             )
 
-            assert 'task_id' in response.json()
-            task_id = response.json().get('task_id')
+            assert 'task_id' in response
+            task_id = response.get('task_id')
 
             raw_messages = await get_ws_messages(websocket, timeout=6)
             assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)

@@ -83,8 +83,11 @@ const handlers = [
     rest.post('/api/core/components/:component', async (req, res, ctx) => {
         return res(
             ctx.json({
-                name: 'RawString',
-                props: { content: `${String(req.params.component)}: ${JSON.stringify(req.body)}` },
+                data: {
+                    name: 'RawString',
+                    props: { content: `${String(req.params.component)}: ${JSON.stringify(req.body)}` },
+                },
+                lookup: {},
             })
         );
     }),

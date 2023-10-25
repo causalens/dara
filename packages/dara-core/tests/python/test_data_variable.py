@@ -533,7 +533,7 @@ async def test_py_component_with_derived_variable():
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': data_v.get(), 'input_val_2': dv.get()},
@@ -560,4 +560,4 @@ async def test_py_component_with_derived_variable():
         )
 
         # Should return (2 + len(df, where df.col1=3)) + len(df, where df.col1=1), so (2 + 1 + 2) = 5
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}

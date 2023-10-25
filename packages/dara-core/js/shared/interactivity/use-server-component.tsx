@@ -9,10 +9,11 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { useSessionToken } from '@/auth';
 import { useDeferLoadable } from '@/shared/utils';
-import { normalizeRequest } from '@/shared/utils/normalization';
+import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
     AnyVariable,
     ComponentInstance,
+    NormalizedPayload,
     TaskResponse,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
@@ -58,7 +59,7 @@ async function fetchFunctionComponent(
     uid: string,
     token: string,
     wsClient: WebSocketClientInterface
-): Promise<TaskResponse | ComponentInstance | null> {
+): Promise<TaskResponse | NormalizedPayload<ComponentInstance> | null> {
     const ws_channel = await wsClient.getChannel();
     const res = await request(
         `/api/core/components/${component}`,
@@ -69,7 +70,7 @@ async function fetchFunctionComponent(
         token
     );
     await validateResponse(res, `Failed to fetch the component: ${component}`);
-    const result: TaskResponse | ComponentInstance | null = await res.json();
+    const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
     return result;
 }
 
@@ -224,11 +225,16 @@ function getOrRegisterServerComponent(
                         }
 
                         try {
-                            result = await fetchTaskResult<ComponentInstance>(taskId, token);
+                            result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, token);
                         } catch (e) {
                             e.selectorId = key;
                             throw e;
                         }
+                    }
+
+                    if (result !== null) {
+                        // Denormalize
+                        result = denormalize(result.data, result.lookup);
                     }
 
                     depsRegistry.set(key, {

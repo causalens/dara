@@ -20,6 +20,7 @@ import os
 from functools import wraps
 from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional
+from fastapi.encoders import jsonable_encoder
 
 import pandas
 from fastapi import (

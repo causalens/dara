@@ -509,7 +509,7 @@ class TaskManager:
                             if message.task_id in self.tasks:
                                 self.tasks[task.task_id].resolve(message.result)
                             # If the task has a cache key, update the cached value
-                            if message.cache_key is not None and message.reg_entry is not None:
+                            if message.cache_key is not None and message.reg_entry is not None and message.reg_entry.cache is not None:
                                 await self.store.set(message.reg_entry, key=message.cache_key, value=message.result)
                             # Notify the channels of the task's completion
                             await notify_channels(
@@ -522,7 +522,7 @@ class TaskManager:
 
                             # If the task has a cache key, set cached value to None
                             # This makes it so that the next request will recalculate the value rather than keep failing
-                            if message.cache_key is not None and message.reg_entry is not None:
+                            if message.cache_key is not None and message.reg_entry is not None and message.reg_entry.cache is not None:
                                 await self.store.set(message.reg_entry, key=message.cache_key, value=None)
 
             try:

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Generic, List, Mapping, Tuple, TypeVar, Union, cast, overload
+from typing import Any, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, cast, overload
 
 from pydantic import BaseModel
 from typing_extensions import TypedDict, TypeGuard
@@ -158,6 +158,10 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
     :param check_root: whether to check if the root object is also a referrable object
     """
     lookup = {}
+
+    if not isinstance(obj, (dict, list)):
+        return obj, lookup
+
     output: Union[Mapping[Any, Any], List[Any]] = {} if isinstance(obj, dict) else [None for x in range(len(obj))]
 
     # The whole object is referrable
@@ -192,13 +196,16 @@ def denormalize(normalized_obj: List, lookup: Mapping) -> List:
     ...
 
 
-def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> JsonLike:
+def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]:
     """
     Denormalize data by replacing Placeholders found with objects from the lookup
 
     :normalized_obj: object or list containing placeholders
     :lookup: dict mapping identifiers to referrables
     """
+    if normalized_obj is None:
+        return None
+
     output: Union[Mapping[Any, Any], List[Any]] = (
         {} if isinstance(normalized_obj, dict) else [None for x in range(len(normalized_obj))]
     )
