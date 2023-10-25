@@ -540,11 +540,14 @@ describe('ProgressTracker', () => {
             rest.get('/api/core/tasks/:taskId', async (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        name: 'RawString',
-                        props: {
-                            content: 'success',
+                        data: {
+                            name: 'RawString',
+                            props: {
+                                content: 'success',
+                            },
+                            uid: vuid,
                         },
-                        uid: vuid,
+                        lookup: {},
                     })
                 );
             })
