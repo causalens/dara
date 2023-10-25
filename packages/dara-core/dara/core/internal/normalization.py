@@ -15,7 +15,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, cast, overload
+from typing import (
+    Any,
+    Generic,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 from pydantic import BaseModel
 from typing_extensions import TypedDict, TypeGuard
@@ -157,7 +168,7 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
     :param obj: object to normalize
     :param check_root: whether to check if the root object is also a referrable object
     """
-    lookup = {}
+    lookup: dict = {}
 
     if not isinstance(obj, (dict, list)):
         return obj, lookup

@@ -34,6 +34,8 @@ from typing import (
     overload,
 )
 
+from fastapi.encoders import jsonable_encoder
+
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
 from dara.core.interactivity import (
@@ -51,7 +53,6 @@ from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.visual.components import InvalidComponent, RawString
-from fastapi.encoders import jsonable_encoder
 
 CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 
