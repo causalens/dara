@@ -1004,7 +1004,7 @@ async def test_py_component_with_derived_data_variable_run_as_task():
             assert result.status_code == 200
 
             # Should return (2 + len(df, where df.col1=2)) + len(df, where df.col1=3), so (2 + 2 + 1) = 5
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_update_variable_extras_derived_data_variable_run_as_task():

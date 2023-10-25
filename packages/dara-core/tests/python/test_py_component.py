@@ -755,7 +755,7 @@ async def test_derive_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_chain_derived_var_with_run_as_task_flag():
@@ -855,7 +855,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_single_dv_track_progress():
@@ -926,7 +926,7 @@ async def test_single_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_multiple_dv_track_progress():
@@ -1000,11 +1000,11 @@ async def test_multiple_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {
+            assert result.json() == {'data': {
                 'name': 'MockComponentTwo',
                 'props': {'text': 'result', 'text2': 'result2'},
                 'uid': 'uid',
-            }
+            }, 'lookup': {}}
 
 
 @pytest.mark.parametrize('primitive', [(True), (False), (1), (-2.5), ('test_string')])
