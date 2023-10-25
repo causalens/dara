@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   `py_component` results are now normalized, which means multiple instances of the same variables within the returned components will be deduplicated. This should significantly reduce the amount of data sent over the wire in some cases.
+
 ## 1.4.2
 
 -   Fixed an issue where `.get()` API on `Variable` would not behave correctly when used as the update target within actions (either legacy `UpdateVariable` or new `ActionCtx.update` method)
