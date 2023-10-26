@@ -6,6 +6,8 @@ title: Changelog
 
 -   **Backported:** Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show
 -   **Backported:** Fixed an issue where `Input` of type number displayed zero instead of null when null value was set.
+-   **Backported:** Fixed an issue where Plotly could have a jittery behaviour on Notebooks.
+-   **Backported:** Fixed an issue where Plotly's hover did not use the correct font.
 
 ## 1.2.3
 
