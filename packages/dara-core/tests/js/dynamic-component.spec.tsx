@@ -72,11 +72,14 @@ describe('DynamicComponent', () => {
             rest.post('/api/core/components/:component', async (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        name: 'RawString',
-                        props: {
-                            content: 'test_content',
+                        data: {
+                            name: 'RawString',
+                            props: {
+                                content: 'test_content',
+                            },
+                            uid: 'uid',
                         },
-                        uid: 'uid',
+                        lookup: {},
                     })
                 );
             })
@@ -105,11 +108,14 @@ describe('DynamicComponent', () => {
             rest.post('/api/core/components/:component', async (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        name: 'InvalidComponent',
-                        props: {
-                            error: 'test_error',
+                        data: {
+                            name: 'InvalidComponent',
+                            props: {
+                                error: 'test_error',
+                            },
+                            uid: 'uid',
                         },
-                        uid: 'uid',
+                        lookup: {},
                     })
                 );
             })

@@ -223,6 +223,13 @@ async def _get_py_component(
     response = await client.post(f'/api/core/components/{name}', json=data, headers=headers)
     if expect_success:
         assert response.status_code == 200
+        res = response.json()
+
+        if 'task_id' in res:
+            return res
+
+        return denormalize(res['data'], res['lookup'])
+
     return response
 
 class ActionRequestBody(TypedDict):

@@ -34,6 +34,8 @@ from typing import (
     overload,
 )
 
+from fastapi.encoders import jsonable_encoder
+
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
 from dara.core.interactivity import (
@@ -46,6 +48,7 @@ from dara.core.interactivity import (
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
+from dara.core.internal.normalization import NormalizedPayload, normalize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -311,24 +314,28 @@ def _make_render_safe(handler: Callable):
     :param handler: the user handler to wrap
     """
 
-    async def _render_safe(**kwargs: Dict[str, Any]):
+    async def _render_safe(**kwargs: Dict[str, Any]) -> NormalizedPayload[Optional[ComponentInstance]]:
         result = await run_user_handler(handler, kwargs=kwargs)
+        safe_result: Optional[ComponentInstance] = None
 
         if result is None:
-            return None
+            safe_result = None
         elif isinstance(result, (str, float, int, bool)):
             # If it is ComponentInstance string(string start with '__dara__')
             if isinstance(result, str) and result.startswith('__dara__'):
-                return json.loads(result[8:])
+                safe_result = json.loads(result[8:])
 
             # Handle primitives being returned by just displaying the value as a string
-            return RawString(content=str(result))
+            safe_result = RawString(content=str(result))
         elif not isinstance(result, ComponentInstance):
             # Otherwise it must be a component instance, return the error for frontend to display
-            return InvalidComponent(
+            safe_result = InvalidComponent(
                 error=f'PyComponent "{handler.__name__}" did not return a ComponentInstance, found "{result}"'
             )
+        else:
+            safe_result = result
 
-        return result
+        normalized_data, normalized_lookup = normalize(jsonable_encoder(safe_result))
+        return NormalizedPayload(data=normalized_data, lookup=normalized_lookup)
 
     return _render_safe

@@ -129,15 +129,13 @@ async def test_variables():
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
         # Check that the component can be fetched via the api, with input_val passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': var},
             data={'uid': component.get('uid'), 'values': {'input_val': 'test'}, 'ws_channel': 'test_channel'},
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
 
 
 async def test_async_py_comp():
@@ -167,15 +165,13 @@ async def test_async_py_comp():
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
         # Check that the component can be fetched via the api, with input_val passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': var},
             data={'uid': component.get('uid'), 'values': {'input_val': 'test'}, 'ws_channel': 'test_channel'},
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
 
 
 async def test_derived_variables():
@@ -217,7 +213,7 @@ async def test_derived_variables():
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
         # Check that the component can be fetched via the api, with input_val passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': derived},
@@ -229,13 +225,11 @@ async def test_derived_variables():
                 'ws_channel': 'test_channel',
             },
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
         mock_func.assert_called_once()
 
         # Check that the derived state is cached on a subsequent request with the same args
-        response = await _get_py_component(
+        await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': derived},
@@ -250,7 +244,7 @@ async def test_derived_variables():
         mock_func.assert_called_once()
 
         # Check that calling it with different arguments calls the underlying function again
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': derived},
@@ -262,8 +256,7 @@ async def test_derived_variables():
                 'ws_channel': 'test_channel',
             },
         )
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
         assert mock_func.call_count == 2
 
 async def test_mixed_inputs():
@@ -294,7 +287,7 @@ async def test_mixed_inputs():
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
         # Check that the component can be fetched via the api, with input_val passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': var},
@@ -304,9 +297,7 @@ async def test_mixed_inputs():
                 'ws_channel': 'test_channel',
             },
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test_2'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'test_2'}, 'uid': 'uid'}
 
 
 async def test_default_arguments():
@@ -331,15 +322,13 @@ async def test_default_arguments():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with input_val passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': var},
             data={'uid': component.get('uid'), 'values': {'input_val': 'test'}, 'ws_channel': 'test_channel'},
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test_3'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'test_3'}, 'uid': 'uid'}
 
 
 async def test_error_handling():
@@ -391,14 +380,13 @@ async def test_base_model_args_are_restored():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with input dict passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': var},
             data={'uid': component.get('uid'), 'values': {'input_val': {'val': 'test'}}, 'ws_channel': 'test_channel'},
         )
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
 
 async def test_base_model_not_restored_when_already_instance():
     """Test that when a type is expected by a PyComponent handler that an already instantiated instance is not restored"""
@@ -425,7 +413,7 @@ async def test_base_model_not_restored_when_already_instance():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with input dict passed in the body
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': dv},
@@ -441,8 +429,7 @@ async def test_base_model_not_restored_when_already_instance():
                 'ws_channel': 'test_channel'
             },
         )
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': 'foo'}, 'uid': 'uid'}
+        assert data== {'name': 'MockComponent', 'props': {'text': 'foo'}, 'uid': 'uid'}
 
 async def test_compatibility_with_polling():
     """Test that a py_component with polling gets passed the param correctly"""
@@ -513,7 +500,7 @@ async def test_derived_variables_restore_base_models():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with a passed as a dict
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             name=component.get('name'),
             kwargs={'input_val': derived},
@@ -523,8 +510,7 @@ async def test_derived_variables_restore_base_models():
                 'ws_channel': 'test_channel',
             },
         )
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
 
 
 async def test_derived_variables_with_args():
@@ -562,7 +548,7 @@ async def test_derived_variables_with_args():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with a passed as a dict
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': derived},
@@ -572,9 +558,7 @@ async def test_derived_variables_with_args():
                 'ws_channel': 'test_channel',
             },
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '25'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '25'}, 'uid': 'uid'}
 
 
 async def test_derived_variables_with_polling():
@@ -646,7 +630,7 @@ async def test_chained_derived_variables():
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the component can be fetched via the api, with a passed as a dict
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'input_val': derived_2},
@@ -662,9 +646,7 @@ async def test_chained_derived_variables():
                 'ws_channel': 'test_channel',
             },
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '25'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '25'}, 'uid': 'uid'}
 
 
 async def test_placeholder():
@@ -747,7 +729,7 @@ async def test_derive_var_with_run_as_task_flag():
             component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
             # Check that the fetching the component returns a task_id response
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={'var': derived},
@@ -757,8 +739,7 @@ async def test_derive_var_with_run_as_task_flag():
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
             )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+            task_id = data.get('task_id')
             assert task_id is not None
 
             # Listen on the websocket channel for the notification of task completion
@@ -774,7 +755,7 @@ async def test_derive_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_chain_derived_var_with_run_as_task_flag():
@@ -811,7 +792,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
             component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
             # Check that the fetching the component returns a task_id response
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={'var': dv_top},
@@ -862,9 +843,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
             )
-
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+            task_id = data.get('task_id')
             assert task_id is not None
 
             # Listen on the websocket channel for messages
@@ -876,7 +855,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_single_dv_track_progress():
@@ -911,7 +890,7 @@ async def test_single_dv_track_progress():
             component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
             # Check that the fetching the component returns a task_id response
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={'var': derived},
@@ -921,9 +900,7 @@ async def test_single_dv_track_progress():
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
             )
-
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+            task_id = data.get('task_id')
             assert task_id is not None
 
             # Expect 5 progress updates in order
@@ -949,7 +926,7 @@ async def test_single_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'}
+            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'}, 'lookup': {}}
 
 
 async def test_multiple_dv_track_progress():
@@ -988,7 +965,7 @@ async def test_multiple_dv_track_progress():
             )
 
             # Check that the fetching the component returns a task_id response
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={'var1': derived, 'var2': derived_2},
@@ -1000,11 +977,8 @@ async def test_multiple_dv_track_progress():
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
-                expect_success=False,
             )
-
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+            task_id = data.get('task_id')
             assert task_id is not None
 
             messages = await get_ws_messages(websocket)
@@ -1026,11 +1000,11 @@ async def test_multiple_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {
+            assert result.json() == {'data': {
                 'name': 'MockComponentTwo',
                 'props': {'text': 'result', 'text2': 'result2'},
                 'uid': 'uid',
-            }
+            }, 'lookup': {}}
 
 
 @pytest.mark.parametrize('primitive', [(True), (False), (1), (-2.5), ('test_string')])
@@ -1065,7 +1039,7 @@ async def test_handles_primitives(primitive):
             )
 
             # Check that the fetching the component returns a RawString with the primitive value
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={},
@@ -1074,12 +1048,9 @@ async def test_handles_primitives(primitive):
                     'values': {},
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
-                expect_success=False,
             )
-
-            assert response.status_code == 200
-            assert response.json()['props']['content'] == str(primitive)
-            assert response.json()['name'] == 'RawString'
+            assert data['props']['content'] == str(primitive)
+            assert data['name'] == 'RawString'
 
 
 async def test_handles_none():
@@ -1112,8 +1083,8 @@ async def test_handles_none():
                 template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
             )
 
-            # Check that the fetching the component returns a RawString with the value 'None'
-            response = await _get_py_component(
+            # Check that the fetching the component returns None
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={},
@@ -1122,11 +1093,8 @@ async def test_handles_none():
                     'values': {},
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
-                expect_success=False,
             )
-
-            assert response.status_code == 200
-            assert response.json() == None
+            assert data == None
 
 
 async def test_handles_invalid_value():
@@ -1160,7 +1128,7 @@ async def test_handles_invalid_value():
             )
 
             # Check that the fetching the component returns an InvalidComponent
-            response = await _get_py_component(
+            data = await _get_py_component(
                 client,
                 component.get('name'),
                 kwargs={},
@@ -1169,9 +1137,6 @@ async def test_handles_invalid_value():
                     'values': {},
                     'ws_channel': init.get('message', {}).get('channel'),
                 },
-                expect_success=False,
             )
-
-            assert response.status_code == 200
-            assert response.json()['name'] == 'InvalidComponent'
-            assert 'did not return a ComponentInstance' in response.json()['props']['error']
+            assert data['name'] == 'InvalidComponent'
+            assert 'did not return a ComponentInstance' in data['props']['error']

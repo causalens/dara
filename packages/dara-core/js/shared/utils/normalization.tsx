@@ -65,6 +65,10 @@ export function denormalize(obj: JsonArray, lookup: Mapping): JsonArray;
  * @param lookup map of identifier -> referrable
  */
 export function denormalize(obj: JsonLike, lookup: Mapping): Mapping | JsonArray {
+    if (!obj) {
+        return obj;
+    }
+
     if (isPlaceholder(obj)) {
         const referrable = lookup[obj.__ref];
         return denormalize(referrable, lookup);

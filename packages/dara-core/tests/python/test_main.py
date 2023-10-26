@@ -948,7 +948,7 @@ async def test_py_component_respects_dv_empty_deps():
         assert counter == 1
 
         # Request the py_component that depends on the DV with variable=5
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'variable': dv},
@@ -959,8 +959,7 @@ async def test_py_component_respects_dv_empty_deps():
             },
         )
 
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '2'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '2'}, 'uid': 'uid'}
 
         # The DV should've been ran once - should hit cache because updated value was not in deps
         assert counter == 1
@@ -1015,7 +1014,7 @@ async def test_py_component_respects_dv_non_empty_deps():
         assert counter == 1
 
         # Request the py_component that depends on the DV with var1=1, var2=3 - non-deps variable changed
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'variable': dv},
@@ -1026,14 +1025,13 @@ async def test_py_component_respects_dv_non_empty_deps():
             },
         )
 
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
 
         # The DV should've been ran once - should hit cache because updated value was not in deps
         assert counter == 1
 
         # Request the py_component that depends on the DV with var1=2,var2=3
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'variable': dv},
@@ -1044,8 +1042,7 @@ async def test_py_component_respects_dv_non_empty_deps():
             },
         )
 
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '5'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '5'}, 'uid': 'uid'}
 
         # The DV should've been ran again - variable which changed was in deps
         assert counter == 2
@@ -1053,7 +1050,7 @@ async def test_py_component_respects_dv_non_empty_deps():
         # Now request py_component with var1=1,var2=6 - expected scenario is that cache is NOT hit because
         # it has been purged - to prevent stale cache issues - so result should be accurate
         # (as oppose to i.e. returning 3 or 4 as these results were cached for dep variable var1=1)
-        response = await _get_py_component(
+        data = await _get_py_component(
             client,
             component.get('name'),
             kwargs={'variable': dv},
@@ -1063,9 +1060,7 @@ async def test_py_component_respects_dv_non_empty_deps():
                 'ws_channel': 'test_channel',
             },
         )
-
-        assert response.status_code == 200
-        assert response.json() == {'name': 'MockComponent', 'props': {'text': '7'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '7'}, 'uid': 'uid'}
 
         # The DV should've been ran again - cache was purged
         assert counter == 3
