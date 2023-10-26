@@ -16,6 +16,7 @@ import {
 } from 'plotly.js';
 import { useState } from 'react';
 import Plot, { PlotParams } from 'react-plotly.js';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { Action, StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
 
@@ -285,7 +286,7 @@ function handleEvent<T extends PlotlyEventName>(
     });
 }
 
-const StyledPlotly = injectCss(Plot);
+const StyledPlotly = injectCss('div');
 
 /* eslint-disable no-underscore-dangle */
 /**
@@ -323,16 +324,21 @@ function Plotly(props: PlotlyProps): JSX.Element {
     }, {} as RequiredPlotParams);
 
     return (
-        <StyledPlotly
-            $rawCss={css}
-            config={{ responsive: true }}
-            data={figure.data}
-            frames={figure.frames}
-            layout={figure.layout}
-            {...eventHandlers}
-            style={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', width: '100%', ...style }}
-            useResizeHandler
-        />
+        <StyledPlotly $rawCss={css} style={{ flex: '1 1 auto', minHeight: '200px', ...style }}>
+            <AutoSizer>
+                {({ height, width }) => (
+                    <Plot
+                        config={{ responsive: true }}
+                        data={figure.data}
+                        frames={figure.frames}
+                        layout={figure.layout}
+                        {...eventHandlers}
+                        style={{ height, width }}
+                        useResizeHandler
+                    />
+                )}
+            </AutoSizer>
+        </StyledPlotly>
     );
 }
 
