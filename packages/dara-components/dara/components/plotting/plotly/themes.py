@@ -37,7 +37,14 @@ light_theme = {
         'yaxis': {
             'gridcolor': light_colors.grey2,
         },
-    }
+        'hoverlabel': {
+            'font': {
+                'color': light_colors.text,
+                'family': 'Manrope',
+                'size': 14,
+            },
+        },
+    },
 }
 
 dark_theme = {
@@ -55,6 +62,13 @@ dark_theme = {
         },
         'yaxis': {
             'gridcolor': dark_colors.grey2,
+        },
+        'hoverlabel': {
+            'font': {
+                'color': dark_colors.text,
+                'family': 'Manrope',
+                'size': 14,
+            },
         },
     }
 }
