@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where Plotly could have a jittery behaviour on Notebooks.
+-   Added a default `min-height` of `200px` for `Plotly`, this can be overwritten by setting the `min_height` prop or by passing `raw_css`.
+
 ## 1.4.2
 
 -   Fixed an issue where `Input` of type number displayed zero instead of null when null value was set.
