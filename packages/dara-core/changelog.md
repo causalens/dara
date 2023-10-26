@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.3
 
 -   `py_component` results are now normalized, which means multiple instances of the same variables within the returned components will be deduplicated. This should significantly reduce the amount of data sent over the wire in some cases.
 
