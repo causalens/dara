@@ -139,9 +139,9 @@ describe('useAction', () => {
             return <span data-testid="result">{a}</span>;
         };
 
-        const MockComponent = (props: { action: Action; var: SingleVariable<string> }): JSX.Element => {
+        const MockComponent = (props: { action: Action }): JSX.Element => {
             const [update, loading] = useAction(props.action);
-            const [render, setRender] = useState(false);
+            const [renderVariable, setRenderVariable] = useState(false);
 
             return (
                 <>
@@ -151,8 +151,10 @@ describe('useAction', () => {
                     </button>
                     <span data-testid="loading">{loading.toString()}</span>
                     {/* Do not render the nested component so not calling useVariable until true */}
-                    <button data-testid="render" onClick={() => setRender(true)} />
-                    {render && <MockComponent2 var={variable} />}
+                    <button data-testid="render" onClick={() => setRenderVariable(true)} type="button">
+                        render
+                    </button>
+                    {renderVariable && <MockComponent2 var={variable} />}
                 </>
             );
         };
