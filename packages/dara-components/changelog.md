@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.4
 
 -   Fixed an issue where Plotly could have a jittery behaviour on Notebooks.
 -   Added a default `min-height` of `200px` for `Plotly`, this can be overwritten by setting the `min_height` prop or by passing `raw_css`.

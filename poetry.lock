@@ -211,14 +211,14 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.2.9"
+version = "0.2.10"
 description = "A Causal AI package for causal graphs."
 category = "main"
 optional = false
 python-versions = ">=3.8.0,<3.13.0"
 files = [
-    {file = "cai_causal_graph-0.2.9-py3-none-any.whl", hash = "sha256:c4f2974c09d7d9009e2b9508003c987f799f1ea4a1d95e5f6ca40cddc69b4c59"},
-    {file = "cai_causal_graph-0.2.9.tar.gz", hash = "sha256:4a5bd5a90e4951a8e13a3bc33ec90d01306a82cf28032545fd5309d4a95ed013"},
+    {file = "cai_causal_graph-0.2.10-py3-none-any.whl", hash = "sha256:fdf682b86787c5f4e796145fb31b3fc19ee81b7a17044b1e89b7e24516b9c88e"},
+    {file = "cai_causal_graph-0.2.10.tar.gz", hash = "sha256:59df8ce7f52942d8e7d95cac68fcb09fd4ef40a85ea0d8a3a59a15f811b689ba"},
 ]
 
 [package.dependencies]
@@ -538,7 +538,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.4.3"
+version = "1.4.4"
 description = "CLI to quickly bootstrap a Dara app"
 category = "main"
 optional = false
@@ -633,7 +633,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.4.3"
+version = "1.4.4"
 description = "Components for the Dara Framework"
 category = "main"
 optional = false
@@ -644,7 +644,7 @@ develop = true
 [package.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.1.0"
-dara-core = "=1.4.3"
+dara-core = "=1.4.4"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -658,7 +658,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.4.3"
+version = "1.4.4"
 description = "Dara Framework Core"
 category = "main"
 optional = false
@@ -697,7 +697,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.4.3)"]
+all = ["dara-components (==1.4.4)"]
 
 [package.source]
 type = "directory"
@@ -2947,14 +2947,14 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "xyzservices"
-version = "2023.10.0"
+version = "2023.10.1"
 description = "Source of XYZ tiles providers"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "xyzservices-2023.10.0-py3-none-any.whl", hash = "sha256:70b9910f6c8e46f6ca92dea21e9b8cf89edf0ead35a870198fb59a7d63579525"},
-    {file = "xyzservices-2023.10.0.tar.gz", hash = "sha256:eee203e91955782fd8bfc2f05846830c289139dc0ab4eaf733bfa8f0be71861f"},
+    {file = "xyzservices-2023.10.1-py3-none-any.whl", hash = "sha256:6a4c38d3a9f89d3e77153eff9414b36a8ee0850c9e8b85796fd1b2a85b8dfd68"},
+    {file = "xyzservices-2023.10.1.tar.gz", hash = "sha256:091229269043bc8258042edbedad4fcb44684b0473ede027b5672ad40dc9fa02"},
 ]
 
 [[package]]
@@ -2976,4 +2976,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "143b39dede138da71178348a0a96be5876eddacb612ca405ecf0b139a0cfe558"
+content-hash = "4ce8ef134befe9cefaaeb10ec13a033d2607fc45813d67515ee166a26cec594d"
