@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where the update action would fail if the updated variable was not already registered on the client. The action now registers the variable if it is not already registered.
+
 ## 1.4.3
 
 -   `py_component` results are now normalized, which means multiple instances of the same variables within the returned components will be deduplicated. This should significantly reduce the amount of data sent over the wire in some cases.

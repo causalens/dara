@@ -71,5 +71,6 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     const recoilState = useMemo(() => getOrRegisterPlainVariable(variable, WsClient, taskContext, search, token), []);
     const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
     const deferred = useDeferLoadable(loadable);
+
     return [deferred, setLoadable];
 }

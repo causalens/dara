@@ -1,6 +1,7 @@
 import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { rest } from 'msw';
+import { useState } from 'react';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
@@ -114,6 +115,65 @@ describe('useAction', () => {
         await waitFor(() => expect(getByTestId('result').innerHTML).not.toBe('value'));
 
         expect(getByTestId('result').innerHTML).toBe('updated');
+    });
+
+    it('should UPDATE_VARIABLE even when variable is not yet registered with useVariable', async () => {
+        const variable: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'value',
+            nested: [],
+            uid: 'uid',
+        };
+
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: 'updated',
+            variable,
+        };
+
+        // Now render a component with the variable and see that it has been updated
+        const MockComponent2 = (props: { var: Variable<any> }): JSX.Element => {
+            const [a] = useVariable(props.var);
+
+            return <span data-testid="result">{a}</span>;
+        };
+
+        const MockComponent = (props: { action: Action; var: SingleVariable<string> }): JSX.Element => {
+            const [update, loading] = useAction(props.action);
+            const [render, setRender] = useState(false);
+
+            return (
+                <>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                    <span data-testid="loading">{loading.toString()}</span>
+                    {/* Do not render the nested component so not calling useVariable until true */}
+                    <button data-testid="render" onClick={() => setRender(true)} />
+                    {render && <MockComponent2 var={variable} />}
+                </>
+            );
+        };
+
+        const { getByTestId } = wrappedRender(<MockComponent action={action} var={variable} />);
+
+        await waitFor(() => expect(getByTestId('update')).toBeInTheDocument());
+
+        act(() => {
+            const button = getByTestId('update');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getByTestId('loading').innerHTML).toBe('false'));
+
+        act(() => {
+            const button = getByTestId('render');
+            fireEvent.click(button);
+        });
+
+        await waitFor(() => expect(getByTestId('result').innerHTML).toBe('updated'));
     });
 
     it('should handle UPDATE_VARIABLE action with nested property', async () => {
