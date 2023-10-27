@@ -47,7 +47,7 @@
     "@types/jest": "^29.5.1",
     "@types/lodash": "^4.14.178",
     "@types/node": "^18.15.3",
-    "@types/object-hash": "^2.2.1",
+    "@types/object-hash": "^3.0.5",
     "@types/react": "^18.2.6",
     "@types/react-collapse": "^5.0.1",
     "@types/react-dom": "^18.2.4",
