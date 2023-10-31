@@ -6,7 +6,7 @@ title: Changelog
 
 -   Changed `Plotly` default `min-height` to be `350px`.
 -   Changed default font-sizes for `Bokeh` and `Plotly` components to use `16px` for title, and `14px` for axis labels, legends and tooltips.
--   Reduced default `Plotly` margins.
+-   Reduced default `Plotly` margins. Update default tooltip background color to be grey.
 
 ## 1.4.4
 

@@ -59,6 +59,8 @@ light_theme = {
                 'family': 'Manrope',
                 'size': 14,
             },
+            'bgcolor': light_colors.grey2,
+            'bordercolor': light_colors.grey5,
         },
         'legend': {
             'title': {
@@ -115,6 +117,8 @@ dark_theme = {
                 'family': 'Manrope',
                 'size': 14,
             },
+            'bgcolor': dark_colors.grey2,
+            'bordercolor': dark_colors.grey5,
         },
         'legend': {
             'title': {
