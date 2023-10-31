@@ -33,12 +33,7 @@ from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
 from dara.core.configuration import Configuration, ConfigurationBuilder
-from dara.core.defaults import (
-    blank_template,
-    default_template,
-    top_menu_template,
-    top_template,
-)
+from dara.core.defaults import blank_template, default_template, top_menu_template, top_template
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
@@ -63,12 +58,7 @@ from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.js_tooling.js_utils import (
-    BuildCache,
-    BuildMode,
-    build_autojs_template,
-    rebuild_js,
-)
+from dara.core.js_tooling.js_utils import BuildCache, BuildMode, build_autojs_template, rebuild_js
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 
 
@@ -206,6 +196,10 @@ def _start_application(config: Configuration):
     # Setup http logger
     if os.environ.get('DARA_TEST_FLAG', None) is None:
         app.add_middleware(LoggingMiddleware, logger=http_logger)
+
+    # Add custom middlewares
+    for middleware in config.middlewares:
+        app.user_middleware.insert(0, middleware)
 
     # Loop over scheduled jobs and start them
     eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
