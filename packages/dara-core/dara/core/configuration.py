@@ -18,7 +18,19 @@ import os
 import pathlib
 from inspect import isclass, isfunction
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from fastapi.middleware import Middleware
 from pydantic.generics import GenericModel
@@ -41,7 +53,11 @@ from dara.core.definitions import (
 from dara.core.interactivity.actions import ActionImpl, ResetVariables
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.internal.encoder_registry import Encoder
-from dara.core.internal.import_discovery import create_action_definition, create_component_definition, run_discovery
+from dara.core.internal.import_discovery import (
+    create_action_definition,
+    create_component_definition,
+    run_discovery,
+)
 from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
