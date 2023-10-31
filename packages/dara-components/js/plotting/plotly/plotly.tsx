@@ -324,7 +324,7 @@ function Plotly(props: PlotlyProps): JSX.Element {
     }, {} as RequiredPlotParams);
 
     return (
-        <StyledPlotly $rawCss={css} style={{ flex: '1 1 auto', minHeight: '200px', ...style }}>
+        <StyledPlotly $rawCss={css} style={{ flex: '1 1 auto', minHeight: '350px', ...style }}>
             <AutoSizer>
                 {({ height, width }) => (
                     <Plot
