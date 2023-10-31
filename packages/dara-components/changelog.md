@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Changed `Plotly` default `min-height` to be `350px`.
+
 ## 1.4.4
 
 -   Fixed an issue where Plotly could have a jittery behaviour on Notebooks.

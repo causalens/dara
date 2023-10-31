@@ -79,6 +79,26 @@ class Plotly(StyledComponentInstance):
     A Plotly Component allows for a plotly figure to be added to your app. Accepts a plotly figure as a parameter and an array of events.
     The component takes care of serialization of the component using plotly's to_json helper. This in rendered and handled in the frontend with Plotly's react component.
 
+    By default the Plotly plot will have a minimum height of 350px and grow to fit the space available to it.
+    This default minimum height can be changed by passing `min_height` prop to the component:
+
+    ```python
+    from dara.core import ConfigurationBuilder
+    from dara.components import Plotly
+    import plotly.express as px
+
+    df = px.data.iris()  # Using built-in Iris dataset
+    fig = px.scatter(df, x='sepal_width', y='sepal_length', color='species', title='Iris Dataset Scatter Plot')
+
+
+    def plotly_page():
+        return Plotly(figure=fig, min_height=100)
+
+
+    config = ConfigurationBuilder()
+    config.add_page(name='MyPlot', content=plotly_page())
+    ```
+
     :param figure: A plotly figure
     :param events: An array of plotly events
     """
