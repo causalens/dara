@@ -26,22 +26,52 @@ light_theme = {
         'paper_bgcolor': light_colors.blue1,  # Set the background color of the plot
         'plot_bgcolor': light_colors.blue1,  # Set the background color of the plot area
         'colorway': CategoricalLight10,
+        'title': {'font': {'size': 16}},
+        'margin': {'t': 70, 'b': 70},
         'font': {
             'family': 'Manrope',
-            'size': 16,
+            'size': 14,
             'color': light_colors.text,
         },
         'xaxis': {
             'gridcolor': light_colors.grey2,
+            'title': {
+                'font': {
+                    'color': light_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
         },
         'yaxis': {
             'gridcolor': light_colors.grey2,
+            'title': {
+                'font': {
+                    'color': light_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
         },
         'hoverlabel': {
             'font': {
                 'color': light_colors.text,
                 'family': 'Manrope',
                 'size': 14,
+            },
+        },
+        'legend': {
+            'title': {
+                'font': {
+                    'color': light_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
+            'font': {
+                'color': light_colors.text,
+                'family': 'Manrope',
+                'size': 12,
             },
         },
     },
@@ -52,16 +82,32 @@ dark_theme = {
         'paper_bgcolor': dark_colors.blue1,  # Set the background color of the plot
         'plot_bgcolor': dark_colors.blue1,  # Set the background color of the plot area
         'colorway': CategoricalDark10,
+        'title': {'font': {'size': 16}},
+        'margin': {'t': 70, 'b': 70},
         'font': {
             'family': 'Manrope',
-            'size': 16,
+            'size': 14,
             'color': dark_colors.text,
         },
         'xaxis': {
             'gridcolor': dark_colors.grey2,
+            'title': {
+                'font': {
+                    'color': dark_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
         },
         'yaxis': {
             'gridcolor': dark_colors.grey2,
+            'title': {
+                'font': {
+                    'color': dark_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
         },
         'hoverlabel': {
             'font': {
@@ -70,5 +116,19 @@ dark_theme = {
                 'size': 14,
             },
         },
-    }
+        'legend': {
+            'title': {
+                'font': {
+                    'color': dark_colors.text,
+                    'family': 'Manrope',
+                    'size': 14,
+                },
+            },
+            'font': {
+                'color': dark_colors.text,
+                'family': 'Manrope',
+                'size': 12,
+            },
+        },
+    },
 }
