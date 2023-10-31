@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Relax `python-dotenv` dependency from `^0.19.2` to `>=0.19.2`
+
 ## 1.4.4
 
 -   Fixed an issue where the update action would fail if the updated variable was not already registered on the client. The action now registers the variable if it is not already registered.
