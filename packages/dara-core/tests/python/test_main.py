@@ -1986,6 +1986,7 @@ async def test_add_custom_middlewares():
     """Test that custom middlewares can be added to the app"""
     side_effect = 0
 
+    # test that a callable can be added as a middleware
     class CustomMiddleware:
         """test middleware"""
 
@@ -2006,3 +2007,19 @@ async def test_add_custom_middlewares():
     async with AsyncClient(app) as client:
         await client.get('/api/core/config', headers=AUTH_HEADERS)
         assert side_effect == 1
+
+    # Test that a function can be added as a middleware
+    async def middleware(request, call_next):
+        nonlocal side_effect
+        side_effect = 2
+        return await call_next(request)
+
+    builder = ConfigurationBuilder()
+    builder.add_middleware(middleware)
+    config = create_app(builder)
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        assert side_effect == 2
