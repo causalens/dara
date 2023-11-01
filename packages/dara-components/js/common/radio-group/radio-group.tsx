@@ -53,7 +53,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             items={items}
             onChange={onChange}
             style={style}
-            value={items.find((item) => item.value === value)}
+            value={value === null ? value : items.find((item) => item.value === value)}
         />
     );
 }
