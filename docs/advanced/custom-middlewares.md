@@ -3,6 +3,9 @@ title: Custom middlewares
 ---
 
 The aim of this document is to show you how you can add custom middlewares to a Dara app.
+You may want to add custom middlewares to a Dara app to add some custom logic to the request/response processing pipeline.
+You can read more about Middlewares in [the FastAPI documentation](https://fastapi.tiangolo.com/tutorial/middleware/)
+and also [advanced middlewares](https://fastapi.tiangolo.com/advanced/middleware/).
 
 ## Defining a middleware
 
