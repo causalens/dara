@@ -9,18 +9,29 @@ and also [advanced middlewares](https://fastapi.tiangolo.com/advanced/middleware
 
 ## Defining a middleware
 
-A middleware can be a custom class or a function. A simple middleware class could be defined as the following
+A middleware can be a custom class or a function.
+For example, a simple middleware class that enforces that all incoming requests must be `https` could be defined as the following.
 
 ```python
-class CustomMiddleware:
-    def __init__(self, app):
+from starlette.datastructures import URL
+from starlette.responses import RedirectResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+class CustomHTTPSRedirectMiddleware:
+    def __init__(self, app: ASGIApp):
         self.app = app
 
-    async def __call__(self, scope, receive, send):
-        # Do something before the request is processed
-        response = await self.app(scope, receive, send)
-        # Do something after the request is processed
-        return response
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] in ("http") and scope["scheme"] in ("http"):
+            url = URL(scope=scope)
+            netloc = url.hostname if url.port in (80, 443) else url.netloc
+            url = url.replace(scheme='https', netloc=netloc)
+            response = RedirectResponse(url, status_code=307)
+
+            await response(scope, receive, send)
+        else:
+            await self.app(scope, receive, send)
+
 ```
 
 As you can see, you simply need to define a class with a `__call__` method which takes the following arguments:
@@ -31,13 +42,21 @@ As you can see, you simply need to define a class with a `__call__` method which
 
 The `__call__` method must return a response.
 
-A middleware can also be a simple function. Such a middleware function could be defined as the following
+A middleware can also be a simple function.
+For example,a simple middleware function that calculates the processing time of a request and sets it in the headers could be defined as the following.
 
 ```python
-async def custom_middleware(request, call_next):
-    # Do something before the request is processed
+import time
+from fastapi import Request
+
+async def custom_middleware(request: Request, call_next):
+    start_time = time.time()
+
     response = await call_next(request)
-    # Do something after the request is processed
+
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+
     return response
 ```
 

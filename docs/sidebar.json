@@ -42,7 +42,8 @@
         "docs/advanced/import-discovery",
         "docs/advanced/heavy-io",
         "docs/advanced/progress-tracking",
-        "docs/advanced/custom-endpoints"
+        "docs/advanced/custom-endpoints",
+        "docs/advanced/custom-middlewares"
       ]
     },
     {
