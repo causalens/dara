@@ -11,6 +11,7 @@ title: Changelog
 -   **Backported:** Changed `Plotly` default `min-height` to be `350px`.
 -   **Backported:** Changed default font-sizes for `Bokeh` and `Plotly` components to use `16px` for title, and `14px` for axis labels, legends and tooltips.
 -   **Backported:** Reduced default `Plotly` margins. Update default tooltip background color to be grey.
+-   **Backported:** Fixed an issue where if `RadioGroup` had a `value` of an empty `Variable` that that `Variable` would not update.
 
 ## 1.2.3
 
