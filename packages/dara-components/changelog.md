@@ -3,28 +3,19 @@ title: Changelog
 ---
 
 ## NEXT
-<<<<<<< HEAD
-=======
 
--   Changed `Plotly` default `min-height` to be `350px`.
--   Changed default font-sizes for `Bokeh` and `Plotly` components to use `16px` for title, and `14px` for axis labels, legends and tooltips.
--   Reduced default `Plotly` margins. Update default tooltip background color to be grey.
--   Fixed an issue where if `RadioGroup` had a `value` of an empty `Variable` that that `Variable` would not update.
-
-## 1.4.4
->>>>>>> f29637c (Improvement: DO-2064 change plotly defaults (#147))
-
+-   **Backported**: Changed `Plotly` default `min-height` to be `350px`.
+-   **Backported**: Changed default font-sizes for `Bokeh` and `Plotly` components to use `16px` for title, and `14px` for axis labels, legends and tooltips.
+-   **Backported**: Reduced default `Plotly` margins. Update default tooltip background color to be grey.
 -   **Backported**: Fixed an issue where Plotly could have a jittery behaviour on Notebooks.
 -   **Backported**: Added a default `min-height` of `200px` for `Plotly`, this can be overwritten by setting the `min_height` prop or by passing `raw_css`.
 -   **Backported**: Fixed an issue where Plotly's hover did not use the correct font.
 -   **Backported**: Fixed an issue where `Input` of type number displayed zero instead of null when null value was set.
 -   **Backported**: Fixed issue where in some cases if `Input` of type number value variable was update outside the component, the value would not show.
-
-## 1.3.2
-
--   Fixed an issue where `Table` would always overflow
--   Fixed an issue where `NaN` was not handled in `Input` with `type=number`
--   Fixed an issue where one could not set `margin` to `Text` component
+-   **Backported**: Fixed an issue where if `RadioGroup` had a `value` of an empty `Variable` that that `Variable` would not update.
+-   **Backported**: Fixed an issue where `Table` would always overflow
+-   **Backported**: Fixed an issue where `NaN` was not handled in `Input` with `type=number`
+-   **Backported**: Fixed an issue where one could not set `margin` to `Text` component
 
 ## 1.1.10
 
