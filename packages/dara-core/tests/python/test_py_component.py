@@ -7,7 +7,6 @@ from async_asgi_testclient import TestClient as AsyncClient
 from pydantic.main import BaseModel
 
 from dara.core import DerivedVariable, Variable, py_component
-from dara.core.base_definitions import Cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import BaseFallback, ComponentInstance
 from dara.core.internal.normalization import denormalize
