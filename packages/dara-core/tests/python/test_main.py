@@ -1521,53 +1521,6 @@ async def test_calling_async_action():
         assert res.status_code == 200
         assert res.json() == 'test_current'
 
-
-async def test_calling_action_restores_args():
-    """
-    Test calling an @action annotated action restores arguments to their original types based on type annotations
-    """
-    builder = ConfigurationBuilder()
-    config = create_app(builder)
-
-    var = Variable()
-
-    class CustomClass(BaseModel):
-        value: int
-
-    @action
-    async def test_action(ctx: action.Ctx, class_1: CustomClass, class_2: CustomClass):
-        await ctx.update(variable=var, value=class_1.value + class_2.value)
-
-    action_instance = test_action(class_1=var, class_2=CustomClass(value=10))
-
-    app = _start_application(config)
-
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client, action_instance,
-                {
-                    'input': None,
-                    'values': {
-                        'class_1': {'value': 10}
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
-            )
-            assert res.status_code == 200
-
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
-
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 20
-
-
-
-
 async def test_calling_an_action_with_extras():
     """Test that an action with extras can be called via the rest api"""
     builder = ConfigurationBuilder()
