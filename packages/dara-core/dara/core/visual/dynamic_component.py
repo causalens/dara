@@ -34,8 +34,6 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel
-
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
 from dara.core.interactivity import (
