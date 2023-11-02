@@ -2,10 +2,15 @@
 title: Changelog
 ---
 
+## 1.1.11
+
+-   **Backported**: Fixed an issue where the default encoders for certain types such as `pandas.Timeseries`, `numpy.complex64` and `numpy.complex128` would output unserializable values
+
 ## 1.1.9
 
 -   Added serialize/deserialize support to numpy/pandas datatype
 -   Added custom encoder support. User can add encoder to handle serialization/deserialization of a type
+
 ## 1.1.6
 
 -   Internal: dedupe custom registry lookup calls
