@@ -34,7 +34,6 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel
 
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
@@ -46,7 +45,7 @@ from dara.core.interactivity import (
     Variable,
 )
 from dara.core.internal.dependency_resolution import resolve_dependency
-from dara.core.internal.encoder_registry import deserialize, encoder_registry
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.store import Store
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler

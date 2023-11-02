@@ -25,7 +25,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.1.10"
+version = "1.1.11"
 
 [[tool.poetry.packages]]
 include = "dara"
@@ -62,11 +62,11 @@ xlrd = "*"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "=1.1.10"
+version = "=1.1.11"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "=1.1.10"
+version = "=1.1.11"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
