@@ -67,7 +67,7 @@ mypy = "^1.6.0"
 freezegun = "^1.2.2"
 requests = ">=2.25.1, <3.0.0"
 pytest-timeout = "^2.1.0"
-types-croniter = "^1.0.10"
+types-croniter = "^2.0.0"
 
 [tool.poetry.dev-dependencies.dara-components]
 path = "packages/dara-components"
