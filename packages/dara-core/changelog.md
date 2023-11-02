@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.5
 
 -   Relax `python-dotenv` dependency from `^0.19.2` to `>=0.19.2`
 -   Added `add_middleware` to `ConfigurationBuilder` to allow users to add custom middleware
