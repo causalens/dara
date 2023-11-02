@@ -38,7 +38,7 @@ from dara.core.interactivity.actions import TriggerVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -217,16 +217,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if len(var_arg_idx) == 0:
             for param, arg in zip(parameters, args):
                 typ = param.annotation
-                if not isinstance(arg, BaseTask):
-                # Only try to deserialize when the arg is not a task
-                    if typ is not None and typ in encoder_registry:
-                        parsed_args.append(encoder_registry[typ]['deserialize'](arg))
-                    elif typ is not None and isclass(typ) and issubclass(typ, BaseModel) and arg is not None:
-                        parsed_args.append(typ(**arg))
-                    else:
-                        parsed_args.append(arg)
-                else:
-                    parsed_args.append(arg)
+                parsed_args.append(deserialize(arg, typ))
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest
