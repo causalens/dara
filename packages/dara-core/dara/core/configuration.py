@@ -14,9 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import os
 import pathlib
+from inspect import isclass, isfunction
 from types import ModuleType
 from typing import (
     Any,
@@ -32,7 +32,9 @@ from typing import (
     Union,
 )
 
+from fastapi.middleware import Middleware
 from pydantic.generics import GenericModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
@@ -89,9 +91,11 @@ class Configuration(GenericModel):
     title: str
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
     encoders: Dict[Type[Any], Encoder]
+    middlewares: List[Middleware]
 
     class Config:
         extra = 'forbid'
+        arbitrary_types_allowed = True
 
     def get_package_map(self) -> Dict[str, str]:
         """
@@ -139,6 +143,7 @@ class ConfigurationBuilder:
     _template_extra_js: str
     _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
     _custom_encoders: Dict[Type[Any], Encoder]
+    _middlewares: List[Middleware]
     routes: Set[ApiRoute]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -165,6 +170,7 @@ class ConfigurationBuilder:
         self.routes = set()
         self.static_files_dir = os.path.join(pathlib.Path().parent.parent.absolute(), 'dist')
         self._static_folders = []
+        self._middlewares = []
 
         self.scheduled_jobs = []
         self.startup_functions = []
@@ -442,6 +448,22 @@ class ConfigurationBuilder:
 
         return registry_lookup
 
+    def add_middleware(self, middleware: Union[type, Callable], **options: Any):
+        """
+        Add a middleware to the application. The middleware can be a class or a callable.
+        """
+        if isfunction(middleware):
+            constructed_middleware = Middleware(BaseHTTPMiddleware, dispatch=middleware)
+            if len(options) > 0:
+                dev_logger.warning(f'Options provided for a function middleware {middleware}, but they will be ignored')
+        elif isclass(middleware):
+            constructed_middleware = Middleware(middleware, **options)
+        else:
+            raise ValueError(f'Invalid middleware type: {type(middleware)}')
+
+        self._middlewares.append(constructed_middleware)
+        return constructed_middleware
+
     def set_theme(
         self,
         main_theme: Optional[Union[ThemeDef, Literal['light'], Literal['dark']]] = None,
@@ -531,4 +553,5 @@ class ConfigurationBuilder:
             title=self.title,
             ws_handlers=self._custom_ws_handlers,
             encoders=self._custom_encoders,
+            middlewares=self._middlewares,
         )

@@ -207,6 +207,10 @@ def _start_application(config: Configuration):
     if os.environ.get('DARA_TEST_FLAG', None) is None:
         app.add_middleware(LoggingMiddleware, logger=http_logger)
 
+    # Add custom middlewares
+    for middleware in config.middlewares:
+        app.user_middleware.insert(0, middleware)
+
     # Loop over scheduled jobs and start them
     eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
     for job, func, args in config.scheduled_jobs:

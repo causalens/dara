@@ -2,6 +2,8 @@ import os
 import shutil
 
 import pytest
+from fastapi.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth import BasicAuthConfig
 from dara.core.base_definitions import ActionDef, ActionImpl
@@ -51,6 +53,41 @@ def test_add_page():
     assert config.pages['Test Page'].name == 'Test Page'
     assert config.pages['Test Page'].content == test_instance
     assert config.pages['Test Page'].url_safe_name == 'test-page'
+
+
+def test_add_middlewares():
+    """Test that a middleware can be added and is mapped through correctly"""
+
+    class CustomMiddleware:
+        """test middleware"""
+
+        def __init__(self, app, foo):
+            self.foo = foo
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            return await self.app(scope, receive, send)
+
+    builder = ConfigurationBuilder()
+
+    # Test that a middleware class can be added
+    builder.add_middleware(CustomMiddleware, foo='bar')
+    config = builder._to_configuration()
+
+    assert isinstance(config.middlewares[0], Middleware)
+    assert config.middlewares[0].cls == CustomMiddleware
+    assert config.middlewares[0].options == {'foo': 'bar'}
+
+    # Test that a function can be added
+    def test_middleware(app, foo):
+        return app, foo
+
+    builder.add_middleware(test_middleware)
+    config = builder._to_configuration()
+
+    assert isinstance(config.middlewares[1], Middleware)
+    assert config.middlewares[1].cls == BaseHTTPMiddleware
+    assert config.middlewares[1].options == {'dispatch': test_middleware}
 
 
 def test_add_page_callable_class():
@@ -103,6 +140,7 @@ def test_add_page_custom_route():
     assert isinstance(config.pages['Test Page'], Page)
     assert config.pages['Test Page'].icon == 'Test'
     assert config.pages['Test Page'].url_safe_name == 'test-route'
+
 
 def test_add_local_action():
     """Test that a local action can be added"""

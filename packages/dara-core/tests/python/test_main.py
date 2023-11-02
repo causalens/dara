@@ -6,27 +6,13 @@ from typing import Union
 from unittest.mock import Mock, patch
 
 import anyio
-from exceptiongroup import BaseExceptionGroup
 import jwt
-from pydantic import BaseModel
 import pytest
 from anyio import create_task_group
 from anyio.abc import TaskStatus
 from async_asgi_testclient import TestClient as AsyncClient
-
-from dara.core import DerivedVariable, Variable, py_component, action
-from dara.core.auth.definitions import JWT_ALGO
-from dara.core.auth.basic import MultiBasicAuthConfig
-from dara.core.base_definitions import CacheType
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.defaults import default_template
-from dara.core.definitions import ComponentInstance
-from dara.core.http import get
-from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable
-from dara.core.internal.tasks import Task
-from dara.core.internal.websocket import WebsocketManager
-from dara.core.main import _start_application
-
+from exceptiongroup import BaseExceptionGroup
+from pydantic import BaseModel
 from tests.python.tasks import calc_task, delay_exception_task, exception_task
 from tests.python.utils import (
     AUTH_HEADERS,
@@ -41,6 +27,19 @@ from tests.python.utils import (
     get_action_results,
     get_ws_messages,
 )
+
+from dara.core import DerivedVariable, Variable, action, py_component
+from dara.core.auth.basic import MultiBasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO
+from dara.core.base_definitions import CacheType
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.defaults import default_template
+from dara.core.definitions import ComponentInstance
+from dara.core.http import get
+from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable
+from dara.core.internal.tasks import Task
+from dara.core.internal.websocket import WebsocketManager
+from dara.core.main import _start_application
 
 pytestmark = pytest.mark.anyio
 
@@ -239,6 +238,7 @@ async def test_fetching_async_derived_variable():
         assert response.status_code == 200
         assert response.json()['value'] == 15
 
+
 async def test_restoring_args_derived_variable():
     """Test that when a DerivedVariable is expecting a given type of an arg, the serialized value is restored to that type"""
     builder = ConfigurationBuilder()
@@ -290,6 +290,7 @@ async def test_restoring_args_derived_variable():
         assert mock_deserialize.call_args[0][0] == '5'
 
         assert mock_serialize.call_count == 1
+
 
 async def test_chained_derived_variable():
     """Test that derived variables can be chained"""
@@ -1482,7 +1483,12 @@ async def test_calling_an_action():
             res = await _call_action(
                 client,
                 action,
-                {'input': 'value', 'values': {}, 'ws_channel': init.get('message', {}).get('channel'), 'execution_id': exec_uid}
+                {
+                    'input': 'value',
+                    'values': {},
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid,
+                },
             )
             assert res.status_code == 200
             actions = await get_action_results(websocket, exec_uid)
@@ -1510,15 +1516,16 @@ async def test_calling_async_action():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             res = await _call_action(
-                client, action,
+                client,
+                action,
                 {
                     'input': 'test',
                     'values': {
                         'old': 'current',
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
+                    'execution_id': exec_uid,
+                },
             )
             assert res.status_code == 200
 
@@ -1526,6 +1533,7 @@ async def test_calling_async_action():
             assert len(actions) == 1
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['value'] == 'test_current'
+
 
 async def test_calling_update_action_with_get_api():
     """Test UpdateVariable with variable.get() as the target"""
@@ -1542,15 +1550,14 @@ async def test_calling_update_action_with_get_api():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             res = await _call_action(
-                client, action,
+                client,
+                action,
                 {
                     'input': 'test',
-                    'values': {
-                        'old': None
-                    },
+                    'values': {'old': None},
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
+                    'execution_id': exec_uid,
+                },
             )
             assert res.status_code == 200
 
@@ -1586,15 +1593,16 @@ async def test_calling_annotated_action():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             res = await _call_action(
-                client, action_instance,
+                client,
+                action_instance,
                 {
                     'input': 5,
                     'values': {
                         'previous_value': 10,
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
+                    'execution_id': exec_uid,
+                },
             )
             assert res.status_code == 200
 
@@ -1602,10 +1610,11 @@ async def test_calling_annotated_action():
             assert len(actions) == 2
 
             assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 26 # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
 
             assert actions[1]['name'] == 'ResetVariables'
             assert actions[1]['variables'] == [var.dict()]
+
 
 async def test_calling_action_restores_args():
     """
@@ -1632,15 +1641,14 @@ async def test_calling_action_restores_args():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             res = await _call_action(
-                client, action_instance,
+                client,
+                action_instance,
                 {
                     'input': None,
-                    'values': {
-                        'class_1': {'value': 10}
-                    },
+                    'values': {'class_1': {'value': 10}},
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
+                    'execution_id': exec_uid,
+                },
             )
             assert res.status_code == 200
 
@@ -1649,8 +1657,6 @@ async def test_calling_action_restores_args():
 
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['value'] == 20
-
-
 
 
 async def test_calling_an_action_with_extras():
@@ -1672,16 +1678,14 @@ async def test_calling_an_action_with_extras():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             res = await _call_action(
-                client, action,
+                client,
+                action,
                 {
                     'input': 'test',
-                    'values': {
-                        'old': 'current',
-                        'kwarg_0': 'val2'
-                    },
+                    'values': {'old': 'current', 'kwarg_0': 'val2'},
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
-                }
+                    'execution_id': exec_uid,
+                },
             )
 
             assert res.status_code == 200
@@ -1719,7 +1723,7 @@ async def test_calling_an_action_returns_task():
                     'uid': str(derived.uid),
                     'values': [5, 10],
                 },
-            }
+            },
         }
 
         async with _async_ws_connect(client) as websocket:
@@ -1727,7 +1731,9 @@ async def test_calling_an_action_returns_task():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
+                client,
+                action,
+                {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')},
             )
             assert 'task_id' in response.json()
 
@@ -1779,7 +1785,7 @@ async def test_calling_an_action_returns_meta_task():
                     'uid': str(derived_var_2.uid),
                     'values': [7, 9],
                 },
-            }
+            },
         }
 
         async with _async_ws_connect(client) as websocket:
@@ -1787,7 +1793,9 @@ async def test_calling_an_action_returns_meta_task():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
+                client,
+                action,
+                {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')},
             )
 
             response_json = response.json()
@@ -1856,7 +1864,7 @@ async def test_calling_an_action_returns_task_loop():
                         },
                     ],
                 },
-            }
+            },
         }
 
         async with _async_ws_connect(client) as websocket:
@@ -1864,7 +1872,9 @@ async def test_calling_an_action_returns_task_loop():
             init = await websocket.receive_json()
             exec_uid = 'exec_id'
             response = await _call_action(
-                client, action, {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')}
+                client,
+                action,
+                {**payload, 'execution_id': exec_uid, 'ws_channel': init.get('message', {}).get('channel')},
             )
             response_json = response.json()
             assert 'task_id' in response_json
@@ -1970,3 +1980,46 @@ async def test_socket_to_app_send(uid):
 
                 await tg.start(check_msg)
                 tg.start_soon(send_msg)
+
+
+async def test_add_custom_middlewares():
+    """Test that custom middlewares can be added to the app"""
+    side_effect = 0
+
+    # test that a callable can be added as a middleware
+    class CustomMiddleware:
+        """test middleware"""
+
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            nonlocal side_effect
+            side_effect = 1
+            return await self.app(scope, receive, send)
+
+    builder = ConfigurationBuilder()
+    builder.add_middleware(CustomMiddleware)
+    config = create_app(builder)
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        assert side_effect == 1
+
+    # Test that a function can be added as a middleware
+    async def middleware(request, call_next):
+        nonlocal side_effect
+        side_effect = 2
+        return await call_next(request)
+
+    builder = ConfigurationBuilder()
+    builder.add_middleware(middleware)
+    config = create_app(builder)
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        assert side_effect == 2
