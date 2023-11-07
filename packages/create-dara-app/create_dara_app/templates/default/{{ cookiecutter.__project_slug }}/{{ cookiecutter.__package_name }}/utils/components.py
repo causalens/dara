@@ -60,7 +60,7 @@ from dara.components import (
     Text,
     Textarea,
     Tooltip,
-    VisualEdgeEncoder
+    VisualEdgeEncoder,
 )
 from dara.components.common.component_select_list import ComponentItem
 from dara.components.plotting.palettes import PolarisingLight11
@@ -122,9 +122,15 @@ data = DataVariable(
 def show_var(text: str, value):
     return Stack(Text(text, bold=True), Text(str(value)), direction='horizontal')
 
-def show_code(variable: Variable, code:str, component_type: str, component_name:str) -> ComponentInstance:
+
+def show_code(variable: Variable, code: str, component_type: str, component_name: str) -> ComponentInstance:
     return Stack(
-        Button('Show Source Code', onclick=UpdateVariable(lambda ctx: True, variable), width='200px', styling=ButtonStyle.GHOST),
+        Button(
+            'Show Source Code',
+            onclick=UpdateVariable(lambda ctx: True, variable),
+            width='200px',
+            styling=ButtonStyle.GHOST,
+        ),
         Modal(
             Stack(Code(code=code, theme=Code.Themes.LIGHT), scroll=True),
             Stack(
@@ -136,20 +142,25 @@ def show_code(variable: Variable, code:str, component_type: str, component_name:
                 ),
                 align='end',
                 justify='end',
-                hug=True
+                hug=True,
             ),
             show=variable,
             height='700px',
             width='1000px',
-            raw_css={'overflow-x': 'auto'}
+            raw_css={'overflow-x': 'auto'},
         ),
-        Anchor('Check the docs for more info', href=f'https://dara.causalens.com/docs/generated/dara/reference/dara/components/{component_type}/{component_name}/', new_tab=True),
-        height='auto'
+        Anchor(
+            'Check the docs for more info',
+            href=f'https://dara.causalens.com/docs/generated/dara/reference/dara/components/{component_type}/{component_name}/',
+            new_tab=True,
+        ),
+        height='auto',
     )
 
-#--------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
 # Graph Components
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 causal_graph_var = Variable(False)
 
@@ -158,22 +169,21 @@ def causal_graph_viewer() -> ComponentInstance:
 
     causal_graph = CausalGraph()
     causal_graph.add_edge('Age', 'Fraud')
-    causal_graph.add_edge('Authority Contacted','Fraud')
-    causal_graph.add_edge('CPI','Salary')
-    causal_graph.add_edge('Car Value','Fraud')
-    causal_graph.add_edge('Crime Rate','Fraud')
-    causal_graph.add_edge('Education Level','Fraud')
-    causal_graph.add_edge('Education Level','Occupation')
-    causal_graph.add_edge('Education Level','Salary')
-    causal_graph.add_edge('Location','Crime Rate')
-    causal_graph.add_edge('Marital Status','Fraud')
-    causal_graph.add_edge('Occupation','Salary')
-    causal_graph.add_edge('Previous Claims','Fraud')
-    causal_graph.add_edge('Salary','Car Value')
-    causal_graph.add_edge('Salary','Fraud')
-    causal_graph.add_edge('Total Claim','Fraud')
-    causal_graph.add_edge('Unemployment Rate','Salary')
-
+    causal_graph.add_edge('Authority Contacted', 'Fraud')
+    causal_graph.add_edge('CPI', 'Salary')
+    causal_graph.add_edge('Car Value', 'Fraud')
+    causal_graph.add_edge('Crime Rate', 'Fraud')
+    causal_graph.add_edge('Education Level', 'Fraud')
+    causal_graph.add_edge('Education Level', 'Occupation')
+    causal_graph.add_edge('Education Level', 'Salary')
+    causal_graph.add_edge('Location', 'Crime Rate')
+    causal_graph.add_edge('Marital Status', 'Fraud')
+    causal_graph.add_edge('Occupation', 'Salary')
+    causal_graph.add_edge('Previous Claims', 'Fraud')
+    causal_graph.add_edge('Salary', 'Car Value')
+    causal_graph.add_edge('Salary', 'Fraud')
+    causal_graph.add_edge('Total Claim', 'Fraud')
+    causal_graph.add_edge('Unemployment Rate', 'Salary')
 
     for node in causal_graph.nodes:
         node.meta.update({'rendering_properties': {'color': numpy.random.choice(PolarisingLight11)}})
@@ -183,8 +193,8 @@ def causal_graph_viewer() -> ComponentInstance:
             causal_graph=causal_graph,
         ),
         show_code(
-        causal_graph_var,
-        '''
+            causal_graph_var,
+            """
 causal_graph = CausalGraph()
 causal_graph.add_edge('Age', 'Fraud')
 causal_graph.add_edge('Authority Contacted','Fraud')
@@ -209,11 +219,11 @@ for node in causal_graph.nodes:
 CausalGraphViewer(
     causal_graph=causal_graph,
 )
-        ''',
-        'graphs/components',
-        'causal_graph_viewer'
+        """,
+            'graphs/components',
+            'causal_graph_viewer',
         ),
-        height='700px'
+        height='700px',
     )
 
 
@@ -221,21 +231,21 @@ def causal_graph_viewer_planar() -> ComponentInstance:
 
     causal_graph = CausalGraph()
     causal_graph.add_edge('Age', 'Fraud')
-    causal_graph.add_edge('Authority Contacted','Fraud')
-    causal_graph.add_edge('CPI','Salary')
-    causal_graph.add_edge('Car Value','Fraud')
-    causal_graph.add_edge('Crime Rate','Fraud')
-    causal_graph.add_edge('Education Level','Fraud')
-    causal_graph.add_edge('Education Level','Occupation')
-    causal_graph.add_edge('Education Level','Salary')
-    causal_graph.add_edge('Location','Crime Rate')
-    causal_graph.add_edge('Marital Status','Fraud')
-    causal_graph.add_edge('Occupation','Salary')
-    causal_graph.add_edge('Previous Claims','Fraud')
-    causal_graph.add_edge('Salary','Car Value')
-    causal_graph.add_edge('Salary','Fraud')
-    causal_graph.add_edge('Total Claim','Fraud')
-    causal_graph.add_edge('Unemployment Rate','Salary')
+    causal_graph.add_edge('Authority Contacted', 'Fraud')
+    causal_graph.add_edge('CPI', 'Salary')
+    causal_graph.add_edge('Car Value', 'Fraud')
+    causal_graph.add_edge('Crime Rate', 'Fraud')
+    causal_graph.add_edge('Education Level', 'Fraud')
+    causal_graph.add_edge('Education Level', 'Occupation')
+    causal_graph.add_edge('Education Level', 'Salary')
+    causal_graph.add_edge('Location', 'Crime Rate')
+    causal_graph.add_edge('Marital Status', 'Fraud')
+    causal_graph.add_edge('Occupation', 'Salary')
+    causal_graph.add_edge('Previous Claims', 'Fraud')
+    causal_graph.add_edge('Salary', 'Car Value')
+    causal_graph.add_edge('Salary', 'Fraud')
+    causal_graph.add_edge('Total Claim', 'Fraud')
+    causal_graph.add_edge('Unemployment Rate', 'Salary')
 
     return Stack(
         CausalGraphViewer(
@@ -243,8 +253,8 @@ def causal_graph_viewer_planar() -> ComponentInstance:
             graph_layout=PlanarLayout(),
         ),
         show_code(
-        causal_graph_var,
-        '''
+            causal_graph_var,
+            """
 causal_graph = CausalGraph()
 causal_graph.add_edge('Age', 'Fraud')
 causal_graph.add_edge('Authority Contacted','Fraud')
@@ -270,11 +280,11 @@ CausalGraphViewer(
     causal_graph=causal_graph,
     graph_layout=PlanarLayout(),
 )
-        ''',
-        'graphs/components',
-        'causal_graph_viewer'
+        """,
+            'graphs/components',
+            'causal_graph_viewer',
         ),
-        height='700px'
+        height='700px',
     )
 
 
@@ -287,30 +297,30 @@ def edge_encoder() -> ComponentInstance:
             nodes=['Age', 'Unemployment', 'Education', 'Income'],
             initial_constraints=[
                 EdgeConstraint(source='Age', target='Education', type=EdgeConstraintType.FORBIDDEN_EDGE),
-                EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.UNDIRECTED_EDGE),
-                EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE),
-                EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
+                EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+                EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
+                EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
             ],
             graph_layout=SpringLayout(),
         ),
         show_code(
             edge_encoder_var,
-            '''
+            """
 VisualEdgeEncoder(
     nodes=['Age', 'Unemployment', 'Education', 'Income'],
     initial_constraints=[
         EdgeConstraint(source='Age', target='Education', type=EdgeConstraintType.FORBIDDEN_EDGE),
-        EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.UNDIRECTED_EDGE),
-        EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE),
-        EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
+        EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+        EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
+        EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE)
     ],
     graph_layout=SpringLayout(),
 )
-        ''',
-        'graphs/components',
-        'visual_edge_encoder'
+        """,
+            'graphs/components',
+            'visual_edge_encoder',
         ),
-        height='500px'
+        height='500px',
     )
 
 
@@ -324,20 +334,21 @@ def node_hierarchy_builder() -> ComponentInstance:
         ),
         show_code(
             node_hierarchy_var,
-            '''
+            """
 NodeHierarchyBuilder(
             nodes=[['Age'], ['Unemployment', 'Education'], ['Income']],
         )
-        ''',
-        'graphs/components',
-        'node_hierarchy_builder'
+        """,
+            'graphs/components',
+            'node_hierarchy_builder',
         ),
-        height='500px'
+        height='500px',
     )
 
-#--------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
 # Plotting Components
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 bokeh_var = Variable(False)
 
@@ -381,7 +392,7 @@ def bokeh() -> ComponentInstance:
         Bokeh(get_bokeh_figure()),
         show_code(
             bokeh_var,
-            '''
+            """
 def get_bokeh_figure():
 
     sigma = 10
@@ -416,9 +427,9 @@ def get_bokeh_figure():
     return p
 
 Bokeh(get_bokeh_figure())
-        ''',
-        'plotting',
-        'bokeh'
+        """,
+            'plotting',
+            'bokeh',
         ),
     )
 
@@ -431,42 +442,51 @@ def plotly() -> ComponentInstance:
 
         # Load data, define hover text and bubble size
         data = px.data.gapminder()
-        df_2007 = data[data['year']==2007]
+        df_2007 = data[data['year'] == 2007]
         df_2007 = df_2007.sort_values(['continent', 'country'])
 
         hover_text = []
         bubble_size = []
 
         for index, row in df_2007.iterrows():
-            hover_text.append(('Country: {country}<br>'+
-                            'Life Expectancy: {lifeExp}<br>'+
-                            'GDP per capita: {gdp}<br>'+
-                            'Population: {pop}<br>'+
-                            'Year: {year}').format(country=row['country'],
-                                                    lifeExp=row['lifeExp'],
-                                                    gdp=row['gdpPercap'],
-                                                    pop=row['pop'],
-                                                    year=row['year']))
+            hover_text.append(
+                (
+                    'Country: {country}<br>'
+                    + 'Life Expectancy: {lifeExp}<br>'
+                    + 'GDP per capita: {gdp}<br>'
+                    + 'Population: {pop}<br>'
+                    + 'Year: {year}'
+                ).format(
+                    country=row['country'],
+                    lifeExp=row['lifeExp'],
+                    gdp=row['gdpPercap'],
+                    pop=row['pop'],
+                    year=row['year'],
+                )
+            )
             bubble_size.append(math.sqrt(row['pop']))
 
         df_2007['text'] = hover_text
         df_2007['size'] = bubble_size
-        sizeref = 2.*max(df_2007['size'])/(100**2)
+        sizeref = 2.0 * max(df_2007['size']) / (100**2)
 
         # Dictionary with dataframes for each continent
         continent_names = ['Africa', 'Americas', 'Asia', 'Europe', 'Oceania']
-        continent_data = {continent:df_2007.query("continent == '%s'" %continent)
-                                    for continent in continent_names}
+        continent_data = {continent: df_2007.query("continent == '%s'" % continent) for continent in continent_names}
 
         # Create figure
         fig = go.Figure()
 
         for continent_name, continent in continent_data.items():
-            fig.add_trace(go.Scatter(
-                x=continent['gdpPercap'], y=continent['lifeExp'],
-                name=continent_name, text=continent['text'],
-                marker_size=continent['size'],
-                ))
+            fig.add_trace(
+                go.Scatter(
+                    x=continent['gdpPercap'],
+                    y=continent['lifeExp'],
+                    name=continent_name,
+                    text=continent['text'],
+                    marker_size=continent['size'],
+                )
+            )
 
         # Tune marker appearance and layout
         fig.update_traces(mode='markers', marker=dict(sizemode='area', sizeref=sizeref, line_width=2))
@@ -494,7 +514,7 @@ def plotly() -> ComponentInstance:
         Plotly(get_plotly_figure()),
         show_code(
             plotly_var,
-            '''
+            """
 def get_plotly_figure():
     # Load data, define hover text and bubble size
     data = px.data.gapminder()
@@ -559,11 +579,11 @@ def get_plotly_figure():
     return fig
 
 Plotly(get_plotly_figure())
-        ''',
-        'plotting',
-        'plotly'
+        """,
+            'plotting',
+            'plotly',
         ),
-        height='500px'
+        height='500px',
     )
 
 
@@ -583,7 +603,7 @@ def matplotlib() -> ComponentInstance:
         ngridy = 200
         x = numpy.random.uniform(-2, 2, npts)
         y = numpy.random.uniform(-2, 2, npts)
-        z = x * numpy.exp(-x**2 - y**2)
+        z = x * numpy.exp(-(x**2) - y**2)
 
         # Add a subplot to the Figure
         ax1 = fig.add_subplot()
@@ -600,7 +620,7 @@ def matplotlib() -> ComponentInstance:
         zi = interpolator(Xi, Yi)
 
         ax1.contour(xi, yi, zi, levels=14, linewidths=0.5, colors='k')
-        cntr1 = ax1.contourf(xi, yi, zi, levels=14, cmap="RdBu_r")
+        cntr1 = ax1.contourf(xi, yi, zi, levels=14, cmap='RdBu_r')
 
         fig.colorbar(cntr1, ax=ax1)
         ax1.plot(x, y, 'ko', ms=3)
@@ -613,7 +633,7 @@ def matplotlib() -> ComponentInstance:
         # to tricontour.
 
         ax2.tricontour(x, y, z, levels=14, linewidths=0.5, colors='k')
-        cntr2 = ax2.tricontourf(x, y, z, levels=14, cmap="RdBu_r")
+        cntr2 = ax2.tricontourf(x, y, z, levels=14, cmap='RdBu_r')
 
         fig.colorbar(cntr2, ax=ax2)
         ax2.plot(x, y, 'ko', ms=3)
@@ -624,7 +644,7 @@ def matplotlib() -> ComponentInstance:
         Matplotlib(get_matplotlib_figure()),
         show_code(
             matplotlib_var,
-            '''
+            """
 def get_matplotlib_figure():
     # see full example here: https://matplotlib.org/stable/gallery/images_contours_and_fields/irregulardatagrid.html#sphx-glr-gallery-images-contours-and-fields-irregulardatagrid-py
     # Create a Figure object
@@ -680,13 +700,16 @@ def get_matplotlib_figure():
     return fig
 
 Matplotlib(get_matplotlib_figure()),
-            ''',
+            """,
             'plotting',
-            'matplotlib'
+            'matplotlib',
         ),
     )
 
+
 seaborn_var = Variable(False)
+
+
 def seaborn() -> ComponentInstance:
     def get_seaborn_figure():
         # Create a Figure object
@@ -712,7 +735,7 @@ def seaborn() -> ComponentInstance:
         Matplotlib(get_seaborn_figure()),
         show_code(
             matplotlib_var,
-            '''
+            """
 def get_seaborn_figure():
     # Create a Figure object
     fig = Figure(figsize=(8, 6))
@@ -732,43 +755,44 @@ def get_seaborn_figure():
     ax.set_title('Scatter Plot with Figure')
 
 Matplotlib(get_seaborn_figure()),
-            ''',
+            """,
             'plotting',
-            'matplotlib'
+            'matplotlib',
         ),
     )
 
 
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 # Common Components
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 accordion_var = Variable(False)
 
 
 def accordion() -> ComponentInstance:
-    return Stack(Accordion(
-        items=[
-            AccordionItem(
-                label='First item',
-                content=Text('This is some content'),
-                badge=ItemBadge(label='Label', color=Light.colors.violet),
-            ),
-            AccordionItem(
-                label='Second item',
-                content=Text('This is some content'),
-                badge=ItemBadge(label='Label', color=Light.colors.teal),
-            ),
-            AccordionItem(
-                label='Third item',
-                content=Text('This is some content'),
-                badge=ItemBadge(label='Label', color=Light.colors.orange),
-            ),
-        ],
-    ),
-    show_code(
-        accordion_var,
-        '''
+    return Stack(
+        Accordion(
+            items=[
+                AccordionItem(
+                    label='First item',
+                    content=Text('This is some content'),
+                    badge=ItemBadge(label='Label', color=Light.colors.violet),
+                ),
+                AccordionItem(
+                    label='Second item',
+                    content=Text('This is some content'),
+                    badge=ItemBadge(label='Label', color=Light.colors.teal),
+                ),
+                AccordionItem(
+                    label='Third item',
+                    content=Text('This is some content'),
+                    badge=ItemBadge(label='Label', color=Light.colors.orange),
+                ),
+            ],
+        ),
+        show_code(
+            accordion_var,
+            """
 Accordion(
     items=[
         AccordionItem(
@@ -788,10 +812,10 @@ Accordion(
         ),
     ],
 )
-        ''',
-        'common',
-        'accordion'
-        )
+        """,
+            'common',
+            'accordion',
+        ),
     )
 
 
@@ -803,11 +827,11 @@ def anchor() -> ComponentInstance:
         Anchor('Link to causaLens website', href='https://www.causalens.com/', new_tab=True),
         show_code(
             anchor_var,
-            '''
+            """
 Anchor('Link to causaLens website', href='https://www.causalens.com/', new_tab=True)
-            ''',
+            """,
             'common',
-            'anchor'
+            'anchor',
         ),
     )
 
@@ -845,7 +869,7 @@ def button() -> ComponentInstance:
         ),
         show_code(
             button_var,
-            '''
+            """
 Stack(
     Text('Default Styles:'),
     Stack(
@@ -874,9 +898,9 @@ Stack(
         outline=True,
     ),
 )
-        ''',
-        'common',
-        'button'
+        """,
+            'common',
+            'button',
         ),
     )
 
@@ -899,7 +923,7 @@ def bullet_list() -> ComponentInstance:
         ),
         show_code(
             bullet_list_var,
-            '''
+            """
 Stack(
     Stack(
         Text('Ordered BulletList:'),
@@ -911,9 +935,10 @@ Stack(
     ),
     direction='horizontal',
 )
-        ''',
-        'common',
-        'bullet_list'),
+        """,
+            'common',
+            'bullet_list',
+        ),
     )
 
 
@@ -943,7 +968,7 @@ def button_bar() -> ComponentInstance:
         ),
         show_code(
             button_bar_var,
-            '''
+            """
 Stack(
     Text('Primary Style:'),
     ButtonBar(
@@ -965,9 +990,9 @@ Stack(
         height='2.5rem',
     ),
 )
-        ''',
-        'common',
-        'button_bar'
+        """,
+            'common',
+            'button_bar',
         ),
     )
 
@@ -976,28 +1001,29 @@ card_var = Variable(False)
 
 
 def card() -> ComponentInstance:
-    return Stack(Stack(
-        Card(
-            Stack(
-                Text('Some content'),
+    return Stack(
+        Stack(
+            Card(
+                Stack(
+                    Text('Some content'),
+                ),
+                title='Title',
+                subtitle='subtitle',
             ),
-            title='Title',
-            subtitle='subtitle',
-        ),
-        Card(
-            Stack(
-                Text('Some content'),
+            Card(
+                Stack(
+                    Text('Some content'),
+                ),
+                title='Title',
+                subtitle='subtitle',
+                accent=True,
             ),
-            title='Title',
-            subtitle='subtitle',
-            accent=True,
+            direction='horizontal',
+            align='start',
         ),
-        direction='horizontal',
-        align='start',
-    ),
-    show_code(
-        card_var,
-        '''
+        show_code(
+            card_var,
+            """
 Stack(
     Card(
         Stack(
@@ -1017,9 +1043,9 @@ Stack(
     direction='horizontal',
     align='start',
 )
-        ''',
-        'common',
-        'card'
+        """,
+            'common',
+            'card',
         ),
     )
 
@@ -1046,7 +1072,7 @@ def carousel() -> ComponentInstance:
         ),
         show_code(
             carousel_var,
-            '''
+            """
 rate_value = Variable(7)
 
 @py_component
@@ -1087,9 +1113,9 @@ Carousel(
         ),
     ]
 ),
-        ''',
-        'common',
-        'carousel'
+        """,
+            'common',
+            'carousel',
         ),
     )
 
@@ -1098,20 +1124,21 @@ checkbox_group_var = Variable(False)
 
 
 def checkbox_group() -> ComponentInstance:
-    return Stack(CheckboxGroup(
-        select_max=2,
-        items=['first', 'second', 'third', 'fourth', 'fifth'],
-    ),
-    show_code(
-        checkbox_group_var,
-        '''
+    return Stack(
+        CheckboxGroup(
+            select_max=2,
+            items=['first', 'second', 'third', 'fourth', 'fifth'],
+        ),
+        show_code(
+            checkbox_group_var,
+            """
 CheckboxGroup(
     select_max=2,
     items=['first', 'second', 'third', 'fourth', 'fifth'],
 )
-        ''',
-        'common',
-        'checkbox_group'
+        """,
+            'common',
+            'checkbox_group',
         ),
     )
 
@@ -1120,22 +1147,23 @@ code_var = Variable(False)
 
 
 def code() -> ComponentInstance:
-    return Stack(Stack(
-        Label(
-            Code(code='def some_func():\n    pass', theme=Code.Themes.LIGHT, width='300px', height='100px'),
-            value='Light Mode:',
+    return Stack(
+        Stack(
+            Label(
+                Code(code='def some_func():\n    pass', theme=Code.Themes.LIGHT, width='300px', height='100px'),
+                value='Light Mode:',
+            ),
+            Label(
+                Code(code='def some_func():\n    pass', theme=Code.Themes.DARK, width='300px', height='100px'),
+                value='Dark Mode:',
+            ),
+            direction='horizontal',
+            align='start',
+            justify='space-evenly',
         ),
-        Label(
-            Code(code='def some_func():\n    pass', theme=Code.Themes.DARK, width='300px', height='100px'),
-            value='Dark Mode:',
-        ),
-        direction='horizontal',
-        align='start',
-        justify='space-evenly',
-    ),
-    show_code(
-        code_var,
-        '''
+        show_code(
+            code_var,
+            """
 Stack(
     Label(
         Code(code='def some_func():\n    pass', theme=Code.Themes.LIGHT, width='300px', height='100px'),
@@ -1149,9 +1177,9 @@ Stack(
     align='start',
     justify='space-evenly',
 )
-        ''',
-        'common',
-        'code'
+        """,
+            'common',
+            'code',
         ),
     )
 
@@ -1160,17 +1188,18 @@ component_select_list_var = Variable(False)
 
 
 def component_select_list() -> ComponentInstance:
-    return Stack(ComponentSelectList(
-        items=[
-            ComponentItem(title='TitleA', subtitle='subtitle', component=Text('A')),
-            ComponentItem(title='TitleB', subtitle='subtitle', component=Text('B')),
-            ComponentItem(title='TitleC', subtitle='subtitle', component=Text('C')),
-        ],
-        selected_items=Variable('TitleA'),
-    ),
-    show_code(
-        component_select_list_var,
-        '''
+    return Stack(
+        ComponentSelectList(
+            items=[
+                ComponentItem(title='TitleA', subtitle='subtitle', component=Text('A')),
+                ComponentItem(title='TitleB', subtitle='subtitle', component=Text('B')),
+                ComponentItem(title='TitleC', subtitle='subtitle', component=Text('C')),
+            ],
+            selected_items=Variable('TitleA'),
+        ),
+        show_code(
+            component_select_list_var,
+            """
 ComponentSelectList(
     items=[
         ComponentItem(title='TitleA', subtitle='subtitle', component=Text('A')),
@@ -1179,9 +1208,9 @@ ComponentSelectList(
     ],
     selected_items=Variable('TitleA'),
 )
-        ''',
-        'common',
-        'component_select_list'
+        """,
+            'common',
+            'component_select_list',
         ),
     )
 
@@ -1196,17 +1225,17 @@ def datepicker() -> ComponentInstance:
         Label(Datepicker(range=True), value='Datepicker with Range:', width='fit-content'),
         Label(Datepicker(enable_time=True, range=True), value='Datepicker with Time and Range:', width='fit-content'),
         show_code(
-        datepicker_var,
-        '''
+            datepicker_var,
+            """
 Stack(
     Label(Datepicker(), value='Plain datepicker:', width='fit-content'),
     Label(Datepicker(enable_time=True), value='Datepicker with Time:', width='fit-content'),
     Label(Datepicker(range=True), value='Datepicker with Range:', width='fit-content'),
     Label(Datepicker(enable_time=True, range=True), value='Datepicker with Time and Range:', width='fit-content'),
 )
-        ''',
-        'common',
-        'datepicker'
+        """,
+            'common',
+            'datepicker',
         ),
     )
 
@@ -1512,8 +1541,8 @@ Stack(
     show_var('Form Variable:', form_value),
 )
         ''',
-        'common',
-        'form'
+            'common',
+            'form',
         ),
     )
 
@@ -1522,34 +1551,35 @@ grid_var = Variable(False)
 
 
 def grid() -> ComponentInstance:
-    return Stack(Grid(
-        Grid.Row(
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
-            column_gap=1,
+    return Stack(
+        Grid(
+            Grid.Row(
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
+                column_gap=1,
+            ),
+            Grid.Row(
+                Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
+                Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
+                Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
+                column_gap=1,
+            ),
+            Grid.Row(
+                Grid.Column(Text('Span = 6'), span=6, background='skyblue'),
+                Grid.Column(Text('Span = 6'), span=6, background='skyblue'),
+                column_gap=1,
+            ),
+            Grid.Row(
+                Grid.Column(Text('Span = 12'), span=12, background='steelblue'),
+            ),
         ),
-        Grid.Row(
-            Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
-            Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
-            Grid.Column(Text('Span = 4'), span=4, background='dodgerblue'),
-            column_gap=1,
-        ),
-        Grid.Row(
-            Grid.Column(Text('Span = 6'), span=6, background='skyblue'),
-            Grid.Column(Text('Span = 6'), span=6, background='skyblue'),
-            column_gap=1,
-        ),
-        Grid.Row(
-            Grid.Column(Text('Span = 12'), span=12, background='steelblue'),
-        ),
-    ),
-    show_code(
-        grid_var,
-        '''
+        show_code(
+            grid_var,
+            """
 Grid(
     Grid.Row(
         Grid.Column(Text('Span = 2'), span=2, background='deepskyblue'),
@@ -1575,9 +1605,9 @@ Grid(
         Grid.Column(Text('Span = 12'), span=12, background='steelblue'),
     ),
 )
-        ''',
-        'common',
-        'grid'
+        """,
+            'common',
+            'grid',
         ),
     )
 
@@ -1592,15 +1622,15 @@ def heading() -> ComponentInstance:
         Heading('Heading 3', level=3),
         show_code(
             heading_var,
-            '''
+            """
 Stack(
     Heading('Heading 1', level=1),
     Heading('Heading 2', level=2),
     Heading('Heading 3', level=3),
 )
-        ''',
-        'common',
-        'heading'
+        """,
+            'common',
+            'heading',
         ),
     )
 
@@ -1609,20 +1639,21 @@ html_raw_var = Variable(False)
 
 
 def html_raw() -> ComponentInstance:
-    return Stack(HtmlRaw(
-        html='<iframe height="100%" width="100%" src="https://www.youtube.com/embed/tgbNymZ7vqY"></iframe>',
-        raw_css={'min-height': '400px'},
-    ),
-    show_code(
-        html_raw_var,
-        '''
+    return Stack(
+        HtmlRaw(
+            html='<iframe height="100%" width="100%" src="https://www.youtube.com/embed/tgbNymZ7vqY"></iframe>',
+            raw_css={'min-height': '400px'},
+        ),
+        show_code(
+            html_raw_var,
+            """
 HtmlRaw(
     html='<iframe height="100%" width="100%" src="https://www.youtube.com/embed/tgbNymZ7vqY"></iframe>',
     raw_css={'min-height': '400px'},
 )
-        ''',
-        'common',
-        'html_raw'
+        """,
+            'common',
+            'html_raw',
         ),
     )
 
@@ -1637,13 +1668,13 @@ def icon() -> ComponentInstance:
         ),
         show_code(
             icon_var,
-            '''
+            """
 Icon(
     icon=get_icon('spaghetti-monster-flying', size='10x'),
 )
-        ''',
-        'common',
-        'icon'
+        """,
+            'common',
+            'icon',
         ),
     )
 
@@ -1655,12 +1686,12 @@ def image() -> ComponentInstance:
     return Stack(
         Image(src='https://i.natgeofe.com/n/f9e19f16-ecb4-4cd3-9fe9-83423ace1b1a/tree-goats-morocco.jpg'),
         show_code(
-        image_var,
-        '''
+            image_var,
+            """
 Image(src='https://i.natgeofe.com/n/f9e19f16-ecb4-4cd3-9fe9-83423ace1b1a/tree-goats-morocco.jpg')
-        ''',
-        'common',
-        'image'
+        """,
+            'common',
+            'image',
         ),
     )
 
@@ -1674,14 +1705,14 @@ def input() -> ComponentInstance:
         Label(Input(type='number'), value='Numeric Input:'),
         show_code(
             input_var,
-            '''
+            """
 Stack(
     Label(Input(), value='Text Input:'),
     Label(Input(type='number'), value='Numeric Input:'),
 )
-        ''',
-        'common',
-        'input'
+        """,
+            'common',
+            'input',
         ),
     )
 
@@ -1702,7 +1733,7 @@ def label() -> ComponentInstance:
         ),
         show_code(
             label_var,
-            '''
+            """
 Stack(
     Label(
         Input(),
@@ -1714,9 +1745,9 @@ Stack(
         direction='horizontal',
     ),
 )
-        ''',
-        'common',
-        'label'
+        """,
+            'common',
+            'label',
         ),
     )
 
@@ -1729,11 +1760,11 @@ def markdown() -> ComponentInstance:
         Markdown(' ## Heading\n ### Subheading\n Some other text'),
         show_code(
             markdown_var,
-            '''
+            """
 Markdown(' ## Heading\\n ### Subheading\\n Some other text')
-            ''',
+            """,
             'common',
-            'markdown'
+            'markdown',
         ),
     )
 
@@ -1750,7 +1781,7 @@ def modal() -> ComponentInstance:
         ),
         show_code(
             modal_var,
-            '''
+            """
 Stack(
     Button('Click to show modal', onclick=UpdateVariable(lambda ctx: True, show_modal)),
     Modal(
@@ -1758,9 +1789,9 @@ Stack(
         show=show_modal,
     ),
 )
-            ''',
+            """,
             'common',
-            'modal'
+            'modal',
         ),
     )
 
@@ -1773,19 +1804,22 @@ def overlay() -> ComponentInstance:
         Label(Switch(value=show_overlay), value='Show Overlay:'),
         Overlay(Text('Overlay Text'), show=show_overlay),
         show_code(
-        overlay_var,
-        '''
+            overlay_var,
+            """
 Stack(
     Label(Switch(value=show_overlay), value='Show Overlay:'),
     Overlay(Text('Overlay Text'), show=show_overlay),
 )
-        ''',
-        'common',
-        'overlay'
+        """,
+            'common',
+            'overlay',
         ),
     )
 
-paragraph_var=Variable(False)
+
+paragraph_var = Variable(False)
+
+
 def paragraph() -> ComponentInstance:
     return Stack(
         Paragraph(
@@ -1799,7 +1833,7 @@ def paragraph() -> ComponentInstance:
         Text('different font sizes...', raw_css={'font-size': '0.75rem'}),
         show_code(
             paragraph_var,
-            '''
+            """
 Paragraph(
     Text(
         'This is a nice way of combining different Text components, this is especially useful as it allows to switch between different styles such as:'
@@ -1811,9 +1845,9 @@ Paragraph(
     ),
     Text('different font sizes...', raw_css={'font-size': '0.75rem'}),
 )
-        ''',
-        'common',
-        'paragraph'
+        """,
+            'common',
+            'paragraph',
         ),
     )
 
@@ -1826,11 +1860,11 @@ def progress_bar() -> ComponentInstance:
         ProgressBar(progress=Variable(30), height='3rem'),
         show_code(
             progress_bar_var,
-            '''
+            """
 ProgressBar(progress=Variable(30), height='3rem')
-        ''',
-        'common',
-        'progress_bar'
+        """,
+            'common',
+            'progress_bar',
         ),
     )
 
@@ -1853,7 +1887,7 @@ def radio_group() -> ComponentInstance:
         ),
         show_code(
             radio_group_var,
-            '''
+            """
 Stack(
     Label(
         RadioGroup(
@@ -1867,9 +1901,9 @@ Stack(
         value='Horizontal:',
     ),
 )
-        ''',
-        'common',
-        'radio_group'
+        """,
+            'common',
+            'radio_group',
         ),
     )
 
@@ -1893,7 +1927,7 @@ def select() -> ComponentInstance:
         ),
         show_code(
             select_var,
-            '''
+            """
 Stack(
     Label(
         Select(items=['first', 'second', 'third'], height='2.5rem'),
@@ -1908,9 +1942,9 @@ Stack(
         value='Multiselect:',
     ),
 )
-        ''',
-        'common',
-        'select'
+        """,
+            'common',
+            'select',
         ),
     )
 
@@ -1938,7 +1972,7 @@ def slider() -> ComponentInstance:
         ),
         show_code(
             slider_var,
-            '''
+            """
 Stack(
     Label(
         Slider(domain=[0.0, 1.0], disable_input_alternative=True),
@@ -1957,9 +1991,9 @@ Stack(
         value='A more complex example:',
     ),
 )
-        ''',
-        'common',
-        'slider'
+        """,
+            'common',
+            'slider',
         ),
     )
 
@@ -1977,7 +2011,7 @@ def spacer() -> ComponentInstance:
         Spacer(line=True, inset='4rem'),
         show_code(
             spacer_var,
-            '''
+            """
 Stack(
     Text('Empty Spacer:'),
     Spacer(),
@@ -1986,9 +2020,9 @@ Stack(
     Text('Custom Line Length Spacers:'),
     Spacer(line=True, inset='4rem'),
 )
-        ''',
-        'common',
-        'spacer'
+        """,
+            'common',
+            'spacer',
         ),
     )
 
@@ -2025,7 +2059,7 @@ def stack() -> ComponentInstance:
         ),
         show_code(
             stack_var,
-            '''
+            """
 Stack(
     Text('Vertical Stack:'),
     Stack(
@@ -2069,9 +2103,9 @@ Stack(
     ),
     raw_css={'min-height': '450px'},
 )
-        ''',
-        'common',
-        'stack'
+        """,
+            'common',
+            'stack',
         ),
         raw_css={'min-height': '460px'},
     )
@@ -2085,11 +2119,11 @@ def switch() -> ComponentInstance:
         Switch(),
         show_code(
             switch_var,
-            '''
+            """
 Switch()
-        ''',
-        'common',
-        'switch'
+        """,
+            'common',
+            'switch',
         ),
     )
 
@@ -2099,19 +2133,16 @@ tabbed_card_var = Variable(False)
 
 def tabbed_card() -> ComponentInstance:
     return Stack(
-        TabbedCard(
-            Tab(Text('Some Text'), title='Tab 1'),
-            Tab(Text('Some Text'), title='Tab 2')
-        ),
+        TabbedCard(Tab(Text('Some Text'), title='Tab 1'), Tab(Text('Some Text'), title='Tab 2')),
         show_code(
-        tabbed_card_var,
-        '''
+            tabbed_card_var,
+            """
 TabbedCard(
     Tab(Text('Some Text'), title='Tab 1'),
     Tab(Text('Some Text'), title='Tab 2')
-        ''',
-        'common',
-        'tabbed_card'
+        """,
+            'common',
+            'tabbed_card',
         ),
     )
 
@@ -2136,7 +2167,7 @@ def table() -> ComponentInstance:
         Table(columns=columns, data=data),
         show_code(
             table_var,
-            '''
+            """
 data = DataVariable(
     DataFrame(
         [
@@ -2187,11 +2218,11 @@ columns = [
 ]
 
 Table(columns=columns, data=data, max_rows=5)
-            ''',
+            """,
             'common',
-            'table'
+            'table',
         ),
-        height='400px'
+        height='400px',
     )
 
 
@@ -2203,11 +2234,11 @@ def text() -> ComponentInstance:
         Text('A component for displaying text'),
         show_code(
             text_var,
-            '''
+            """
 Text('A component for displaying text')
-        ''',
-        'common',
-        'text'
+        """,
+            'common',
+            'text',
         ),
     )
 
@@ -2219,12 +2250,12 @@ def textarea() -> ComponentInstance:
     return Stack(
         Textarea(),
         show_code(
-        textarea_var,
-        '''
+            textarea_var,
+            """
 Textarea()
-        ''',
-        'common',
-        'textarea'
+        """,
+            'common',
+            'textarea',
         ),
     )
 
@@ -2243,7 +2274,7 @@ def tooltip() -> ComponentInstance:
         ),
         show_code(
             tooltip_var,
-            '''
+            """
 Stack(
     Tooltip(
         Text('Hover me', width='100px'),
@@ -2251,8 +2282,8 @@ Stack(
     ),
     align='center',
 )
-        ''',
-        'common',
-        'tooltip'
+        """,
+            'common',
+            'tooltip',
         ),
     )

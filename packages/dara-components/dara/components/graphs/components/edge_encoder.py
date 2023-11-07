@@ -34,10 +34,11 @@ from dara.core.interactivity import NonDataVariable
 
 class EdgeConstraint(TypedDict):
     """
-    EdgeConstraint object denotes a constraint between two nodes in the graph. 
-    
+    EdgeConstraint object denotes a constraint between two nodes in the graph.
+
     It is used to build a list of constraints for `VisualEdgeEncoder` component.
     """
+
     source: str
     target: str
     type: EdgeConstraintType
@@ -68,7 +69,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     ```
 
     Alternatively, you can pass in a dict of [str, Node] to the `nodes` parameter to use the `CausalGraph.Node` object:
-    
+
     ```python
     from cai_causal_graph import CausalGraph
     from dara.components.graphs import VisualEdgeEncoder
@@ -76,7 +77,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     VisualEdgeEncoder(
         nodes={
-            "First node": CausalGraph.Node("First node"), 
+            "First node": CausalGraph.Node("First node"),
             "Second node": CausalGraph.Node("Second node")
         },
         on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
@@ -84,19 +85,19 @@ class VisualEdgeEncoder(StyledComponentInstance):
     ```
 
     You can also pass in a list of `EdgeConstraint` objects to the `initial_constraints` parameter to pre-populate the graph:
-    
+
     ```python
     from cai_causal_graph import CausalGraph
     from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
     from dara.components.graphs import VisualEdgeEncoder, EdgeConstraint
-    
+
     output_constraints = Variable()
 
     VisualEdgeEncoder(
         nodes=["First node", "Second node", "Third node"],
         initial_constraints=[
-            EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.UNDIRECTED_EDGE),
-            EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
+            EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+            EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.HARD_DIRECTED_EDGE)
         ],
         on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
     )
