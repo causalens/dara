@@ -34,28 +34,28 @@ from dara.core.interactivity import (
 
 
 class TableFormatterType(Enum):
-    ADAPTIVE_PRECISION = 'adaptive_precision'
-    BADGE = 'badge'
-    CODE = 'code'
-    COMPARE = 'compare'
-    DATETIME = 'datetime'
-    FORMATTED_TEXT = 'formatted_text'
-    NUMBER = 'number'
-    NUMBER_INTL = 'number_intl'
-    PERCENT = 'percent'
-    LINK = 'link'
-    THRESHOLD = 'threshold'
+    ADAPTIVE_PRECISION = "adaptive_precision"
+    BADGE = "badge"
+    CODE = "code"
+    COMPARE = "compare"
+    DATETIME = "datetime"
+    FORMATTED_TEXT = "formatted_text"
+    NUMBER = "number"
+    NUMBER_INTL = "number_intl"
+    PERCENT = "percent"
+    LINK = "link"
+    THRESHOLD = "threshold"
 
 
 class TableFormatterCompareCondition(Enum):
-    EQUAL = 'equal'
+    EQUAL = "equal"
 
 
 class TableFilter(Enum):
-    TEXT = 'text'
-    CATEGORICAL = 'categorical'
-    NUMERIC = 'numeric'
-    DATETIME = 'datetime'
+    TEXT = "text"
+    CATEGORICAL = "categorical"
+    NUMERIC = "numeric"
+    DATETIME = "datetime"
 
 
 class Column(BaseModel):
@@ -382,114 +382,132 @@ class Column(BaseModel):
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
-    type: Optional[Union[Literal['number'], Literal['string'], Literal['datetime']]] = None
+    type: Optional[
+        Union[Literal["number"], Literal["string"], Literal["datetime"]]
+    ] = None
 
     class Config:
         use_enum_values = True
 
-    @validator('label', always=True)
+    @validator("label", always=True)
     @classmethod
     def validate_label(cls, value, values):
         if value is None:
-            return values.get('col_id')
+            return values.get("col_id")
         return value
 
-    @validator('formatter')
+    @validator("formatter")
     @classmethod
     def vaildate_formatter_dict(cls, formatter):
         """
         Validate that the formatter dict of a column is correct
         """
         if not isinstance(formatter, dict):
-            raise ValueError(f'Invalid formatter dict: {formatter}, must be a dictionary')
-        formatter_type = formatter.get('type')
+            raise ValueError(
+                f"Invalid formatter dict: {formatter}, must be a dictionary"
+            )
+        formatter_type = formatter.get("type")
         if formatter_type not in TableFormatterType:
             raise ValueError(
                 f"Invalid formatter type: {formatter.get('type')}, accepted values {list(TableFormatterType)}"
             )
         if formatter_type in (TableFormatterType.NUMBER, TableFormatterType.PERCENT):
-            precision = formatter.get('precision')
+            precision = formatter.get("precision")
             if precision is not None:
                 if not isinstance(precision, int) or precision <= 0:
-                    raise ValueError(f'Invalid precision value: {precision}, must be positive integer')
+                    raise ValueError(
+                        f"Invalid precision value: {precision}, must be positive integer"
+                    )
         elif formatter_type == TableFormatterType.NUMBER_INTL:
-            locales = formatter.get('locales')
+            locales = formatter.get("locales")
             if not isinstance(locales, str) or not (
                 isinstance(locales, str) and all(isinstance(x, str) for x in locales)
             ):
-                raise ValueError(f'Invalid locales value: {locales}, must be a string or list of strings')
+                raise ValueError(
+                    f"Invalid locales value: {locales}, must be a string or list of strings"
+                )
 
-            options = formatter.get('options')
+            options = formatter.get("options")
             if not isinstance(options, dict):
-                raise ValueError(f'Invalid options value: {options}, must be a dict')
+                raise ValueError(f"Invalid options value: {options}, must be a dict")
         elif formatter_type == TableFormatterType.DATETIME:
-            date_format = formatter.get('format')
+            date_format = formatter.get("format")
             if date_format is not None and not isinstance(date_format, str):
-                raise ValueError(f'Invalid date format: {date_format}, must be string')
+                raise ValueError(f"Invalid date format: {date_format}, must be string")
         elif formatter_type == TableFormatterType.CODE:
-            language = formatter.get('language')
+            language = formatter.get("language")
             if not isinstance(language, str):
-                raise ValueError(f'Invalid code language: {language}, must be a string')
+                raise ValueError(f"Invalid code language: {language}, must be a string")
         elif formatter_type == TableFormatterType.THRESHOLD:
-            thresholds = formatter.get('thresholds')
+            thresholds = formatter.get("thresholds")
             if not isinstance(thresholds, list):
-                raise ValueError(f'Invalid thresholds: {thresholds}, must be passed as a list of thresholds')
+                raise ValueError(
+                    f"Invalid thresholds: {thresholds}, must be passed as a list of thresholds"
+                )
             for threshold in thresholds:
                 if not (
-                    isinstance(threshold.get('color'), str)
-                    and isinstance(threshold.get('bounds'), tuple)
-                    and len(threshold.get('bounds')) == 2
+                    isinstance(threshold.get("color"), str)
+                    and isinstance(threshold.get("bounds"), tuple)
+                    and len(threshold.get("bounds")) == 2
                 ):
                     raise ValueError(
-                        f'Invalid threshold: {threshold}, must contain a color and tuple of length 2 defining the bounds'
+                        f"Invalid threshold: {threshold}, must contain a color and tuple of length 2 defining the bounds"
                     )
-                lower_bound = threshold.get('bounds')[0]
-                upper_bound = threshold.get('bounds')[1]
+                lower_bound = threshold.get("bounds")[0]
+                upper_bound = threshold.get("bounds")[1]
                 if not (isinstance(lower_bound, int) or isinstance(lower_bound, float)):
-                    raise ValueError(f'Invalid bound type: {lower_bound}, must be int or float')
+                    raise ValueError(
+                        f"Invalid bound type: {lower_bound}, must be int or float"
+                    )
                 if not (isinstance(upper_bound, int) or isinstance(upper_bound, float)):
-                    raise ValueError(f'Invalid bound type: {upper_bound}, must be int or float')
+                    raise ValueError(
+                        f"Invalid bound type: {upper_bound}, must be int or float"
+                    )
         elif formatter_type == TableFormatterType.BADGE:
-            badges = formatter.get('badges')
+            badges = formatter.get("badges")
             if not isinstance(badges, dict):
-                raise ValueError(f'Invalid badges: {badges}, must be passed as a dictionary of badges')
+                raise ValueError(
+                    f"Invalid badges: {badges}, must be passed as a dictionary of badges"
+                )
             for badge in badges:
                 if (
                     not isinstance(badges[badge], dict)
-                    or badges[badge].get('color') is None
-                    or badges[badge].get('label') is None
+                    or badges[badge].get("color") is None
+                    or badges[badge].get("label") is None
                 ):
                     raise ValueError(
-                        f'Invalid badge: {badge}: {badges[badge]}, must be a dictionary containing color and label'
+                        f"Invalid badge: {badge}: {badges[badge]}, must be a dictionary containing color and label"
                     )
-                if not isinstance(badges[badge].get('color'), str):
+                if not isinstance(badges[badge].get("color"), str):
                     raise ValueError(
                         f"Invalid color: {badges[badge].get('color')} for badge: {badges[badge]}, must be a string"
                     )
         return formatter
 
-    @validator('sticky')
+    @validator("sticky")
     @classmethod
     def validate_sticky(cls, sticky):
         """
         Validate that the sticky string has the correct values
         """
-        if sticky not in ('left', 'right', None):
-            raise ValueError(f'Invalid sticky value: {sticky}, accepted values: left, right')
+        if sticky not in ("left", "right", None):
+            raise ValueError(
+                f"Invalid sticky value: {sticky}, accepted values: left, right"
+            )
         return sticky
 
-    @validator('filter')
+    @validator("filter")
     @classmethod
     def validate_unique_items(cls, filter, values):
         """
         Validate that for categorical filters unique_items is provided
         """
-        if filter == 'categorical':
-            unique_items = values.get('unique_items')
-            col_id = values.get('col_id')
+        if filter == "categorical":
+            unique_items = values.get("unique_items")
+            col_id = values.get("col_id")
             if unique_items is None:
                 raise ValueError(
-                    f'Invalid unique_items: {col_id} has categorical filter, it must have unique_items defined'
+                    f"Invalid unique_items: {col_id} has categorical filter, it must have unique_items defined"
                 )
         return filter
 
@@ -590,7 +608,7 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable, Variable, UpdateVariable
+    from dara.core import DataVariable, Variable
 
     data = DataVariable(
         DataFrame([
@@ -610,7 +628,7 @@ class Table(ContentComponent):
     Table(
         columns=['col1', 'col2'],
         data=data,
-        onclick_row=UpdateVariable(resolver=lambda ctx: ctx.inputs.new, variable=selected_rows),
+        selected_indices=selected_rows,
         multi_select=True
     )
 
@@ -750,7 +768,7 @@ class Table(ContentComponent):
         json_encoders = {datetime: coerce_to_timemilli}
         use_enum_values = True
 
-    @validator('columns')
+    @validator("columns")
     @classmethod
     def validate_columns(cls, columns):
         if columns is None:
@@ -768,12 +786,16 @@ class Table(ContentComponent):
         elif isinstance(columns, NonDataVariable):
             return columns
         else:
-            raise ValueError(f'Invalid list passed to Table columns: {columns}, expected a list')
+            raise ValueError(
+                f"Invalid list passed to Table columns: {columns}, expected a list"
+            )
 
     def add_column(self, col: Union[str, dict, Column]):
         """Adds a new column to the data"""
         if not isinstance(self.columns, List):
-            raise ValueError('You cannot add_columns to a Variable type columns or if they are undefined')
+            raise ValueError(
+                "You cannot add_columns to a Variable type columns or if they are undefined"
+            )
         if isinstance(col, str):
             self.columns.append(Column(col_id=col))
         elif isinstance(col, dict):
@@ -781,7 +803,7 @@ class Table(ContentComponent):
         elif isinstance(col, Column):
             self.columns.append(col)
         else:
-            raise ValueError(f'Invalid column passed to add_column: {col}')
+            raise ValueError(f"Invalid column passed to add_column: {col}")
 
     @staticmethod
     def column(*args, **kwargs) -> Column:

@@ -236,7 +236,7 @@ cg_copy = Variable()
 CausalGraphViewer(
     causal_graph=cg_dv,
     editable=True,
-    on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=cg_copy)
+    on_update=cg_copy.sync()
 )
 ```
 
@@ -263,14 +263,13 @@ CausalGraphViewer(
 
 #### Interactivity
 
-In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge` 
+In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge`
 event handlers in order to trigger actions upon clicking on an edge or a node. The following example
 demonstrates how to use the `on_click_node` and `on_click_edge` event handlers to update a variable
-with the name of the clicked node or edge. 
+with the name of the clicked node or edge.
 
 ```python
-from dara.core import Variable, py_component
-from dara.core.actions import UpdateVariable
+from dara.core import Variable, py_component, action
 from dara.components import CausalGraphViewer, Stack, Text
 from dara.components.graphs.graph_layout import PlanarLayout
 
@@ -284,13 +283,16 @@ causal_graph.add_edge('A', 'B')
 causal_graph.add_edge('B', 'C')
 causal_graph.add_edge('A', 'C')
 
-def resolver_on_click_node(ctx: UpdateVariable.Ctx):
-    if isinstance(ctx.inputs.new, dict):
-        return ctx.inputs.new.get('identifier')
-    return None
+@action
+async def resolver_on_click_node(ctx: action.Ctx):
+    if isinstance(ctx.input, dict):
+        await ctx.update(variable=selected_node, value=ctx.input.get('identifier'))
+    else:
+        await ctx.update(variable=selected_node, value=None)
 
-def resolver_on_click_edge(ctx: UpdateVariable.Ctx):
-    return f"{ctx.inputs.new.get('source')} -> {ctx.inputs.new.get('destination')}"
+@action
+async def resolver_on_click_edge(ctx: action.Ctx):
+    await ctx.update(variable=selected_edge,  value=f"{ctx.input.get('source')} -> {ctx.input.get('destination')}")
 
 @py_component
 def display(selected_node, selected_edge):
@@ -303,8 +305,8 @@ Stack(
     CausalGraphViewer(
         causal_graph=causal_graph,
         graph_layout=PlanarLayout(),
-        on_click_node=UpdateVariable(resolver_on_click_node, variable=selected_node),
-        on_click_edge=UpdateVariable(resolver_on_click_edge, variable=selected_edge),
+        on_click_node=resolver_on_click_node(),
+        on_click_edge=resolver_on_click_edge(),
     ),
     display(selected_node, selected_edge),
 )

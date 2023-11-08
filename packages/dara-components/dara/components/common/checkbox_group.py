@@ -49,14 +49,14 @@ class CheckboxGroup(FormComponent):
     CheckboxGroup component with at most two values selectable at a time:
 
     ```python
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
     from dara.components.common import CheckboxGroup
 
     var_to_update = Variable()
 
     CheckboxGroup(
         items=['first', 'second', 'third', 'fourth', 'fifth'],
-        onchange=UpdateVariable(lambda ctx: ctx.inputs.new, var_to_update),
+        onchange=var_to_update.sync(),
         value=Variable(),
         select_max=2,
     )
@@ -65,7 +65,7 @@ class CheckboxGroup(FormComponent):
     CheckboxGroup component where at least two values need to be selected for var and var_to_update to be updated.
 
     ```python
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
     from dara.components.common import CheckboxGroup
 
     var = Variable()
@@ -73,7 +73,7 @@ class CheckboxGroup(FormComponent):
 
     CheckboxGroup(
         items=['first', 'second', 'third', 'fourth', 'fifth'],
-        onchange=UpdateVariable(lambda ctx: ctx.inputs.new, var_to_update),
+        onchange=var_to_update.sync(),
         value=var,
         select_min=2,
         list_styling=True,
@@ -98,13 +98,15 @@ class CheckboxGroup(FormComponent):
     onchange: Optional[Action] = None
     id: Optional[str] = None
 
-    @validator('items', pre=True)
+    @validator("items", pre=True)
     @classmethod
     def validate_items(cls, items: Any) -> Union[List[Item], NonDataVariable]:
         if isinstance(items, NonDataVariable):
             return items
         if not isinstance(items, list):
-            raise ValueError('Items must be passed as a list to the CheckboxGroup component')
+            raise ValueError(
+                "Items must be passed as a list to the CheckboxGroup component"
+            )
         if len(items) == 0:
-            raise ValueError('Items list is empty, you must provide at least one item')
+            raise ValueError("Items list is empty, you must provide at least one item")
         return [Item.to_item(item) for item in items]

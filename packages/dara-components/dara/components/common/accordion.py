@@ -126,13 +126,13 @@ class Accordion(LayoutComponent):
     ```python
     from dara.components.common import Accordion, AccordionItem, Stack, Button, ItemBadge, Text, ComponentInstance
     from dara.core.visual.themes import Light
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
 
     acc_var = Variable(1)
 
      def accordion() -> ComponentInstance:
          return Stack(
-             Button('Update component', onclick=UpdateVariable(lambda ctx: 0, acc_var)),
+             Button('Update component', onclick=acc_var.update(value=0)),
              Accordion(
                  items=[
                      AccordionItem(
@@ -245,25 +245,36 @@ class Accordion(LayoutComponent):
     """
 
     initial: Optional[Union[int, List[int]]] = 0
-    value: Optional[Union[Variable[Union[int, List[int]]], UrlVariable[Union[int, List[int]]], int, List[int]]] = 0
+    value: Optional[
+        Union[
+            Variable[Union[int, List[int]]],
+            UrlVariable[Union[int, List[int]]],
+            int,
+            List[int],
+        ]
+    ] = 0
     onchange: Optional[Action] = None
     items: List[AccordionItem]
     multi: Optional[bool] = True
 
-    @validator('initial', pre=True)
+    @validator("initial", pre=True)
     @classmethod
     def validate_initial(cls, initial: Any) -> Union[int, List[int]]:
         if initial is not None:
-            dev_logger.warning("Accordion's initial prop is now deprecated, please use value instead.")
+            dev_logger.warning(
+                "Accordion's initial prop is now deprecated, please use value instead."
+            )
         return initial
 
-    @validator('items', pre=True)
+    @validator("items", pre=True)
     @classmethod
     def validate_items(cls, items: Any) -> List[AccordionItem]:
         if not isinstance(items, list):
-            raise ValueError('AccordionItems must be passed as a list to the Accordion component')
+            raise ValueError(
+                "AccordionItems must be passed as a list to the Accordion component"
+            )
         if len(items) == 0:
             raise ValueError(
-                'AccordionItems list is empty. You must provide at least one AccordionItem for the Accordion component'
+                "AccordionItems list is empty. You must provide at least one AccordionItem for the Accordion component"
             )
         return items
