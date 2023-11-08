@@ -2,6 +2,28 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   The `--reload` flag on the `dara start` command will now correctly infer the parent directory of the module containing the configuration module in order to watch that directory for changes, rather than defaulting to the current working directory
+-   Added `--reload-dir` flag which can be used multiple times to specify the exact folders to watch; when provided it will override the inferred watched directory
+
+```
+# Example structure
+- decision-app/
+    - decision_app/
+        - main.py
+        - pages/
+        - utils/
+    - pyproject.toml
+
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app']
+dara start --reload
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app/pages']
+dara start --reload-dir decision_app/pages
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app/utils', '(...)/decision-app/decision_app/pages']
+dara start --reload-dir decision_app/pages decision_app/utils
+```
+
 ## 1.4.5
 
 -   Relax `python-dotenv` dependency from `^0.19.2` to `>=0.19.2`
