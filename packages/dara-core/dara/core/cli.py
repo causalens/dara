@@ -15,10 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
 import os
 import pathlib
 import subprocess
-from typing import Optional
+from typing import List, Optional
 
 import click
 import uvicorn
@@ -26,6 +27,7 @@ from click.exceptions import UsageError
 
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
+from dara.core.internal.utils import find_module_path
 from dara.core.js_tooling.js_utils import JsConfig, setup_js_scaffolding
 
 LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
@@ -33,6 +35,8 @@ LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
 DEFAULT_PORT = 8000
 DEFAULT_METRICS_PORT = 10000
 PORT_RANGE = 100
+
+logger = logging.getLogger(__name__)
 
 
 @click.group()
@@ -54,6 +58,7 @@ def cli():
 @click.option('--docker', is_flag=True, help='Whether to run in Docker mode - assumes assets are prebuilt')
 @click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', None), help='Debug logger level to use')
 @click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
+@click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
 def start(
     reload: bool,
     enable_hmr: bool,
@@ -68,6 +73,7 @@ def start(
     docker: bool,
     debug: Optional[str],
     log: Optional[str],
+    reload_dir: Optional[List[str]],
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')
@@ -136,13 +142,27 @@ def start(
     if require_sso:
         os.environ['DARA_ENFORCE_SSO'] = 'TRUE'
 
+    dirs_to_watch = None
+
+    if reload:
+        # If specified, use the provided directories
+        if reload_dir:
+            dirs_to_watch = reload_dir
+        else:
+            # Otherwise try to infer the path to watch
+            try:
+                module_parent = find_module_path(config)
+                dirs_to_watch = [module_parent]
+            except Exception as e:
+                logger.warn(f'Could not infer path to watch: {str(e)}')
+
     # Exclude node_modules to prevent watcher trying to parse node_modules its symlinks
     uvicorn.run(
         'dara.core.main:start',
         host=host,
         port=port,
         reload=reload,
-        reload_excludes=['node_modules'],
+        reload_dirs=dirs_to_watch,
         log_config=logging_config,
         limit_max_requests=limit_max_requests,
         lifespan='on',
