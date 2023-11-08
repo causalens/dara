@@ -153,8 +153,8 @@ def start(
             try:
                 module_parent = find_module_path(config)
                 dirs_to_watch = [module_parent]
-            except ImportError as e:
-                logger.warn('Could not infer path to watch: ' + e.msg)
+            except Exception as e:
+                logger.warn('Could not infer path to watch: ' + str(e))
 
     # Exclude node_modules to prevent watcher trying to parse node_modules its symlinks
     uvicorn.run(
