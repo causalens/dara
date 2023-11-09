@@ -284,17 +284,15 @@ which are run as a background task.
 For some advanced use cases, you might want to create custom action. The process is very similar to creating a custom component.
 
 The custom action you create needs to be have a specific signature compatible with the action system. For ease of use,
-a TypeScript `ActionHook` helper type is provided:
+a TypeScript `ActionHandler` helper type is provided:
 
 ```tsx title=dara-core/js/types/core.tsx
+import { CallbackInterface } from "recoil";
+
 /**
  * Object injected into actions
  */
-export interface ActionContext<T> {
-  /**
-   * Helper function to execute an action on the server
-   */
-  fetchAction: (uid: string, body: ActionBodyContext) => Promise<T>;
+export interface ActionContext extends CallbackInterface {
   /**
    * Current auth session token
    */
@@ -303,53 +301,66 @@ export interface ActionContext<T> {
    * Websocket Client instance
    */
   wsClient: WebSocketClientInterface;
-}
-
-export interface ActionBodyContext {
-  extras?: NormalizedPayload<Record<string | number, any>>;
-  inputs?: Record<string, any>;
+  /**
+   * History object
+   */
+  history: History;
+  /**
+   * Location object
+   */
+  location: Location;
+  /**
+   * Input value passed from the invoking component
+   */
+  input: any;
+  /**
+   * Task context
+   */
+  taskCtx: GlobalTaskContext;
+  /**
+   * Notification context
+   */
+  notificationCtx: ReturnType<typeof useNotifications>;
+  /**
+   * Callback invoked for any unhandled action
+   */
+  onUnhandledAction?: ActionHandler;
 }
 
 /**
- * Signature of an ActionHook
+ * Signature of an ActionHandler
  */
-export interface ActionHook<
-  ActionReturnType,
-  ActionInstanceType extends ActionInstance = ActionInstance
-> {
-  (
-    action: ActionInstanceType,
-    actionContext: ActionContext<ActionReturnType>
-  ): (value: any) => Promise<void>;
+export interface ActionHandler<ActionImplType extends ActionImpl = ActionImpl> {
+  (actionContext: ActionContext, action: ActionImplType): void | Promise<void>;
 }
 ```
 
 As you can see, the action function takes an `ActionInstance` and an `ActionContext` object, providing the action with useful
-constructs and functions. The action function can be thought of as a `React` hook, that returns a callback to execute the action.
+constructs and functions. The action function should be a pure function, since it might get internally cached for performance
+reasons, on a per action name basis.
 
 ```tsx = title=js/custom-action.tsx
-import { useCallback } from "react";
-import { ActionHook, ActionInstance } from "@darajs/core";
+import * as React from "react";
+import { ActionHandler, ActionImpl } from "@darajs/core";
 
 interface CustomActionInstance extends ActionInstance {
   country: string;
 }
 
-const CustomAction: ActionHook<string, CustomActionInstance> = (
-  action,
-  { fetchAction }
-) => {
-  return useCallback(async (name: any) => {
-    const fullName = `${name} from ${action.country}`;
-    return fetchAction(action.uid, { inputs: { value: fullName } });
-  }, []);
+const CustomAction: ActionHandler<CustomActionInstance> = async (
+  ctx,
+  actionImpl
+): Promise<void> => {
+  // Navigate to a new page
+  ctx.history.push(`/country/${actionImpl.country}`);
 };
 
 export default CustomAction;
 ```
 
-In this example, you define an action handler for an instance that can be configured with a `country` prop. When the action is called
-with a value coming from a component, that value is combined with the `country` prop and calls the backend with the combined value.
+In this example, you define an action handler for an instance that can be configured with a `country` prop. This handler will be invoked when
+your `CustomActionInstance` is received from the backend. The above could have been achieved using the built-in `Navigate` instead, but it serves
+as a simple example of how to write a custom action handler.
 
 Just like for the component, the following would then need to be added into the local module's main export file.
 
@@ -357,49 +368,82 @@ Just like for the component, the following would then need to be added into the 
 export { default as CustomAction } from "./custom-action";
 ```
 
-To register the action on the backend side you need to write a subclass of `ActionInstance` and create it with your application config.
+To register the action on the backend side you need to write a subclass of `ActionImpl` and create it with your application config.
 
 ```python
-from dara.core.base_definitions import ActionDef, ActionInstance
-from dara.core.interactivity.actions import ComponentActionContext
+from dara.core.base_definitions import action, ActionImpl
 
-class CustomAction(ActionInstance):
+class CustomAction(ActionImpl):
     country: str
-    function: Callable
-    Ctx = ComponentActionContext
 
-    def __init__(self, function: Callable[[ComponentActionContext], Any]):
-        """
-        :param function: the function to be called
-        """
-        uid = str(uuid.uuid4())
-
-        # You need to register the handler for the function
-        self.register_resolver(uid, function)
-
-        super().__init__(uid=uid, function=function)
+    async def execute(self, ctx: action.Ctx):
+        """Invoked when passed into `ctx.execute_action`"""
+        # Any custom logic
+        print(f'Executing custom action with country {self.country}')
+        # Optionally invoke the default implementation, which sends the serialized instance to the frontend
+        return await super().execute(ctx)
 
 
 config.add_action(CustomAction, local=True)
 ```
 
-Note that if you want to execute backend code when the action is called with `fetchAction` from the frontend, the backend
-`ActionInstance` needs to take in a `Callable[[ActionContextType], Any]` parameter and register it by calling `self.register_resolver`.
-
-`ActionContext` requires two fields `extras` and `inputs`. You can define your own custom context depending on your usecase.
-If it only takes one value as input, then you can simply use `ComponentActionContext`, which intends to take the component value
-to the resolving function, for example the selected value on a select component.
-
 :::tip
-The action can be purely front-end and does not need to call the backend at all. You can then skip the `__init__` part
-of the backend definition.
+
+Overriding the `execute` method is optional. If you don't need to perform any custom logic, you can omit it and the default implementation will be used
+to send the serialized instance to the frontend. Alternatively, you can choose to not call the default implementation and only perform a server-side
+action, e.g. to update the database, without sending anything to the frontend. Then there is no need to register the action in `config.add_action`.
+
 :::
 
 The action can then be used like any other built-in action.
 
 ```python
-Button('Test button', onclick=CustomAction(country='United Kingdom', function=lambda x: f'Greetings, {x}!'))
+Button('Test button', onclick=CustomAction(country='United Kingdom'))
 ```
+
+If you would rather handle your `ActionImpl` objects in a more customized way on a component-by-component basis, you can provide a callback to the `useAction` hook.
+
+```tsx title=js/custom-component.tsx
+import * as React from "react";
+import { Action, useAction, useVariable, Variable } from "@darajs/core";
+
+interface CustomComponentProps {
+  title: string;
+  content: Variable<number>;
+  onclick: Action;
+}
+
+export default function CustomComponent(props: CustomComponentProps) {
+  const [content, setContent] = useVariable(props.content);
+  const [onClick] = useAction(props.onclick, {
+    onUnhandledAction: (ctx, action) => {
+      // Handle the action here
+    },
+  });
+
+  function onChange(e: InputEvent) {
+    setContent(e.target.value);
+  }
+
+  return (
+    <div>
+      <h1>{props.title}</h1>
+      {content}
+      <input onChange={onChange} />
+      <button onClick={onClick}>Click Me</button>
+    </div>
+  );
+}
+```
+
+In the example above we are passing a callback to the `useAction` hook that will be invoked whenever an `ActionImpl` is encountered that does not have
+a corresponding action handler registered on the frontend.
+
+:::note
+
+`onUnhandledAction` will not be invoked if you previously registered your `ActionImpl` class with `config.add_action`
+
+:::
 
 ### WebSocket communication
 
@@ -523,9 +567,8 @@ Modify your component and action classes to point to your `npm` module
 
 ```python
 
-class CustomAction(ActionInstance):
+class CustomAction(ActionImpl):
     country: str
-    function: Callable
 
     js_module = 'my_npm_module'
 
