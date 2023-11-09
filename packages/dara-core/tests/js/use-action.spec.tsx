@@ -9,6 +9,7 @@ import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { useAction, useVariable } from '../../js/shared';
 import {
     Action,
+    ActionImpl,
     AnnotatedAction,
     DerivedDataVariable,
     DerivedVariable,
@@ -825,5 +826,108 @@ describe('useAction', () => {
         });
 
         await waitFor(() => expect(history.location.search).toBe('?q=default-value'));
+    });
+
+    it('should handle arbitrary ActionImpl', async () => {
+        interface CustomActionImpl extends ActionImpl {
+            extra: number;
+        }
+
+        interface CustomActionImpl2 extends ActionImpl {
+            other: string;
+        }
+
+        const customAction: CustomActionImpl = {
+            __typename: 'ActionImpl',
+            extra: 10,
+            name: 'CustomAction',
+        };
+
+        const customAction2: CustomActionImpl2 = {
+            __typename: 'ActionImpl',
+            name: 'CustomAction2',
+            other: 'other',
+        };
+
+        const onUnhandledAction = jest.fn();
+
+        // Use render hook and pass in a custom action handler
+        const { result } = renderHook(
+            () =>
+                useAction([customAction, customAction2], {
+                    onUnhandledAction,
+                }),
+            { wrapper: ({ children }) => <Wrapper>{children}</Wrapper> }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toBeInstanceOf(Function);
+            expect(result.current[1]).toEqual(false);
+        });
+
+        // Call the action handler
+        await act(async () => {
+            await result.current[0]('input');
+        });
+
+        // There should be two calls to onUnhandledAction
+        expect(onUnhandledAction).toHaveBeenCalledTimes(2);
+
+        // Check that the onUnhandledAction handler was called with the context and the action1
+        expect(onUnhandledAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: 'input',
+            }),
+            customAction
+        );
+
+        // Check it was also called with action2
+        expect(onUnhandledAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: 'input',
+            }),
+            customAction2
+        );
+    });
+
+    it('should handle AnnotatedAction returning multiple custom actions', async () => {
+        interface CustomActionImpl extends ActionImpl {
+            extra: number;
+        }
+
+        interface CustomActionImpl2 extends ActionImpl {
+            other: string;
+        }
+
+        const customAction: CustomActionImpl = {
+            __typename: 'ActionImpl',
+            extra: 10,
+            name: 'CustomAction',
+        };
+
+        const customAction2: CustomActionImpl2 = {
+            __typename: 'ActionImpl',
+            name: 'CustomAction2',
+            other: 'other',
+        };
+
+        const annotated: AnnotatedAction = {
+            dynamic_kwargs: {
+                foo: 'bar',
+            },
+            uid: 'uid',
+        };
+
+        const onUnhandledAction = jest.fn();
+
+        const wsClient = new MockWebSocketClient('uid');
+
+        const { result } = renderHook(
+            () =>
+                useAction([customAction, customAction2, annotated], {
+                    onUnhandledAction,
+                }),
+            { wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper> }
+        );
     });
 });

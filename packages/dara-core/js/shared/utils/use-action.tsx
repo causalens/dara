@@ -118,21 +118,28 @@ class UnhandledActionError extends Error {
 async function resolveActionImpl(
     actionImpl: ActionImpl,
     getAction: (instance: ActionImpl) => ActionDef,
-    importers: Record<string, () => Promise<any>>
+    importers: Record<string, () => Promise<any>>,
+    actionCtx: ActionContext
 ): Promise<ActionHandler<ActionImpl>> {
     // cache action handler globally for performance, they are pure functions so it's safe to do so
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
         // resolve action handler function by name
-        let actionDef;
+        let actionHandler: ActionHandler;
 
         try {
-            actionDef = getAction(actionImpl);
+            const actionDef = getAction(actionImpl);
+            const moduleContent = await importers[actionDef.py_module]();
+            actionHandler = moduleContent[actionImpl.name];
         } catch {
-            throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
+            // if we failed to resolve the action handler, use the catch-all handler if defined
+            if (actionCtx.onUnhandledAction) {
+                actionHandler = actionCtx.onUnhandledAction;
+            } else {
+                throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
+            }
         }
-        const moduleContent = await importers[actionDef.py_module]();
 
-        ACTION_HANDLER_BY_NAME[actionImpl.name] = moduleContent[actionImpl.name];
+        ACTION_HANDLER_BY_NAME[actionImpl.name] = actionHandler;
     }
 
     return ACTION_HANDLER_BY_NAME[actionImpl.name];
@@ -156,13 +163,14 @@ async function executeAction(
 ): Promise<void> {
     // if it's a simple action implementation, run the handler directly
     if (isActionImpl(action)) {
-        const handler = await resolveActionImpl(action, getAction, importers);
+        const handler = await resolveActionImpl(action, getAction, importers, actionCtx);
         const result = handler(actionCtx, action);
 
         // handle async handlers
         if (result instanceof Promise) {
             await result;
         }
+
         return;
     }
 
@@ -201,7 +209,7 @@ async function executeAction(
             .pipe(
                 concatMap(async (actionImpl) => {
                     if (actionImpl) {
-                        const handler = await resolveActionImpl(actionImpl, getAction, importers);
+                        const handler = await resolveActionImpl(actionImpl, getAction, importers, actionCtx);
                         return [handler, actionImpl] as const;
                     }
 
@@ -248,7 +256,7 @@ interface UseActionOptions {
      *
      * @param action action implementation
      */
-    onUnhandledAction?: (action: ActionImpl, actionCtx: ActionContext) => void | Promise<void>;
+    onUnhandledAction?: ActionHandler;
 }
 
 /**
@@ -278,6 +286,7 @@ export default function useAction(
         history,
         location,
         notificationCtx,
+        onUnhandledAction: options?.onUnhandledAction,
         sessionToken,
         taskCtx,
         wsClient,
@@ -313,29 +322,20 @@ export default function useAction(
                     // eslint-disable-next-line no-await-in-loop
                     await executeAction(input, actionToExecute, fullActionContext, getAction, importers);
                 } catch (error) {
-                    // Handle unhandled action errors separately
+                    // Display for easier debugging
+                    // eslint-disable-next-line no-console
+                    console.error(error);
+
+                    let message = 'Try again or contact the application owner';
+
+                    // Display the unhandled action directly as it might be helpful for developers
                     if (error instanceof UnhandledActionError) {
-                        // there is a callback defined for it, call it
-                        if (optionsRef.current?.onUnhandledAction) {
-                            const result = optionsRef.current.onUnhandledAction(error.actionImpl, fullActionContext);
-                            if (result instanceof Promise) {
-                                // eslint-disable-next-line no-await-in-loop
-                                await result;
-                            }
-                        } else {
-                            actionCtx.current.notificationCtx.pushNotification({
-                                key: '_actionError', // same key so action errors don't stack
-                                message: `Action "${error.actionImpl.name}" not registered`,
-                                status: Status.ERROR,
-                                title: 'Error executing action',
-                            });
-                        }
-                        continue;
+                        message = error.message;
                     }
 
                     actionCtx.current.notificationCtx.pushNotification({
                         key: '_actionError', // same key so action errors don't stack
-                        message: 'Try again or contact the application owner',
+                        message,
                         status: Status.ERROR,
                         title: 'Error executing action',
                     });
