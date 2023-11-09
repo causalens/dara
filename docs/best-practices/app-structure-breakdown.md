@@ -170,7 +170,7 @@ Your app will ultimately perform some logic based on how the user interacts with
 
 ### Resolver Functions
 
-When the user interacts with the app and updates the values of the `Variable`s in your app, this will update `DerivedVariable`s and `DataDerivedVariable`s or trigger actions like `dara.core.interactivity.actions.
+When the user interacts with the app and updates the values of the `Variable`s in your app, this will update `DerivedVariable`s and `DataDerivedVariable`s or trigger [actions]((../getting-started/actions)).
 
 In the following example, the user can choose a number of metrics to apply to their model which will be displayed to them in a `Table` via a `DerivedDataVariable`. The resolver of this `DerivedDataVariable` is not simple and cannot be resolved through a Python `lambda` function. Therefore it is best practice to move it out of your component logic.
 

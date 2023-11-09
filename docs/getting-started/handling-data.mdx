@@ -77,10 +77,10 @@ my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
 target = Variable()
 
 @action
-async def my_resolver_function(ctx: action.Ctx, my_data_var):
-    # my_data_var here takes the value of my_first_data_variable
+async def my_resolver_function(ctx: action.Ctx, data_var_value: pandas.DataFrame):
+    # data_var_value here takes the value of my_first_data_variable
     ...
-    ctx.update(variable=target, value=my_data_var)
+    await ctx.update(variable=target, value=data_var_value)
 
 my_resolver_function(my_first_data_variable)
 ```
@@ -92,6 +92,7 @@ You can update the data stored in a `DataVariable` by:
 - using a `dara.core.interactivity.actions` action
 
 ```python
+import pandas
 from dara.core import DataVariable, CacheType
 
 my_session_data_variable = DataVariable(cache=CacheType.SESSION)

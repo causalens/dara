@@ -67,7 +67,7 @@ Now to use this event with a `Bokeh` component, the component has to register ac
 
 ```python
     ...
-    # we sync the value of the selected_variety_var to the value returned by the callback
+    # you sync the value of the selected_variety_var to the value returned by the callback
     # in this case the value will hold the wheat_class of whatever plot point was selected
     return Bokeh(p, events=[
         ('CLICK', [selected_variety_var.sync()])
@@ -83,7 +83,7 @@ import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models.tools import TapTool
 
-from dara.core import ConfigurationBuilder, Variable, py_component, action
+from dara.core import ConfigurationBuilder, Variable, py_component, NavigateTo
 from dara.components import Stack, Text, Button, Card, Bokeh, figure_events
 
 wheat_data = pd.DataFrame(
@@ -143,14 +143,6 @@ def interactive_wheat_scatter_plot():
     )
 
 
-@action
-async def navigate_to(ctx: action.Ctx, selected_variety_var):
-    await ctx.navigate(
-        url=f"https://en.wikipedia.org/wiki/Triticum_{selected_variety_var}",
-        new_tab=True,
-    )
-
-
 @py_component
 def selected_variety_information(selected_variety):
     if selected_variety is None:
@@ -163,7 +155,7 @@ def selected_variety_information(selected_variety):
             Text(f"The selected point is of the {selected_variety} wheat variety."),
             Button(
                 f"Read More on Triticum {selected_variety}",
-                onclick=navigate_to(selected_variety),
+                onclick=NavigateTo(f"https://en.wikipedia.org/wiki/Triticum_{selected_variety}"),
             ),
             height="10%",
             align="center",

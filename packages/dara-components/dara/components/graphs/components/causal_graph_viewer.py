@@ -107,10 +107,8 @@ class CausalGraphViewer(BaseGraphComponent):
 
     @action
     async def resolver_on_click_node(ctx: action.Ctx):
-        if isinstance(ctx.input, dict):
-            await ctx.update(variable=selected_node, value=ctx.input.get('identifier'))
-        else:
-            await ctx.update(variable=selected_node, value=None)
+        value = ctx.input.get('identifier') if isinstance(ctx.input, dict) else None
+        await ctx.update(variable=selected_node, value=value)
 
     @action
     async def resolver_on_click_edge(ctx: action.Ctx):
