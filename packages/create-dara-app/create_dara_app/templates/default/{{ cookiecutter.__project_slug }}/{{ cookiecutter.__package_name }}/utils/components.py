@@ -288,9 +288,9 @@ def edge_encoder() -> ComponentInstance:
             nodes=['Age', 'Unemployment', 'Education', 'Income'],
             initial_constraints=[
                 EdgeConstraint(source='Age', target='Education', type=EdgeConstraintType.FORBIDDEN_EDGE),
-                EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.UNDIRECTED_EDGE),
-                EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE),
-                EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE),
+                EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+                EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
+                EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
             ],
             graph_layout=SpringLayout(),
         ),
@@ -301,9 +301,9 @@ VisualEdgeEncoder(
     nodes=['Age', 'Unemployment', 'Education', 'Income'],
     initial_constraints=[
         EdgeConstraint(source='Age', target='Education', type=EdgeConstraintType.FORBIDDEN_EDGE),
-        EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.UNDIRECTED_EDGE),
-        EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE),
-        EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
+        EdgeConstraint(source='Unemployment', target='Education', type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+        EdgeConstraint(source='Unemployment', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE),
+        EdgeConstraint(source='Education', target='Income', type=EdgeConstraintType.HARD_DIRECTED_EDGE)
     ],
     graph_layout=SpringLayout(),
 )

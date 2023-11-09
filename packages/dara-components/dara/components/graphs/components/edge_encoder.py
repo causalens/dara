@@ -96,8 +96,8 @@ class VisualEdgeEncoder(StyledComponentInstance):
     VisualEdgeEncoder(
         nodes=["First node", "Second node", "Third node"],
         initial_constraints=[
-            EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.UNDIRECTED_EDGE),
-            EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
+            EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
+            EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.HARD_DIRECTED_EDGE)
         ],
         on_update=output_constraints.sync(),
     )

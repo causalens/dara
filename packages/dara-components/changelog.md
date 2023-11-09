@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Updated `EdgeConstraintType` to comply to `0.3.0` of `cai-causal-graph`.
+-   Updated so that if no `editor_mode` is passed to `CausalGraphViewer`, then it checks if graph is DAG, if so `editor_mode` defaults to `EditorMode.DEFAULT`, else defaults to `EditorMode.PAG`. However if `graph_layout` is `PlanarLayout` then it will always be set to `EditorMode.DEFAULT` 
+
 ## 1.4.5
 
 -   Changed `Plotly` default `min-height` to be `350px`.

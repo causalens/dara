@@ -39,7 +39,7 @@ export interface CausalGraphViewerProps extends StyledComponentProps {
     /** Allow editing */
     editable?: boolean;
     /** Graph viewer mode */
-    editor_mode: EditorMode;
+    editor_mode?: EditorMode;
     /** Graph layout definition object */
     graph_layout: GraphLayoutDefinition;
     /** Array of node names that cannot be removed */
