@@ -67,7 +67,6 @@ from dara.components.plotting.palettes import PolarisingLight11
 from dara.core import (
     ComponentInstance,
     DataVariable,
-    UpdateVariable,
     Variable,
     py_component,
 )
@@ -124,13 +123,13 @@ def show_var(text: str, value):
 
 def show_code(variable: Variable, code:str, component_type: str, component_name:str) -> ComponentInstance:
     return Stack(
-        Button('Show Source Code', onclick=UpdateVariable(lambda ctx: True, variable), width='200px', styling=ButtonStyle.GHOST),
+        Button('Show Source Code', onclick=variable.update(value=True), width='200px', styling=ButtonStyle.GHOST),
         Modal(
             Stack(Code(code=code, theme=Code.Themes.LIGHT), scroll=True),
             Stack(
                 Button(
                     'Close',
-                    onclick=UpdateVariable(lambda ctx: False, variable),
+                    onclick=variable.update(value=False),
                     width='200px',
                     styling=ButtonStyle.ERROR,
                 ),
@@ -1358,7 +1357,7 @@ def form() -> ComponentInstance:
                 height='200px',
             ),
             value=form_value,
-            onsubmit=UpdateVariable(lambda ctx: {}, form_value),
+            onsubmit=form_value.update(value={}),
         ),
         show_var('Form Variable:', form_value),
         show_code(
@@ -1507,7 +1506,7 @@ Stack(
             height='200px',
         ),
         value=form_value,
-        onsubmit=UpdateVariable(lambda ctx: {}, form_value),
+        onsubmit=form_value.update(value={}),
     ),
     show_var('Form Variable:', form_value),
 )
@@ -1743,7 +1742,7 @@ modal_var = Variable(False)
 
 def modal() -> ComponentInstance:
     return Stack(
-        Button('Click to show modal', onclick=UpdateVariable(lambda ctx: True, show_modal)),
+        Button('Click to show modal', onclick=show_modal.update(value=True)),
         Modal(
             Stack(Text('This is a sample Modal'), justify='center', align='center'),
             show=show_modal,
@@ -1752,7 +1751,7 @@ def modal() -> ComponentInstance:
             modal_var,
             '''
 Stack(
-    Button('Click to show modal', onclick=UpdateVariable(lambda ctx: True, show_modal)),
+    Button('Click to show modal', onclick=show_modal.update(value=True)),
     Modal(
         Stack(Text('This is a sample Modal'), justify='center', align='center'),
         show=show_modal,

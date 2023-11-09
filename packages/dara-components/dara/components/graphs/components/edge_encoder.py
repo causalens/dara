@@ -34,10 +34,11 @@ from dara.core.interactivity import NonDataVariable
 
 class EdgeConstraint(TypedDict):
     """
-    EdgeConstraint object denotes a constraint between two nodes in the graph. 
-    
+    EdgeConstraint object denotes a constraint between two nodes in the graph.
+
     It is used to build a list of constraints for `VisualEdgeEncoder` component.
     """
+
     source: str
     target: str
     type: EdgeConstraintType
@@ -51,7 +52,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     A VisualEdgeEncoder component is created via:
 
     ```python
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
     from dara.components.graphs import VisualEdgeEncoder
 
     encoder = VisualEdgeEncoder(
@@ -62,13 +63,13 @@ class VisualEdgeEncoder(StyledComponentInstance):
     output_constraints = Variable()
     variable_encoder = VisualEdgeEncoder(
         nodes=["First node", "Second node", "Third node"],
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
 
     ```
 
     Alternatively, you can pass in a dict of [str, Node] to the `nodes` parameter to use the `CausalGraph.Node` object:
-    
+
     ```python
     from cai_causal_graph import CausalGraph
     from dara.components.graphs import VisualEdgeEncoder
@@ -76,20 +77,20 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     VisualEdgeEncoder(
         nodes={
-            "First node": CausalGraph.Node("First node"), 
+            "First node": CausalGraph.Node("First node"),
             "Second node": CausalGraph.Node("Second node")
         },
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
     ```
 
     You can also pass in a list of `EdgeConstraint` objects to the `initial_constraints` parameter to pre-populate the graph:
-    
+
     ```python
     from cai_causal_graph import CausalGraph
     from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
     from dara.components.graphs import VisualEdgeEncoder, EdgeConstraint
-    
+
     output_constraints = Variable()
 
     VisualEdgeEncoder(
@@ -98,7 +99,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
             EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.UNDIRECTED_EDGE),
             EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.FORWARD_DIRECTED_EDGE)
         ],
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
     ```
 
@@ -117,7 +118,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
 
-    js_module = '@darajs/components'
+    js_module = "@darajs/components"
 
     allow_selection_when_not_editable: Optional[bool] = False
     editable: Optional[bool] = False
@@ -135,7 +136,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     @root_validator
     @classmethod
     def validate_layout(cls, values: dict):
-        if isinstance(values.get('graph_layout'), PlanarLayout):
-            raise ValueError('Planar Layout is not currently supported by EdgeEncoder.')
+        if isinstance(values.get("graph_layout"), PlanarLayout):
+            raise ValueError("Planar Layout is not currently supported by EdgeEncoder.")
 
         return values
