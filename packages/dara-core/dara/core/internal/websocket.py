@@ -32,7 +32,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
-from dara.core.logging import eng_logger
+from dara.core.logging import dev_logger, eng_logger
 
 
 # Client message types
@@ -356,7 +356,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     with catch(
         {
             WebSocketDisconnect: lambda _: eng_logger.warning('Websocket disconnected'),
-            BaseException: lambda e: eng_logger.error('Error in websocket handler', error=Exception(e)),
+            BaseException: lambda e: dev_logger.error('Error in websocket handler', error=Exception(e)),
         }
     ):
         try:

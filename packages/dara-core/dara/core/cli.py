@@ -117,6 +117,10 @@ def start(
         os.environ['VITE_REACTJS_HMR'] = 'False'
         os.environ['VITE_SERVE_MODE'] = 'False'
 
+    # Tell frontend to restart on WS reconnection
+    if reload:
+        os.environ['DARA_LIVE_RELOAD'] = 'TRUE'
+
     # Check that if production/dev mode is set, node is installed - unless we're in docker mode
     if not docker and (production or enable_hmr):
         exit_code = os.system('node -v')
