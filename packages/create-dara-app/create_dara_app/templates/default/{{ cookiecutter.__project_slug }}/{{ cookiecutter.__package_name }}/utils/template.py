@@ -3,6 +3,7 @@ from dara.core.visual.components import Menu, RouterContent
 from dara.core.visual.components.sidebar_frame import SideBarFrame
 from dara.core.visual.template import TemplateBuilder
 
+
 def template_renderer(config: Configuration):
     builder = TemplateBuilder(name='side-bar')
 

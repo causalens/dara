@@ -18,7 +18,6 @@ import {
     CausalGraphNode,
     CausalGraphViewer,
     EdgeConstraint,
-    EdgeConstraintType,
     EdgeType,
     EditorMode,
     ZoomThresholds,
@@ -63,14 +62,8 @@ function parseConstraints(constraints?: EdgeConstraint[]): EdgeConstraint[] {
     }
 
     return constraints.map((c) => {
-        let constraintType = c.type;
-        let { source, target } = c;
-
-        // Reverse backward edges
-        if (constraintType === EdgeConstraintType.BACKWARD_DIRECTED) {
-            [source, target] = [target, source];
-            constraintType = EdgeConstraintType.DIRECTED;
-        }
+        const constraintType = c.type;
+        const { source, target } = c;
 
         return {
             ...c,

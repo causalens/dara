@@ -16,13 +16,18 @@ To further understand this, imagine you want to create a scatter plot that when 
 
 First `event_name`, you will need `plotly_click` and `plotly_hover`, which could also be passed with the help of the component `dara.components.plotting.plotly.PlotlyEventName` enum as `Plotly.EventName.CLICK` and `Plotly.EventName.HOVER`.
 
-Next `actions` for both we will need to update a `Variable` with the coordinates associated with the interacted point.For this you can use `UpdateVariable` action:
+Next `actions` for both we will need to update a `Variable` with the coordinates associated with the interacted point. For this you can add the following `action`:
 
 ```python
-UpdateVariable(
-    variable=some_var,
-    resolver=lambda ctx: {'x': ctx.inputs.new[0]['x'], 'y': ctx.inputs.new[0]['y']},
-)
+@action
+async def update_some_var(ctx: action.Ctx):
+    await ctx.update(
+        variable=some_var,
+        value={
+            "x": ctx.input[0]["x"],
+            "y": ctx.input[0]["y"],
+        },
+    )
 ```
 In the case of hover and click events the action context will receive an object containing the data points interacted with. 
 To obtain the coordinates we can access the first element, this is the singular data point you clicked. And then return the `x` and `y` values.
@@ -43,9 +48,17 @@ figure.data[0].marker = {...figure.data[0].marker, color: colors};
 With that you have all the ingredients to create a Plotly event, full code to the example is shown below:
 
 ```python
-from dara.core import Variable, py_component, ConfigurationBuilder, UpdateVariable, ComponentInstance, get_icon
+from dara.core import (
+    Variable,
+    py_component,
+    ConfigurationBuilder,
+    ComponentInstance,
+    get_icon,
+    action,
+)
 from dara.components import Stack, Text, Plotly
 import plotly.graph_objects as go
+
 
 # create a simple plotly figure
 def event_example():
@@ -54,16 +67,29 @@ def event_example():
     y = [2, 4, 1, 3, 5]
 
     # Create scatter plot
-    fig = go.Figure(data=go.Scatter(x=x, y=y, mode='markers', marker=dict(size=10)))
+    fig = go.Figure(data=go.Scatter(x=x, y=y, mode="markers", marker=dict(size=10)))
 
     return fig
 
-some_var = Variable('No point selected')
+
+some_var = Variable("No point selected")
+
 
 # py_component to show the coordinate values stored in the Variable
 @py_component
 def show_var(var):
     return Text(str(var))
+
+
+@action
+async def update_some_var(ctx: action.Ctx):
+    await ctx.update(
+        variable=some_var,
+        value={
+            "x": ctx.input[0]["x"],
+            "y": ctx.input[0]["y"],
+        },
+    )
 
 
 def plotly_page_content() -> ComponentInstance:
@@ -82,12 +108,7 @@ def plotly_page_content() -> ComponentInstance:
                     colors[pn] = '#2CB85C';
                     figure.data[0].marker = {...figure.data[0].marker, color: colors}
                     """,
-                    actions=[
-                        UpdateVariable(
-                            variable=some_var,
-                            resolver=lambda ctx: {'x': ctx.inputs.new[0]['x'], 'y': ctx.inputs.new[0]['y']},
-                        )
-                    ],
+                    actions=[update_some_var()],
                 ),
                 Plotly.Event(
                     event_name=Plotly.EventName.HOVER,
@@ -98,18 +119,16 @@ def plotly_page_content() -> ComponentInstance:
                     colors[pn] = '#C54C82';
                     figure.data[0].marker = {...figure.data[0].marker, color: colors};
                     """,
-                    actions=[
-                        UpdateVariable(
-                            variable=some_var,
-                            resolver=lambda ctx: {'x': ctx.inputs.new[0]['x'], 'y': ctx.inputs.new[0]['y']},
-                        )
-                    ],
+                    actions=[update_some_var()],
                 ),
             ],
         ),
         show_var(some_var),
     )
 
+
 config = ConfigurationBuilder()
-config.add_page(name='Plotly', content=plotly_page_content(), icon=get_icon('chart-line'))
+config.add_page(
+    name="Plotly", content=plotly_page_content(), icon=get_icon("chart-line")
+)
 ```

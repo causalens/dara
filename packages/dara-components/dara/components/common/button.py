@@ -49,14 +49,12 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.components.common import Button, ButtonStyle
-
-    action = NavigateTo(url='/test')
+    from dara.core import NavigateTo
+    from dara.components import Button, ButtonStyle
 
     Button(
         'Click',
-        onclick=action,
+        onclick=NavigateTo('/test'),
         icon='Pen',
         styling='ButtonStyle.SECONDARY,
         outline=True,
@@ -71,18 +69,15 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.core.definitions import Variable
-    from dara.components.common import Button
-
-    action = NavigateTo(url='/test')
+    from dara.core import Variable, NavigateTo
+    from dara.components import Button
 
     disabled = Variable(True)
 
     Button(
         'Click',
         disabled=disabled,
-        onclick=action,
+        onclick=NavigateTo('/test),
     )
 
     ```
@@ -92,8 +87,8 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.components.common import Button, Stack, Text
+    from dara.core import NavigateTo
+    from dara.components import Button, Stack, Text
 
     Button(
         Stack(
@@ -101,7 +96,7 @@ class Button(LayoutComponent):
                 'Stack passed to buton, when clicked I navigate to test page',
             ),
         ),
-        onclick=NavigateTo(url='test'),
+        onclick=NavigateTo('/test'),
     )
 
     ```

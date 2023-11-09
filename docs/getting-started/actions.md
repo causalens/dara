@@ -415,9 +415,9 @@ For this reason shortcut actions should not be used within an `@action`-annotate
 
 The following shortcut actions are available:
 
-### `dara.core.interactivity.any_variable.AnyVariable.reset`
+### `reset`
 
-`reset` is a convenience method to reset the given variable to its default value.
+[reset](dara.core.interactivity.any_variable.AnyVariable.reset) is a convenience method to reset the given variable to its default value.
 
 See the following example:
 
@@ -445,7 +445,7 @@ config.add_page(name='Reset Variable', content=test_page())
 
 In the above example, the `Reset @action` button and the `Reset Shortcut` button have the same functionality - both reset the `my_var` variable to its default value.
 
-### `dara.core.interactivity.plain_variable.Variable.sync`
+### `sync`
 
 `sync` is a convenience method to update a given `Variable` with the value sent by the component it is attached to.
 
@@ -477,11 +477,11 @@ Note that if you would like to transform the value coming from the component bef
 
 :::tip
 
-This method is also available for `UrlVariable` in addition to `Variable`.
+This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.sync) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.sync).
 
 :::
 
-### `dara.core.interactivity.plain_variable.Variable.update`
+### `update`
 
 `update` is a convenience method to update a given `Variable` with a new static value.
 
@@ -504,11 +504,11 @@ The shortcut action is useful in scenarios where you want to update a variable w
 
 :::tip
 
-This method is also available for `UrlVariable` and `DataVariable` in addition to `Variable`.
+This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.update) and [DataVariable](dara.core.interactivity.data_variable.DataVariable.update) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.update).
 
 :::
 
-### `dara.core.interactivity.plain_variable.Variable.toggle`
+### `toggle`
 
 `toggle` is a convenience method to toggle a given `Variable` between `True` and `False`.
 
@@ -530,11 +530,11 @@ In the above example, the `toggle_action` action and the `toggle` shortcut actio
 
 :::tip
 
-This method is also available for `UrlVariable` in addition to `Variable`.
+This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.toggle) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.toggle).
 
 :::
 
-### `dara.core.interactivity.derived_variable.DerivedVariable.trigger`
+### `trigger`
 
 `trigger` is a convenience method to trigger a recalculation of a given `DerivedVariable`.
 
@@ -568,7 +568,7 @@ In the above example, the `trigger_my_var` action and the `trigger` shortcut act
 
 :::tip
 
-This method is also available for `DerivedDataVariable` in addition to `DerivedVariable`.
+This method is also available for [DerivedDataVariable](dara.core.interactivity.derived_data_variable.DerivedDataVariable.trigger) in addition to [DerivedVariable](dara.core.interactivity.derived_variable.DerivedVariable.trigger).
 
 :::
 

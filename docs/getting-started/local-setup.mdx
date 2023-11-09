@@ -348,6 +348,28 @@ You can read more about virtual environments [on the `venv` package documentatio
 
 :::tip
 The `--reload` flag here will cause it to automatically reload the backend and UI whenever any changes are made and saved.
+
+By default it will infer and watch the parent directory of the module containing your `config` variable.
+This can be overriden using the `--reload-dir` flag which can be used multiple times to watch multiple specified directories
+instead of the default one.
+
+```
+# Example structure
+- decision-app/
+    - decision_app/
+        - main.py
+        - pages/
+        - utils/
+    - pyproject.toml
+
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app']
+dara start --reload
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app/pages']
+dara start --reload-dir decision_app/pages
+# Will watch for changes in these directories: ['(...)/decision-app/decision_app/utils', '(...)/decision-app/decision_app/pages']
+dara start --reload-dir decision_app/pages --reload-dir decision_app/utils
+```
+
 :::
 
 This command will start a local development server and will start your application at `http://localhost:8000`.
