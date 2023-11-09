@@ -97,6 +97,14 @@ async function invokeAction(
 const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
 
 /**
+ * Clear the global action handler cache.
+ * This is only used for testing.
+ */
+export function clearActionHandlerCache_TEST(): void {
+    Object.keys(ACTION_HANDLER_BY_NAME).forEach((k) => delete ACTION_HANDLER_BY_NAME[k]);
+}
+
+/**
  * Error thrown when an action is not handled by the app.
  */
 class UnhandledActionError extends Error {
@@ -226,7 +234,9 @@ async function executeAction(
                 next: async ([handler, actionImpl]) => {
                     try {
                         activeTasks += 1;
+
                         const result = handler(actionCtx, actionImpl);
+
                         // If it's a promise, await it to ensure sequential execution
                         if (result instanceof Promise) {
                             await result;
@@ -286,7 +296,6 @@ export default function useAction(
         history,
         location,
         notificationCtx,
-        onUnhandledAction: options?.onUnhandledAction,
         sessionToken,
         taskCtx,
         wsClient,
@@ -305,9 +314,10 @@ export default function useAction(
             for (const actionToExecute of actionsToExecute) {
                 // this is redefined for each action to have up-to-date snapshot
                 /* eslint-disable sort-keys-fix/sort-keys-fix */
-                const fullActionContext = {
+                const fullActionContext: ActionContext = {
                     ...actionCtx.current,
                     input,
+                    onUnhandledAction: optionsRef.current?.onUnhandledAction,
                     // Recoil callback interface cannot be spread as it is a Proxy
                     gotoSnapshot: cbInterface.gotoSnapshot,
                     refresh: cbInterface.refresh,

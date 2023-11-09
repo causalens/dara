@@ -421,7 +421,7 @@ export interface AnnotatedAction {
     /**
      * Dynamic kwargs passed to the action
      */
-    dynamic_kwargs: Record<string, any>;
+    dynamic_kwargs: Record<string, AnyVariable<any>>;
 }
 
 export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;
