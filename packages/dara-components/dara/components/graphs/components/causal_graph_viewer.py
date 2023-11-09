@@ -44,14 +44,14 @@ class CausalGraphViewer(BaseGraphComponent):
     causal_graph.add_edge('A', 'B')
     causal_graph.add_edge('B', 'C')
     causal_graph.add_edge('A', 'C')
-    
+
     CausalGraphViewer(causal_graph=causal_graph)
     ```
 
     The causal graph can be edited by setting `editable=True`. The editor mode can be set to `EditorMode.DEFAULT`
     (default), `EditorMode.PAG` or `EditorMode.RESOLVER`. The `EditorMode.DEFAULT` mode assumes all edges
     are directed (the causal graph is a DAG). The `EditorMode.PAG` mode displays all edge types (beyond directed), while
-    `EditorMode.RESOLVER` allows users to confirm and accept edges. 
+    `EditorMode.RESOLVER` allows users to confirm and accept edges.
 
     The causal graph can be rendered in a custom layout by providing a `graph_layout` object. The layout can be
     specified either a `GraphLayout` instance. The following layouts are supported:
@@ -85,14 +85,13 @@ class CausalGraphViewer(BaseGraphComponent):
 
     ![Causal Graph Viewer](../../../../../docs/packages/dara-components/graphs/assets/CausalGraphViewerPlanar.png)
 
-    In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge` 
+    In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge`
     event handlers in order to trigger actions upon clicking on an edge or a node. The following example
     demonstrates how to use the `on_click_node` and `on_click_edge` event handlers to update a variable
-    with the name of the clicked node or edge. 
-    
+    with the name of the clicked node or edge.
+
     ```python
-    from dara.core import Variable, py_component
-    from dara.core.actions import UpdateVariable
+    from dara.core import Variable, py_component, action
     from dara.components import CausalGraphViewer, Stack, Text
     from dara.components.graphs.graph_layout import PlanarLayout
 
@@ -106,13 +105,14 @@ class CausalGraphViewer(BaseGraphComponent):
     causal_graph.add_edge('B', 'C')
     causal_graph.add_edge('A', 'C')
 
-    def resolver_on_click_node(ctx: UpdateVariable.Ctx):
-        if isinstance(ctx.inputs.new, dict):
-            return ctx.inputs.new.get('identifier')
-        return None
+    @action
+    async def resolver_on_click_node(ctx: action.Ctx):
+        value = ctx.input.get('identifier') if isinstance(ctx.input, dict) else None
+        await ctx.update(variable=selected_node, value=value)
 
-    def resolver_on_click_edge(ctx: UpdateVariable.Ctx):
-        return f"{ctx.inputs.new.get('source')} -> {ctx.inputs.new.get('destination')}"
+    @action
+    async def resolver_on_click_edge(ctx: action.Ctx):
+        await ctx.update(variable=selected_edge, value=f"{ctx.input.get('source')} -> {ctx.input.get('destination')}")
 
     @py_component
     def display(selected_node, selected_edge):
@@ -125,8 +125,8 @@ class CausalGraphViewer(BaseGraphComponent):
         CausalGraphViewer(
             causal_graph=causal_graph,
             graph_layout=PlanarLayout(),
-            on_click_node=UpdateVariable(resolver_on_click_node, variable=selected_node),
-            on_click_edge=UpdateVariable(resolver_on_click_edge, variable=selected_edge),
+            on_click_node=resolver_on_click_node(),
+            on_click_edge=resolver_on_click_edge(),
         ),
         display(selected_node, selected_edge),
     )

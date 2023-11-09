@@ -126,13 +126,13 @@ class Accordion(LayoutComponent):
     ```python
     from dara.components.common import Accordion, AccordionItem, Stack, Button, ItemBadge, Text, ComponentInstance
     from dara.core.visual.themes import Light
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
 
     acc_var = Variable(1)
 
      def accordion() -> ComponentInstance:
          return Stack(
-             Button('Update component', onclick=UpdateVariable(lambda ctx: 0, acc_var)),
+             Button('Update component', onclick=acc_var.update(value=0)),
              Accordion(
                  items=[
                      AccordionItem(
@@ -245,7 +245,14 @@ class Accordion(LayoutComponent):
     """
 
     initial: Optional[Union[int, List[int]]] = 0
-    value: Optional[Union[Variable[Union[int, List[int]]], UrlVariable[Union[int, List[int]]], int, List[int]]] = 0
+    value: Optional[
+        Union[
+            Variable[Union[int, List[int]]],
+            UrlVariable[Union[int, List[int]]],
+            int,
+            List[int],
+        ]
+    ] = 0
     onchange: Optional[Action] = None
     items: List[AccordionItem]
     multi: Optional[bool] = True
