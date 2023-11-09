@@ -16,17 +16,14 @@ limitations under the License.
 """
 
 from dara.components.graphs.components.causal_graph_viewer import CausalGraphViewer
-from dara.components.graphs.components.edge_encoder import VisualEdgeEncoder
+from dara.components.graphs.components.edge_encoder import (
+    EdgeConstraint,
+    VisualEdgeEncoder,
+)
 from dara.components.graphs.components.node_hierarchy_builder import (
     Node,
     NodeHierarchyBuilder,
     NodeMeta,
 )
 
-__all__ = [
-    'CausalGraphViewer',
-    'VisualEdgeEncoder',
-    'NodeHierarchyBuilder',
-    'Node',
-    'NodeMeta',
-]
+__all__ = ['CausalGraphViewer', 'VisualEdgeEncoder', 'NodeHierarchyBuilder', 'Node', 'NodeMeta', 'EdgeConstraint']

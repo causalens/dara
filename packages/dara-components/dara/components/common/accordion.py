@@ -257,24 +257,20 @@ class Accordion(LayoutComponent):
     items: List[AccordionItem]
     multi: Optional[bool] = True
 
-    @validator("initial", pre=True)
+    @validator('initial', pre=True)
     @classmethod
     def validate_initial(cls, initial: Any) -> Union[int, List[int]]:
         if initial is not None:
-            dev_logger.warning(
-                "Accordion's initial prop is now deprecated, please use value instead."
-            )
+            dev_logger.warning("Accordion's initial prop is now deprecated, please use value instead.")
         return initial
 
-    @validator("items", pre=True)
+    @validator('items', pre=True)
     @classmethod
     def validate_items(cls, items: Any) -> List[AccordionItem]:
         if not isinstance(items, list):
-            raise ValueError(
-                "AccordionItems must be passed as a list to the Accordion component"
-            )
+            raise ValueError('AccordionItems must be passed as a list to the Accordion component')
         if len(items) == 0:
             raise ValueError(
-                "AccordionItems list is empty. You must provide at least one AccordionItem for the Accordion component"
+                'AccordionItems list is empty. You must provide at least one AccordionItem for the Accordion component'
             )
         return items

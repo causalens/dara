@@ -27,11 +27,11 @@ from dara.core.interactivity import Condition, NonDataVariable
 
 
 class ButtonStyle(str, Enum):
-    ERROR = "error"
-    GHOST = "ghost"
-    PRIMARY = "primary"
-    SECONDARY = "secondary"
-    PLAIN = "plain"
+    ERROR = 'error'
+    GHOST = 'ghost'
+    PRIMARY = 'primary'
+    SECONDARY = 'secondary'
+    PLAIN = 'plain'
 
 
 @discover
@@ -141,11 +141,7 @@ class Button(LayoutComponent):
         style = styling if styling is not None else ButtonStyle.PRIMARY
         if isinstance(children, (str, NonDataVariable, TemplateMarker)):
             child = Text(text=children)
-        if (
-            not styling
-            and isinstance(children, ComponentInstance)
-            and not isinstance(children, Text)
-        ):
+        if not styling and isinstance(children, ComponentInstance) and not isinstance(children, Text):
             style = ButtonStyle.PLAIN
 
         super().__init__(child, styling=style, **kwargs)

@@ -118,7 +118,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
 
-    js_module = "@darajs/components"
+    js_module = '@darajs/components'
 
     allow_selection_when_not_editable: Optional[bool] = False
     editable: Optional[bool] = False
@@ -136,7 +136,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     @root_validator
     @classmethod
     def validate_layout(cls, values: dict):
-        if isinstance(values.get("graph_layout"), PlanarLayout):
-            raise ValueError("Planar Layout is not currently supported by EdgeEncoder.")
+        if isinstance(values.get('graph_layout'), PlanarLayout):
+            raise ValueError('Planar Layout is not currently supported by EdgeEncoder.')
 
         return values

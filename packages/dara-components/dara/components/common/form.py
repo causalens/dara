@@ -83,25 +83,23 @@ class Form(LayoutComponent):
     value: Optional[Variable[dict]] = None
     onsubmit: Optional[Action] = None
 
-    @validator("children")
+    @validator('children')
     @classmethod
-    def validate_children_pages(
-        cls, children: List[ComponentInstance]
-    ) -> List[ComponentInstance]:
+    def validate_children_pages(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
         # Make sure if FormPage is included, non-pages are not direct children of the Form
         page_found = False
         non_page_found = False
 
         for c in children:
-            if c.__class__.__name__ == "FormPage":
+            if c.__class__.__name__ == 'FormPage':
                 page_found = True
             else:
                 non_page_found = True
 
         if page_found and non_page_found:
             raise TypeError(
-                "Both a FormPage and a non-page form components found in a Form. All components need to be on a page "
-                "if pages are used."
+                'Both a FormPage and a non-page form components found in a Form. All components need to be on a page '
+                'if pages are used.'
             )
 
         return children

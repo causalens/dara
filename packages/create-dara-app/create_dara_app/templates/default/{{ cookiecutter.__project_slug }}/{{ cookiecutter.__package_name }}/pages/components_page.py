@@ -43,19 +43,10 @@ from {{cookiecutter.__package_name}}.utils.components import (
     table,
     text,
     textarea,
-    tooltip
+    tooltip,
 )
 
-from dara.components import (
-    Button,
-    Card,
-    Heading,
-    Label,
-    Select,
-    Spacer,
-    Stack,
-    Text,
-)
+from dara.components import Button, Card, Heading, Label, Select, Spacer, Stack, Text
 from dara.core import ComponentInstance, Variable, py_component
 
 dara_graphs_map = {

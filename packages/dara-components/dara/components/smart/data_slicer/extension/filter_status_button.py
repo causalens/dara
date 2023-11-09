@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from typing import Optional
+
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import Action

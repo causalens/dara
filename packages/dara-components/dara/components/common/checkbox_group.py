@@ -98,15 +98,13 @@ class CheckboxGroup(FormComponent):
     onchange: Optional[Action] = None
     id: Optional[str] = None
 
-    @validator("items", pre=True)
+    @validator('items', pre=True)
     @classmethod
     def validate_items(cls, items: Any) -> Union[List[Item], NonDataVariable]:
         if isinstance(items, NonDataVariable):
             return items
         if not isinstance(items, list):
-            raise ValueError(
-                "Items must be passed as a list to the CheckboxGroup component"
-            )
+            raise ValueError('Items must be passed as a list to the CheckboxGroup component')
         if len(items) == 0:
-            raise ValueError("Items list is empty, you must provide at least one item")
+            raise ValueError('Items list is empty, you must provide at least one item')
         return [Item.to_item(item) for item in items]

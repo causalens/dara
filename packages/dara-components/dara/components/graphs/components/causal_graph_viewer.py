@@ -225,12 +225,12 @@ class CausalGraphViewer(BaseGraphComponent):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
 
-    js_module = "@darajs/components"
+    js_module = '@darajs/components'
 
     causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable]]
     editor_mode: EditorMode = EditorMode.DEFAULT
 
-    @validator("causal_graph")
+    @validator('causal_graph')
     @classmethod
     def validate_causal_graph(cls, causal_graph):
         """
@@ -241,7 +241,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
         if not isinstance(causal_graph, (CausalGraph, dict)):
             raise ValueError(
-                f"Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its dict representation, or a variable containing an instance"
+                f'Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its dict representation, or a variable containing an instance'
             )
         return causal_graph
 
@@ -249,11 +249,9 @@ class CausalGraphViewer(BaseGraphComponent):
     @classmethod
     def validate_layout(cls, values: dict):
         if (
-            isinstance(values.get("graph_layout"), PlanarLayout)
-            and values.get("editor_mode", EditorMode.DEFAULT) != EditorMode.DEFAULT
+            isinstance(values.get('graph_layout'), PlanarLayout)
+            and values.get('editor_mode', EditorMode.DEFAULT) != EditorMode.DEFAULT
         ):
-            raise ValueError(
-                "Planar Layout is currently only supported with EditorMode.DEFAULT."
-            )
+            raise ValueError('Planar Layout is currently only supported with EditorMode.DEFAULT.')
 
         return values
