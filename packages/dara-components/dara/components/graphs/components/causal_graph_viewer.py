@@ -227,7 +227,7 @@ class CausalGraphViewer(BaseGraphComponent):
     js_module = '@darajs/components'
 
     causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable]]
-    editor_mode: Optional[EditorMode]
+    editor_mode: Optional[EditorMode] = None
 
     @validator('causal_graph')
     @classmethod
