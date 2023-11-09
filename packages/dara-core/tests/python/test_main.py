@@ -1627,10 +1627,10 @@ async def test_calling_annotated_action_execute_arbitrary_impl():
     class CustomImpl(ActionImpl):
         foo: str
 
-        def execute(self, ctx: action.Ctx) -> Coroutine[Any, Any, Any]:
+        async def execute(self, ctx: action.Ctx) -> Coroutine[Any, Any, Any]:
             nonlocal custom_exec_called_with
             custom_exec_called_with = ctx.input
-            return super().execute(ctx)
+            return await super().execute(ctx)
 
     @action
     async def test_action(ctx: action.Ctx, previous_value, static_kwarg):
