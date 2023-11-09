@@ -138,16 +138,18 @@ async function resolveActionImpl(
             const actionDef = getAction(actionImpl);
             const moduleContent = await importers[actionDef.py_module]();
             actionHandler = moduleContent[actionImpl.name];
+
+            // only cache if we successfully resolved a built-in action handler
+            ACTION_HANDLER_BY_NAME[actionImpl.name] = actionHandler;
         } catch {
             // if we failed to resolve the action handler, use the catch-all handler if defined
             if (actionCtx.onUnhandledAction) {
+                // this one is explicitly not cached since it's an arbitrary user-defined handler
                 actionHandler = actionCtx.onUnhandledAction;
             } else {
                 throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
             }
         }
-
-        ACTION_HANDLER_BY_NAME[actionImpl.name] = actionHandler;
     }
 
     return ACTION_HANDLER_BY_NAME[actionImpl.name];
