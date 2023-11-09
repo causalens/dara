@@ -203,9 +203,6 @@ async function executeAction(
         };
 
         const onError = (error: Error): void => {
-            // eslint-disable-next-line no-console
-            console.error('Error executing action:', error);
-
             if (!isSettled) {
                 isSettled = true;
                 sub.unsubscribe();

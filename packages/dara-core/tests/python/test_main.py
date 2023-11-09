@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import json
 import os
-from typing import Union
+from typing import Any, Coroutine, Union
 from unittest.mock import Mock, patch
 
 import anyio
@@ -31,12 +31,12 @@ from tests.python.utils import (
 from dara.core import DerivedVariable, Variable, action, py_component
 from dara.core.auth.basic import MultiBasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import ActionImpl, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
-from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable
+from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable, UpdateVariableImpl
 from dara.core.internal.tasks import Task
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
@@ -1615,6 +1615,60 @@ async def test_calling_annotated_action():
             assert actions[1]['name'] == 'ResetVariables'
             assert actions[1]['variables'] == [var.dict()]
 
+async def test_calling_annotated_action_execute_arbitrary_impl():
+    """Test calling an action which calls ctx.execute_action on arbitrary impl objects"""
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var = Variable()
+
+    custom_exec_called_with = None
+
+    class CustomImpl(ActionImpl):
+        foo: str
+
+        def execute(self, ctx: action.Ctx) -> Coroutine[Any, Any, Any]:
+            nonlocal custom_exec_called_with
+            custom_exec_called_with = ctx.input
+            return super().execute(ctx)
+
+    @action
+    async def test_action(ctx: action.Ctx, previous_value, static_kwarg):
+        assert ACTION_CONTEXT.get() == ctx
+        await ctx.execute_action(UpdateVariableImpl(variable=var, value=previous_value + ctx.input + static_kwarg + 1))
+        await ctx.execute_action(CustomImpl(foo='bar'))
+
+    action_instance = test_action(previous_value=var, static_kwarg=10)
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        async with _async_ws_connect(client) as websocket:
+            init = await websocket.receive_json()
+            exec_uid = 'exec_id'
+            res = await _call_action(
+                client,
+                action_instance,
+                {
+                    'input': 5,
+                    'values': {
+                        'previous_value': 10,
+                    },
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'execution_id': exec_uid,
+                },
+            )
+            assert res.status_code == 200
+
+            actions = await get_action_results(websocket, exec_uid)
+            assert len(actions) == 2
+
+            assert actions[0]['name'] == 'UpdateVariable'
+            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+
+            assert actions[1]['name'] == 'CustomImpl'
+            assert actions[1]['foo'] == 'bar'
+            assert custom_exec_called_with == 5 # called with input=5
 
 async def test_calling_action_restores_args():
     """

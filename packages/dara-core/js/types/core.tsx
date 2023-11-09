@@ -392,9 +392,6 @@ export interface ActionContext extends CallbackInterface {
     notificationCtx: ReturnType<typeof useNotifications>;
     /**
      * Callback invoked for any unhandled action
-     *
-     * @param action action impl object
-     * @param actionContext action context object
      */
     onUnhandledAction?: ActionHandler;
 }
