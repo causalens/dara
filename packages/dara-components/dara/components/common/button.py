@@ -27,11 +27,11 @@ from dara.core.interactivity import Condition, NonDataVariable
 
 
 class ButtonStyle(str, Enum):
-    ERROR = 'error'
-    GHOST = 'ghost'
-    PRIMARY = 'primary'
-    SECONDARY = 'secondary'
-    PLAIN = 'plain'
+    ERROR = "error"
+    GHOST = "ghost"
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    PLAIN = "plain"
 
 
 @discover
@@ -49,14 +49,16 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.components.common import Button, ButtonStyle
+    from dara.core import action
+    from dara.components import Button, ButtonStyle
 
-    action = NavigateTo(url='/test')
+    @action
+    async def navigate_to(ctx: action.Ctx):
+        await ctx.navigate(url='/test')
 
     Button(
         'Click',
-        onclick=action,
+        onclick=navigate_to(),
         icon='Pen',
         styling='ButtonStyle.SECONDARY,
         outline=True,
@@ -71,18 +73,19 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.core.definitions import Variable
-    from dara.components.common import Button
+    from dara.core import Variable, action
+    from dara.components import Button
 
-    action = NavigateTo(url='/test')
+    @action
+    async def navigate_to(ctx: action.Ctx):
+        await ctx.navigate(url='/test')
 
     disabled = Variable(True)
 
     Button(
         'Click',
         disabled=disabled,
-        onclick=action,
+        onclick=navigate_to(),
     )
 
     ```
@@ -92,8 +95,12 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core.actions import NavigateTo
-    from dara.components.common import Button, Stack, Text
+    from dara.core import action
+    from dara.components import Button, Stack, Text
+
+    @action
+    async def navigate_to(ctx: action.Ctx):
+        await ctx.navigate(url='/test')
 
     Button(
         Stack(
@@ -101,7 +108,7 @@ class Button(LayoutComponent):
                 'Stack passed to buton, when clicked I navigate to test page',
             ),
         ),
-        onclick=NavigateTo(url='test'),
+        onclick=navigate_to(),
     )
 
     ```
@@ -134,7 +141,11 @@ class Button(LayoutComponent):
         style = styling if styling is not None else ButtonStyle.PRIMARY
         if isinstance(children, (str, NonDataVariable, TemplateMarker)):
             child = Text(text=children)
-        if not styling and isinstance(children, ComponentInstance) and not isinstance(children, Text):
+        if (
+            not styling
+            and isinstance(children, ComponentInstance)
+            and not isinstance(children, Text)
+        ):
             style = ButtonStyle.PLAIN
 
         super().__init__(child, styling=style, **kwargs)
