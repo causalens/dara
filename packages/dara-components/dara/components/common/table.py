@@ -590,7 +590,7 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable, Variable, UpdateVariable
+    from dara.core import DataVariable, Variable
 
     data = DataVariable(
         DataFrame([
@@ -610,7 +610,7 @@ class Table(ContentComponent):
     Table(
         columns=['col1', 'col2'],
         data=data,
-        onclick_row=UpdateVariable(resolver=lambda ctx: ctx.inputs.new, variable=selected_rows),
+        selected_indices=selected_rows,
         multi_select=True
     )
 

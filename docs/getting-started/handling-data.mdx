@@ -65,39 +65,42 @@ my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
 config.add_page('data page', plot_data(my_first_data_variable))
 ```
 
-- in action `extras`
+- in an `action`
 
 ```python
 import pandas
-from dara.core import DataVariable, CacheType, UpdateVariable, Variable
+from dara.core import DataVariable, CacheType, Variable, action
 
 data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
 my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
 
 target = Variable()
 
-UpdateVariable(
-    my_resolver_function,
-    variable=target,
-    extras=[my_first_data_variable]
-)
+@action
+async def my_resolver_function(ctx: action.Ctx, data_var_value: pandas.DataFrame):
+    # data_var_value here takes the value of my_first_data_variable
+    ...
+    await ctx.update(variable=target, value=data_var_value)
+
+my_resolver_function(my_first_data_variable)
 ```
 
 ### Updating
 
 You can update the data stored in a `DataVariable` by:
 
-- using the `dara.core.interactivity.actions.UpdateVariable` action
+- using a `dara.core.interactivity.actions` action
 
 ```python
-from dara.core import DataVariable, CacheType, UpdateVariable
+import pandas
+from dara.core import DataVariable, CacheType
 
 my_session_data_variable = DataVariable(cache=CacheType.SESSION)
 # Load a new DataFrame into the DataVariable - only visible to the current session since cache=CacheType.SESSION
-UpdateVariable(lambda ctx: pandas.read_csv(...), variable=my_session_data_variable)
+my_session_data_variable.update(value=pandas.read_csv(...))
 
 # Load a new DataFrame into the DataVariable - visible to all users since cache=CacheType.GLOBAL
-UpdateVariable(lambda ctx: pandas.read_csv(...), variable=my_first_data_variable)
+my_first_data_variable.update(value=pandas.read_csv(...))
 ```
 
 - using `dara-components.common.dropzone.UploadDropzone` to upload a new dataset
@@ -150,7 +153,7 @@ config.add_page('Filtered Data', filtered_tables)
 ```
 
 Even though the new filtered variables can be used as if they were new variables, they will correctly
-be updated when the original variable is updated i.e. with the `UpdateVariable` action.
+be updated when the original variable is updated i.e. via an action.
 
 ## `DerivedDataVariable`
 

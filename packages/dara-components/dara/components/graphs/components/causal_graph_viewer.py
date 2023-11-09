@@ -92,8 +92,7 @@ class CausalGraphViewer(BaseGraphComponent):
     with the name of the clicked node or edge.
 
     ```python
-    from dara.core import Variable, py_component
-    from dara.core.actions import UpdateVariable
+    from dara.core import Variable, py_component, action
     from dara.components import CausalGraphViewer, Stack, Text
     from dara.components.graphs.graph_layout import PlanarLayout
 
@@ -107,13 +106,14 @@ class CausalGraphViewer(BaseGraphComponent):
     causal_graph.add_edge('B', 'C')
     causal_graph.add_edge('A', 'C')
 
-    def resolver_on_click_node(ctx: UpdateVariable.Ctx):
-        if isinstance(ctx.inputs.new, dict):
-            return ctx.inputs.new.get('identifier')
-        return None
+    @action
+    async def resolver_on_click_node(ctx: action.Ctx):
+        value = ctx.input.get('identifier') if isinstance(ctx.input, dict) else None
+        await ctx.update(variable=selected_node, value=value)
 
-    def resolver_on_click_edge(ctx: UpdateVariable.Ctx):
-        return f"{ctx.inputs.new.get('source')} -> {ctx.inputs.new.get('destination')}"
+    @action
+    async def resolver_on_click_edge(ctx: action.Ctx):
+        await ctx.update(variable=selected_edge, value=f"{ctx.input.get('source')} -> {ctx.input.get('destination')}")
 
     @py_component
     def display(selected_node, selected_edge):
@@ -126,8 +126,8 @@ class CausalGraphViewer(BaseGraphComponent):
         CausalGraphViewer(
             causal_graph=causal_graph,
             graph_layout=PlanarLayout(),
-            on_click_node=UpdateVariable(resolver_on_click_node, variable=selected_node),
-            on_click_edge=UpdateVariable(resolver_on_click_edge, variable=selected_edge),
+            on_click_node=resolver_on_click_node(),
+            on_click_edge=resolver_on_click_edge(),
         ),
         display(selected_node, selected_edge),
     )

@@ -68,7 +68,7 @@ class Form(LayoutComponent):
     Form(
         Datepicker(id='Datepicker'),
         RadioGroup(items=['cat', 'dog', 'parrot'], direction='horizontal', id='RadioGroup'),
-        onsubmit=UpdateVariable(lambda ctx: ctx.inputs.new, onsubmit_var),
+        onsubmit=onsubmit_var.sync(),
     )
 
     ```

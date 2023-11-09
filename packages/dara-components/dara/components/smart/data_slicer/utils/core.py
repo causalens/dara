@@ -18,10 +18,10 @@ limitations under the License.
 import re
 from datetime import datetime, timezone
 from typing import Any, List, Optional, Union
-from typing_extensions import TypedDict
 
 import numpy
 from pandas import DataFrame, Series
+from typing_extensions import TypedDict
 
 from dara.components.smart.data_slicer.extension.data_slicer_filter import (
     ALLOWED_FILTERS,

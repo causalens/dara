@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import os
 from functools import wraps
 from importlib import import_module
+from importlib.util import find_spec
 from types import ModuleType
 from typing import (
     TYPE_CHECKING,
@@ -131,6 +133,28 @@ def import_config(config_path: str) -> Tuple[ModuleType, ConfigurationBuilder]:
             ' resolve your module, make sure your package is installed and accessible in the current virtual environment; \n'
             ' as a last resort, try reactivating/recreating the venv.'
         ) from e
+
+
+def find_module_path(config_path: str):
+    """
+    Find the parent path to the module containing the config file wihout importing it.
+    """
+    module_name = config_path.split(':')[0]
+    module_spec = find_spec(module_name)
+
+    if module_spec is None:
+        raise ImportError(f'Module {module_name} not found')
+
+    # If the module has an origin, use it to get the parent directory
+    if module_spec.origin:
+        module_path = os.path.dirname(module_spec.origin)
+    # If the module is a namespace package, use the submodule search locations
+    elif module_spec.submodule_search_locations:
+        module_path = os.path.commonpath(module_spec.submodule_search_locations)
+    else:
+        raise ImportError(f'Module {module_name} cannot be found or does not have a valid origin')
+
+    return module_path
 
 
 def enforce_sso(conf: ConfigurationBuilder):

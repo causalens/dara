@@ -97,8 +97,8 @@ def _start_application(config: Configuration):
         jinja_templates.env.globals['vite_asset'] = fastapi_vite.vite_asset
         jinja_templates.env.globals['entry'] = '_entry.tsx'
 
-        # If dev mode enabled, set live reload to true
-        if os.environ.get('VITE_SERVE_MODE') or os.environ.get('DARA_LIVE_RELOAD'):
+        # If --enable-hmr or --reload enabled, set live reload to true
+        if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
             config.live_reload = True
 
     # Configure the default executor for threads run via the async loop

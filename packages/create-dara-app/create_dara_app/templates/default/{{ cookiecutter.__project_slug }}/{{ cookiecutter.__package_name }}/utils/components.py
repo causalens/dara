@@ -1,16 +1,15 @@
-import numpy
 import math
-import plotly.graph_objects as go
-import plotly.express as px
 
+import matplotlib.tri as tri
+import numpy
+import plotly.express as px
+import plotly.graph_objects as go
+import seaborn as sns
+from bokeh.plotting import figure
+from cai_causal_graph import CausalGraph
+from matplotlib.figure import Figure
 from pandas import DataFrame
 from scipy.integrate import odeint
-from bokeh.plotting import figure
-from matplotlib.figure import Figure
-import matplotlib.tri as tri
-import seaborn as sns
-
-from cai_causal_graph import CausalGraph
 
 from dara.components import (
     Accordion,
@@ -63,16 +62,13 @@ from dara.components import (
     VisualEdgeEncoder,
 )
 from dara.components.common.component_select_list import ComponentItem
-from dara.components.plotting.palettes import PolarisingLight11
-from dara.core import (
-    ComponentInstance,
-    DataVariable,
-    UpdateVariable,
-    Variable,
-    py_component,
+from dara.components.graphs.components.edge_encoder import (
+    EdgeConstraint,
+    EdgeConstraintType,
 )
-from dara.components.graphs.components.edge_encoder import EdgeConstraint, EdgeConstraintType
 from dara.components.graphs.graph_layout import PlanarLayout, SpringLayout
+from dara.components.plotting.palettes import PolarisingLight11
+from dara.core import ComponentInstance, DataVariable, Variable, py_component
 from dara.core.css import get_icon
 from dara.core.visual.themes.light import Light
 
@@ -125,18 +121,13 @@ def show_var(text: str, value):
 
 def show_code(variable: Variable, code: str, component_type: str, component_name: str) -> ComponentInstance:
     return Stack(
-        Button(
-            'Show Source Code',
-            onclick=UpdateVariable(lambda ctx: True, variable),
-            width='200px',
-            styling=ButtonStyle.GHOST,
-        ),
+        Button('Show Source Code', onclick=variable.update(value=True), width='200px', styling=ButtonStyle.GHOST),
         Modal(
             Stack(Code(code=code, theme=Code.Themes.LIGHT), scroll=True),
             Stack(
                 Button(
                     'Close',
-                    onclick=UpdateVariable(lambda ctx: False, variable),
+                    onclick=variable.update(value=False),
                     width='200px',
                     styling=ButtonStyle.ERROR,
                 ),
@@ -1387,7 +1378,7 @@ def form() -> ComponentInstance:
                 height='200px',
             ),
             value=form_value,
-            onsubmit=UpdateVariable(lambda ctx: {}, form_value),
+            onsubmit=form_value.update(value={}),
         ),
         show_var('Form Variable:', form_value),
         show_code(
@@ -1536,7 +1527,7 @@ Stack(
             height='200px',
         ),
         value=form_value,
-        onsubmit=UpdateVariable(lambda ctx: {}, form_value),
+        onsubmit=form_value.update(value={}),
     ),
     show_var('Form Variable:', form_value),
 )
@@ -1774,7 +1765,7 @@ modal_var = Variable(False)
 
 def modal() -> ComponentInstance:
     return Stack(
-        Button('Click to show modal', onclick=UpdateVariable(lambda ctx: True, show_modal)),
+        Button('Click to show modal', onclick=show_modal.update(value=True)),
         Modal(
             Stack(Text('This is a sample Modal'), justify='center', align='center'),
             show=show_modal,
@@ -1783,7 +1774,7 @@ def modal() -> ComponentInstance:
             modal_var,
             """
 Stack(
-    Button('Click to show modal', onclick=UpdateVariable(lambda ctx: True, show_modal)),
+    Button('Click to show modal', onclick=show_modal.update(value=True)),
     Modal(
         Stack(Text('This is a sample Modal'), justify='center', align='center'),
         show=show_modal,

@@ -52,7 +52,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     A VisualEdgeEncoder component is created via:
 
     ```python
-    from dara.core import Variable, UpdateVariable
+    from dara.core import Variable
     from dara.components.graphs import VisualEdgeEncoder
 
     encoder = VisualEdgeEncoder(
@@ -63,7 +63,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     output_constraints = Variable()
     variable_encoder = VisualEdgeEncoder(
         nodes=["First node", "Second node", "Third node"],
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
 
     ```
@@ -80,7 +80,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
             "First node": CausalGraph.Node("First node"),
             "Second node": CausalGraph.Node("Second node")
         },
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
     ```
 
@@ -99,7 +99,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
             EdgeConstraint(source="First node", target="Second node", type=EdgeConstraintType.HARD_UNDIRECTED_EDGE),
             EdgeConstraint(source="Second node", target="Third node", type=EdgeConstraintType.HARD_DIRECTED_EDGE)
         ],
-        on_update=UpdateVariable(lambda ctx: ctx.inputs.new, variable=output_constraints)
+        on_update=output_constraints.sync(),
     )
     ```
 

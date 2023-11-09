@@ -43,20 +43,11 @@ from {{cookiecutter.__package_name}}.utils.components import (
     table,
     text,
     textarea,
-    tooltip
+    tooltip,
 )
 
-from dara.components import (
-    Button,
-    Card,
-    Heading,
-    Label,
-    Select,
-    Spacer,
-    Stack,
-    Text,
-)
-from dara.core import ComponentInstance, UpdateVariable, Variable, py_component
+from dara.components import Button, Card, Heading, Label, Select, Spacer, Stack, Text
+from dara.core import ComponentInstance, Variable, py_component
 
 dara_graphs_map = {
     'CausalGraphViewer': causal_graph_viewer,
@@ -182,8 +173,8 @@ def components_page() -> ComponentInstance:
                 value='Select component(s) to show:',
             ),
             Stack(
-                Button('Show all', outline=True, onclick=UpdateVariable(lambda ctx: all_dara_components, select_var)),
-                Button('Clear', outline=True, onclick=UpdateVariable(lambda ctx: [], select_var)),
+                Button('Show all', outline=True, onclick=select_var.update(value=all_dara_components)),
+                Button('Clear', outline=True, onclick=select_var.update(value=[])),
                 direction='horizontal',
             ),
             hug=True
