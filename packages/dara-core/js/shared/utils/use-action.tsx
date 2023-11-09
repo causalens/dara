@@ -129,11 +129,11 @@ async function resolveActionImpl(
     importers: Record<string, () => Promise<any>>,
     actionCtx: ActionContext
 ): Promise<ActionHandler<ActionImpl>> {
+    let actionHandler: ActionHandler;
+
+    // resolve action handler function by name
     // cache action handler globally for performance, they are pure functions so it's safe to do so
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
-        // resolve action handler function by name
-        let actionHandler: ActionHandler;
-
         try {
             const actionDef = getAction(actionImpl);
             const moduleContent = await importers[actionDef.py_module]();
@@ -150,9 +150,11 @@ async function resolveActionImpl(
                 throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
             }
         }
+    } else {
+        actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name];
     }
 
-    return ACTION_HANDLER_BY_NAME[actionImpl.name];
+    return actionHandler;
 }
 
 /**
