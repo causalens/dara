@@ -29,6 +29,7 @@ dara start --reload-dir decision_app/pages decision_app/utils
 -   Fixed an issue where the client app would refresh on WebSocket error&reconnect even without the `--reload` flag enabled
 -   Moved WebSocket server-side errors to be displayed on the default dev logger rather than the opt-in `--debug` logger
 
+
 ## 1.4.5
 
 -   Relax `python-dotenv` dependency from `^0.19.2` to `>=0.19.2`
