@@ -114,7 +114,6 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
 
     // Parse provided list of nodes into a graph data object that's understood by the graph editor
     const graphData = useMemo<CausalGraph>(() => {
-        const nodes = parsedNodes;
         return {
             // If initial constraints are passed, we need to also add edges for each constraint
             edges: parsedConstraints.reduce((acc, c) => {
@@ -125,16 +124,16 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
                     }
 
                     acc[c.source][c.target] = {
+                        destination: parsedNodes[c.target],
                         edge_type: EdgeType.UNDIRECTED_EDGE,
                         meta: {},
-                        source: nodes[c.source],
-                        destination: nodes[c.target],
+                        source: parsedNodes[c.source],
                     };
                 }
 
                 return acc;
             }, {} as Record<string, Record<string, CausalGraphEdge>>),
-            nodes,
+            nodes: parsedNodes,
             version: 'none', // doesn't matter as we don't output a whole graph
         };
     }, [parsedNodes, parsedConstraints]);
