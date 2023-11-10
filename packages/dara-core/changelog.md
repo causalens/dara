@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.4.6
 
 -   Added `execute_action` convenience function to `ActionCtx` to allow for executing an arbitrary `ActionImpl` instance. This can be useful in certain situations when an external API returns an action impl object to be executed, or for custom action implementations.
 -   Internal: update `onUnhandledAction` API on `useAction` hook to be invoked for each action without a registered implementation rather than halting execution after the first unhandled action
