@@ -124,8 +124,10 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
                     }
 
                     acc[c.source][c.target] = {
+                        destination: parsedNodes[c.target],
                         edge_type: EdgeType.UNDIRECTED_EDGE,
                         meta: {},
+                        source: parsedNodes[c.source],
                     };
                 }
 
