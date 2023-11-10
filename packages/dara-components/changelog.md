@@ -5,7 +5,9 @@ title: Changelog
 ## 1.4.6
 
 -   Updated `EdgeConstraintType` to comply to `0.3.0` of `cai-causal-graph`.
--   Updated so that if no `editor_mode` is passed to `CausalGraphViewer`, then it checks if graph is DAG, if so `editor_mode` defaults to `EditorMode.DEFAULT`, else defaults to `EditorMode.PAG`. However if `graph_layout` is `PlanarLayout` then it will always be set to `EditorMode.DEFAULT` 
+-   `EdgeEncoder` now supports `SOFT_DIRECTED` edge constraint types, displaying a different arrow with a semi-circle tip
+-   `CausalGraphViewer` components now properly include `source` and `destination` fields in edge data output as serialized node data rather than their identifiers
+-   Updated so that if no `editor_mode` is passed to `CausalGraphViewer`, then it checks if graph is DAG, if so `editor_mode` defaults to `EditorMode.DEFAULT`, else defaults to `EditorMode.PAG`. However if `graph_layout` is `PlanarLayout` then it will always be set to `EditorMode.DEFAULT`
 
 ## 1.4.5
 
