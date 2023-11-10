@@ -390,6 +390,10 @@ export interface ActionContext extends CallbackInterface {
      * Notification context
      */
     notificationCtx: ReturnType<typeof useNotifications>;
+    /**
+     * Callback invoked for any unhandled action
+     */
+    onUnhandledAction?: ActionHandler;
 }
 
 /**
@@ -414,7 +418,7 @@ export interface AnnotatedAction {
     /**
      * Dynamic kwargs passed to the action
      */
-    dynamic_kwargs: Record<string, any>;
+    dynamic_kwargs: Record<string, AnyVariable<any>>;
 }
 
 export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;

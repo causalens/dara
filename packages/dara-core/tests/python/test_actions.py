@@ -26,6 +26,7 @@ def reset_context():
     yield
     ACTION_CONTEXT.set(None)
 
+
 async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
     test_function = lambda x: x * x

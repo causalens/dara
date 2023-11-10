@@ -668,6 +668,27 @@ When calling an `@action`-decorated action from within another action, all the a
 
 :::
 
+You can also invoke `ActionImpl` instances directly from within an `@action`-decorated function. This is useful when you want to wrap an action coming from an external library with your own logic.
+
+```python
+from dara.core import action, NavigateToImpl, Variable
+
+# Assume an external library defined a function which returns an ActionImpl
+def external_action(object_id: str):
+    return NavigateTo(url=f'https://example.com/objects/{object_id}')
+
+object_id_var = Variable(default=0)
+
+# You can define your own action which wraps the external action
+@action
+async def my_action(ctx: action.Ctx, object_id: str):
+    # You can call the external action directly from within your action
+    external_impl = external_action(object_id)
+    await ctx.execute_action(external_impl)
+
+Button('Navigate to External', onclick=my_action(object_id_var))
+```
+
 ## Deprecated action API
 
 In previous versions of Dara, actions such as `UpdateVariable`, `NavigateTo`, `DownloadContent` and `SideEffect` accepted a `resolver` parameter. This would allow you to pass a function that would be executed on the server when the action is triggered. This API is now deprecated and will be removed in a future version of Dara. You should use the `@action` decorator instead for cases where custom logic is required, or use the [shortcut actions](#shortcut-actions) or [action implementation objects](#action-implementation-objects) for simple cases.

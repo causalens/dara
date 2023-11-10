@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+-   Added `execute_action` convenience function to `ActionCtx` to allow for executing an arbitrary `ActionImpl` instance. This can be useful in certain situations when an external API returns an action impl object to be executed, or for custom action implementations.
+-   Internal: update `onUnhandledAction` API on `useAction` hook to be invoked for each action without a registered implementation rather than halting execution after the first unhandled action
 -   The `--reload` flag on the `dara start` command will now correctly infer the parent directory of the module containing the configuration module in order to watch that directory for changes, rather than defaulting to the current working directory
 -   Added `--reload-dir` flag which can be used multiple times to specify the exact folders to watch; when provided it will override the inferred watched directory
 

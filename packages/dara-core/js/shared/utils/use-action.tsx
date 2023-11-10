@@ -97,6 +97,14 @@ async function invokeAction(
 const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
 
 /**
+ * Clear the global action handler cache.
+ * This is only used for testing.
+ */
+export function clearActionHandlerCache_TEST(): void {
+    Object.keys(ACTION_HANDLER_BY_NAME).forEach((k) => delete ACTION_HANDLER_BY_NAME[k]);
+}
+
+/**
  * Error thrown when an action is not handled by the app.
  */
 class UnhandledActionError extends Error {
@@ -118,24 +126,35 @@ class UnhandledActionError extends Error {
 async function resolveActionImpl(
     actionImpl: ActionImpl,
     getAction: (instance: ActionImpl) => ActionDef,
-    importers: Record<string, () => Promise<any>>
+    importers: Record<string, () => Promise<any>>,
+    actionCtx: ActionContext
 ): Promise<ActionHandler<ActionImpl>> {
+    let actionHandler: ActionHandler;
+
+    // resolve action handler function by name
     // cache action handler globally for performance, they are pure functions so it's safe to do so
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
-        // resolve action handler function by name
-        let actionDef;
-
         try {
-            actionDef = getAction(actionImpl);
-        } catch {
-            throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
-        }
-        const moduleContent = await importers[actionDef.py_module]();
+            const actionDef = getAction(actionImpl);
+            const moduleContent = await importers[actionDef.py_module]();
+            actionHandler = moduleContent[actionImpl.name];
 
-        ACTION_HANDLER_BY_NAME[actionImpl.name] = moduleContent[actionImpl.name];
+            // only cache if we successfully resolved a built-in action handler
+            ACTION_HANDLER_BY_NAME[actionImpl.name] = actionHandler;
+        } catch {
+            // if we failed to resolve the action handler, use the catch-all handler if defined
+            if (actionCtx.onUnhandledAction) {
+                // this one is explicitly not cached since it's an arbitrary user-defined handler
+                actionHandler = actionCtx.onUnhandledAction;
+            } else {
+                throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
+            }
+        }
+    } else {
+        actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name];
     }
 
-    return ACTION_HANDLER_BY_NAME[actionImpl.name];
+    return actionHandler;
 }
 
 /**
@@ -156,13 +175,14 @@ async function executeAction(
 ): Promise<void> {
     // if it's a simple action implementation, run the handler directly
     if (isActionImpl(action)) {
-        const handler = await resolveActionImpl(action, getAction, importers);
+        const handler = await resolveActionImpl(action, getAction, importers, actionCtx);
         const result = handler(actionCtx, action);
 
         // handle async handlers
         if (result instanceof Promise) {
             await result;
         }
+
         return;
     }
 
@@ -187,9 +207,6 @@ async function executeAction(
         };
 
         const onError = (error: Error): void => {
-            // eslint-disable-next-line no-console
-            console.error('Error executing action:', error);
-
             if (!isSettled) {
                 isSettled = true;
                 sub.unsubscribe();
@@ -201,7 +218,7 @@ async function executeAction(
             .pipe(
                 concatMap(async (actionImpl) => {
                     if (actionImpl) {
-                        const handler = await resolveActionImpl(actionImpl, getAction, importers);
+                        const handler = await resolveActionImpl(actionImpl, getAction, importers, actionCtx);
                         return [handler, actionImpl] as const;
                     }
 
@@ -218,7 +235,9 @@ async function executeAction(
                 next: async ([handler, actionImpl]) => {
                     try {
                         activeTasks += 1;
+
                         const result = handler(actionCtx, actionImpl);
+
                         // If it's a promise, await it to ensure sequential execution
                         if (result instanceof Promise) {
                             await result;
@@ -248,7 +267,7 @@ interface UseActionOptions {
      *
      * @param action action implementation
      */
-    onUnhandledAction?: (action: ActionImpl, actionCtx: ActionContext) => void | Promise<void>;
+    onUnhandledAction?: ActionHandler;
 }
 
 /**
@@ -296,9 +315,10 @@ export default function useAction(
             for (const actionToExecute of actionsToExecute) {
                 // this is redefined for each action to have up-to-date snapshot
                 /* eslint-disable sort-keys-fix/sort-keys-fix */
-                const fullActionContext = {
+                const fullActionContext: ActionContext = {
                     ...actionCtx.current,
                     input,
+                    onUnhandledAction: optionsRef.current?.onUnhandledAction,
                     // Recoil callback interface cannot be spread as it is a Proxy
                     gotoSnapshot: cbInterface.gotoSnapshot,
                     refresh: cbInterface.refresh,
@@ -313,29 +333,20 @@ export default function useAction(
                     // eslint-disable-next-line no-await-in-loop
                     await executeAction(input, actionToExecute, fullActionContext, getAction, importers);
                 } catch (error) {
-                    // Handle unhandled action errors separately
+                    // Display for easier debugging
+                    // eslint-disable-next-line no-console
+                    console.error(error);
+
+                    let message = 'Try again or contact the application owner';
+
+                    // Display the unhandled action directly as it might be helpful for developers
                     if (error instanceof UnhandledActionError) {
-                        // there is a callback defined for it, call it
-                        if (optionsRef.current?.onUnhandledAction) {
-                            const result = optionsRef.current.onUnhandledAction(error.actionImpl, fullActionContext);
-                            if (result instanceof Promise) {
-                                // eslint-disable-next-line no-await-in-loop
-                                await result;
-                            }
-                        } else {
-                            actionCtx.current.notificationCtx.pushNotification({
-                                key: '_actionError', // same key so action errors don't stack
-                                message: `Action "${error.actionImpl.name}" not registered`,
-                                status: Status.ERROR,
-                                title: 'Error executing action',
-                            });
-                        }
-                        continue;
+                        message = error.message;
                     }
 
                     actionCtx.current.notificationCtx.pushNotification({
                         key: '_actionError', // same key so action errors don't stack
-                        message: 'Try again or contact the application owner',
+                        message,
                         status: Status.ERROR,
                         title: 'Error executing action',
                     });

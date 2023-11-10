@@ -1193,6 +1193,14 @@ class ActionCtx:
         """
         return await DownloadVariable(variable=variable, file_name=file_name, type=type).execute(self)
 
+    async def execute_action(self, action: ActionImpl):
+        """
+        Execute a given action.
+
+        :param action: the action impl instance to execute
+        """
+        return await action.execute(self)
+
     async def _push_action(self, action: ActionImpl):
         """
         Push an action to the frontend
