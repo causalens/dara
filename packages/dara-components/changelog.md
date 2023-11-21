@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `Anchor` and `Image` component would not handle relative links correctly when ran in an app with a custom base URL (e.g. in an iframe)
+
 ## 1.4.6
 
 -   Updated `EdgeConstraintType` to comply to `0.3.0` of `cai-causal-graph`.
