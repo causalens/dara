@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
+
 import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
+    ReactRouter,
     StyledComponentProps,
     injectCss,
     useComponentStyles,
@@ -24,7 +27,7 @@ interface AnchorProps extends StyledComponentProps {
     new_tab: boolean;
 }
 
-const CustomA = styled.a<DefaultTheme>`
+const StyledA = injectCss(styled.a<DefaultTheme>`
     :visited {
         color: ${(props) => props.theme.colors.secondary};
     }
@@ -37,20 +40,36 @@ const CustomA = styled.a<DefaultTheme>`
     :active {
         color: ${(props) => props.theme.colors.primaryDown};
     }
-`;
-const StyledA = injectCss(CustomA);
+`);
 
 function Anchor(props: AnchorProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
+
+    // if the link provided is relative, use react router link instead of a tag and adjust the props to handle relative urls
+    const isRelative = useMemo(() => props.href?.startsWith('/'), [props.href]);
+    const extraProps = useMemo(() => {
+        if (!isRelative) {
+            return {};
+        }
+
+        return {
+            href: undefined,
+            to: props.href,
+        };
+    }, [isRelative, props.href]);
+    const AsComponent = useMemo(() => (isRelative ? ReactRouter.Link : 'a'), [isRelative]);
+
     return (
         <StyledA
             $rawCss={css}
+            as={AsComponent}
             className={props.clean ? 'report-clean-anchor' : props.className}
             href={props.href}
             id={props.name}
             rel="noreferrer"
             style={style}
             target={props.new_tab ? '_blank' : '_self'}
+            {...extraProps}
         >
             <DisplayCtx.Provider value={{ component: ComponentType.ANCHOR, direction: 'horizontal' }}>
                 {props.children.map((child, idx) => (
