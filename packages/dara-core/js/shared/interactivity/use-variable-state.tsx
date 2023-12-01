@@ -1,5 +1,4 @@
 import { useContext } from 'react';
-import { useLocation } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
 import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
@@ -25,7 +24,6 @@ export default function useVariableState(): any | AnyResolvedVariable {
     const extras = useRequestExtras();
     const { client } = useContext(WebSocketCtx);
     const taskCtx = useTaskContext();
-    const { search } = useLocation();
 
     return useRecoilCallback(({ snapshot }) => {
         return (variable: AnyVariable<any>) => {
@@ -40,13 +38,8 @@ export default function useVariableState(): any | AnyResolvedVariable {
             }
 
             // otherwise we'll just get the resolved form of the variable
-            const resolvedVariable = resolveVariable<AnyResolvedVariable>(
-                variable,
-                client,
-                taskCtx,
-                search,
-                extras,
-                (v) => snapshot.getLoadable(v).getValue()
+            const resolvedVariable = resolveVariable<AnyResolvedVariable>(variable, client, taskCtx, extras, (v) =>
+                snapshot.getLoadable(v).getValue()
             );
 
             return resolvedVariable;

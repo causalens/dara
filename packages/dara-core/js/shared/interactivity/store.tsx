@@ -1,11 +1,37 @@
 import { RecoilState, RecoilValue } from 'recoil';
 
+import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { AnyVariable, isVariable } from '@/types';
 
-export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>(); // datavariableId -> trigger atom
+/**
+ * Key -> trigger atom
+ */
+export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
+/**
+ * Key -> atom
+ */
 export const atomRegistry = new Map<string, RecoilState<any>>();
+/**
+ * Key -> selector
+ */
 export const selectorRegistry = new Map<string, RecoilValue<any>>();
+/**
+ * Key -> selector family
+ */
+export const selectorFamilyRegistry = new Map<string, (P: RequestExtrasSerializable) => RecoilValue<any>>();
+/**
+ * Selector family -> selectors
+ *
+ * Stores all instances of a selector family
+ */
+export const selectorFamilySelectorsRegistry = new Map<
+    (P: RequestExtrasSerializable) => RecoilValue<any>,
+    Set<RecoilValue<any>>
+>();
+/**
+ * Key -> dependencies data for a selector
+ */
 export const depsRegistry = new Map<
     string,
     {
@@ -36,7 +62,14 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
  * Clear registries - to be used in tests only.
  */
 export function clearRegistries_TEST(): void {
-    for (const registry of [dataRegistry, atomRegistry, selectorRegistry, depsRegistry]) {
+    for (const registry of [
+        dataRegistry,
+        atomRegistry,
+        selectorRegistry,
+        depsRegistry,
+        selectorFamilyRegistry,
+        selectorFamilySelectorsRegistry,
+    ]) {
         registry.clear();
     }
 }
@@ -58,7 +91,11 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         case 'DataVariable':
             return atomRegistry.has(variable.uid);
 
-        case 'DerivedVariable':
+        case 'DerivedVariable': {
+            const key = getRegistryKey(variable, 'selector');
+            return selectorFamilyRegistry.has(key);
+        }
+
         case 'DerivedDataVariable': {
             const key = getRegistryKey(variable, 'selector');
             return selectorRegistry.has(key);

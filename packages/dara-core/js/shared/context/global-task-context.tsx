@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
-import { cancelTask } from '@/api';
+import { RequestExtras, cancelTask } from '@/api';
 import { TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
 
 import { useRequestExtras } from './request-extras-context';
@@ -65,35 +65,34 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
     const mapRef = React.useRef<Map<string, Array<VariableTaskEntry>>>(variableTaskMap ?? new Map());
 
     const extras = useRequestExtras();
+    const extrasRef = React.useRef<RequestExtras>();
+    extrasRef.current = extras;
 
     const refreshSelector = useRecoilCallback(({ set }) => (key: string) => {
         // refresh the selector by incrementing the associated trigger so next run will skip the cache
         set(atomRegistry.get(key), (prev: TriggerIndexValue) => ({ ...prev, inc: prev.inc + 1 }));
     });
 
-    const cleanupRunningTasks = React.useCallback(
-        (...variableIds: string[]): void => {
-            for (const variableId of variableIds) {
-                const taskEntries = mapRef.current.get(variableId);
+    const cleanupRunningTasks = React.useCallback((...variableIds: string[]): void => {
+        for (const variableId of variableIds) {
+            const taskEntries = mapRef.current.get(variableId);
 
-                // check if any of the currently running tasks are associated with the variable
-                for (const runningTask of tasksRef.current) {
-                    const taskToCancel = taskEntries?.find((t) => t.taskId === runningTask);
+            // check if any of the currently running tasks are associated with the variable
+            for (const runningTask of tasksRef.current) {
+                const taskToCancel = taskEntries?.find((t) => t.taskId === runningTask);
 
-                    // found a match
-                    if (taskToCancel) {
-                        // cancel the task and mark it as stopped
-                        cancelTask(runningTask, extras);
-                        tasksRef.current.delete(runningTask);
+                // found a match
+                if (taskToCancel) {
+                    // cancel the task and mark it as stopped
+                    cancelTask(runningTask, extrasRef.current);
+                    tasksRef.current.delete(runningTask);
 
-                        // make sure next time the selector runs it will run from scratch rather than using the cached value
-                        refreshSelector(taskToCancel.triggerKey);
-                    }
+                    // make sure next time the selector runs it will run from scratch rather than using the cached value
+                    refreshSelector(taskToCancel.triggerKey);
                 }
             }
-        },
-        [extras]
-    );
+        }
+    }, []);
 
     const startTask = React.useCallback((taskId: string, variableId?: string, triggerKey?: string): void => {
         if (variableId) {

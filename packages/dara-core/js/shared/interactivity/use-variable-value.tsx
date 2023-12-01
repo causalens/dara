@@ -66,7 +66,7 @@ export function getVariableValue<VV, B extends boolean = false>(
     | Promise<VV>
     | Promise<DataFrame> {
     // Using loadable since the resolver is only used for simple atoms and shouldn't cause problems
-    const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.search, ctx.extras, (v) =>
+    const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.extras, (v) =>
         ctx.snapshot.getLoadable(v).getValue()
     );
 
@@ -99,11 +99,16 @@ export function getVariableValue<VV, B extends boolean = false>(
         cache: (variable as DerivedVariable | DerivedDataVariable).cache,
         extras: ctx.extras,
         force: false,
-        uid: resolved.uid,
+        /**
+         * In this case we're not concerned about different selectors fetching the value so just use the uid
+         */
+        selectorKey: resolved.uid,
+
         values: normalizeRequest(
             formatDerivedVariableRequest(resolved.values),
             (variable as DerivedVariable | DerivedDataVariable).variables
         ),
+        variableUid: resolved.uid,
         wsClient: ctx.client,
     }).then((resp) => {
         // This is really only used in DownloadVariable currently; we can add support for tasks

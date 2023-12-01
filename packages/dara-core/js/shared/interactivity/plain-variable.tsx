@@ -41,7 +41,6 @@ export function getOrRegisterPlainVariable<T>(
     variable: SingleVariable<T>,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
     extras: RequestExtras
 ): RecoilState<T> {
     const isNested = variable.nested && variable.nested.length > 0;
@@ -70,7 +69,7 @@ export function getOrRegisterPlainVariable<T>(
             Once the atom is set, then it will retain that value unless the atom is reset."
             */
                 default: isDerivedVariable(variable.default)
-                    ? getOrRegisterDerivedVariableValue(variable.default, wsClient, taskContext, search, extras)
+                    ? getOrRegisterDerivedVariableValue(variable.default, wsClient, taskContext, extras)
                     : defaultValue,
                 effects: [
                     ({ onSet }) => {

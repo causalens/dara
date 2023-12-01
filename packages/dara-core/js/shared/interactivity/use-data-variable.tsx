@@ -57,9 +57,8 @@ export function useDataVariable(
     }, []);
 
     const taskContext = useTaskContext();
-    const { search } = useLocation();
 
-    const dvSelector = useDerivedVariable(variable, WsClient, taskContext, search, extras);
+    const dvSelector = useDerivedVariable(variable, WsClient, taskContext, extras);
     const dvLoadable = useRecoilValueLoadable(dvSelector);
 
     // We can't directly use the loadable as the callback's dependency because the loadable identity

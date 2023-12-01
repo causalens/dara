@@ -1,8 +1,9 @@
 import { Matcher, MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { rest } from 'msw';
 import hash from 'object-hash';
 
-import { useAction, useVariable } from '../../js/shared';
+import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import { getSessionKey } from '../../js/shared/interactivity/plain-variable';
 import { clearRegistries_TEST } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
@@ -1060,6 +1061,93 @@ describe('useVariable', () => {
                 },
                 ws_channel: 'uid',
             });
+        });
+
+        it('should respect RequestExtras at call site', async () => {
+            const inputVariableDef: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'test',
+                nested: [],
+                uid: 'input-variable',
+            };
+            function TestComponent({ dvKey }: { dvKey: string }): JSX.Element {
+                const [, setInputVar] = useVariable(inputVariableDef);
+                const [derivedVar] = useVariable({
+                    __typename: 'DerivedVariable',
+                    deps: [inputVariableDef],
+                    nested: [],
+                    uid: 'derived-variable',
+                    variables: [inputVariableDef],
+                });
+
+                return (
+                    <div>
+                        <button onClick={() => setInputVar('test2')} type="button">
+                            click
+                        </button>
+                        <span data-testid={dvKey}>{JSON.stringify(derivedVar)}</span>
+                    </div>
+                );
+            }
+
+            const receivedHeaders: Headers[] = [];
+
+            server.use(
+                rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
+                    receivedHeaders.push(req.headers);
+                    return res(
+                        ctx.json({
+                            cache_key: JSON.stringify(req.body.values),
+                            value: req.body,
+                        })
+                    );
+                })
+            );
+
+            const { getByTestId } = wrappedRender(
+                <>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-1" />
+                    </RequestExtrasProvider>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test2',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-2" />
+                    </RequestExtrasProvider>
+                </>
+            );
+
+            await waitFor(() => {
+                expect(getByTestId('dv-1')).toBeVisible();
+                expect(getByTestId('dv-2')).toBeVisible();
+            });
+
+            await waitFor(() => expect(receivedHeaders.length).toBe(2));
+            // check headers were received and different - order unknown
+            expect(new Set(receivedHeaders.map((h) => h.get('X-Dara-Test')))).toEqual(new Set(['test', 'test2']));
+
+            // Trigger the click so it recalculates
+            act(() => {
+                // find button next to dv-2
+                fireEvent.click(getByTestId('dv-2').previousSibling as HTMLElement);
+            });
+
+            await waitFor(() => expect(receivedHeaders.length).toBe(4));
+
+            // check headers were sent again
+            expect(new Set(receivedHeaders.slice(2).map((h) => h.get('X-Dara-Test')))).toEqual(
+                new Set(['test', 'test2'])
+            );
         });
     });
 

@@ -21,13 +21,7 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
     // Make sure the variable is registered
     switch (actionImpl.variable.__typename) {
         case 'Variable':
-            varAtom = getOrRegisterPlainVariable(
-                actionImpl.variable,
-                ctx.wsClient,
-                ctx.taskCtx,
-                ctx.location.search,
-                ctx.extras
-            );
+            varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
             break;
         case 'UrlVariable':
             varAtom = getOrRegisterUrlVariable(actionImpl.variable);

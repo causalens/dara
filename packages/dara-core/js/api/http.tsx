@@ -16,6 +16,41 @@ export interface RequestOptions {
 export type RequestExtras = string | RequestOptions;
 
 /**
+ * Serializable form of RequestExtras.
+ * Required to use for e.g. recoil params as they need to be serializable.
+ */
+export class RequestExtrasSerializable {
+    extras: RequestExtras;
+
+    constructor(extras: RequestExtras) {
+        this.extras = extras;
+    }
+
+    toJSON(): string {
+        if (!this.extras) {
+            return null;
+        }
+
+        if (typeof this.extras === 'string') {
+            return this.extras;
+        }
+
+        const serializable = {
+            options: this.extras.options,
+            sessionToken: this.extras.sessionToken,
+        };
+
+        // Make headers serializable
+        if (serializable.options?.headers) {
+            const headers = new Headers(serializable.options.headers);
+            serializable.options.headers = Object.fromEntries(headers.entries());
+        }
+
+        return JSON.stringify(serializable);
+    }
+}
+
+/**
  * Light wrapper around fetch.
  *
  * @param url URL
