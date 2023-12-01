@@ -7,7 +7,7 @@ import { RecoilState, RecoilValue, atom, selector, useRecoilCallback, useRecoilV
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
-import { useSessionToken } from '@/auth';
+import { RequestExtras } from '@/api/http';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
@@ -19,7 +19,7 @@ import {
     isResolvedDerivedVariable,
 } from '@/types';
 
-import { VariableCtx, WebSocketCtx } from '../context';
+import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { GlobalTaskContext, useTaskContext } from '../context/global-task-context';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
@@ -49,7 +49,10 @@ function getComponentRegistryKey(uid: string, trigger?: boolean): string {
  * Fetch a component from the backend, expects a component instance to be returned.
  *
  * @param component the component to fetch
- * @param taskRef ref holding the current running task id
+ * @param values the values to pass into the component
+ * @param uid the component instance uid
+ * @param extras request extras to be merged into the options
+ * @param wsClient websocket client
  */
 async function fetchFunctionComponent(
     component: string,
@@ -57,7 +60,7 @@ async function fetchFunctionComponent(
         [k: string]: any;
     },
     uid: string,
-    token: string,
+    extras: RequestExtras,
     wsClient: WebSocketClientInterface
 ): Promise<TaskResponse | NormalizedPayload<ComponentInstance> | null> {
     const ws_channel = await wsClient.getChannel();
@@ -67,7 +70,7 @@ async function fetchFunctionComponent(
             body: JSON.stringify({ uid, values, ws_channel }),
             method: HTTP_METHOD.POST,
         },
-        token
+        extras
     );
     await validateResponse(res, `Failed to fetch the component: ${component}`);
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
@@ -131,7 +134,7 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
  * @param wsClient websocket client
  * @param taskContext task context
  * @param search current search string
- * @param token auth token
+ * @param extras request extras to be merged into the options
  */
 function getOrRegisterServerComponent(
     name: string,
@@ -140,7 +143,7 @@ function getOrRegisterServerComponent(
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilValue<ComponentInstance> {
     const key = getComponentRegistryKey(uid);
 
@@ -148,7 +151,7 @@ function getOrRegisterServerComponent(
         // Kwargs resolved to their simple values
         const resolvedKwargs = Object.keys(dynamicKwargs).reduce((acc, k) => {
             const value = dynamicKwargs[k];
-            acc[k] = resolveVariable(value, wsClient, taskContext, search, token);
+            acc[k] = resolveVariable(value, wsClient, taskContext, search, extras);
             return acc;
         }, {} as Record<string, any>);
 
@@ -199,7 +202,7 @@ function getOrRegisterServerComponent(
                             name,
                             normalizeRequest(kwargValues, dynamicKwargs),
                             uid,
-                            token,
+                            extras,
                             wsClient
                         );
                     } catch (e) {
@@ -225,7 +228,7 @@ function getOrRegisterServerComponent(
                         }
 
                         try {
-                            result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, token);
+                            result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
                         } catch (e) {
                             e.selectorId = key;
                             throw e;
@@ -265,7 +268,7 @@ export default function useServerComponent(
     uid: string,
     dynamicKwargs: Record<string, AnyVariable<any>>
 ): ComponentInstance {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
@@ -286,7 +289,7 @@ export default function useServerComponent(
         wsClient,
         taskContext,
         search,
-        token
+        extras
     );
     const componentLoadable = useRecoilValueLoadable(componentSelector);
     const deferred = useDeferLoadable(componentLoadable);

@@ -7,3 +7,9 @@ export { default as WebSocketCtx } from './websocket-context';
 export { default as RegistriesCtx } from './registries-context';
 export { default as DisplayCtx } from './display-context';
 export { default as FallbackCtx } from './fallback-context';
+export {
+    default as RequestExtrasCtx,
+    useRequestExtras,
+    RequestExtrasProvider,
+    PartialRequestExtrasProvider,
+} from './request-extras-context';

@@ -1,6 +1,7 @@
 import { RecoilState, atom, selector } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api';
+import { RequestExtras } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { isEmbedded } from '@/shared/utils/embed';
 import { SingleVariable, isDerivedVariable } from '@/types';
@@ -12,10 +13,12 @@ import { atomRegistry, getRegistryKey, selectorRegistry } from './store';
 /**
  * Get the session key used to persist a variable value
  *
- * @param sessionToken current session token
+ * @param extras request extras to be merged into the options
  * @param uid uid of the variable to persist
  */
-export function getSessionKey(sessionToken: string, uid: string): string {
+export function getSessionKey(extras: RequestExtras, uid: string): string {
+    const sessionToken = typeof extras === 'string' ? extras : extras.sessionToken;
+
     // If we're within an IFrame (Jupyter)
     if (isEmbedded()) {
         return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset.daraPageId}-var-${uid}`;
@@ -32,14 +35,14 @@ export function getSessionKey(sessionToken: string, uid: string): string {
  * @param wsClient websocket client
  * @param taskContext task context
  * @param search search query
- * @param token current session token
+ * @param extras request extras to be merged into the options
  */
 export function getOrRegisterPlainVariable<T>(
     variable: SingleVariable<T>,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilState<T> {
     const isNested = variable.nested && variable.nested.length > 0;
 
@@ -50,7 +53,7 @@ export function getOrRegisterPlainVariable<T>(
 
         // If persist_value flag is set, try to retrieve persisted value and use it if we found one instead of default
         if (persistValue) {
-            const persistedValue = localStorage.getItem(getSessionKey(token, variable.uid));
+            const persistedValue = localStorage.getItem(getSessionKey(extras, variable.uid));
 
             if (persistedValue) {
                 defaultValue = JSON.parse(persistedValue);
@@ -67,14 +70,14 @@ export function getOrRegisterPlainVariable<T>(
             Once the atom is set, then it will retain that value unless the atom is reset."
             */
                 default: isDerivedVariable(variable.default)
-                    ? getOrRegisterDerivedVariableValue(variable.default, wsClient, taskContext, search, token)
+                    ? getOrRegisterDerivedVariableValue(variable.default, wsClient, taskContext, search, extras)
                     : defaultValue,
                 effects: [
                     ({ onSet }) => {
                         // If persist_value flag is set, register an effect which updates the selected value in sessionStorage on each variable update
                         if (persistValue) {
                             onSet((newValue) => {
-                                localStorage.setItem(getSessionKey(token, variable.uid), JSON.stringify(newValue));
+                                localStorage.setItem(getSessionKey(extras, variable.uid), JSON.stringify(newValue));
                             });
                         }
                     },

@@ -7,8 +7,8 @@ import { useDeepCompare } from '@darajs/ui-utils';
 
 // eslint-disable-next-line import/no-cycle
 import { WebSocketClientInterface } from '@/api';
-import { useSessionToken } from '@/auth/auth-context';
-import { WebSocketCtx, useTaskContext } from '@/shared/context';
+import { RequestExtras } from '@/api/http';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import {
     AnyVariable,
@@ -41,10 +41,10 @@ import {
 
 type GetVariableValueCtx = {
     client: WebSocketClientInterface;
+    extras: RequestExtras;
     search: string;
     snapshot: Snapshot;
     taskContext: GlobalTaskContext;
-    token: string;
 };
 
 /**
@@ -66,7 +66,7 @@ export function getVariableValue<VV, B extends boolean = false>(
     | Promise<VV>
     | Promise<DataFrame> {
     // Using loadable since the resolver is only used for simple atoms and shouldn't cause problems
-    const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.search, ctx.token, (v) =>
+    const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.search, ctx.extras, (v) =>
         ctx.snapshot.getLoadable(v).getValue()
     );
 
@@ -91,14 +91,14 @@ export function getVariableValue<VV, B extends boolean = false>(
 
     // data variable
     if (isResolvedDataVariable(resolved)) {
-        return fetchDataVariable(resolved.uid, ctx.token, resolved.filters);
+        return fetchDataVariable(resolved.uid, ctx.extras, resolved.filters);
     }
 
     // derived variable
     return fetchDerivedVariable({
         cache: (variable as DerivedVariable | DerivedDataVariable).cache,
+        extras: ctx.extras,
         force: false,
-        token: ctx.token,
         uid: resolved.uid,
         values: normalizeRequest(
             formatDerivedVariableRequest(resolved.values),
@@ -117,7 +117,7 @@ export function getVariableValue<VV, B extends boolean = false>(
             return ctx.client
                 .getChannel()
                 .then((chan) =>
-                    fetchDerivedDataVariable(variable.uid, ctx.token, resp.cache_key, chan, variable.filters)
+                    fetchDerivedDataVariable(variable.uid, ctx.extras, resp.cache_key, chan, variable.filters)
                 );
         }
 
@@ -143,7 +143,7 @@ export default function useVariableValue<VV, B extends boolean = false>(
     const taskContext = useTaskContext();
     const { client } = useContext(WebSocketCtx);
     const { search } = useLocation();
-    const token = useSessionToken();
+    const extras = useRequestExtras();
 
     if (!isVariable<VV>(variable)) {
         return () => variable;
@@ -154,13 +154,13 @@ export default function useVariableValue<VV, B extends boolean = false>(
             return () => {
                 return getVariableValue<VV, B>(variable, shouldFetchVariable, {
                     client,
+                    extras,
                     search,
                     snapshot,
                     taskContext,
-                    token,
                 });
             };
         },
-        [variable.uid, useDeepCompare(taskContext), client, search, token]
+        [variable.uid, useDeepCompare(taskContext), client, search, extras]
     );
 }

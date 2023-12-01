@@ -7,6 +7,7 @@ import { CallbackInterface } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api/websocket';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
+import { RequestExtras } from '@/api/http';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -363,9 +364,9 @@ export type NotifyImpl = ActionImpl & NotificationPayload;
  */
 export interface ActionContext extends CallbackInterface {
     /**
-     * Current auth session token
+     * Request extras to be passed into requests made
      */
-    sessionToken: string;
+    extras: RequestExtras;
     /**
      * Websocket Client instance
      */

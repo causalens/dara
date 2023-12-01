@@ -6,8 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { useRecoilValueLoadable } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle
-import { useSessionToken } from '@/auth/auth-context';
-import { VariableCtx, WebSocketCtx, useTaskContext } from '@/shared/context';
+import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { AnyDataVariable, FilterQuery, Pagination, isDataVariable } from '@/types';
 
 import {
@@ -30,7 +29,7 @@ import {
 export function useDataVariable(
     variable: AnyDataVariable
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const { client: WsClient } = useContext(WebSocketCtx);
 
     if (isDataVariable(variable)) {
@@ -60,7 +59,7 @@ export function useDataVariable(
     const taskContext = useTaskContext();
     const { search } = useLocation();
 
-    const dvSelector = useDerivedVariable(variable, WsClient, taskContext, search, token);
+    const dvSelector = useDerivedVariable(variable, WsClient, taskContext, search, extras);
     const dvLoadable = useRecoilValueLoadable(dvSelector);
 
     // We can't directly use the loadable as the callback's dependency because the loadable identity

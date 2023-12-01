@@ -4,8 +4,9 @@ import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
 import { cancelTask } from '@/api';
-import { useSessionToken } from '@/auth/auth-context';
 import { TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
+
+import { useRequestExtras } from './request-extras-context';
 
 export interface GlobalTaskContext {
     /**
@@ -63,7 +64,7 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
      */
     const mapRef = React.useRef<Map<string, Array<VariableTaskEntry>>>(variableTaskMap ?? new Map());
 
-    const token = useSessionToken();
+    const extras = useRequestExtras();
 
     const refreshSelector = useRecoilCallback(({ set }) => (key: string) => {
         // refresh the selector by incrementing the associated trigger so next run will skip the cache
@@ -82,7 +83,7 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
                     // found a match
                     if (taskToCancel) {
                         // cancel the task and mark it as stopped
-                        cancelTask(runningTask, token);
+                        cancelTask(runningTask, extras);
                         tasksRef.current.delete(runningTask);
 
                         // make sure next time the selector runs it will run from scratch rather than using the cached value
@@ -91,7 +92,7 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
                 }
             }
         },
-        [token]
+        [extras]
     );
 
     const startTask = React.useCallback((taskId: string, variableId?: string, triggerKey?: string): void => {

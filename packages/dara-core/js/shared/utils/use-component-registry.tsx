@@ -7,8 +7,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth/auth';
-import { useSessionToken } from '@/auth/auth-context';
-import { RegistriesCtx } from '@/shared/context';
+import { RegistriesCtx, useRequestExtras } from '@/shared/context';
 import { Component, ComponentInstance } from '@/types/core';
 
 interface ComponentRegistryInterface {
@@ -21,7 +20,7 @@ interface ComponentRegistryInterface {
  */
 function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
     const { componentRegistry: components, refetchComponents } = useContext(RegistriesCtx);
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const get = useCallback(
         async (instance: ComponentInstance): Promise<Component> => {
             let component: Component = null;
@@ -36,7 +35,7 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
                     const res = await request(
                         `/api/core/components?name=${instance.name}`,
                         { method: HTTP_METHOD.GET },
-                        token
+                        extras
                     );
                     await handleAuthErrors(res, true);
                     await validateResponse(res, 'Failed to fetch the config for this app');

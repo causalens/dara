@@ -2,8 +2,7 @@ import { useContext } from 'react';
 import { useLocation } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
-import { useSessionToken } from '@/auth/auth-context';
-import { WebSocketCtx, useTaskContext } from '@/shared/context';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import {
     AnyVariable,
     ResolvedDataVariable,
@@ -23,7 +22,7 @@ type AnyResolvedVariable = ResolvedDataVariable | ResolvedDerivedDataVariable | 
  */
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export default function useVariableState(): any | AnyResolvedVariable {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const { client } = useContext(WebSocketCtx);
     const taskCtx = useTaskContext();
     const { search } = useLocation();
@@ -46,7 +45,7 @@ export default function useVariableState(): any | AnyResolvedVariable {
                 client,
                 taskCtx,
                 search,
-                token,
+                extras,
                 (v) => snapshot.getLoadable(v).getValue()
             );
 

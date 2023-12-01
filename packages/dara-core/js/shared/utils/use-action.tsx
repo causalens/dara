@@ -10,8 +10,7 @@ import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 
 import { fetchTaskResult } from '@/api';
 import { request } from '@/api/http';
-import { useSessionToken } from '@/auth/auth-context';
-import { ImportersCtx, WebSocketCtx, useTaskContext } from '@/shared/context';
+import { ImportersCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { Action, ActionHandler } from '@/types';
 import { ActionContext, ActionDef, ActionImpl, AnnotatedAction } from '@/types/core';
 import { isActionImpl } from '@/types/utils';
@@ -43,7 +42,7 @@ async function invokeAction(
             actionCtx.wsClient,
             actionCtx.taskCtx,
             actionCtx.location.search,
-            actionCtx.sessionToken,
+            actionCtx.extras,
             (v) =>
                 // This is only called for primitive variables so it should always resolve successfully
                 // hence not using a promise
@@ -66,7 +65,7 @@ async function invokeAction(
             }),
             method: HTTP_METHOD.POST,
         },
-        actionCtx.sessionToken
+        actionCtx.extras
     );
 
     await validateResponse(res, `Failed to fetch the action value with uid: ${annotatedAction.uid}`);
@@ -86,7 +85,7 @@ async function invokeAction(
 
         // We don't need the result as the MetaTask will send WS messages with actions as per usual
         // fetchTaskResult will pick up on errors and raise them
-        await fetchTaskResult(taskId, actionCtx.sessionToken);
+        await fetchTaskResult(taskId, actionCtx.extras);
     }
 }
 
@@ -285,7 +284,7 @@ export default function useAction(
     const importers = useContext(ImportersCtx);
     const { get: getAction } = useActionRegistry();
     const notificationCtx = useNotifications();
-    const sessionToken = useSessionToken();
+    const extras = useRequestExtras();
     const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
@@ -294,10 +293,10 @@ export default function useAction(
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
     actionCtx.current = {
+        extras,
         history,
         location,
         notificationCtx,
-        sessionToken,
         taskCtx,
         wsClient,
     };

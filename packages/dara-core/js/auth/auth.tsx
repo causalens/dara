@@ -3,10 +3,9 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
+import { useRequestExtras } from '@/shared/context';
 import { getTokenKey } from '@/shared/utils/embed';
 import { User, UserData } from '@/types';
-
-import { useSessionToken } from './auth-context';
 
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -155,10 +154,10 @@ export async function handleAuthErrors(
  * Api call to get user data from the backend
  */
 export function useUser(): UseQueryResult<UserData, RequestError> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     return useQuery({
         queryFn: async () => {
-            const res = await request('/api/auth/user', { method: HTTP_METHOD.GET }, token);
+            const res = await request('/api/auth/user', { method: HTTP_METHOD.GET }, extras);
             await handleAuthErrors(res);
             await validateResponse(res, 'Failed to fetch user for this app');
             return res.json();

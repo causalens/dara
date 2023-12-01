@@ -10,6 +10,7 @@ import shortid from 'shortid';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
+import { RequestExtras } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
@@ -75,9 +76,9 @@ export function formatDerivedVariableRequest(values: Array<any | ResolvedDerived
 
 interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
+    extras: RequestExtras;
     force: boolean;
     is_data_variable?: boolean;
-    token: string;
     uid: string;
     values: Record<string | number, any>;
     wsClient: WebSocketClientInterface;
@@ -97,7 +98,7 @@ interface FetchDerivedVariableArgs {
 export async function fetchDerivedVariable<T>({
     cache,
     force,
-    token,
+    extras,
     uid,
     values,
     wsClient,
@@ -118,7 +119,7 @@ export async function fetchDerivedVariable<T>({
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
-        token
+        extras
     );
     await validateResponse(res, `Failed to fetch the derived variable with uid: ${uid}`);
     return res.json();
@@ -141,7 +142,7 @@ async function debouncedFetchDerivedVariable({
     values,
     wsClient,
     force,
-    token,
+    extras,
     cache,
     is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
@@ -157,7 +158,7 @@ async function debouncedFetchDerivedVariable({
     }
 
     // Push the next set of args to the subject
-    debouncedFetchSubjects[uid].next({ cache, force, is_data_variable, token, uid, values, wsClient });
+    debouncedFetchSubjects[uid].next({ cache, extras, force, is_data_variable, uid, values, wsClient });
 
     // Return the debounced response from the backend
     return new Promise((resolve, reject) => {
@@ -394,14 +395,14 @@ export async function resolveDerivedValue(
  * @param wsClient WebSocket client from context
  * @param tasks tasks list from context
  * @param search search query from location
- * @param sessionToken session token from context
+ * @param extras request extras to be merged into the options
  */
 export function getOrRegisterDerivedVariable(
     variable: DerivedVariable | DerivedDataVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilValue<DerivedVariableValueResponse<any>> {
     const key = getRegistryKey(variable, 'selector');
 
@@ -414,7 +415,7 @@ export function getOrRegisterDerivedVariable(
          * For data variables, put ResolvedDataVariable object.
          */
         const resolvedVariables = variable.variables.map((v) =>
-            resolveVariable(v, wsClient, taskContext, search, token)
+            resolveVariable(v, wsClient, taskContext, search, extras)
         );
 
         getOrRegisterTrigger(variable);
@@ -447,9 +448,9 @@ export function getOrRegisterDerivedVariable(
                     try {
                         variableResponse = await debouncedFetchDerivedVariable({
                             cache: variable.cache,
+                            extras,
                             force: derivedResult.force,
                             is_data_variable: isDerivedDataVariable(variable),
-                            token,
                             uid: variable.uid,
                             values: normalizeRequest(
                                 formatDerivedVariableRequest(derivedResult.values),
@@ -494,7 +495,7 @@ export function getOrRegisterDerivedVariable(
                             }
 
                             try {
-                                variableValue = await fetchTaskResult<any>(taskId, token);
+                                variableValue = await fetchTaskResult<any>(taskId, extras);
                             } catch (e) {
                                 // On DV task error put selectorId into the error so the boundary can reset the selector cache
                                 e.selectorId = key;
@@ -538,16 +539,16 @@ export function getOrRegisterDerivedVariable(
  * @param wsClient WebSocket client from context
  * @param taskContext global task context
  * @param search search query from location
- * @param sessionToken session token from context
+ * @param extras request extras to be merged into the options
  */
 export function getOrRegisterDerivedVariableValue(
     variable: DerivedVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilValue<any> {
-    const dvSelector = getOrRegisterDerivedVariable(variable, wsClient, taskContext, search, token);
+    const dvSelector = getOrRegisterDerivedVariable(variable, wsClient, taskContext, search, extras);
 
     const key = getRegistryKey(variable, 'derived-selector');
 
@@ -574,16 +575,16 @@ export function getOrRegisterDerivedVariableValue(
  * @param WsClient websocket client instance
  * @param taskContext global task context
  * @param search search query
- * @param token auth context
+ * @param extras request extras to be merged into the options
  */
 export function useDerivedVariable(
     variable: DerivedVariable | DerivedDataVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilValue<DerivedVariableValueResponse<any>> {
-    const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, search, token);
+    const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, search, extras);
 
     /**
      * Workaround for forcing a re-calculation for derived variables by creating a triggerIndex atom and making it a dependency of
