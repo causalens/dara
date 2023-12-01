@@ -224,6 +224,7 @@ function getOrRegisterServerComponent(
                             );
                         } catch (e) {
                             e.selectorId = key;
+                            e.selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -248,6 +249,7 @@ function getOrRegisterServerComponent(
                                 result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
                             } catch (e) {
                                 e.selectorId = key;
+                                e.selectorExtras = extrasSerializable.toJSON();
                                 throw e;
                             }
                         }
@@ -276,13 +278,14 @@ function getOrRegisterServerComponent(
     // This is required as otherwise the selector is not aware of different possible extras values
     // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
     // first registered
-    const selectorInstance = family(new RequestExtrasSerializable(currentExtras));
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
 
     // register selector instance in the selector family registry
     if (!selectorFamilySelectorsRegistry.has(family)) {
-        selectorFamilySelectorsRegistry.set(family, new Set());
+        selectorFamilySelectorsRegistry.set(family, new Map());
     }
-    selectorFamilySelectorsRegistry.get(family).add(selectorInstance);
+    selectorFamilySelectorsRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }

@@ -2,7 +2,7 @@
 
 import { isEqual } from 'lodash';
 import { useCallback, useMemo } from 'react';
-import { GetRecoilValue, RecoilValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
+import { GetRecoilValue, RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -37,7 +37,6 @@ import {
     getRegistryKey,
     selectorFamilyRegistry,
     selectorFamilySelectorsRegistry,
-    selectorRegistry,
 } from './store';
 
 export interface DerivedVariableValueResponse<T> {
@@ -488,8 +487,9 @@ export function getOrRegisterDerivedVariable(
                                 wsClient,
                             });
                         } catch (e) {
-                            // On DV error put selectorId into the error so the boundary can reset the selector cache
+                            // On DV error put selectorId and extras into the error so the boundary can reset the selector cache
                             e.selectorId = key;
+                            e.selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -526,8 +526,9 @@ export function getOrRegisterDerivedVariable(
                                 try {
                                     variableValue = await fetchTaskResult<any>(taskId, extras);
                                 } catch (e) {
-                                    // On DV task error put selectorId into the error so the boundary can reset the selector cache
+                                    // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
                                     e.selectorId = key;
+                                    e.selectorExtras = extrasSerializable.toJSON();
                                     throw e;
                                 }
                             } else {
@@ -563,13 +564,14 @@ export function getOrRegisterDerivedVariable(
     // This is required as otherwise the selector is not aware of different possible extras values
     // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
     // first registered
-    const selectorInstance = family(new RequestExtrasSerializable(currentExtras));
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
 
     // register selector instance in the selector family registry
     if (!selectorFamilySelectorsRegistry.has(family)) {
-        selectorFamilySelectorsRegistry.set(family, new Set());
+        selectorFamilySelectorsRegistry.set(family, new Map());
     }
-    selectorFamilySelectorsRegistry.get(family).add(selectorInstance);
+    selectorFamilySelectorsRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -588,26 +590,48 @@ export function getOrRegisterDerivedVariableValue(
     variable: DerivedVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    extras: RequestExtras
+    currentExtras: RequestExtras
 ): RecoilValue<any> {
-    const dvSelector = getOrRegisterDerivedVariable(variable, wsClient, taskContext, extras);
-
     const key = getRegistryKey(variable, 'derived-selector');
 
-    if (!selectorRegistry.has(key)) {
-        selectorRegistry.set(
+    if (!selectorFamilyRegistry.has(key)) {
+        selectorFamilyRegistry.set(
             key,
-            selector({
-                get: ({ get }) => {
-                    const dvResponse = get(dvSelector);
-                    return dvResponse.value;
-                },
+            selectorFamily({
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    ({ get }) => {
+                        // get the right selector instance for this extras value
+                        const dvSelector = getOrRegisterDerivedVariable(
+                            variable,
+                            wsClient,
+                            taskContext,
+                            extrasSerializable.extras
+                        );
+                        const dvResponse = get(dvSelector);
+                        return dvResponse.value;
+                    },
                 key: shortid.generate(),
             })
         );
     }
 
-    return selectorRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key);
+
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+
+    // register selector instance in the selector family registry
+    if (!selectorFamilySelectorsRegistry.has(family)) {
+        selectorFamilySelectorsRegistry.set(family, new Map());
+    }
+    selectorFamilySelectorsRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+
+    return selectorInstance;
 }
 
 /**
