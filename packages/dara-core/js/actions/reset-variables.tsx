@@ -31,7 +31,7 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
                 ctx.wsClient,
                 ctx.taskCtx,
                 ctx.location.search,
-                ctx.sessionToken
+                ctx.extras
             );
             ctx.reset(plainAtom);
         }

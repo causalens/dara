@@ -90,7 +90,7 @@ interface FetchDerivedVariableArgs {
  * @param input Function inputs
  * - `cache`, the cache option for the derived variable.
  * - `force`, send force=true in the request body
- * - `sessionToken`, bearer token for the session
+ * - `extras`, request extras to be merged into the options
  * - `uid`, the uid of the derived variable
  * - `values`, values to pass in the request
  * - `wsClient`, websocket client

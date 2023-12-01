@@ -26,7 +26,7 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
                 ctx.wsClient,
                 ctx.taskCtx,
                 ctx.location.search,
-                ctx.sessionToken
+                ctx.extras
             );
             break;
         case 'UrlVariable':

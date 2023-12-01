@@ -180,7 +180,6 @@ export function useFetchDataVariable(
  * @param taskContext global task context
  * @param wsClient websocket client instance
  * @param dvValuePromise promise representing underlying derived variable state
- * @param token session token
  */
 export function useFetchDerivedDataVariable(
     variable: DerivedDataVariable,

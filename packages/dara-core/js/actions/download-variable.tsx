@@ -124,10 +124,10 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
 const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
     let value = getVariableValue(actionImpl.variable, true, {
         client: ctx.wsClient,
+        extras: ctx.extras,
         search: ctx.location.search,
         snapshot: ctx.snapshot,
         taskContext: ctx.taskCtx,
-        token: ctx.sessionToken,
     });
 
     if (value instanceof Promise) {
