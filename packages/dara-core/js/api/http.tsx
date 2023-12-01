@@ -28,21 +28,28 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
 
     const { headers, ...other } = mergedOptions;
 
-    const baseUrl: string = window.dara?.base_url ?? '';
+    const headersInterface = new Headers(headers);
 
+    // default to json accept header
+    if (!headersInterface.has('Accept')) {
+        headersInterface.set('Accept', 'application/json');
+    }
+
+    // default to json content type header unless body is formdata
+    if (!headersInterface.has('Content-Type') && mergedOptions?.body && !(mergedOptions?.body instanceof FormData)) {
+        headersInterface.set('Content-Type', 'application/json');
+    }
+
+    // default auth header if token is passed
+    if (sessionToken && !headersInterface.has('Authorization')) {
+        headersInterface.set('Authorization', `Bearer ${sessionToken}`);
+    }
+
+    const baseUrl: string = window.dara?.base_url ?? '';
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
     return fetch(baseUrl + urlString, {
-        headers: {
-            Accept: (mergedOptions?.headers as Record<string, string>)?.Accept ?? 'application/json',
-            // Only set content-type json when body is included but it's not formdata
-            ...(mergedOptions?.body && !(mergedOptions?.body instanceof FormData)
-                ? { 'Content-Type': 'application/json' }
-                : {}),
-            // Add auth header if token is passed
-            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-            ...(headers ?? {}),
-        },
+        headers: headersInterface,
         ...other,
     });
 }

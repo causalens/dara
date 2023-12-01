@@ -106,9 +106,7 @@ export const Wrapper = ({
         <ThemeProvider theme={theme}>
             <ImportersCtx.Provider value={importers}>
                 <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
-                    <AuthCtx.Provider
-                        value={{ authType: AuthType.BASIC, setAuthType: noop, setToken: noop, token: 'TEST_TOKEN' }}
-                    >
+                    <AuthCtx.Provider value={{ setToken: noop, token: 'TEST_TOKEN' }}>
                         <RecoilRoot>
                             <RecoilURLSync {...syncOptions}>
                                 <React.Suspense fallback={<div>Loading...</div>}>

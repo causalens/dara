@@ -46,6 +46,29 @@ export function RequestExtrasProvider({
 }
 
 /**
+ * Merge second request extras into first.
+ *
+ * Handles merging header objects rather than overwriting.
+ *
+ * @param a First request init
+ * @param b Second request init
+ */
+function mergeRequestInits(a: RequestInit, b: RequestInit): RequestInit {
+    const mergedHeaders = new Headers(a.headers);
+    const bHeaders = new Headers(b.headers);
+
+    bHeaders.forEach((value, key) => {
+        mergedHeaders.set(key, value);
+    });
+
+    return {
+        ...a,
+        ...b,
+        headers: mergedHeaders,
+    };
+}
+
+/**
  * Request extras provider which merges the provided options with the parent options.
  */
 export function PartialRequestExtrasProvider({
@@ -57,9 +80,7 @@ export function PartialRequestExtrasProvider({
 }): JSX.Element {
     const { options: parentOptions } = useContext(requestExtrasCtx);
 
-    return (
-        <requestExtrasCtx.Provider value={{ options: { ...parentOptions, ...options } }}>
-            {children}
-        </requestExtrasCtx.Provider>
-    );
+    const mergedInits = useMemo(() => mergeRequestInits(parentOptions, options), [parentOptions, options]);
+
+    return <requestExtrasCtx.Provider value={{ options: mergedInits }}>{children}</requestExtrasCtx.Provider>;
 }
