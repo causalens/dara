@@ -34,6 +34,10 @@ export function useRequestExtras(): RequestExtras {
 
 /**
  * Request extras provider that sets the default options for all requests.
+ *
+ * @param props
+ * @param props.children Child components
+ * @param props.options RequestInit object to provide
  */
 export function RequestExtrasProvider({
     children,
@@ -70,6 +74,10 @@ function mergeRequestInits(a: RequestInit, b: RequestInit): RequestInit {
 
 /**
  * Request extras provider which merges the provided options with the parent options.
+ *
+ * @param props
+ * @param props.children Child components
+ * @param props.options RequestInit object to merge with parent options
  */
 export function PartialRequestExtrasProvider({
     children,
