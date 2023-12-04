@@ -35,8 +35,8 @@ import {
     TriggerIndexValue,
     depsRegistry,
     getRegistryKey,
+    selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
-    selectorFamilySelectorsRegistry,
 } from './store';
 
 export interface DerivedVariableValueResponse<T> {
@@ -568,10 +568,10 @@ export function getOrRegisterDerivedVariable(
     const selectorInstance = family(serializableExtras);
 
     // register selector instance in the selector family registry
-    if (!selectorFamilySelectorsRegistry.has(family)) {
-        selectorFamilySelectorsRegistry.set(family, new Map());
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilySelectorsRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -626,10 +626,10 @@ export function getOrRegisterDerivedVariableValue(
     const selectorInstance = family(serializableExtras);
 
     // register selector instance in the selector family registry
-    if (!selectorFamilySelectorsRegistry.has(family)) {
-        selectorFamilySelectorsRegistry.set(family, new Map());
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilySelectorsRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }

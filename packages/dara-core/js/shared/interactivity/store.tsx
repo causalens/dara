@@ -5,6 +5,16 @@ import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { AnyVariable, isVariable } from '@/types';
 
 /**
+ * Selector family type which constructs a selector from a given set of extras.
+ */
+export type SelectorFamily = (P: RequestExtrasSerializable) => RecoilValue<any>;
+
+/**
+ * Atom family type which constructs an atom from a given set of extras.
+ */
+export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
+
+/**
  * Key -> trigger atom
  */
 export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
@@ -13,22 +23,29 @@ export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
  */
 export const atomRegistry = new Map<string, RecoilState<any>>();
 /**
+ * Key -> atom family
+ */
+export const atomFamilyRegistry = new Map<string, AtomFamily>();
+/**
+ * Atom family function => {extras => atom}
+ *
+ * Stores all instances of a given atom family, as a map of seriailzed extras to atom.
+ */
+export const atomFamilyMembersRegistry = new Map<AtomFamily, Map<string, RecoilState<any>>>();
+/**
  * Key -> selector
  */
 export const selectorRegistry = new Map<string, RecoilValue<any>>();
 /**
  * Key -> selector family
  */
-export const selectorFamilyRegistry = new Map<string, (P: RequestExtrasSerializable) => RecoilValue<any>>();
+export const selectorFamilyRegistry = new Map<string, SelectorFamily>();
 /**
- * Selector family -> selectors
+ * Selector family function => {extras => selector}
  *
- * Stores all instances of a selector family
+ * Stores all instances of a given selector family, as a map of seriailzed extras to selector.
  */
-export const selectorFamilySelectorsRegistry = new Map<
-    (P: RequestExtrasSerializable) => RecoilValue<any>,
-    Set<RecoilValue<any>>
->();
+export const selectorFamilyMembersRegistry = new Map<SelectorFamily, Map<string, RecoilValue<any>>>();
 /**
  * Key -> dependencies data for a selector
  */
@@ -65,10 +82,12 @@ export function clearRegistries_TEST(): void {
     for (const registry of [
         dataRegistry,
         atomRegistry,
+        atomFamilyRegistry,
+        atomFamilyMembersRegistry,
         selectorRegistry,
         depsRegistry,
         selectorFamilyRegistry,
-        selectorFamilySelectorsRegistry,
+        selectorFamilyMembersRegistry,
     ]) {
         registry.clear();
     }
