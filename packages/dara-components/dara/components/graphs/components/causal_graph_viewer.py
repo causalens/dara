@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional, Union
 
-from cai_causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph, Skeleton
 from pydantic import root_validator, validator
 
 from dara.components.graphs.components.base_graph_component import BaseGraphComponent
@@ -226,7 +226,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
     js_module = '@darajs/components'
 
-    causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable]]
+    causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable, dict, Skeleton]]
     editor_mode: Optional[EditorMode] = None
 
     @validator('causal_graph')
@@ -238,9 +238,9 @@ class CausalGraphViewer(BaseGraphComponent):
         if isinstance(causal_graph, (DerivedVariable, Variable)):
             return causal_graph
 
-        if not isinstance(causal_graph, (CausalGraph, dict)):
+        if not isinstance(causal_graph, (CausalGraph, Skeleton, dict)):
             raise ValueError(
-                f'Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its dict representation, or a variable containing an instance'
+                f'Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its Skeleton, its dict representation, or a variable containing an instance'
             )
         return causal_graph
 
