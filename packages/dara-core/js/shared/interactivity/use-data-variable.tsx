@@ -2,7 +2,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useRecoilValueLoadable } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle

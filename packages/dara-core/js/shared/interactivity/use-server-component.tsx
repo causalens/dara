@@ -1,15 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useContext, useEffect } from 'react';
-import {
-    RecoilState,
-    RecoilValue,
-    atom,
-    selector,
-    selectorFamily,
-    useRecoilCallback,
-    useRecoilValueLoadable,
-} from 'recoil';
+import { RecoilState, RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -36,7 +28,6 @@ import {
     depsRegistry,
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
-    selectorRegistry,
 } from './store';
 
 function isTaskResponse(response: any): response is TaskResponse {

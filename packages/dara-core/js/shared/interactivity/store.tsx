@@ -105,7 +105,14 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
     }
 
     switch (variable.__typename) {
-        case 'Variable':
+        case 'Variable': {
+            if (atomRegistry.has(variable.uid)) {
+                return true;
+            }
+            const family = atomFamilyRegistry.get(variable.uid);
+            return atomFamilyMembersRegistry.get(family)?.size > 0;
+        }
+
         case 'UrlVariable':
         case 'DataVariable':
             return atomRegistry.has(variable.uid);
@@ -122,29 +129,5 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
         default:
             return false;
-    }
-}
-
-/**
- * Get an atom for a given variable.
- *
- * Useful in cases where we need to atom directly to e.g. write to it.
- *
- * @param variable variable to get the atom for
- */
-export function getAtom<T>(variable: AnyVariable<T>): RecoilState<T> {
-    if (!isRegistered(variable)) {
-        throw new Error(`Variable ${variable.uid} is not registered.`);
-    }
-
-    switch (variable.__typename) {
-        case 'Variable':
-        case 'UrlVariable':
-            return atomRegistry.get(variable.uid);
-
-        default:
-            throw new Error(
-                `Variable ${variable.uid} of type ${variable.__typename} does not have an associated atom.`
-            );
     }
 }
