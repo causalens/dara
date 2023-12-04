@@ -1,5 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 
+import cloneDeep from 'lodash/cloneDeep';
+
 /**
  * Request options to merge into the provided options.
  */
@@ -26,6 +28,9 @@ export class RequestExtrasSerializable {
         this.extras = extras;
     }
 
+    /**
+     * Serialize the extras into a string.
+     */
     toJSON(): string {
         if (!this.extras) {
             return null;
@@ -35,10 +40,7 @@ export class RequestExtrasSerializable {
             return this.extras;
         }
 
-        const serializable = {
-            options: this.extras.options,
-            sessionToken: this.extras.sessionToken,
-        };
+        const serializable = cloneDeep(this.extras);
 
         // Make headers serializable
         if (serializable.options?.headers) {
