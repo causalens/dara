@@ -23,7 +23,7 @@ from typing import Any, List, Set, Tuple, Type, Union
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
 from dara.core.interactivity.any_variable import AnyVariable
-from dara.core.logging import dev_logger
+from dara.core.logging import eng_logger
 from dara.core.visual.dynamic_component import py_component
 
 
@@ -50,7 +50,7 @@ def is_ignored(symbol: Any, ignore_symbols: List[Any]) -> bool:
 
         return symbol in ignore_symbols
     except Exception as e:
-        dev_logger.warning(f'Failed to check symbol {symbol}', {'error': e})
+        eng_logger.warning(f'Failed to check symbol {symbol}', {'error': e})
         return True
 
 
