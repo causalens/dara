@@ -1,19 +1,11 @@
 import { useContext } from 'react';
-import { useLocation } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
-import { useSessionToken } from '@/auth/auth-context';
-import { WebSocketCtx, useTaskContext } from '@/shared/context';
-import {
-    AnyVariable,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
-    isVariable,
-} from '@/types';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
+import { AnyVariable, ResolvedDataVariable, ResolvedDerivedDataVariable, ResolvedDerivedVariable } from '@/types';
 
 import { resolveVariable } from './resolve-variable';
-import { atomRegistry, isRegistered } from './store';
+import { isRegistered } from './store';
 
 type AnyResolvedVariable = ResolvedDataVariable | ResolvedDerivedDataVariable | ResolvedDerivedVariable;
 
@@ -23,10 +15,9 @@ type AnyResolvedVariable = ResolvedDataVariable | ResolvedDerivedDataVariable | 
  */
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export default function useVariableState(): any | AnyResolvedVariable {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const { client } = useContext(WebSocketCtx);
     const taskCtx = useTaskContext();
-    const { search } = useLocation();
 
     return useRecoilCallback(({ snapshot }) => {
         return (variable: AnyVariable<any>) => {
@@ -34,20 +25,9 @@ export default function useVariableState(): any | AnyResolvedVariable {
                 return '__NOT_REGISTERED__';
             }
 
-            // For variables and url-variables, get the value directly out of recoil store
-            if (isVariable(variable) && (variable.__typename === 'Variable' || variable.__typename === 'UrlVariable')) {
-                const atom = atomRegistry.get(variable.uid);
-                return snapshot.getLoadable(atom).getValue();
-            }
-
-            // otherwise we'll just get the resolved form of the variable
-            const resolvedVariable = resolveVariable<AnyResolvedVariable>(
-                variable,
-                client,
-                taskCtx,
-                search,
-                token,
-                (v) => snapshot.getLoadable(v).getValue()
+            // get the resolved form of the variable
+            const resolvedVariable = resolveVariable<AnyResolvedVariable>(variable, client, taskCtx, extras, (v) =>
+                snapshot.getLoadable(v).getValue()
             );
 
             return resolvedVariable;

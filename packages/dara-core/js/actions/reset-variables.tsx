@@ -26,13 +26,7 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             // for data variables this is a noop
         } else {
             // For plain variables reset them to default values
-            const plainAtom = getOrRegisterPlainVariable(
-                variable,
-                ctx.wsClient,
-                ctx.taskCtx,
-                ctx.location.search,
-                ctx.sessionToken
-            );
+            const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
             ctx.reset(plainAtom);
         }
     });

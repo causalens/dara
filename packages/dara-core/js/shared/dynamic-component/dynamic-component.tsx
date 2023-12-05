@@ -239,7 +239,7 @@ function DynamicComponent(props: DynamicComponentProps): JSX.Element {
 
     function onResetErrorBoundary(error: unknown): void {
         if (isSelectorError(error)) {
-            refreshSelector(error.selectorId);
+            refreshSelector(error.selectorId, error.selectorExtras);
         }
     }
 

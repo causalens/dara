@@ -30,7 +30,5 @@ export function getOrRegisterUrlVariable<T>(variable: UrlVariable<T>): RecoilSta
 }
 
 export function useUrlVariable<T>(variable: UrlVariable<T>): [T, (value: T) => void] {
-    const [val, setVal] = useRecoilState<T>(getOrRegisterUrlVariable(variable));
-
-    return [val, setVal];
+    return useRecoilState<T>(getOrRegisterUrlVariable(variable));
 }

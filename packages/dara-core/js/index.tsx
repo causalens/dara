@@ -1,3 +1,4 @@
+import type { RequestExtras, RequestOptions } from './api';
 import run from './run';
 import type { RawCssProp } from './shared';
 import type {
@@ -54,6 +55,8 @@ export type {
     BaseStylingProps,
     StyledComponentProps,
     BaseComponentProps,
+    RequestExtras,
+    RequestOptions,
 };
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
@@ -98,6 +101,9 @@ export {
     DARA_JWT_TOKEN,
     getToken,
     getTokenKey,
+    useRequestExtras,
+    RequestExtrasProvider,
+    PartialRequestExtrasProvider,
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };

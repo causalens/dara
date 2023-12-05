@@ -3,11 +3,11 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { handleAuthErrors } from '@/auth/auth';
-import { useSessionToken } from '@/auth/auth-context';
+import { useRequestExtras } from '@/shared/context';
 import { denormalize } from '@/shared/utils/normalization';
 import { ActionDef, Component, Config, NormalizedPayload, Template } from '@/types';
 
-import { request } from './http';
+import { RequestExtras, request } from './http';
 
 /** Api call to fetch the action registry from the backend */
 export function useActions(): UseQueryResult<
@@ -16,10 +16,10 @@ export function useActions(): UseQueryResult<
     },
     RequestError
 > {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     return useQuery({
         queryFn: async () => {
-            const res = await request('/api/core/actions', { method: HTTP_METHOD.GET }, token);
+            const res = await request('/api/core/actions', { method: HTTP_METHOD.GET }, extras);
             await handleAuthErrors(res, true);
             await validateResponse(res, 'Failed to fetch the actions for this app');
             return res.json();
@@ -31,11 +31,11 @@ export function useActions(): UseQueryResult<
 
 /** Api call to fetch the main configuration from the backend */
 export function useConfig(): UseQueryResult<Config, RequestError> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
 
     return useQuery({
         queryFn: async () => {
-            const res = await request('/api/core/config', { method: HTTP_METHOD.GET }, token);
+            const res = await request('/api/core/config', { method: HTTP_METHOD.GET }, extras);
             await handleAuthErrors(res, true);
             await validateResponse(res, 'Failed to fetch the config for this app');
             return res.json();
@@ -52,10 +52,10 @@ export function useComponents(): UseQueryResult<
     },
     RequestError
 > {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     return useQuery({
         queryFn: async () => {
-            const res = await request('/api/core/components', { method: HTTP_METHOD.GET }, token);
+            const res = await request('/api/core/components', { method: HTTP_METHOD.GET }, extras);
             await handleAuthErrors(res, true);
             await validateResponse(res, 'Failed to fetch the config for this app');
             return res.json();
@@ -71,12 +71,12 @@ export function useComponents(): UseQueryResult<
  * @param template - the template name to fetch
  */
 export function useTemplate(template: string): UseQueryResult<Template, RequestError> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     return useQuery({
         enabled: !!template,
 
         queryFn: async () => {
-            const res = await request(`/api/core/template/${template}`, { method: HTTP_METHOD.GET }, token);
+            const res = await request(`/api/core/template/${template}`, { method: HTTP_METHOD.GET }, extras);
             await handleAuthErrors(res, true);
             await validateResponse(res, 'Failed to fetch the template');
             const { data: normalizedTemplate, lookup } = (await res.json()) as NormalizedPayload<Template>;
@@ -96,8 +96,8 @@ export function useTemplate(template: string): UseQueryResult<Template, RequestE
  * @param taskId the id of the task to fetch
  * @param token the session token to use
  */
-export async function fetchTaskResult<T>(taskId: string, token: string): Promise<T> {
-    const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.GET }, token);
+export async function fetchTaskResult<T>(taskId: string, extras: RequestExtras): Promise<T> {
+    const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.GET }, extras);
     await validateResponse(res, `Failed to fetch the result of task with id: ${taskId}`);
 
     const resJson = await res.json();
@@ -115,8 +115,8 @@ export async function fetchTaskResult<T>(taskId: string, token: string): Promise
  * @param taskId the id of the task to fetch
  * @param token the session token to use
  */
-export async function cancelTask(taskId: string, token: string): Promise<boolean> {
-    const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.DELETE }, token);
+export async function cancelTask(taskId: string, extras: RequestExtras): Promise<boolean> {
+    const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.DELETE }, extras);
     await validateResponse(res, `Failed to cancel task with id: ${taskId}`);
     return true;
 }

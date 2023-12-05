@@ -1,10 +1,16 @@
 import { Matcher, MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { rest } from 'msw';
 import hash from 'object-hash';
+import { useRecoilCallback } from 'recoil';
 
-import { useAction, useVariable } from '../../js/shared';
+import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import { getSessionKey } from '../../js/shared/interactivity/plain-variable';
-import { clearRegistries_TEST } from '../../js/shared/interactivity/store';
+import {
+    atomFamilyMembersRegistry,
+    atomFamilyRegistry,
+    clearRegistries_TEST,
+} from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Action, DerivedVariable, SingleVariable, UrlVariable, Variable } from '../../js/types';
 import { DataVariable, TriggerVariableImpl } from '../../js/types/core';
@@ -305,6 +311,297 @@ describe('useVariable', () => {
             // Stored value should be used instead of default
             expect(result.current[0]).toEqual(storedValue.val);
             expect(getItemSpy).toHaveBeenCalledWith(getSessionKey(SESSION_TOKEN, 'session-test-4'));
+        });
+
+        it('should handle DerivedVariable as the default', async () => {
+            const inputVariableDef: SingleVariable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'input-variable',
+            };
+
+            const derivedVariableDef: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [inputVariableDef],
+                nested: [],
+                uid: 'derived-variable',
+                variables: [inputVariableDef],
+            };
+
+            const variableFromDerived: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: derivedVariableDef,
+                nested: [],
+                uid: 'variable-from-derived',
+            };
+
+            function TestComponent(): JSX.Element {
+                const [inputVar, setInputVar] = useVariable(inputVariableDef);
+                const [derivedVar] = useVariable(derivedVariableDef);
+                const [varFromDerived, setVarFromDerived] = useVariable(variableFromDerived);
+
+                const resetAtom = useRecoilCallback(({ reset }) => () => {
+                    const family = atomFamilyRegistry.get(variableFromDerived.uid);
+                    // reset first instance
+                    const atomInstance = atomFamilyMembersRegistry.get(family).values().next().value;
+                    reset(atomInstance);
+                });
+
+                return (
+                    <div>
+                        <button data-testid="set-input" onClick={() => setInputVar(inputVar + 1)} type="button">
+                            click
+                        </button>
+                        <span data-testid="derived">{JSON.stringify(derivedVar)}</span>
+                        <span data-testid="var-from-derived">{JSON.stringify(varFromDerived)}</span>
+                        <button
+                            data-testid="set-var-from-derived"
+                            onClick={() => setVarFromDerived('test3')}
+                            type="button"
+                        >
+                            click
+                        </button>
+                        <button data-testid="reset" onClick={() => resetAtom()} type="button">
+                            reset
+                        </button>
+                    </div>
+                );
+            }
+
+            const { getByTestId } = wrappedRender(<TestComponent />);
+
+            await waitFor(() => expect(getByTestId('derived')).toBeVisible());
+
+            // Derived and input-from-derived should be the same
+            expect(getByTestId('derived').innerHTML).toEqual(getByTestId('var-from-derived').innerHTML);
+            const initialDerived = getByTestId('derived').innerHTML;
+            // Update the input variable
+            act(() => {
+                fireEvent.click(getByTestId('set-input'));
+            });
+            await waitFor(() => expect(getByTestId('derived')).toBeVisible());
+            expect(getByTestId('derived').innerHTML).not.toEqual(initialDerived);
+            // Derived and input-from-derived should be the same again
+            expect(getByTestId('derived').innerHTML).toEqual(getByTestId('var-from-derived').innerHTML);
+
+            const secondDerived = getByTestId('derived').innerHTML;
+
+            // Update the variable from derived
+            act(() => {
+                fireEvent.click(getByTestId('set-var-from-derived'));
+            });
+
+            // var-from-derived should be 'test3'
+            expect(getByTestId('var-from-derived').innerHTML).toEqual('"test3"');
+
+            // update derived again
+            act(() => {
+                fireEvent.click(getByTestId('set-input'));
+            });
+
+            await waitFor(() => expect(getByTestId('derived')).toBeVisible());
+            // Derived should be updated
+            expect(getByTestId('derived').innerHTML).not.toEqual(secondDerived);
+
+            const thirdDerived = getByTestId('derived').innerHTML;
+
+            // input-from-derived should not have been updated
+            expect(getByTestId('var-from-derived').innerHTML).toEqual('"test3"');
+
+            // Reset the variable from derived
+            act(() => {
+                fireEvent.click(getByTestId('reset'));
+            });
+
+            // var-from-derived should be back to the previous dv value
+            await waitFor(() => expect(getByTestId('var-from-derived').innerHTML).toEqual(thirdDerived));
+        });
+
+        it('handles RequestExtras contexts for Variable with default DerivedVariable', async () => {
+            /*
+             * Here we're testing that the RequestExtras is correctly used for different callsites
+             * of the same variable with a default DerivedVariable.
+             * Expected behaviour:
+             * - all call-sites are kept in-sync with each other
+             * - correct 'default' behaviour is preserved (as in previous test)
+             * - local extras are sent for initial DV requests
+             */
+
+            // keep track of headers received
+            const receivedHeaders: Headers[] = [];
+
+            server.use(
+                rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
+                    receivedHeaders.push(req.headers);
+                    return res(
+                        ctx.json({
+                            cache_key: JSON.stringify(req.body.values),
+                            value: req.body,
+                        })
+                    );
+                })
+            );
+
+            const inputVariableDef: SingleVariable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'input-variable',
+            };
+
+            const derivedVariableDef: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [inputVariableDef],
+                nested: [],
+                uid: 'derived-variable',
+                variables: [inputVariableDef],
+            };
+
+            const variableFromDerived: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: derivedVariableDef,
+                nested: [],
+                uid: 'variable-from-derived',
+            };
+
+            function TestComponent({ dvKey }: { dvKey: string }): JSX.Element {
+                const [inputVar, setInputVar] = useVariable(inputVariableDef);
+                const [varFromDerived, setVarFromDerived] = useVariable(variableFromDerived);
+
+                const resetAtom = useRecoilCallback(({ reset }) => () => {
+                    const family = atomFamilyRegistry.get(variableFromDerived.uid);
+                    // reset one of them, we don't care which as both should be reset
+                    const atomInstance = atomFamilyMembersRegistry.get(family).values().next().value;
+                    reset(atomInstance);
+                });
+
+                return (
+                    <div>
+                        <button
+                            data-testid={`${dvKey}-set-input`}
+                            onClick={() => setInputVar(inputVar + 1)}
+                            type="button"
+                        >
+                            click
+                        </button>
+                        <span data-testid={`${dvKey}-var-from-derived`}>{JSON.stringify(varFromDerived)}</span>
+                        <button
+                            data-testid={`${dvKey}-set-var-from-derived`}
+                            onClick={() => setVarFromDerived('test3')}
+                            type="button"
+                        >
+                            click
+                        </button>
+                        <button data-testid={`${dvKey}-reset`} onClick={() => resetAtom()} type="button">
+                            reset
+                        </button>
+                    </div>
+                );
+            }
+
+            const { getByTestId } = wrappedRender(
+                <>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-1" />
+                    </RequestExtrasProvider>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test2',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-2" />
+                    </RequestExtrasProvider>
+                </>
+            );
+
+            // wait for both components to be rendered
+            await waitFor(() => {
+                expect(getByTestId('dv-1-var-from-derived')).toBeVisible();
+                expect(getByTestId('dv-2-var-from-derived')).toBeVisible();
+            });
+
+            // Check both components have the same initial value
+            expect(getByTestId('dv-1-var-from-derived').innerHTML).toEqual(
+                getByTestId('dv-2-var-from-derived').innerHTML
+            );
+
+            const initialDerived = getByTestId('dv-1-var-from-derived').innerHTML;
+
+            await waitFor(() => expect(receivedHeaders.length).toBe(2));
+
+            // check headers were received and different - order unknown
+            expect(new Set(receivedHeaders.map((h) => h.get('X-Dara-Test')))).toEqual(new Set(['test', 'test2']));
+
+            // Clear headers
+            receivedHeaders.length = 0;
+
+            // update the input variable for the DV
+            act(() => {
+                fireEvent.click(getByTestId('dv-1-set-input'));
+            });
+
+            // wait for both components to be rendered
+            await waitFor(() => {
+                expect(getByTestId('dv-1-var-from-derived')).toBeVisible();
+                expect(getByTestId('dv-2-var-from-derived')).toBeVisible();
+            });
+
+            // Check both components have the same updated value but different than before
+            expect(getByTestId('dv-1-var-from-derived').innerHTML).not.toEqual(initialDerived);
+            expect(getByTestId('dv-1-var-from-derived').innerHTML).toEqual(
+                getByTestId('dv-2-var-from-derived').innerHTML
+            );
+
+            const dvAfterUpdate = getByTestId('dv-1-var-from-derived').innerHTML;
+
+            // Check we got 2 more headers, one for each component
+            expect(receivedHeaders.length).toBe(2);
+            expect(new Set(receivedHeaders.map((h) => h.get('X-Dara-Test')))).toEqual(new Set(['test', 'test2']));
+
+            // Clear headers again
+            receivedHeaders.length = 0;
+
+            // Update one of the variables directly
+            act(() => {
+                fireEvent.click(getByTestId('dv-1-set-var-from-derived'));
+            });
+
+            // wait for both components to be rendered
+            await waitFor(() => {
+                expect(getByTestId('dv-1-var-from-derived')).toBeVisible();
+                expect(getByTestId('dv-2-var-from-derived')).toBeVisible();
+            });
+
+            // Both should have updated
+            expect(getByTestId('dv-1-var-from-derived').innerHTML).toEqual('"test3"');
+            expect(getByTestId('dv-2-var-from-derived').innerHTML).toEqual('"test3"');
+
+            // Reset one of the variables
+            act(() => {
+                fireEvent.click(getByTestId('dv-1-reset'));
+            });
+
+            // wait for both components to be rendered
+            await waitFor(() => {
+                expect(getByTestId('dv-1-var-from-derived')).toBeVisible();
+                expect(getByTestId('dv-2-var-from-derived')).toBeVisible();
+            });
+
+            // They should go back to the (previous) DV value
+            expect(getByTestId('dv-1-var-from-derived').innerHTML).toEqual(dvAfterUpdate);
+            expect(getByTestId('dv-2-var-from-derived').innerHTML).toEqual(dvAfterUpdate);
+
+            // No new headers should be received - DV was not recalculated
+            expect(receivedHeaders.length).toBe(0);
         });
     });
 
@@ -1060,6 +1357,93 @@ describe('useVariable', () => {
                 },
                 ws_channel: 'uid',
             });
+        });
+
+        it('should respect RequestExtras at call site', async () => {
+            const inputVariableDef: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'test',
+                nested: [],
+                uid: 'input-variable',
+            };
+            function TestComponent({ dvKey }: { dvKey: string }): JSX.Element {
+                const [, setInputVar] = useVariable(inputVariableDef);
+                const [derivedVar] = useVariable({
+                    __typename: 'DerivedVariable',
+                    deps: [inputVariableDef],
+                    nested: [],
+                    uid: 'derived-variable',
+                    variables: [inputVariableDef],
+                });
+
+                return (
+                    <div>
+                        <button onClick={() => setInputVar('test2')} type="button">
+                            click
+                        </button>
+                        <span data-testid={dvKey}>{JSON.stringify(derivedVar)}</span>
+                    </div>
+                );
+            }
+
+            const receivedHeaders: Headers[] = [];
+
+            server.use(
+                rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
+                    receivedHeaders.push(req.headers);
+                    return res(
+                        ctx.json({
+                            cache_key: JSON.stringify(req.body.values),
+                            value: req.body,
+                        })
+                    );
+                })
+            );
+
+            const { getByTestId } = wrappedRender(
+                <>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-1" />
+                    </RequestExtrasProvider>
+                    <RequestExtrasProvider
+                        options={{
+                            headers: {
+                                'X-Dara-Test': 'test2',
+                            },
+                        }}
+                    >
+                        <TestComponent dvKey="dv-2" />
+                    </RequestExtrasProvider>
+                </>
+            );
+
+            await waitFor(() => {
+                expect(getByTestId('dv-1')).toBeVisible();
+                expect(getByTestId('dv-2')).toBeVisible();
+            });
+
+            await waitFor(() => expect(receivedHeaders.length).toBe(2));
+            // check headers were received and different - order unknown
+            expect(new Set(receivedHeaders.map((h) => h.get('X-Dara-Test')))).toEqual(new Set(['test', 'test2']));
+
+            // Trigger the click so it recalculates
+            act(() => {
+                // find button next to dv-2
+                fireEvent.click(getByTestId('dv-2').previousSibling as HTMLElement);
+            });
+
+            await waitFor(() => expect(receivedHeaders.length).toBe(4));
+
+            // check headers were sent again
+            expect(new Set(receivedHeaders.slice(2).map((h) => h.get('X-Dara-Test')))).toEqual(
+                new Set(['test', 'test2'])
+            );
         });
     });
 

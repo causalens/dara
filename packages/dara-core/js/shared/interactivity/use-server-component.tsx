@@ -1,13 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useContext, useEffect } from 'react';
-import { useLocation } from 'react-router';
-import { RecoilState, RecoilValue, atom, selector, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import { RecoilState, RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
-import { useSessionToken } from '@/auth';
+import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
@@ -19,11 +18,17 @@ import {
     isResolvedDerivedVariable,
 } from '@/types';
 
-import { VariableCtx, WebSocketCtx } from '../context';
+import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { GlobalTaskContext, useTaskContext } from '../context/global-task-context';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
-import { TriggerIndexValue, atomRegistry, depsRegistry, selectorRegistry } from './store';
+import {
+    TriggerIndexValue,
+    atomRegistry,
+    depsRegistry,
+    selectorFamilyMembersRegistry,
+    selectorFamilyRegistry,
+} from './store';
 
 function isTaskResponse(response: any): response is TaskResponse {
     return response && typeof response === 'object' && 'task_id' in response;
@@ -49,7 +54,10 @@ function getComponentRegistryKey(uid: string, trigger?: boolean): string {
  * Fetch a component from the backend, expects a component instance to be returned.
  *
  * @param component the component to fetch
- * @param taskRef ref holding the current running task id
+ * @param values the values to pass into the component
+ * @param uid the component instance uid
+ * @param extras request extras to be merged into the options
+ * @param wsClient websocket client
  */
 async function fetchFunctionComponent(
     component: string,
@@ -57,7 +65,7 @@ async function fetchFunctionComponent(
         [k: string]: any;
     },
     uid: string,
-    token: string,
+    extras: RequestExtras,
     wsClient: WebSocketClientInterface
 ): Promise<TaskResponse | NormalizedPayload<ComponentInstance> | null> {
     const ws_channel = await wsClient.getChannel();
@@ -67,7 +75,7 @@ async function fetchFunctionComponent(
             body: JSON.stringify({ uid, values, ws_channel }),
             method: HTTP_METHOD.POST,
         },
-        token
+        extras
     );
     await validateResponse(res, `Failed to fetch the component: ${component}`);
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
@@ -131,7 +139,7 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
  * @param wsClient websocket client
  * @param taskContext task context
  * @param search current search string
- * @param token auth token
+ * @param currentExtras request extras to be merged into the options
  */
 function getOrRegisterServerComponent(
     name: string,
@@ -139,118 +147,138 @@ function getOrRegisterServerComponent(
     dynamicKwargs: Record<string, AnyVariable<any>>,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
-    token: string
+    currentExtras: RequestExtras
 ): RecoilValue<ComponentInstance> {
     const key = getComponentRegistryKey(uid);
 
-    if (!selectorRegistry.has(key)) {
-        // Kwargs resolved to their simple values
-        const resolvedKwargs = Object.keys(dynamicKwargs).reduce((acc, k) => {
-            const value = dynamicKwargs[k];
-            acc[k] = resolveVariable(value, wsClient, taskContext, search, token);
-            return acc;
-        }, {} as Record<string, any>);
-
-        // Turn kwargs into lists so we can re-use the DerivedVariable logic
-        const resolvedKwargsList = Object.values(resolvedKwargs);
-        const kwargsList = Object.values(dynamicKwargs);
-        const triggerAtom = getOrRegisterComponentTrigger(uid);
-
-        selectorRegistry.set(
+    if (!selectorFamilyRegistry.has(key)) {
+        selectorFamilyRegistry.set(
             key,
-            selector({
+            selectorFamily({
                 cachePolicy_UNSTABLE: {
                     eviction: 'most-recent',
                 },
-                get: async ({ get }) => {
-                    const selfTrigger = get(triggerAtom);
-
-                    const derivedResult = await resolveDerivedValue(
-                        key,
-                        kwargsList,
-                        kwargsList, // pass deps=kwargs
-                        resolvedKwargsList,
-                        wsClient,
-                        get,
-                        selfTrigger
-                    );
-
-                    // returning previous result as no change in dependant values
-                    if (derivedResult.type === 'previous') {
-                        return derivedResult.entry.result;
-                    }
-
-                    // Otherwise fetch new component
-
-                    // turn the resolved values back into an object and clean them up
-                    const kwargValues = cleanKwargs(
-                        Object.keys(dynamicKwargs).reduce((acc, k, idx) => {
-                            acc[k] = derivedResult.values[idx];
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    async ({ get }) => {
+                        // Kwargs resolved to their simple values
+                        const resolvedKwargs = Object.keys(dynamicKwargs).reduce((acc, k) => {
+                            const value = dynamicKwargs[k];
+                            acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
                             return acc;
-                        }, {} as Record<string, any>),
-                        derivedResult.force
-                    );
+                        }, {} as Record<string, any>);
 
-                    let result = null;
+                        // Turn kwargs into lists so we can re-use the DerivedVariable logic
+                        const resolvedKwargsList = Object.values(resolvedKwargs);
+                        const kwargsList = Object.values(dynamicKwargs);
 
-                    try {
-                        result = await fetchFunctionComponent(
-                            name,
-                            normalizeRequest(kwargValues, dynamicKwargs),
-                            uid,
-                            token,
-                            wsClient
+                        const triggerAtom = getOrRegisterComponentTrigger(uid);
+                        const selfTrigger = get(triggerAtom);
+
+                        const { extras } = extrasSerializable;
+
+                        const derivedResult = await resolveDerivedValue(
+                            key,
+                            kwargsList,
+                            kwargsList, // pass deps=kwargs
+                            resolvedKwargsList,
+                            wsClient,
+                            get,
+                            selfTrigger
                         );
-                    } catch (e) {
-                        e.selectorId = key;
-                        throw e;
-                    }
 
-                    taskContext.cleanupRunningTasks(key);
-
-                    // Metatask returned
-                    if (isTaskResponse(result)) {
-                        const taskId = result.task_id;
-
-                        // Register the task under the component's instance key
-                        taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
-
-                        try {
-                            await wsClient.waitForTask(taskId);
-                        } catch {
-                            return null;
-                        } finally {
-                            taskContext.endTask(taskId);
+                        // returning previous result as no change in dependant values
+                        if (derivedResult.type === 'previous') {
+                            return derivedResult.entry.result;
                         }
 
+                        // Otherwise fetch new component
+
+                        // turn the resolved values back into an object and clean them up
+                        const kwargValues = cleanKwargs(
+                            Object.keys(dynamicKwargs).reduce((acc, k, idx) => {
+                                acc[k] = derivedResult.values[idx];
+                                return acc;
+                            }, {} as Record<string, any>),
+                            derivedResult.force
+                        );
+
+                        let result = null;
+
                         try {
-                            result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, token);
+                            result = await fetchFunctionComponent(
+                                name,
+                                normalizeRequest(kwargValues, dynamicKwargs),
+                                uid,
+                                extras,
+                                wsClient
+                            );
                         } catch (e) {
                             e.selectorId = key;
+                            e.selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
-                    }
 
-                    if (result !== null) {
-                        // Denormalize
-                        result = denormalize(result.data, result.lookup);
-                    }
+                        taskContext.cleanupRunningTasks(key);
 
-                    depsRegistry.set(key, {
-                        args: derivedResult.relevantValues,
-                        cacheKey: null,
-                        result,
-                    });
+                        // Metatask returned
+                        if (isTaskResponse(result)) {
+                            const taskId = result.task_id;
 
-                    return result;
-                },
+                            // Register the task under the component's instance key
+                            taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
+
+                            try {
+                                await wsClient.waitForTask(taskId);
+                            } catch {
+                                return null;
+                            } finally {
+                                taskContext.endTask(taskId);
+                            }
+
+                            try {
+                                result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
+                            } catch (e) {
+                                e.selectorId = key;
+                                e.selectorExtras = extrasSerializable.toJSON();
+                                throw e;
+                            }
+                        }
+
+                        if (result !== null) {
+                            // Denormalize
+                            result = denormalize(result.data, result.lookup);
+                        }
+
+                        depsRegistry.set(key, {
+                            args: derivedResult.relevantValues,
+                            cacheKey: null,
+                            result,
+                        });
+
+                        return result;
+                    },
                 key,
             })
         );
     }
 
-    return selectorRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key);
+
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+
+    // register selector instance in the selector family registry
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
+    }
+    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+
+    return selectorInstance;
 }
 
 /**
@@ -265,11 +293,10 @@ export default function useServerComponent(
     uid: string,
     dynamicKwargs: Record<string, AnyVariable<any>>
 ): ComponentInstance {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
-    const { search } = useLocation();
 
     // Synchronously register the py_component uid, and clean it up on unmount
     variablesContext.variables.current.add(getComponentRegistryKey(uid));
@@ -279,15 +306,7 @@ export default function useServerComponent(
         };
     }, []);
 
-    const componentSelector = getOrRegisterServerComponent(
-        name,
-        uid,
-        dynamicKwargs,
-        wsClient,
-        taskContext,
-        search,
-        token
-    );
+    const componentSelector = getOrRegisterServerComponent(name, uid, dynamicKwargs, wsClient, taskContext, extras);
     const componentLoadable = useRecoilValueLoadable(componentSelector);
     const deferred = useDeferLoadable(componentLoadable);
 

@@ -1,11 +1,54 @@
 import { RecoilState, RecoilValue } from 'recoil';
 
+import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { AnyVariable, isVariable } from '@/types';
 
-export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>(); // datavariableId -> trigger atom
+/**
+ * Selector family type which constructs a selector from a given set of extras.
+ */
+export type SelectorFamily = (P: RequestExtrasSerializable) => RecoilValue<any>;
+
+/**
+ * Atom family type which constructs an atom from a given set of extras.
+ */
+export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
+
+/**
+ * Key -> trigger atom
+ */
+export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
+/**
+ * Key -> atom
+ */
 export const atomRegistry = new Map<string, RecoilState<any>>();
+/**
+ * Key -> atom family
+ */
+export const atomFamilyRegistry = new Map<string, AtomFamily>();
+/**
+ * Atom family function => {extras => atom}
+ *
+ * Stores all instances of a given atom family, as a map of seriailzed extras to atom.
+ */
+export const atomFamilyMembersRegistry = new Map<AtomFamily, Map<string, RecoilState<any>>>();
+/**
+ * Key -> selector
+ */
 export const selectorRegistry = new Map<string, RecoilValue<any>>();
+/**
+ * Key -> selector family
+ */
+export const selectorFamilyRegistry = new Map<string, SelectorFamily>();
+/**
+ * Selector family function => {extras => selector}
+ *
+ * Stores all instances of a given selector family, as a map of seriailzed extras to selector.
+ */
+export const selectorFamilyMembersRegistry = new Map<SelectorFamily, Map<string, RecoilValue<any>>>();
+/**
+ * Key -> dependencies data for a selector
+ */
 export const depsRegistry = new Map<
     string,
     {
@@ -36,7 +79,16 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
  * Clear registries - to be used in tests only.
  */
 export function clearRegistries_TEST(): void {
-    for (const registry of [dataRegistry, atomRegistry, selectorRegistry, depsRegistry]) {
+    for (const registry of [
+        dataRegistry,
+        atomRegistry,
+        atomFamilyRegistry,
+        atomFamilyMembersRegistry,
+        selectorRegistry,
+        depsRegistry,
+        selectorFamilyRegistry,
+        selectorFamilyMembersRegistry,
+    ]) {
         registry.clear();
     }
 }
@@ -53,12 +105,23 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
     }
 
     switch (variable.__typename) {
-        case 'Variable':
+        case 'Variable': {
+            if (atomRegistry.has(variable.uid)) {
+                return true;
+            }
+            const family = atomFamilyRegistry.get(variable.uid);
+            return atomFamilyMembersRegistry.get(family)?.size > 0;
+        }
+
         case 'UrlVariable':
         case 'DataVariable':
             return atomRegistry.has(variable.uid);
 
-        case 'DerivedVariable':
+        case 'DerivedVariable': {
+            const key = getRegistryKey(variable, 'selector');
+            return selectorFamilyRegistry.has(key);
+        }
+
         case 'DerivedDataVariable': {
             const key = getRegistryKey(variable, 'selector');
             return selectorRegistry.has(key);
@@ -66,29 +129,5 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
         default:
             return false;
-    }
-}
-
-/**
- * Get an atom for a given variable.
- *
- * Useful in cases where we need to atom directly to e.g. write to it.
- *
- * @param variable variable to get the atom for
- */
-export function getAtom<T>(variable: AnyVariable<T>): RecoilState<T> {
-    if (!isRegistered(variable)) {
-        throw new Error(`Variable ${variable.uid} is not registered.`);
-    }
-
-    switch (variable.__typename) {
-        case 'Variable':
-        case 'UrlVariable':
-            return atomRegistry.get(variable.uid);
-
-        default:
-            throw new Error(
-                `Variable ${variable.uid} of type ${variable.__typename} does not have an associated atom.`
-            );
     }
 }

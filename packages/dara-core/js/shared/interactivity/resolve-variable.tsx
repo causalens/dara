@@ -1,6 +1,7 @@
 import { RecoilState } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api';
+import { RequestExtras } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import {
     AnyVariable,
@@ -29,16 +30,14 @@ import {
  * @param variable variable to resolve
  * @param client websocket client from context
  * @param taskContext global task context
- * @param search search query from location
- * @param token session token from context
+ * @param extras request extras to be merged into the options
  * @param resolver function to run the value through (for non-derived variables)
  */
 export function resolveVariable<VariableType>(
     variable: AnyVariable<VariableType>,
     client: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
-    token: string,
+    extras: RequestExtras,
     resolver: (val: RecoilState<VariableType>) => RecoilState<VariableType> | ResolvedDerivedVariable | VariableType = (
         val: RecoilState<VariableType>
     ) => val
@@ -49,10 +48,10 @@ export function resolveVariable<VariableType>(
     | ResolvedDataVariable
     | VariableType {
     if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
-        getOrRegisterDerivedVariable(variable, client, taskContext, search, token);
+        getOrRegisterDerivedVariable(variable, client, taskContext, extras);
 
         // For derived variable, recursively resolve the dependencies
-        const values = variable.variables.map((v) => resolveVariable(v, client, taskContext, search, token, resolver));
+        const values = variable.variables.map((v) => resolveVariable(v, client, taskContext, extras, resolver));
 
         // Store indexes of values which are in deps
         const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
@@ -83,5 +82,5 @@ export function resolveVariable<VariableType>(
         return resolver(getOrRegisterUrlVariable(variable));
     }
 
-    return resolver(getOrRegisterPlainVariable(variable, client, taskContext, search, token));
+    return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
 }

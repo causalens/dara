@@ -6,11 +6,11 @@ import { atom } from 'recoil';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult } from '@/api';
-import { request } from '@/api/http';
-import { useSessionToken } from '@/auth/auth-context';
+import { RequestExtras, request } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { DataFrame, DataVariable, DerivedDataVariable, FilterQuery, Pagination, ResolvedDataVariable } from '@/types';
 
+import { useRequestExtras } from '../context';
 import { combineFilters } from './filtering';
 // eslint-disable-next-line import/no-cycle
 import { DerivedVariableValueResponse } from './internal';
@@ -61,19 +61,19 @@ function createDataUrl(path: string, pagination?: Pagination): URL {
  * Retrieve the value of a data variable from the backend
  *
  * @param uid
- * @param token
+ * @param extras request extras to be merged into the options
  * @param filters
  * @param pagination
  */
 export async function fetchDataVariable(
     uid: string,
-    token: string,
+    extras: RequestExtras,
     filters?: FilterQuery,
     pagination?: Pagination
 ): Promise<DataFrame> {
     const url = createDataUrl(`/api/core/data-variable/${uid}`, pagination);
 
-    const response = await request(url, { body: JSON.stringify({ filters }), method: HTTP_METHOD.POST }, token);
+    const response = await request(url, { body: JSON.stringify({ filters }), method: HTTP_METHOD.POST }, extras);
     await validateResponse(response, 'Failed to fetch data variable');
     return response.json();
 }
@@ -95,7 +95,7 @@ export function isDataResponse(response: any): response is DataResponse {
  * Retrieve the value of a derived data variable from the backend
  *
  * @param uid
- * @param token
+ * @param extras request extras to be merged into the options
  * @param filters
  * @param pagination
  * @param cacheKey - cache key of the underlying DV, required for DerivedDataVariables
@@ -103,7 +103,7 @@ export function isDataResponse(response: any): response is DataResponse {
  */
 export async function fetchDerivedDataVariable(
     uid: string,
-    token: string,
+    extras: RequestExtras,
     cacheKey: string,
     wsChannel: string,
     filters?: FilterQuery,
@@ -113,7 +113,7 @@ export async function fetchDerivedDataVariable(
     const response = await request(
         url,
         { body: JSON.stringify({ cache_key: cacheKey, filters, ws_channel: wsChannel }), method: HTTP_METHOD.POST },
-        token
+        extras
     );
     await validateResponse(response, 'Failed to fetch data variable');
     return response.json();
@@ -123,19 +123,19 @@ export async function fetchDerivedDataVariable(
  * Get total count of data in a data variable
  *
  * @param uid uid of the variable
- * @param token session token
+ * @param extras request extras to be merged into the options
  * @param cacheKey cache key of the underlying DV in the case of derived data variables
  */
 async function fetchDataVariableCount(
     uid: string,
-    token: string,
+    extras: RequestExtras,
     filters?: FilterQuery,
     cacheKey?: string
 ): Promise<number> {
     const response = await request(
         `/api/core/data-variable/${uid}/count`,
         { body: JSON.stringify({ cache_key: cacheKey, filters }), method: HTTP_METHOD.POST },
-        token
+        extras
     );
     await validateResponse(response, 'Failed to fetch data variable total count');
     return response.json();
@@ -145,28 +145,28 @@ async function fetchDataVariableCount(
  * Get a callback to fetch data variable from the backend
  *
  * @param variable variable instance
- * @param token session token
  * @param serverTriggerCounter a counter to force recreation of the callback
  */
 export function useFetchDataVariable(
     variable: DataVariable,
     serverTriggerCounter: number
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
+
     const dataCallback = useCallback(
         async (filters?: FilterQuery, pagination?: Pagination) => {
             const mergedFilters = combineFilters('AND', [variable.filters, filters]);
 
-            const data = await fetchDataVariable(variable.uid, token, mergedFilters, pagination);
+            const data = await fetchDataVariable(variable.uid, extras, mergedFilters, pagination);
 
-            const totalCount = await fetchDataVariableCount(variable.uid, token, mergedFilters);
+            const totalCount = await fetchDataVariableCount(variable.uid, extras, mergedFilters);
 
             return {
                 data,
                 totalCount,
             };
         },
-        [variable, token, serverTriggerCounter]
+        [variable, extras, serverTriggerCounter]
     );
 
     return dataCallback;
@@ -180,7 +180,6 @@ export function useFetchDataVariable(
  * @param taskContext global task context
  * @param wsClient websocket client instance
  * @param dvValuePromise promise representing underlying derived variable state
- * @param token session token
  */
 export function useFetchDerivedDataVariable(
     variable: DerivedDataVariable,
@@ -188,7 +187,7 @@ export function useFetchDerivedDataVariable(
     wsClient: WebSocketClientInterface,
     dvValuePromise: Promise<DerivedVariableValueResponse<any>>
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
     const previousResult = useRef<DataResponse>({ data: null, totalCount: 0 });
     const dataCallback = useCallback(
         async (filters?: FilterQuery, pagination?: Pagination) => {
@@ -197,7 +196,7 @@ export function useFetchDerivedDataVariable(
 
             const response = await fetchDerivedDataVariable(
                 variable.uid,
-                token,
+                extras,
                 dvValue.cache_key,
                 await wsClient.getChannel(),
                 mergedFilters,
@@ -229,7 +228,7 @@ export function useFetchDerivedDataVariable(
                     taskContext.endTask(taskId);
                 }
 
-                data = await fetchTaskResult<DataFrame>(taskId, token);
+                data = await fetchTaskResult<DataFrame>(taskId, extras);
             } else {
                 // otherwise use response directly
                 data = response as DataFrame | null;
@@ -237,7 +236,7 @@ export function useFetchDerivedDataVariable(
 
             // For derived data variables count can only be fetched when task is not running so we have to make the request here
             // As the total count could have changed because of the underlying DV changing
-            const totalCount = await fetchDataVariableCount(variable.uid, token, mergedFilters, dvValue.cache_key);
+            const totalCount = await fetchDataVariableCount(variable.uid, extras, mergedFilters, dvValue.cache_key);
 
             previousResult.current = { data, totalCount };
 
@@ -246,7 +245,7 @@ export function useFetchDerivedDataVariable(
                 totalCount,
             };
         },
-        [variable, token, dvValuePromise]
+        [variable, extras, dvValuePromise]
     );
 
     return dataCallback;

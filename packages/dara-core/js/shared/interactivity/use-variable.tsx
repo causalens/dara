@@ -1,9 +1,7 @@
-import { Dispatch, SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react';
 import { useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
-import { useSessionToken } from '@/auth/auth-context';
-import { VariableCtx, WebSocketCtx, useTaskContext } from '@/shared/context';
+import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { useDeferLoadable } from '@/shared/utils';
 import { Variable, isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types';
 
@@ -32,11 +30,11 @@ function warnUpdateOnDerivedState(): void {
  * @param variable the possible variable to use
  */
 export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Dispatch<SetStateAction<T>>] {
-    const token = useSessionToken();
+    const extras = useRequestExtras();
+
     const { client: WsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
-    const { search } = useLocation();
 
     if (!isVariable(variable)) {
         return useState(variable);
@@ -56,7 +54,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     if (isDerivedVariable(variable)) {
-        const selector = useDerivedVariable(variable, WsClient, taskContext, search, token);
+        const selector = useDerivedVariable(variable, WsClient, taskContext, extras);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         const deferred = useDeferLoadable(selectorLoadable);
@@ -68,7 +66,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         return useUrlVariable(variable);
     }
 
-    const recoilState = useMemo(() => getOrRegisterPlainVariable(variable, WsClient, taskContext, search, token), []);
+    const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
     const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
     const deferred = useDeferLoadable(loadable);
 

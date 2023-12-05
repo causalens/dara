@@ -2,7 +2,7 @@
 
 import { isEqual } from 'lodash';
 import { useCallback, useMemo } from 'react';
-import { GetRecoilValue, RecoilValue, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+import { GetRecoilValue, RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -10,6 +10,7 @@ import shortid from 'shortid';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
+import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
@@ -30,7 +31,13 @@ import {
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
-import { TriggerIndexValue, depsRegistry, getRegistryKey, selectorRegistry } from './store';
+import {
+    TriggerIndexValue,
+    depsRegistry,
+    getRegistryKey,
+    selectorFamilyMembersRegistry,
+    selectorFamilyRegistry,
+} from './store';
 
 export interface DerivedVariableValueResponse<T> {
     cache_key: string;
@@ -75,11 +82,18 @@ export function formatDerivedVariableRequest(values: Array<any | ResolvedDerived
 
 interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
+    extras: RequestExtras;
     force: boolean;
     is_data_variable?: boolean;
-    token: string;
-    uid: string;
+    /**
+     * selector instance key  - each selector's requests should be treated separately
+     */
+    selectorKey: string;
     values: Record<string | number, any>;
+    /**
+     * Variable uid
+     */
+    variableUid: string;
     wsClient: WebSocketClientInterface;
 }
 
@@ -89,7 +103,7 @@ interface FetchDerivedVariableArgs {
  * @param input Function inputs
  * - `cache`, the cache option for the derived variable.
  * - `force`, send force=true in the request body
- * - `sessionToken`, bearer token for the session
+ * - `extras`, request extras to be merged into the options
  * - `uid`, the uid of the derived variable
  * - `values`, values to pass in the request
  * - `wsClient`, websocket client
@@ -97,8 +111,8 @@ interface FetchDerivedVariableArgs {
 export async function fetchDerivedVariable<T>({
     cache,
     force,
-    token,
-    uid,
+    extras,
+    variableUid,
     values,
     wsClient,
     is_data_variable = false,
@@ -112,15 +126,15 @@ export async function fetchDerivedVariable<T>({
 
     const ws_channel = await wsClient.getChannel();
     const res = await request(
-        `/api/core/derived-variable/${uid}`,
+        `/api/core/derived-variable/${variableUid}`,
         {
             body: JSON.stringify({ force, is_data_variable, values, ws_channel }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
-        token
+        extras
     );
-    await validateResponse(res, `Failed to fetch the derived variable with uid: ${uid}`);
+    await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
     return res.json();
 }
 
@@ -137,18 +151,19 @@ const debouncedFetchCache: {
 } = {};
 
 async function debouncedFetchDerivedVariable({
-    uid,
+    variableUid,
+    selectorKey,
     values,
     wsClient,
     force,
-    token,
+    extras,
     cache,
     is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
-    // If this is the first time this is called then set up a subject and return stream for this variable.
-    if (!debouncedFetchSubjects[uid]) {
-        debouncedFetchSubjects[uid] = new BehaviorSubject<FetchDerivedVariableArgs>(null);
-        debouncedFetchCache[uid] = debouncedFetchSubjects[uid].pipe(
+    // If this is the first time this is called then set up a subject and return stream for this selector
+    if (!debouncedFetchSubjects[selectorKey]) {
+        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs>(null);
+        debouncedFetchCache[selectorKey] = debouncedFetchSubjects[selectorKey].pipe(
             filter((args) => !!args),
             debounceTime(10),
             switchMap((args) => from(fetchDerivedVariable(args))),
@@ -157,11 +172,20 @@ async function debouncedFetchDerivedVariable({
     }
 
     // Push the next set of args to the subject
-    debouncedFetchSubjects[uid].next({ cache, force, is_data_variable, token, uid, values, wsClient });
+    debouncedFetchSubjects[selectorKey].next({
+        cache,
+        extras,
+        force,
+        is_data_variable,
+        selectorKey,
+        values,
+        variableUid,
+        wsClient,
+    });
 
     // Return the debounced response from the backend
     return new Promise((resolve, reject) => {
-        debouncedFetchCache[uid].pipe(take(1)).subscribe(resolve, reject);
+        debouncedFetchCache[selectorKey].pipe(take(1)).subscribe(resolve, reject);
     });
 }
 
@@ -393,141 +417,163 @@ export async function resolveDerivedValue(
  * @param variable variable to register
  * @param wsClient WebSocket client from context
  * @param tasks tasks list from context
- * @param search search query from location
- * @param sessionToken session token from context
+ * @param currentExtras request extras to be merged into the options
  */
 export function getOrRegisterDerivedVariable(
     variable: DerivedVariable | DerivedDataVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
-    token: string
+    currentExtras: RequestExtras
 ): RecoilValue<DerivedVariableValueResponse<any>> {
     const key = getRegistryKey(variable, 'selector');
 
-    if (!selectorRegistry.has(key)) {
-        /**
-         * Recursively resolve variables to list of values
-         *
-         * For derived variables, put ResolvedDerivedVariable object with values resolved to recoil atoms/selectors,
-         * and deps resolved to array of indexes of variables (or null if not set)
-         * For data variables, put ResolvedDataVariable object.
-         */
-        const resolvedVariables = variable.variables.map((v) =>
-            resolveVariable(v, wsClient, taskContext, search, token)
-        );
-
+    if (!selectorFamilyRegistry.has(key)) {
         getOrRegisterTrigger(variable);
 
-        selectorRegistry.set(
+        // register a family for this particular variable
+        selectorFamilyRegistry.set(
             key,
-            selector({
+            selectorFamily({
                 cachePolicy_UNSTABLE: {
                     eviction: 'most-recent',
                 },
-                get: async ({ get }) => {
-                    const selfTrigger = get(getOrRegisterTrigger(variable));
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    async ({ get }) => {
+                        /**
+                         * Recursively resolve variables to list of values
+                         *
+                         * For derived variables, put ResolvedDerivedVariable object with values resolved to recoil atoms/selectors,
+                         * and deps resolved to array of indexes of variables (or null if not set)
+                         * For data variables, put ResolvedDataVariable object.
+                         */
+                        const resolvedVariables = variable.variables.map((v) =>
+                            resolveVariable(v, wsClient, taskContext, currentExtras)
+                        );
 
-                    const derivedResult = await resolveDerivedValue(
-                        key,
-                        variable.variables,
-                        variable.deps,
-                        resolvedVariables,
-                        wsClient,
-                        get,
-                        selfTrigger
-                    );
+                        const selfTrigger = get(getOrRegisterTrigger(variable));
+                        const { extras } = extrasSerializable;
 
-                    if (derivedResult.type === 'previous') {
-                        return { cache_key: derivedResult.entry.cacheKey, value: derivedResult.entry.result };
-                    }
-
-                    let variableResponse = null;
-
-                    try {
-                        variableResponse = await debouncedFetchDerivedVariable({
-                            cache: variable.cache,
-                            force: derivedResult.force,
-                            is_data_variable: isDerivedDataVariable(variable),
-                            token,
-                            uid: variable.uid,
-                            values: normalizeRequest(
-                                formatDerivedVariableRequest(derivedResult.values),
-                                variable.variables
-                            ),
+                        // for deps use a different key for each selector instance rather than one per family
+                        const selectorKey = key + extrasSerializable.toJSON();
+                        const derivedResult = await resolveDerivedValue(
+                            selectorKey,
+                            variable.variables,
+                            variable.deps,
+                            resolvedVariables,
                             wsClient,
-                        });
-                    } catch (e) {
-                        // On DV error put selectorId into the error so the boundary can reset the selector cache
-                        e.selectorId = key;
-                        throw e;
-                    }
+                            get,
+                            selfTrigger
+                        );
 
-                    const cacheKey = variableResponse.cache_key;
-                    let variableValue = null;
-
-                    // We're only interested in the actual value for DVs.
-                    // For DerivedDataVariables we only need the cache key and the backend will handle the rest, regardless
-                    // of whether it's running as a task or not
-                    if (isDerivedVariable(variable)) {
-                        // If there is a task running related to the current variable then something has changed, so cancel them
-                        taskContext.cleanupRunningTasks(variable.uid);
-
-                        // If the variable is computed as a task then wait for it to finish and fetch the result
-                        if (isTaskResponse(variableResponse)) {
-                            const taskId = variableResponse.task_id;
-
-                            // register task being started
-                            taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
-
-                            try {
-                                await wsClient.waitForTask(taskId);
-                            } catch {
-                                // If there was an error waiting for task it means it was cancelled (by a re-run)
-                                // It should be safe to return `null` here as the selector will re-run and throw suspense again
-                                return {
-                                    cache_key: cacheKey,
-                                    value: null,
-                                };
-                            } finally {
-                                taskContext.endTask(taskId);
-                            }
-
-                            try {
-                                variableValue = await fetchTaskResult<any>(taskId, token);
-                            } catch (e) {
-                                // On DV task error put selectorId into the error so the boundary can reset the selector cache
-                                e.selectorId = key;
-                                throw e;
-                            }
-                        } else {
-                            variableValue = variableResponse.value;
+                        if (derivedResult.type === 'previous') {
+                            return { cache_key: derivedResult.entry.cacheKey, value: derivedResult.entry.result };
                         }
-                    }
 
-                    // Store the final result and arguments used if deps is specified
+                        let variableResponse = null;
 
-                    // resolve nested if defined (i.e. for DerivedVariable, DerivedDataVariable does not have nested)
-                    variableValue =
-                        'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
+                        try {
+                            variableResponse = await debouncedFetchDerivedVariable({
+                                cache: variable.cache,
+                                extras,
+                                force: derivedResult.force,
+                                is_data_variable: isDerivedDataVariable(variable),
+                                selectorKey,
+                                values: normalizeRequest(
+                                    formatDerivedVariableRequest(derivedResult.values),
+                                    variable.variables
+                                ),
+                                variableUid: variable.uid,
+                                wsClient,
+                            });
+                        } catch (e) {
+                            // On DV error put selectorId and extras into the error so the boundary can reset the selector cache
+                            e.selectorId = key;
+                            e.selectorExtras = extrasSerializable.toJSON();
+                            throw e;
+                        }
 
-                    depsRegistry.set(key, {
-                        args: derivedResult.relevantValues,
-                        cacheKey,
-                        result: variableValue,
-                    });
+                        const cacheKey = variableResponse.cache_key;
+                        let variableValue = null;
 
-                    return {
-                        cache_key: cacheKey,
-                        value: variableValue,
-                    };
-                },
+                        // We're only interested in the actual value for DVs.
+                        // For DerivedDataVariables we only need the cache key and the backend will handle the rest, regardless
+                        // of whether it's running as a task or not
+                        if (isDerivedVariable(variable)) {
+                            // If there is a task running related to the current variable then something has changed, so cancel them
+                            taskContext.cleanupRunningTasks(variable.uid);
+
+                            // If the variable is computed as a task then wait for it to finish and fetch the result
+                            if (isTaskResponse(variableResponse)) {
+                                const taskId = variableResponse.task_id;
+
+                                // register task being started
+                                taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
+
+                                try {
+                                    await wsClient.waitForTask(taskId);
+                                } catch {
+                                    // If there was an error waiting for task it means it was cancelled (by a re-run)
+                                    // It should be safe to return `null` here as the selector will re-run and throw suspense again
+                                    return {
+                                        cache_key: cacheKey,
+                                        value: null,
+                                    };
+                                } finally {
+                                    taskContext.endTask(taskId);
+                                }
+
+                                try {
+                                    variableValue = await fetchTaskResult<any>(taskId, extras);
+                                } catch (e) {
+                                    // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                                    e.selectorId = key;
+                                    e.selectorExtras = extrasSerializable.toJSON();
+                                    throw e;
+                                }
+                            } else {
+                                variableValue = variableResponse.value;
+                            }
+                        }
+
+                        // Store the final result and arguments used if deps is specified
+
+                        // resolve nested if defined (i.e. for DerivedVariable, DerivedDataVariable does not have nested)
+                        variableValue =
+                            'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
+
+                        depsRegistry.set(selectorKey, {
+                            args: derivedResult.relevantValues,
+                            cacheKey,
+                            result: variableValue,
+                        });
+
+                        return {
+                            cache_key: cacheKey,
+                            value: variableValue,
+                        };
+                    },
                 key: shortid.generate(),
             })
         );
     }
 
-    return selectorRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key);
+
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+
+    // register selector instance in the selector family registry
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
+    }
+    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+
+    return selectorInstance;
 }
 
 /**
@@ -538,33 +584,54 @@ export function getOrRegisterDerivedVariable(
  * @param wsClient WebSocket client from context
  * @param taskContext global task context
  * @param search search query from location
- * @param sessionToken session token from context
+ * @param extras request extras to be merged into the options
  */
 export function getOrRegisterDerivedVariableValue(
     variable: DerivedVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
-    token: string
+    currentExtras: RequestExtras
 ): RecoilValue<any> {
-    const dvSelector = getOrRegisterDerivedVariable(variable, wsClient, taskContext, search, token);
-
     const key = getRegistryKey(variable, 'derived-selector');
 
-    if (!selectorRegistry.has(key)) {
-        selectorRegistry.set(
+    if (!selectorFamilyRegistry.has(key)) {
+        selectorFamilyRegistry.set(
             key,
-            selector({
-                get: ({ get }) => {
-                    const dvResponse = get(dvSelector);
-                    return dvResponse.value;
-                },
+            selectorFamily({
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    ({ get }) => {
+                        // get the right selector instance for this extras value
+                        const dvSelector = getOrRegisterDerivedVariable(
+                            variable,
+                            wsClient,
+                            taskContext,
+                            extrasSerializable.extras
+                        );
+                        const dvResponse = get(dvSelector);
+                        return dvResponse.value;
+                    },
                 key: shortid.generate(),
             })
         );
     }
 
-    return selectorRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key);
+
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+
+    // register selector instance in the selector family registry
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
+    }
+    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+
+    return selectorInstance;
 }
 
 /**
@@ -574,16 +641,15 @@ export function getOrRegisterDerivedVariableValue(
  * @param WsClient websocket client instance
  * @param taskContext global task context
  * @param search search query
- * @param token auth context
+ * @param extras request extras to be merged into the options
  */
 export function useDerivedVariable(
     variable: DerivedVariable | DerivedDataVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    search: string,
-    token: string
+    extras: RequestExtras
 ): RecoilValue<DerivedVariableValueResponse<any>> {
-    const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, search, token);
+    const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
     /**
      * Workaround for forcing a re-calculation for derived variables by creating a triggerIndex atom and making it a dependency of
