@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional, Union
 
-from cai_causal_graph import CausalGraph
+from cai_causal_graph import CausalGraph, Skeleton
 from pydantic import root_validator, validator
 
 from dara.components.graphs.components.base_graph_component import BaseGraphComponent
@@ -34,7 +34,7 @@ class CausalGraphViewer(BaseGraphComponent):
     The causal graph is rendered using the High-Level CausalGraph Viewer JS component.
 
     To use the `CausalGraphViewer`, you need to provide a `CausalGraph` instance, a `Variable` or a `DerivedVariable` containing
-    a causal graph. The causal graph can be provided either as a `CausalGraph` instance, or as a dict.
+    a causal graph. The causal graph can be provided either as a `CausalGraph` instance, as a `Skeleton` instance of the `CausalGraph` or as a `dict`.
 
     ```python
     from dara.components.graphs import CausalGraphViewer
@@ -208,7 +208,7 @@ class CausalGraphViewer(BaseGraphComponent):
     :param available_inputs: Optional list of all available inputs. If provided, all nodes that aren't outputs and aren't
         included present in the list will be treated as latent nodes (will be renamable).
         If left blank, no nodes will be treated as latent.
-    :param causal_graph: The CausalGraph data to render
+    :param causal_graph: The CausalGraph data to render, or a Skeleton representation of the graph
     :param disable_edge_add: Optional flag for disabling edge addition
     :param disable_latent_node_add: Optional flag for disabling latent node addition
     :param disable_node_removal: Optional flag for disabling node removal
@@ -226,7 +226,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
     js_module = '@darajs/components'
 
-    causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable]]
+    causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable, dict, Skeleton]]
     editor_mode: Optional[EditorMode] = None
 
     @validator('causal_graph')
@@ -238,9 +238,9 @@ class CausalGraphViewer(BaseGraphComponent):
         if isinstance(causal_graph, (DerivedVariable, Variable)):
             return causal_graph
 
-        if not isinstance(causal_graph, (CausalGraph, dict)):
+        if not isinstance(causal_graph, (CausalGraph, Skeleton, dict)):
             raise ValueError(
-                f'Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its dict representation, or a variable containing an instance'
+                f'Invalid causal graph type: {causal_graph}, must be a CausalGraph instance, its Skeleton, its dict representation, or a variable containing an instance'
             )
         return causal_graph
 

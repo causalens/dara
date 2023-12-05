@@ -309,3 +309,30 @@ Stack(
     display(selected_node, selected_edge),
 )
 ```
+
+#### Skeleton
+
+You can also display the [Skeleton](https://causalgraph.causalens.com/docs/generated/cai-causal-graph/docs/causal_graph/#skeleton) of your `CausalGraph` this is simply
+a representation of a graph where all the edges are undirected.
+
+```python
+from dara.core.configuration import ConfigurationBuilder
+from cai_causal_graph import CausalGraph
+from dara.components import CausalGraphViewer
+
+# create a causal graph
+cg = CausalGraph()
+cg.add_edge('A', 'B')
+cg.add_edge('B', 'C')
+cg.add_edge('C', 'D')
+cg.add_edge('D', 'E')
+cg.add_edge('B', 'D')
+
+# get its Skeleton instance
+skeleton = cg.skeleton
+
+config = ConfigurationBuilder()
+config.add_page(name='Skeleton Example', content=CausalGraphViewer(causal_graph=skeleton))
+```
+
+![CausalGraphViewer Skeleton Example](./assets/CausalGraphViewerSkeleton.png)
