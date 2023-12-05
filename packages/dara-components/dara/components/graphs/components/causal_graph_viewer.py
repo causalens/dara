@@ -34,7 +34,7 @@ class CausalGraphViewer(BaseGraphComponent):
     The causal graph is rendered using the High-Level CausalGraph Viewer JS component.
 
     To use the `CausalGraphViewer`, you need to provide a `CausalGraph` instance, a `Variable` or a `DerivedVariable` containing
-    a causal graph. The causal graph can be provided either as a `CausalGraph` instance, or as a dict.
+    a causal graph. The causal graph can be provided either as a `CausalGraph` instance, as a `Skeleton` instance of the `CausalGraph` or as a `dict`.
 
     ```python
     from dara.components.graphs import CausalGraphViewer
@@ -208,7 +208,7 @@ class CausalGraphViewer(BaseGraphComponent):
     :param available_inputs: Optional list of all available inputs. If provided, all nodes that aren't outputs and aren't
         included present in the list will be treated as latent nodes (will be renamable).
         If left blank, no nodes will be treated as latent.
-    :param causal_graph: The CausalGraph data to render
+    :param causal_graph: The CausalGraph data to render, or a Skeleton representation of the graph
     :param disable_edge_add: Optional flag for disabling edge addition
     :param disable_latent_node_add: Optional flag for disabling latent node addition
     :param disable_node_removal: Optional flag for disabling node removal
