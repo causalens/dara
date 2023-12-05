@@ -72,6 +72,18 @@ This is so that the figure is re-created each time.
 This comes from a requirement from Bokeh library itself, apps that use Bokeh follow a recipe which creates a collection of Bokeh objects which are automatically synced between Python/JS.
 Every time the recipe is used it must create a brand new collection of objects, this is so that there is no possibility for the recipe instructions to happen out of order.
 
+:::tip
+A useful prop to set to your `Bokeh` figure is `sizing_mode`, this allows for the `Bokeh` plot to adapt its size based on the space available to it.
+You can set it as follows:
+
+```python
+from bokeh.plotting import figure
+
+figure(sizing_mode='stretch_both')
+```
+
+:::
+
 ### Add your first `dara.components.plotting.plotly.Plotly` Component
 
 For Plotly all you need to do is pass a [figure](https://plotly.com/python/figure-structure/) to the component. This component can be used for Plotly Express as well.
