@@ -34,6 +34,7 @@ class Text(ContentComponent):
     from dara.components.common import Text
 
     Text('A bold string', bold=True)
+    Text('A string with larger font size', font_size='1.2rem')
 
     ```
 
