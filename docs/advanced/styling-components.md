@@ -8,7 +8,7 @@ There are three ways in which components can be customized:
 
 ### Default Customization
 
-This method is the simplest and should account for most of the cases in which you need to change the styling of components. These are properties which all Dara components inherit, you can pass them to the component as you would with any other property. You can find full list of properties [here](../../reference/dara/core/definitions#styledcomponentinstance-objects).
+This method is the simplest and should account for most of the cases in which you need to change the styling of components. These are properties which all Dara components inherit, you can pass them to the component as you would with any other property. You can find full list of properties [here](../../reference/dara/core/definitions/#styledcomponentinstance).
 
 Example:
 
