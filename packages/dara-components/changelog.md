@@ -4,7 +4,9 @@ title: Changelog
 
 ## NEXT
 
--   Fixed an issue where `Anchor` and `Image` component would not handle relative links correctly when ran in an app with a custom base URL (e.g. in an iframe)
+-   Fixed an issue where `Anchor` and `Image` component would not handle relative links correctly when ran in an app with a custom base URL (e.g. in an iframe).
+-   Fixed an issue where `CausalGraphViewer` did not accept a `dict` of a `CausalGraph`.
+-   Added support for `cai_causal_graph.causal_graph.Skeleton` in `CausalGraphViewer`.
 
 ## 1.4.6
 
