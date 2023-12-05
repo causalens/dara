@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Internal (JS): added `RequestExtras` context to allow injecting additional e.g. headers into requests made by Dara in different parts of the component tree
+-   Move import discovery warnings to the `--debug` logger
 
 ## 1.4.6
 
