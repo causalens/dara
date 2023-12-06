@@ -1913,13 +1913,11 @@ packages:
       uuid: 8.3.2
     dev: true
 
-  /@cypress/xvfb/1.2.4_supports-color@8.1.1:
+  /@cypress/xvfb/1.2.4:
     resolution: {integrity: sha512-skbBzPggOVYCbnGgV+0dmBdW/s77ZkAOXIC1knS8NagwDjBrNC1LuXtQJeiN6l+m7lzmHtaoUw/ctJKdqkG57Q==}
     dependencies:
-      debug: 3.2.7_supports-color@8.1.1
+      debug: 3.2.7
       lodash.once: 4.1.1
-    transitivePeerDependencies:
-      - supports-color
     dev: true
 
   /@darajs/eslint-config/1.3.0:
@@ -2832,7 +2830,6 @@ packages:
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
-      - bluebird
       - debug
       - encoding
       - supports-color
@@ -2986,8 +2983,6 @@ packages:
       promise-retry: 2.0.1
       semver: 7.5.4
       which: 3.0.1
-    transitivePeerDependencies:
-      - bluebird
     dev: false
 
   /@npmcli/installed-package-contents/2.0.2:
@@ -6068,7 +6063,7 @@ packages:
     requiresBuild: true
     dependencies:
       '@cypress/request': 2.88.12
-      '@cypress/xvfb': 1.2.4_supports-color@8.1.1
+      '@cypress/xvfb': 1.2.4
       '@types/node': 14.18.63
       '@types/sinonjs__fake-timers': 8.1.1
       '@types/sizzle': 2.3.4
@@ -6526,18 +6521,6 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.3
-
-  /debug/3.2.7_supports-color@8.1.1:
-    resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
-    dependencies:
-      ms: 2.1.3
-      supports-color: 8.1.1
-    dev: true
 
   /debug/4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
@@ -7382,8 +7365,6 @@ packages:
       debug: 3.2.7
       is-core-module: 2.13.1
       resolve: 1.22.8
-    transitivePeerDependencies:
-      - supports-color
     dev: true
 
   /eslint-import-resolver-typescript/3.6.1_8f69364c3d42506f5b6f68fb63092c6d:
@@ -10391,7 +10372,6 @@ packages:
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
-      - bluebird
       - debug
       - encoding
       - supports-color
@@ -12087,7 +12067,6 @@ packages:
       ssri: 10.0.5
       tar: 6.1.11
     transitivePeerDependencies:
-      - bluebird
       - supports-color
     dev: false
 
@@ -12582,11 +12561,6 @@ packages:
 
   /promise-inflight/1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
-    peerDependencies:
-      bluebird: '*'
-    peerDependenciesMeta:
-      bluebird:
-        optional: true
     dev: false
 
   /promise-retry/2.0.1:
