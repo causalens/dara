@@ -35,6 +35,8 @@ CategoricalLight6 = CategoricalLight10[:6]
 CategoricalLight5 = CategoricalLight10[:5]
 CategoricalLight4 = CategoricalLight10[:4]
 CategoricalLight3 = CategoricalLight10[:3]
+CategoricalLight2 = CategoricalLight10[:2]
+CategoricalLight1 = CategoricalLight10[:1]
 
 CategoricalDark10 = [
     '#2485E8',
@@ -56,7 +58,8 @@ CategoricalDark6 = CategoricalDark10[:6]
 CategoricalDark5 = CategoricalDark10[:5]
 CategoricalDark4 = CategoricalDark10[:4]
 CategoricalDark3 = CategoricalDark10[:3]
-
+CategoricalDark2 = CategoricalDark10[:2]
+CategoricalDark1 = CategoricalDark10[:1]
 
 SequentialLight10 = [
     '#001C38',
@@ -134,6 +137,15 @@ SequentialLight3 = [
     '#EAF1FF',
 ]
 
+SequentialLight2 = [
+    '#19538D',
+    '#EAF1FF',
+]
+
+SequentialLight1 = [
+    '#19538D',
+]
+
 SequentialDark10 = [
     '#EAF1FF',
     '#C3DDFD',
@@ -208,6 +220,15 @@ SequentialDark3 = [
     '#9BC9FB',
     '#4BA0F7',
     '#08335E',
+]
+
+SequentialDark2 = [
+    '#9BC9FB',
+    '#08335E',
+]
+
+SequentialDark1 = [
+    '#9BC9FB',
 ]
 
 PolarisingLight11 = [
@@ -300,6 +321,15 @@ PolarisingLight3 = [
     '#DA6087',
 ]
 
+PolarisingLight2 = [
+    '#3796F6',
+    '#DA6087',
+]
+
+PolarisingLight1 = [
+    '#3796F6',
+]
+
 PolarisingDark11 = [
     '#2485E8',
     '#357FC4',
@@ -390,7 +420,18 @@ PolarisingDark3 = [
     '#CA456F',
 ]
 
+PolarisingDark2 = [
+    '#2485E8',
+    '#CA456F',
+]
+
+PolarisingDark1 = [
+    '#2485E8',
+]
+
 CategoricalLight = {
+    1: CategoricalLight1,
+    2: CategoricalLight2,
     3: CategoricalLight3,
     4: CategoricalLight4,
     5: CategoricalLight5,
@@ -402,6 +443,8 @@ CategoricalLight = {
 }
 
 CategoricalDark = {
+    1: CategoricalDark1,
+    2: CategoricalDark2,
     3: CategoricalDark3,
     4: CategoricalDark4,
     5: CategoricalDark5,
@@ -413,6 +456,8 @@ CategoricalDark = {
 }
 
 SequentialLight = {
+    1: SequentialLight1,
+    2: SequentialLight2,
     3: SequentialLight3,
     4: SequentialLight4,
     5: SequentialLight5,
@@ -424,6 +469,8 @@ SequentialLight = {
 }
 
 SequentialDark = {
+    1: SequentialDark1,
+    2: SequentialDark2,
     3: SequentialDark3,
     4: SequentialDark4,
     5: SequentialDark5,
@@ -435,6 +482,8 @@ SequentialDark = {
 }
 
 PolarisingLight = {
+    1: PolarisingLight1,
+    2: PolarisingLight2,
     3: PolarisingLight3,
     4: PolarisingLight4,
     5: PolarisingLight5,
@@ -447,6 +496,8 @@ PolarisingLight = {
 }
 
 PolarisingDark = {
+    1: PolarisingDark1,
+    2: PolarisingDark2,
     3: PolarisingDark3,
     4: PolarisingDark4,
     5: PolarisingDark5,
