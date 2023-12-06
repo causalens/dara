@@ -4,7 +4,7 @@ overrides:
   prettier: ^2.8
   headers-polyfill: 3.1.2
 
-packageExtensionsChecksum: 8f08057861f748787e601035c44efebc
+packageExtensionsChecksum: 171f87d030d3c34e321ebc7e357925a8
 
 importers:
 
@@ -193,9 +193,9 @@ importers:
       vite: 3.1.8
       whatwg-fetch: ^3.6.2
     dependencies:
-      '@darajs/styled-components': 1.4.2_2ee69dc8eb02df991b7f05f9ba979ff7
-      '@darajs/ui-components': 1.4.2_20149f10598bd6161a1750e7eccd5ea8
-      '@darajs/ui-notifications': 1.4.2_fcd3d94687ab50489a6af3ffe42e536d
+      '@darajs/styled-components': 1.4.2_9abdbf59e5d557c0bd6799ca865aefe1
+      '@darajs/ui-components': 1.4.2_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-notifications': 1.4.2_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.2
       '@fortawesome/fontawesome-free': 6.4.2
       '@recoiljs/refine': 0.1.1
@@ -222,7 +222,7 @@ importers:
       recoil-sync: 0.2.0_recoil@0.7.7
       rxjs: 6.6.7
       shortid: 2.2.15
-      styled-components: 5.3.11_2ee69dc8eb02df991b7f05f9ba979ff7
+      styled-components: 5.3.11_9abdbf59e5d557c0bd6799ca865aefe1
       typescript: 5.3.2
       use-async-resource: 2.2.2_react@18.2.0
     devDependencies:
@@ -1766,18 +1766,6 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@darajs/styled-components/1.4.2_2ee69dc8eb02df991b7f05f9ba979ff7:
-    resolution: {integrity: sha512-QyxMlbfwxdg2FyclN+lDd2FDpATic190aZ6WfJRmJXEcFEMHbRrt8alCTHR65Nh7b4wQeOBhgga5bqvnFHuUEA==}
-    dependencies:
-      polished: 4.2.2
-      styled-components: 5.3.11_2ee69dc8eb02df991b7f05f9ba979ff7
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react
-      - react-dom
-      - react-is
-    dev: false
-
   /@darajs/styled-components/1.4.2_9abdbf59e5d557c0bd6799ca865aefe1:
     resolution: {integrity: sha512-QyxMlbfwxdg2FyclN+lDd2FDpATic190aZ6WfJRmJXEcFEMHbRrt8alCTHR65Nh7b4wQeOBhgga5bqvnFHuUEA==}
     dependencies:
@@ -1787,7 +1775,6 @@ packages:
       - '@babel/core'
       - react
       - react-dom
-      - react-is
     dev: false
 
   /@darajs/stylelint-config/1.4.2:
@@ -1874,7 +1861,6 @@ packages:
       - component-emitter
       - keycharm
       - react-dom
-      - react-is
       - uuid
       - vis-util
     dev: false
@@ -1895,43 +1881,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
-      - react-is
-    dev: false
-
-  /@darajs/ui-components/1.4.2_20149f10598bd6161a1750e7eccd5ea8:
-    resolution: {integrity: sha512-nndOv701f7go0izmCCUeoQHes8DiBIiJ45wQyLtcbV0bDrZTL6vgL8jh5VzGyF1L6RwrpFfXw6JINCj/frIMRQ==}
-    dependencies:
-      '@darajs/styled-components': 1.4.2_2ee69dc8eb02df991b7f05f9ba979ff7
-      '@darajs/ui-icons': 1.4.2_fcd3d94687ab50489a6af3ffe42e536d
-      '@darajs/ui-utils': 1.4.2
-      '@fortawesome/free-regular-svg-icons': 6.5.1
-      '@fortawesome/free-solid-svg-icons': 6.5.1
-      '@fortawesome/react-fontawesome': 0.2.0_016787154810dd04b6f7e6b53fa9f072
-      '@popperjs/core': 2.4.0
-      '@tippyjs/react': 4.1.0_react-dom@18.2.0+react@18.2.0
-      date-fns: 2.9.0
-      downshift: 7.6.2_react@18.2.0
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.7
-      polished: 3.6.4
-      react: 18.2.0
-      react-collapse: 5.1.1_react@18.2.0
-      react-compound-slider: 3.3.0_react@18.2.0
-      react-datepicker: 4.8.0_react-dom@18.2.0+react@18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-dropzone: 11.0.1_react@18.2.0
-      react-popper: 2.2.5_969a5d162a979d43a9068e272a4743f8
-      react-table: 7.7.0_react@18.2.0
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6_react-dom@18.2.0+react@18.2.0
-      react-window: 1.8.6_react-dom@18.2.0+react@18.2.0
-      shortid: 2.2.15
-      tippy.js: 6.2.6
-    transitivePeerDependencies:
-      - '@babel/core'
-      - '@fortawesome/fontawesome-svg-core'
-      - react-is
     dev: false
 
   /@darajs/ui-components/1.4.2_4bfc4d1c108c846de8a3912ea9e52ca2:
@@ -1967,7 +1916,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - '@fortawesome/fontawesome-svg-core'
-      - react-is
     dev: false
 
   /@darajs/ui-hierarchy-viewer/1.4.2_59db20a13917e0f3480347b9e6d958fe:
@@ -1980,7 +1928,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
-      - react-is
     dev: false
 
   /@darajs/ui-icons/1.4.2_59db20a13917e0f3480347b9e6d958fe:
@@ -1998,25 +1945,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
-      - react-is
-    dev: false
-
-  /@darajs/ui-icons/1.4.2_fcd3d94687ab50489a6af3ffe42e536d:
-    resolution: {integrity: sha512-mgYUJnKSXFP47Xm+0oRtM1mMz3nGWQViw+zB/YYh+Gp5V5Gvbxc/qMaFEEZr4PPelzvm0HA0aY1gy4KBmn5JBA==}
-    dependencies:
-      '@darajs/styled-components': 1.4.2_2ee69dc8eb02df991b7f05f9ba979ff7
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-brands-svg-icons': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.0_6f891d2752294bb2e94777f4be5e8a26
-      '@mdi/js': 5.9.55
-      '@mdi/react': 1.4.0
-      react: 18.2.0
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react-dom
-      - react-is
     dev: false
 
   /@darajs/ui-notifications/1.4.2_59db20a13917e0f3480347b9e6d958fe:
@@ -2032,23 +1960,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
-      - react-is
-    dev: false
-
-  /@darajs/ui-notifications/1.4.2_fcd3d94687ab50489a6af3ffe42e536d:
-    resolution: {integrity: sha512-qIbH8e/YjxQ1PSScfKsgSJ40goZjg+2+Kk0J4/7rZGYGMfoGjT3fFw8QgOdVrBVS99FlnoqoM/5bwDpukVUAUQ==}
-    dependencies:
-      '@darajs/styled-components': 1.4.2_2ee69dc8eb02df991b7f05f9ba979ff7
-      '@darajs/ui-icons': 1.4.2_fcd3d94687ab50489a6af3ffe42e536d
-      '@darajs/ui-utils': 1.4.2
-      lodash: 4.17.21
-      polished: 4.2.2
-      react: 18.2.0
-      rxjs: 6.5.5
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react-dom
-      - react-is
     dev: false
 
   /@darajs/ui-utils/1.4.2:
@@ -2077,7 +1988,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - '@fortawesome/fontawesome-svg-core'
-      - react-is
     dev: false
 
   /@egjs/hammerjs/2.0.17:
@@ -4952,7 +4862,7 @@ packages:
       '@babel/plugin-syntax-jsx': 7.23.3_@babel+core@7.23.5
       lodash: 4.17.21
       picomatch: 2.3.1
-      styled-components: 5.3.11_2ee69dc8eb02df991b7f05f9ba979ff7
+      styled-components: 5.3.11_9abdbf59e5d557c0bd6799ca865aefe1
     transitivePeerDependencies:
       - '@babel/core'
     dev: false
@@ -13934,13 +13844,12 @@ packages:
       inline-style-parser: 0.1.1
     dev: false
 
-  /styled-components/5.3.11_2ee69dc8eb02df991b7f05f9ba979ff7:
+  /styled-components/5.3.11_9abdbf59e5d557c0bd6799ca865aefe1:
     resolution: {integrity: sha512-uuzIIfnVkagcVHv9nE0VPlHPSCmXIUGKfJ42LNjxCCTDTL5sgnJ8Z7GZBq0EnLYGln77tPpEpExt2+qa+cZqSw==}
     engines: {node: '>=10'}
     peerDependencies:
       react: '>= 16.8.0'
       react-dom: '>= 16.8.0'
-      react-is: '>= 16.8.0'
     dependencies:
       '@babel/helper-module-imports': 7.22.15
       '@babel/traverse': 7.23.5_supports-color@5.5.0
@@ -13953,30 +13862,6 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-is: 18.2.0
-      shallowequal: 1.1.0
-      supports-color: 5.5.0
-    transitivePeerDependencies:
-      - '@babel/core'
-    dev: false
-
-  /styled-components/5.3.11_9abdbf59e5d557c0bd6799ca865aefe1:
-    resolution: {integrity: sha512-uuzIIfnVkagcVHv9nE0VPlHPSCmXIUGKfJ42LNjxCCTDTL5sgnJ8Z7GZBq0EnLYGln77tPpEpExt2+qa+cZqSw==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      react: '>= 16.8.0'
-      react-dom: '>= 16.8.0'
-      react-is: '>= 16.8.0'
-    dependencies:
-      '@babel/helper-module-imports': 7.22.15
-      '@babel/traverse': 7.23.5_supports-color@5.5.0
-      '@emotion/is-prop-valid': 1.2.1
-      '@emotion/stylis': 0.8.5
-      '@emotion/unitless': 0.7.5
-      babel-plugin-styled-components: 2.1.4_27de70ca3294252e79c31de63facf51d
-      css-to-react-native: 3.2.0
-      hoist-non-react-statics: 3.3.2
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
       shallowequal: 1.1.0
       supports-color: 5.5.0
     transitivePeerDependencies:
