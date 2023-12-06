@@ -44,13 +44,7 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
-from dara.core.base_definitions import (
-    ActionDef,
-    ActionImpl,
-    ActionResolverDef,
-    AnnotatedAction,
-    TemplateMarker,
-)
+from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, AnnotatedAction, TemplateMarker
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -58,12 +52,7 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.interactivity import (
-        AnyVariable,
-        DerivedVariable,
-        UrlVariable,
-        Variable,
-    )
+    from dara.core.interactivity import AnyVariable, DerivedVariable, UrlVariable, Variable
     from dara.core.internal.cache_store import CacheStore
 
 
@@ -135,10 +124,7 @@ class UpdateVariableImpl(ActionImpl):
     async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.variable, DataVariable):
             # Update on the backend
-            from dara.core.internal.registries import (
-                data_variable_registry,
-                utils_registry,
-            )
+            from dara.core.internal.registries import data_variable_registry, utils_registry
 
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -1279,6 +1265,10 @@ class action:
     def __init__(self, func: Callable[Concatenate[ActionCtx, P], Any]):
         from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
+
+        # Validate the signature has at least one parameter as it needs one for ctx at the minimum
+        if len(inspect.signature(func).parameters) < 1:
+            raise ValueError(f'Expected at least one parameter for the @action annotated function, but found none')
 
         self.func = func
         self.definition_uid = str(uuid.uuid4())

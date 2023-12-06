@@ -1,24 +1,24 @@
+import pytest
+from pandas import DataFrame
+
+from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect, UpdateVariable, UrlVariable, Variable
 from dara.core.base_definitions import ActionImpl
-from dara.core.interactivity.actions import ACTION_CONTEXT, ResetVariables, TriggerVariable, UpdateVariableImpl
+from dara.core.interactivity.actions import (
+    ACTION_CONTEXT,
+    ActionCtx,
+    ResetVariables,
+    TriggerVariable,
+    UpdateVariableImpl,
+    action,
+)
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from pandas import DataFrame
-import pytest
-
-from dara.core import (
-    DownloadContent,
-    DownloadVariable,
-    NavigateTo,
-    SideEffect,
-    UpdateVariable,
-    UrlVariable,
-    Variable,
-)
 from dara.core.internal.registries import action_registry
 
 pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture(autouse=True)
 def reset_context():
@@ -96,13 +96,14 @@ def test_download_content():
     action = DownloadContent(test_func, extras=[var_a])
     assert action_registry.has(action.definition_uid)
 
+
 def test_reset_shortcut():
     var = AnyVariable()
     action = var.reset()
     assert isinstance(action, ResetVariables)
     assert action.variables == [var]
 
-    data_vara  = DataVariable()
+    data_vara = DataVariable()
     with pytest.raises(NotImplementedError):
         data_vara.reset()
 
@@ -110,6 +111,7 @@ def test_reset_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         var.reset()
+
 
 def test_sync_shortcut():
     plain_var = Variable()
@@ -128,6 +130,7 @@ def test_sync_shortcut():
     with pytest.raises(ValueError):
         plain_var.sync()
 
+
 def test_toggle_shortcut():
     plain_var = Variable()
     action = plain_var.toggle()
@@ -144,6 +147,7 @@ def test_toggle_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         plain_var.toggle()
+
 
 def test_update_shortcut():
     plain_var = Variable()
@@ -170,6 +174,7 @@ def test_update_shortcut():
     with pytest.raises(ValueError):
         plain_var.update('test')
 
+
 def test_trigger_shortcut():
     der_var = DerivedVariable(lambda x: x, variables=[])
     action = der_var.trigger()
@@ -184,3 +189,49 @@ def test_trigger_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         der_var.trigger()
+
+
+def test_annotated_action_no_params():
+    with pytest.raises(ValueError):
+
+        @action
+        def test_action():
+            pass
+
+
+def test_annotated_action_missing_ctx():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    @action
+    def test_action(ctx, arg: int):
+        pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        test_action(1)
+
+
+def test_annotated_action_redundant_ctx():
+    @action
+    def test_action(ctx):
+        pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_missing_param():
+    @action
+    def test_action(ctx, arg: int, arg2: int):
+        pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        test_action(1)
+
+
+# TODO: test annotated action can be called
+# TODO: test classmethod, staticmethod, method
