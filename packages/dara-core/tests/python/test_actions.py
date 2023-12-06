@@ -5,6 +5,7 @@ from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect,
 from dara.core.base_definitions import ActionImpl, AnnotatedAction
 from dara.core.interactivity.actions import (
     ACTION_CONTEXT,
+    BOUND_PREFIX,
     ActionCtx,
     ResetVariables,
     TriggerVariable,
@@ -15,7 +16,8 @@ from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.internal.registries import action_registry
+from dara.core.internal.execute_action import _execute_action
+from dara.core.internal.registries import action_registry, static_kwargs_registry
 
 pytestmark = pytest.mark.anyio
 
@@ -234,14 +236,114 @@ def test_annotated_action_missing_param():
 
 
 def test_annotated_action_can_be_called():
-    @action
-    def test_action(ctx, arg: int):
+    def _raw_test_action(ctx, arg: int, arg2: str):
         return arg
 
-    # Can accept int or variable
-    assert isinstance(test_action(1), AnnotatedAction)
-    assert isinstance(test_action(Variable(1)), AnnotatedAction)
+    # Calling decorator manually to have access to raw func
+    test_action = action(_raw_test_action)
+
+    # Test passing static, dynamic, or mix of kwargs
+    # For each check:
+    # - action definition is correctly registered
+    # - action instance has correct dynamic_kwargs
+    # - static_kwargs_registry has correct static kwargs
+    static_instance = test_action(1, 'two')
+    assert isinstance(static_instance, AnnotatedAction)
+    act_def = action_registry.get(static_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert static_instance.dynamic_kwargs == {}
+    assert static_kwargs_registry.get(static_instance.uid) == {'arg': 1, 'arg2': 'two'}
+
+    var_1 = Variable(1)
+    var_2 = Variable('two')
+    dynamic_instance = test_action(var_1, var_2)
+    assert isinstance(dynamic_instance, AnnotatedAction)
+    act_def = action_registry.get(dynamic_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert dynamic_instance.dynamic_kwargs == {'arg': var_1, 'arg2': var_2}
+    assert static_kwargs_registry.get(dynamic_instance.uid) == {}
+
+    mixed_instance = test_action(var_1, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert mixed_instance.dynamic_kwargs == {'arg': var_1}
+    assert static_kwargs_registry.get(mixed_instance.uid) == {'arg2': 'two'}
 
 
-# TODO: test annotated action can be called
-# TODO: test classmethod, staticmethod, method
+async def test_annotated_action_instance_method():
+    class TestClass:
+        def _raw_test_action(self, ctx, arg: int, arg2: str):
+            return (self, ctx, arg, arg2)
+
+        test_action = action(_raw_test_action)
+
+    var = Variable(1)
+    instance = TestClass()
+    mixed_instance = instance.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two', BOUND_PREFIX + 'self': instance}
+
+    # Test the wrapped function can be invoked - we're skipping the variable->value resolution
+    # but here we're just testing the correct values are received
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (instance, ctx, var, 'two')
+
+
+async def test_annotated_action_class_method():
+    class TestClass:
+        def _raw_test_action(cls, ctx, arg: int, arg2: str):
+            return (cls, ctx, arg, arg2)
+
+        test_action = classmethod(action(_raw_test_action))
+
+    var = Variable(1)
+    mixed_instance = TestClass.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two', BOUND_PREFIX + 'cls': TestClass}
+
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (TestClass, ctx, var, 'two')
+
+
+async def test_annotated_action_static_method():
+    class TestClass:
+        def _raw_test_action(ctx, arg: int, arg2: str):
+            return (ctx, arg, arg2)
+
+        test_action = staticmethod(action(_raw_test_action))
+
+    var = Variable(1)
+    mixed_instance = TestClass.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two'}
+
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (ctx, var, 'two')

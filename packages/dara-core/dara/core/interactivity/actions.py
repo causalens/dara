@@ -22,7 +22,7 @@ import math
 import uuid
 from contextvars import ContextVar
 from enum import Enum
-from functools import update_wrapper
+from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -44,7 +44,13 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
-from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, AnnotatedAction, TemplateMarker
+from dara.core.base_definitions import (
+    ActionDef,
+    ActionImpl,
+    ActionResolverDef,
+    AnnotatedAction,
+    TemplateMarker,
+)
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -52,7 +58,12 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.interactivity import AnyVariable, DerivedVariable, UrlVariable, Variable
+    from dara.core.interactivity import (
+        AnyVariable,
+        DerivedVariable,
+        UrlVariable,
+        Variable,
+    )
     from dara.core.internal.cache_store import CacheStore
 
 
@@ -124,7 +135,10 @@ class UpdateVariableImpl(ActionImpl):
     async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.variable, DataVariable):
             # Update on the backend
-            from dara.core.internal.registries import data_variable_registry, utils_registry
+            from dara.core.internal.registries import (
+                data_variable_registry,
+                utils_registry,
+            )
 
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -1224,6 +1238,8 @@ def assert_no_context(alternative: str):
 
 P = ParamSpec('P')
 
+BOUND_PREFIX = '__BOUND__'
+
 
 class action:
     """
@@ -1279,13 +1295,41 @@ class action:
 
         # Modify the function signature
         signature = inspect.signature(func)
-        new_params = list(signature.parameters.values())
-        new_params.pop(0)  # Remove the first parameter (ctx)
-        self.new_sig = signature.replace(parameters=new_params)
+        params = list(signature.parameters.values())
+
+        self.bound_name: Union[str, None] = None
+
+        # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
+        # not possible to distinguish between a bound method or non-bound method
+        # as the decorator runs before the function is bound to the class
+        if params[0].name in ('self', 'cls'):
+            self.bound_name: Union[str, None] = params[0].name
+            # Remove first two parameters (self, ctx, ...)
+            params.pop(0)
+            params.pop(0)
+        else:
+            # Remove the first parameter (ctx, ...)
+            params.pop(0)
+
+        self.new_sig = signature.replace(parameters=params)
 
         # Update the function's __signature__ attribute for correct introspection
         update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
         self.__signature__ = self.new_sig  # type: ignore
+        print(self.__signature__)
+
+    def __get__(self, instance, owner=None):
+        """
+        Get descriptor for the decorated function.
+
+        Necessary to support instance/class bound methods.
+        """
+        if instance is None:
+            return self.__call__
+
+        # Bind the instance to the function
+        bound_f = partial(self.__call__, instance)
+        return bound_f
 
     @overload
     def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
@@ -1296,6 +1340,7 @@ class action:
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
+        print('args', args, kwargs)
         # The decorated function is called within another action context
         if ACTION_CONTEXT.get():
             if len(args) < 1 or not isinstance(args[0], ActionCtx):
@@ -1318,20 +1363,29 @@ class action:
 
         instance_uid = str(uuid.uuid4())
 
+        print('raw args', args, kwargs)
+        all_args = [*args]
+        bound_arg = None
+
+        if self.bound_name:
+            bound_arg = all_args.pop(0)
+
         # Create kwargs for every argument based on the function signature and then split them into dynamic vs static
         all_kwargs = {**kwargs}
         for idx, param in enumerate(self.new_sig.parameters.values()):
-            if idx >= len(args):
+            if idx >= len(all_args):
                 if param.name in all_kwargs:
                     continue
                 if param.default == inspect.Parameter.empty:
                     raise TypeError(f'Expected positional argument: {param.name} to be passed, but it was not')
                 all_kwargs[param.name] = param.default
             else:
-                all_kwargs[param.name] = args[idx]
+                all_kwargs[param.name] = all_args[idx]
 
         # Verify types are correct
+        print('ann', self.func.__annotations__)
         for key, value in all_kwargs.items():
+            print(key, value)
             if key in self.func.__annotations__:
                 valid_value = True
                 try:
@@ -1352,6 +1406,11 @@ class action:
                 dynamic_kwargs[key] = kwarg
             else:
                 static_kwargs[key] = kwarg
+
+        if self.bound_name:
+            static_kwargs[BOUND_PREFIX + self.bound_name] = bound_arg
+
+        print('static', static_kwargs)
 
         # Store the static_kwargs in a registry
         static_kwargs_registry.register(instance_uid, static_kwargs)
