@@ -31,12 +31,12 @@ describe('TemplateRoot', () => {
         expect(getByText('Frame, Menu')).toBeInstanceOf(HTMLSpanElement);
     });
 
-    it('should clean up cache on startup', () => {
+    it('should clean up cache on startup', async () => {
         const invalidKey = getSessionKey('SOME_OTHER_SESSION_KEY', 'test-uid-1');
         const validKey = getSessionKey('TEST_TOKEN', 'test-uid-2');
 
-        localStorage.setItem(getSessionKey('SOME_OTHER_SESSION_KEY', 'test-uid-1'), 'val1');
-        localStorage.setItem(getSessionKey('TEST_TOKEN', 'test-uid-2'), 'val2');
+        localStorage.setItem(invalidKey, 'val1');
+        localStorage.setItem(validKey, 'val2');
 
         expect(localStorage.getItem(invalidKey)).toEqual('val1');
         expect(localStorage.getItem(validKey)).toEqual('val2');
@@ -44,8 +44,8 @@ describe('TemplateRoot', () => {
         wrappedRender(<TemplateRoot />);
 
         // Other session value should be cleaned up
-        waitFor(() => {
-            expect(localStorage.getItem(invalidKey)).toEqual(null);
+        await waitFor(() => {
+            expect(localStorage.getItem(invalidKey)).toEqual(undefined);
             expect(localStorage.getItem(validKey)).toEqual('val2');
         });
     });
