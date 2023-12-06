@@ -37,9 +37,13 @@ describe('TemplateRoot', () => {
 
         localStorage.setItem(invalidKey, 'val1');
         localStorage.setItem(validKey, 'val2');
+        sessionStorage.setItem(invalidKey, 'val3');
+        sessionStorage.setItem(validKey, 'val4');
 
         expect(localStorage.getItem(invalidKey)).toEqual('val1');
         expect(localStorage.getItem(validKey)).toEqual('val2');
+        expect(sessionStorage.getItem(invalidKey)).toEqual('val3');
+        expect(sessionStorage.getItem(validKey)).toEqual('val4');
 
         wrappedRender(<TemplateRoot />);
 
@@ -47,6 +51,8 @@ describe('TemplateRoot', () => {
         await waitFor(() => {
             expect(localStorage.getItem(invalidKey)).toEqual(undefined);
             expect(localStorage.getItem(validKey)).toEqual('val2');
+            expect(sessionStorage.getItem(invalidKey)).toEqual(undefined);
+            expect(sessionStorage.getItem(validKey)).toEqual('val4');
         });
     });
 });

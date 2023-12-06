@@ -28,12 +28,15 @@ export class MockStorage {
     }
 }
 
-export function mockLocalStorage(): void {
+/**
+ *
+ * @returns a mock storage proxy to intercept Object.keys() calls and return the keys of the storage
+ */
+function createStorageProxy(): MockStorage {
     const mockStorage = new MockStorage();
-    // Proxy to intercept Object.keys() calls and return the keys of the storage
-    const localStorageProxy = new Proxy(mockStorage, {
+    return new Proxy(mockStorage, {
         // necessary so Object.keys() recognize as enumerable
-        getOwnPropertyDescriptor(target, prop: any) {
+        getOwnPropertyDescriptor(target, prop: string) {
             if (target.getKeys().includes(prop)) {
                 return {
                     configurable: true,
@@ -42,12 +45,21 @@ export function mockLocalStorage(): void {
             }
             return Object.getOwnPropertyDescriptor(target, prop);
         },
-        // necessary so Object.keys() can be intercepted to work with our definition of get keys
+        // overwrites what happens when Object.keys() is called
         ownKeys(target) {
             return target.getKeys();
         },
     });
+}
+
+export function mockLocalStorage(): void {
+    const localStorageProxy = createStorageProxy();
+    const sessionStorageProxy = createStorageProxy();
+
     Object.defineProperty(global, 'localStorage', {
         value: localStorageProxy,
+    });
+    Object.defineProperty(global, 'sessionStorage', {
+        value: sessionStorageProxy,
     });
 }
