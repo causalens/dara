@@ -26,7 +26,7 @@
   "license": "Apache-2.0",
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@babel/core": "^7.23.0",
+    "@babel/core": "^7.23.5",
     "@darajs/eslint-config": "~1.4.2",
     "@darajs/prettier-config": "~1.4.2",
     "@darajs/stylelint-config": "~1.4.2",
