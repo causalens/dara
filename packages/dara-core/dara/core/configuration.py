@@ -126,6 +126,12 @@ class ConfigurationBuilder:
     """
     The ConfigurationBuilder class lets you build a Configuration object up piece by piece using helper methods that
     aid setup and point users in the right direction.
+
+    :param title: The title of the application as appears in the browser tab
+    :param static_files_dir: The directory to serve static files from
+    :param task_module: The path to the module to load tasks from
+    :param enable_devtools: Whether to enable the devtools in the application
+    :param template: The template to use for the sidebar of the application
     """
 
     auth_config: BaseAuthConfig
