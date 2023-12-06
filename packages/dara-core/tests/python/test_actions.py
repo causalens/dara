@@ -2,7 +2,7 @@ import pytest
 from pandas import DataFrame
 
 from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect, UpdateVariable, UrlVariable, Variable
-from dara.core.base_definitions import ActionImpl
+from dara.core.base_definitions import ActionImpl, AnnotatedAction
 from dara.core.interactivity.actions import (
     ACTION_CONTEXT,
     ActionCtx,
@@ -231,6 +231,16 @@ def test_annotated_action_missing_param():
     with pytest.raises(TypeError):
         # should fail because 2 args are expected
         test_action(1)
+
+
+def test_annotated_action_can_be_called():
+    @action
+    def test_action(ctx, arg: int):
+        return arg
+
+    # Can accept int or variable
+    assert isinstance(test_action(1), AnnotatedAction)
+    assert isinstance(test_action(Variable(1)), AnnotatedAction)
 
 
 # TODO: test annotated action can be called
