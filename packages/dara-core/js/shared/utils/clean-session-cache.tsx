@@ -5,14 +5,16 @@
  * @param sessionToken current session token
  */
 function cleanSessionCache(sessionToken: string): void {
-    const sessionKeys = Object.keys(sessionStorage);
+    for (const storage of [sessionStorage, localStorage]) {
+        const keys = Object.keys(storage);
 
-    sessionKeys.forEach((key) => {
-        // Remove keys related to a different Dara session
-        if (key.startsWith('dara-session') && !key.startsWith(`dara-session-${sessionToken}`)) {
-            sessionStorage.removeItem(key);
-        }
-    });
+        keys.forEach((key) => {
+            // Remove keys related to a different Dara session
+            if (key.startsWith('dara-session') && !key.startsWith(`dara-session-${sessionToken}`)) {
+                storage.removeItem(key);
+            }
+        });
+    }
 }
 
 export default cleanSessionCache;
