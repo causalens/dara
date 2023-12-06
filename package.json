@@ -19,6 +19,11 @@
         "dependencies": {
           "react-is": "^18.2"
         }
+      },
+      "@darajs/ui-components": {
+        "dependencies": {
+          "@fortawesome/fontawesome-svg-core": "~6.4.0"
+        }
       }
     },
     "overrides": {

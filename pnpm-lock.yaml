@@ -4,7 +4,7 @@ overrides:
   prettier: ^2.8
   headers-polyfill: 3.1.2
 
-packageExtensionsChecksum: 171f87d030d3c34e321ebc7e357925a8
+packageExtensionsChecksum: ef656c6744e0eb843851aa631c332d72
 
 importers:
 
@@ -70,9 +70,9 @@ importers:
       '@bokeh/bokehjs': 3.1.1
       '@darajs/core': link:../dara-core
       '@darajs/styled-components': 1.4.3_9abdbf59e5d557c0bd6799ca865aefe1
-      '@darajs/ui-causal-graph-editor': 1.4.3_8de73db3cf29b9e87c3027972ac43403
+      '@darajs/ui-causal-graph-editor': 1.4.3_561be61b3f475f3d419a2e92ad5eb90c
       '@darajs/ui-code-editor': 1.4.3_59db20a13917e0f3480347b9e6d958fe
-      '@darajs/ui-components': 1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-components': 1.4.3_@babel+core@7.23.5
       '@darajs/ui-hierarchy-viewer': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-icons': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.3
@@ -194,7 +194,7 @@ importers:
       whatwg-fetch: ^3.6.2
     dependencies:
       '@darajs/styled-components': 1.4.3_9abdbf59e5d557c0bd6799ca865aefe1
-      '@darajs/ui-components': 1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-components': 1.4.3_@babel+core@7.23.5
       '@darajs/ui-notifications': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.3
       '@fortawesome/fontawesome-free': 6.4.2
@@ -1800,15 +1800,15 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/ui-causal-graph-editor/1.4.3_8de73db3cf29b9e87c3027972ac43403:
+  /@darajs/ui-causal-graph-editor/1.4.3_561be61b3f475f3d419a2e92ad5eb90c:
     resolution: {integrity: sha512-ORWXyOkn/GKt+eSZNE4Fw/SxUKaMsLI2NJap4XKql74HDMx1JV02Q7nZZbTBKgsN74i9xU5BpPVDlw7wQONOrg==}
     dependencies:
       '@darajs/styled-components': 1.4.3_9abdbf59e5d557c0bd6799ca865aefe1
-      '@darajs/ui-components': 1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-components': 1.4.3_@babel+core@7.23.5
       '@darajs/ui-icons': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-notifications': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.3
-      '@darajs/ui-widgets': 1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-widgets': 1.4.3_@babel+core@7.23.5
       '@pixi-essentials/cull': 2.0.0_91556dff58e2ea690004dd7ebb60bcd2
       '@pixi/app': 7.2.4_44e40742d0ef8a2ce831687ffd8eb5d7
       '@pixi/constants': 7.2.4
@@ -1853,7 +1853,6 @@ packages:
     transitivePeerDependencies:
       - '@babel/core'
       - '@egjs/hammerjs'
-      - '@fortawesome/fontawesome-svg-core'
       - '@pixi/utils'
       - '@types/hoist-non-react-statics'
       - '@types/node'
@@ -1883,15 +1882,16 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/ui-components/1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2:
+  /@darajs/ui-components/1.4.3_@babel+core@7.23.5:
     resolution: {integrity: sha512-e3Q2EgWna0qYjw8FbJ7cGyfBwteK4HjaF6Z91SNzchNgDbez5SofeC+Q0Z0fDlEMMpK/VYsgfG6XHFus86TfEQ==}
     dependencies:
       '@darajs/styled-components': 1.4.3_9abdbf59e5d557c0bd6799ca865aefe1
       '@darajs/ui-icons': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.3
+      '@fortawesome/fontawesome-svg-core': 6.4.2
       '@fortawesome/free-regular-svg-icons': 6.4.2
       '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.0_016787154810dd04b6f7e6b53fa9f072
+      '@fortawesome/react-fontawesome': 0.2.0_6f891d2752294bb2e94777f4be5e8a26
       '@popperjs/core': 2.4.0
       '@tippyjs/react': 4.1.0_react-dom@18.2.0+react@18.2.0
       date-fns: 2.9.0
@@ -1915,7 +1915,6 @@ packages:
       tippy.js: 6.2.6
     transitivePeerDependencies:
       - '@babel/core'
-      - '@fortawesome/fontawesome-svg-core'
     dev: false
 
   /@darajs/ui-hierarchy-viewer/1.4.3_59db20a13917e0f3480347b9e6d958fe:
@@ -1972,11 +1971,11 @@ packages:
       shortid: 2.2.15
     dev: false
 
-  /@darajs/ui-widgets/1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2:
+  /@darajs/ui-widgets/1.4.3_@babel+core@7.23.5:
     resolution: {integrity: sha512-CLI6NzuY15tDABwunuuLa0KvDN50v+XFwQtXEwCHgI56VoIfmnyuVaFU+uIMFvzFX2H1p8NeH0FIBVUpeu1IhA==}
     dependencies:
       '@darajs/styled-components': 1.4.3_9abdbf59e5d557c0bd6799ca865aefe1
-      '@darajs/ui-components': 1.4.3_4bfc4d1c108c846de8a3912ea9e52ca2
+      '@darajs/ui-components': 1.4.3_@babel+core@7.23.5
       '@darajs/ui-icons': 1.4.3_59db20a13917e0f3480347b9e6d958fe
       '@darajs/ui-utils': 1.4.3
       immer: 9.0.21
@@ -1987,7 +1986,6 @@ packages:
       use-immer: 0.6.0_immer@9.0.21+react@18.2.0
     transitivePeerDependencies:
       - '@babel/core'
-      - '@fortawesome/fontawesome-svg-core'
     dev: false
 
   /@egjs/hammerjs/2.0.17:
@@ -2094,12 +2092,6 @@ packages:
     requiresBuild: true
     dev: false
 
-  /@fortawesome/fontawesome-common-types/6.5.1:
-    resolution: {integrity: sha512-GkWzv+L6d2bI5f/Vk6ikJ9xtl7dfXtoRu3YGE6nq0p/FFqA1ebMOAWg3XgRyb0I6LYyYkiAo+3/KrwuBp8xG7A==}
-    engines: {node: '>=6'}
-    requiresBuild: true
-    dev: false
-
   /@fortawesome/fontawesome-free/6.4.2:
     resolution: {integrity: sha512-m5cPn3e2+FDCOgi1mz0RexTUvvQibBebOUlUlW0+YrMjDTPkiJ6VTKukA1GRsvRw+12KyJndNjj0O4AgTxm2Pg==}
     engines: {node: '>=6'}
@@ -2112,14 +2104,6 @@ packages:
     requiresBuild: true
     dependencies:
       '@fortawesome/fontawesome-common-types': 6.4.2
-    dev: false
-
-  /@fortawesome/fontawesome-svg-core/6.5.1:
-    resolution: {integrity: sha512-MfRCYlQPXoLlpem+egxjfkEuP9UQswTrlCOsknus/NcMoblTH2g0jPrapbcIb04KGA7E2GZxbAccGZfWoYgsrQ==}
-    engines: {node: '>=6'}
-    requiresBuild: true
-    dependencies:
-      '@fortawesome/fontawesome-common-types': 6.5.1
     dev: false
 
   /@fortawesome/free-brands-svg-icons/6.4.2:
@@ -2144,17 +2128,6 @@ packages:
     requiresBuild: true
     dependencies:
       '@fortawesome/fontawesome-common-types': 6.4.2
-    dev: false
-
-  /@fortawesome/react-fontawesome/0.2.0_016787154810dd04b6f7e6b53fa9f072:
-    resolution: {integrity: sha512-uHg75Rb/XORTtVt7OS9WoK8uM276Ufi7gCzshVWkUJbHhh3svsUUeqXerrM96Wm7fRiDzfKRwSoahhMIkGAYHw==}
-    peerDependencies:
-      '@fortawesome/fontawesome-svg-core': ~1 || ~6
-      react: '>=16.3'
-    dependencies:
-      '@fortawesome/fontawesome-svg-core': 6.5.1
-      prop-types: 15.8.1
-      react: 18.2.0
     dev: false
 
   /@fortawesome/react-fontawesome/0.2.0_6f891d2752294bb2e94777f4be5e8a26:
