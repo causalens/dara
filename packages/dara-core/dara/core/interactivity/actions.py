@@ -44,13 +44,7 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
-from dara.core.base_definitions import (
-    ActionDef,
-    ActionImpl,
-    ActionResolverDef,
-    AnnotatedAction,
-    TemplateMarker,
-)
+from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, AnnotatedAction, TemplateMarker
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -58,12 +52,7 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.interactivity import (
-        AnyVariable,
-        DerivedVariable,
-        UrlVariable,
-        Variable,
-    )
+    from dara.core.interactivity import AnyVariable, DerivedVariable, UrlVariable, Variable
     from dara.core.internal.cache_store import CacheStore
 
 
@@ -135,10 +124,7 @@ class UpdateVariableImpl(ActionImpl):
     async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.variable, DataVariable):
             # Update on the backend
-            from dara.core.internal.registries import (
-                data_variable_registry,
-                utils_registry,
-            )
+            from dara.core.internal.registries import data_variable_registry, utils_registry
 
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -1237,6 +1223,7 @@ def assert_no_context(alternative: str):
 
 
 P = ParamSpec('P')
+T = TypeVar('T')
 
 BOUND_PREFIX = '__BOUND__'
 
@@ -1278,7 +1265,9 @@ class action:
 
     Ctx: ClassVar = ActionCtx
 
-    def __init__(self, func: Callable[Concatenate[ActionCtx, P], Any]):
+    def __init__(
+        self, func: Union[Callable[Concatenate[ActionCtx, P], Any], Callable[Concatenate[T, ActionCtx, P], Any]]
+    ):
         from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
 
@@ -1297,19 +1286,21 @@ class action:
         signature = inspect.signature(func)
         params = list(signature.parameters.values())
 
-        self.bound_name: Union[str, None] = None
+        bound_name: Union[str, None] = None
 
         # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
         # not possible to distinguish between a bound method or non-bound method
         # as the decorator runs before the function is bound to the class
         if params[0].name in ('self', 'cls'):
-            self.bound_name: Union[str, None] = params[0].name
+            bound_name = params[0].name
             # Remove first two parameters (self, ctx, ...)
             params.pop(0)
             params.pop(0)
         else:
             # Remove the first parameter (ctx, ...)
             params.pop(0)
+
+        self.bound_name = bound_name
 
         self.new_sig = signature.replace(parameters=params)
 
@@ -1318,7 +1309,7 @@ class action:
         self.__signature__ = self.new_sig  # type: ignore
         print(self.__signature__)
 
-    def __get__(self, instance, owner=None):
+    def __get__(self, instance: T, owner=None) -> Callable[..., Any]:
         """
         Get descriptor for the decorated function.
 
