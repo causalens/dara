@@ -69,12 +69,12 @@ importers:
     dependencies:
       '@bokeh/bokehjs': 3.1.1
       '@darajs/core': link:../dara-core
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
-      '@darajs/ui-causal-graph-editor': 1.4.2_b0d88a694717415dc7ae486b783317e7
-      '@darajs/ui-code-editor': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
-      '@darajs/ui-components': 1.4.2_be5bcda158af2d864eb1301ecc1aa452
-      '@darajs/ui-hierarchy-viewer': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
-      '@darajs/ui-icons': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@darajs/ui-causal-graph-editor': 1.4.2_2e55ec1779415fd90579b1bdfa356252
+      '@darajs/ui-code-editor': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
+      '@darajs/ui-components': 1.4.2_e44f780a177356ddc36f64af9be63767
+      '@darajs/ui-hierarchy-viewer': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
+      '@darajs/ui-icons': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
       '@darajs/ui-utils': 1.4.2
       '@popperjs/core': 2.4.0
       date-fns: 2.9.0
@@ -130,7 +130,7 @@ importers:
       '@darajs/ui-components': ~1.4.2
       '@darajs/ui-notifications': ~1.4.2
       '@darajs/ui-utils': ~1.4.2
-      '@fortawesome/fontawesome-free': ^6.3.0
+      '@fortawesome/fontawesome-free': ~6.4.0
       '@recoiljs/refine': ^0.1.1
       '@rollup/plugin-inject': ^4.0.4
       '@tanstack/query-core': ^4.0.0
@@ -194,7 +194,7 @@ importers:
       whatwg-fetch: ^3.6.2
     dependencies:
       '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
-      '@darajs/ui-components': 1.4.2_82aef62055a92fa718fc78707e4ce8e7
+      '@darajs/ui-components': 1.4.2_be5bcda158af2d864eb1301ecc1aa452
       '@darajs/ui-notifications': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
       '@darajs/ui-utils': 1.4.2
       '@fortawesome/fontawesome-free': 6.4.2
@@ -2103,6 +2103,18 @@ packages:
       prettier: 2.8.8
     dev: true
 
+  /@darajs/styled-components/1.4.2_78192202c283c0ec40a630972acdcc20:
+    resolution: {integrity: sha512-QyxMlbfwxdg2FyclN+lDd2FDpATic190aZ6WfJRmJXEcFEMHbRrt8alCTHR65Nh7b4wQeOBhgga5bqvnFHuUEA==}
+    dependencies:
+      polished: 4.2.2
+      styled-components: 5.3.11_78192202c283c0ec40a630972acdcc20
+    transitivePeerDependencies:
+      - '@babel/core'
+      - react
+      - react-dom
+      - react-is
+    dev: false
+
   /@darajs/styled-components/1.4.2_d35a50dc888efaa3d08bf767e98bc64b:
     resolution: {integrity: sha512-QyxMlbfwxdg2FyclN+lDd2FDpATic190aZ6WfJRmJXEcFEMHbRrt8alCTHR65Nh7b4wQeOBhgga5bqvnFHuUEA==}
     dependencies:
@@ -2138,15 +2150,15 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/ui-causal-graph-editor/1.4.2_b0d88a694717415dc7ae486b783317e7:
+  /@darajs/ui-causal-graph-editor/1.4.2_2e55ec1779415fd90579b1bdfa356252:
     resolution: {integrity: sha512-NG97jv1oWVVutulolLJZyBUDu78KdZevw0oW6yFPN2OyfWKZ9iTpXa5qyWHqR3bvXh4fYzFGkdIaKZmo/78tZA==}
     dependencies:
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
-      '@darajs/ui-components': 1.4.2_be5bcda158af2d864eb1301ecc1aa452
-      '@darajs/ui-icons': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
-      '@darajs/ui-notifications': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@darajs/ui-components': 1.4.2_e44f780a177356ddc36f64af9be63767
+      '@darajs/ui-icons': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
+      '@darajs/ui-notifications': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
       '@darajs/ui-utils': 1.4.2
-      '@darajs/ui-widgets': 1.4.2_be5bcda158af2d864eb1301ecc1aa452
+      '@darajs/ui-widgets': 1.4.2_e44f780a177356ddc36f64af9be63767
       '@pixi-essentials/cull': 2.0.0_91556dff58e2ea690004dd7ebb60bcd2
       '@pixi/app': 7.2.4_44e40742d0ef8a2ce831687ffd8eb5d7
       '@pixi/constants': 7.2.4
@@ -2204,7 +2216,7 @@ packages:
       - vis-util
     dev: false
 
-  /@darajs/ui-code-editor/1.4.2_9e2d6642e74ead38d1063b61cf3e2160:
+  /@darajs/ui-code-editor/1.4.2_1ea6a54959a8841dd66ab3a977d3232a:
     resolution: {integrity: sha512-SSV0zM1mpgk8Y0j34mLYdaaIf07OSbNRD4GqQMgdBfQeEs7XG6m6O7UFjkvOuf7QXtXB3g3D5diLmV82atR6RA==}
     dependencies:
       '@codemirror/autocomplete': 6.11.1
@@ -2215,47 +2227,11 @@ packages:
       '@codemirror/search': 6.5.5
       '@codemirror/state': 6.3.3
       '@codemirror/view': 6.22.1
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
       react: 18.2.0
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
-      - react-is
-    dev: false
-
-  /@darajs/ui-components/1.4.2_82aef62055a92fa718fc78707e4ce8e7:
-    resolution: {integrity: sha512-nndOv701f7go0izmCCUeoQHes8DiBIiJ45wQyLtcbV0bDrZTL6vgL8jh5VzGyF1L6RwrpFfXw6JINCj/frIMRQ==}
-    dependencies:
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
-      '@darajs/ui-icons': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
-      '@darajs/ui-utils': 1.4.2
-      '@fortawesome/free-regular-svg-icons': 6.5.1
-      '@fortawesome/free-solid-svg-icons': 6.5.1
-      '@fortawesome/react-fontawesome': 0.2.0_react@18.2.0
-      '@popperjs/core': 2.4.0
-      '@tippyjs/react': 4.1.0_react-dom@18.2.0+react@18.2.0
-      date-fns: 2.9.0
-      downshift: 7.6.2_react@18.2.0
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.6
-      polished: 3.6.4
-      react: 18.2.0
-      react-collapse: 5.1.1_react@18.2.0
-      react-compound-slider: 3.3.0_react@18.2.0
-      react-datepicker: 4.8.0_react-dom@18.2.0+react@18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-dropzone: 11.0.1_react@18.2.0
-      react-popper: 2.2.5_969a5d162a979d43a9068e272a4743f8
-      react-table: 7.7.0_react@18.2.0
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6_react-dom@18.2.0+react@18.2.0
-      react-window: 1.8.6_react-dom@18.2.0+react@18.2.0
-      shortid: 2.2.15
-      tippy.js: 6.2.6
-    transitivePeerDependencies:
-      - '@babel/core'
-      - '@fortawesome/fontawesome-svg-core'
       - react-is
     dev: false
 
@@ -2295,12 +2271,66 @@ packages:
       - react-is
     dev: false
 
-  /@darajs/ui-hierarchy-viewer/1.4.2_9e2d6642e74ead38d1063b61cf3e2160:
+  /@darajs/ui-components/1.4.2_e44f780a177356ddc36f64af9be63767:
+    resolution: {integrity: sha512-nndOv701f7go0izmCCUeoQHes8DiBIiJ45wQyLtcbV0bDrZTL6vgL8jh5VzGyF1L6RwrpFfXw6JINCj/frIMRQ==}
+    dependencies:
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@darajs/ui-icons': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
+      '@darajs/ui-utils': 1.4.2
+      '@fortawesome/free-regular-svg-icons': 6.5.1
+      '@fortawesome/free-solid-svg-icons': 6.5.1
+      '@fortawesome/react-fontawesome': 0.2.0_016787154810dd04b6f7e6b53fa9f072
+      '@popperjs/core': 2.4.0
+      '@tippyjs/react': 4.1.0_react-dom@18.2.0+react@18.2.0
+      date-fns: 2.9.0
+      downshift: 7.6.2_react@18.2.0
+      lodash: 4.17.21
+      memoize-one: 6.0.0
+      nanoid: 3.3.6
+      polished: 3.6.4
+      react: 18.2.0
+      react-collapse: 5.1.1_react@18.2.0
+      react-compound-slider: 3.3.0_react@18.2.0
+      react-datepicker: 4.8.0_react-dom@18.2.0+react@18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      react-dropzone: 11.0.1_react@18.2.0
+      react-popper: 2.2.5_969a5d162a979d43a9068e272a4743f8
+      react-table: 7.7.0_react@18.2.0
+      react-table-sticky: 1.1.3
+      react-virtualized-auto-sizer: 1.0.6_react-dom@18.2.0+react@18.2.0
+      react-window: 1.8.6_react-dom@18.2.0+react@18.2.0
+      shortid: 2.2.15
+      tippy.js: 6.2.6
+    transitivePeerDependencies:
+      - '@babel/core'
+      - '@fortawesome/fontawesome-svg-core'
+      - react-is
+    dev: false
+
+  /@darajs/ui-hierarchy-viewer/1.4.2_1ea6a54959a8841dd66ab3a977d3232a:
     resolution: {integrity: sha512-pCcez03T53ibKwrGfbdAaLQII1f5YCXDNLDU/+vBx6M3Vz1DrpQ2ac6S0hGXhMXneOeHHj4jPxzppjqj6SwlYg==}
     dependencies:
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
       '@darajs/ui-utils': 1.4.2
       d3: 6.2.0
+      react: 18.2.0
+    transitivePeerDependencies:
+      - '@babel/core'
+      - react-dom
+      - react-is
+    dev: false
+
+  /@darajs/ui-icons/1.4.2_1ea6a54959a8841dd66ab3a977d3232a:
+    resolution: {integrity: sha512-mgYUJnKSXFP47Xm+0oRtM1mMz3nGWQViw+zB/YYh+Gp5V5Gvbxc/qMaFEEZr4PPelzvm0HA0aY1gy4KBmn5JBA==}
+    dependencies:
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@fortawesome/fontawesome-svg-core': 6.4.2
+      '@fortawesome/free-brands-svg-icons': 6.4.2
+      '@fortawesome/free-regular-svg-icons': 6.4.2
+      '@fortawesome/free-solid-svg-icons': 6.4.2
+      '@fortawesome/react-fontawesome': 0.2.0_6f891d2752294bb2e94777f4be5e8a26
+      '@mdi/js': 5.9.55
+      '@mdi/react': 1.4.0
       react: 18.2.0
     transitivePeerDependencies:
       - '@babel/core'
@@ -2320,6 +2350,22 @@ packages:
       '@mdi/js': 5.9.55
       '@mdi/react': 1.4.0
       react: 18.2.0
+    transitivePeerDependencies:
+      - '@babel/core'
+      - react-dom
+      - react-is
+    dev: false
+
+  /@darajs/ui-notifications/1.4.2_1ea6a54959a8841dd66ab3a977d3232a:
+    resolution: {integrity: sha512-qIbH8e/YjxQ1PSScfKsgSJ40goZjg+2+Kk0J4/7rZGYGMfoGjT3fFw8QgOdVrBVS99FlnoqoM/5bwDpukVUAUQ==}
+    dependencies:
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@darajs/ui-icons': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
+      '@darajs/ui-utils': 1.4.2
+      lodash: 4.17.21
+      polished: 4.2.2
+      react: 18.2.0
+      rxjs: 6.5.5
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
@@ -2352,12 +2398,12 @@ packages:
       shortid: 2.2.15
     dev: false
 
-  /@darajs/ui-widgets/1.4.2_be5bcda158af2d864eb1301ecc1aa452:
+  /@darajs/ui-widgets/1.4.2_e44f780a177356ddc36f64af9be63767:
     resolution: {integrity: sha512-ZC7yLHbeoT4ULiD59QvzAI5jHl1TmZ2g/fQW1ezDaD5Ujm8dZT1dd+869ZWa6/1t4WjPCmXgtVcfXjMrX1UL0A==}
     dependencies:
-      '@darajs/styled-components': 1.4.2_d35a50dc888efaa3d08bf767e98bc64b
-      '@darajs/ui-components': 1.4.2_be5bcda158af2d864eb1301ecc1aa452
-      '@darajs/ui-icons': 1.4.2_9e2d6642e74ead38d1063b61cf3e2160
+      '@darajs/styled-components': 1.4.2_78192202c283c0ec40a630972acdcc20
+      '@darajs/ui-components': 1.4.2_e44f780a177356ddc36f64af9be63767
+      '@darajs/ui-icons': 1.4.2_1ea6a54959a8841dd66ab3a977d3232a
       '@darajs/ui-utils': 1.4.2
       immer: 9.0.21
       lodash: 4.17.21
@@ -2561,16 +2607,6 @@ packages:
       react: '>=16.3'
     dependencies:
       '@fortawesome/fontawesome-svg-core': 6.4.2
-      prop-types: 15.8.1
-      react: 18.2.0
-    dev: false
-
-  /@fortawesome/react-fontawesome/0.2.0_react@18.2.0:
-    resolution: {integrity: sha512-uHg75Rb/XORTtVt7OS9WoK8uM276Ufi7gCzshVWkUJbHhh3svsUUeqXerrM96Wm7fRiDzfKRwSoahhMIkGAYHw==}
-    peerDependencies:
-      '@fortawesome/fontawesome-svg-core': ~1 || ~6
-      react: '>=16.3'
-    dependencies:
       prop-types: 15.8.1
       react: 18.2.0
     dev: false
@@ -14242,6 +14278,30 @@ packages:
     resolution: {integrity: sha512-1JGpfPB3lo42ZX8cuPrheZbfQ6kqPPnPHlKMyeRYtfKD+0jG+QsXgXN57O/dvJlzlB2elI6dGmrPnl5VPQFPaA==}
     dependencies:
       inline-style-parser: 0.1.1
+    dev: false
+
+  /styled-components/5.3.11_78192202c283c0ec40a630972acdcc20:
+    resolution: {integrity: sha512-uuzIIfnVkagcVHv9nE0VPlHPSCmXIUGKfJ42LNjxCCTDTL5sgnJ8Z7GZBq0EnLYGln77tPpEpExt2+qa+cZqSw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8.0'
+      react-dom: '>= 16.8.0'
+      react-is: '>= 16.8.0'
+    dependencies:
+      '@babel/helper-module-imports': 7.22.15
+      '@babel/traverse': 7.23.0_supports-color@5.5.0
+      '@emotion/is-prop-valid': 1.2.1
+      '@emotion/stylis': 0.8.5
+      '@emotion/unitless': 0.7.5
+      babel-plugin-styled-components: 2.1.4_468d9657b189207669059089250da45d
+      css-to-react-native: 3.2.0
+      hoist-non-react-statics: 3.3.2
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      shallowequal: 1.1.0
+      supports-color: 5.5.0
+    transitivePeerDependencies:
+      - '@babel/core'
     dev: false
 
   /styled-components/5.3.11_d35a50dc888efaa3d08bf767e98bc64b:
