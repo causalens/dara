@@ -1301,7 +1301,8 @@ class action:
 
         # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
         # not possible to distinguish between a bound method or non-bound method
-        # as the decorator runs before the function is bound to the class
+        # as the decorator runs before the function is bound to the class.
+        # Pop the self/cls/ctx params from signature as user is not expected to pass them in (ctx can be passed within action context)
         if params[0].name in ('self', 'cls'):
             bound_name = params[0].name
             # Remove first two parameters (self, ctx, ...)
@@ -1327,7 +1328,7 @@ class action:
         if instance is None:
             return self.__call__
 
-        # Bind the instance to the function
+        # Bind the instance to the function so that it's received in the `__call__` method
         bound_f = partial(self.__call__, instance)
         return bound_f
 
@@ -1340,6 +1341,9 @@ class action:
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
+        from dara.core.interactivity.any_variable import AnyVariable
+        from dara.core.internal.registries import static_kwargs_registry
+
         min_arg_len = 1 if not self.bound_name else 2
 
         # The decorated function is called within another action context
@@ -1353,20 +1357,18 @@ class action:
             # Note: this makes this return a coroutine which must be awaited if self.func was async
             return self.func(*args, **kwargs)
 
-        # We're not in an @action, check that args[0] is not an ActionCtx
+        # We're not in an @action, check that first non-bound arg is not an ActionCtx
         if len(args) >= min_arg_len and isinstance(args[min_arg_len - 1], ActionCtx):
             raise TypeError(
                 'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
             )
-
-        from dara.core.interactivity.any_variable import AnyVariable
-        from dara.core.internal.registries import static_kwargs_registry
 
         instance_uid = str(uuid.uuid4())
 
         all_args = [*args]
         bound_arg = None
 
+        # If the function is bound to a class(instance), pop the bound argument from the args to handle it separately
         if self.bound_name:
             bound_arg = all_args.pop(0)
 
