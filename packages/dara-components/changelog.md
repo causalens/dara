@@ -4,6 +4,10 @@ title: Changelog
 
 ## NEXT
 
+-   Updated plotting palettes to support 1 or 2 colors as well as 3+.
+
+## 1.5.0
+
 -   Fixed an issue where `Anchor` and `Image` component would not handle relative links correctly when ran in an app with a custom base URL (e.g. in an iframe).
 -   Fixed an issue where `CausalGraphViewer` did not accept a `dict` of a `CausalGraph`.
 -   Added support for `cai_causal_graph.causal_graph.Skeleton` in `CausalGraphViewer`.
