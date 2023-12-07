@@ -201,6 +201,35 @@ def test_annotated_action_no_params():
             pass
 
 
+def test_annotated_action_no_params_instance():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @action
+            def test_action(self):
+                pass
+
+
+def test_annotated_action_no_params_class():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @classmethod
+            @action
+            def test_action(cls):
+                pass
+
+
+def test_annotated_action_no_params_static():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @staticmethod
+            @action
+            def test_action():
+                pass
+
+
 def test_annotated_action_missing_ctx():
 
     # Fake being within an @action already
@@ -215,14 +244,96 @@ def test_annotated_action_missing_ctx():
         test_action(1)
 
 
+def test_annotated_action_missing_ctx_instance():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @action
+        def test_action(self, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass().test_action(1)
+
+
+def test_annotated_action_missing_ctx_class():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass.test_action(1)
+
+
+def test_annotated_action_missing_ctx_static():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass.test_action(1)
+
+
 def test_annotated_action_redundant_ctx():
     @action
-    def test_action(ctx):
+    def test_action(ctx, arg: int):
         pass
 
     with pytest.raises(TypeError):
         # ctx should not be passed
         test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_instance():
+    class TestClass:
+        @action
+        def test_action(self, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass().test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_class():
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass.test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_static():
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass.test_action(ActionCtx(None, None))
 
 
 def test_annotated_action_missing_param():
@@ -233,6 +344,41 @@ def test_annotated_action_missing_param():
     with pytest.raises(TypeError):
         # should fail because 2 args are expected
         test_action(1)
+
+
+def test_annotated_action_missing_param_instance():
+    class TestClass:
+        @action
+        def test_action(self, ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass().test_action(1)
+
+
+def test_annotated_action_missing_param_class():
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass.test_action(1)
+
+
+def test_annotated_action_missing_param_static():
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass.test_action(1)
 
 
 def test_annotated_action_can_be_called():

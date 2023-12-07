@@ -44,7 +44,13 @@ from pandas import DataFrame
 from pydantic import BaseModel
 from typing_extensions import Concatenate, ParamSpec, deprecated
 
-from dara.core.base_definitions import ActionDef, ActionImpl, ActionResolverDef, AnnotatedAction, TemplateMarker
+from dara.core.base_definitions import (
+    ActionDef,
+    ActionImpl,
+    ActionResolverDef,
+    AnnotatedAction,
+    TemplateMarker,
+)
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -52,7 +58,12 @@ from dara.core.internal.utils import run_user_handler
 
 # Type-only imports
 if TYPE_CHECKING:
-    from dara.core.interactivity import AnyVariable, DerivedVariable, UrlVariable, Variable
+    from dara.core.interactivity import (
+        AnyVariable,
+        DerivedVariable,
+        UrlVariable,
+        Variable,
+    )
     from dara.core.internal.cache_store import CacheStore
 
 
@@ -124,7 +135,10 @@ class UpdateVariableImpl(ActionImpl):
     async def execute(self, ctx: ActionCtx) -> Any:
         if isinstance(self.variable, DataVariable):
             # Update on the backend
-            from dara.core.internal.registries import data_variable_registry, utils_registry
+            from dara.core.internal.registries import (
+                data_variable_registry,
+                utils_registry,
+            )
 
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -1222,9 +1236,6 @@ def assert_no_context(alternative: str):
         raise ValueError(f'Shortcut actions cannot be used within an @action, use `{alternative}` instead')
 
 
-P = ParamSpec('P')
-T = TypeVar('T')
-
 BOUND_PREFIX = '__BOUND__'
 
 
@@ -1265,15 +1276,18 @@ class action:
 
     Ctx: ClassVar = ActionCtx
 
-    def __init__(
-        self, func: Union[Callable[Concatenate[ActionCtx, P], Any], Callable[Concatenate[T, ActionCtx, P], Any]]
-    ):
+    def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
 
+        signature = inspect.signature(func)
+        params = list(signature.parameters.values())
+
         # Validate the signature has at least one parameter as it needs one for ctx at the minimum
-        if len(inspect.signature(func).parameters) < 1:
-            raise ValueError(f'Expected at least one parameter for the @action annotated function, but found none')
+        if len(params) < 1 or (params[0].name in ('self', 'cls') and len(params) < 2):
+            raise ValueError(
+                f'Expected at least one parameter for the @action annotated function, but found none. One parameter is required for the ActionCtx to be injected'
+            )
 
         self.func = func
         self.definition_uid = str(uuid.uuid4())
@@ -1283,9 +1297,6 @@ class action:
         action_registry.register(self.definition_uid, act_def)
 
         # Modify the function signature
-        signature = inspect.signature(func)
-        params = list(signature.parameters.values())
-
         bound_name: Union[str, None] = None
 
         # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
@@ -1301,15 +1312,13 @@ class action:
             params.pop(0)
 
         self.bound_name = bound_name
-
         self.new_sig = signature.replace(parameters=params)
 
         # Update the function's __signature__ attribute for correct introspection
         update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
         self.__signature__ = self.new_sig  # type: ignore
-        print(self.__signature__)
 
-    def __get__(self, instance: T, owner=None) -> Callable[..., Any]:
+    def __get__(self, instance: Any, owner=None) -> Callable[..., Any]:
         """
         Get descriptor for the decorated function.
 
@@ -1331,10 +1340,11 @@ class action:
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
-        print('args', args, kwargs)
+        min_arg_len = 1 if not self.bound_name else 2
+
         # The decorated function is called within another action context
         if ACTION_CONTEXT.get():
-            if len(args) < 1 or not isinstance(args[0], ActionCtx):
+            if len(args) < min_arg_len or not isinstance(args[min_arg_len - 1], ActionCtx):
                 raise TypeError(
                     'When calling an @action-decorated function within an @action, the ActionCtx must be passed in explicitly'
                 )
@@ -1344,7 +1354,7 @@ class action:
             return self.func(*args, **kwargs)
 
         # We're not in an @action, check that args[0] is not an ActionCtx
-        if len(args) >= 1 and isinstance(args[0], ActionCtx):
+        if len(args) >= min_arg_len and isinstance(args[min_arg_len - 1], ActionCtx):
             raise TypeError(
                 'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
             )
@@ -1354,7 +1364,6 @@ class action:
 
         instance_uid = str(uuid.uuid4())
 
-        print('raw args', args, kwargs)
         all_args = [*args]
         bound_arg = None
 
@@ -1374,9 +1383,7 @@ class action:
                 all_kwargs[param.name] = all_args[idx]
 
         # Verify types are correct
-        print('ann', self.func.__annotations__)
         for key, value in all_kwargs.items():
-            print(key, value)
             if key in self.func.__annotations__:
                 valid_value = True
                 try:
@@ -1398,10 +1405,9 @@ class action:
             else:
                 static_kwargs[key] = kwarg
 
+        # If the function is bound to a class(instance), add the bound argument to the static kwargs
         if self.bound_name:
             static_kwargs[BOUND_PREFIX + self.bound_name] = bound_arg
-
-        print('static', static_kwargs)
 
         # Store the static_kwargs in a registry
         static_kwargs_registry.register(instance_uid, static_kwargs)
