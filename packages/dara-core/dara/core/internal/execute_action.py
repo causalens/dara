@@ -23,7 +23,12 @@ import anyio
 from fastapi import BackgroundTasks
 
 from dara.core.base_definitions import ActionResolverDef, BaseTask
-from dara.core.interactivity.actions import ACTION_CONTEXT, ActionCtx, ActionImpl
+from dara.core.interactivity.actions import (
+    ACTION_CONTEXT,
+    BOUND_PREFIX,
+    ActionCtx,
+    ActionImpl,
+)
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import (
     is_resolved_derived_data_variable,
@@ -47,8 +52,26 @@ async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str
     :param ctx: the action context to use
     :param values: the resolved values to pass to the handler
     """
+    bound_arg = None
+    kwarg_names = list(values.keys())
+    parsed_values = dict(values)
+    for arg_name in kwarg_names:
+        if arg_name.startswith(BOUND_PREFIX):
+            bound_arg = parsed_values.pop(arg_name)
+            break
+
+    # If we found a bound arg, pass it as the first positional arg to the handler
+    args = (
+        (ctx,)
+        if bound_arg is None
+        else (
+            bound_arg,
+            ctx,
+        )
+    )
+
     try:
-        await run_user_handler(handler, args=(ctx,), kwargs=dict(values))
+        return await run_user_handler(handler, args=args, kwargs=parsed_values)
     except Exception as e:
         dev_logger.error('Error executing action', e)
         await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')

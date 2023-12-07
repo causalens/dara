@@ -22,7 +22,7 @@ import math
 import uuid
 from contextvars import ContextVar
 from enum import Enum
-from functools import update_wrapper
+from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -42,7 +42,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import BaseModel
-from typing_extensions import Concatenate, ParamSpec, deprecated
+from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -1236,7 +1236,7 @@ def assert_no_context(alternative: str):
         raise ValueError(f'Shortcut actions cannot be used within an @action, use `{alternative}` instead')
 
 
-P = ParamSpec('P')
+BOUND_PREFIX = '__BOUND__'
 
 
 class action:
@@ -1276,9 +1276,18 @@ class action:
 
     Ctx: ClassVar = ActionCtx
 
-    def __init__(self, func: Callable[Concatenate[ActionCtx, P], Any]):
+    def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
         from dara.core.internal.registries import action_registry
+
+        signature = inspect.signature(func)
+        params = list(signature.parameters.values())
+
+        # Validate the signature has at least one parameter as it needs one for ctx at the minimum
+        if len(params) < 1 or (params[0].name in ('self', 'cls') and len(params) < 2):
+            raise ValueError(
+                'Expected at least one parameter for the @action annotated function, but found none. One parameter is required for the ActionCtx to be injected'
+            )
 
         self.func = func
         self.definition_uid = str(uuid.uuid4())
@@ -1288,14 +1297,40 @@ class action:
         action_registry.register(self.definition_uid, act_def)
 
         # Modify the function signature
-        signature = inspect.signature(func)
-        new_params = list(signature.parameters.values())
-        new_params.pop(0)  # Remove the first parameter (ctx)
-        self.new_sig = signature.replace(parameters=new_params)
+        bound_name: Union[str, None] = None
+
+        # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
+        # not possible to distinguish between a bound method or non-bound method
+        # as the decorator runs before the function is bound to the class.
+        # Pop the self/cls/ctx params from signature as user is not expected to pass them in (ctx can be passed within action context)
+        if params[0].name in ('self', 'cls'):
+            bound_name = params[0].name
+            # Remove first two parameters (self, ctx, ...)
+            params.pop(0)
+            params.pop(0)
+        else:
+            # Remove the first parameter (ctx, ...)
+            params.pop(0)
+
+        self.bound_name = bound_name
+        self.new_sig = signature.replace(parameters=params)
 
         # Update the function's __signature__ attribute for correct introspection
         update_wrapper(self, func)  # This transfers attributes like __name__, __doc__, etc.
         self.__signature__ = self.new_sig  # type: ignore
+
+    def __get__(self, instance: Any, owner=None) -> Callable[..., Any]:
+        """
+        Get descriptor for the decorated function.
+
+        Necessary to support instance/class bound methods.
+        """
+        if instance is None:
+            return self.__call__
+
+        # Bind the instance to the function so that it's received in the `__call__` method
+        bound_f = partial(self.__call__, instance)
+        return bound_f
 
     @overload
     def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
@@ -1306,9 +1341,14 @@ class action:
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
+        from dara.core.interactivity.any_variable import AnyVariable
+        from dara.core.internal.registries import static_kwargs_registry
+
+        min_arg_len = 1 if not self.bound_name else 2
+
         # The decorated function is called within another action context
         if ACTION_CONTEXT.get():
-            if len(args) < 1 or not isinstance(args[0], ActionCtx):
+            if len(args) < min_arg_len or not isinstance(args[min_arg_len - 1], ActionCtx):
                 raise TypeError(
                     'When calling an @action-decorated function within an @action, the ActionCtx must be passed in explicitly'
                 )
@@ -1317,28 +1357,32 @@ class action:
             # Note: this makes this return a coroutine which must be awaited if self.func was async
             return self.func(*args, **kwargs)
 
-        # We're not in an @action, check that args[0] is not an ActionCtx
-        if len(args) >= 1 and isinstance(args[0], ActionCtx):
+        # We're not in an @action, check that first non-bound arg is not an ActionCtx
+        if len(args) >= min_arg_len and isinstance(args[min_arg_len - 1], ActionCtx):
             raise TypeError(
                 'When calling an @action-decorated function outside an @action, the ActionCtx must not be passed in explicitly as it will be injected by Dara runtime'
             )
 
-        from dara.core.interactivity.any_variable import AnyVariable
-        from dara.core.internal.registries import static_kwargs_registry
-
         instance_uid = str(uuid.uuid4())
+
+        all_args = [*args]
+        bound_arg = None
+
+        # If the function is bound to a class(instance), pop the bound argument from the args to handle it separately
+        if self.bound_name:
+            bound_arg = all_args.pop(0)
 
         # Create kwargs for every argument based on the function signature and then split them into dynamic vs static
         all_kwargs = {**kwargs}
         for idx, param in enumerate(self.new_sig.parameters.values()):
-            if idx >= len(args):
+            if idx >= len(all_args):
                 if param.name in all_kwargs:
                     continue
                 if param.default == inspect.Parameter.empty:
                     raise TypeError(f'Expected positional argument: {param.name} to be passed, but it was not')
                 all_kwargs[param.name] = param.default
             else:
-                all_kwargs[param.name] = args[idx]
+                all_kwargs[param.name] = all_args[idx]
 
         # Verify types are correct
         for key, value in all_kwargs.items():
@@ -1362,6 +1406,10 @@ class action:
                 dynamic_kwargs[key] = kwarg
             else:
                 static_kwargs[key] = kwarg
+
+        # If the function is bound to a class(instance), add the bound argument to the static kwargs
+        if self.bound_name:
+            static_kwargs[BOUND_PREFIX + self.bound_name] = bound_arg
 
         # Store the static_kwargs in a registry
         static_kwargs_registry.register(instance_uid, static_kwargs)

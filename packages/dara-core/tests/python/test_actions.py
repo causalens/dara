@@ -1,24 +1,26 @@
-from dara.core.base_definitions import ActionImpl
-from dara.core.interactivity.actions import ACTION_CONTEXT, ResetVariables, TriggerVariable, UpdateVariableImpl
+import pytest
+from pandas import DataFrame
+
+from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect, UpdateVariable, UrlVariable, Variable
+from dara.core.base_definitions import ActionImpl, AnnotatedAction
+from dara.core.interactivity.actions import (
+    ACTION_CONTEXT,
+    BOUND_PREFIX,
+    ActionCtx,
+    ResetVariables,
+    TriggerVariable,
+    UpdateVariableImpl,
+    action,
+)
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from pandas import DataFrame
-import pytest
-
-from dara.core import (
-    DownloadContent,
-    DownloadVariable,
-    NavigateTo,
-    SideEffect,
-    UpdateVariable,
-    UrlVariable,
-    Variable,
-)
-from dara.core.internal.registries import action_registry
+from dara.core.internal.execute_action import _execute_action
+from dara.core.internal.registries import action_registry, static_kwargs_registry
 
 pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture(autouse=True)
 def reset_context():
@@ -96,13 +98,14 @@ def test_download_content():
     action = DownloadContent(test_func, extras=[var_a])
     assert action_registry.has(action.definition_uid)
 
+
 def test_reset_shortcut():
     var = AnyVariable()
     action = var.reset()
     assert isinstance(action, ResetVariables)
     assert action.variables == [var]
 
-    data_vara  = DataVariable()
+    data_vara = DataVariable()
     with pytest.raises(NotImplementedError):
         data_vara.reset()
 
@@ -110,6 +113,7 @@ def test_reset_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         var.reset()
+
 
 def test_sync_shortcut():
     plain_var = Variable()
@@ -128,6 +132,7 @@ def test_sync_shortcut():
     with pytest.raises(ValueError):
         plain_var.sync()
 
+
 def test_toggle_shortcut():
     plain_var = Variable()
     action = plain_var.toggle()
@@ -144,6 +149,7 @@ def test_toggle_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         plain_var.toggle()
+
 
 def test_update_shortcut():
     plain_var = Variable()
@@ -170,6 +176,7 @@ def test_update_shortcut():
     with pytest.raises(ValueError):
         plain_var.update('test')
 
+
 def test_trigger_shortcut():
     der_var = DerivedVariable(lambda x: x, variables=[])
     action = der_var.trigger()
@@ -184,3 +191,305 @@ def test_trigger_shortcut():
     ACTION_CONTEXT.set('foo')
     with pytest.raises(ValueError):
         der_var.trigger()
+
+
+def test_annotated_action_no_params():
+    with pytest.raises(ValueError):
+
+        @action
+        def test_action():
+            pass
+
+
+def test_annotated_action_no_params_instance():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @action
+            def test_action(self):
+                pass
+
+
+def test_annotated_action_no_params_class():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @classmethod
+            @action
+            def test_action(cls):
+                pass
+
+
+def test_annotated_action_no_params_static():
+    with pytest.raises(ValueError):
+
+        class TestClass:
+            @staticmethod
+            @action
+            def test_action():
+                pass
+
+
+def test_annotated_action_missing_ctx():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    @action
+    def test_action(ctx, arg: int):
+        pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        test_action(1)
+
+
+def test_annotated_action_missing_ctx_instance():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @action
+        def test_action(self, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass().test_action(1)
+
+
+def test_annotated_action_missing_ctx_class():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass.test_action(1)
+
+
+def test_annotated_action_missing_ctx_static():
+
+    # Fake being within an @action already
+    ACTION_CONTEXT.set('foo')
+
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because ctx is not passed
+        TestClass.test_action(1)
+
+
+def test_annotated_action_redundant_ctx():
+    @action
+    def test_action(ctx, arg: int):
+        pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_instance():
+    class TestClass:
+        @action
+        def test_action(self, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass().test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_class():
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass.test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_redundant_ctx_static():
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(arg: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # ctx should not be passed
+        TestClass.test_action(ActionCtx(None, None))
+
+
+def test_annotated_action_missing_param():
+    @action
+    def test_action(ctx, arg: int, arg2: int):
+        pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        test_action(1)
+
+
+def test_annotated_action_missing_param_instance():
+    class TestClass:
+        @action
+        def test_action(self, ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass().test_action(1)
+
+
+def test_annotated_action_missing_param_class():
+    class TestClass:
+        @classmethod
+        @action
+        def test_action(cls, ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass.test_action(1)
+
+
+def test_annotated_action_missing_param_static():
+    class TestClass:
+        @staticmethod
+        @action
+        def test_action(ctx, arg: int, arg2: int):
+            pass
+
+    with pytest.raises(TypeError):
+        # should fail because 2 args are expected
+        TestClass.test_action(1)
+
+
+def test_annotated_action_can_be_called():
+    def _raw_test_action(ctx, arg: int, arg2: str):
+        return arg
+
+    # Calling decorator manually to have access to raw func
+    test_action = action(_raw_test_action)
+
+    # Test passing static, dynamic, or mix of kwargs
+    # For each check:
+    # - action definition is correctly registered
+    # - action instance has correct dynamic_kwargs
+    # - static_kwargs_registry has correct static kwargs
+    static_instance = test_action(1, 'two')
+    assert isinstance(static_instance, AnnotatedAction)
+    act_def = action_registry.get(static_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert static_instance.dynamic_kwargs == {}
+    assert static_kwargs_registry.get(static_instance.uid) == {'arg': 1, 'arg2': 'two'}
+
+    var_1 = Variable(1)
+    var_2 = Variable('two')
+    dynamic_instance = test_action(var_1, var_2)
+    assert isinstance(dynamic_instance, AnnotatedAction)
+    act_def = action_registry.get(dynamic_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert dynamic_instance.dynamic_kwargs == {'arg': var_1, 'arg2': var_2}
+    assert static_kwargs_registry.get(dynamic_instance.uid) == {}
+
+    mixed_instance = test_action(var_1, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver == _raw_test_action
+    assert mixed_instance.dynamic_kwargs == {'arg': var_1}
+    assert static_kwargs_registry.get(mixed_instance.uid) == {'arg2': 'two'}
+
+
+async def test_annotated_action_instance_method():
+    class TestClass:
+        def _raw_test_action(self, ctx, arg: int, arg2: str):
+            return (self, ctx, arg, arg2)
+
+        test_action = action(_raw_test_action)
+
+    var = Variable(1)
+    instance = TestClass()
+    mixed_instance = instance.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two', BOUND_PREFIX + 'self': instance}
+
+    # Test the wrapped function can be invoked - we're skipping the variable->value resolution
+    # but here we're just testing the correct values are received
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (instance, ctx, var, 'two')
+
+
+async def test_annotated_action_class_method():
+    class TestClass:
+        def _raw_test_action(cls, ctx, arg: int, arg2: str):
+            return (cls, ctx, arg, arg2)
+
+        test_action = classmethod(action(_raw_test_action))
+
+    var = Variable(1)
+    mixed_instance = TestClass.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two', BOUND_PREFIX + 'cls': TestClass}
+
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (TestClass, ctx, var, 'two')
+
+
+async def test_annotated_action_static_method():
+    class TestClass:
+        def _raw_test_action(ctx, arg: int, arg2: str):
+            return (ctx, arg, arg2)
+
+        test_action = staticmethod(action(_raw_test_action))
+
+    var = Variable(1)
+    mixed_instance = TestClass.test_action(var, 'two')
+    assert isinstance(mixed_instance, AnnotatedAction)
+
+    act_def = action_registry.get(mixed_instance.definition_uid)
+    assert act_def.resolver is not None
+    assert act_def.resolver == TestClass._raw_test_action
+
+    dynamic_kwargs = mixed_instance.dynamic_kwargs
+    assert dynamic_kwargs == {'arg': var}
+
+    static_kwargs = static_kwargs_registry.get(mixed_instance.uid)
+    assert static_kwargs == {'arg2': 'two'}
+
+    ctx = ActionCtx(None, None)
+    assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (ctx, var, 'two')
