@@ -42,7 +42,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import BaseModel
-from typing_extensions import Concatenate, ParamSpec, deprecated
+from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -1286,7 +1286,7 @@ class action:
         # Validate the signature has at least one parameter as it needs one for ctx at the minimum
         if len(params) < 1 or (params[0].name in ('self', 'cls') and len(params) < 2):
             raise ValueError(
-                f'Expected at least one parameter for the @action annotated function, but found none. One parameter is required for the ActionCtx to be injected'
+                'Expected at least one parameter for the @action annotated function, but found none. One parameter is required for the ActionCtx to be injected'
             )
 
         self.func = func
