@@ -4,7 +4,8 @@ title: Changelog
 
 ## NEXT
 
--   Fixed an issue where Local storage was not being cleared between sessions. 
+-   Fixed an issue where Local storage was not being cleared between sessions
+-   Fixed an issue where the `@action` decorator would not work properly for instance methods, or class methods
 
 ## 1.5.0
 
