@@ -51,7 +51,7 @@ auth_registry = Registry[BaseAuthConfig](RegistryType.AUTH_CONFIG)
 utils_registry = Registry[Any](RegistryType.UTILS, INITIAL_CORE_INTERNALS)
 static_kwargs_registry = Registry[Mapping[str, Any]](RegistryType.STATIC_KWARGS)
 
-websocket_registry = Registry[str](RegistryType.WEBSOCKET_CHANNELS)
+websocket_registry = Registry[Set[str]](RegistryType.WEBSOCKET_CHANNELS)
 """maps session_id -> WS channel"""
 
 sessions_registry = Registry[Set[str]](RegistryType.USER_SESSION)

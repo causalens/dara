@@ -63,7 +63,7 @@ from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
-from dara.core.internal.websocket import ws_handler
+from dara.core.internal.websocket import ws_handler, WS_CHANNEL
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
@@ -137,6 +137,7 @@ def create_router(config: Configuration):
         action_def: ActionResolverDef = await registry_mgr.get(action_registry, uid)
 
         CURRENT_ACTION_ID.set(body.uid)
+        WS_CHANNEL.set(body.ws_channel)
 
         # Denormalize the values
         values = denormalize(body.values.data, body.values.lookup)
@@ -224,6 +225,7 @@ def create_router(config: Configuration):
     @core_api_router.post('/components/{component}', dependencies=[Depends(verify_session)])
     async def get_component(component: str, body: ComponentRequestBody):  # pylint: disable=unused-variable
         CURRENT_COMPONENT_ID.set(body.uid)
+        WS_CHANNEL.set(body.ws_channel)
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -299,6 +301,7 @@ def create_router(config: Configuration):
             data_variable_entry: DataVariableRegistryEntry = await registry_mgr.get(data_variable_registry, uid)
 
             data = None
+            WS_CHANNEL.set(body.ws_channel)
 
             if data_variable_entry.type == 'derived':
                 if body.cache_key is None:
@@ -419,6 +422,8 @@ def create_router(config: Configuration):
         result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force)
 
         response: Any = result
+        
+        WS_CHANNEL.set(body.ws_channel)
 
         if isinstance(result['value'], BaseTask):
             # Kick off the task

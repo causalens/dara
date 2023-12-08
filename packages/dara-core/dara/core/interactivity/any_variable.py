@@ -34,7 +34,7 @@ from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
 from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
@@ -190,40 +190,45 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                 raw_results[channel] = e
 
         async with anyio.create_task_group() as tg:
-            for chan in session_channels.values():
-                tg.start_soon(retrieve_value, chan)
+            for channels in session_channels.values():
+                for chan in channels:
+                    tg.start_soon(retrieve_value, chan)
 
         results = {}
 
-        for session, ws in session_channels.items():
-            raw_result = raw_results[ws]
+        for session, channels in session_channels.items():
+            for ws in channels:
+                raw_result = raw_results[ws]
+                # Skip values from clients where the variable is not registered
+                if raw_result == NOT_REGISTERED:
+                    continue
 
-            # Skip values from clients where the variable is not registered
-            if raw_result == NOT_REGISTERED:
-                continue
+                # If returning raw results, skip resolving at this point
+                if raw:
+                    results[session] = raw_result
+                    continue
 
-            # If returning raw results, skip resolving at this point
-            if raw:
-                results[session] = raw_result
-                continue
+                # Impersonate the session so session-based caching works correctly
+                SESSION_ID.set(session)
 
-            # Impersonate the session so session-based caching works correctly
-            SESSION_ID.set(session)
+                result = await resolve_dependency(raw_result, store, task_mgr)
 
-            result = await resolve_dependency(raw_result, store, task_mgr)
+                # If the result is some kind of a task, we need to run it and wait for the result
+                if isinstance(result, BaseTask):
+                    result = await task_mgr.run_task(result)
+                    if isinstance(result, PendingTask):
+                        result = await result.run()
 
-            # If the result is some kind of a task, we need to run it and wait for the result
-            if isinstance(result, BaseTask):
-                result = await task_mgr.run_task(result)
-                if isinstance(result, PendingTask):
-                    result = await result.run()
+                results[ws] = result
 
-            results[session] = result
+        # If we have a channel selected -- get just from that channel
+        if WS_CHANNEL.get() is not None:
+            return results.get(WS_CHANNEL.get(), None)
 
         # In most cases, there should be one value only
         if len(results) == 1:
             return list(results.values())[0]
-
+        
         # No results - just return None instead of empty dict
         if len(results) == 0:
             return None
@@ -261,7 +266,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                     """
                     )
                 )
-
         return results
 
 
