@@ -4,10 +4,9 @@ from uuid import uuid4
 import anyio
 
 
-from dara.core.interactivity.any_variable import NOT_REGISTERED, get_current_value
+from dara.core.interactivity.any_variable import NOT_REGISTERED
 from dara.core.auth import BasicAuthConfig
 from dara.core.auth.definitions import SessionRequestBody
-from exceptiongroup import BaseExceptionGroup
 
 import pytest
 from async_asgi_testclient import TestClient as AsyncTestClient
@@ -336,7 +335,6 @@ async def test_two_websockets_only_one_with_value():
             # Assert that the first value remains unaffected by the second value
             assert var_value == expected_return_value
 
-
 async def test_two_websockets_only_one_with_value_return_exact():
     app, token = setup_two_websocket_tests()
 
@@ -405,8 +403,6 @@ async def test_two_websockets_only_one_with_value_return_exact():
 
             # Assert that the first value remains unaffected by the second value
             assert var_value == expected_return_value
-
-            
 
 def setup_two_websocket_tests():
     builder = ConfigurationBuilder()

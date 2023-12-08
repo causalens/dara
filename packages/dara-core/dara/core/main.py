@@ -114,6 +114,7 @@ def _start_application(config: Configuration):
     # so cleaning them up here would result in an error
     latest_value_registry.replace({}, deepcopy=False)
     websocket_registry.replace({}, deepcopy=False)
+    sessions_registry.replace({}, deepcopy=False)
     config_registry.replace({}, deepcopy=False)
 
     @asynccontextmanager

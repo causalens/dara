@@ -222,13 +222,14 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                 results[ws] = result
 
         # If we have a channel selected -- get just from that channel
-        if WS_CHANNEL.get() is not None:
-            return results.get(WS_CHANNEL.get(), None)
+        saved_ws_channel = WS_CHANNEL.get()
+        if saved_ws_channel is not None:
+            return results.get(saved_ws_channel, None)
 
         # In most cases, there should be one value only
         if len(results) == 1:
             return list(results.values())[0]
-        
+
         # No results - just return None instead of empty dict
         if len(results) == 0:
             return None

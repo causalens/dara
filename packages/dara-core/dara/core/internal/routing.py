@@ -422,7 +422,7 @@ def create_router(config: Configuration):
         result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force)
 
         response: Any = result
-        
+
         WS_CHANNEL.set(body.ws_channel)
 
         if isinstance(result['value'], BaseTask):
