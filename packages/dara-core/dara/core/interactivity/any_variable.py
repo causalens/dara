@@ -134,7 +134,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             )
             return None
 
-        session_channels: Dict[str, str] = {}
+        session_channels: Dict[str, set[str]] = {}
 
         # Collect sessions which are active
         for sid in session_ids:
