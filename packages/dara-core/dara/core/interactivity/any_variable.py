@@ -135,12 +135,18 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             return None
 
         session_channels: Dict[str, Set[str]] = {}
+        saved_ws_channel = WS_CHANNEL.get()
 
         # Collect sessions which are active
         for sid in session_ids:
             if websocket_registry.has(sid):
                 ws_channel = websocket_registry.get(sid)
-                session_channels[sid] = ws_channel
+                # If saved websocket channel is not none, then only save the session of that channel
+                if saved_ws_channel is not None:
+                    if saved_ws_channel in ws_channel:
+                        session_channels[sid] = {saved_ws_channel}
+                else:
+                    session_channels[sid] = ws_channel
 
         if len(session_channels) == 0:
             dev_logger.warning(
@@ -153,7 +159,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         async def retrieve_value(channel: str):
             nonlocal registered_value_found
-
             try:
                 sentinel = object()
                 raw_result = sentinel
@@ -196,13 +201,8 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         results = {}
 
-        saved_ws_channel = WS_CHANNEL.get()
-
         for session, channels in session_channels.items():
             for ws in channels:
-                # If we have a channel selected -- get just from that channel
-                if saved_ws_channel is not None and ws != saved_ws_channel:
-                    continue
 
                 raw_result = raw_results[ws]
                 # Skip values from clients where the variable is not registered

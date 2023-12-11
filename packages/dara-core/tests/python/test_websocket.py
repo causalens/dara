@@ -258,8 +258,6 @@ async def test_two_websockets_both_with_values_with_set_ws_channel():
 
                 async with anyio.create_task_group() as tg_second:
                     ## run the first client again to return two values
-                    tg_second.start_soon(client)
-
                     tg_second.start_soon(second_client)
                     tg_second.start_soon(second_server)
                 
@@ -468,7 +466,6 @@ async def test_two_websockets_only_one_with_value_return_exact():
                     })
 
                 async with anyio.create_task_group() as tg_second:
-                    tg_second.start_soon(client)
                     tg_second.start_soon(second_client)
                     tg_second.start_soon(second_server)
                 
