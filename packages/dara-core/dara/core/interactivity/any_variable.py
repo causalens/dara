@@ -23,7 +23,7 @@ import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Set
 
 import anyio
 from fastapi.encoders import jsonable_encoder
@@ -134,7 +134,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             )
             return None
 
-        session_channels: Dict[str, set[str]] = {}
+        session_channels: Dict[str, Set[str]] = {}
 
         # Collect sessions which are active
         for sid in session_ids:
@@ -196,8 +196,14 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         results = {}
 
+        saved_ws_channel = WS_CHANNEL.get()
+
         for session, channels in session_channels.items():
             for ws in channels:
+                # If we have a channel selected -- get just from that channel
+                if saved_ws_channel is not None and ws != saved_ws_channel:
+                    continue
+
                 raw_result = raw_results[ws]
                 # Skip values from clients where the variable is not registered
                 if raw_result == NOT_REGISTERED:
@@ -205,7 +211,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
                 # If returning raw results, skip resolving at this point
                 if raw:
-                    results[session] = raw_result
+                    results[ws] = raw_result
                     continue
 
                 # Impersonate the session so session-based caching works correctly
@@ -220,11 +226,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                         result = await result.run()
 
                 results[ws] = result
-
-        # If we have a channel selected -- get just from that channel
-        saved_ws_channel = WS_CHANNEL.get()
-        if saved_ws_channel is not None:
-            return results.get(saved_ws_channel, None)
 
         # In most cases, there should be one value only
         if len(results) == 1:

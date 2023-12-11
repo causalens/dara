@@ -195,7 +195,7 @@ async def test_action_task_error():
             result = (await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)).json()
             assert 'error' in result
 
-async def test_two_websockets_both_with_values():
+async def test_two_websockets_both_with_values_with_set_ws_channel():
     app, token = setup_two_websocket_tests()
 
     async with AsyncTestClient(app) as testclient:
@@ -265,6 +265,80 @@ async def test_two_websockets_both_with_values():
                 
                 # Assert that the second variable is correctly set based on the second response because of the WS_CHANNEL
                 assert second_var_value == second_var_expected_value
+
+            # Assert that the first value remains unaffected by the second value
+            assert var_value == expected_return_value
+
+async def test_two_websockets_both_with_values_without_set_ws_channel():
+    app, token = setup_two_websocket_tests()
+
+    async with AsyncTestClient(app) as testclient:
+        async with _async_ws_connect(testclient, token) as websocket:
+            # get the init message
+            init = await websocket.receive_json()
+            variable = Variable(default='current')
+            expected_return_value = 'return_value'
+            var_value = None
+
+            async def server():
+                nonlocal var_value
+                var_value = await variable.get_current_value()
+
+            async def client():
+                # get msg from server
+                websocket_msg = await websocket.receive_json()
+
+                # Assert that the request is correct
+                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+                # send a response back for the first websocket
+                await websocket.send_json({
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value
+                })
+
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(client)
+                tg.start_soon(server)
+
+            async with _async_ws_connect(testclient, token) as second_ws:
+                second_init = await second_ws.receive_json()
+
+                second_var_expected_value = 'second_var_expected_value'
+                second_var_value = None
+                async def second_server():
+                    nonlocal second_var_value
+                    second_var_value = await variable.get_current_value()
+
+                async def second_client():
+                    # get msg from server
+                    second_ws_message = await second_ws.receive_json()
+
+                    # Assert that the request is correct
+                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
+
+                    # send a response back for the second websocket
+                    await second_ws.send_json({
+                        'type': 'message',
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': second_var_expected_value
+                    })
+
+                async with anyio.create_task_group() as tg_second:
+                    ## run the first client again to return two values
+                    tg_second.start_soon(client)
+
+                    tg_second.start_soon(second_client)
+                    tg_second.start_soon(second_server)
+                
+                # Assert that the second variable is a dict of both the first and second values because WS_CHANNEL is not set
+                assert second_var_value == {
+                    second_init.get('message').get('channel'): second_var_expected_value,
+                    init.get('message').get('channel'): expected_return_value
+                }
 
             # Assert that the first value remains unaffected by the second value
             assert var_value == expected_return_value
