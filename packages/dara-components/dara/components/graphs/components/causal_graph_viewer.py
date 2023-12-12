@@ -52,7 +52,24 @@ class CausalGraphViewer(BaseGraphComponent):
     The causal graph can be edited by setting `editable=True`. The editor mode can be set to `EditorMode.DEFAULT`
     (default), `EditorMode.PAG` or `EditorMode.RESOLVER`. The `EditorMode.DEFAULT` mode assumes all edges
     are directed (the causal graph is a DAG). The `EditorMode.PAG` mode displays all edge types (beyond directed), while
-    `EditorMode.RESOLVER` allows users to confirm and accept edges.
+    `EditorMode.RESOLVER` allows users to confirm and accept edges. To change the editor mode, set the `editor_mode`
+    parameter.
+
+    ```python
+    from dara.components.graphs import CausalGraphViewer
+    from dara.components.graphs.definitions import EditorMode
+    from cai_causal_graph import CausalGraph
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+
+    CausalGraphViewer(
+        causal_graph=causal_graph,
+        editor_mode=EditorMode.PAG,
+    )
+    ```
 
     The causal graph can be rendered in a custom layout by providing a `graph_layout` object. The layout can be
     specified either a `GraphLayout` instance. The following layouts are supported:
