@@ -37,7 +37,7 @@ class CausalGraphViewer(BaseGraphComponent):
     a causal graph. The causal graph can be provided either as a `CausalGraph` instance, as a `Skeleton` instance of the `CausalGraph` or as a `dict`.
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
+    from dara.components import CausalGraphViewer
 
     from cai_causal_graph import CausalGraph
 
@@ -52,7 +52,23 @@ class CausalGraphViewer(BaseGraphComponent):
     The causal graph can be edited by setting `editable=True`. The editor mode can be set to `EditorMode.DEFAULT`
     (default), `EditorMode.PAG` or `EditorMode.RESOLVER`. The `EditorMode.DEFAULT` mode assumes all edges
     are directed (the causal graph is a DAG). The `EditorMode.PAG` mode displays all edge types (beyond directed), while
-    `EditorMode.RESOLVER` allows users to confirm and accept edges.
+    `EditorMode.RESOLVER` allows users to confirm and accept edges. To change the editor mode, set the `editor_mode`
+    parameter.
+
+    ```python
+    from dara.components import CausalGraphViewer, EditorMode
+    from cai_causal_graph import CausalGraph
+
+    causal_graph = CausalGraph()
+    causal_graph.add_edge('A', 'B')
+    causal_graph.add_edge('B', 'C')
+    causal_graph.add_edge('A', 'C')
+
+    CausalGraphViewer(
+        causal_graph=causal_graph,
+        editor_mode=EditorMode.PAG,
+    )
+    ```
 
     The causal graph can be rendered in a custom layout by providing a `graph_layout` object. The layout can be
     specified either a `GraphLayout` instance. The following layouts are supported:
@@ -67,8 +83,7 @@ class CausalGraphViewer(BaseGraphComponent):
         offer any protection against edge crossings.
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
-    from dara.components.graphs.graph_layout import PlanarLayout
+    from dara.components import CausalGraphViewer, PlanarLayout
 
     from cai_causal_graph import CausalGraph
 
@@ -93,8 +108,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
     ```python
     from dara.core import Variable, py_component, action
-    from dara.components import CausalGraphViewer, Stack, Text
-    from dara.components.graphs.graph_layout import PlanarLayout
+    from dara.components import CausalGraphViewer, PlanarLayout, Stack, Text
 
     from cai_causal_graph import CausalGraph
 
@@ -160,7 +174,7 @@ class CausalGraphViewer(BaseGraphComponent):
     To use rendering properties, you can provide them in the metadata of the causal graph, e.g.:
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
+    from dara.components import CausalGraphViewer
 
     from cai_causal_graph import CausalGraph
 

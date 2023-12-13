@@ -53,7 +53,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     ```python
     from dara.core import Variable
-    from dara.components.graphs import VisualEdgeEncoder
+    from dara.components import VisualEdgeEncoder
 
     encoder = VisualEdgeEncoder(
         nodes=["First node", "Second node", "Third node"]
@@ -72,7 +72,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     ```python
     from cai_causal_graph import CausalGraph
-    from dara.components.graphs import VisualEdgeEncoder
+    from dara.components import VisualEdgeEncoder
     output_constraints = Variable()
 
     VisualEdgeEncoder(
@@ -89,7 +89,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     ```python
     from cai_causal_graph import CausalGraph
     from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
-    from dara.components.graphs import VisualEdgeEncoder, EdgeConstraint
+    from dara.components import VisualEdgeEncoder, EdgeConstraint
 
     output_constraints = Variable()
 
