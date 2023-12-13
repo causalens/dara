@@ -37,7 +37,7 @@ class CausalGraphViewer(BaseGraphComponent):
     a causal graph. The causal graph can be provided either as a `CausalGraph` instance, as a `Skeleton` instance of the `CausalGraph` or as a `dict`.
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
+    from dara.components import CausalGraphViewer
 
     from cai_causal_graph import CausalGraph
 
@@ -83,7 +83,7 @@ class CausalGraphViewer(BaseGraphComponent):
         offer any protection against edge crossings.
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
+    from dara.components import CausalGraphViewer
     from dara.components.graphs.graph_layout import PlanarLayout
 
     from cai_causal_graph import CausalGraph
@@ -176,7 +176,7 @@ class CausalGraphViewer(BaseGraphComponent):
     To use rendering properties, you can provide them in the metadata of the causal graph, e.g.:
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
+    from dara.components import CausalGraphViewer
 
     from cai_causal_graph import CausalGraph
 
