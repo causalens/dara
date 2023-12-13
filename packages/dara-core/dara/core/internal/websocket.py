@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from contextvars import ContextVar
 import math
 import uuid
 from typing import Any, Dict, Literal, Optional, Tuple, Union
@@ -108,6 +109,7 @@ ServerPayload = Union[ServerMessagePayload, CustomServerMessagePayload]
 LoosePayload = Union[ServerPayload, dict]
 ServerMessage = Union[DaraServerMessage, CustomServerMessage]
 
+WS_CHANNEL: ContextVar[Optional[str]] = ContextVar('ws_channel', default=None)
 
 class WebSocketHandler:
     """
@@ -209,7 +211,6 @@ class WebSocketHandler:
             await anyio.sleep(0.01)
 
         pending_response = self.pending_responses.pop(message_id)
-
         if not pending_response:
             return None
 
@@ -320,7 +321,12 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
         raise HTTPException(status_code=403, detail=err.detail)
 
     # Register once accepted - map session id to the channel so subsequent requests can identify the client
-    websocket_registry.register(token_content.session_id, channel)
+    if websocket_registry.has(token_content.session_id):
+        previous_channels = websocket_registry.get(token_content.session_id)
+        previous_channels.add(channel)
+        websocket_registry.set(token_content.session_id, previous_channels)
+    else:
+        websocket_registry.set(token_content.session_id, {channel})
 
     # Remove from pending tokens if present
     if pending_tokens_registry.has(token):
@@ -411,5 +417,9 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                 tg.start_soon(receive_from_client)
                 tg.start_soon(send_to_client)
         finally:
-            websocket_registry.remove(token_content.session_id)
+            if websocket_registry.has(token_content.session_id):
+                channels = websocket_registry.get(token_content.session_id)
+                if channel in channels:
+                    channels.remove(channel)
+                    websocket_registry.set(token_content.session_id, channels)
             ws_mgr.remove_handler(channel)

@@ -23,7 +23,7 @@ import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Set
 
 import anyio
 from fastapi.encoders import jsonable_encoder
@@ -34,7 +34,7 @@ from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
 from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
@@ -134,13 +134,19 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             )
             return None
 
-        session_channels: Dict[str, str] = {}
+        session_channels: Dict[str, Set[str]] = {}
+        saved_ws_channel = WS_CHANNEL.get()
 
         # Collect sessions which are active
         for sid in session_ids:
             if websocket_registry.has(sid):
-                ws_channel = websocket_registry.get(sid)
-                session_channels[sid] = ws_channel
+                ws_channels = websocket_registry.get(sid)
+                # If saved websocket channel is not none, then only save the session of that channel
+                if saved_ws_channel is not None:
+                    if saved_ws_channel in ws_channels:
+                        session_channels[sid] = {saved_ws_channel}
+                else:
+                    session_channels[sid] = ws_channels
 
         if len(session_channels) == 0:
             dev_logger.warning(
@@ -153,7 +159,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         async def retrieve_value(channel: str):
             nonlocal registered_value_found
-
             try:
                 sentinel = object()
                 raw_result = sentinel
@@ -190,35 +195,37 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                 raw_results[channel] = e
 
         async with anyio.create_task_group() as tg:
-            for chan in session_channels.values():
-                tg.start_soon(retrieve_value, chan)
+            for channels in session_channels.values():
+                for chan in channels:
+                    tg.start_soon(retrieve_value, chan)
 
         results = {}
 
-        for session, ws in session_channels.items():
-            raw_result = raw_results[ws]
+        for session, channels in session_channels.items():
+            for ws in channels:
 
-            # Skip values from clients where the variable is not registered
-            if raw_result == NOT_REGISTERED:
-                continue
+                raw_result = raw_results[ws]
+                # Skip values from clients where the variable is not registered
+                if raw_result == NOT_REGISTERED:
+                    continue
 
-            # If returning raw results, skip resolving at this point
-            if raw:
-                results[session] = raw_result
-                continue
+                # If returning raw results, skip resolving at this point
+                if raw:
+                    results[ws] = raw_result
+                    continue
 
-            # Impersonate the session so session-based caching works correctly
-            SESSION_ID.set(session)
+                # Impersonate the session so session-based caching works correctly
+                SESSION_ID.set(session)
 
-            result = await resolve_dependency(raw_result, store, task_mgr)
+                result = await resolve_dependency(raw_result, store, task_mgr)
 
-            # If the result is some kind of a task, we need to run it and wait for the result
-            if isinstance(result, BaseTask):
-                result = await task_mgr.run_task(result)
-                if isinstance(result, PendingTask):
-                    result = await result.run()
+                # If the result is some kind of a task, we need to run it and wait for the result
+                if isinstance(result, BaseTask):
+                    result = await task_mgr.run_task(result)
+                    if isinstance(result, PendingTask):
+                        result = await result.run()
 
-            results[session] = result
+                results[ws] = result
 
         # In most cases, there should be one value only
         if len(results) == 1:
@@ -261,7 +268,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                     """
                     )
                 )
-
         return results
 
 
