@@ -83,8 +83,7 @@ class CausalGraphViewer(BaseGraphComponent):
         offer any protection against edge crossings.
 
     ```python
-    from dara.components import CausalGraphViewer
-    from dara.components.graphs.graph_layout import PlanarLayout
+    from dara.components import CausalGraphViewer, PlanarLayout
 
     from cai_causal_graph import CausalGraph
 
@@ -109,8 +108,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
     ```python
     from dara.core import Variable, py_component, action
-    from dara.components import CausalGraphViewer, Stack, Text
-    from dara.components.graphs.graph_layout import PlanarLayout
+    from dara.components import CausalGraphViewer, PlanarLayout, Stack, Text
 
     from cai_causal_graph import CausalGraph
 
