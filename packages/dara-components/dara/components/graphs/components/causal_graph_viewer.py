@@ -56,8 +56,7 @@ class CausalGraphViewer(BaseGraphComponent):
     parameter.
 
     ```python
-    from dara.components.graphs import CausalGraphViewer
-    from dara.components.graphs.definitions import EditorMode
+    from dara.components import CausalGraphViewer, EditorMode
     from cai_causal_graph import CausalGraph
 
     causal_graph = CausalGraph()
