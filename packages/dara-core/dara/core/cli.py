@@ -59,7 +59,7 @@ def cli():
 @click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', None), help='Debug logger level to use')
 @click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
 @click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
-@click.option('--skip-jsbuild', is_flag=True, help='Directories to watch for reload')
+@click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
 def start(
     reload: bool,
     enable_hmr: bool,
