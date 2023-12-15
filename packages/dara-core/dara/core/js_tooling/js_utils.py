@@ -423,6 +423,11 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheD
         dev_logger.debug('Docker mode, skipping JS build')
         return
 
+    # Skip the JS build if the flag is set
+    if os.environ.get('SKIP_JSBUILD', 'FALSE') == 'TRUE':
+        dev_logger.debug('SKIP_JSBUILD mode, skipping JS build')
+        return
+
     # Explitily forced a full rebuild
     if os.environ.get('DARA_JS_REBUILD', 'FALSE') == 'TRUE':
         dev_logger.debug('JS rebuild forced explicitly')
