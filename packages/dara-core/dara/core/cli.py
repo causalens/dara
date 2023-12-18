@@ -59,6 +59,7 @@ def cli():
 @click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', None), help='Debug logger level to use')
 @click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
 @click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
+@click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
 def start(
     reload: bool,
     enable_hmr: bool,
@@ -74,6 +75,7 @@ def start(
     debug: Optional[str],
     log: Optional[str],
     reload_dir: Optional[List[str]],
+    skip_jsbuild: bool,
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')
@@ -120,6 +122,10 @@ def start(
     # Tell frontend to restart on WS reconnection
     if reload:
         os.environ['DARA_LIVE_RELOAD'] = 'TRUE'
+
+    # Skip rebuild js assets
+    if skip_jsbuild:
+        os.environ['SKIP_JSBUILD'] = 'TRUE'
 
     # Check that if production/dev mode is set, node is installed - unless we're in docker mode
     if not docker and (production or enable_hmr):

@@ -7,6 +7,7 @@ title: Changelog
 -   Fixed an issue where Local storage was not being cleared between sessions
 -   Fixed an issue where the `@action` decorator would not work properly for instance methods, or class methods
 -   Changed the session tie up to websocket channels to allow a single session to be tied to multiple channels
+-   Add `--skip-jsbuild` cli flag, which skip the building JS assets process.
 
 ## 1.5.0
 
