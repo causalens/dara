@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.5.1
 
 -   Updated plotting palettes to support 1 or 2 colors as well as 3+.
 
