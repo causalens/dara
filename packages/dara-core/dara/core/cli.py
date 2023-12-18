@@ -75,7 +75,7 @@ def start(
     debug: Optional[str],
     log: Optional[str],
     reload_dir: Optional[List[str]],
-    skip_jsbuild:bool,
+    skip_jsbuild: bool,
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')
