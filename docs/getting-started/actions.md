@@ -102,7 +102,7 @@ config.add_page(name='Increment Variable', content=test_page())
 The example's action is the function `increment` and it takes the current value of the Variable and adds one to it, assuming it is an integer. If you were to click on the button, the `Variable`'s value would be updated to six.
 The action is called with `my_var` as an argument, which means the current `my_var` value will be available as `previous_value` within the `increment` function body.
 
-For simple cases check out [update](#daracoreinteractivityplain_variablevariableupdate), [toggle](#daracoreinteractivityplain_variablevariabletoggle) and [sync](#daracoreinteractivityplain_variablevariablesync) shortcut actions.
+For simple cases check out [update](#update-1), [toggle](#toggle) and [sync](#sync) shortcut actions.
 
 ### `trigger`
 
@@ -151,7 +151,7 @@ config.add_page(name='Trigger Variable', content=test_page())
 
 In the above example, the value of the variable passed to Input component is squared only when the 'Trigger Derived Variable' button is clicked.
 
-For simple cases check out [trigger](#daracoreinteractivityderived_variablederivedvariabletrigger) shortcut action.
+For simple cases check out [trigger](#trigger-1) shortcut action.
 
 ### `reset_variables`
 
@@ -195,7 +195,7 @@ def test_page():
 config.add_page(name='Reset Variable', content=test_page())
 ```
 
-For simple cases check out [reset](#daracoreinteractivityany_variableanyvariablereset) shortcut action.
+For simple cases check out [reset](#reset) shortcut action.
 
 ### `notify`
 
@@ -732,7 +732,7 @@ The example's resolver is the function `add_one` and it takes the current value 
 
 To migrate to the new API, you can use the [`update` method](#update) of the injected context within an `@action`-decorated function.
 
-For simpler cases, you can use the [`update`](#daracoreinteractivityplain_variablevariableupdate), [`sync`](#daracoreinteractivityplain_variablevariablesync) and [`toggle`](#daracoreinteractivityplain_variablevariabletoggle) shortcut actions.
+For simpler cases, you can use the [`update`](#update-1), [`sync`](#sync) and [`toggle`](#toggle) shortcut actions.
 
 ### `NavigateTo`
 
