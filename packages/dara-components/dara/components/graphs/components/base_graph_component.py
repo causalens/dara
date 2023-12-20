@@ -42,7 +42,7 @@ class BaseGraphComponent(StyledComponentInstance):
         by default will also update the `causal_graph` provided, if it's a plain Variable instance
     :param tooltip_size: Optional parameter to force the tooltips to use a particular font size
     :param verbose_descriptions: Optional flag to show verbose descriptions in the editor frame
-    :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
+    :param zoom_thresholds: Optional user-defined zoom thresholds. See ![ZoomThresholds](../definitions/#zoomthresholds) for more details.
     """
 
     additional_legends: Optional[List[Dict[str, str]]] = None
