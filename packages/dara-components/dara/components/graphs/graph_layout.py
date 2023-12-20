@@ -102,15 +102,15 @@ class FcoseLayout(GraphLayout):
 
     See https://github.com/iVis-at-Bilkent/cytoscape.js-fcose for more details and interactive demos.
 
-    :param edge_elasticity: Divisor to compute edge forces
-    :param edge_length: Ideal edge length multiplier, the layout's `idealEdgeLength = avgNodeSize * edgeLength`
-    :param energy: Initial cooling factor for incremental layout
-    :param gravity: Gravity force multiplier
-    :param gravity_range: Gravity range
-    :param high_quality: Whether to produce high-quality layout a slight performance cost, lowers cooling rate so might require more iterations
-    :param iterations: Number of iterations to run the layout for, per computation
-    :param node_repulsion: Non-overlapping node force multiplier
-    :param node_separation: Separation force between nodes
+    :param edge_elasticity: Divisor to compute edge forces (default value: 0.45)
+    :param edge_length: Ideal edge length multiplier, the layout's `idealEdgeLength = avgNodeSize * edgeLength` (default value: 3)
+    :param energy: Initial cooling factor for incremental layout (default value: 0.1)
+    :param gravity: Gravity force multiplier (default value: 35)
+    :param gravity_range: Gravity range (default value: 80)
+    :param high_quality: Whether to produce high-quality layout a slight performance cost, lowers cooling rate so might require more iterations (default value: `True`)
+    :param iterations: Number of iterations to run the layout for, per computation (default value: 2500)
+    :param node_repulsion: Non-overlapping node force multiplier (default value: 6500)
+    :param node_separation: Separation force between nodes (default value: 75)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.FCOSE, const=True)
@@ -135,19 +135,19 @@ class ForceAtlasLayout(GraphLayout):
     in-depth explanations of the parameters.
 
     :param barnes_hut_optimize: Whether to use the Barnes-Hut approximation to calculate repulsive forces.
-    Enabling it improves the performance at cost of accuracy.
+        Enabling it improves the performance at cost of accuracy. (default value: `False`)
     :param edge_weight_influence: Influence of edge weights on the layout. If set to 0, edge weights are ignored.
-    Higher values emphasize the weight effects. This parameter is used to modify the attraction force between nodes.
+        Higher values emphasize the weight effects. This parameter is used to modify the attraction force between nodes. (default value: 1)
     :param gravity: This force prevents disconnected components from drifting away, attracting nodes towards the center
-    of the space. Its main purpose is to compensate repulsion for nodes that are far away from the center.
-    :param iterations: Number of iterations to run the layout for, per computation
+        of the space. Its main purpose is to compensate repulsion for nodes that are far away from the center. (default value:0.2)
+    :param iterations: Number of iterations to run the layout for, per computation (default value: 10_000)
     :param lin_log_mode: Whether to use LinLog energy model, using logarithmic attraction force. Enabling it makes clusters
-    tighter but coverges slower.
-    :param outbound_attraction_distribution: Whether to scale the attraction force between nodes according to their degree.
-    :param scaling_ratio: Parameter to adjust the size of the produced graph
+        tighter but coverges slower. (default value: `True`)
+    :param outbound_attraction_distribution: Whether to scale the attraction force between nodes according to their degree. (default value: `True`)
+    :param scaling_ratio: Parameter to adjust the size of the produced graph (default value: 8)
     :param strong_gravity_mode: Whether to use strong gravity mode, which sets a force that attracts the nodes that are distant
-    from the center more. This force has the drawback of being so strong that it is sometimes stronger than the other forces. It may result in a biased placement of the nodes.
-    However, its advantage is to force a very compact layout, which may be useful for certain purposes.
+        from the center more. This force has the drawback of being so strong that it is sometimes stronger than the other forces. It may result in a biased placement of the nodes.
+        However, its advantage is to force a very compact layout, which may be useful for certain purposes. (default value: `False`)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.FORCE_ATLAS, const=True)
@@ -180,7 +180,7 @@ class PlanarLayout(GraphLayout):
     PlanarLayout provides a planar layout similar to the layout offered in low-level editor. The implementation
     uses d3-dag's sugiyama layout under the hood to minimize edge crossings.
 
-    :param orientation: Orientation of target node relative to other nodes (horizontal or vertical)
+    :param orientation: Orientation of target node relative to other nodes (horizontal or vertical). (default value: horizontal)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, const=True)
@@ -192,12 +192,12 @@ class SpringLayout(GraphLayout):
     SpringLayout provides a simple force-directed graph layout which produces the "spring" behaviour of edges.
     This is a 'live' layout, which means a simulation keeps running in the background to compute the layout.
 
-    :param collision_force: Multiplier for collision force between nodes
-    :param gravity: Gravity strength; negative values pull nodes together, positive values push them apart
-    :param link_force: Multiplier for link force between nodes, higher values produce shorter links
+    :param collision_force: Multiplier for collision force between nodes (default value: 2)
+    :param gravity: Gravity strength; negative values pull nodes together, positive values push them apart (default value: 50)
+    :param link_force: Multiplier for link force between nodes, higher values produce shorter links (default value: 5)
     :param warmup_ticks: Number of ticks to run the simulation for before displaying the layout. Increasing it should
         make the initial render of the graph more stable (i.e. nodes won't move by themselves) but it comes at a
-        small performance cost.
+        small performance cost. (default value: 100)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, const=True)
