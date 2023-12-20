@@ -109,9 +109,9 @@ class VisualEdgeEncoder(StyledComponentInstance):
     :param initial_constraints: Optional initial edge constraints. Can be passed as a list of `EdgeConstraint` objects or a Variable.
     :param node_size: Optional parameter to force the node size to be larger
     :param nodes: List of available nodes - can be passed as a list of strings or a dict of [str, Node]
-    :param on_click_edge: Event handler for clicking on an edge
-    :param on_click_node: Event handler for clicking on a node
-    :param on_update: Optional event handler for all hierarchy changes, called with built list of constraints.
+    :param on_click_edge: Optional `Action` triggered when clicking on an edge
+    :param on_click_node: Optional `Action` triggered when clicking on a node
+    :param on_update: Optional `Action` for all hierarchy changes, called with built list of constraints.
         Note that when updating a Variable passed into `initial_constraints` it will re-render the component on each update,
         use a different Variable for the output of the component.
     :param tooltip_size: Optional parameter to force a tooltip to use a particular font size
