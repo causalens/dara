@@ -39,13 +39,13 @@ class ZoomThresholds(BaseModel):
     """
 
     edge: float
-    """Minimum scale at which edges should be visible"""
+    """Minimum scale at which edges should be visible (defaults to 0.08)"""
 
     label: float
-    """Minimum scale at which node labels should be visible"""
+    """Minimum scale at which node labels should be visible (defaults to 0.3)"""
 
     shadow: float
-    """Minimum scale at which node/edge shadows should be visible"""
+    """Minimum scale at which node/edge shadows should be visible (defaults to 0.6)"""
 
     symbol: float
-    """Minimum scale at which edge symbols (arrow heads etc.) should be visible"""
+    """Minimum scale at which edge symbols (arrow heads etc.) should be visible (defaults to 0.2)"""
