@@ -49,7 +49,7 @@ class Image(ContentComponent):
     Image(src='/static/image.gif')
 
     # Remote image
-    Image(src='https://example.com/some_image.png)
+    Image(src='https://example.com/some_image.png')
     ```
 
     :param src: The URL to the local or remote image
