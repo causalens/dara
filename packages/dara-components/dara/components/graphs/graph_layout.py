@@ -193,7 +193,7 @@ class SpringLayout(GraphLayout):
     This is a 'live' layout, which means a simulation keeps running in the background to compute the layout.
 
     :param collision_force: Multiplier for collision force between nodes (default value: 2)
-    :param gravity: Gravity strength; negative values pull nodes together, positive values push them apart (default value: 50)
+    :param gravity: Gravity strength; negative values pull nodes together, positive values push them apart (default value: -50)
     :param link_force: Multiplier for link force between nodes, higher values produce shorter links (default value: 5)
     :param warmup_ticks: Number of ticks to run the simulation for before displaying the layout. Increasing it should
         make the initial render of the graph more stable (i.e. nodes won't move by themselves) but it comes at a
