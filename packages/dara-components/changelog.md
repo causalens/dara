@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.5.2
+
+-   Fixed an issue where dragging nodes too quickly in `CausalGraphViewer` would cause the node drag to stop working
+-   Fixed an issue where `Soft Directed` edge was not shown in the legend of `VisualEdgeEncoder`
+
 ## 1.5.1
 
 -   Updated plotting palettes to support 1 or 2 colors as well as 3+.
