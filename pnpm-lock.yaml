@@ -49,7 +49,7 @@ importers:
       immer: ^9.0.6
       lodash: ^4.17.21
       nanoid: ^3.3.0
-      plotly.js: ~2.23.2
+      plotly.js: ~2.28.0
       polished: ^4.2.2
       prettier: ^2.8
       prism-react-renderer: ^1.2.0
@@ -81,13 +81,13 @@ importers:
       immer: 9.0.21
       lodash: 4.17.21
       nanoid: 3.3.7
-      plotly.js: 2.23.2
+      plotly.js: 2.28.0_mapbox-gl@1.10.1
       polished: 4.2.2
       prism-react-renderer: 1.3.5_react@18.2.0
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-markdown: 8.0.6_82691d6d12764c44a05eba6a1ff98a63
-      react-plotly.js: 2.6.0_plotly.js@2.23.2+react@18.2.0
+      react-plotly.js: 2.6.0_plotly.js@2.28.0+react@18.2.0
       react-virtualized-auto-sizer: 1.0.6_react-dom@18.2.0+react@18.2.0
       recoil: 0.7.7_react-dom@18.2.0+react@18.2.0
       rehype-raw: 6.1.1
@@ -3538,6 +3538,36 @@ packages:
     resolution: {integrity: sha512-x49ThEu1FRA00kTso4Jdfyf2byaCPLBGmLjAYQz5OzaPyLUhHesX3/Nfv2OHEhynhdy2UB39DLXq6thYe2L2kg==}
     dev: false
 
+  /@plotly/mapbox-gl/1.13.4_mapbox-gl@1.10.1:
+    resolution: {integrity: sha512-sR3/Pe5LqT/fhYgp4rT4aSFf1rTsxMbGiH6Hojc7PH36ny5Bn17iVFUjpzycafETURuFbLZUfjODO8LvSI+5zQ==}
+    engines: {node: '>=6.4.0'}
+    dependencies:
+      '@mapbox/geojson-rewind': 0.5.2
+      '@mapbox/geojson-types': 1.0.2
+      '@mapbox/jsonlint-lines-primitives': 2.0.2
+      '@mapbox/mapbox-gl-supported': 1.5.0_mapbox-gl@1.10.1
+      '@mapbox/point-geometry': 0.1.0
+      '@mapbox/tiny-sdf': 1.2.5
+      '@mapbox/unitbezier': 0.0.0
+      '@mapbox/vector-tile': 1.3.1
+      '@mapbox/whoots-js': 3.1.0
+      csscolorparser: 1.0.3
+      earcut: 2.2.4
+      geojson-vt: 3.2.1
+      gl-matrix: 3.4.3
+      grid-index: 1.1.0
+      murmurhash-js: 1.0.0
+      pbf: 3.2.1
+      potpack: 1.0.2
+      quickselect: 2.0.0
+      rw: 1.3.3
+      supercluster: 7.1.5
+      tinyqueue: 2.0.3
+      vt-pbf: 3.1.3
+    transitivePeerDependencies:
+      - mapbox-gl
+    dev: false
+
   /@plotly/point-cluster/3.1.9:
     resolution: {integrity: sha512-MwaI6g9scKf68Orpr1pHZ597pYx9uP8UEFXLPbsCmuw3a84obwz6pnMXGc90VhgDNeNiLEdlmuK7CPo+5PIxXw==}
     dependencies:
@@ -4978,6 +5008,11 @@ packages:
   /balanced-match/2.0.0:
     resolution: {integrity: sha512-1ugUSr8BHXRnK23KfuYS+gVMC3LB8QGH9W1iGtDPsNWoQbgtXSExkBu2aDR4epiGWZOjZsj6lDl/N/AqqTC3UA==}
     dev: true
+
+  /base64-arraybuffer/1.0.2:
+    resolution: {integrity: sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==}
+    engines: {node: '>= 0.6.0'}
+    dev: false
 
   /base64-js/1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
@@ -12155,15 +12190,17 @@ packages:
       queue-lit: 1.5.2
     dev: true
 
-  /plotly.js/2.23.2:
-    resolution: {integrity: sha512-02WIZzXpwyGs7xOw/++bGZIGs4HH3lczmPvXzgyQnXSqPGrnyy/xkgEAyp++/zP72O3QUcfhZKW9iTJduM2gDw==}
+  /plotly.js/2.28.0_mapbox-gl@1.10.1:
+    resolution: {integrity: sha512-fEvAapXhFTFO/PM5LnUvoG+tgOxRjjW7C7nHwVaDLKfq0F+SF/p3zRgo7vKwk9588WfgEHvuk6yRnp1mxZ+YSw==}
     dependencies:
       '@plotly/d3': 3.8.1
       '@plotly/d3-sankey': 0.7.2
       '@plotly/d3-sankey-circular': 0.33.1
+      '@plotly/mapbox-gl': 1.13.4_mapbox-gl@1.10.1
       '@turf/area': 6.5.0
       '@turf/bbox': 6.5.0
       '@turf/centroid': 6.5.0
+      base64-arraybuffer: 1.0.2
       canvas-fit: 1.5.0
       color-alpha: 1.0.4
       color-normalize: 1.5.0
@@ -12185,7 +12222,6 @@ packages:
       has-hover: 1.0.1
       has-passive-events: 1.0.0
       is-mobile: 4.0.0
-      mapbox-gl: 1.10.1
       mouse-change: 1.4.0
       mouse-event-offset: 3.0.2
       mouse-wheel: 1.2.0
@@ -12197,7 +12233,7 @@ packages:
       regl: /@plotly/regl/2.1.2
       regl-error2d: 2.0.12
       regl-line2d: 3.1.2
-      regl-scatter2d: 3.2.9
+      regl-scatter2d: 3.3.1
       regl-splom: 1.0.14
       strongly-connected-components: 1.0.1
       superscript-text: 1.0.0
@@ -12208,6 +12244,7 @@ packages:
       webgl-context: 2.2.0
       world-calendars: 1.0.3
     transitivePeerDependencies:
+      - mapbox-gl
       - supports-color
     dev: false
 
@@ -12712,13 +12749,13 @@ packages:
       react-dom: 18.2.0_react@18.2.0
     dev: false
 
-  /react-plotly.js/2.6.0_plotly.js@2.23.2+react@18.2.0:
+  /react-plotly.js/2.6.0_plotly.js@2.28.0+react@18.2.0:
     resolution: {integrity: sha512-g93xcyhAVCSt9kV1svqG1clAEdL6k3U+jjuSzfTV7owaSU9Go6Ph8bl25J+jKfKvIGAEYpe4qj++WHJuc9IaeA==}
     peerDependencies:
       plotly.js: '>1.34.0'
       react: '>0.13.0'
     dependencies:
-      plotly.js: 2.23.2
+      plotly.js: 2.28.0_mapbox-gl@1.10.1
       prop-types: 15.8.1
       react: 18.2.0
     dev: false
@@ -13120,8 +13157,8 @@ packages:
       to-float32: 1.1.0
     dev: false
 
-  /regl-scatter2d/3.2.9:
-    resolution: {integrity: sha512-PNrXs+xaCClKpiB2b3HZ2j3qXQXhC5kcTh/Nfgx9rLO0EpEhab0BSQDqAsbdbpdf+pSHSJvbgitB7ulbGeQ+Fg==}
+  /regl-scatter2d/3.3.1:
+    resolution: {integrity: sha512-seOmMIVwaCwemSYz/y4WE0dbSO9svNFSqtTh5RE57I7PjGo3tcUYKtH0MTSoshcAsreoqN8HoCtnn8wfHXXfKQ==}
     dependencies:
       '@plotly/point-cluster': 3.1.9
       array-range: 1.0.1
@@ -13150,7 +13187,7 @@ packages:
       parse-rect: 1.2.0
       pick-by-alias: 1.2.0
       raf: 3.4.1
-      regl-scatter2d: 3.2.9
+      regl-scatter2d: 3.3.1
     dev: false
 
   /regl/2.1.0:
