@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.5.2
 
 -   Fix an issue where dragging nodes too quickly in `CausalGraphViewer` would cause the node drag to stop working
 -   Fixed an issue where `Soft Directed` edge was not shown in the legend of `VisualEdgeEncoder`
