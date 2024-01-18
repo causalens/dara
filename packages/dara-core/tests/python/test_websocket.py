@@ -263,7 +263,6 @@ async def test_two_websockets_both_with_values_with_set_ws_channel():
 
             # Assert that the first value remains unaffected by the second value
             assert var_value == expected_return_value
-            assert False == True
 
 
 async def test_two_websockets_both_with_values_with_stale_ws_channel():
