@@ -50,6 +50,8 @@ export interface CausalGraphViewerProps extends StyledComponentProps {
     on_click_node?: Action;
     /** Action def for any updates to the graph */
     on_update?: Action;
+    /** Optional boolean defining whether a node and an edge can be selected simultaneously */
+    simultaneous_edge_node_selection?: boolean;
     /** Optional parameter to force a tooltip to use a particular font size */
     tooltip_size?: number;
     /** Whether to show verbose descriptions in the editor frame */
@@ -87,6 +89,9 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
         return null;
     }
 
+    console.log('AYO');
+    console.log(props.simultaneous_edge_node_selection);
+
     return (
         <StyledGraphViewer
             $rawCss={css}
@@ -105,6 +110,7 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
             onClickNode={onClickNode}
             onNotify={pushNotification}
             onUpdate={onGraphUpdate}
+            simultaneousEdgeNodeSelection={props.simultaneous_edge_node_selection}
             style={style}
             tooltipSize={props.tooltip_size}
             verboseDescriptions={props.verbose_descriptions}
