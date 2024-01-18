@@ -405,8 +405,11 @@ config.add_page(name='Skeleton Example', content=CausalGraphViewer(causal_graph=
 
 ### TimeSeriesCausalGraph
 
-For [TimeSeriesCausalGraph](https://causalgraph.causalens.com/docs/generated/cai-causal-graph/docs/time_series_causal_graph) we have an added in support where for layouts that support tiers, they will use `time_lag` and `variable_name` to place these nodes within the same tier.
-This is currently supported by `FcoseLayout`, `SpringLayout` and `MarketingLayout`.
+If a [TimeSeriesCausalGraph](https://causalgraph.causalens.com/docs/generated/cai-causal-graph/docs/time_series_causal_graph)
+is detected and the layout chosen supports it, then by default they will use `time_lag` and `variable_name` to place these
+nodes within the same tier. You can override this behaviour by setting tiers to something else.
+
+The layouts that currently support `TimeSeriesCausalGraph` are: `FcoseLayout`, `SpringLayout` and `MarketingLayout`.
 
 ```
 from dara.core.configuration import ConfigurationBuilder
