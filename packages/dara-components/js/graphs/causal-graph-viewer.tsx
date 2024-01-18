@@ -89,9 +89,6 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
         return null;
     }
 
-    console.log('AYO');
-    console.log(props.simultaneous_edge_node_selection);
-
     return (
         <StyledGraphViewer
             $rawCss={css}
