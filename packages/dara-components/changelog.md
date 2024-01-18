@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added `simultaneous_edge_node_selection` to `CausalGraphViewer`, when set to True, the selected node will not be reset when an edge is chosen and vice versa.
+
 ## 1.5.2
 
 -   Fixed an issue where dragging nodes too quickly in `CausalGraphViewer` would cause the node drag to stop working
