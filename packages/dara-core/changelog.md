@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.5.3
 
 -  Fixed an issue where the websocket channel would fail to be set correctly when using get_current_value after the user has reconnected their browser on a different websocket channel.
 
