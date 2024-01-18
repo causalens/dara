@@ -163,7 +163,7 @@ Stack(
 
 :::caution
 
-**When dealing with `CausalGraphViewer`, `Table` and `Scrollable Stacks`:**
+**When dealing with `CausalGraphViewer`, `Table`, `Plotly` and `Scrollable Stacks`:**
 These components are special in that they essentially "scan" the space available on the page before they render. This is good because it allows them to adapt to their surroundings but it comes with drawbacks.
 
 If you surround them with hug, hug tries to make the space only as big as it needs to. So there is a conflict of interest as there is no space leftover for them to take. In that case they will take their default `min_height`. So if you are using these components within a `hug` container you may need to overwrite `min_height` of the component should you want them to take more space on the screen.
