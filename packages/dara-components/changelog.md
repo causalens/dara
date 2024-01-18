@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added support for tiered layout in `FcoseLayout`, `PlanarLayout`, `SpringLayout` and `MarketingLayout`. It allows for nodes to be placed on tiers following some hierarchy and to further define requirements of nodes positions within that tier.
+-   If `TimeSeriesCausalGraph` object is passed to `CausalGraphViewer` and no tiers are defines, it will use `time_lag` and `variable_name` to define the `order_nodes_by` and `group` respectively. 
+
 ## 1.5.2
 
 -   Fixed an issue where dragging nodes too quickly in `CausalGraphViewer` would cause the node drag to stop working
