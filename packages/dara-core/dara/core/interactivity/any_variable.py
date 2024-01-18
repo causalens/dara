@@ -142,9 +142,8 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             if websocket_registry.has(sid):
                 ws_channels = websocket_registry.get(sid)
                 # If saved websocket channel is not none, then only save the session of that channel
-                if saved_ws_channel is not None:
-                    if saved_ws_channel in ws_channels:
-                        session_channels[sid] = {saved_ws_channel}
+                if saved_ws_channel is not None and saved_ws_channel in ws_channels:
+                    session_channels[sid] = {saved_ws_channel}
                 else:
                     session_channels[sid] = ws_channels
 
