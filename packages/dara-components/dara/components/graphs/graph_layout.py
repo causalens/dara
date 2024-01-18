@@ -17,7 +17,7 @@ limitations under the License.
 
 import abc
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from pydantic import BaseModel, Field
 
@@ -37,7 +37,7 @@ class TargetLocation(Enum):
     BOTTOM = 'bottom'
 
 
-class DirectionType(Enum):
+class DirectionType(str, Enum):
     HORIZONTAL = 'horizontal'
     VERTICAL = 'vertical'
 
@@ -55,6 +55,78 @@ class GraphLayout(BaseModel, abc.ABC):
 
     node_size: Optional[int] = None
     node_font_size: Optional[int] = None
+
+
+class TiersConfg(BaseModel):
+    """
+    TiersConfg provides a way of defining tiers for a graph layout.
+
+    :param group: Path within node to group property which defines the tier it belong to
+    :param order_nodes_by: A path to a node property which contains a number defining the order of nodes within a tier
+    :param rank: A list of grouo values defining the order they should appear in
+    """
+
+    group: str
+    order_nodes_by: Optional[str] = None
+    rank: Optional[List[str]] = None
+
+
+class TieringLayout(BaseModel):
+    """
+    TieringLayout provides a tiering layout for a graph. It can be used to define tiers for a graph.
+
+    A way of setting tiers is to pass it as an array of array of nodes:
+    ```
+    from dara.components import CausalGraphViewer, FcoseLayout
+    from cai_causal_graph import CausalGraph
+
+    cg = CausalGraph()
+    cg.add_edge('A', 'C')
+    cg.add_edge('B', 'D')
+    cg.add_edge('C', 'E')
+    cg.add_edge('D', 'E')
+
+    tiers = [['A', 'B'], ['C', 'D'], ['E']]
+
+    CausalGraphViewer(
+        causal_graph=cg,
+        graph_layout=FcoseLayout(
+                tiers=tiers,
+                orientation='vertical'
+            ),
+    )
+    ```
+
+    Alternatively you can pass the tiers based on some node property with the use of TiersConfg:
+    ```
+    from dara.components import CausalGraphViewer, FcoseLayout, TiersConfg
+    from cai_causal_graph import CausalGraph
+
+    cg = CausalGraph()
+    cg.add_node(identifier='A', meta={'group': 'first', order: 2})
+    cg.add_node(identifier='B', meta={'group': 'first', order: 1})
+    cg.add_node(identifier='C', meta={'group': 'second'})
+    cg.add_node(identifier='D', meta={'group': 'second'})
+    cg.add_node(identifier='E', meta={'group': 'third'})
+    cg.add_edge('A', 'C')
+    cg.add_edge('B', 'D')
+    cg.add_edge('C', 'E')
+    cg.add_edge('D', 'E')
+
+    CausalGraphViewer(
+        causal_graph=cg,
+        graph_layout=FcoseLayout(
+            tiers=TiersConfg(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
+            ),
+    )
+    ```
+
+    :param tiers: A TiersConfig object or an array of arrays of node ids outlining the tier structure
+    :param orientation: Orientation the tiers are displayed in default is horizontal
+    """
+
+    tiers: Optional[Union[TiersConfg, List[List[str]]]] = None
+    orientation: Optional[DirectionType] = DirectionType.HORIZONTAL
 
 
 class CircularLayout(GraphLayout):
@@ -95,7 +167,7 @@ class CustomLayout(GraphLayout):
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.CUSTOM, const=True)
 
 
-class FcoseLayout(GraphLayout):
+class FcoseLayout(GraphLayout, TieringLayout):
     """
     FcoseLayout utilises `fCoSE` (fast Compound Spring Embedder) algorithm to compute the layout.
     It works well in most circumstances and is highly configurable.
@@ -111,6 +183,7 @@ class FcoseLayout(GraphLayout):
     :param iterations: Number of iterations to run the layout for, per computation (default value: 2500)
     :param node_repulsion: Non-overlapping node force multiplier (default value: 6500)
     :param node_separation: Separation force between nodes (default value: 75)
+    :param tier_separation: Separation force between tiers (default value: 200)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.FCOSE, const=True)
@@ -124,6 +197,7 @@ class FcoseLayout(GraphLayout):
     iterations: Optional[int] = 2500
     node_repulsion: Optional[Number] = 6_500
     node_separation: Optional[Number] = 75
+    tier_separation: Optional[Number] = 200
 
 
 class ForceAtlasLayout(GraphLayout):
@@ -162,20 +236,22 @@ class ForceAtlasLayout(GraphLayout):
     strong_gravity_mode: Optional[bool] = False
 
 
-class MarketingLayout(GraphLayout):
+class MarketingLayout(GraphLayout, TieringLayout):
     """
     MarketingLayout provides the default graph layout which works well for smaller
     number of nodes, although it does not offer any protection against excessive edge crossings.
 
     :param node_size: node size in pixels
     :param target_location: Location of the target node
+    :param tier_separation: Separation force between tiers (default value: 300)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.MARKETING, const=True)
     target_location: Optional[TargetLocation] = None
+    tier_separation: Optional[Number] = 300
 
 
-class PlanarLayout(GraphLayout):
+class PlanarLayout(GraphLayout, TieringLayout):
     """
     PlanarLayout provides a planar layout similar to the layout offered in low-level editor. The implementation
     uses d3-dag's sugiyama layout under the hood to minimize edge crossings.
@@ -187,7 +263,7 @@ class PlanarLayout(GraphLayout):
     orientation: Optional[DirectionType] = None
 
 
-class SpringLayout(GraphLayout):
+class SpringLayout(GraphLayout, TieringLayout):
     """
     SpringLayout provides a simple force-directed graph layout which produces the "spring" behaviour of edges.
     This is a 'live' layout, which means a simulation keeps running in the background to compute the layout.
@@ -198,6 +274,7 @@ class SpringLayout(GraphLayout):
     :param warmup_ticks: Number of ticks to run the simulation for before displaying the layout. Increasing it should
         make the initial render of the graph more stable (i.e. nodes won't move by themselves) but it comes at a
         small performance cost. (default value: 100)
+    :param tier_separation: Separation force between tiers (default value: 300)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, const=True)
@@ -206,3 +283,4 @@ class SpringLayout(GraphLayout):
     gravity: Optional[Number] = -50
     link_force: Optional[Number] = 5
     warmup_ticks: Optional[Number] = 100
+    tier_separation: Optional[Number] = 300

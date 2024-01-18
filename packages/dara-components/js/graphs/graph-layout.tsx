@@ -7,6 +7,7 @@ import {
     MarketingLayout,
     PlanarLayout,
     SpringLayout,
+    TieredGraphLayoutBuilder,
 } from '@darajs/ui-causal-graph-editor';
 
 // Types mirror backend types defined in dara.components.graphs.graph_layout
@@ -26,7 +27,7 @@ interface CustomLayoutDefinition extends BaseGraphLayoutDefinition {
     layout_type: 'custom';
 }
 
-interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition {
+interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
     edge_elasticity?: number;
     edge_length?: number;
     energy?: number;
@@ -37,6 +38,7 @@ interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition {
     layout_type: 'fcose';
     node_repulsion?: number;
     node_separation?: number;
+    tier_separation?: number;
 }
 
 interface ForceAtlasLayoutDefinition extends BaseGraphLayoutDefinition {
@@ -51,21 +53,23 @@ interface ForceAtlasLayoutDefinition extends BaseGraphLayoutDefinition {
     strong_gravity_mode?: boolean;
 }
 
-interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition {
+interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
     layout_type: 'marketing';
     target_location?: MarketingLayout['targetLocation'];
+    tier_separation?: number;
 }
 
-interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition {
+interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
     layout_type: 'planar';
     orientation?: PlanarLayout['orientation'];
 }
 
-interface SpringLayoutDefinition extends BaseGraphLayoutDefinition {
+interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
     collision_force?: number;
     gravity?: number;
     layout_type: 'spring';
     link_force?: number;
+    tier_separation?: number;
     warmup_ticks: number;
 }
 
@@ -138,6 +142,18 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.nodeSeparation(definition.node_separation);
             }
 
+            if (definition.tier_separation) {
+                builder.tierSeparation(definition.tier_separation);
+            }
+
+            if (definition.tiers) {
+                builder.tiers = definition.tiers;
+            }
+
+            if (definition.orientation) {
+                builder.orientation = definition.orientation;
+            }
+
             break;
         }
 
@@ -186,6 +202,18 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.targetLocation(definition.target_location);
             }
 
+            if (definition.tier_separation) {
+                builder.tierSeparation(definition.tier_separation);
+            }
+
+            if (definition.tiers) {
+                builder.tiers = definition.tiers;
+            }
+
+            if (definition.orientation) {
+                builder.orientation = definition.orientation;
+            }
+
             break;
         }
 
@@ -196,6 +224,10 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.orientation(definition.orientation);
             }
 
+            if (definition.tiers) {
+                builder.tiers(definition.tiers);
+            }
+
             break;
         }
 
@@ -204,6 +236,18 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
 
             if (definition.warmup_ticks) {
                 builder.warmupTicks(definition.warmup_ticks);
+            }
+
+            if (definition.tier_separation) {
+                builder.tierSeparation(definition.tier_separation);
+            }
+
+            if (definition.tiers) {
+                builder.tiers = definition.tiers;
+            }
+
+            if (definition.orientation) {
+                builder.orientation = definition.orientation;
             }
 
             break;
