@@ -233,6 +233,8 @@ class CausalGraphViewer(BaseGraphComponent):
     :param on_click_node: Event handler for clicking on a node
     :param on_update: Optional action that will be executed whenever the graph is updated;
         by default will also update the `causal_graph` provided, if it's a plain Variable instance
+    :param simultaneous_edge_node_selection: Optional allows for both a ndoe and an edge to be selected at
+        the same time. When set to True will not reset edge when node selected and vice versa.
     :param tooltip_size: Optional parameter to force the tooltips to use a particular font size
     :param verbose_descriptions: Optional flag to show verbose descriptions in the editor frame
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
