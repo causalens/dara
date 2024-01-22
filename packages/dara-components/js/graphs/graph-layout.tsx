@@ -9,10 +9,18 @@ import {
     SpringLayout,
     TieredGraphLayoutBuilder,
 } from '@darajs/ui-causal-graph-editor';
+import { GraphLayoutBuilder } from '@darajs/ui-causal-graph-editor/dist/shared/graph-layout/common';
 
 // Types mirror backend types defined in dara.components.graphs.graph_layout
 type GraphLayoutType = 'marketing' | 'planar' | 'spring' | 'circular' | 'fcose' | 'force_atlas' | 'custom';
 
+interface DefinitionWithTiers extends TieredGraphLayoutBuilder {
+    tier_separation?: number;
+}
+
+interface BuilderWithTiers extends TieredGraphLayoutBuilder {
+    tierSeparation?: (separation: number) => GraphLayoutBuilder<unknown>;
+}
 interface BaseGraphLayoutDefinition {
     layout_type: GraphLayoutType;
     node_font_size?: number;
@@ -27,7 +35,7 @@ interface CustomLayoutDefinition extends BaseGraphLayoutDefinition {
     layout_type: 'custom';
 }
 
-interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
+interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     edge_elasticity?: number;
     edge_length?: number;
     energy?: number;
@@ -38,7 +46,6 @@ interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLa
     layout_type: 'fcose';
     node_repulsion?: number;
     node_separation?: number;
-    tier_separation?: number;
 }
 
 interface ForceAtlasLayoutDefinition extends BaseGraphLayoutDefinition {
@@ -53,10 +60,9 @@ interface ForceAtlasLayoutDefinition extends BaseGraphLayoutDefinition {
     strong_gravity_mode?: boolean;
 }
 
-interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
+interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     layout_type: 'marketing';
     target_location?: MarketingLayout['targetLocation'];
-    tier_separation?: number;
 }
 
 interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
@@ -64,12 +70,11 @@ interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphL
     orientation?: PlanarLayout['orientation'];
 }
 
-interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
+interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     collision_force?: number;
     gravity?: number;
     layout_type: 'spring';
     link_force?: number;
-    tier_separation?: number;
     warmup_ticks: number;
 }
 
@@ -81,6 +86,10 @@ export type GraphLayoutDefinition =
     | MarketingLayoutDefinition
     | PlanarLayoutDefinition
     | SpringLayoutDefinition;
+
+function isDefinitionWithTiers(obj: any): obj is DefinitionWithTiers {
+    return obj && typeof obj === 'object' && 'tiers' in obj;
+}
 
 /**
  * Parse a backend graph layout definition into a graph layout understood by the UI component
@@ -142,18 +151,6 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.nodeSeparation(definition.node_separation);
             }
 
-            if (definition.tier_separation) {
-                builder.tierSeparation(definition.tier_separation);
-            }
-
-            if (definition.tiers) {
-                builder.tiers = definition.tiers;
-            }
-
-            if (definition.orientation) {
-                builder.orientation = definition.orientation;
-            }
-
             break;
         }
 
@@ -202,18 +199,6 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.targetLocation(definition.target_location);
             }
 
-            if (definition.tier_separation) {
-                builder.tierSeparation(definition.tier_separation);
-            }
-
-            if (definition.tiers) {
-                builder.tiers = definition.tiers;
-            }
-
-            if (definition.orientation) {
-                builder.orientation = definition.orientation;
-            }
-
             break;
         }
 
@@ -238,23 +223,26 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.warmupTicks(definition.warmup_ticks);
             }
 
-            if (definition.tier_separation) {
-                builder.tierSeparation(definition.tier_separation);
-            }
-
-            if (definition.tiers) {
-                builder.tiers = definition.tiers;
-            }
-
-            if (definition.orientation) {
-                builder.orientation = definition.orientation;
-            }
-
             break;
         }
 
         default: {
             throw new Error(`Unrecognised layout type: ${String((definition as any).layout_type)}`);
+        }
+    }
+
+    if (isDefinitionWithTiers(definition)) {
+        const builderWithTiers = builder as unknown as BuilderWithTiers;
+        if (definition.tiers) {
+            builderWithTiers.tiers = definition.tiers;
+        }
+
+        if (definition.orientation) {
+            builderWithTiers.orientation = definition.orientation;
+        }
+
+        if (definition.tier_separation) {
+            builderWithTiers.tierSeparation(definition.tier_separation);
         }
     }
 
