@@ -6,9 +6,7 @@ title: Introduction
 
 This extension contains all the the components used to display causal graphs.
 
-## Getting Started
-
-### Add your first Causal Graph
+## Add your first Causal Graph
 
 Below we are going to show an example of how to add a `dara.components.graphs.components.causal_graph_viewer.CausalGraphViewer` component.
 
@@ -71,9 +69,9 @@ config.add_page(name='CausalGraph', content=causal_graph_viewer_content(), icon=
 
 _`CausalGraphViewer` component_
 
-### Customising Causal Graph Viewer
+## Customising Causal Graph Viewer
 
-#### Rendering properties
+### Rendering properties
 
 The rendering of nodes and edges can be customised via the `rendering_properties` metadata. The following properties are available:
 
@@ -128,7 +126,7 @@ def graph_with_meta() -> CausalGraph:
     return cg
 ```
 
-#### Edge thickness
+### Edge thickness
 
 One of the rendering properties is `thickness`. This property is used to scale the displayed strength of the edges. When set on more
 than two edges, the values provided for `thickness` are normalized and scaled across all edges with a thickness provided.
@@ -155,7 +153,7 @@ def graph_with_meta() -> CausalGraph:
 
 _`CausalGraphViewer` with edge thicknesses_
 
-#### Graph Layouts
+### Graph Layouts
 
 The default layout you have seen in the previous examples is the `FcoseLayout`. Layouts are available as classes with customizable properties.
 You can read more about `fCoSE` and more available layouts in the `dara.components.graphs.graph_layout.GraphLayout` and the layout docstrings.
@@ -209,7 +207,75 @@ Further recalculations of the layout will use positions provided by the specifie
 Note that third-party layout algorithms might not account for node sizes, so you might have to scale the positions accordingly unless
 they provide a way to specify the node size.
 
-#### Editing the graph
+### Defining tiers in graphs
+
+The following layouts support tiers: `FcoseLayout`, `PlanarLayout`, `SpringLayout` and `MarketingLayout`.
+This allows one to set which nodes should appear at the same level, your are also able to set which order the nodes appear within it and the hierarchy of each tier.
+
+![CausalGraphViewer Tiers Example](./assets/tiers_example.png)
+
+A way of setting tiers is to pass it as an array of array of nodes, the inner arrays define the order in which the tiers appear:
+
+```
+from dara.components import CausalGraphViewer, FcoseLayout
+from cai_causal_graph import CausalGraph
+
+cg = CausalGraph()
+cg.add_edge('A', 'C')
+cg.add_edge('B', 'D')
+cg.add_edge('C', 'E')
+cg.add_edge('D', 'E')
+
+tiers = [['A', 'B'], ['C', 'D'], ['E']]
+
+CausalGraphViewer(
+    causal_graph=cg,
+    graph_layout=FcoseLayout(
+            tiers=tiers,
+            orientation='vertical'
+        ),
+)
+```
+
+Alternatively you can pass the tiers based on some node property with the use of `TiersConfg`
+For `TiersConfg`:
+
+- you must pass a `group`, the group defines the path to the node property which contains the name of the tier they belong to. In the below example we define this to be a property called group within the meta of the node, so the path is `meta.group`
+- you may also define the `rank`, this is a list of group names defining the hierarchy of the tiers.
+- you may pass the `order_nodes_by`, this is a path to the node property containing a number which defines the order in which the nodes should be displayed within a tier.
+
+```
+from dara.components import CausalGraphViewer, FcoseLayout, TiersConfg
+from cai_causal_graph import CausalGraph
+
+cg = CausalGraph()
+cg.add_node(identifier='A', meta={'group': 'first', order: 2})
+cg.add_node(identifier='B', meta={'group': 'first', order: 1})
+cg.add_node(identifier='C', meta={'group': 'second'})
+cg.add_node(identifier='D', meta={'group': 'second'})
+cg.add_node(identifier='E', meta={'group': 'third'})
+cg.add_edge('A', 'C')
+cg.add_edge('B', 'D')
+cg.add_edge('C', 'E')
+cg.add_edge('D', 'E')
+
+CausalGraphViewer(
+    causal_graph=cg,
+    graph_layout=FcoseLayout(
+        tiers=TiersConfg(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
+        ),
+)
+```
+
+:::warning
+
+For the `PlanarLayout` we utilise the sugyiama algorithm from [d3-dag](https://github.com/erikbrinkman/d3-dag/tree/main) library.
+This approach has currently some limitations and for some configurations it may be unable to resolve the tiers/layers.
+If that happens your graph will be automatically switched to use `FcoseLayout` and a warning will be displayed in your app.
+
+:::
+
+### Editing the graph
 
 While the `CausalGraphViewer` component can be used as a view-only component, it can also be used for interactive flows by passing `editable=True`.
 
@@ -261,7 +327,7 @@ CausalGraphViewer(
 )
 ```
 
-#### Interactivity
+### Interactivity
 
 In order to interact with the causal graph, you can provide `on_click_node` and `on_click_edge`
 event handlers in order to trigger actions upon clicking on an edge or a node. The following example
@@ -310,7 +376,7 @@ Stack(
 )
 ```
 
-#### Skeleton
+### Skeleton
 
 You can also display the [Skeleton](https://causalgraph.causalens.com/docs/generated/cai-causal-graph/docs/causal_graph/#skeleton) of your `CausalGraph` this is simply
 a representation of a graph where all the edges are undirected.
@@ -336,3 +402,32 @@ config.add_page(name='Skeleton Example', content=CausalGraphViewer(causal_graph=
 ```
 
 ![CausalGraphViewer Skeleton Example](./assets/CausalGraphViewerSkeleton.png)
+
+### TimeSeriesCausalGraph
+
+If a [TimeSeriesCausalGraph](https://causalgraph.causalens.com/docs/generated/cai-causal-graph/docs/time_series_causal_graph)
+is detected and the layout chosen supports it, then by default they will use `time_lag` and `variable_name` to place these
+nodes within the same tier. You can override this behaviour by setting tiers to something else.
+
+The layouts that currently support `TimeSeriesCausalGraph` are: `FcoseLayout`, `SpringLayout` and `MarketingLayout`.
+
+```
+from dara.core.configuration import ConfigurationBuilder
+from dara.components import CausalGraphViewer, FcoseLayout
+from cai_causal_graph import TimeSeriesCausalGraph
+
+cg_time = TimeSeriesCausalGraph()
+
+cg_time.add_edge('X1 lag(n=1)', 'X1')
+cg_time.add_edge('X2 lag(n=1)', 'X2')
+cg_time.add_edge('X1', 'X3')
+cg_time.add_edge('X2', 'X3')
+
+config = ConfigurationBuilder()
+config.add_page(
+    name='Time Series Example',
+    content=CausalGraphViewer(causal_graph=cg_time, graph_layout=FcoseLayout(orientation='vertical')),
+)
+```
+
+![CausalGraphViewer Time Series Example](./assets/time_series_cg.png)
