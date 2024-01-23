@@ -53,7 +53,7 @@ function isStringArray(value: any): value is string[] {
 
 /** Type guard to check if an object is an Item */
 function isItem(obj: any): obj is Item {
-    return typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, 'value');
+    return obj && Object.prototype.hasOwnProperty.call(obj, 'value');
 }
 interface SelectProps extends FormComponentProps {
     /** Pass through the className property */
@@ -102,15 +102,14 @@ function Select(props: SelectProps): JSX.Element {
      * @param val - The value to be converted or matched.
      */
     const toItem = (val: any): Item | undefined | null => {
-        // We set initially the item as an Item type with the value as the label, so that select can show a value even if not present in the list
-        let foundItem = typeof val === 'string' || typeof val === 'number' ? { label: String(val), val } : val;
         // Tries to get matching item based on value from formattedItems
         const matchingItem = formattedItems.find((item) => isItem(item) && String(item.value) === String(val));
         // If a matching Item is found, update foundItem
         if (matchingItem) {
-            foundItem = matchingItem;
+            return matchingItem as Item;
         }
-        return foundItem;
+        // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
+        return typeof val === 'string' || typeof val === 'number' ? { label: String(val), val } : val;
     };
 
     const [onChangeAction] = useAction(props.onchange);
