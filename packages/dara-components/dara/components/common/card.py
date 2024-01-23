@@ -48,6 +48,8 @@ class Card(LayoutComponent):
     :param subtitle: The subtitle of the card
     :param title: The title of the card
     :param accent: Boolean containing whether the styling should be filled with the accent gradient or plain, by default this is False.
+    :param justify: How to justify the content of the card, accepts any flexbox justifications
+    :param align: How to align the content of the card, accepts any flexbox alignments
     """
 
     subtitle: Optional[str] = None

@@ -5,7 +5,7 @@ import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     Variable,
     injectCss,
     useComponentStyles,
@@ -15,24 +15,13 @@ import styled from '@darajs/styled-components';
 
 // The props are actually used deep within the useComponentStyles etc hooks
 /* eslint-disable react/no-unused-prop-types */
-interface StackProps extends StyledComponentProps {
+interface StackProps extends LayoutComponentProps {
     children: Array<ComponentInstance>;
     className: string;
     collapsed: Variable<boolean>;
     direction: 'horizontal' | 'vertical';
     hug?: boolean;
-    justify?: string;
     scroll: boolean;
-}
-
-function alignStyle(props: StackProps): string {
-    if (props.align === 'start') {
-        return 'flex-start';
-    }
-    if (props.align === 'end') {
-        return 'flex-end';
-    }
-    return props.align;
 }
 
 function getCollapseStyles(collapsed: boolean): React.CSSProperties {
@@ -74,7 +63,7 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
             direction={props.direction}
             ref={ref}
             style={{
-                alignItems: alignStyle(props),
+                alignItems: props.align,
                 justifyContent: props.justify,
                 ...getCollapseStyles(collapsed),
                 ...style,

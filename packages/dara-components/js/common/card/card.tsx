@@ -4,7 +4,7 @@ import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
@@ -75,7 +75,7 @@ const Subtitle = styled.span<SubtitleProps>`
     text-align: left;
 `;
 
-interface CardProps extends StyledComponentProps {
+interface CardProps extends LayoutComponentProps {
     /** Whether card should be filled with accent gradient or plain */
     accent?: boolean;
     /** Content to be displayed in the main card */
@@ -102,6 +102,10 @@ function Card(props: CardProps): JSX.Element {
                 data-type="children-wrapper"
                 hasSubtitle={props.subtitle !== null}
                 hasTitle={props.title !== null}
+                style={{
+                    alignItems: props.align,
+                    justifyContent: props.justify,
+                }}
             >
                 <DisplayCtx.Provider value={{ component: 'card', direction: 'vertical' }}>
                     {props.children.map((child: ComponentInstance, idx: number) => (

@@ -4,7 +4,7 @@ import {
     Action,
     ComponentInstance,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     Variable,
     injectCss,
     useAction,
@@ -33,7 +33,7 @@ const FormWrapper = styled.div`
     gap: 0.75rem;
 `;
 
-interface FormProps extends StyledComponentProps {
+interface FormProps extends LayoutComponentProps {
     children: Array<ComponentInstance>;
     /** Action for what happens when the button is clicked */
     onsubmit: Action;
@@ -83,7 +83,7 @@ function Form(props: FormProps): JSX.Element {
         <FormCtx.Provider value={{ formValues: formState, resolveInitialValue, updateForm }}>
             <StyledForm $rawCss={css} className={props.className} style={style}>
                 {pages.length === 0 && (
-                    <FormWrapper>
+                    <FormWrapper style={{ alignItems: props.align, justifyContent: props.justify }}>
                         {props.children.map((child, idx) => (
                             <DynamicComponent component={child} key={`form-${idx}-${child.uid}`} />
                         ))}

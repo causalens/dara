@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import logging
-from typing import Optional, Union
+from typing import Union
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance
@@ -126,13 +126,13 @@ class Stack(LayoutComponent):
     :param direction: The direction to stack children, can be 'vertical' or 'horizontal', default is 'vertical'
     :param collapsed: Whether to collapse the stack
     :param justify: How to justify the content of the stack, accepts any flexbox justifications
+    :param align: How to align the content of the stack, accepts any flexbox alignments
     :param hug: Whether to hug the content of the stack, defaults to False
     :param scroll: Whether to scroll the content of the stack, defaults to False
     """
 
     collapsed: Union[Variable[bool], bool] = False
     direction: Direction = Direction.VERTICAL
-    justify: Optional[str] = None
     hug: bool = False
     scroll: bool = False
 

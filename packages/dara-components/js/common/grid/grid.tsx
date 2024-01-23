@@ -2,7 +2,7 @@ import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
@@ -11,7 +11,7 @@ import styled from '@darajs/styled-components';
 import { Breakpoints } from '../types';
 
 /* eslint-disable react/no-unused-prop-types */
-interface GridProps extends StyledComponentProps {
+interface GridProps extends LayoutComponentProps {
     /** object containing when each of the five breakpoints should occur */
     breakpoints: Breakpoints;
     /** array of children of Grid component */
@@ -58,6 +58,8 @@ function Grid(props: GridProps): JSX.Element {
             $rawCss={css}
             className={props.className}
             style={{
+                alignItems: props.align,
+                justifyContent: props.justify,
                 rowGap: props.row_gap,
                 ...style,
             }}

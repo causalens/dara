@@ -78,6 +78,8 @@ class Form(LayoutComponent):
     :param value: A Variable dictionary recording the state of the form. This dictionary must have its keys
         matching the ids from the form components. This can also be used to set initial values to these components.
     :param onsubmit: An Action that is triggered when the form is submitted
+    :param justify: How to justify the content of the form, accepts any flexbox justifications
+    :param align: How to align the content of the form, accepts any flexbox alignments
     """
 
     value: Optional[Variable[dict]] = None
