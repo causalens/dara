@@ -188,7 +188,7 @@ export interface BaseComponentProps {
  */
 export interface BaseStylingProps {
     /** How to align component, either itself or children within */
-    align?: 'start' | 'end' | 'left' | 'right' | 'center' | 'justify' | 'match-parent';
+    align?: string;
     /** The background color of the element */
     background?: string;
     /** Apply strong emphasis to text */
@@ -233,6 +233,10 @@ export interface BaseStylingProps {
  * Props of a component implementing the base styling props
  */
 export type StyledComponentProps = BaseComponentProps & BaseStylingProps;
+
+export interface LayoutComponentProps extends StyledComponentProps {
+    justify?: string;
+}
 
 export interface ComponentInstance<Props = BaseComponentProps> {
     name: string;

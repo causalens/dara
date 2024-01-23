@@ -43,6 +43,8 @@ class Modal(LayoutComponent):
     ```
 
     :param show: Boolean Variable instance recording the state, if True it renders the model and it's children
+    :param justify: How to justify the content of the modal, accepts any flexbox justifications
+    :param align: How to align the content of the modal, accepts any flexbox alignments
     """
 
     show: NonDataVariable

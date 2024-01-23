@@ -15,9 +15,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
+from typing import Optional, Literal
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
+
+JustifyContent = Literal[
+    '-moz-initial',
+    'center',
+    'end',
+    'flex-end',
+    'flex-start',
+    'inherit',
+    'initial',
+    'left',
+    'normal',
+    'revert',
+    'right',
+    'space-around',
+    'space-between',
+    'space-evenly',
+    'start',
+    'stretch',
+    'unset',
+    None,
+]
+
+AlignItems = Literal[
+    '-moz-initial',
+    'baseline',
+    'center',
+    'end',
+    'flex-end',
+    'flex-start',
+    'inherit',
+    'initial',
+    'normal',
+    'revert',
+    'self-end',
+    'self-start',
+    'start',
+    'stretch',
+    'unset',
+    None,
+]
 
 
 class LayoutError(Exception):
@@ -45,9 +85,15 @@ class LayoutComponent(BaseDashboardComponent):
     """
     Any component that's primary role is to aid in laying out a document should inherit from this class. It adds
     append/pop functionality that allows for these components to be created more dynamically (e.g. inside a loop)
+
+    :param position: the position of the component, defaults to 'relative'
+    :param justify: the justify-content value to be passed to the component
+    :param align: the align-items value to be passed to the component
     """
 
     position: str = 'relative'
+    justify: Optional[JustifyContent] = None
+    align: Optional[AlignItems] = None
 
     def append(self, component: ComponentInstance):
         """

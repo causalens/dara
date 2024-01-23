@@ -2,7 +2,7 @@ import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
@@ -11,15 +11,11 @@ import styled from '@darajs/styled-components';
 import { Breakpoints } from '../types';
 
 /* eslint-disable react/no-unused-prop-types */
-export interface ColumnProps extends StyledComponentProps {
-    /** css align-item value, for vertical alignment of this column */
-    align_items?: string;
+export interface ColumnProps extends LayoutComponentProps {
     /** array of children of column */
     children: Array<ComponentInstance>;
     /** An optional value which determines the direction of the Column children by default is horizontal */
     direction?: 'horizontal' | 'vertical';
-    /** css justify_content value, for horizontal alignment of this column */
-    justify?: string;
     /** how many columns should this column be offset by */
     offset?: number | Breakpoints;
     /** how many columns should this column span */
@@ -49,7 +45,7 @@ function Column(props: ColumnProps): JSX.Element {
             className={props.className}
             direction={props.direction}
             style={{
-                alignItems: props.align_items,
+                alignItems: props.align,
                 justifyContent: props.justify,
                 ...style,
             }}

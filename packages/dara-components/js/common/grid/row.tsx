@@ -6,7 +6,7 @@ import {
     ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
@@ -16,7 +16,7 @@ import { Breakpoints } from '../types';
 import { ColumnProps } from './column';
 
 /* eslint-disable react/no-unused-prop-types */
-interface RowProps extends StyledComponentProps {
+interface RowProps extends LayoutComponentProps {
     /** object containing when each of the five breakpoints should occur */
     breakpoints: Breakpoints;
     /** array of children of Row component */
@@ -306,7 +306,9 @@ function Row(props: RowProps): JSX.Element {
             $rawCss={css}
             className={props.className}
             style={{
+                alignItems: props.align,
                 columnGap: `${props.column_gap}%`,
+                justifyContent: props.justify,
                 ...style,
             }}
         >
