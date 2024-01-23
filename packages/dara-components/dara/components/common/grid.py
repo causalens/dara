@@ -59,8 +59,8 @@ class Column(LayoutComponent):
     ```
 
     :param span: the number of columns this column should span, it can take an `integer` if unchanged across different screen sizes or take `Grid.Breakpoints` which allows you to define the span across five responsive tiers
-    :param justify: defines horizontal alignment for that column
-    :param align_items: defines vertical alignment for that column
+    :param justify: How to justify the content of the column, accepts any flexbox justifications
+    :param align: How to align the content of the column, accepts any flexbox alignments
     :param offset: offset column by x number of columns, it can take an `integer` if unchanged across different screen sizes or take `Grid.Breakpoints`. Note that offset + span should add to no more than 12. Values greater that add up to more than 12 can result in unwanted behaviour.
     :param direction: The direction to Column children, can be 'vertical' or 'horizontal', default is 'horizontal'
     :param hug: Whether to hug the content, defaults to False
@@ -69,8 +69,6 @@ class Column(LayoutComponent):
     # TODO: :param order: optional number denoting the order of priority of the columns, with 1 being first to appear, and 12 the last to be added.
 
     span: Optional[Union[int, ScreenBreakpoints]] = None
-    justify: Optional[str] = None
-    align_items: Optional[str] = None
     offset: Optional[Union[int, ScreenBreakpoints]]
     direction: Direction = Direction.HORIZONTAL
 
@@ -98,6 +96,8 @@ class Row(LayoutComponent):
 
     :param column_gap: a number containing the desired percentage gap between columns for that row, e.g. 2 would be a 2% gap between columns
     :param hug: Whether to hug the content, defaults to False
+    :param justify: How to justify the content of the row, accepts any flexbox justifications
+    :param align: How to align the content of the row, accepts any flexbox alignments
     """
 
     column_gap: Optional[int] = None
@@ -236,5 +236,7 @@ class Grid(LayoutComponent):
 
         :param row_gap: a string containing the desired gap between rows, defaults to 0.75rem
         :param breakpoints: optionally pass when the breakpoints should occur in pixels
+        :param justify: How to justify the content of the grid, accepts any flexbox justifications
+        :param align: How to align the content of the grid, accepts any flexbox alignments
         """
         super().__init__(*args, **kwargs)

@@ -17,6 +17,7 @@ import type {
     DataVariable,
     DerivedVariable,
     FilterQuery,
+    LayoutComponentProps,
     Pagination,
     QueryOperator,
     SingleVariable,
@@ -57,6 +58,7 @@ export type {
     BaseComponentProps,
     RequestExtras,
     RequestOptions,
+    LayoutComponentProps,
 };
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';

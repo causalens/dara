@@ -1,7 +1,7 @@
 import {
     ComponentInstance,
     DynamicComponent,
-    StyledComponentProps,
+    LayoutComponentProps,
     Variable,
     injectCss,
     useComponentStyles,
@@ -9,7 +9,7 @@ import {
 } from '@darajs/core';
 import { Modal as UiModal } from '@darajs/ui-components';
 
-interface ModalProps extends StyledComponentProps {
+interface ModalProps extends LayoutComponentProps {
     /** The children to be rendered within the modal */
     children: Array<ComponentInstance>;
     /** The show flag, tells the modal whether or not to display */
@@ -32,7 +32,12 @@ function Modal(props: ModalProps): JSX.Element {
     }
 
     return (
-        <StyledModal $rawCss={css} onAttemptClose={onAttemptClose} render={show} style={{ gap: '0.75rem', ...style }}>
+        <StyledModal
+            $rawCss={css}
+            onAttemptClose={onAttemptClose}
+            render={show}
+            style={{ alignItems: props.align, gap: '0.75rem', justifyContent: props.justify, ...style }}
+        >
             {props.children.map((child, idx) => (
                 <DynamicComponent component={child} key={`modal-${idx}-${child.uid}`} />
             ))}

@@ -45,9 +45,15 @@ class LayoutComponent(BaseDashboardComponent):
     """
     Any component that's primary role is to aid in laying out a document should inherit from this class. It adds
     append/pop functionality that allows for these components to be created more dynamically (e.g. inside a loop)
+
+    :param position: the position of the component, defaults to 'relative'
+    :param justify: the justify-content value to be passed to the component
+    :param align: the align-items value to be passed to the component
     """
 
     position: str = 'relative'
+    justify: Optional[str] = None
+    align: Optional[str] = None
 
     def append(self, component: ComponentInstance):
         """
