@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Renamed `align-items` to `align` in `Grid.Column` to be more consistent with other layout components.
+-   Added `justify` and `align` shortcut props to `Card`, `Modal`, `Form`, `Grid`, `Grid.Row`, `Grid.Column`.
+
 ## 1.5.2
 
 -   Fixed an issue where dragging nodes too quickly in `CausalGraphViewer` would cause the node drag to stop working
