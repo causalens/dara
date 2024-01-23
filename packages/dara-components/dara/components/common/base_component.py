@@ -19,7 +19,7 @@ from typing import Optional, Literal
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 
-JustifyTypes = Literal[
+JustifyContent = Literal[
     '-moz-initial',
     'center',
     'end',
@@ -40,7 +40,7 @@ JustifyTypes = Literal[
     None,
 ]
 
-AlignTypes = Literal[
+AlignItems = Literal[
     '-moz-initial',
     'baseline',
     'center',
@@ -92,8 +92,8 @@ class LayoutComponent(BaseDashboardComponent):
     """
 
     position: str = 'relative'
-    justify: Optional[JustifyTypes] = None
-    align: Optional[AlignTypes] = None
+    justify: Optional[JustifyContent] = None
+    align: Optional[AlignItems] = None
 
     def append(self, component: ComponentInstance):
         """
