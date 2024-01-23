@@ -149,7 +149,12 @@ function Bokeh(props: BokehProps): JSX.Element {
     }, [docJson]);
 
     return (
-        <BokehRoot $rawCss={css} data-root-id={rootId} id={id} style={style}>
+        <BokehRoot
+            $rawCss={css}
+            data-root-id={rootId}
+            id={id}
+            style={{ minHeight: '350px', minWidth: '350px', ...style }}
+        >
             {isLoading && (
                 <DefaultFallback
                     style={{
