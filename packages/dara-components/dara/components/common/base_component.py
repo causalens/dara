@@ -53,8 +53,8 @@ class LayoutComponent(BaseDashboardComponent):
     """
 
     position: str = 'relative'
-    justify: Optional[str] = CSSProperties.justifyContent
-    align: Optional[str] = CSSProperties.alignItems
+    justify: Optional[CSSProperties.justifyContent] = None
+    align: Optional[CSSProperties.alignItems] = None
 
     def append(self, component: ComponentInstance):
         """
