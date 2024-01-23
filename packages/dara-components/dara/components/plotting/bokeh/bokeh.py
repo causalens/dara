@@ -43,6 +43,9 @@ class Bokeh(StyledComponentInstance):
     already associated the figure with a document (e.g. by calling show(figure)). If you need access to the Document
     then it is accessible as the document property of an instance of the Bokeh component. If you already have a document
     then you can instantiate the class with that, by passing it as the document argument to instantiate the class.
+
+    By default the component has a minimum height and width of 350px, this can be overwritten by passing the min_height and
+    min_width props to the component.
     """
 
     js_module = '@darajs/components'
