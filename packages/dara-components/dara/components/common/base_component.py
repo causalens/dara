@@ -18,6 +18,7 @@ limitations under the License.
 from typing import Optional
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
+from dara.core.visual.css import CSSProperties
 
 
 class LayoutError(Exception):
@@ -52,8 +53,8 @@ class LayoutComponent(BaseDashboardComponent):
     """
 
     position: str = 'relative'
-    justify: Optional[str] = None
-    align: Optional[str] = None
+    justify: Optional[str] = CSSProperties.justifyContent
+    align: Optional[str] = CSSProperties.alignItems
 
     def append(self, component: ComponentInstance):
         """
