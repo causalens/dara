@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import logging
-from typing import Optional, Union
+from typing import Union
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance
