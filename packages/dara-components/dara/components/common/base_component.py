@@ -15,10 +15,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
+from typing import Optional, Literal
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
-from dara.core.visual.css import CSSProperties
+
+JustifyTypes = Literal[
+    '-moz-initial',
+    'center',
+    'end',
+    'flex-end',
+    'flex-start',
+    'inherit',
+    'initial',
+    'left',
+    'normal',
+    'revert',
+    'right',
+    'space-around',
+    'space-between',
+    'space-evenly',
+    'start',
+    'stretch',
+    'unset',
+    None,
+]
+
+AlignTypes = Literal[
+    '-moz-initial',
+    'baseline',
+    'center',
+    'end',
+    'flex-end',
+    'flex-start',
+    'inherit',
+    'initial',
+    'normal',
+    'revert',
+    'self-end',
+    'self-start',
+    'start',
+    'stretch',
+    'unset',
+    None,
+]
 
 
 class LayoutError(Exception):
@@ -53,8 +92,8 @@ class LayoutComponent(BaseDashboardComponent):
     """
 
     position: str = 'relative'
-    justify: Optional[CSSProperties.justifyContent] = None
-    align: Optional[CSSProperties.alignItems] = None
+    justify: Optional[JustifyTypes] = None
+    align: Optional[AlignTypes] = None
 
     def append(self, component: ComponentInstance):
         """
