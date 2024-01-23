@@ -7,11 +7,20 @@ import {
     MarketingLayout,
     PlanarLayout,
     SpringLayout,
+    TieredGraphLayoutBuilder,
 } from '@darajs/ui-causal-graph-editor';
+import { GraphLayoutBuilder } from '@darajs/ui-causal-graph-editor/dist/shared/graph-layout/common';
 
 // Types mirror backend types defined in dara.components.graphs.graph_layout
 type GraphLayoutType = 'marketing' | 'planar' | 'spring' | 'circular' | 'fcose' | 'force_atlas' | 'custom';
 
+interface DefinitionWithTiers extends TieredGraphLayoutBuilder {
+    tier_separation?: number;
+}
+
+interface BuilderWithTiers extends TieredGraphLayoutBuilder {
+    tierSeparation?: (separation: number) => GraphLayoutBuilder<unknown>;
+}
 interface BaseGraphLayoutDefinition {
     layout_type: GraphLayoutType;
     node_font_size?: number;
@@ -26,7 +35,7 @@ interface CustomLayoutDefinition extends BaseGraphLayoutDefinition {
     layout_type: 'custom';
 }
 
-interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition {
+interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     edge_elasticity?: number;
     edge_length?: number;
     energy?: number;
@@ -51,17 +60,17 @@ interface ForceAtlasLayoutDefinition extends BaseGraphLayoutDefinition {
     strong_gravity_mode?: boolean;
 }
 
-interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition {
+interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     layout_type: 'marketing';
     target_location?: MarketingLayout['targetLocation'];
 }
 
-interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition {
+interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
     layout_type: 'planar';
     orientation?: PlanarLayout['orientation'];
 }
 
-interface SpringLayoutDefinition extends BaseGraphLayoutDefinition {
+interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
     collision_force?: number;
     gravity?: number;
     layout_type: 'spring';
@@ -77,6 +86,10 @@ export type GraphLayoutDefinition =
     | MarketingLayoutDefinition
     | PlanarLayoutDefinition
     | SpringLayoutDefinition;
+
+function isDefinitionWithTiers(obj: any): obj is DefinitionWithTiers {
+    return obj && typeof obj === 'object' && 'tiers' in obj;
+}
 
 /**
  * Parse a backend graph layout definition into a graph layout understood by the UI component
@@ -196,6 +209,10 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
                 builder.orientation(definition.orientation);
             }
 
+            if (definition.tiers) {
+                builder.tiers(definition.tiers);
+            }
+
             break;
         }
 
@@ -211,6 +228,21 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
 
         default: {
             throw new Error(`Unrecognised layout type: ${String((definition as any).layout_type)}`);
+        }
+    }
+
+    if (isDefinitionWithTiers(definition)) {
+        const builderWithTiers = builder as unknown as BuilderWithTiers;
+        if (definition.tiers) {
+            builderWithTiers.tiers = definition.tiers;
+        }
+
+        if (definition.orientation) {
+            builderWithTiers.orientation = definition.orientation;
+        }
+
+        if (definition.tier_separation) {
+            builderWithTiers.tierSeparation(definition.tier_separation);
         }
     }
 
