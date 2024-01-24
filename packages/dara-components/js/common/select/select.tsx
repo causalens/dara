@@ -104,7 +104,7 @@ function Select(props: SelectProps): JSX.Element {
     const toItem = (val: any): Item | undefined | null => {
         // Tries to get matching item based on value from formattedItems
         const matchingItem = formattedItems.find((item) => isItem(item) && String(item.value) === String(val));
-        // If a matching Item is found, update foundItem
+        // If a matching Item is found return it
         if (matchingItem) {
             return matchingItem as Item;
         }
