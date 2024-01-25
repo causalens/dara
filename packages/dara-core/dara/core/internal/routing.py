@@ -63,7 +63,7 @@ from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
-from dara.core.internal.websocket import ws_handler, WS_CHANNEL
+from dara.core.internal.websocket import WS_CHANNEL, ws_handler
 from dara.core.logging import dev_logger
 from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
