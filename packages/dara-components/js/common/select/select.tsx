@@ -38,9 +38,6 @@ export function getMultiselectItems(values: Array<any>, items: Array<Item>): Arr
     }, []);
 }
 
-const toItem = (value: any): Item | undefined | null =>
-    typeof value === 'string' || typeof value === 'number' ? { label: String(value), value } : value;
-
 const StyledSelect = injectCss(UiSelect);
 const StyledMultiSelect = injectCss(MultiSelect);
 const StyledComboBox = injectCss(ComboBox);
@@ -52,6 +49,11 @@ function hasListSection(items: Item[] | ListSection[]): items is ListSection[] {
 
 function isStringArray(value: any): value is string[] {
     return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+/** Type guard to check if an object is an Item */
+function isItem(obj: any): obj is Item {
+    return obj && Object.prototype.hasOwnProperty.call(obj, 'value');
 }
 interface SelectProps extends FormComponentProps {
     /** Pass through the className property */
@@ -94,6 +96,21 @@ function Select(props: SelectProps): JSX.Element {
         }
         return items;
     }, [items]);
+
+    /**
+     * Converts a value to an Item, or finds a matching Item in formattedItems based on value.
+     * @param val - The value to be converted or matched.
+     */
+    const toItem = (val: any): Item | undefined | null => {
+        // Tries to get matching item based on value from formattedItems
+        const matchingItem = formattedItems.find((item) => isItem(item) && String(item.value) === String(val));
+        // If a matching Item is found return it
+        if (matchingItem) {
+            return matchingItem as Item;
+        }
+        // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
+        return typeof val === 'string' || typeof val === 'number' ? { label: String(val), val } : val;
+    };
 
     const [onChangeAction] = useAction(props.onchange);
 
@@ -178,6 +195,7 @@ function Select(props: SelectProps): JSX.Element {
     const [selectedItem, setSelectedItem] = useState(
         itemArray.find((item) => String(item.value) === String(value)) ?? explicitValue
     );
+
     const onSelect = useCallback(
         (item: Item) => {
             if (item) {
