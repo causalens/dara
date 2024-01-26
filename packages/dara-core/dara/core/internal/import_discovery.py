@@ -18,7 +18,7 @@ limitations under the License.
 import inspect
 import sys
 from types import ModuleType
-from typing import Any, List, Set, Tuple, Type, Union
+from typing import Any, List, Optional, Set, Tuple, Type, Union
 
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
@@ -55,7 +55,7 @@ def is_ignored(symbol: Any, ignore_symbols: List[Any]) -> bool:
 
 
 def run_discovery(
-    module: Union[ModuleType, dict], ignore_symbols: List[Any] = [], **kwargs
+    module: Union[ModuleType, dict], ignore_symbols: Optional[List[Any]] = None, **kwargs
 ) -> Tuple[Set[Type[ComponentInstance]], Set[Type[ActionImpl]]]:
     """
     Recursively discover components available in the global namespace within the module
@@ -68,6 +68,12 @@ def run_discovery(
     """
     components = set()
     actions = set()
+
+    # Create a new list of ignored symbols if not passed through
+    # Note: this single list instance it mutated and passed through to all recursive calls
+    # to avoid considering the same symbol twice in different calls
+    if ignore_symbols is None:
+        ignore_symbols = []
 
     # Currently examined module
     global_symbols = module if isinstance(module, dict) else module.__dict__
@@ -124,9 +130,10 @@ def run_discovery(
             discover,
             py_component,
         ):
+            ignore_symbols.append(v)
             child_components, child_actions = run_discovery(
                 sys.modules[source_module],
-                ignore_symbols=[*ignore_symbols, v],
+                ignore_symbols=ignore_symbols,
                 module_root=root,
             )
             components.update(child_components)
@@ -140,8 +147,9 @@ def run_discovery(
 
             # If source module is a nested module within the module root, examine its source module as well
             if source_module.startswith(root + '.'):
+                ignore_symbols.append(v)
                 child_components, child_actions = run_discovery(
-                    sys.modules[source_module], ignore_symbols=[*ignore_symbols, v], module_root=root
+                    sys.modules[source_module], ignore_symbols=ignore_symbols, module_root=root
                 )
                 components.update(child_components)
                 actions.update(child_actions)

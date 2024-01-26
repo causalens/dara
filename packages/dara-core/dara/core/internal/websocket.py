@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from contextvars import ContextVar
 import math
 import uuid
+from contextvars import ContextVar
 from typing import Any, Dict, Literal, Optional, Tuple, Union
 from uuid import uuid4
 
@@ -110,6 +110,7 @@ LoosePayload = Union[ServerPayload, dict]
 ServerMessage = Union[DaraServerMessage, CustomServerMessage]
 
 WS_CHANNEL: ContextVar[Optional[str]] = ContextVar('ws_channel', default=None)
+
 
 class WebSocketHandler:
     """
