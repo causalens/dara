@@ -207,6 +207,7 @@ function DynamicComponent(props: DynamicComponentProps): JSX.Element {
     const [component, setComponent] = useState<JSX.Element>();
     const { get: getComponent } = useComponentRegistry();
     const importers = useContext(ImportersCtx);
+    const fallbackCtx = useContext(FallbackCtx);
 
     const firstRender = useRef(true);
 
@@ -269,6 +270,12 @@ function DynamicComponent(props: DynamicComponentProps): JSX.Element {
         return null;
     }
 
+    // Compute the suspend setting for the component in order of precedence:
+    // 1) explicit suspend_render setting on the component
+    // 2) setting inherited from a parent component
+    // 3) default value of 200ms
+    const suspend = props.component?.props?.fallback?.props?.suspend_render ?? fallbackCtx?.suspend ?? 200;
+
     return (
         <ErrorBoundary
             fallbackRender={(fallbackProps) => (
@@ -276,7 +283,7 @@ function DynamicComponent(props: DynamicComponentProps): JSX.Element {
             )}
             onReset={onResetErrorBoundary}
         >
-            <FallbackCtx.Provider value={{ suspend: props.component?.props?.fallback?.props?.suspend_render ?? 200 }}>
+            <FallbackCtx.Provider value={{ suspend }}>
                 <VariableCtx.Provider value={{ variables }}>
                     <Suspense fallback={fallback}>{component}</Suspense>
                 </VariableCtx.Provider>

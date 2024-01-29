@@ -3,6 +3,7 @@ import { act } from '@testing-library/react';
 import { rest } from 'msw';
 import * as React from 'react';
 
+import { FallbackCtx } from '@/shared/context';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
@@ -36,6 +37,39 @@ describe('DynamicComponent', () => {
         );
         await waitFor(() => expect(container.firstChild).not.toBe(null));
         expect(container.firstChild).toBeInstanceOf(HTMLDivElement);
+    });
+
+    it('should inherit suspend_render setting', async () => {
+        function Harness(): JSX.Element {
+            const fallback = React.useContext(FallbackCtx);
+
+            return <div data-testid="fallback">{fallback.suspend}</div>;
+        }
+
+        const testSuspend = 999;
+
+        const { getByTestId } = wrappedRender(
+            <DynamicComponent
+                component={{
+                    name: 'TestComponent',
+                    props: {
+                        children: <Harness />,
+                        fallback: {
+                            name: 'Fallback',
+                            props: {
+                                suspend_render: testSuspend,
+                            },
+                            uid: 'fallback-uid',
+                        },
+                    },
+                    uid: 'uid',
+                }}
+            />
+        );
+
+        await waitFor(() => expect(getByTestId('fallback')).toBeInTheDocument());
+
+        expect(getByTestId('fallback')).toHaveTextContent(String(testSuspend));
     });
 
     it("should load the component from the registry and call the backend if it's a python one", async () => {
@@ -433,7 +467,7 @@ describe('DynamicComponent', () => {
             );
         };
 
-        const { getByTestId } = wrappedRender(
+        const { getByTestId, queryByTestId } = wrappedRender(
             <MockComponent action={triggerAction} varA={variableA} varB={variableB} />
         );
 
@@ -449,6 +483,7 @@ describe('DynamicComponent', () => {
             const input = getByTestId('b');
             fireEvent.change(input, { target: { value: 5 } });
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
             'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
         );
@@ -458,6 +493,7 @@ describe('DynamicComponent', () => {
             const input = getByTestId('a');
             fireEvent.change(input, { target: { value: 5 } });
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
             'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
         );
@@ -466,6 +502,7 @@ describe('DynamicComponent', () => {
         act(() => {
             fireEvent.click(getByTestId('trigger'));
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() =>
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
                 'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":5,"Variable:b":5}},"ws_channel":"uid"}'
@@ -538,7 +575,9 @@ describe('DynamicComponent', () => {
             );
         };
 
-        const { getByTestId } = wrappedRender(<MockComponentTrigger action={triggerAction} variableA={variable} />);
+        const { getByTestId, queryByTestId } = wrappedRender(
+            <MockComponentTrigger action={triggerAction} variableA={variable} />
+        );
 
         await waitFor(() => expect(getByTestId('dynamic-wrapper').innerHTML).not.toBe(''));
         await waitForElementToBeRemoved(() => getByTestId('LOADING'));
@@ -552,6 +591,7 @@ describe('DynamicComponent', () => {
             const input = getByTestId('a');
             fireEvent.change(input, { target: { value: 10 } });
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
             'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final_variable","values":[{"type":"derived","uid":"intermediate_variable","values":[{"__ref":"Variable:base_variable"}],"force":false}],"force":false}},"lookup":{"Variable:base_variable":5}},"ws_channel":"uid"}'
         );
@@ -560,6 +600,7 @@ describe('DynamicComponent', () => {
         act(() => {
             fireEvent.click(getByTestId('trigger'));
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() =>
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
                 'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final_variable","values":[{"type":"derived","uid":"intermediate_variable","values":[{"__ref":"Variable:base_variable"}],"force":true}],"force":true}},"lookup":{"Variable:base_variable":10}},"ws_channel":"uid"}'
@@ -1058,7 +1099,7 @@ describe('DynamicComponent', () => {
             );
         };
 
-        const { getByTestId } = wrappedRender(
+        const { getByTestId, queryByTestId } = wrappedRender(
             <MockComponent action={triggerAction} varA={variableA} varB={variableB} />
         );
 
@@ -1094,6 +1135,7 @@ describe('DynamicComponent', () => {
             const input = getByTestId('b');
             fireEvent.change(input, { target: { value: 5 } });
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getContent()).toEqual({
             uid: 'uid',
             values: {
@@ -1120,6 +1162,7 @@ describe('DynamicComponent', () => {
             const input = getByTestId('a');
             fireEvent.change(input, { target: { value: 5 } });
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getContent()).toEqual({
             uid: 'uid',
             values: {
@@ -1145,6 +1188,7 @@ describe('DynamicComponent', () => {
         act(() => {
             fireEvent.click(getByTestId('trigger'));
         });
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() =>
             expect(getContent()).toEqual({
                 uid: 'uid',

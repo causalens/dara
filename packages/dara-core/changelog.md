@@ -5,6 +5,7 @@ title: Changelog
 # NEXT
 
 -   Fixed an issue where import discovery would consider the same symbols repeatedly causing it to run much longer than necessary
+-   `suspend_render` setting on `fallback` provided to components is now inherited by all children of the component which the fallback is provided to, unless overriden by a different value.
 
 ## 1.5.3
 
