@@ -181,8 +181,8 @@ For example, for Plotly, see the following example:
 
 ```python
 import plotly.express as px
-from dara.components import Plotly
-from dara.components.plotting import set_default_plotly_theme, dark_theme
+from dara.components import Plotly, set_default_plotly_theme
+from dara.components.plotting.plotly import dark_theme
 
 
 df = px.data.iris()  # Using built-in Iris dataset
