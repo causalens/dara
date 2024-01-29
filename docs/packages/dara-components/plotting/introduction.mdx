@@ -169,10 +169,27 @@ You should use:
 You can choose a default theme for all your plotting components using the following
 
 ```python
-from dara.components.plotting import set_default_bokeh_theme, set_plotly_default_theme
+from dara.components.plotting import set_default_bokeh_theme, set_default_plotly_theme
 
 # provide theme object as expected by bokeh Document, see docs https://docs.bokeh.org/en/2.4.1/docs/reference/document.html#bokeh.document.Document.theme
 set_default_bokeh_theme({ ... })
 
 set_default_plotly_theme({ ... })
 ```
+
+For example, for Plotly, see the following example:
+
+```python
+import plotly.express as px
+from dara.components import Plotly
+from dara.components.plotting import set_default_plotly_theme, dark_theme
+
+
+df = px.data.iris()  # Using built-in Iris dataset
+fig = px.scatter(df, x='sepal_width', y='sepal_length', color='species', title='Iris Dataset Scatter Plot')
+
+
+set_default_plotly_theme(theme=dark_theme)
+Plotly(figure=fig, min_height=500)
+```
+
