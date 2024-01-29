@@ -177,7 +177,9 @@ set_default_bokeh_theme({ ... })
 set_default_plotly_theme({ ... })
 ```
 
-For example, for Plotly, see the following example:
+The `set_default_bokeh_theme` and `set_default_plotly_theme` takes a dictionary representation of the theme that each plotting library takes.
+
+For example, you can use the following default Dara dark theme for Plotly:
 
 ```python
 import plotly.express as px
@@ -193,3 +195,7 @@ set_default_plotly_theme(theme=dark_theme)
 Plotly(figure=fig, min_height=500)
 ```
 
+You can also modify the default themes for each plotting library by modifying the theme dictionary.
+You can find the documentation for themes in the links below:
+- For [Bokeh](https://docs.bokeh.org/en/latest/docs/reference/themes.html#theme)
+- For [Plotly](https://plotly.com/javascript/reference/#layout)
