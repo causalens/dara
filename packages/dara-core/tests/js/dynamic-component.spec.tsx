@@ -3,6 +3,7 @@ import { act } from '@testing-library/react';
 import { rest } from 'msw';
 import * as React from 'react';
 
+import { FallbackCtx } from '@/shared/context';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
@@ -36,6 +37,39 @@ describe('DynamicComponent', () => {
         );
         await waitFor(() => expect(container.firstChild).not.toBe(null));
         expect(container.firstChild).toBeInstanceOf(HTMLDivElement);
+    });
+
+    it('should inherit suspend_render setting', async () => {
+        function Harness(): JSX.Element {
+            const fallback = React.useContext(FallbackCtx);
+
+            return <div data-testid="fallback">{fallback.suspend}</div>;
+        }
+
+        const testSuspend = 999;
+
+        const { getByTestId } = wrappedRender(
+            <DynamicComponent
+                component={{
+                    name: 'TestComponent',
+                    props: {
+                        children: <Harness />,
+                        fallback: {
+                            name: 'Fallback',
+                            props: {
+                                suspend_render: testSuspend,
+                            },
+                            uid: 'fallback-uid',
+                        },
+                    },
+                    uid: 'uid',
+                }}
+            />
+        );
+
+        await waitFor(() => expect(getByTestId('fallback')).toBeInTheDocument());
+
+        expect(getByTestId('fallback')).toHaveTextContent(String(testSuspend));
     });
 
     it("should load the component from the registry and call the backend if it's a python one", async () => {
