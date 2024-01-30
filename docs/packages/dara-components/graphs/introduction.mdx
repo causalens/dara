@@ -237,15 +237,15 @@ CausalGraphViewer(
 )
 ```
 
-Alternatively you can pass the tiers based on some node property with the use of `TiersConfg`
-For `TiersConfg`:
+Alternatively you can pass the tiers based on some node property with the use of `TiersConfig`
+For `TiersConfig`:
 
 - you must pass a `group`, the group defines the path to the node property which contains the name of the tier they belong to. In the below example we define this to be a property called group within the meta of the node, so the path is `meta.group`
 - you may also define the `rank`, this is a list of group names defining the hierarchy of the tiers.
 - you may pass the `order_nodes_by`, this is a path to the node property containing a number which defines the order in which the nodes should be displayed within a tier.
 
 ```
-from dara.components import CausalGraphViewer, FcoseLayout, TiersConfg
+from dara.components import CausalGraphViewer, FcoseLayout, TiersConfig
 from cai_causal_graph import CausalGraph
 
 cg = CausalGraph()
@@ -262,7 +262,7 @@ cg.add_edge('D', 'E')
 CausalGraphViewer(
     causal_graph=cg,
     graph_layout=FcoseLayout(
-        tiers=TiersConfg(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
+        tiers=TiersConfig(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
         ),
 )
 ```

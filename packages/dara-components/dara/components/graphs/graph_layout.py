@@ -57,9 +57,9 @@ class GraphLayout(BaseModel, abc.ABC):
     node_font_size: Optional[int] = None
 
 
-class TiersConfg(BaseModel):
+class TiersConfig(BaseModel):
     """
-    TiersConfg provides a way of defining tiers for a graph layout.
+    TiersConfig provides a way of defining tiers for a graph layout.
 
     :param group: Path within node to group property which defines the tier it belong to,
         e.g. 'meta.group' would correspond to a group attribute in the meta of the node, 'meta': {'group': 'countries'}
@@ -100,9 +100,9 @@ class TieringLayout(BaseModel):
     )
     ```
 
-    Alternatively you can pass the tiers based on some node property with the use of TiersConfg:
+    Alternatively you can pass the tiers based on some node property with the use of TiersConfig:
     ```
-    from dara.components import CausalGraphViewer, FcoseLayout, TiersConfg
+    from dara.components import CausalGraphViewer, FcoseLayout, TiersConfig
     from cai_causal_graph import CausalGraph
 
     cg = CausalGraph()
@@ -119,7 +119,7 @@ class TieringLayout(BaseModel):
     CausalGraphViewer(
         causal_graph=cg,
         graph_layout=FcoseLayout(
-            tiers=TiersConfg(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
+            tiers=TiersConfig(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
             ),
     )
     ```
@@ -128,7 +128,7 @@ class TieringLayout(BaseModel):
     :param orientation: Orientation the tiers are displayed in default is horizontal
     """
 
-    tiers: Optional[Union[TiersConfg, List[List[str]]]] = None
+    tiers: Optional[Union[TiersConfig, List[List[str]]]] = None
     orientation: Optional[DirectionType] = DirectionType.HORIZONTAL
 
 
