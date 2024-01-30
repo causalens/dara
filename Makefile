@@ -57,7 +57,7 @@ test:
 
 # Version all the main packages in lockstep as a patch - run pnpm i and lock to update the lockfiles accordingly
 version:
-	@lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version patch && borg lock
+	@lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version minor && borg lock
 
 # Run a borg script without using borg itself
 run:
