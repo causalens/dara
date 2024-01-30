@@ -66,6 +66,7 @@ interface MarketingLayoutDefinition extends BaseGraphLayoutDefinition, Definitio
 }
 
 interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphLayoutBuilder {
+    layering_algorithm?: PlanarLayout['layeringAlgorithm'];
     layout_type: 'planar';
     orientation?: PlanarLayout['orientation'];
 }
@@ -211,6 +212,10 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
 
             if (definition.tiers) {
                 builder.tiers(definition.tiers);
+            }
+
+            if (definition.layering_algorithm) {
+                builder.layeringAlgorithm(definition.layering_algorithm);
             }
 
             break;

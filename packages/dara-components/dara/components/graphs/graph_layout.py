@@ -42,6 +42,11 @@ class DirectionType(str, Enum):
     VERTICAL = 'vertical'
 
 
+class LayeringAlgorithm(Enum):
+    LONGEST_PATH = 'longest_path'
+    SIMPLEX = 'simplex'
+
+
 Number = Union[int, float]
 
 
@@ -57,9 +62,9 @@ class GraphLayout(BaseModel, abc.ABC):
     node_font_size: Optional[int] = None
 
 
-class TiersConfg(BaseModel):
+class TiersConfig(BaseModel):
     """
-    TiersConfg provides a way of defining tiers for a graph layout.
+    TiersConfig provides a way of defining tiers for a graph layout.
 
     :param group: Path within node to group property which defines the tier it belong to,
         e.g. 'meta.group' would correspond to a group attribute in the meta of the node, 'meta': {'group': 'countries'}
@@ -100,9 +105,9 @@ class TieringLayout(BaseModel):
     )
     ```
 
-    Alternatively you can pass the tiers based on some node property with the use of TiersConfg:
+    Alternatively you can pass the tiers based on some node property with the use of TiersConfig:
     ```
-    from dara.components import CausalGraphViewer, FcoseLayout, TiersConfg
+    from dara.components import CausalGraphViewer, FcoseLayout, TiersConfig
     from cai_causal_graph import CausalGraph
 
     cg = CausalGraph()
@@ -119,7 +124,7 @@ class TieringLayout(BaseModel):
     CausalGraphViewer(
         causal_graph=cg,
         graph_layout=FcoseLayout(
-            tiers=TiersConfg(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
+            tiers=TiersConfig(group='meta.group', rank=['first', 'second', 'third'], order_nodes_by='meta.order'),
             ),
     )
     ```
@@ -128,7 +133,7 @@ class TieringLayout(BaseModel):
     :param orientation: Orientation the tiers are displayed in default is horizontal
     """
 
-    tiers: Optional[Union[TiersConfg, List[List[str]]]] = None
+    tiers: Optional[Union[TiersConfig, List[List[str]]]] = None
     orientation: Optional[DirectionType] = DirectionType.HORIZONTAL
 
 
@@ -260,9 +265,14 @@ class PlanarLayout(GraphLayout, TieringLayout):
     uses d3-dag's sugiyama layout under the hood to minimize edge crossings.
 
     :param orientation: Orientation of target node relative to other nodes (horizontal or vertical). (default value: horizontal)
+    :param layering_algorithm: Algorithm to use for the layering step of sugyiama algorithm. Can choosen between simplex which
+        optimizes for minimum edge length or long path which optimizes for minimum graph height.
+        Do note that if tiers are passed in conjunction to this prop, its value will revert to simplex
+        as tiers are only supported by it (defaults to: simplex)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, const=True)
+    layering_algorithm: Optional[LayeringAlgorithm] = LayeringAlgorithm.SIMPLEX
     orientation: Optional[DirectionType] = None
 
 
