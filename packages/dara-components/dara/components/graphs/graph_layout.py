@@ -42,6 +42,11 @@ class DirectionType(str, Enum):
     VERTICAL = 'vertical'
 
 
+class LayeringAlgorithm(Enum):
+    LONGEST_PATH = 'longest_path'
+    SIMPLEX = 'simplex'
+
+
 Number = Union[int, float]
 
 
@@ -260,9 +265,14 @@ class PlanarLayout(GraphLayout, TieringLayout):
     uses d3-dag's sugiyama layout under the hood to minimize edge crossings.
 
     :param orientation: Orientation of target node relative to other nodes (horizontal or vertical). (default value: horizontal)
+    :param layering_algorithm: Algorithm to use for the layering step of sugyiama algorithm. Can choosen between simplex which
+        optimizes for minimum edge length or long path which optimizes for minimum graph height.
+        Do note that if tiers are passed in conjunction to this prop, its value will revert to simplex
+        as tiers are only supported by it (defaults to: simplex)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, const=True)
+    layering_algorithm: Optional[LayeringAlgorithm] = LayeringAlgorithm.SIMPLEX
     orientation: Optional[DirectionType] = None
 
 
