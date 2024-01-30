@@ -11,6 +11,9 @@ title: Changelog
 -   Added `simultaneous_edge_node_selection` to `CausalGraphViewer`, when set to True, the selected node will not be reset when an edge is chosen and vice versa.
 -   Fixed an issue where if setting an initial number value to `Select` and it had a list of `Item`s, then the value showed was the number instead of the corresponding label to that value.
 -   Set `Bokeh` default `min-height` and `min-width` to `350px`.
+-   Added `layering_algorithm` prop to `PlanarLayout`. This allows users to choose between `LayeringAlgorithm.SIMPLEX` and `LayeringAlgorithm.LONGEST_PATH` for the layering step of the d3-dag sugyiama algorithm.
+-   Fixed an issue where if selecting the start or end date in a `Datepicker` always resulted in the user selecting the whole range instead of the selected input. 
+-   Fixed an issue where the filled button in the dark theme was using the wrong color, now it uses `blue1` color.
 
 ## 1.5.2
 
