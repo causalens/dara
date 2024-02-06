@@ -1,8 +1,7 @@
-import { RecoilState, RecoilValue } from 'recoil';
-
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { AnyVariable, isVariable } from '@/types';
+import { RecoilState, RecoilValue } from 'recoil';
 
 /**
  * Selector family type which constructs a selector from a given set of extras.
@@ -124,7 +123,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
         case 'DerivedDataVariable': {
             const key = getRegistryKey(variable, 'selector');
-            return selectorRegistry.has(key);
+            return selectorFamilyRegistry.has(key);
         }
 
         default:
