@@ -22,16 +22,7 @@ from importlib.metadata import version
 from typing import Any, Callable, List, Mapping, Optional
 
 import pandas
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
