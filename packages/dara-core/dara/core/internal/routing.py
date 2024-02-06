@@ -128,9 +128,7 @@ def create_router(config: Configuration):
         """Execution id, unique to this request"""
 
     @core_api_router.post('/action/{uid}', dependencies=[Depends(verify_session)])
-    async def get_action(
-        uid: str, body: ActionRequestBody, bg_tasks: BackgroundTasks
-    ):  # pylint: disable=unused-variable
+    async def get_action(uid: str, body: ActionRequestBody):  # pylint: disable=unused-variable
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -147,7 +145,7 @@ def create_router(config: Configuration):
 
         # Execute the action - kick off a background task to run the handler
         response = await action_def.execute_action(
-            action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr, bg_tasks
+            action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr
         )
 
         if isinstance(response, BaseTask):
