@@ -1,7 +1,8 @@
+import { RecoilState, RecoilValue } from 'recoil';
+
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { AnyVariable, isVariable } from '@/types';
-import { RecoilState, RecoilValue } from 'recoil';
 
 /**
  * Selector family type which constructs a selector from a given set of extras.
