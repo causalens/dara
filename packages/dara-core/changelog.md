@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Address action execution blocking new requests due to an issue around BackgroundTask processing in starlette
+
 ## 1.6.0
 
 -   Fixed an issue where import discovery would consider the same symbols repeatedly causing it to run much longer than necessary

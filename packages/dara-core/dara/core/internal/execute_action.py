@@ -16,11 +16,11 @@ limitations under the License.
 """
 from __future__ import annotations
 
+import asyncio
 from contextvars import ContextVar
 from typing import Any, Callable, Mapping, Optional, Union
 
 import anyio
-from fastapi import BackgroundTasks
 
 from dara.core.base_definitions import ActionResolverDef, BaseTask
 from dara.core.interactivity.actions import (
@@ -109,7 +109,6 @@ async def execute_action(
     ws_channel: str,
     store: CacheStore,
     task_mgr: TaskManager,
-    background_tasks: BackgroundTasks,
 ) -> Union[Any, BaseTask]:
     """
     Execute a given action with the provided context.
@@ -182,6 +181,8 @@ async def execute_action(
             process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
         )
 
-    # No tasks - run directly as bg task and return execution id
-    background_tasks.add_task(_stream_action, action, ctx, **resolved_kwargs)
+    # No tasks - run directly as an asyncio task and return the execution id
+    # Originally used to use FastAPI BackgroundTasks, but these ended up causing a blocking behavior that blocked some
+    # new requests from being handled until the task had ended
+    asyncio.create_task(_stream_action(action, ctx, **resolved_kwargs))
     return execution_id
