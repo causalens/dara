@@ -9,8 +9,8 @@ import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
 
-from dara.core.auth.definitions import JWT_ALGO
 from dara.core.auth.basic import BasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO
 from dara.core.base_definitions import Action, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
@@ -32,6 +32,7 @@ from tests.python.utils import (
     _get_py_component,
     _get_template,
     get_action_results,
+    wait_assert,
 )
 
 pytestmark = pytest.mark.anyio
@@ -283,7 +284,7 @@ async def test_update_variable_session_data_variable(_uid1, _uid2):
             },
         )
         assert response.status_code == 200
-        assert call_count == 1
+        await wait_assert(lambda: call_count == 1)
 
         # Check variable is updated for session1
         response = await client.post(
@@ -380,7 +381,7 @@ async def test_update_variable_user_data_variable(_uid1, _uid2):
             },
         )
         assert response.status_code == 200
-        assert call_count == 1
+        await wait_assert(lambda: call_count == 1)
 
         # Check variable is updated for user1
         response = await client.post(
