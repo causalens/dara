@@ -20,7 +20,7 @@ importers:
     specifiers:
       '@babel/core': ^7.23.5
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.6.0
+      '@darajs/core': 1.6.1
       '@darajs/eslint-config': ~1.5.2
       '@darajs/prettier-config': ~1.5.2
       '@darajs/styled-components': ~1.5.2
