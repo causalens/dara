@@ -2,9 +2,10 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.6.1
 
 -  Address action execution blocking new requests due to an issue around BackgroundTask processing in starlette
+-  Fix `get_current_value` not working for `DerivedDataVariable`
 
 ## 1.6.0
 
