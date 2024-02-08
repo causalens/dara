@@ -127,8 +127,8 @@ def start(
     if skip_jsbuild:
         os.environ['SKIP_JSBUILD'] = 'TRUE'
 
-    # Check that if production/dev mode is set, node is installed - unless we're in docker mode
-    if not docker and (production or enable_hmr):
+    # Check that if production/dev mode is set, node is installed - unless we're in docker mode, or explicitly skipping jsbuild
+    if not docker and not skip_jsbuild and (production or enable_hmr):
         exit_code = os.system('node -v')
 
         if exit_code > 0:
