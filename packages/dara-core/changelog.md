@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
+
 ## 1.6.1
 
 -  Address action execution blocking new requests due to an issue around BackgroundTask processing in starlette
