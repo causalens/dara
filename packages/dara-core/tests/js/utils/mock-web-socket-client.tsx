@@ -4,6 +4,7 @@ import { filter, map } from 'rxjs/operators';
 import { ActionImpl } from '@/types/core';
 
 import {
+    BackendStoreMessage,
     ProgressNotificationMessage,
     TaskStatus,
     VariableRequestMessage,
@@ -34,6 +35,13 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         return this.messages$.pipe(
             filter((msg: any) => 'action' in msg.message && msg.message.uid === executionId),
             map((msg: any) => msg.message.action)
+        );
+    }
+
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
+        return this.messages$.pipe(
+            filter((msg) => 'store_uid' in msg.message),
+            map((msg) => msg.message)
         );
     }
 

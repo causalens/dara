@@ -13,7 +13,7 @@ import { BackendStore, PersistenceStore } from '@/types/core';
 import { WebSocketCtx, useRequestExtras } from '../context';
 import { isEmbedded } from '../utils/embed';
 
-function BackendStore({ children }: { children: React.ReactNode }): JSX.Element {
+function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
     const { client } = React.useContext(WebSocketCtx);
     const extras = useRequestExtras();
 
@@ -130,7 +130,7 @@ export function getSessionKey(extras: RequestExtras, uid: string): string {
     return `dara-session-${sessionToken}-var-${uid}`;
 }
 
-function BrowserStore({ children }: { children: React.ReactNode }): JSX.Element {
+function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
     const extras = useRequestExtras();
 
     const getStoreValue = React.useCallback<ReadItem>(
@@ -190,8 +190,25 @@ function BrowserStore({ children }: { children: React.ReactNode }): JSX.Element 
 }
 
 function localStorageEffect<T>(variable: SingleVariable<T, PersistenceStore>): AtomEffect<any> {
+    let firstRun = true;
+
     return syncEffect({
         itemKey: variable.uid,
+        read: ({ read }) => {
+            const readValue = read(variable.uid);
+
+            if (firstRun) {
+                firstRun = true;
+
+                // during first run fall back to the default value if the read value is null
+                // as localstorage might not have been initialized yet
+                if (!readValue) {
+                    return variable.default;
+                }
+            }
+
+            return readValue;
+        },
         refine: mixed(),
         storeKey: 'BrowserStore',
     });
@@ -214,11 +231,11 @@ export const STORES: Record<
 > = {
     BackendStore: {
         effect: backendStoreEffect,
-        sync: BackendStore,
+        sync: BackendStoreSync,
     },
     BrowserStore: {
         effect: localStorageEffect,
-        sync: BrowserStore,
+        sync: BrowserStoreSync,
     },
 };
 
@@ -239,8 +256,8 @@ export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effe
  */
 export function StoreProviders({ children }: { children: React.ReactNode }): JSX.Element {
     return (
-        <BackendStore>
-            <BrowserStore>{children}</BrowserStore>
-        </BackendStore>
+        <BackendStoreSync>
+            <BrowserStoreSync>{children}</BrowserStoreSync>
+        </BackendStoreSync>
     );
 }

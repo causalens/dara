@@ -4,8 +4,9 @@ import { rest } from 'msw';
 import hash from 'object-hash';
 import { useRecoilCallback } from 'recoil';
 
+import { getSessionKey } from '@/shared/interactivity/persistence';
+
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
-import { getSessionKey } from '../../js/shared/interactivity/plain-variable';
 import {
     atomFamilyMembersRegistry,
     atomFamilyRegistry,
