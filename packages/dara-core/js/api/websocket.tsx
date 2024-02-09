@@ -88,6 +88,14 @@ export interface ActionMessage {
     type: 'message';
 }
 
+export interface BackendStoreMessage {
+    message: {
+        store_uid: string;
+        value: any;
+    };
+    type: 'message';
+}
+
 export interface CustomMessage {
     message: {
         data: any;
@@ -105,6 +113,7 @@ export type WebSocketMessage =
     | ServerErrorMessage
     | VariableRequestMessage
     | ActionMessage
+    | BackendStoreMessage
     | CustomMessage;
 
 function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
@@ -125,6 +134,10 @@ function isVariableRequestMessage(message: WebSocketMessage): message is Variabl
 
 function isActionMessage(message: WebSocketMessage): message is ActionMessage {
     return message.type === 'message' && 'action' in message.message;
+}
+
+function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
+    return message.type === 'message' && 'store_uid' in message.message;
 }
 
 function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
@@ -208,6 +221,7 @@ function onCloseWs(token: string, liveReload: boolean): void {
 
 export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
@@ -282,6 +296,13 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     getChannel(): Promise<string> {
         return this.channel;
+    }
+
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
+        return this.messages$.pipe(
+            filter(isBackendStoreMessage),
+            map((msg) => msg.message)
+        );
     }
 
     /**

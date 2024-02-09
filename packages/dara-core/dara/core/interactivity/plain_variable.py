@@ -17,15 +17,19 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, List, Optional
+
+from typing_extensions import Generic, TypeVar
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.persistence import PersistenceStore
 
 VariableType = TypeVar('VariableType')
+PersistenceStoreType = TypeVar('PersistenceStoreType', bound=PersistenceStore, default=PersistenceStore, covariant=True)
 
-
+# TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
 class Variable(NonDataVariable, Generic[VariableType]):
     """
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -33,6 +37,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
     default: Optional[VariableType]
     persist_value: bool = False
+    store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = []
 
@@ -40,7 +45,11 @@ class Variable(NonDataVariable, Generic[VariableType]):
         extra = 'forbid'
 
     def __init__(
-        self, default: Optional[VariableType] = None, persist_value: Optional[bool] = False, uid: Optional[str] = None
+        self,
+        default: Optional[VariableType] = None,
+        persist_value: Optional[bool] = False,
+        uid: Optional[str] = None,
+        store: Optional[PersistenceStoreType] = None,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -49,7 +58,13 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param persist_value: whether to persist the variable value across page reloads
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
-        super().__init__(default=default, uid=uid, persist_value=persist_value)
+        if store is not None and persist_value:
+            raise ValueError('Cannot have both a store and persist_value set to True')
+
+        super().__init__(default=default, uid=uid, persist_value=persist_value, store=store)
+
+        if self.store:
+            self.store.init(self)
 
     def get(self, key: str):
         """
@@ -110,10 +125,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
@@ -136,10 +148,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
@@ -162,10 +171,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)
@@ -187,4 +193,5 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)
+
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

@@ -1,4 +1,4 @@
-import { RecoilState, atom, atomFamily, selectorFamily } from 'recoil';
+import { AtomEffect, RecoilState, atomFamily, selectorFamily } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
@@ -8,31 +8,8 @@ import { DerivedVariable, SingleVariable, isDerivedVariable } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue, resolveNested, setNested } from './internal';
-import {
-    AtomFamily,
-    atomFamilyMembersRegistry,
-    atomFamilyRegistry,
-    atomRegistry,
-    getRegistryKey,
-    selectorFamilyRegistry,
-} from './store';
-
-/**
- * Get the session key used to persist a variable value
- *
- * @param extras request extras to be merged into the options
- * @param uid uid of the variable to persist
- */
-export function getSessionKey(extras: RequestExtras, uid: string): string {
-    const sessionToken = typeof extras === 'string' ? extras : extras.sessionToken;
-
-    // If we're within an IFrame (Jupyter)
-    if (isEmbedded()) {
-        return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset.daraPageId}-var-${uid}`;
-    }
-
-    return `dara-session-${sessionToken}-var-${uid}`;
-}
+import { STORES, getEffect } from './persistence';
+import { atomFamilyMembersRegistry, atomFamilyRegistry, getRegistryKey, selectorFamilyRegistry } from './store';
 
 type Listener = (...args: any[]) => void;
 
@@ -105,102 +82,83 @@ export function getOrRegisterPlainVariable<T>(
     const isNested = variable.nested && variable.nested.length > 0;
     const isDefaultDerived = isDerivedVariable(variable.default);
 
-    let atomInstance: RecoilState<T>;
-    let family: AtomFamily | null = null;
-
-    // Variables created from DV need to be registered as atomFamily to dynamically pick up the right DV
-    if (isDefaultDerived) {
-        if (!atomFamilyRegistry.has(variable.uid)) {
-            atomFamilyRegistry.set(
-                variable.uid,
-                atomFamily({
-                    /*
+    if (!atomFamilyRegistry.has(variable.uid)) {
+        atomFamilyRegistry.set(
+            variable.uid,
+            atomFamily({
+                /*
                 If created from a DerivedVariable, link the default state to that DV's selector
                 From Recoil docs:
                 "If a selector is used as the default the atom will dynamically update as the default selector updates.
                 Once the atom is set, then it will retain that value unless the atom is reset."
+
+                Otherwise just use variable.default directly.
                 */
-                    default: (extrasSerializable: RequestExtrasSerializable) =>
-                        getOrRegisterDerivedVariableValue(
-                            variable.default as DerivedVariable,
-                            wsClient,
-                            taskContext,
-                            extrasSerializable.extras
-                        ),
-                    effects: [
-                        ({ onSet, setSelf, resetSelf }) => {
-                            // Synchronize changes across atoms of the same family
-                            const unsub = StateSynchronizer.getInstance().subscribe(
-                                variable.uid,
-                                (newValue, oldValue, isReset) => {
-                                    if (isReset) {
-                                        resetSelf();
-                                    } else {
-                                        setSelf(newValue);
-                                    }
+                default: isDefaultDerived
+                    ? (extrasSerializable: RequestExtrasSerializable) =>
+                          getOrRegisterDerivedVariableValue(
+                              variable.default as DerivedVariable,
+                              wsClient,
+                              taskContext,
+                              extrasSerializable.extras
+                          )
+                    : variable.default,
+                effects: (extrasSerializable: RequestExtrasSerializable) => {
+                    const familySync: AtomEffect<T> = ({ onSet, setSelf, resetSelf, node }) => {
+                        // Synchronize changes across atoms of the same family
+                        const unsub = StateSynchronizer.getInstance().subscribe(
+                            variable.uid,
+                            (nodeKey, newValue, oldValue, isReset) => {
+                                // skip updates from the same atom
+                                if (nodeKey === node.key) {
+                                    return;
                                 }
-                            );
 
-                            onSet((newValue, oldValue, isReset) => {
-                                StateSynchronizer.getInstance().notify(variable.uid, newValue, oldValue, isReset);
-                            });
+                                if (isReset) {
+                                    resetSelf();
+                                } else {
+                                    setSelf(newValue);
+                                }
+                            }
+                        );
 
-                            return () => unsub();
-                        },
-                    ],
-                    key: variable.uid,
-                })
-            );
-        }
+                        onSet((newValue, oldValue, isReset) => {
+                            StateSynchronizer.getInstance().notify(variable.uid, node.key, newValue, oldValue, isReset);
+                        });
 
-        family = atomFamilyRegistry.get(variable.uid);
-        const extrasSerializable = new RequestExtrasSerializable(extras);
-        atomInstance = family(extrasSerializable);
+                        return () => unsub();
+                    };
 
-        // Register the atom instance in the atomFamilyMembersRegistry so we can retrieve it later
-        if (!atomFamilyMembersRegistry.has(family)) {
-            atomFamilyMembersRegistry.set(family, new Map());
-        }
-        atomFamilyMembersRegistry.get(family).set(extrasSerializable.toJSON(), atomInstance);
-    } else {
-        // otherwise register it as a plain atom
-        if (!atomRegistry.has(variable.uid)) {
-            let defaultValue = variable.default;
-            const persistValue = variable.persist_value || isEmbedded();
+                    const effects: AtomEffect<T>[] = [familySync];
 
-            // If persist_value flag is set, try to retrieve persisted value and use it if we found one instead of default
-            if (persistValue) {
-                const persistedValue = localStorage.getItem(getSessionKey(extras, variable.uid));
+                    // If persist_value flag is set, register an effect which updates the selected value in localstorage
+                    // TODO: once BrowserStore is implemented instead of persist_value, this block can only check for isEmbedded
+                    if (variable.persist_value || isEmbedded()) {
+                        effects.push(STORES.BrowserStore.effect(variable, extrasSerializable));
+                    }
 
-                if (persistedValue) {
-                    defaultValue = JSON.parse(persistedValue);
-                }
-            }
+                    // add an effect to handle backend store updates
+                    const storeEffect = getEffect(variable);
+                    if (storeEffect) {
+                        effects.push(storeEffect(variable, extrasSerializable));
+                    }
 
-            atomRegistry.set(
-                variable.uid,
-                atom({
-                    default: defaultValue,
-                    // If persist_value flag is set, register an effect which updates the selected value in sessionStorage on each variable update
-                    effects: persistValue
-                        ? [
-                              ({ onSet }) => {
-                                  onSet((newValue) => {
-                                      localStorage.setItem(
-                                          getSessionKey(extras, variable.uid),
-                                          JSON.stringify(newValue)
-                                      );
-                                  });
-                              },
-                          ]
-                        : [],
-                    key: variable.uid,
-                })
-            );
-        }
-
-        atomInstance = atomRegistry.get(variable.uid);
+                    return effects;
+                },
+                key: variable.uid,
+            })
+        );
     }
+
+    const family = atomFamilyRegistry.get(variable.uid);
+    const extrasSerializable = new RequestExtrasSerializable(extras);
+    const atomInstance: RecoilState<T> = family(extrasSerializable);
+
+    // Register the atom instance in the atomFamilyMembersRegistry so we can retrieve it later
+    if (!atomFamilyMembersRegistry.has(family)) {
+        atomFamilyMembersRegistry.set(family, new Map());
+    }
+    atomFamilyMembersRegistry.get(family).set(extrasSerializable.toJSON(), atomInstance);
 
     // In case of a nested variable, register and return a selector to resolve the nested values
     if (isNested) {
@@ -214,9 +172,9 @@ export function getOrRegisterPlainVariable<T>(
                 key,
                 selectorFamily({
                     get:
-                        (extrasSerializable: RequestExtrasSerializable) =>
+                        (currentExtras: RequestExtrasSerializable) =>
                         ({ get }) => {
-                            const variableValue = get(family ? family(extrasSerializable) : atomInstance);
+                            const variableValue = get(family ? family(currentExtras) : atomInstance);
 
                             return resolveNested(
                                 variableValue,
@@ -225,9 +183,9 @@ export function getOrRegisterPlainVariable<T>(
                         },
                     key,
                     set:
-                        (extrasSerializable: RequestExtrasSerializable) =>
+                        (currentExtras: RequestExtrasSerializable) =>
                         ({ set }, newValue) => {
-                            set(family ? family(extrasSerializable) : atomInstance, (v) =>
+                            set(family ? family(currentExtras) : atomInstance, (v) =>
                                 setNested(
                                     v,
                                     variable.nested.map((n) => String(n)),
@@ -239,7 +197,6 @@ export function getOrRegisterPlainVariable<T>(
             );
         }
         const selectorFamilyInstance = selectorFamilyRegistry.get(key);
-        const extrasSerializable = new RequestExtrasSerializable(extras);
 
         // We cast it since it's a writeable selector
         return selectorFamilyInstance(extrasSerializable) as RecoilState<T>;

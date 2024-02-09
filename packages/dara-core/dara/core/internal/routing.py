@@ -19,10 +19,11 @@ import inspect
 import os
 from functools import wraps
 from importlib.metadata import version
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
+import anyio
 import pandas
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -41,6 +42,7 @@ from dara.core.internal.pandas_utils import df_to_json
 from dara.core.internal.registries import (
     action_def_registry,
     action_registry,
+    backend_store_registry,
     component_registry,
     data_variable_registry,
     derived_variable_registry,
@@ -54,8 +56,9 @@ from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
-from dara.core.internal.websocket import WS_CHANNEL, ws_handler
+from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager, ws_handler
 from dara.core.logging import dev_logger
+from dara.core.persistence import BackendStoreEntry
 from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
 
@@ -427,6 +430,38 @@ def create_router(config: Configuration):
 
         # Return {cache_key: <cache_key>, value: <value>}
         return response
+
+    @core_api_router.get('/store/{store_uid}', dependencies=[Depends(verify_session)])
+    async def read_backend_store(store_uid: str):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
+        result = store_entry.store.read()
+
+        # Backend implementation could return a coroutine
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
+
+    @core_api_router.post('/store', dependencies=[Depends(verify_session)])
+    async def sync_backend_store(values: Dict[str, Any] = Body()):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+        async def _write(store_uid: str, value: Any):
+            store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
+            result = store_entry.store.write(value)
+
+            # Backend implementation could return a coroutine
+            if inspect.iscoroutine(result):
+                await result
+
+            # Broadcast the new value to all connected clients
+            ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+            await ws_mgr.broadcast({'store_uid': store_uid, 'value': value})
+
+        async with anyio.create_task_group() as tg:
+            for store_uid, value in values.items():
+                tg.start_soon(_write, store_uid, value)
 
     @core_api_router.get('/tasks/{task_id}', dependencies=[Depends(verify_session)])
     async def get_task_result(task_id: str):   # pylint: disable=unused-variable

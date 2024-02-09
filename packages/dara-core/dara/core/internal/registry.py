@@ -42,6 +42,7 @@ class RegistryType(str, Enum):
     USER_SESSION = 'User session'
     PENDING_TOKENS = 'Pending tokens'
     CUSTOM_WS_HANDLERS = 'Custom WS handlers'
+    BACKEND_STORE = 'Backend Store'
 
 
 class Registry(Generic[T]):

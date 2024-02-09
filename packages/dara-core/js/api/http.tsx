@@ -29,9 +29,10 @@ export class RequestExtrasSerializable {
     }
 
     /**
-     * Serialize the extras into a string.
+     * Get the serializable form of the extras.
+     * Transforms the headers into a serializable format rather than a Headers object.
      */
-    toJSON(): string {
+    toSerializable(): RequestExtras | null {
         if (!this.extras) {
             return null;
         }
@@ -46,6 +47,19 @@ export class RequestExtrasSerializable {
         if (serializable.options?.headers) {
             const headers = new Headers(serializable.options.headers);
             serializable.options.headers = Object.fromEntries(headers.entries());
+        }
+
+        return serializable;
+    }
+
+    /**
+     * Serialize the extras into a string.
+     */
+    toJSON(): string | null {
+        const serializable = this.toSerializable();
+
+        if (!serializable) {
+            return null;
         }
 
         return JSON.stringify(serializable);
