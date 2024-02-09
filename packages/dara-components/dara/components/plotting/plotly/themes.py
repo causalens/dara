@@ -34,6 +34,7 @@ light_theme = {
             'color': light_colors.text,
         },
         'xaxis': {
+            'zerolinecolor': light_colors.grey3,
             'gridcolor': light_colors.grey2,
             'title': {
                 'font': {
@@ -44,6 +45,7 @@ light_theme = {
             },
         },
         'yaxis': {
+            'zerolinecolor': light_colors.grey3,
             'gridcolor': light_colors.grey2,
             'title': {
                 'font': {
@@ -92,6 +94,7 @@ dark_theme = {
             'color': dark_colors.text,
         },
         'xaxis': {
+            'zerolinecolor': dark_colors.grey3,
             'gridcolor': dark_colors.grey2,
             'title': {
                 'font': {
@@ -102,6 +105,7 @@ dark_theme = {
             },
         },
         'yaxis': {
+            'zerolinecolor': dark_colors.grey3,
             'gridcolor': dark_colors.grey2,
             'title': {
                 'font': {

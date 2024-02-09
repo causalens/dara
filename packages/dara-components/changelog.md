@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added `zeroline` default color to `Plotly` theme
+
 ## 1.6.0
 
 **Graphs**
