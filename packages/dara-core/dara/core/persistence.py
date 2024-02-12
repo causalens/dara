@@ -1,5 +1,5 @@
 import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +40,7 @@ class InMemoryBackend(PersistenceBackend):
     In-memory persistence backend
     """
 
-    data: dict[str, Any] = Field(default_factory=dict)
+    data: Dict[str, Any] = Field(default_factory=dict)
 
     def write(self, key: str, value: Any):
         self.data[key] = value
