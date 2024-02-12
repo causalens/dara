@@ -9,7 +9,8 @@
     ],
     "persist_value": false,
     "uid": "{{var_1_uid}}",
-    "__typename": "Variable"
+    "__typename": "Variable",
+    "store": null
   },
   {
     "default": {
@@ -21,6 +22,7 @@
     ],
     "persist_value": false,
     "uid": "{{var_2_uid}}",
-    "__typename": "Variable"
+    "__typename": "Variable",
+    "store": null
   }
 ]
