@@ -21,9 +21,16 @@ from typing import Any, Callable, Mapping, Set
 from dara.core.auth import BaseAuthConfig
 from dara.core.base_definitions import ActionDef, ActionResolverDef, UploadResolverDef
 from dara.core.defaults import CORE_ACTIONS, CORE_COMPONENTS, INITIAL_CORE_INTERNALS
-from dara.core.definitions import ComponentTypeAnnotation, EndpointConfiguration, Template
+from dara.core.definitions import (
+    ComponentTypeAnnotation,
+    EndpointConfiguration,
+    Template,
+)
 from dara.core.interactivity.data_variable import DataVariableRegistryEntry
-from dara.core.interactivity.derived_variable import DerivedVariableRegistryEntry, LatestValueRegistryEntry
+from dara.core.interactivity.derived_variable import (
+    DerivedVariableRegistryEntry,
+    LatestValueRegistryEntry,
+)
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
 from dara.core.persistence import BackendStoreEntry

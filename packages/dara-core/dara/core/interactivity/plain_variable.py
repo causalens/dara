@@ -24,10 +24,13 @@ from typing_extensions import Generic, TypeVar
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.internal.utils import call_async
 from dara.core.persistence import PersistenceStore
 
 VariableType = TypeVar('VariableType')
-PersistenceStoreType = TypeVar('PersistenceStoreType', bound=PersistenceStore, default=PersistenceStore, covariant=True)
+PersistenceStoreType_co = TypeVar(
+    'PersistenceStoreType_co', bound=PersistenceStore, default=PersistenceStore, covariant=True
+)
 
 # TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
 class Variable(NonDataVariable, Generic[VariableType]):
@@ -49,7 +52,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         default: Optional[VariableType] = None,
         persist_value: Optional[bool] = False,
         uid: Optional[str] = None,
-        store: Optional[PersistenceStoreType] = None,
+        store: Optional[PersistenceStoreType_co] = None,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -65,7 +68,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         super().__init__(default=default, uid=uid, persist_value=persist_value, store=store)
 
         if self.store:
-            self.store.init(self)
+            call_async(self.store.init, self)
 
     def get(self, key: str):
         """
@@ -126,7 +129,10 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
@@ -149,7 +155,10 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
@@ -172,7 +181,10 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
+        from dara.core.interactivity.actions import (
+            UpdateVariableImpl,
+            assert_no_context,
+        )
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)

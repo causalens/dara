@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from tests.python.utils import wait_for
+from anyio import sleep
 
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.persistence import BackendStore, InMemoryBackend
@@ -9,11 +9,14 @@ from dara.core.persistence import BackendStore, InMemoryBackend
 pytestmark = pytest.mark.anyio
 
 
-def test_creating_plain_variable_inits_store():
+async def test_creating_plain_variable_inits_store():
     var = Variable(default=123, store=BackendStore(backend=InMemoryBackend(), uid='my_var'))
     assert isinstance(var.store, BackendStore)
+
+    await sleep(0.5)   # Wait for the store to be initialized
+
     # Check store has the value written to upon creation
-    assert var.store.read() == var.default
+    assert await var.store.read() == 123
 
     # Verify store is put into registry
     from dara.core.internal.registries import backend_store_registry
@@ -61,17 +64,17 @@ def cleanup_store_registry():
 
 async def test_write_and_read(backend_store):
     # Write a value
-    backend_store.write('test_value')
+    await backend_store.write('test_value')
     # Read the value back
-    assert backend_store.read() == 'test_value', 'The read value should match the written value.'
+    assert await backend_store.read() == 'test_value', 'The read value should match the written value.'
 
 
 async def test_delete(backend_store):
     # Write a value, then delete it
-    backend_store.write('test_value')
-    backend_store.delete()
+    await backend_store.write('test_value')
+    await backend_store.delete()
     # Verify the value is deleted
-    assert backend_store.read() is None, 'The value should be None after deletion.'
+    assert await backend_store.read() is None, 'The value should be None after deletion.'
 
 
 async def test_init_with_default(backend_store):
@@ -79,32 +82,27 @@ async def test_init_with_default(backend_store):
     class MockVariable:
         default = 'default_value'
 
-    backend_store.init(MockVariable())
+    await backend_store.init(MockVariable())
     # Verify the store now contains the default value
     assert (
-        backend_store.read() == 'default_value'
+        await backend_store.read() == 'default_value'
     ), 'The store should be initialized with the default value if it was empty.'
 
 
 async def test_notify_on_write(backend_store, mock_ws_mgr):
     # Write a value and check if _notify was called
-    backend_store.write('test_value')
+    await backend_store.write('test_value')
 
-    # Need to await to yield to the loop to process the task
-    await wait_for(
-        lambda: mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'test_value'})
-    )
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'test_value'})
 
 
 async def test_notify_on_delete(backend_store, mock_ws_mgr):
     # Delete the value and check if _notify was called with None
-    backend_store.write('test_value', notify=False)  # Ensure there's something to delete
-    backend_store.delete()
+    await backend_store.write('test_value', notify=False)  # Ensure there's something to delete
+    await backend_store.delete()
 
     # Need to await to yield to the loop to process the task
-    await wait_for(
-        lambda: mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None})
-    )
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None})
 
 
 def test_memory_backend(in_memory_backend):

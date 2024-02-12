@@ -13,6 +13,13 @@ import { BackendStore, PersistenceStore } from '@/types/core';
 import { WebSocketCtx, useRequestExtras } from '../context';
 import { isEmbedded } from '../utils/embed';
 
+/**
+ * RecoilSync implementation for BackendStore
+ *
+ * - read: GET from /api/core/store/:store_uid
+ * - write: POST to /api/core/store
+ * - listen: subscribed to `backendStoreMessages$` on WsClient
+ */
 function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
     const { client } = React.useContext(WebSocketCtx);
     const extras = useRequestExtras();
@@ -88,6 +95,12 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     );
 }
 
+/**
+ * Create a syncEffect for BackendStore
+ *
+ * @param variable variable to create the atom effect for
+ * @param requestExtras extras object to create the effect for; used to pass through correct extras to write requests
+ */
 function backendStoreEffect<T>(
     variable: SingleVariable<T, BackendStore>,
     requestExtras: RequestExtrasSerializable
@@ -130,6 +143,15 @@ export function getSessionKey(extras: RequestExtras, uid: string): string {
     return `dara-session-${sessionToken}-var-${uid}`;
 }
 
+/**
+ * RecoilSync implementation for BrowserStore
+ *
+ * localStorage keys are generated via @see getSessionKey
+ *
+ * - read: read from localStorage
+ * - write: write to localStorage
+ * - listen: subscribe to 'storage' event for cross-tab or cross-window syncing
+ */
 function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
     const extras = useRequestExtras();
 
@@ -192,15 +214,20 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     );
 }
 
+/**
+ * Create a syncEffect for BrowserStore
+ *
+ * @param variable variable to create effect for
+ */
 function localStorageEffect<T>(variable: SingleVariable<T, PersistenceStore>): AtomEffect<any> {
-    let firstRun = true;
+    let firstRun = false;
 
     return syncEffect({
         itemKey: variable.uid,
         read: ({ read }) => {
             const readValue = read(variable.uid);
 
-            if (firstRun) {
+            if (!firstRun) {
                 firstRun = true;
 
                 // during first run fall back to the default value if the read value is null
@@ -242,6 +269,13 @@ export const STORES: Record<
     },
 };
 
+/**
+ * Get the effect creator function for a given variable
+ *
+ * Looks up correct definition based on variable.store type
+ *
+ * @param variable variable to get effect for
+ */
 export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effect | null {
     const storeName = variable.store?.__typename;
 
@@ -258,6 +292,7 @@ export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effe
  * Applies all STORES around the children.
  */
 export function StoreProviders({ children }: { children: React.ReactNode }): JSX.Element {
+    // this could be a loop if STORES is dynamically extensible but static for now
     return (
         <BackendStoreSync>
             <BrowserStoreSync>{children}</BrowserStoreSync>

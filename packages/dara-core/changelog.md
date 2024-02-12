@@ -2,6 +2,30 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Add `store` prop to (plain, i.e. non-derived/data) `Variable`. This enables customizing the "source of truth" for the `Variable`. By default it is stored in browser memory. In the initial implementation there is only one store available: `dara.core.persistence.BackendStore`. This enables making the variable server-side, where the client-side state is automatically synchronized with the backend state. The backend store accepts any backend implementation for storage, the initial implementation includes a simple `InMemoryBackend`. See the `Persistence` docs for more details.
+
+```python
+from dara.core import Variable
+from dara.core.persistence import BackendStore, InMemoryBackend
+from dara.components import Input
+
+# Store have a unique identifier and a backend implementation for storage
+collab_variable = Variable(default=1, store=BackendStore(uid='my_variable', backend=InMemoryBackend()))
+
+# Input value will automatically be kept in sync 'live' for all users
+Input(value=collab_variable)
+
+
+# The store can be interacted with directly
+store: BackendStore = collab_variable.store
+# Write a new value to the store, all clients will be notified of the change
+await store.write('new value')
+# Read the current value from the store
+value = await store.read()
+```
+
 ## 1.6.2
 
 - Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
