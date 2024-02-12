@@ -86,7 +86,7 @@ function TemplateRoot(): JSX.Element {
                 setWsClient(setupWebsocket(token, config.live_reload));
             };
         }
-    }, [token, config.live_reload, wsClient]);
+    }, [token, config?.live_reload, wsClient]);
 
     if (templateLoading || actionsLoading || componentsLoading) {
         return null;
