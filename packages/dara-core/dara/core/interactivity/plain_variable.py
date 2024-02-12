@@ -17,9 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
-
-from typing_extensions import Generic, TypeVar
+from typing import Any, Generic, List, Optional, TypeVar
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
@@ -28,9 +26,7 @@ from dara.core.internal.utils import call_async
 from dara.core.persistence import PersistenceStore
 
 VariableType = TypeVar('VariableType')
-PersistenceStoreType_co = TypeVar(
-    'PersistenceStoreType_co', bound=PersistenceStore, default=PersistenceStore, covariant=True
-)
+PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceStore, covariant=True)
 
 # TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
 class Variable(NonDataVariable, Generic[VariableType]):
