@@ -2,9 +2,10 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.6.2
 
 - Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
+- Fix an issue where the websocket connection was not properly recreated on reconnection
 
 ## 1.6.1
 
