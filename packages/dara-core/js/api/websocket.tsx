@@ -107,6 +107,10 @@ export type WebSocketMessage =
     | ActionMessage
     | CustomMessage;
 
+function isInitMessage(message: WebSocketMessage): message is InitMessage {
+    return message.type === 'init';
+}
+
 function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
     return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
 }
@@ -160,10 +164,10 @@ function setupHeartbeat(): void {
  * Tries reconnecting for a few seconds after detecting the close event,
  * and refreshes the browser on reconnect.
  */
-function onCloseWs(token: string, liveReload: boolean): void {
+function onCloseWs(token: string, liveReload: boolean): WebSocket {
     let attempts = 0;
 
-    const attemptReconnect = (): void => {
+    const attemptReconnect = (): WebSocket => {
         attempts++;
 
         if (attempts > maxAttempts) {
@@ -201,13 +205,15 @@ function onCloseWs(token: string, liveReload: boolean): void {
                 });
             });
         }
+        return socket;
     };
 
-    attemptReconnect();
+    return attemptReconnect();
 }
 
 export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
+    channel$: () => Observable<string>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
@@ -252,6 +258,7 @@ export class WebSocketClient implements WebSocketClientInterface {
             this.socket.addEventListener('message', (ev) => {
                 const msg = JSON.parse(ev.data) as WebSocketMessage;
                 if (msg.type === 'init') {
+                    this.messages$.next(msg);
                     resolve(msg.message?.channel);
                 }
             });
@@ -265,7 +272,22 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Close handler to attempt to reconnect on WS closed
      */
     onClose(): void {
-        onCloseWs(this.token, this.liveReload);
+        this.socket = onCloseWs(this.token, this.liveReload);
+        // Re-register the message event listener to restart the stream of messages and get the new channel
+        this.socket.addEventListener('message', (ev) => {
+            const msg = JSON.parse(ev.data) as WebSocketMessage;
+            this.messages$.next(msg);
+        });
+        // Update the channel on the class and broadcast the init message to subscribers
+        this.channel = new Promise((resolve) => {
+            this.socket.addEventListener('message', (ev) => {
+                const msg = JSON.parse(ev.data) as WebSocketMessage;
+                if (msg.type === 'init') {
+                    this.messages$.next(msg);
+                    resolve(msg.message?.channel);
+                }
+            });
+        });
     }
 
     /**
@@ -282,6 +304,16 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     getChannel(): Promise<string> {
         return this.channel;
+    }
+
+    /**
+     * Get the observable to receive the new channel when the socket reconnects
+     */
+    channel$(): Observable<string> {
+        return this.messages$.pipe(
+            filter((msg) => isInitMessage(msg)),
+            map((msg: InitMessage) => msg.message.channel)
+        );
     }
 
     /**

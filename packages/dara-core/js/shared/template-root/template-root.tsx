@@ -78,16 +78,6 @@ function TemplateRoot(): JSX.Element {
         };
     }, [token, config?.live_reload]);
 
-    // Effect that registers an onclose event handler on the newly created websocket each time its remade. It will then
-    // call setState to trigger an update of the client to all subscribing components so they have the new connection
-    useEffect(() => {
-        if (wsClient) {
-            wsClient.socket.onclose = () => {
-                setWsClient(setupWebsocket(token, config.live_reload));
-            };
-        }
-    }, [token, config?.live_reload, wsClient]);
-
     if (templateLoading || actionsLoading || componentsLoading) {
         return null;
     }
