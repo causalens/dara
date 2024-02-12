@@ -165,7 +165,10 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                         const match = e.key.match(/^dara-session-(.*)-var-(.*)$/);
                         if (match) {
                             const [, sessionToken, uid] = match;
-                            if (sessionToken === extras) {
+                            if (
+                                (typeof extras === 'string' && sessionToken === extras) ||
+                                (typeof extras === 'object' && extras.sessionToken === sessionToken)
+                            ) {
                                 updateItem(uid, JSON.parse(e.newValue ?? 'null'));
                             }
                         }

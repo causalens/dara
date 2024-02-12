@@ -340,7 +340,8 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     serverTriggers$(dataId: string): Observable<ServerTriggerMessage> {
         return this.messages$.pipe(
-            filter((msg): msg is ServerTriggerMessage => isServerTriggerMessage(msg) && msg.message?.data_id === dataId)
+            filter(isServerTriggerMessage),
+            filter((msg) => msg.message?.data_id === dataId)
         );
     }
 
@@ -348,14 +349,14 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Get the observable to receive server error messages
      */
     serverErrors$(): Observable<ServerErrorMessage> {
-        return this.messages$.pipe(filter((msg): msg is ServerErrorMessage => isServerErrorMessage(msg)));
+        return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
     /**
      * Get the observable to receive variable request messages
      */
     variableRequests$(): Observable<VariableRequestMessage> {
-        return this.messages$.pipe(filter((msg): msg is VariableRequestMessage => isVariableRequestMessage(msg)));
+        return this.messages$.pipe(filter(isVariableRequestMessage));
     }
 
     /**
@@ -374,7 +375,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Get the observable to receive custom messages
      */
     customMessages$(): Observable<CustomMessage> {
-        return this.messages$.pipe(filter((msg) => isCustomMessage(msg))) as Observable<CustomMessage>;
+        return this.messages$.pipe(filter(isCustomMessage));
     }
 
     /**
