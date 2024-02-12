@@ -37,10 +37,12 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     );
 
     const syncStoreValues = React.useCallback<WriteItems>(async ({ diff }) => {
-        // keep track of extras -> diff
+        // keep track of extras -> diff to send each set of extras as a separate request
         const extrasMap = new Map<string, Record<string, any>>();
 
-        // diff is a map of encoded key -> value, first decode each key and value
+        /*
+        The diff keys are encoded to include request extras, see the `write` part of `backendStoreEffect`
+        */
         for (const [encodedKey, value] of diff.entries()) {
             const { serializedExtras, store_uid } = JSON.parse(encodedKey) as {
                 serializedExtras: string;
@@ -55,7 +57,6 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             extrasMap.get(serializedExtras)[store_uid] = value;
         }
 
-        // Send a request with each different set of extras
         async function sendRequest(serializedExtras: string, storeDiff: Record<string, any>): Promise<void> {
             const response = await request(
                 `/api/core/store`,
@@ -66,6 +67,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             await validateResponse(response, `Failed to sync the store values`);
         }
 
+        // Send a request with each different set of extras
         await Promise.allSettled(
             Array.from(extrasMap.entries()).map(([serializedExtras, storeDiff]) =>
                 sendRequest(serializedExtras, storeDiff)
@@ -114,7 +116,11 @@ function backendStoreEffect<T>(
          * This customizes how the value is written to the diff object then passed to the write function in the sync component.
          */
         write: ({ write }, newValue) => {
-            // encode the request extras into the key used so they can be passed through to the request
+            /*
+            Encode the request extras into the key used so they can be passed through to the request.
+            This is needed as we need to read the correct extras to use for the request in the BackendStoreSync component which receives
+            the diff created with this `write` function.
+             */
             write(
                 JSON.stringify({
                     serializedExtras: requestExtras.toJSON(),
