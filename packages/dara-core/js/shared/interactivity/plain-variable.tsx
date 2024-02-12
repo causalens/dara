@@ -131,16 +131,18 @@ export function getOrRegisterPlainVariable<T>(
 
                     const effects: AtomEffect<T>[] = [familySync];
 
-                    // If persist_value flag is set, register an effect which updates the selected value in localstorage
-                    // TODO: once BrowserStore is implemented instead of persist_value, this block can only check for isEmbedded
-                    if (variable.persist_value || isEmbedded()) {
-                        effects.push(STORES.BrowserStore.effect(variable, extrasSerializable));
-                    }
-
                     // add an effect to handle backend store updates
                     const storeEffect = getEffect(variable);
                     if (storeEffect) {
                         effects.push(storeEffect(variable, extrasSerializable));
+                    } else {
+                        // TODO: This is in an else block to ensure store effect are mutually exclusive, can be unified once backend API is unified
+                        // If persist_value flag is set, register an effect which updates the selected value in localstorage
+                        // TODO: once BrowserStore is implemented instead of persist_value, this block can only check for isEmbedded
+                        // eslint-disable-next-line no-lonely-if
+                        if (variable.persist_value || isEmbedded()) {
+                            effects.push(STORES.BrowserStore.effect(variable, extrasSerializable));
+                        }
                     }
 
                     return effects;
