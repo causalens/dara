@@ -1,4 +1,5 @@
 import abc
+import asyncio
 import uuid
 from typing import TYPE_CHECKING, Any
 
@@ -58,9 +59,9 @@ class InMemoryBackend(PersistenceBackend):
 class PersistenceStore(BaseModel, abc.ABC):
     """
     Base class for a variable persistence store
-
-    # TODO: this only has a link to JS impl I guess?
     """
+
+    # TODO: if need be this can also hold a reference to js impl
 
     @abc.abstractmethod
     def init(self, variable: 'Variable'):
@@ -79,7 +80,6 @@ class BackendStore(PersistenceStore):
     """
     Persistence store implementation that uses a backend to store data server-side
 
-    TODO: in the future key is self.uid + user_id if scope='user'
     """
 
     uid: str
@@ -101,17 +101,32 @@ class BackendStore(PersistenceStore):
         except ValueError as e:
             raise ValueError('BackendStore uid must be unique') from e
 
+    async def _notify(self, value: Any):
+        """
+        Notify all clients about the new value for this store
+        """
+        from dara.core.internal.registries import utils_registry
+        from dara.core.internal.websocket import WebsocketManager
+
+        ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+        await ws_mgr.broadcast({'store_uid': self.uid, 'value': value})
+
     def init(self, variable: 'Variable'):
         """
         Write the default value to the store if it's not set
         """
         if self.read() is None:
-            self.write(variable.default)
+            self.write(variable.default, notify=False)
 
-    def write(self, value: Any):
+    def write(self, value: Any, notify=True):
         """
         Persist a value to the store
         """
+        if notify:
+            # Schedule notification on write
+            asyncio.create_task(self._notify(value))
+
+        # TODO: in the future key can be self.uid + user_id if scope='user'
         return self.backend.write(self.uid, value)
 
     def read(self):
@@ -120,10 +135,13 @@ class BackendStore(PersistenceStore):
         """
         return self.backend.read(self.uid)
 
-    def delete(self):
+    def delete(self, notify=True):
         """
         Delete the persisted value from the store
         """
+        if notify:
+            # Schedule notification on delete
+            asyncio.create_task(self._notify(None))
         return self.backend.delete(self.uid)
 
 

@@ -455,10 +455,6 @@ def create_router(config: Configuration):
             if inspect.iscoroutine(result):
                 await result
 
-            # Broadcast the new value to all connected clients
-            ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-            await ws_mgr.broadcast({'store_uid': store_uid, 'value': value})
-
         async with anyio.create_task_group() as tg:
             for store_uid, value in values.items():
                 tg.start_soon(_write, store_uid, value)

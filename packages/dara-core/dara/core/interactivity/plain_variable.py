@@ -59,7 +59,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
         if store is not None and persist_value:
-            raise ValueError('Cannot have both a store and persist_value set to True')
+            # TODO: this is temporary, persist_value will eventually become a type of store
+            raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 
         super().__init__(default=default, uid=uid, persist_value=persist_value, store=store)
 
