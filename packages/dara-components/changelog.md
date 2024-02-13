@@ -4,7 +4,9 @@ title: Changelog
 
 ## NEXT
 
--   Added `zeroline` default color to `Plotly` theme
+-   Added `zeroline` default color to `Plotly` theme.
+-   Added a new prop `default_legends` to `CausalGraphViewer` and `VisualEdgeEncoder` which allows the user to update the default legends that appear for each `editor_mode`.
+-   Improved typing of `additional_legends`, and added the ability to add nodes as a legend item.
 
 ## 1.6.0
 
