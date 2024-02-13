@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fix and issue where an error being thrown when processing a get_current_value request would crash the stream and prevent all future requests from being handled.
+
 ## 1.6.2
 
 - Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
