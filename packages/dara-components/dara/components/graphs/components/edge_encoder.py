@@ -30,6 +30,7 @@ from dara.components.graphs.graph_layout import (
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
+from dara.components.graphs.definitions import EditorMode, DEFAULT_LEGENDS, GraphLegend
 
 
 class EdgeConstraint(TypedDict):
@@ -102,8 +103,9 @@ class VisualEdgeEncoder(StyledComponentInstance):
         on_update=output_constraints.sync(),
     )
     ```
-
+    :param additional_legends: Optional additional legends to show
     :param allow_selection_when_not_editable: Whether to allow nodes/edges to be selected even when `editable=False`
+    :param default_legends: A dict containing the default legends that should appear on the graph depending on the EditorMode selected.
     :param editable: Optional flag to enable editing the graph by showing an editor frame around the graph
     :param graph_layout: Optional layout configuration object
     :param initial_constraints: Optional initial edge constraints. Can be passed as a list of `EdgeConstraint` objects or a Variable.
@@ -120,7 +122,9 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     js_module = '@darajs/components'
 
+    additional_legends: Optional[List[GraphLegend]] = None
     allow_selection_when_not_editable: Optional[bool] = False
+    default_legends: Optional[Dict[EditorMode, List[GraphLegend]]] = DEFAULT_LEGENDS
     editable: Optional[bool] = False
     graph_layout: Optional[GraphLayout] = MarketingLayout()
     initial_constraints: Optional[Union[List[EdgeConstraint], NonDataVariable]] = None

@@ -223,6 +223,7 @@ class CausalGraphViewer(BaseGraphComponent):
         included present in the list will be treated as latent nodes (will be renamable).
         If left blank, no nodes will be treated as latent.
     :param causal_graph: The CausalGraph data to render, or a Skeleton representation of the graph
+    :param default_legends: A dict containing the default legends that should appear on the graph depending on the EditorMode selected.
     :param disable_edge_add: Optional flag for disabling edge addition
     :param disable_latent_node_add: Optional flag for disabling latent node addition
     :param disable_node_removal: Optional flag for disabling node removal

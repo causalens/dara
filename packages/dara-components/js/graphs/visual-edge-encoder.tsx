@@ -12,6 +12,7 @@ import {
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
+import { useTheme } from '@darajs/styled-components';
 import {
     CausalGraph,
     CausalGraphEdge,
@@ -20,14 +21,20 @@ import {
     EdgeConstraint,
     EdgeType,
     EditorMode,
+    GraphLegendDefinition,
     ZoomThresholds,
 } from '@darajs/ui-causal-graph-editor';
 
 import { GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
+import { transformLegendColor } from './utils';
 
 interface VisualEdgeEncoderProps extends StyledComponentProps {
+    /** Optional additional legends to show */
+    additional_legends?: GraphLegendDefinition[];
     /** Whether to allow node/edge selection even when editable = false */
     allow_selection_when_not_editable?: boolean;
+    /** Default legends dict for each editor mode available */
+    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
     /** Allow editing */
     editable?: boolean;
     /** Graph layout definition object */
@@ -102,6 +109,7 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [nodes] = useVariable(props.nodes);
     const parsedNodes = useMemo(() => parseNodes(nodes), [nodes]);
+    const theme = useTheme();
 
     const [initialConstraints] = useVariable(props.initial_constraints);
     const parsedConstraints = useMemo(() => parseConstraints(initialConstraints), [initialConstraints]);
@@ -111,6 +119,20 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
     const [onClickEdge] = useAction(props.on_click_edge);
     const [onClickNode] = useAction(props.on_click_node);
     const [onUpdate] = useAction(props.on_update);
+
+    const formattedDefaultLegends = useMemo(() => {
+        const newLegends = {} as Record<EditorMode, GraphLegendDefinition[]>;
+
+        Object.entries(props.default_legends).forEach(([editorMode, defaultLegends]) => {
+            newLegends[editorMode as EditorMode] = defaultLegends.map((legend) => transformLegendColor(theme, legend));
+        });
+
+        return newLegends;
+    }, [props.default_legends, theme]);
+
+    const formattedAdditionalLegends = useMemo(() => {
+        return props.additional_legends?.map((legend) => transformLegendColor(theme, legend));
+    }, [props.additional_legends, theme]);
 
     // Parse provided list of nodes into a graph data object that's understood by the graph editor
     const graphData = useMemo<CausalGraph>(() => {
@@ -141,7 +163,9 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
     return (
         <StyledGraphEditor
             $rawCss={css}
+            additionalLegends={formattedAdditionalLegends}
             allowSelectionWhenNotEditable={props.allow_selection_when_not_editable}
+            defaultLegends={formattedDefaultLegends}
             editable={props.editable}
             editorMode={EditorMode.EDGE_ENCODER}
             graphData={graphData}
