@@ -27,6 +27,7 @@ await store.write('new value')
 # Read the current value from the store
 value = await store.read()
 ```
+-   Deps: upgrade FastAPI to `0.109.0`, fixes security vulnerability in `starlette` dependency
 
 ## 1.6.3
 

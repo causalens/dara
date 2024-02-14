@@ -25,10 +25,10 @@ from typing import Optional
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
-from pydantic.json import ENCODERS_BY_TYPE
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
@@ -368,7 +368,7 @@ def _start_application(config: Configuration):
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
             async def serve_app(request: Request):  # pylint: disable=unused-variable
-                return jinja_templates.TemplateResponse('index.html', {'request': request})
+                return jinja_templates.TemplateResponse(request, 'index.html')
 
     # App is now ready, call user-defined startup functions
     eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
