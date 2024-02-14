@@ -2,32 +2,25 @@ import { DefaultTheme } from '@darajs/styled-components';
 import { GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
 
 function getThemeColor(theme: DefaultTheme, colorString: string): string {
-    return theme.colors[colorString.replace('theme.', '') as keyof DefaultTheme['colors']];
-}
-
-function isNodeLegend(legend: GraphLegendDefinition): legend is Extract<GraphLegendDefinition, { type: 'node' }> {
-    return legend.type === 'node';
-}
-
-function isEdgeLegend(legend: GraphLegendDefinition): legend is Extract<GraphLegendDefinition, { type: 'edge' }> {
-    return legend.type === 'edge';
+    if (colorString.startsWith('theme')) {
+        return theme.colors[colorString.replace('theme.', '') as keyof DefaultTheme['colors']];
+    }
+    return colorString;
 }
 
 export function transformLegendColor(theme: DefaultTheme, legend: GraphLegendDefinition): GraphLegendDefinition {
-    if (isEdgeLegend(legend)) {
+    if (legend.type === 'edge') {
         const transformedLegend: GraphLegendDefinition = {
             ...legend,
-            color: legend.color?.startsWith('theme') ? getThemeColor(theme, legend.color) : legend.color,
+            color: getThemeColor(theme, legend?.color),
         };
         return transformedLegend;
     }
-    if (isNodeLegend(legend)) {
+    if (legend.type === 'node') {
         const transformedLegend: GraphLegendDefinition = {
             ...legend,
-            color: legend.color?.startsWith('theme') ? getThemeColor(theme, legend.color) : legend.color,
-            highlight_color: legend.highlight_color?.startsWith('theme')
-                ? getThemeColor(theme, legend.highlight_color)
-                : legend.highlight_color,
+            color: getThemeColor(theme, legend?.color),
+            highlight_color: getThemeColor(theme, legend?.highlight_color),
         };
         return transformedLegend;
     }

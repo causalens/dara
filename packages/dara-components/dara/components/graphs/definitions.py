@@ -16,7 +16,8 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, Literal, Union, ClassVar, Type
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel
 
@@ -47,46 +48,69 @@ class CenterSymbol(str, Enum):
     BIDIRECTED = 'bidirected'
 
 
-class GraphLegendType(str, Enum):
-    SPACER = 'spacer'
-    EDGE = 'edge'
-    NODE = 'node'
+class Legend(BaseModel):
+    type: str
+
+    Edge: ClassVar[Type['EdgeLegend']]
+    Spacer: ClassVar[Type['SpacerLegend']]
+    Node: ClassVar[Type['NodeLegend']]
 
 
-class GraphLegend(BaseModel):
+class SpacerLegend(Legend):
     """
     Defines a legend for a graph element.
 
-    :param type: Defines the symbol of the legend, can be an edge, node, or spacer if you would like it to be empty
     :param label: Optional label to show in the legend
+    """
 
-    `type: 'spacer' params`
-    A way of setting an empty line or a label without a symbol in the legend
+    type: Literal['spacer'] = 'spacer'
+    label: Optional[str] = None
 
-    `type: 'node' params`
-    :param color: Optional color to fill the node symbol in the legend
-    :param highlight_color: Optional color for the node symbol rim in the legend
 
-    `type: 'edge' params`
+class EdgeLegend(Legend):
+    """
+    Defines a legend for a graph element.
+
+    :param label: Optional label to show in the legend
     :param color: Optional color for the edge symbol in the legend
     :param arrow_type: Optional edge head to show at end of line
     :param center_symbol: Optional symbol to show at the center of the edge
     :param dash_array: Optional dashArray SVG path property - line will be dashed if specified
     """
 
-    arrow_type: Optional[ArrowType]
-    center_symbol: Optional[CenterSymbol]
-    color: Optional[str]
-    dash_array: Optional[str]
-    highlight_color: Optional[str]
-    label: Optional[str]
-    type: GraphLegendType
+    type: Literal['edge'] = 'edge'
+    label: Optional[str] = None
+    arrow_type: Optional[ArrowType] = ArrowType.NORMAL
+    center_symbol: Optional[CenterSymbol] = CenterSymbol.NONE
+    color: Optional[str] = 'theme.grey5'
+    dash_array: Optional[str] = None
 
+
+class NodeLegend(Legend):
+    """
+    Defines a legend for a graph element.
+
+    :param label: Optional label to show in the legend
+    :param color: Optional color to fill the node symbol in the legend
+    :param highlight_color: Optional color for the node symbol rim in the legend
+    """
+
+    type: Literal['node'] = 'node'
+    label: Optional[str] = None
+    color: Optional[str] = 'theme.blue4'
+    highlight_color: Optional[str] = 'theme.primary'
+
+
+Legend.Edge = EdgeLegend
+Legend.Spacer = SpacerLegend
+Legend.Node = NodeLegend
+
+GraphLegend = Union[EdgeLegend, SpacerLegend, NodeLegend]
 
 DEFAULT_NODE_LEGENDS = [
-    GraphLegend(type=GraphLegendType.NODE, color='theme.blue1', label='Latent'),
-    GraphLegend(type=GraphLegendType.NODE, color='theme.secondary', label='Target'),
-    GraphLegend(type=GraphLegendType.NODE, label='Other'),
+    Legend.Node(color='theme.blue1', label='Latent'),
+    Legend.Node(color='theme.secondary', label='Target'),
+    Legend.Node(label='Other'),
 ]
 
 # Default legends for each editor mode
@@ -94,35 +118,30 @@ DEFAULT_LEGENDS = {
     EditorMode.DEFAULT: DEFAULT_NODE_LEGENDS,
     EditorMode.PAG: [
         *DEFAULT_NODE_LEGENDS,
-        GraphLegend(type=GraphLegendType.SPACER),
-        GraphLegend(type=GraphLegendType.EDGE, arrow_type=ArrowType.FILLED, label='Directed'),
-        GraphLegend(type=GraphLegendType.EDGE, arrow_type=ArrowType.EMPTY, label='Wildcard'),
-        GraphLegend(type=GraphLegendType.EDGE, arrow_type=ArrowType.NONE, label='Undirected'),
+        Legend.Spacer(),
+        Legend.Edge(arrow_type=ArrowType.FILLED, label='Directed'),
+        Legend.Edge(arrow_type=ArrowType.EMPTY, label='Wildcard'),
+        Legend.Edge(arrow_type=ArrowType.NONE, label='Undirected'),
     ],
     EditorMode.RESOLVER: [
         *DEFAULT_NODE_LEGENDS,
-        GraphLegend(type=GraphLegendType.SPACER),
-        GraphLegend(
-            type=GraphLegendType.EDGE, center_symbol=CenterSymbol.QUESTION, dash_array='10 6', label='Unresolved'
-        ),
-        GraphLegend(type=GraphLegendType.EDGE, dash_array='10 6', label='Not accepted'),
-        GraphLegend(type=GraphLegendType.EDGE, dash_array='6 4', label='Accepted'),
-        GraphLegend(type=GraphLegendType.EDGE, label='Domain knowledge'),
+        Legend.Spacer(),
+        Legend.Edge(center_symbol=CenterSymbol.QUESTION, dash_array='10 6', label='Unresolved'),
+        Legend.Edge(dash_array='10 6', label='Not accepted'),
+        Legend.Edge(dash_array='6 4', label='Accepted'),
+        Legend.Edge(label='Domain knowledge'),
     ],
     'EDGE_ENCODER': [
         *DEFAULT_NODE_LEGENDS,
-        GraphLegend(type=GraphLegendType.SPACER),
-        GraphLegend(type=GraphLegendType.EDGE, label='Hard Directed'),
-        GraphLegend(type=GraphLegendType.EDGE, arrow_type=ArrowType.SOFT, label='Soft Directed'),
-        GraphLegend(
-            type=GraphLegendType.EDGE,
+        Legend.Spacer(),
+        Legend.Edge(label='Hard Directed'),
+        Legend.Edge(arrow_type=ArrowType.SOFT, label='Soft Directed'),
+        Legend.Edge(
             arrow_type=ArrowType.NONE,
             center_symbol=CenterSymbol.BIDIRECTED,
             label='Undirected',
         ),
-        GraphLegend(
-            type=GraphLegendType.EDGE, arrow_type=ArrowType.NONE, center_symbol=CenterSymbol.CROSS, label='Prohibited'
-        ),
+        Legend.Edge(arrow_type=ArrowType.NONE, center_symbol=CenterSymbol.CROSS, label='Prohibited'),
     ],
 }
 

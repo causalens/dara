@@ -121,13 +121,11 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
     const [onUpdate] = useAction(props.on_update);
 
     const formattedDefaultLegends = useMemo(() => {
-        const newLegends = {} as Record<EditorMode, GraphLegendDefinition[]>;
-
-        Object.entries(props.default_legends).forEach(([editorMode, defaultLegends]) => {
-            newLegends[editorMode as EditorMode] = defaultLegends.map((legend) => transformLegendColor(theme, legend));
-        });
-
-        return newLegends;
+        return Object.fromEntries(
+            Object.entries(props.default_legends).map(([editorMode, defaultLegends]) => {
+                return [editorMode, defaultLegends.map((legend) => transformLegendColor(theme, legend))];
+            })
+        ) as Record<EditorMode, GraphLegendDefinition[]>;
     }, [props.default_legends, theme]);
 
     const formattedAdditionalLegends = useMemo(() => {
