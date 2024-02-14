@@ -76,7 +76,7 @@ def test_add_middlewares():
 
     assert isinstance(config.middlewares[0], Middleware)
     assert config.middlewares[0].cls == CustomMiddleware
-    assert config.middlewares[0].options == {'foo': 'bar'}
+    assert config.middlewares[0].kwargs == {'foo': 'bar'}
 
     # Test that a function can be added
     def test_middleware(app, foo):
@@ -87,7 +87,7 @@ def test_add_middlewares():
 
     assert isinstance(config.middlewares[1], Middleware)
     assert config.middlewares[1].cls == BaseHTTPMiddleware
-    assert config.middlewares[1].options == {'dispatch': test_middleware}
+    assert config.middlewares[1].kwargs == {'dispatch': test_middleware}
 
 
 def test_add_page_callable_class():

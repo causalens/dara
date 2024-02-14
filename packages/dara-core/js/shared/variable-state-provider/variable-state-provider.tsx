@@ -15,8 +15,15 @@ function VariableStateProvider(props: VariableStateProviderProps): JSX.Element {
 
     useEffect(() => {
         const sub = props.wsClient?.variableRequests$().subscribe((req) => {
-            const variableValue = getVariableState(req.message.variable);
-            props.wsClient.sendVariable(variableValue, req.message.__rchan);
+            // Catch any errors when fetching the variable value otherwise this takes down the stream and no further
+            // requests are processed.
+            try {
+                const variableValue = getVariableState(req.message.variable);
+                props.wsClient.sendVariable(variableValue, req.message.__rchan);
+            } catch (err) {
+                // eslint-disable-next-line no-console
+                console.warn(`Error when processing a getVariableValue request: ${err}`);
+            }
         });
 
         return () => {
