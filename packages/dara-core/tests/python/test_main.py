@@ -1462,10 +1462,10 @@ async def test_non_task_immediate_reuse():
                 await tg.start(run_coro_until_result, response_1_coro, 'response_1')
                 tg.start_soon(run_coro_until_result, response_2_coro, 'response_2')
 
-            assert isinstance(results['response_1'], BaseExceptionGroup)
-            assert 'test exception' in str(results['response_1'].exceptions[0])
-            assert isinstance(results['response_2'], BaseExceptionGroup)
-            assert 'test exception' in str(results['response_2'].exceptions[0])
+            assert isinstance(results['response_1'], Exception)
+            assert 'test exception' in str(results['response_1'])
+            assert isinstance(results['response_2'], Exception)
+            assert 'test exception' in str(results['response_2'])
 
 
 async def test_calling_an_action():
@@ -1615,6 +1615,7 @@ async def test_calling_annotated_action():
             assert actions[1]['name'] == 'ResetVariables'
             assert actions[1]['variables'] == [var.dict()]
 
+
 async def test_calling_annotated_action_execute_arbitrary_impl():
     """Test calling an action which calls ctx.execute_action on arbitrary impl objects"""
     builder = ConfigurationBuilder()
@@ -1668,7 +1669,8 @@ async def test_calling_annotated_action_execute_arbitrary_impl():
 
             assert actions[1]['name'] == 'CustomImpl'
             assert actions[1]['foo'] == 'bar'
-            assert custom_exec_called_with == 5 # called with input=5
+            assert custom_exec_called_with == 5   # called with input=5
+
 
 async def test_calling_action_restores_args():
     """

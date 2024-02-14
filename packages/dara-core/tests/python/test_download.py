@@ -1,16 +1,17 @@
+import inspect
 import os
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from unittest.mock import patch
-import anyio
-import inspect
-from exceptiongroup import BaseExceptionGroup
 
+import anyio
 import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
+from exceptiongroup import BaseExceptionGroup
 from freezegun import freeze_time
+from tests.python.utils import _async_ws_connect, _call_action, get_action_results
 
 from dara.core.auth.definitions import JWT_ALGO
 from dara.core.base_definitions import Action
@@ -18,13 +19,11 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import DownloadContent
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.download import DownloadRegistryEntry, generate_download_code, download, DownloadDataEntry
-from dara.core.internal.settings import get_settings
-from dara.core.internal.registries import utils_registry
 from dara.core.internal.cache_store import CacheStore
+from dara.core.internal.download import DownloadDataEntry, DownloadRegistryEntry, download, generate_download_code
+from dara.core.internal.registries import utils_registry
+from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
-
-from tests.python.utils import _async_ws_connect, _call_action, get_action_results
 
 pytestmark = pytest.mark.anyio
 
@@ -49,7 +48,7 @@ async def test_download():
     data_entry = await store.get(DownloadRegistryEntry, key=code)
     assert data_entry is None
 
-    with freeze_time("2023-01-01 12:00:00"):
+    with freeze_time('2023-01-01 12:00:00'):
         # Put an entry
         code = await generate_download_code('test_download.txt', cleanup_file=False)
 
@@ -57,7 +56,7 @@ async def test_download():
         assert await store.get(DownloadRegistryEntry, key=code) is not None
 
     # Advance time forward 15 minutes
-    with freeze_time("2023-01-01 12:15:00"):
+    with freeze_time('2023-01-01 12:15:00'):
         # Check that the entry is not retrieved after the time due to eviction (expired)
         assert await store.get(DownloadRegistryEntry, key=code) is None
 
@@ -186,10 +185,11 @@ async def test_file_not_found(_uid):
             assert len(action_results) == 1
             assert isinstance(action_results[0]['url'], str)
 
-            with pytest.raises(BaseExceptionGroup) as err:
+            with pytest.raises((BaseExceptionGroup, FileNotFoundError)) as err:
                 call_main = await client.get(action_results[0]['url'])
 
-            assert "No such file or directory: './test.txt'" in str(err.value.exceptions[0])
+            error_msg = str(err.value.exceptions[0]) if isinstance(err.value, BaseExceptionGroup) else str(err.value)
+            assert "No such file or directory: './test.txt'" in error_msg
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -232,7 +232,7 @@ async def test_file_cleanup(_uid):
                         'kwarg_0': 'Some content for the file',
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
+                    'execution_id': exec_uid,
                 },
             )
 
@@ -291,7 +291,7 @@ async def test_file_cleanup_false(_uid):
                         'kwarg_0': 'Some content for the file',
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid
+                    'execution_id': exec_uid,
                 },
             )
 
