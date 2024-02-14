@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Deps: upgrade FastAPI to `0.109.0`, fixes security vulnerability in `starlette` dependency
+
 ## 1.6.3
 
 - Fix and issue where an error being thrown when processing a get_current_value request would crash the stream and prevent all future requests from being handled.
