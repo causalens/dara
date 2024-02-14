@@ -58,7 +58,7 @@ class Legend(BaseModel):
 
 class SpacerLegend(Legend):
     """
-    Defines a legend for a graph element.
+    Defines a spacer legend for a graph element.
 
     :param label: Optional label to show in the legend
     """
@@ -69,7 +69,7 @@ class SpacerLegend(Legend):
 
 class EdgeLegend(Legend):
     """
-    Defines a legend for a graph element.
+    Defines an edge legend for a graph element.
 
     :param label: Optional label to show in the legend
     :param color: Optional color for the edge symbol in the legend
@@ -88,7 +88,7 @@ class EdgeLegend(Legend):
 
 class NodeLegend(Legend):
     """
-    Defines a legend for a graph element.
+    Defines a node legend for a graph element.
 
     :param label: Optional label to show in the legend
     :param color: Optional color to fill the node symbol in the legend
