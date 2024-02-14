@@ -88,6 +88,14 @@ export interface ActionMessage {
     type: 'message';
 }
 
+export interface BackendStoreMessage {
+    message: {
+        store_uid: string;
+        value: any;
+    };
+    type: 'message';
+}
+
 export interface CustomMessage {
     message: {
         data: any;
@@ -105,6 +113,7 @@ export type WebSocketMessage =
     | ServerErrorMessage
     | VariableRequestMessage
     | ActionMessage
+    | BackendStoreMessage
     | CustomMessage;
 
 function isInitMessage(message: WebSocketMessage): message is InitMessage {
@@ -129,6 +138,10 @@ function isVariableRequestMessage(message: WebSocketMessage): message is Variabl
 
 function isActionMessage(message: WebSocketMessage): message is ActionMessage {
     return message.type === 'message' && 'action' in message.message;
+}
+
+function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
+    return message.type === 'message' && 'store_uid' in message.message;
 }
 
 function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
@@ -213,6 +226,7 @@ function onCloseWs(token: string, liveReload: boolean): WebSocket {
 
 export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
     channel$: () => Observable<string>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
@@ -306,6 +320,13 @@ export class WebSocketClient implements WebSocketClientInterface {
         return this.channel;
     }
 
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
+        return this.messages$.pipe(
+            filter(isBackendStoreMessage),
+            map((msg) => msg.message)
+        );
+    }
+
     /**
      * Get the observable to receive the new channel when the socket reconnects
      */
@@ -351,7 +372,8 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     serverTriggers$(dataId: string): Observable<ServerTriggerMessage> {
         return this.messages$.pipe(
-            filter((msg): msg is ServerTriggerMessage => isServerTriggerMessage(msg) && msg.message?.data_id === dataId)
+            filter(isServerTriggerMessage),
+            filter((msg) => msg.message?.data_id === dataId)
         );
     }
 
@@ -359,14 +381,14 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Get the observable to receive server error messages
      */
     serverErrors$(): Observable<ServerErrorMessage> {
-        return this.messages$.pipe(filter((msg): msg is ServerErrorMessage => isServerErrorMessage(msg)));
+        return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
     /**
      * Get the observable to receive variable request messages
      */
     variableRequests$(): Observable<VariableRequestMessage> {
-        return this.messages$.pipe(filter((msg): msg is VariableRequestMessage => isVariableRequestMessage(msg)));
+        return this.messages$.pipe(filter(isVariableRequestMessage));
     }
 
     /**
@@ -385,7 +407,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Get the observable to receive custom messages
      */
     customMessages$(): Observable<CustomMessage> {
-        return this.messages$.pipe(filter((msg) => isCustomMessage(msg))) as Observable<CustomMessage>;
+        return this.messages$.pipe(filter(isCustomMessage));
     }
 
     /**

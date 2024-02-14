@@ -4,7 +4,10 @@ import { filter, map } from 'rxjs/operators';
 import { ActionImpl } from '@/types/core';
 
 import {
+    BackendStoreMessage,
+    CustomMessage,
     ProgressNotificationMessage,
+    ServerErrorMessage,
     TaskStatus,
     VariableRequestMessage,
     WebSocketClientInterface,
@@ -12,12 +15,7 @@ import {
 } from '../../../js/api/websocket';
 
 export interface MockWebSocketClientInterface extends WebSocketClientInterface {
-    getChannel: () => Promise<string>;
-    progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
     receiveMessage: (message: WebSocketMessage) => void;
-    taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
-    variableRequests$: () => Observable<VariableRequestMessage>;
-    waitForTask: (task_id: string) => Promise<any>;
 }
 
 export default class MockWebSocketClient implements MockWebSocketClientInterface {
@@ -35,6 +33,20 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
             filter((msg: any) => 'action' in msg.message && msg.message.uid === executionId),
             map((msg: any) => msg.message.action)
         );
+    }
+
+    backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
+        return this.messages$.pipe(
+            filter((msg): msg is BackendStoreMessage => 'store_uid' in msg.message),
+            map((msg) => msg.message)
+        );
+    }
+
+    /**
+     * Get the observable to receive custom messages
+     */
+    customMessages$(): Observable<CustomMessage> {
+        return this.messages$.pipe(filter((msg): msg is CustomMessage => msg.type === 'custom'));
     }
 
     getChannel(): Promise<string> {
@@ -65,6 +77,10 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         ) as Observable<ProgressNotificationMessage>;
     }
 
+    serverErrors$(): Observable<ServerErrorMessage> {
+        return this.messages$.pipe(filter((msg: any) => 'error' in msg.message)) as Observable<ServerErrorMessage>;
+    }
+
     serverTriggers$(dataId: string): Observable<any> {
         return this.messages$.pipe(filter((msg: any) => msg.message.data_id === dataId));
     }
@@ -81,5 +97,15 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     /** Mock receiving a message */
     receiveMessage(message: WebSocketMessage): void {
         this.messages$.next(message);
+    }
+
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    sendCustomMessage(kind: string, data: any): void {
+        // Do nothing
+    }
+
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    sendVariable(value: any, channel: string): void {
+        // Do nothing
     }
 }

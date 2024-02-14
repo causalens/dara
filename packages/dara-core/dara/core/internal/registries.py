@@ -33,6 +33,7 @@ from dara.core.interactivity.derived_variable import (
 )
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
+from dara.core.persistence import BackendStoreEntry
 
 action_def_registry = Registry[ActionDef](RegistryType.ACTION_DEF, CORE_ACTIONS)   # all registered actions
 action_registry = Registry[ActionResolverDef](RegistryType.ACTION)   # functions for actions requiring backend calls
@@ -64,3 +65,7 @@ custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload
     RegistryType.CUSTOM_WS_HANDLERS
 )
 """map of custom kind name -> handler function(channel: str, message: CustomClientMessagePayload)"""
+
+
+backend_store_registry = Registry[BackendStoreEntry](RegistryType.BACKEND_STORE, allow_duplicates=False)
+"""map of store uid -> store instance"""

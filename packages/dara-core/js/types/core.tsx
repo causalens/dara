@@ -70,11 +70,21 @@ interface CachePolicy {
     cache_type: CacheType;
 }
 
-export interface SingleVariable<T> {
+export interface PersistenceStore {
+    __typename: string;
+}
+
+export interface BackendStore extends PersistenceStore {
+    __typename: 'BackendStore';
+    uid: string;
+}
+
+export interface SingleVariable<T = any, TStore extends PersistenceStore = never> {
     __typename: 'Variable';
     default: T | DerivedVariable;
     nested: string[];
     persist_value?: boolean;
+    store?: TStore;
     uid: string;
 }
 

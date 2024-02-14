@@ -12,6 +12,7 @@ import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { cleanSessionCache, resolveTheme } from '@/shared/utils';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
 
+import { StoreProviders } from '../interactivity/persistence';
 import DynamicContext from './dynamic-context';
 
 const RootWrapper = styled.div`
@@ -90,11 +91,13 @@ function TemplateRoot(): JSX.Element {
                 >
                     <GlobalTaskProvider>
                         <DynamicContext contextComponents={config?.context_components ?? []}>
-                            <RootWrapper>
-                                <DynamicComponent component={template?.layout} />
-                                <VariableStateProvider wsClient={wsClient} />
-                                {config?.enable_devtools && <DevTools />}
-                            </RootWrapper>
+                            <StoreProviders>
+                                <RootWrapper>
+                                    <DynamicComponent component={template?.layout} />
+                                    <VariableStateProvider wsClient={wsClient} />
+                                    {config?.enable_devtools && <DevTools />}
+                                </RootWrapper>
+                            </StoreProviders>
                         </DynamicContext>
                     </GlobalTaskProvider>
                 </RegistriesCtx.Provider>

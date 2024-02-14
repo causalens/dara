@@ -22,10 +22,13 @@ from typing import Any, Generic, List, Optional, TypeVar
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.internal.utils import call_async
+from dara.core.persistence import PersistenceStore
 
 VariableType = TypeVar('VariableType')
+PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceStore, covariant=True)
 
-
+# TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
 class Variable(NonDataVariable, Generic[VariableType]):
     """
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -33,6 +36,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
     default: Optional[VariableType]
     persist_value: bool = False
+    store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = []
 
@@ -40,7 +44,11 @@ class Variable(NonDataVariable, Generic[VariableType]):
         extra = 'forbid'
 
     def __init__(
-        self, default: Optional[VariableType] = None, persist_value: Optional[bool] = False, uid: Optional[str] = None
+        self,
+        default: Optional[VariableType] = None,
+        persist_value: Optional[bool] = False,
+        uid: Optional[str] = None,
+        store: Optional[PersistenceStoreType_co] = None,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -49,7 +57,14 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param persist_value: whether to persist the variable value across page reloads
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
-        super().__init__(default=default, uid=uid, persist_value=persist_value)
+        if store is not None and persist_value:
+            # TODO: this is temporary, persist_value will eventually become a type of store
+            raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
+
+        super().__init__(default=default, uid=uid, persist_value=persist_value, store=store)
+
+        if self.store:
+            call_async(self.store.init, self)
 
     def get(self, key: str):
         """
@@ -187,4 +202,5 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)
+
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

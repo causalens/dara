@@ -1,6 +1,7 @@
 {
   "{{var_1_name}}": {
     "__typename": "Variable",
+    "store": null,
     "default": [
       0.4043240121086956,
       0.14600226520370102,
@@ -16,6 +17,7 @@
     "deps": [
       {
         "__typename": "Variable",
+        "store": null,
         "default": [
           1
         ],
@@ -28,6 +30,7 @@
     "variables": [
       {
         "__typename": "Variable",
+        "store": null,
         "default": [
           1
         ],

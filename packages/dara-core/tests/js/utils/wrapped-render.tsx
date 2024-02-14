@@ -12,6 +12,7 @@ import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
+import { StoreProviders } from '@/shared/interactivity/persistence';
 import { useUrlSync } from '@/shared/utils';
 
 import {
@@ -118,9 +119,11 @@ export const Wrapper = ({
                                                 refetchComponents: noop as any,
                                             }}
                                         >
-                                            <FallbackCtx.Provider value={{ suspend: true }}>
-                                                {child}
-                                            </FallbackCtx.Provider>
+                                            <StoreProviders>
+                                                <FallbackCtx.Provider value={{ suspend: true }}>
+                                                    {child}
+                                                </FallbackCtx.Provider>
+                                            </StoreProviders>
                                         </RegistriesCtx.Provider>
                                     </QueryClientProvider>
                                 </React.Suspense>

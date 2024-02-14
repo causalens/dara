@@ -1,8 +1,9 @@
 import { waitFor } from '@testing-library/dom';
 import React from 'react';
 
+import { getSessionKey } from '@/shared/interactivity/persistence';
+
 import { TemplateRoot } from '../../js/shared';
-import { getSessionKey } from '../../js/shared/interactivity/plain-variable';
 import { server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
