@@ -168,7 +168,7 @@ importers:
       msw: 1.0.1
       object-hash: ^3.0.0
       polished: ^4.1.1
-      postcss: ^8.4.30
+      postcss: ^8.4.35
       query-string: ^7.1.1
       react: ^18.2.0
       react-collapse: ^5.1.1
@@ -259,7 +259,7 @@ importers:
       jest-css-modules: 2.1.0
       jest-environment-jsdom: 29.7.0
       msw: 1.0.1_typescript@5.3.3
-      postcss: 8.4.33
+      postcss: 8.4.35
       react-test-renderer: 17.0.2_react@18.2.0
       rimraf: 3.0.2
       start-server-and-test: 1.15.4
@@ -12374,15 +12374,6 @@ packages:
     resolution: {integrity: sha512-HvExULSwLqHLgUy1rl3ANIqCsvMS0WHss2UOsXhXnQaZ9VCc2oBvIpXrl00IUFT5ZDITME0o6oiXeiHr2SAIfw==}
     dev: true
 
-  /postcss-safe-parser/6.0.0_postcss@8.4.33:
-    resolution: {integrity: sha512-FARHN8pwH+WiS2OPCxJI8FuRJpTVnn6ZNFiqAM2aeW2LwTHWWmWgIyKC6cUo0L8aeKiF/14MNvnpls6R2PBeMQ==}
-    engines: {node: '>=12.0'}
-    peerDependencies:
-      postcss: ^8.3.3
-    dependencies:
-      postcss: 8.4.33
-    dev: true
-
   /postcss-safe-parser/6.0.0_postcss@8.4.35:
     resolution: {integrity: sha512-FARHN8pwH+WiS2OPCxJI8FuRJpTVnn6ZNFiqAM2aeW2LwTHWWmWgIyKC6cUo0L8aeKiF/14MNvnpls6R2PBeMQ==}
     engines: {node: '>=12.0'}
@@ -12441,15 +12432,6 @@ packages:
     dependencies:
       picocolors: 0.2.1
       source-map: 0.6.1
-    dev: true
-
-  /postcss/8.4.33:
-    resolution: {integrity: sha512-Kkpbhhdjw2qQs2O2DGX+8m5OVqEcbB9HRBvuYM9pgrjEFUg30A9LmXNlTAUj4S9kgtGyrMbTzVjH7E+s5Re2yg==}
-    engines: {node: ^10 || ^12 || >=14}
-    dependencies:
-      nanoid: 3.3.7
-      picocolors: 1.0.0
-      source-map-js: 1.0.2
     dev: true
 
   /postcss/8.4.35:
@@ -14254,10 +14236,10 @@ packages:
       normalize-path: 3.0.0
       normalize-selector: 0.2.0
       picocolors: 1.0.0
-      postcss: 8.4.33
+      postcss: 8.4.35
       postcss-media-query-parser: 0.2.3
       postcss-resolve-nested-selector: 0.1.1
-      postcss-safe-parser: 6.0.0_postcss@8.4.33
+      postcss-safe-parser: 6.0.0_postcss@8.4.35
       postcss-selector-parser: 6.0.15
       postcss-value-parser: 4.2.0
       resolve-from: 5.0.0
@@ -15119,7 +15101,7 @@ packages:
         optional: true
     dependencies:
       esbuild: 0.15.18
-      postcss: 8.4.33
+      postcss: 8.4.35
       resolve: 1.22.8
       rollup: 2.78.1
     optionalDependencies:
