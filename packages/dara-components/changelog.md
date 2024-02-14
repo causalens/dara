@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.0
 
 -   Added a new prop `default_legends` to `CausalGraphViewer` and `VisualEdgeEncoder` which allows the user to update the default legends that appear for each `editor_mode`.
 -   Improved typing of `additional_legends`, and added the ability to add nodes as a legend item.

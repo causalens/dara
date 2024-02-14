@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.0
 
 -   Add `store` prop to (plain, i.e. non-derived/data) `Variable`. This enables customizing the "source of truth" for the `Variable`. By default it is stored in browser memory. In the initial implementation there is only one store available: `dara.core.persistence.BackendStore`. This enables making the variable server-side, where the client-side state is automatically synchronized with the backend state. The backend store accepts any backend implementation for storage, the initial implementation includes a simple `InMemoryBackend`.
 
