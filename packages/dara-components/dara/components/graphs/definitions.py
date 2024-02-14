@@ -16,8 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Optional, Literal, Union, ClassVar, Type
-from typing_extensions import TypedDict
+from typing import Optional, Literal, Union, ClassVar, Type, Dict, List
 
 from pydantic import BaseModel
 
@@ -107,14 +106,14 @@ Legend.Node = NodeLegend
 
 GraphLegend = Union[EdgeLegend, SpacerLegend, NodeLegend]
 
-DEFAULT_NODE_LEGENDS = [
+DEFAULT_NODE_LEGENDS: List[GraphLegend] = [
     Legend.Node(color='theme.blue1', label='Latent'),
     Legend.Node(color='theme.secondary', label='Target'),
     Legend.Node(label='Other'),
 ]
 
 # Default legends for each editor mode
-DEFAULT_LEGENDS = {
+DEFAULT_LEGENDS: Dict[Union[EditorMode, str], List[GraphLegend]] = {
     EditorMode.DEFAULT: DEFAULT_NODE_LEGENDS,
     EditorMode.PAG: [
         *DEFAULT_NODE_LEGENDS,
