@@ -160,8 +160,10 @@ When configuring the color properties for legends, the following are supported:
 hexadecimal values ('#ff0000', '#0000ff'), RGB ('rgb(255, 0, 0)'), or any other CSS-compatible color specification.
 This is ideal for specific, custom color requirements.
 
-**Themed Colors** - These are specified with a `theme.` prefix, followed by the color key from our default theme palette.
-For example, `theme.primary`, `theme.secondary`, or any other predefined theme color.
+**Themed Colors** - These are specified with a `theme.` prefix, followed by the color key from the currently active theme palette.
+For example, `theme.primary`, `theme.secondary`, or any other predefined theme color. If the app has the light theme set these would be
+the primary, secondary of the Light theme. If the app was using the dark theme, then the dark theme equivalents would have been picked up.
+Or even if a custom theme was setup for the app the colors which had those names would be the ones selected by the legend.
 
 :::
 
@@ -173,7 +175,7 @@ Displays a node symbol, this can be useful to explain what different colors of n
 - `color: string` - Optional color for the edge symbol in the legend, defaults to theme.grey5
 - `arrow_type: ArrowType` - One of none, normal, filled, empty, soft. It is an optional edge/arrow head to show at end of line, defaults to normal
 - `center_symbol: CenterSymbol` - One of none, cross, question, bidirected. It is an optional symbol to show at the center of the edge, defaults to none
-- `dash_array: string` - Optional dashArray SVG path property - line will be dashed if specified
+- `dash_array: string` - Optional [stroke-dasharray](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray) SVG path property - line will be dashed if specified
 
 ### Legend Example
 

@@ -18,7 +18,7 @@ limitations under the License.
 from enum import Enum
 from typing import Optional, Literal, Union, ClassVar, Type, Dict, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EditorMode(str, Enum):
@@ -62,7 +62,7 @@ class SpacerLegend(Legend):
     :param label: Optional label to show in the legend
     """
 
-    type: Literal['spacer'] = 'spacer'
+    type: Literal['spacer'] = Field(default='spacer', const=True)
     label: Optional[str] = None
 
 
@@ -74,10 +74,10 @@ class EdgeLegend(Legend):
     :param color: Optional color for the edge symbol in the legend
     :param arrow_type: Optional edge head to show at end of line
     :param center_symbol: Optional symbol to show at the center of the edge
-    :param dash_array: Optional dashArray SVG path property - line will be dashed if specified
+    :param dash_array: Optional [stroke-dasharray](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray) SVG path property - line will be dashed if specified
     """
 
-    type: Literal['edge'] = 'edge'
+    type: Literal['edge'] = Field(default='edge', const=True)
     label: Optional[str] = None
     arrow_type: Optional[ArrowType] = ArrowType.NORMAL
     center_symbol: Optional[CenterSymbol] = CenterSymbol.NONE
@@ -94,7 +94,7 @@ class NodeLegend(Legend):
     :param highlight_color: Optional color for the node symbol rim in the legend
     """
 
-    type: Literal['node'] = 'node'
+    type: Literal['node'] = Field(default='node', const=True)
     label: Optional[str] = None
     color: Optional[str] = 'theme.blue4'
     highlight_color: Optional[str] = 'theme.primary'
