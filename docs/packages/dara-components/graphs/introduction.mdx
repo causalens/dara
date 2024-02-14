@@ -126,6 +126,101 @@ def graph_with_meta() -> CausalGraph:
     return cg
 ```
 
+### Graph Legend
+
+By default the graph has a legend which is dependent on the current `editor_mode` selected for that graph. You can gain control over these in two ways:
+
+- You can add to the legends already present with the `additional_legends` property. This accepts an array of legends as can be seen in the example below.
+- Alternatively you can alter the prepopulated legends by passing `default_legends`. This accepts a dict of editor_mode to array of legends.
+
+#### Legend types
+
+There are three kinds of legends which can be added to the graph. Below you will find each kind and the properties they possess.
+
+##### `Legend.Spacer`
+
+Spacers can be used to create a space in between sections of your legend. For example to separate node related legends to edge related ones.
+What it means is that it will not display a symbol. You may still write a label for it.
+
+- `label: string` - Optional label to show in the legend
+
+##### `Legend.Node`
+
+Displays a node symbol, this can be useful to explain what different colors of nodes might mean to an user.
+
+- `label: string` - Optional label to show in the legend
+- `color: string` - Optional color to fill the node symbol in the legend, defaults to theme.blue4
+- `highlight_color: string` - Optional color for the node symbol rim in the legend, defaults to theme.primary
+
+:::tip
+
+When configuring the color properties for legends, the following are supported:
+
+**Standard Colors** - You can use common color formats such as named colors ('red', 'blue', etc.),
+hexadecimal values ('#ff0000', '#0000ff'), RGB ('rgb(255, 0, 0)'), or any other CSS-compatible color specification.
+This is ideal for specific, custom color requirements.
+
+**Themed Colors** - These are specified with a `theme.` prefix, followed by the color key from the currently active theme palette.
+For example, `theme.primary`, `theme.secondary`, or any other predefined theme color. If the app has the light theme set these would be
+the primary, secondary of the Light theme. If the app was using the dark theme, then the dark theme equivalents would have been picked up.
+Or even if a custom theme was setup for the app the colors which had those names would be the ones selected by the legend.
+
+:::
+
+##### `Legend.Edge`
+
+Displays a node symbol, this can be useful to explain what different colors of nodes might mean to an user.
+
+- `label: string` - Optional label to show in the legend
+- `color: string` - Optional color for the edge symbol in the legend, defaults to theme.grey5
+- `arrow_type: ArrowType` - One of none, normal, filled, empty, soft. It is an optional edge/arrow head to show at end of line, defaults to normal
+- `center_symbol: CenterSymbol` - One of none, cross, question, bidirected. It is an optional symbol to show at the center of the edge, defaults to none
+- `dash_array: string` - Optional [stroke-dasharray](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray) SVG path property - line will be dashed if specified
+
+### Legend Example
+
+```python
+from dara.core.configuration import ConfigurationBuilder
+from cai_causal_graph import CausalGraph
+from dara.core.visual.themes.light import Light
+from dara.components import CausalGraphViewer
+from dara.components.graphs.definitions import Legend, ArrowType, CenterSymbol
+
+# Create a causal graph with nodes of different colors
+cg = CausalGraph()
+cg.add_node(
+    'A', meta={'rendering_properties': {'color': Light.colors.warning, 'highlight_color': Light.colors.warningDown}}
+)
+cg.add_node(
+    'B', meta={'rendering_properties': {'color': Light.colors.success, 'highlight_color': Light.colors.successDown}}
+)
+cg.add_edge('A', 'B')
+cg.add_edge('B', 'C')
+
+config = ConfigurationBuilder()
+config.add_page(
+    name='Legends',
+    content=CausalGraphViewer(
+        causal_graph=cg,
+        # Add additional legends to the graph
+        additional_legends=[
+            Legend.Spacer(),
+            # You can define the colors just as you would in any other component
+            Legend.Node(color=Light.colors.warning, label='Warning Node', highlight_color=Light.colors.warningDown),
+            # Alternative you can also directly pass a theme. to get them
+            Legend.Node(color='theme.success', label='Success Node', highlight_color='theme.successDown'),
+            Legend.Spacer(),
+            Legend.Edge(
+                arrow_type=ArrowType.FILLED, center_symbol=CenterSymbol.QUESTION, label='Directed', color='theme.plum'
+            ),
+        ],
+    ),
+)
+
+```
+
+![CausalGraphViewer Legend Example](./assets/graph_legend.png)
+
 ### Edge thickness
 
 One of the rendering properties is `thickness`. This property is used to scale the displayed strength of the edges. When set on more

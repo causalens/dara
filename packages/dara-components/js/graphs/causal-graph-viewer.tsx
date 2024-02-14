@@ -1,6 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-
-import { ComponentProps, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import {
     Action,
@@ -12,24 +10,29 @@ import {
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
+import { useTheme } from '@darajs/styled-components';
 import {
     CausalGraph,
     EditorMode,
+    GraphLegendDefinition,
     CausalGraphViewer as UICausalGraphViewer,
     ZoomThresholds,
 } from '@darajs/ui-causal-graph-editor';
 
 import { GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
+import { transformLegendColor } from './utils';
 
 export interface CausalGraphViewerProps extends StyledComponentProps {
     /** Optional additional legends to show */
-    additional_legends?: ComponentProps<typeof UICausalGraphViewer>['additionalLegends'];
+    additional_legends?: GraphLegendDefinition[];
     /** Whether to allow node/edge selection even when editable = false */
     allow_selection_when_not_editable?: boolean;
     /** All available inputs; used to check which nodes are latent */
     available_inputs?: string[];
     /** The graph data to render */
     causal_graph: Variable<CausalGraph> | CausalGraph;
+    /** Default legends dict for each editor mode available */
+    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
     /** Flag for disabling edge addition */
     disable_edge_add?: boolean;
     /** Flag for disabling latent node addition */
@@ -72,13 +75,26 @@ const StyledGraphViewer = injectCss(UICausalGraphViewer);
 function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
     const { pushNotification } = Notifications.useNotifications();
     const [style, css] = useComponentStyles(props);
+    const theme = useTheme();
 
     const [graphData, setCausalGraphVariable] = useVariable(props.causal_graph);
     const [onClickNode] = useAction(props.on_click_node);
     const [onClickEdge] = useAction(props.on_click_edge);
     const [onUpdate] = useAction(props.on_update);
 
-    const graphLayout = useMemo(() => parseLayoutDefinition(props.graph_layout), []);
+    const graphLayout = useMemo(() => parseLayoutDefinition(props.graph_layout), [props.graph_layout]);
+
+    const formattedDefaultLegends = useMemo(() => {
+        return Object.fromEntries(
+            Object.entries(props.default_legends).map(([editorMode, defaultLegends]) => {
+                return [editorMode, defaultLegends.map((legend) => transformLegendColor(theme, legend))];
+            })
+        ) as Record<EditorMode, GraphLegendDefinition[]>;
+    }, [props.default_legends, theme]);
+
+    const formattedAdditionalLegends = useMemo(() => {
+        return props.additional_legends?.map((legend) => transformLegendColor(theme, legend));
+    }, [props.additional_legends, theme]);
 
     const onGraphUpdate = (value: CausalGraph): void => {
         setCausalGraphVariable(value);
@@ -92,9 +108,10 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
     return (
         <StyledGraphViewer
             $rawCss={css}
-            additionalLegends={props.additional_legends}
+            additionalLegends={formattedAdditionalLegends}
             allowSelectionWhenNotEditable={props.allow_selection_when_not_editable}
             availableInputs={props.available_inputs}
+            defaultLegends={formattedDefaultLegends}
             disableEdgeAdd={props.disable_edge_add}
             disableLatentNodeAdd={props.disable_latent_node_add}
             disableNodeRemoval={props.disable_node_removal}

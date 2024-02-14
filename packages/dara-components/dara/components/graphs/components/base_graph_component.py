@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
-from dara.components.graphs.definitions import ZoomThresholds
+from dara.components.graphs.definitions import ZoomThresholds, EditorMode, DEFAULT_LEGENDS, GraphLegend
 from dara.components.graphs.graph_layout import FcoseLayout, GraphLayout
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
@@ -32,6 +32,7 @@ class BaseGraphComponent(StyledComponentInstance):
     :param available_inputs: Optional list of all available inputs. If provided, all nodes that aren't outputs and aren't
         included present in the list will be treated as latent nodes (will be renamable).
         If left blank, no nodes will be treated as latent.
+    :param default_legends: A dict containing the default legends that should appear on the graph depending on the EditorMode selected.
     :param disable_edge_add: Optional flag for disabling edge addition
     :param disable_latent_node_add: Optional flag for disabling latent node addition
     :param disable_node_removal: Optional flag for disabling node removal
@@ -47,9 +48,10 @@ class BaseGraphComponent(StyledComponentInstance):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See [ZoomThresholds](../definitions/#zoomthresholds) for more details.
     """
 
-    additional_legends: Optional[List[Dict[str, str]]] = None
+    additional_legends: Optional[List[GraphLegend]] = None
     allow_selection_when_not_editable: Optional[bool] = False
     available_inputs: Optional[List[str]] = None
+    default_legends: Optional[Dict[Union[EditorMode, str], List[GraphLegend]]] = DEFAULT_LEGENDS
     disable_edge_add: Optional[bool] = None
     disable_latent_node_add: Optional[bool] = None
     disable_node_removal: Optional[bool] = None
