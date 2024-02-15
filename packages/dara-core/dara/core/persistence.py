@@ -1,5 +1,6 @@
 import abc
 from typing import TYPE_CHECKING, Any, Dict
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -77,12 +78,14 @@ class BackendStore(PersistenceStore):
     Persistence store implementation that uses a backend implementation to store data server-side
     """
 
-    uid: str
-    backend: PersistenceBackend
+    uid: str = Field(default_factory=lambda: str(uuid4()))
+    backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
 
-    def __init__(self, backend: PersistenceBackend, uid: str):
-        super().__init__(backend=backend, uid=uid)
-
+    def _register(self):
+        """
+        Register this store in the backend store registry.
+        Raises ValueError if the uid is not unique, i.e. another store with the same uid already exists
+        """
         from dara.core.internal.registries import backend_store_registry
 
         try:
@@ -99,6 +102,8 @@ class BackendStore(PersistenceStore):
     async def _notify(self, value: Any):
         """
         Notify all clients about the new value for this store
+
+        :param value: value to notify about
         """
         from dara.core.internal.registries import utils_registry
         from dara.core.internal.websocket import WebsocketManager
@@ -109,7 +114,11 @@ class BackendStore(PersistenceStore):
     async def init(self, variable: 'Variable'):
         """
         Write the default value to the store if it's not set
+
+        :param variable: the variable to initialize the store for
         """
+        self._register()
+
         if await self.read() is None:
             await self.write(variable.default, notify=False)
 

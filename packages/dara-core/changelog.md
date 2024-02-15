@@ -4,6 +4,15 @@ title: Changelog
 
 ## NEXT
 
+-   Add defaults to `BackendStore` arguments - `uid` now defaults to a random UUID, `backend` defaults to `InMemoryBackend`
+-   Add support for `BackendStore` in `config.add_registry_lookup`
+-   Prevent `BackendStore` from serializing its backend implementation to the client
+-   Internal: exclude `BackendStore` from being normalized
+-   Internal: move `BackendStore` registration step from constructor to connected variable's constructor to allow for `RegistryLookup` to create another instance without registering
+-   Internal (JS): fix `BackendStore` read requests not using custom `RequestExtras` provided in a context
+
+## 1.7.0
+
 -   Add `store` prop to (plain, i.e. non-derived/data) `Variable`. This enables customizing the "source of truth" for the `Variable`. By default it is stored in browser memory. In the initial implementation there is only one store available: `dara.core.persistence.BackendStore`. This enables making the variable server-side, where the client-side state is automatically synchronized with the backend state. The backend store accepts any backend implementation for storage, the initial implementation includes a simple `InMemoryBackend`.
 
 Note that the details of the API such as methods and their signatures on the BackendStore or PersistenceBackend are subject to change as the feature is being developed and finalized.

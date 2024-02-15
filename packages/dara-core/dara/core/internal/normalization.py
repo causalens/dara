@@ -115,7 +115,13 @@ def _is_referrable(obj: Any) -> TypeGuard[Referrable]:
 
     Bails out if the object has a TemplateMarker
     """
-    return isinstance(obj, dict) and '__typename' in obj and 'uid' in obj and not _has_template_marker(obj)
+    return (
+        isinstance(obj, dict)
+        and '__typename' in obj
+        and 'Variable' in obj['__typename']  # Right now this is meant for Variable objects only
+        and 'uid' in obj
+        and not _has_template_marker(obj)
+    )
 
 
 def _is_referrable_nested(obj: Referrable) -> TypeGuard[ReferrableWithNested]:

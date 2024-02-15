@@ -14,6 +14,11 @@ import { WebSocketCtx, useRequestExtras } from '../context';
 import { isEmbedded } from '../utils/embed';
 
 /**
+ * Global map to store the extras for each store uid
+ */
+const STORE_EXTRAS_MAP = new Map<string, RequestExtrasSerializable>();
+
+/**
  * RecoilSync implementation for BackendStore
  *
  * - read: GET from /api/core/store/:store_uid
@@ -22,46 +27,40 @@ import { isEmbedded } from '../utils/embed';
  */
 function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
     const { client } = React.useContext(WebSocketCtx);
-    const extras = useRequestExtras();
 
-    const getStoreValue = React.useCallback<ReadItem>(
-        async (itemKey) => {
-            const response = await request(`/api/core/store/${itemKey}`, {}, extras);
-            await handleAuthErrors(response, true);
-            await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
-            const val = await response.json();
+    const getStoreValue = React.useCallback<ReadItem>(async (itemKey) => {
+        const serializableExtras = STORE_EXTRAS_MAP.get(itemKey);
+        const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras.extras);
+        await handleAuthErrors(response, true);
+        await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
+        const val = await response.json();
 
-            return val;
-        },
-        [extras]
-    );
+        return val;
+    }, []);
 
     const syncStoreValues = React.useCallback<WriteItems>(async ({ diff }) => {
         // keep track of extras -> diff to send each set of extras as a separate request
-        const extrasMap = new Map<string, Record<string, any>>();
+        const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
 
-        /*
-        The diff keys are encoded to include request extras, see the `write` part of `backendStoreEffect`
-        */
-        for (const [encodedKey, value] of diff.entries()) {
-            const { serializedExtras, store_uid } = JSON.parse(encodedKey) as {
-                serializedExtras: string;
-                store_uid: string;
-            };
+        for (const [itemKey, value] of diff.entries()) {
+            const extras = STORE_EXTRAS_MAP.get(itemKey);
 
-            if (!extrasMap.has(serializedExtras)) {
-                extrasMap.set(serializedExtras, {});
+            if (!extrasMap.has(extras)) {
+                extrasMap.set(extras, {});
             }
 
             // store the value in the extras map
-            extrasMap.get(serializedExtras)[store_uid] = value;
+            extrasMap.get(extras)[itemKey] = value;
         }
 
-        async function sendRequest(serializedExtras: string, storeDiff: Record<string, any>): Promise<void> {
+        async function sendRequest(
+            serializableExtras: RequestExtrasSerializable,
+            storeDiff: Record<string, any>
+        ): Promise<void> {
             const response = await request(
                 `/api/core/store`,
                 { body: JSON.stringify(storeDiff), method: 'POST' },
-                JSON.parse(serializedExtras)
+                serializableExtras.extras
             );
             await handleAuthErrors(response, true);
             await validateResponse(response, `Failed to sync the store values`);
@@ -69,8 +68,8 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
 
         // Send a request with each different set of extras
         await Promise.allSettled(
-            Array.from(extrasMap.entries()).map(([serializedExtras, storeDiff]) =>
-                sendRequest(serializedExtras, storeDiff)
+            Array.from(extrasMap.entries()).map(([serializableExtras, storeDiff]) =>
+                sendRequest(serializableExtras, storeDiff)
             )
         );
     }, []);
@@ -107,28 +106,13 @@ function backendStoreEffect<T>(
     variable: SingleVariable<T, BackendStore>,
     requestExtras: RequestExtrasSerializable
 ): AtomEffect<any> {
+    // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
+    STORE_EXTRAS_MAP.set(variable.store.uid, requestExtras);
     return syncEffect({
         /** Use store uid as the unique identifier */
         itemKey: variable.store.uid,
         refine: mixed(),
         storeKey: 'BackendStore',
-        /**
-         * This customizes how the value is written to the diff object then passed to the write function in the sync component.
-         */
-        write: ({ write }, newValue) => {
-            /*
-            Encode the request extras into the key used so they can be passed through to the request.
-            This is needed as we need to read the correct extras to use for the request in the BackendStoreSync component which receives
-            the diff created with this `write` function.
-             */
-            write(
-                JSON.stringify({
-                    serializedExtras: requestExtras.toJSON(),
-                    store_uid: variable.store.uid,
-                }),
-                newValue
-            );
-        },
     });
 }
 
