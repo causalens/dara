@@ -1,6 +1,6 @@
 {
   "name": "@darajs/components",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Components for the Dara framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",
-    "@darajs/core": "1.7.0",
+    "@darajs/core": "1.7.1",
     "@darajs/styled-components": "~1.6.0",
     "@darajs/ui-causal-graph-editor": "~1.6.0",
     "@darajs/ui-code-editor": "~1.6.0",
