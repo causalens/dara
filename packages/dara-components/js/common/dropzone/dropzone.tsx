@@ -75,6 +75,8 @@ interface DropzoneProps extends StyledComponentProps {
     resolver_id?: string;
     /** variable to store data in */
     target?: DataVariable;
+    /** Determines if the paste event listener should be enabled, allowing for direct pasting of text as files. */
+    enable_paste?: boolean;
 }
 
 const StyledDropzone = injectCss(UIUploadDropzone);
@@ -147,7 +149,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     if (currentStatus === status.LOADING) {
         return <DefaultFallback />;
     }
-    return <StyledDropzone $rawCss={css} accept={props.accept} onDrop={onDrop} style={style} />;
+    return <StyledDropzone $rawCss={css} accept={props.accept} onDrop={onDrop} style={style} enablePaste={props.enable_paste} />;
 }
 
 export default UploadDropzone;

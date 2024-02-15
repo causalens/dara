@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
+-   `UploadDropzone` now has `enable_paste` prop to conditionally activate paste functionality, allowing for more customizable behavior. By default, pasting text directly into the `UploadDropzone` is now disabled, requiring explicit activation via the `enable_paste` prop.
+
 ## 1.7.0
 
 -   Added a new prop `default_legends` to `CausalGraphViewer` and `VisualEdgeEncoder` which allows the user to update the default legends that appear for each `editor_mode`.
