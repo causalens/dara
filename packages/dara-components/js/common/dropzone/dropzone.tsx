@@ -5,12 +5,13 @@ import {
     Center,
     DataVariable,
     DefaultFallback,
+    RequestExtras,
     StyledComponentProps,
     injectCss,
     request,
     useAction,
     useComponentStyles,
-    useSessionToken,
+    useRequestExtras,
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Button, UploadDropzone as UIUploadDropzone } from '@darajs/ui-components';
@@ -35,7 +36,7 @@ const Heading = styled.h2`
 
 async function uploadFileToExtension(
     file: File,
-    sessionToken: string,
+    extras: RequestExtras,
     variableId?: string,
     resolver_id?: string
 ): Promise<{ newStatus: string }> {
@@ -52,11 +53,14 @@ async function uploadFileToExtension(
         url.searchParams.set('data_uid', variableId);
     }
 
-    const res = await request(url, {
-        body: formData,
-        headers: { Authorization: `Bearer ${sessionToken}` },
-        method: HTTP_METHOD.POST,
-    });
+    const res = await request(
+        url,
+        {
+            body: formData,
+            method: HTTP_METHOD.POST,
+        },
+        extras
+    );
     await validateResponse(res, `Failed to upload file: ${file.name}`);
     const result: { [k: string]: any } = await res.json();
     return { newStatus: result.status };
@@ -87,7 +91,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     const [currentStatus, setCurrentStatus] = useState(status.INITIALIZED);
     const [errorMessage, setErrorMessage] = useState<string>();
     const [onFileDrop] = useAction(props.on_drop);
-    const sessionToken = useSessionToken();
+    const extras = useRequestExtras();
 
     const onDrop = async (acceptedFiles: Array<File>): Promise<void> => {
         if (acceptedFiles.length === 1) {
@@ -96,7 +100,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
             try {
                 const { newStatus } = await uploadFileToExtension(
                     acceptedFiles[0],
-                    sessionToken,
+                    extras,
                     props.target?.uid,
                     props.resolver_id
                 );
