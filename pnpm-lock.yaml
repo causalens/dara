@@ -20,7 +20,7 @@ importers:
     specifiers:
       '@babel/core': ^7.23.5
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.6.3
+      '@darajs/core': 1.6.4
       '@darajs/eslint-config': ~1.5.2
       '@darajs/prettier-config': ~1.5.2
       '@darajs/styled-components': ~1.5.2
@@ -1899,7 +1899,7 @@ packages:
   /@darajs/styled-components/1.5.2_3468e0131e0a7bd0bc8f701237cb9d6a:
     resolution: {integrity: sha512-VVf7QMuE3pN9HYO/2xKTIImKGcrfQrgCErENYpts7i1SzFDigZq3PHfa4M1prLOWkLkd+BK4Vi8KoXu/5RmvsQ==}
     dependencies:
-      polished: 4.3.1
+      polished: 4.2.2
       styled-components: 5.3.11_3468e0131e0a7bd0bc8f701237cb9d6a
     transitivePeerDependencies:
       - '@babel/core'
@@ -2083,7 +2083,7 @@ packages:
       '@darajs/ui-icons': 1.5.2_8a07774e5f22633856d20b43cd68283e
       '@darajs/ui-utils': 1.5.2
       lodash: 4.17.21
-      polished: 4.3.1
+      polished: 4.2.2
       react: 18.2.0
       rxjs: 6.5.5
     transitivePeerDependencies:
