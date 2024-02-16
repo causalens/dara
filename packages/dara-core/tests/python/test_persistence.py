@@ -1,7 +1,9 @@
+from multiprocessing import Value
 from unittest.mock import AsyncMock
 
 import pytest
 from anyio import sleep
+from fastapi.encoders import jsonable_encoder
 
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.persistence import BackendStore, InMemoryBackend
@@ -60,6 +62,47 @@ def cleanup_store_registry():
 
     yield
     backend_store_registry.replace({})
+
+
+async def test_backend_store_default_arguments():
+    """
+    Test that BackendStore can be constructed without arguments
+    """
+    store = BackendStore()
+    assert isinstance(store.uid, str)
+    assert isinstance(store.backend, InMemoryBackend)
+
+
+async def test_backend_store_serialization():
+    """
+    Test that BackendStore does not serialize the backend
+    """
+    store = BackendStore()
+    assert 'backend' not in jsonable_encoder(store)
+
+
+async def test_backend_store_unique_uid():
+    # Creating stores without a uid should generate unique uids
+    store_1 = BackendStore()
+    store_2 = BackendStore()
+    assert store_1.uid != store_2.uid
+    # Both can be registered
+    store_1._register()
+    store_2._register()
+
+    # Creating stores with a uid should use the provided uid
+    store_3 = BackendStore(uid='my_uid')
+    store_4 = BackendStore(uid='my_uid')
+
+    store_3._register()
+
+    # Creating a store with a uid that already exists should raise a ValueError
+    with pytest.raises(ValueError):
+        store_4._register()
+
+    # Re-registering store with the same uid should raise a ValueError
+    with pytest.raises(ValueError):
+        store_1._register()
 
 
 async def test_write_and_read(backend_store):
