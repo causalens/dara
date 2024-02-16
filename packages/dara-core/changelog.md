@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## 1.7.0
+## 1.7.1
 
 -   Add defaults to `BackendStore` arguments - `uid` now defaults to a random UUID, `backend` defaults to `InMemoryBackend`
 -   Add support for `BackendStore` in `config.add_registry_lookup`
