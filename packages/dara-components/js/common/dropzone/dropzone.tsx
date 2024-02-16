@@ -69,14 +69,14 @@ async function uploadFileToExtension(
 interface DropzoneProps extends StyledComponentProps {
     /** Optional comma-separated list of accepted MIME-types */
     accept?: string;
+    /** Determines if the paste event listener should be enabled, allowing for direct pasting of text as files. */
+    enable_paste?: boolean;
     /** the action to trigger when a file is successfully uploaded */
     on_drop?: Action;
     /** optional resolver to use for the data */
     resolver_id?: string;
     /** variable to store data in */
     target?: DataVariable;
-    /** Determines if the paste event listener should be enabled, allowing for direct pasting of text as files. */
-    enable_paste?: boolean;
 }
 
 const StyledDropzone = injectCss(UIUploadDropzone);
@@ -149,7 +149,15 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     if (currentStatus === status.LOADING) {
         return <DefaultFallback />;
     }
-    return <StyledDropzone $rawCss={css} accept={props.accept} onDrop={onDrop} style={style} enablePaste={props.enable_paste} />;
+    return (
+        <StyledDropzone
+            $rawCss={css}
+            accept={props.accept}
+            enablePaste={props.enable_paste}
+            onDrop={onDrop}
+            style={style}
+        />
+    );
 }
 
 export default UploadDropzone;
