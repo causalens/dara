@@ -1,4 +1,5 @@
 import { AtomEffect, RecoilState, atomFamily, selectorFamily } from 'recoil';
+import { BehaviorSubject } from 'rxjs';
 
 import { WebSocketClientInterface } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
@@ -11,7 +12,9 @@ import { getOrRegisterDerivedVariableValue, resolveNested, setNested } from './i
 import { STORES, getEffect } from './persistence';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, getRegistryKey, selectorFamilyRegistry } from './store';
 
-type Listener = (...args: any[]) => void;
+type VariableUpdate =
+    | { type: 'initial'; value: any }
+    | { isReset: boolean; nodeKey: string; oldValue: any; type: 'update'; value: any };
 
 /**
  * State synchronizer singleton
@@ -21,7 +24,7 @@ type Listener = (...args: any[]) => void;
 class StateSynchronizer {
     static #instance: StateSynchronizer;
 
-    #listenersMap = new Map<string, Set<Listener>>();
+    #observers = new Map<string, BehaviorSubject<VariableUpdate>>();
 
     // eslint-disable-next-line no-useless-constructor, no-empty-function
     private constructor() {}
@@ -35,20 +38,57 @@ class StateSynchronizer {
     }
 
     /**
+     * Register a key in the state synchronizer
+     *
+     * @param key key to register
+     * @param defaultValue value to register
+     */
+    register(key: string, defaultValue: any): void {
+        if (!this.#observers.has(key)) {
+            this.#observers.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue }));
+        }
+    }
+
+    /**
+     * Check if a given key is registered in the state synchronizer
+     *
+     * @param key key to check if registered
+     */
+    isRegistered(key: string): boolean {
+        return this.#observers.has(key);
+    }
+
+    /**
+     * Get the current state for a given key
+     *
+     * @param key key to get the current value for
+     */
+    getCurrentState(key: string): VariableUpdate {
+        if (!this.isRegistered(key)) {
+            return null;
+        }
+        return this.#observers.get(key).getValue();
+    }
+
+    /**
      * Subscribe to changes on a given key
      *
      * @param key key to subscribe to
-     * @param listener listener to invoke on change
-     * @returns a cleanup function to unsubscribe
      */
-    subscribe(key: string, listener: Listener): () => void {
-        if (!this.#listenersMap.has(key)) {
-            this.#listenersMap.set(key, new Set());
+    subscribe(key: string, subscription: Parameters<BehaviorSubject<VariableUpdate>['subscribe']>[0]): () => void {
+        // If somehow the ended up with no listener here, register it with null value
+        if (!this.isRegistered(key)) {
+            this.register(key, null);
         }
-        this.#listenersMap.get(key).add(listener);
 
+        const sub = this.#observers.get(key).subscribe(subscription);
         return () => {
-            this.#listenersMap.get(key).delete(listener);
+            sub.unsubscribe();
+
+            // if no more observers, remove the listener
+            if (this.#observers.get(key).observers.length === 0) {
+                this.#observers.delete(key);
+            }
         };
     }
 
@@ -56,10 +96,14 @@ class StateSynchronizer {
      * Notify listeners for a given key
      *
      * @param key key to notify listeners for
-     * @param args arguments to pass to the listeners
+     * @param update update to notify about
      */
-    notify(key: string, ...args: any[]): void {
-        this.#listenersMap.get(key)?.forEach((listener) => listener(...args));
+    notify(key: string, update: VariableUpdate): void {
+        // If somehow the ended up with no listener here, register it with null value
+        if (!this.isRegistered(key)) {
+            this.register(key, null);
+        }
+        this.#observers.get(key).next(update);
     }
 }
 
@@ -105,28 +149,49 @@ export function getOrRegisterPlainVariable<T>(
                     : variable.default,
                 effects: (extrasSerializable: RequestExtrasSerializable) => {
                     const familySync: AtomEffect<T> = ({ onSet, setSelf, resetSelf, node }) => {
-                        // Synchronize changes across atoms of the same family
-                        const unsub = StateSynchronizer.getInstance().subscribe(
-                            variable.uid,
-                            (nodeKey, newValue, oldValue, isReset) => {
-                                // skip updates from the same atom
-                                if (nodeKey === node.key) {
-                                    return;
-                                }
+                        // Register the atom in the state synchronizer if not already registered
+                        if (!StateSynchronizer.getInstance().isRegistered(variable.uid)) {
+                            StateSynchronizer.getInstance().register(variable.uid, variable.default);
+                        } else {
+                            const currentState = StateSynchronizer.getInstance().getCurrentState(variable.uid);
 
-                                if (isReset) {
-                                    resetSelf();
-                                } else {
-                                    setSelf(newValue);
-                                }
+                            if (!isDefaultDerived || currentState?.type !== 'initial') {
+                                // Otherwise synchronize the initial value,
+                                // unless the default is a DerivedVariable and the current state is initial
+                                // because in that case the default will be linked to the selector which needs to be resolved
+                                setSelf(currentState?.value);
                             }
-                        );
+                        }
 
-                        onSet((newValue, oldValue, isReset) => {
-                            StateSynchronizer.getInstance().notify(variable.uid, node.key, newValue, oldValue, isReset);
+                        // Synchronize changes across atoms of the same family
+                        const unsub = StateSynchronizer.getInstance().subscribe(variable.uid, (update) => {
+                            if (update.type === 'initial') {
+                                return;
+                            }
+
+                            // skip updates from the same atom
+                            if (update.nodeKey === node.key) {
+                                return;
+                            }
+
+                            if (update.isReset) {
+                                resetSelf();
+                            } else {
+                                setSelf(update.value);
+                            }
                         });
 
-                        return () => unsub();
+                        onSet((newValue, oldValue, isReset) => {
+                            StateSynchronizer.getInstance().notify(variable.uid, {
+                                isReset,
+                                nodeKey: node.key,
+                                oldValue,
+                                type: 'update',
+                                value: newValue,
+                            });
+                        });
+
+                        return unsub;
                     };
 
                     const effects: AtomEffect<T>[] = [familySync];

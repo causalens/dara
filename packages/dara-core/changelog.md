@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix an edge case where `Variable` state would not be initialized properly if previously registered under a different set of `RequestExtras`
+
 ## 1.7.1
 
 -   Add defaults to `BackendStore` arguments - `uid` now defaults to a random UUID, `backend` defaults to `InMemoryBackend`
