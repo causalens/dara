@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.2
 
 -   Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
 -   `UploadDropzone` now has `enable_paste` prop to conditionally activate paste functionality, allowing for more customizable behavior. By default, pasting text directly into the `UploadDropzone` is now disabled, requiring explicit activation via the `enable_paste` prop.
