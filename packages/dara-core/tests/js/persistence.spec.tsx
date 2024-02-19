@@ -338,4 +338,123 @@ describe('Variable Persistence', () => {
             expect(result.current[0]).toEqual({ foo: 'updated' });
         });
     });
+
+    test('variable with same uid with different extras are synchronized', async () => {
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    uid: 'session-test-1',
+                } as SingleVariable<any>),
+            {
+                wrapper: ({ children }) => (
+                    <Wrapper>
+                        <RequestExtrasProvider
+                            options={{
+                                headers: {
+                                    'X-Dara-Extras': 'foo',
+                                },
+                            }}
+                        >
+                            {children}
+                        </RequestExtrasProvider>
+                    </Wrapper>
+                ),
+            }
+        );
+
+        const { result: result2 } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    uid: 'session-test-1',
+                } as SingleVariable<any>),
+            {
+                wrapper: ({ children }) => (
+                    <Wrapper>
+                        <RequestExtrasProvider
+                            options={{
+                                headers: {
+                                    'X-Dara-Extras': 'bar',
+                                },
+                            }}
+                        >
+                            {children}
+                        </RequestExtrasProvider>
+                    </Wrapper>
+                ),
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current).not.toBeNull();
+            expect(result2.current).not.toBeNull();
+        });
+
+        // update result1
+        act(() => {
+            result.current[1]('new1');
+        });
+
+        // both atoms should be updated
+        await waitFor(() => {
+            expect(result.current[0]).toEqual('new1');
+            expect(result2.current[0]).toEqual('new1');
+        });
+    });
+
+    test('variables with same uid and different extras created later are synchronized', async () => {
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    uid: 'session-test-1',
+                } as SingleVariable<any>),
+            {
+                wrapper: ({ children }) => (
+                    <Wrapper>
+                        <RequestExtrasProvider
+                            options={{
+                                headers: {
+                                    'X-Dara-Extras': 'foo',
+                                },
+                            }}
+                        >
+                            {children}
+                        </RequestExtrasProvider>
+                    </Wrapper>
+                ),
+            }
+        );
+
+        // Update the value of first result
+        act(() => {
+            result.current[1]('new1');
+        });
+
+        // Create a new variable with no extras
+        const { result: result2 } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    uid: 'session-test-1',
+                } as SingleVariable<any>),
+            {
+                wrapper: Wrapper,
+            }
+        );
+
+        // The new variable should have the same value as the first one
+        await waitFor(() => {
+            expect(result2.current[0]).toEqual('new1');
+        });
+    });
 });

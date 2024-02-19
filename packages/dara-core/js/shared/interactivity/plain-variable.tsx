@@ -1,4 +1,5 @@
 import { AtomEffect, RecoilState, atomFamily, selectorFamily } from 'recoil';
+import { BehaviorSubject } from 'rxjs';
 
 import { WebSocketClientInterface } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
@@ -11,7 +12,9 @@ import { getOrRegisterDerivedVariableValue, resolveNested, setNested } from './i
 import { STORES, getEffect } from './persistence';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, getRegistryKey, selectorFamilyRegistry } from './store';
 
-type Listener = (...args: any[]) => void;
+type VariableUpdate =
+    | { type: 'initial'; value: any }
+    | { isReset: boolean; nodeKey: string; oldValue: any; type: 'update'; value: any };
 
 /**
  * State synchronizer singleton
@@ -21,7 +24,7 @@ type Listener = (...args: any[]) => void;
 class StateSynchronizer {
     static #instance: StateSynchronizer;
 
-    #listenersMap = new Map<string, Set<Listener>>();
+    #listenersMap = new Map<string, BehaviorSubject<VariableUpdate>>();
 
     // eslint-disable-next-line no-useless-constructor, no-empty-function
     private constructor() {}
@@ -35,20 +38,49 @@ class StateSynchronizer {
     }
 
     /**
+     * Register a key in the state synchronizer
+     *
+     * @param key key to register
+     * @param defaultValue value to register
+     */
+    register(key: string, defaultValue: any): void {
+        if (!this.#listenersMap.has(key)) {
+            this.#listenersMap.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue }));
+        }
+    }
+
+    /**
+     * Check if a given key is registered in the state synchronizer
+     *
+     * @param key key to check if registered
+     */
+    isRegistered(key: string): boolean {
+        return this.#listenersMap.has(key);
+    }
+
+    /**
+     * Get the current value for a given key
+     *
+     * @param key key to get the current value for
+     */
+    getCurrentValue(key: string): any {
+        return this.#listenersMap.get(key).getValue().value;
+    }
+
+    /**
      * Subscribe to changes on a given key
      *
      * @param key key to subscribe to
-     * @param listener listener to invoke on change
-     * @returns a cleanup function to unsubscribe
      */
-    subscribe(key: string, listener: Listener): () => void {
-        if (!this.#listenersMap.has(key)) {
-            this.#listenersMap.set(key, new Set());
-        }
-        this.#listenersMap.get(key).add(listener);
-
+    subscribe(key: string, subscription: Parameters<BehaviorSubject<VariableUpdate>['subscribe']>[0]): () => void {
+        const sub = this.#listenersMap.get(key).subscribe(subscription);
         return () => {
-            this.#listenersMap.get(key).delete(listener);
+            sub.unsubscribe();
+
+            // if no more observers, remove the listener
+            if (this.#listenersMap.get(key).observers.length === 0) {
+                this.#listenersMap.delete(key);
+            }
         };
     }
 
@@ -56,10 +88,10 @@ class StateSynchronizer {
      * Notify listeners for a given key
      *
      * @param key key to notify listeners for
-     * @param args arguments to pass to the listeners
+     * @param update update to notify about
      */
-    notify(key: string, ...args: any[]): void {
-        this.#listenersMap.get(key)?.forEach((listener) => listener(...args));
+    notify(key: string, update: VariableUpdate): void {
+        this.#listenersMap.get(key).next(update);
     }
 }
 
@@ -105,28 +137,43 @@ export function getOrRegisterPlainVariable<T>(
                     : variable.default,
                 effects: (extrasSerializable: RequestExtrasSerializable) => {
                     const familySync: AtomEffect<T> = ({ onSet, setSelf, resetSelf, node }) => {
+                        // Register the atom in the state synchronizer if not already registered
+                        if (!StateSynchronizer.getInstance().isRegistered(variable.uid)) {
+                            StateSynchronizer.getInstance().register(variable.uid, variable.default);
+                        } else {
+                            // Otherwise synchronize the initial value
+                            setSelf(StateSynchronizer.getInstance().getCurrentValue(variable.uid));
+                        }
+
                         // Synchronize changes across atoms of the same family
-                        const unsub = StateSynchronizer.getInstance().subscribe(
-                            variable.uid,
-                            (nodeKey, newValue, oldValue, isReset) => {
-                                // skip updates from the same atom
-                                if (nodeKey === node.key) {
-                                    return;
-                                }
-
-                                if (isReset) {
-                                    resetSelf();
-                                } else {
-                                    setSelf(newValue);
-                                }
+                        const unsub = StateSynchronizer.getInstance().subscribe(variable.uid, (update) => {
+                            if (update.type === 'initial') {
+                                return;
                             }
-                        );
 
-                        onSet((newValue, oldValue, isReset) => {
-                            StateSynchronizer.getInstance().notify(variable.uid, node.key, newValue, oldValue, isReset);
+                            // skip updates from the same atom
+                            if (update.nodeKey === node.key) {
+                                return;
+                            }
+
+                            if (update.isReset) {
+                                resetSelf();
+                            } else {
+                                setSelf(update.value);
+                            }
                         });
 
-                        return () => unsub();
+                        onSet((newValue, oldValue, isReset) => {
+                            StateSynchronizer.getInstance().notify(variable.uid, {
+                                isReset,
+                                nodeKey: node.key,
+                                oldValue,
+                                type: 'update',
+                                value: newValue,
+                            });
+                        });
+
+                        return unsub;
                     };
 
                     const effects: AtomEffect<T>[] = [familySync];
