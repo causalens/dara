@@ -456,5 +456,36 @@ describe('Variable Persistence', () => {
         await waitFor(() => {
             expect(result2.current[0]).toEqual('new1');
         });
+
+        // Create a new variable with different extras
+        const { result: result3 } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    uid: 'session-test-1',
+                } as SingleVariable<any>),
+            {
+                wrapper: ({ children }) => (
+                    <Wrapper>
+                        <RequestExtrasProvider
+                            options={{
+                                headers: {
+                                    'X-Dara-Extras': 'bar',
+                                },
+                            }}
+                        >
+                            {children}
+                        </RequestExtrasProvider>
+                    </Wrapper>
+                ),
+            }
+        );
+
+        // The new variable should have the same value as the first one
+        await waitFor(() => {
+            expect(result3.current[0]).toEqual('new1');
+        });
     });
 });
