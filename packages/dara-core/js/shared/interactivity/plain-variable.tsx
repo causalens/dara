@@ -59,15 +59,15 @@ class StateSynchronizer {
     }
 
     /**
-     * Get the current value for a given key
+     * Get the current state for a given key
      *
      * @param key key to get the current value for
      */
-    getCurrentValue(key: string): any {
+    getCurrentState(key: string): VariableUpdate {
         if (!this.isRegistered(key)) {
             return null;
         }
-        return this.#observers.get(key).getValue().value;
+        return this.#observers.get(key).getValue();
     }
 
     /**
@@ -103,7 +103,6 @@ class StateSynchronizer {
         if (!this.isRegistered(key)) {
             this.register(key, null);
         }
-
         this.#observers.get(key).next(update);
     }
 }
@@ -154,8 +153,14 @@ export function getOrRegisterPlainVariable<T>(
                         if (!StateSynchronizer.getInstance().isRegistered(variable.uid)) {
                             StateSynchronizer.getInstance().register(variable.uid, variable.default);
                         } else {
-                            // Otherwise synchronize the initial value
-                            setSelf(StateSynchronizer.getInstance().getCurrentValue(variable.uid));
+                            const currentState = StateSynchronizer.getInstance().getCurrentState(variable.uid);
+
+                            if (!isDefaultDerived || currentState?.type !== 'initial') {
+                                // Otherwise synchronize the initial value,
+                                // unless the default is a DerivedVariable and the current state is initial
+                                // because in that case the default will be linked to the selector which needs to be resolved
+                                setSelf(currentState?.value);
+                            }
                         }
 
                         // Synchronize changes across atoms of the same family
