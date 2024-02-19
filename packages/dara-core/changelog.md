@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.2
 
 -   Fix an edge case where `Variable` state would not be initialized properly if previously registered under a different set of `RequestExtras`
 
