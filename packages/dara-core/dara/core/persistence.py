@@ -1,9 +1,11 @@
 import abc
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Literal, Set
 from uuid import uuid4
 
+import anyio
 from pydantic import BaseModel, Field
 
+from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 
 if TYPE_CHECKING:
@@ -35,6 +37,12 @@ class PersistenceBackend(BaseModel, abc.ABC):
         Delete a value
         """
 
+    @abc.abstractmethod
+    def get_all(self) -> Dict[str, Any]:
+        """
+        Get all the values as a dictionary of key-value pairs
+        """
+
 
 class InMemoryBackend(PersistenceBackend):
     """
@@ -52,6 +60,9 @@ class InMemoryBackend(PersistenceBackend):
     def delete(self, key: str):
         if key in self.data:
             del self.data[key]
+
+    def get_all(self):
+        return self.data.copy()
 
 
 class PersistenceStore(BaseModel, abc.ABC):
@@ -80,6 +91,22 @@ class BackendStore(PersistenceStore):
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
+    scope: Literal['global', 'user'] = 'global'
+
+    def _get_key(self):
+        """
+        Get the key for this store
+        """
+        if self.scope == 'global':
+            return self.uid
+
+        user = USER.get()
+
+        if user:
+            user_key = user.identity_id or user.identity_name
+            return f'{user_key}:{self.uid}'
+
+        raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
     def _register(self):
         """
@@ -105,11 +132,33 @@ class BackendStore(PersistenceStore):
 
         :param value: value to notify about
         """
-        from dara.core.internal.registries import utils_registry
+        from dara.core.internal.registries import sessions_registry, utils_registry, websocket_registry
         from dara.core.internal.websocket import WebsocketManager
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-        await ws_mgr.broadcast({'store_uid': self.uid, 'value': value})
+
+        if self.scope == 'global':
+            return await ws_mgr.broadcast({'store_uid': self.uid, 'value': value})
+
+        # For user scope, we need to find channels for the user and notify them
+        user = USER.get()
+
+        if not user:
+            return
+
+        user_identifier = user.identity_id or user.identity_name
+        if sessions_registry.has(user_identifier):
+            user_sessions = sessions_registry.get(user_identifier)
+
+            channels: Set[str] = set()
+            for session_id in user_sessions:
+                if websocket_registry.has(session_id):
+                    channels = channels.union(websocket_registry.get(session_id))
+
+            # Notify all channels
+            async with anyio.create_task_group() as tg:
+                for channel in channels:
+                    tg.start_soon(ws_mgr.send_message, channel, {'store_uid': self.uid, 'value': value})
 
     async def init(self, variable: 'Variable'):
         """
@@ -129,18 +178,19 @@ class BackendStore(PersistenceStore):
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
         """
+        key = self._get_key()
+
         if notify:
-            # Schedule notification on write
             await self._notify(value)
 
-        # TODO: in the future key can be self.uid + user_id if scope='user'
-        return await run_user_handler(self.backend.write, (self.uid, value))
+        return await run_user_handler(self.backend.write, (key, value))
 
     async def read(self):
         """
         Read a value from the store
         """
-        return await run_user_handler(self.backend.read, (self.uid,))
+        key = self._get_key()
+        return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
         """
@@ -148,10 +198,17 @@ class BackendStore(PersistenceStore):
 
         :param notify: whether to broadcast that the value was deleted to clients
         """
+        key = self._get_key()
         if notify:
             # Schedule notification on delete
             await self._notify(None)
-        return await run_user_handler(self.backend.delete, (self.uid,))
+        return await run_user_handler(self.backend.delete, (key,))
+
+    async def get_all(self):
+        """
+        Get all the values from the store
+        """
+        return await run_user_handler(self.backend.get_all)
 
 
 class BackendStoreEntry(BaseModel):
