@@ -1,9 +1,12 @@
 import abc
+import json
+import os
 from typing import TYPE_CHECKING, Any, Dict, Literal, Set
 from uuid import uuid4
 
+import aiorwlock
 import anyio
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr, validator
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
@@ -65,6 +68,57 @@ class InMemoryBackend(PersistenceBackend):
         return self.data.copy()
 
 
+class FileBackend(PersistenceBackend):
+    """
+    File persistence backend implementation.
+
+    Stores data in a JSON file
+    """
+
+    path: str
+    _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
+
+    @validator('path')
+    def validate_path(cls, value):
+        if not os.path.splitext(value)[1] == '.json':
+            raise ValueError('FileBackend path must be a .json file')
+        return value
+
+    async def _read_data(self):
+        async with await anyio.open_file(self.path, 'r') as f:
+            content = await f.read()
+            return json.loads(content) if content else {}
+
+    async def _write_data(self, data: Dict[str, Any]):
+        async with await anyio.open_file(self.path, 'w') as f:
+            await f.write(json.dumps(data))
+
+    async def write(self, key: str, value: Any):
+        async with self._lock.writer_lock:
+            data = await self._read_data() if os.path.exists(self.path) else {}
+            data[key] = value
+            await self._write_data(data)
+
+    async def read(self, key: str):
+        if not os.path.exists(self.path):
+            return None
+
+        async with self._lock.reader_lock:
+            data = await self._read_data()
+            return data.get(key)
+
+    async def delete(self, key: str):
+        async with self._lock.writer_lock:
+            data = await self._read_data()
+            if key in data:
+                del data[key]
+                await self._write_data(data)
+
+    async def get_all(self):
+        async with self._lock.reader_lock:
+            return await self._read_data()
+
+
 class PersistenceStore(BaseModel, abc.ABC):
     """
     Base class for a variable persistence store
@@ -93,18 +147,35 @@ class BackendStore(PersistenceStore):
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
     scope: Literal['global', 'user'] = 'global'
 
-    def _get_key(self):
+    _default_value: Any = PrivateAttr(default=None)
+    _initialized_scopes: Set[str] = PrivateAttr(default_factory=set)
+
+    async def _get_key(self):
         """
         Get the key for this store
         """
         if self.scope == 'global':
-            return self.uid
+            key = self.uid
+
+            # Make sure the store is initialized
+            if 'global' not in self._initialized_scopes:
+                self._initialized_scopes.add('global')
+                await run_user_handler(self.backend.write, (key, self._default_value))
+
+            return key
 
         user = USER.get()
 
         if user:
             user_key = user.identity_id or user.identity_name
-            return f'{user_key}:{self.uid}'
+            key = f'{user_key}:{self.uid}'
+
+            # Make sure the store is initialized
+            if user_key not in self._initialized_scopes:
+                self._initialized_scopes.add(user_key)
+                await run_user_handler(self.backend.write, (key, self._default_value))
+
+            return key
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
@@ -167,9 +238,7 @@ class BackendStore(PersistenceStore):
         :param variable: the variable to initialize the store for
         """
         self._register()
-
-        if await self.read() is None:
-            await self.write(variable.default, notify=False)
+        self._default_value = variable.default
 
     async def write(self, value: Any, notify=True):
         """
@@ -178,7 +247,7 @@ class BackendStore(PersistenceStore):
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
         """
-        key = self._get_key()
+        key = await self._get_key()
 
         if notify:
             await self._notify(value)
@@ -189,7 +258,8 @@ class BackendStore(PersistenceStore):
         """
         Read a value from the store
         """
-        key = self._get_key()
+
+        key = await self._get_key()
         return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
@@ -198,7 +268,7 @@ class BackendStore(PersistenceStore):
 
         :param notify: whether to broadcast that the value was deleted to clients
         """
-        key = self._get_key()
+        key = await self._get_key()
         if notify:
             # Schedule notification on delete
             await self._notify(None)

@@ -1,3 +1,5 @@
+import inspect
+import tempfile
 from multiprocessing import Value
 from unittest.mock import AsyncMock
 
@@ -6,7 +8,7 @@ from anyio import sleep
 from fastapi.encoders import jsonable_encoder
 
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.persistence import BackendStore, InMemoryBackend
+from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
 
 pytestmark = pytest.mark.anyio
 
@@ -17,7 +19,7 @@ async def test_creating_plain_variable_inits_store():
 
     await sleep(0.5)   # Wait for the store to be initialized
 
-    # Check store has the value written to upon creation
+    # Check that when reading the value, the default is respected
     assert await var.store.read() == 123
 
     # Verify store is put into registry
@@ -31,6 +33,12 @@ async def test_creating_plain_variable_inits_store():
 @pytest.fixture
 def in_memory_backend():
     return InMemoryBackend()
+
+
+@pytest.fixture
+def file_backend():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield FileBackend(path=tmpdir + '/test.json')
 
 
 @pytest.fixture
@@ -148,17 +156,29 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
     mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None})
 
 
-def test_memory_backend(in_memory_backend):
+async def maybe_await(value):
+    if inspect.iscoroutine(value):
+        return await value
+    return value
+
+
+@pytest.mark.parametrize('backend_name', [('in_memory_backend'), ('file_backend')])
+async def test_backend(backend_name, request):
+    """
+    Standard backend test, parametrized to run across all implementations
+    """
+    backend = request.getfixturevalue(backend_name)
+
     # Test writing to the backend
-    in_memory_backend.write('key1', 'value1')
+    await maybe_await(backend.write('key1', 'value1'))
     # Test reading back the value
-    assert in_memory_backend.read('key1') == 'value1', 'The read value should match the written value.'
+    assert await maybe_await(backend.read('key1')) == 'value1', 'The read value should match the written value.'
 
     # Write another value to the backend
-    in_memory_backend.write('key2', 'value2')
+    await maybe_await(backend.write('key2', 'value2'))
     # Test deletion
-    in_memory_backend.delete('key2')
+    await maybe_await(backend.delete('key2'))
     # Test the value is no longer available
-    assert in_memory_backend.read('key2') is None, 'The value should be None after deletion.'
+    assert await maybe_await(backend.read('key2')) is None, 'The value should be None after deletion.'
     # Test reading a key that doesn't exist
-    assert in_memory_backend.read('nonexistent_key') is None, 'Reading a nonexistent key should return None.'
+    assert await maybe_await(backend.read('nonexistent_key')) is None, 'Reading a nonexistent key should return None.'

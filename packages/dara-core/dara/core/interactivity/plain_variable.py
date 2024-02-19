@@ -125,10 +125,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
@@ -151,10 +148,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
@@ -177,10 +171,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         ```
         """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
+        from dara.core.interactivity.actions import UpdateVariableImpl, assert_no_context
 
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)
