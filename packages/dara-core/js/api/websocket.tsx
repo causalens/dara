@@ -262,32 +262,12 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.token = _token;
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
-        this.socket.addEventListener('message', (ev) => {
-            const msg = JSON.parse(ev.data) as WebSocketMessage;
-            this.messages$.next(msg);
-        });
-
-        // Add a one off listener for the init message to get the channel
-        this.channel = new Promise((resolve) => {
-            this.socket.addEventListener('message', (ev) => {
-                const msg = JSON.parse(ev.data) as WebSocketMessage;
-                if (msg.type === 'init') {
-                    this.messages$.next(msg);
-                    resolve(msg.message?.channel);
-                }
-            });
-        });
-
         this.closeHandler = this.onClose.bind(this);
-        this.socket.addEventListener('close', this.closeHandler);
+        this.initialize();
     }
 
-    /**
-     * Close handler to attempt to reconnect on WS closed
-     */
-    onClose(): void {
-        this.socket = onCloseWs(this.token, this.liveReload);
-        // Re-register the message event listener to restart the stream of messages and get the new channel
+    initialize(): void {
+        // Register the message event listener to start the stream of messages and get the new channel
         this.socket.addEventListener('message', (ev) => {
             const msg = JSON.parse(ev.data) as WebSocketMessage;
             this.messages$.next(msg);
@@ -302,6 +282,16 @@ export class WebSocketClient implements WebSocketClientInterface {
                 }
             });
         });
+        // Bind the close handler so the re-initialize logic is added every time
+        this.socket.addEventListener('close', this.closeHandler);
+    }
+
+    /**
+     * Close handler to attempt to reconnect on WS closed
+     */
+    onClose(): void {
+        this.socket = onCloseWs(this.token, this.liveReload);
+        this.initialize();
     }
 
     /**
