@@ -282,7 +282,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                 }
             });
         });
-        // Rebind the close handler so this logic is re-applied on a subsequent disconnect
+        // Bind the close handler so the re-initialize logic is added every time
         this.socket.addEventListener('close', this.closeHandler);
     }
 
