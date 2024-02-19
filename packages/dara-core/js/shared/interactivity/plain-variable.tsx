@@ -24,7 +24,7 @@ type VariableUpdate =
 class StateSynchronizer {
     static #instance: StateSynchronizer;
 
-    #listenersMap = new Map<string, BehaviorSubject<VariableUpdate>>();
+    #observers = new Map<string, BehaviorSubject<VariableUpdate>>();
 
     // eslint-disable-next-line no-useless-constructor, no-empty-function
     private constructor() {}
@@ -44,8 +44,8 @@ class StateSynchronizer {
      * @param defaultValue value to register
      */
     register(key: string, defaultValue: any): void {
-        if (!this.#listenersMap.has(key)) {
-            this.#listenersMap.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue }));
+        if (!this.#observers.has(key)) {
+            this.#observers.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue }));
         }
     }
 
@@ -55,7 +55,7 @@ class StateSynchronizer {
      * @param key key to check if registered
      */
     isRegistered(key: string): boolean {
-        return this.#listenersMap.has(key);
+        return this.#observers.has(key);
     }
 
     /**
@@ -64,7 +64,10 @@ class StateSynchronizer {
      * @param key key to get the current value for
      */
     getCurrentValue(key: string): any {
-        return this.#listenersMap.get(key).getValue().value;
+        if (!this.isRegistered(key)) {
+            return null;
+        }
+        return this.#observers.get(key).getValue().value;
     }
 
     /**
@@ -73,13 +76,18 @@ class StateSynchronizer {
      * @param key key to subscribe to
      */
     subscribe(key: string, subscription: Parameters<BehaviorSubject<VariableUpdate>['subscribe']>[0]): () => void {
-        const sub = this.#listenersMap.get(key).subscribe(subscription);
+        // If somehow the ended up with no listener here, register it with null value
+        if (!this.isRegistered(key)) {
+            this.register(key, null);
+        }
+
+        const sub = this.#observers.get(key).subscribe(subscription);
         return () => {
             sub.unsubscribe();
 
             // if no more observers, remove the listener
-            if (this.#listenersMap.get(key).observers.length === 0) {
-                this.#listenersMap.delete(key);
+            if (this.#observers.get(key).observers.length === 0) {
+                this.#observers.delete(key);
             }
         };
     }
@@ -91,7 +99,12 @@ class StateSynchronizer {
      * @param update update to notify about
      */
     notify(key: string, update: VariableUpdate): void {
-        this.#listenersMap.get(key).next(update);
+        // If somehow the ended up with no listener here, register it with null value
+        if (!this.isRegistered(key)) {
+            this.register(key, null);
+        }
+
+        this.#observers.get(key).next(update);
     }
 }
 
