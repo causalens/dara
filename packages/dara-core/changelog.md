@@ -2,9 +2,9 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.6.5
 
--   Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
+-  **Backported** Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
 
 ## 1.6.3
 

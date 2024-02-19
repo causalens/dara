@@ -4,8 +4,8 @@ title: Changelog
 
 ## 1.6.4
 
--   Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
--   `UploadDropzone` now has `enable_paste` prop to conditionally activate paste functionality, allowing for more customizable behavior. By default, pasting text directly into the `UploadDropzone` is now disabled, requiring explicit activation via the `enable_paste` prop.
+-   **Backported** Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
+-   **Backported** `UploadDropzone` now has `enable_paste` prop to conditionally activate paste functionality, allowing for more customizable behavior. By default, pasting text directly into the `UploadDropzone` is now disabled, requiring explicit activation via the `enable_paste` prop.
 
 ## 1.6.2
 
@@ -15,7 +15,7 @@ title: Changelog
 
 **Graphs**
 -   Added support for tiered layout in `FcoseLayout`, `PlanarLayout`, `SpringLayout` and `MarketingLayout`. It allows for nodes to be placed on tiers following some hierarchy and to further define requirements of nodes positions within that tier.
--   If `TimeSeriesCausalGraph` object is passed to `CausalGraphViewer` and no tiers are defines, it will use `time_lag` and `variable_name` to define the `order_nodes_by` and `group` respectively. 
+-   If `TimeSeriesCausalGraph` object is passed to `CausalGraphViewer` and no tiers are defines, it will use `time_lag` and `variable_name` to define the `order_nodes_by` and `group` respectively.
 -   Added `simultaneous_edge_node_selection` to `CausalGraphViewer`, when set to True, the selected node will not be reset when an edge is chosen and vice versa.
 -   Added `layering_algorithm` prop to `PlanarLayout`. This allows users to choose between `LayeringAlgorithm.SIMPLEX` and `LayeringAlgorithm.LONGEST_PATH` for the layering step of the d3-dag sugyiama algorithm.
 
@@ -26,7 +26,7 @@ title: Changelog
 -   **Renamed:** `align-items` to `align` in `Grid.Column` to be more consistent with other layout components.
 -   Added `justify` and `align` shortcut props to `Card`, `Modal`, `Form`, `Grid`, `Grid.Row`, `Grid.Column`.
 -   Fixed an issue where if setting an initial number value to `Select` and it had a list of `Item`s, then the value showed was the number instead of the corresponding label to that value.
--   Fixed an issue where if selecting the start or end date in a `Datepicker` always resulted in the user selecting the whole range instead of the selected input. 
+-   Fixed an issue where if selecting the start or end date in a `Datepicker` always resulted in the user selecting the whole range instead of the selected input.
 -   `Button` text now uses `blue1` color.
 
 ## 1.5.2
