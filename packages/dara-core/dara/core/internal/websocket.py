@@ -290,6 +290,10 @@ class WebsocketManager:
         :param custom: Whether the message is a custom message
         """
         channels = get_user_channels(user_id)
+
+        if len(channels) == 0:
+            return
+
         async with anyio.create_task_group() as tg:
             for channel in channels:
                 tg.start_soon(self.send_message, channel, message, custom)
