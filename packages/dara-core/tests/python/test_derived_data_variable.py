@@ -11,9 +11,22 @@ import pytest
 from anyio import move_on_after
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
+from tests.python.utils import (
+    AUTH_HEADERS,
+    TEST_JWT_SECRET,
+    _async_ws_connect,
+    _call_action,
+    _get_derived_variable,
+    _get_py_component,
+    _get_template,
+    create_app,
+    get_action_results,
+    get_ws_messages,
+    wait_assert,
+)
 
-from dara.core.auth.definitions import JWT_ALGO
 from dara.core.auth.basic import BasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO
 from dara.core.base_definitions import Action, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
@@ -26,20 +39,6 @@ from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.pandas_utils import append_index
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
-
-from tests.python.utils import (
-    AUTH_HEADERS,
-    TEST_JWT_SECRET,
-    _async_ws_connect,
-    _call_action,
-    _get_derived_variable,
-    _get_py_component,
-    _get_template,
-    create_app,
-    get_ws_messages,
-    wait_assert,
-    get_action_results
-)
 
 from .tasks import data_task
 
@@ -72,11 +71,7 @@ async def reset_data_variable_cache():
     """
     Reset the data variable cache between tests
     """
-    from dara.core.internal.registries import (
-        data_variable_registry,
-        derived_variable_registry,
-        utils_registry,
-    )
+    from dara.core.internal.registries import data_variable_registry, derived_variable_registry, utils_registry
 
     data_variable_registry.replace({})
     derived_variable_registry.replace({})
@@ -598,7 +593,6 @@ async def test_derived_data_variable_filter_metatask(cache):
 
     var1 = Variable()
 
-    print('Cache:', cache)
     derived = DerivedDataVariable(data_task, variables=[var1], uid='uid', run_as_task=True, cache=cache)
 
     builder.add_page('Test', content=MockComponent(text=derived))
@@ -1004,7 +998,10 @@ async def test_py_component_with_derived_data_variable_run_as_task():
             assert result.status_code == 200
 
             # Should return (2 + len(df, where df.col1=2)) + len(df, where df.col1=3), so (2 + 2 + 1) = 5
-            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}, 'lookup': {}}
+            assert result.json() == {
+                'data': {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'},
+                'lookup': {},
+            }
 
 
 async def test_update_variable_extras_derived_data_variable_run_as_task():
@@ -1062,8 +1059,9 @@ async def test_update_variable_extras_derived_data_variable_run_as_task():
             actions = await get_action_results(websocket, exec_uid, timeout=6)
 
             assert len(actions) == 1
-            assert actions[0]['value'] == 2 #  2 rows
+            assert actions[0]['value'] == 2   #  2 rows
             assert actions[0]['name'] == 'UpdateVariable'
+
 
 async def test_update_variable_extras_derived_data_variable():
     builder = ConfigurationBuilder()
@@ -1112,7 +1110,7 @@ async def test_update_variable_extras_derived_data_variable():
             actions = await get_action_results(websocket, exec_uid)
 
             assert len(actions) == 1
-            assert actions[0]['value'] == 2 #  2 rows
+            assert actions[0]['value'] == 2   #  2 rows
             assert actions[0]['name'] == 'UpdateVariable'
 
 

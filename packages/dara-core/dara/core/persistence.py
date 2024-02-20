@@ -203,13 +203,14 @@ class BackendStore(PersistenceStore):
 
         :param value: value to notify about
         """
-        from dara.core.internal.registries import sessions_registry, utils_registry, websocket_registry
+        from dara.core.internal.registries import utils_registry
         from dara.core.internal.websocket import WebsocketManager
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+        msg = {'store_uid': self.uid, 'value': value}
 
         if self.scope == 'global':
-            return await ws_mgr.broadcast({'store_uid': self.uid, 'value': value})
+            return await ws_mgr.broadcast(msg)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -218,18 +219,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        if sessions_registry.has(user_identifier):
-            user_sessions = sessions_registry.get(user_identifier)
-
-            channels: Set[str] = set()
-            for session_id in user_sessions:
-                if websocket_registry.has(session_id):
-                    channels |= websocket_registry.get(session_id)
-
-            # Notify all channels
-            async with anyio.create_task_group() as tg:
-                for channel in channels:
-                    tg.start_soon(ws_mgr.send_message, channel, {'store_uid': self.uid, 'value': value})
+        return await ws_mgr.send_message_to_user(user_identifier, msg)
 
     async def init(self, variable: 'Variable'):
         """

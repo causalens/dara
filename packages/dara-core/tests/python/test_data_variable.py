@@ -8,6 +8,17 @@ import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
+from tests.python.utils import (
+    AUTH_HEADERS,
+    TEST_JWT_SECRET,
+    _async_ws_connect,
+    _call_action,
+    _get_derived_variable,
+    _get_py_component,
+    _get_template,
+    get_action_results,
+    wait_assert,
+)
 
 from dara.core.auth.basic import BasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
@@ -22,18 +33,6 @@ from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.pandas_utils import append_index
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
-
-from tests.python.utils import (
-    AUTH_HEADERS,
-    TEST_JWT_SECRET,
-    _async_ws_connect,
-    _call_action,
-    _get_derived_variable,
-    _get_py_component,
-    _get_template,
-    get_action_results,
-    wait_assert,
-)
 
 pytestmark = pytest.mark.anyio
 
@@ -106,7 +105,6 @@ async def test_fetching_global_data_variable():
 
     async with AsyncClient(app) as client:
         response = await client.post('/api/core/data-variable/uid', json={'filters': None}, headers=AUTH_HEADERS)
-        print(response.text)
 
         assert response.status_code == 200
         assert response.json() == FINAL_TEST_DATA.to_dict(orient='records')
@@ -216,10 +214,14 @@ async def test_update_variable_extras_data_variable(_uid):
                     'input': None,
                     'values': {
                         'old': None,
-                        'kwarg_0': {'type': 'data', 'uid': 'data_uid', 'filters': ValueQuery(column='col1', value=1).dict()}
+                        'kwarg_0': {
+                            'type': 'data',
+                            'uid': 'data_uid',
+                            'filters': ValueQuery(column='col1', value=1).dict(),
+                        },
                     },
                     'ws_channel': 'uid',
-                    'execution_id': exec_uid
+                    'execution_id': exec_uid,
                 },
             )
             actions = await get_action_results(ws, exec_uid)
@@ -227,7 +229,6 @@ async def test_update_variable_extras_data_variable(_uid):
             assert actions[0]['value'] == 2
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['variable']['uid'] == 'uid'
-
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')

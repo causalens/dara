@@ -200,27 +200,20 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     await user_backend_store.write('test_value', notify=True)
 
     # Verify the value was sent to user1 channels
-    assert mock_ws_mgr.send_message.call_count == 2
-    mock_ws_mgr.send_message.assert_has_calls(
-        [
-            call('channel1', {'store_uid': user_backend_store.uid, 'value': 'test_value'}),
-            call('channel2', {'store_uid': user_backend_store.uid, 'value': 'test_value'}),
-        ],
-        any_order=True,
+    assert mock_ws_mgr.send_message_to_user.call_count == 1
+    mock_ws_mgr.send_message_to_user.assert_has_calls(
+        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value'})]
     )
+
     USER.set(USER_2)
 
     # Write a value as user2
     await user_backend_store.write('test_value_2', notify=True)
 
     # Verify the value was sent to user2 channels
-    assert mock_ws_mgr.send_message.call_count == 4
-    mock_ws_mgr.send_message.assert_has_calls(
-        [
-            call('channel3', {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}),
-            call('channel4', {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}),
-        ],
-        any_order=True,
+    assert mock_ws_mgr.send_message_to_user.call_count == 2
+    mock_ws_mgr.send_message_to_user.assert_has_calls(
+        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2'})], any_order=True
     )
 
 
