@@ -1,33 +1,32 @@
 import inspect
 import tempfile
 from multiprocessing import Value
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 
+from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
 
 pytestmark = pytest.mark.anyio
 
+USER_1 = UserData(
+    identity_id='user_1',
+    identity_name='user_1',
+    identity_email='user1@example.com',
+)
 
-async def test_creating_plain_variable_inits_store():
-    var = Variable(default=123, store=BackendStore(backend=InMemoryBackend(), uid='my_var'))
-    assert isinstance(var.store, BackendStore)
+USER_2 = UserData(identity_id='user_2', identity_name='user_2', identity_email='user2@example.com')
 
-    await sleep(0.5)   # Wait for the store to be initialized
 
-    # Check that when reading the value, the default is respected
-    assert await var.store.read() == 123
-
-    # Verify store is put into registry
-    from dara.core.internal.registries import backend_store_registry
-
-    entry = backend_store_registry.get('my_var')
-    assert entry.uid == 'my_var'
-    assert entry.store == var.store
+async def maybe_await(value):
+    if inspect.iscoroutine(value):
+        return await value
+    return value
 
 
 @pytest.fixture
@@ -44,6 +43,11 @@ def file_backend():
 @pytest.fixture
 def backend_store(in_memory_backend):
     return BackendStore(backend=in_memory_backend, uid='test_store')
+
+
+@pytest.fixture
+def user_backend_store(in_memory_backend):
+    return BackendStore(backend=in_memory_backend, uid='test_store', scope='user')
 
 
 @pytest.fixture(autouse=True)
@@ -70,6 +74,23 @@ def cleanup_store_registry():
 
     yield
     backend_store_registry.replace({})
+
+
+async def test_creating_plain_variable_inits_store():
+    var = Variable(default=123, store=BackendStore(backend=InMemoryBackend(), uid='my_var'))
+    assert isinstance(var.store, BackendStore)
+
+    await sleep(0.5)   # Wait for the store to be initialized
+
+    # Check that when reading the value, the default is respected
+    assert await var.store.read() == 123
+
+    # Verify store is put into registry
+    from dara.core.internal.registries import backend_store_registry
+
+    entry = backend_store_registry.get('my_var')
+    assert entry.uid == 'my_var'
+    assert entry.store == var.store
 
 
 async def test_backend_store_default_arguments():
@@ -120,6 +141,89 @@ async def test_write_and_read(backend_store):
     assert await backend_store.read() == 'test_value', 'The read value should match the written value.'
 
 
+async def test_user_scope_data_separation(user_backend_store):
+    USER.set(USER_1)
+
+    # Write a value as user1
+    await user_backend_store.write('test_value')
+
+    # Read the value back as user1
+    assert await user_backend_store.read() == 'test_value', 'The read value should match the written value.'
+
+    USER.set(USER_2)
+
+    # Read the value back as user2
+    assert await user_backend_store.read() is None, 'The value should be None for user2.'
+
+    # Write a different value as user2
+    await user_backend_store.write('test_value_2')
+    assert await user_backend_store.read() == 'test_value_2', 'The read value should match the written value.'
+
+    USER.set(USER_1)
+
+    # Read the value back as user1
+    assert await user_backend_store.read() == 'test_value', 'The read value should match the written value.'
+
+    USER.set(None)
+
+    # Read/write/delete the value back as no user, should raise
+    with pytest.raises(ValueError):
+        await user_backend_store.read()
+
+    with pytest.raises(ValueError):
+        await user_backend_store.write('test_value')
+
+    with pytest.raises(ValueError):
+        await user_backend_store.delete()
+
+    # Test we can get all values without being a specific user
+    all_values = await user_backend_store.get_all()
+    assert all_values[USER_1.identity_id] == 'test_value'
+    assert all_values[USER_2.identity_id] == 'test_value_2'
+
+
+async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
+    # Setup connections for user1 and user2
+    from dara.core.internal.registries import sessions_registry, websocket_registry
+
+    sessions_registry.set(USER_1.identity_id, {'session1', 'session2'})
+    websocket_registry.set('session1', {'channel1'})
+    websocket_registry.set('session2', {'channel2'})
+
+    sessions_registry.set(USER_2.identity_id, {'session3', 'session4'})
+    websocket_registry.set('session3', {'channel3'})
+    websocket_registry.set('session4', {'channel4'})
+
+    USER.set(USER_1)
+
+    # Write a value as user1
+    await user_backend_store.write('test_value', notify=True)
+
+    # Verify the value was sent to user1 channels
+    assert mock_ws_mgr.send_message.call_count == 2
+    mock_ws_mgr.send_message.assert_has_calls(
+        [
+            call('channel1', {'store_uid': user_backend_store.uid, 'value': 'test_value'}),
+            call('channel2', {'store_uid': user_backend_store.uid, 'value': 'test_value'}),
+        ],
+        any_order=True,
+    )
+    USER.set(USER_2)
+
+    # Write a value as user2
+    await user_backend_store.write('test_value_2', notify=True)
+
+    # Verify the value was sent to user2 channels
+    assert mock_ws_mgr.send_message.call_count == 4
+    mock_ws_mgr.send_message.assert_has_calls(
+        [
+            call('channel3', {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}),
+            call('channel4', {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}),
+        ],
+        any_order=True,
+    )
+
+
 async def test_delete(backend_store):
     # Write a value, then delete it
     await backend_store.write('test_value')
@@ -156,12 +260,6 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
     mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None})
 
 
-async def maybe_await(value):
-    if inspect.iscoroutine(value):
-        return await value
-    return value
-
-
 @pytest.mark.parametrize('backend_name', [('in_memory_backend'), ('file_backend')])
 async def test_backend(backend_name, request):
     """
@@ -182,3 +280,13 @@ async def test_backend(backend_name, request):
     assert await maybe_await(backend.read('key2')) is None, 'The value should be None after deletion.'
     # Test reading a key that doesn't exist
     assert await maybe_await(backend.read('nonexistent_key')) is None, 'Reading a nonexistent key should return None.'
+
+
+async def test_file_backend_requires_json():
+    """
+    Test that FileBackend requires a JSON-serializable value
+    """
+    with pytest.raises(ValidationError):
+        FileBackend(path='foo.bar')
+
+    FileBackend(path='foo.json')

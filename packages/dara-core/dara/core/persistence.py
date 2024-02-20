@@ -23,25 +23,25 @@ class PersistenceBackend(BaseModel, abc.ABC):
     """
 
     @abc.abstractmethod
-    def write(self, key: str, value: Any):
+    async def write(self, key: str, value: Any):
         """
         Persist a value
         """
 
     @abc.abstractmethod
-    def read(self, key: str) -> Any:
+    async def read(self, key: str) -> Any:
         """
         Read a value
         """
 
     @abc.abstractmethod
-    def delete(self, key: str):
+    async def delete(self, key: str):
         """
         Delete a value
         """
 
     @abc.abstractmethod
-    def get_all(self) -> Dict[str, Any]:
+    async def get_all(self) -> Dict[str, Any]:
         """
         Get all the values as a dictionary of key-value pairs
         """
@@ -54,17 +54,17 @@ class InMemoryBackend(PersistenceBackend):
 
     data: Dict[str, Any] = Field(default_factory=dict)
 
-    def write(self, key: str, value: Any):
+    async def write(self, key: str, value: Any):
         self.data[key] = value
 
-    def read(self, key: str):
+    async def read(self, key: str):
         return self.data.get(key)
 
-    def delete(self, key: str):
+    async def delete(self, key: str):
         if key in self.data:
             del self.data[key]
 
-    def get_all(self):
+    async def get_all(self):
         return self.data.copy()
 
 
@@ -78,7 +78,8 @@ class FileBackend(PersistenceBackend):
     path: str
     _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
 
-    @validator('path')
+    @validator('path', check_fields=True)
+    @classmethod
     def validate_path(cls, value):
         if not os.path.splitext(value)[1] == '.json':
             raise ValueError('FileBackend path must be a .json file')
@@ -94,7 +95,7 @@ class FileBackend(PersistenceBackend):
             await f.write(json.dumps(data))
 
     async def write(self, key: str, value: Any):
-        async with self._lock.writer_lock:
+        async with self._lock.writer:
             data = await self._read_data() if os.path.exists(self.path) else {}
             data[key] = value
             await self._write_data(data)
@@ -103,19 +104,19 @@ class FileBackend(PersistenceBackend):
         if not os.path.exists(self.path):
             return None
 
-        async with self._lock.reader_lock:
+        async with self._lock.reader:
             data = await self._read_data()
             return data.get(key)
 
     async def delete(self, key: str):
-        async with self._lock.writer_lock:
+        async with self._lock.writer:
             data = await self._read_data()
             if key in data:
                 del data[key]
                 await self._write_data(data)
 
     async def get_all(self):
-        async with self._lock.reader_lock:
+        async with self._lock.reader:
             return await self._read_data()
 
 
@@ -203,7 +204,11 @@ class BackendStore(PersistenceStore):
 
         :param value: value to notify about
         """
-        from dara.core.internal.registries import sessions_registry, utils_registry, websocket_registry
+        from dara.core.internal.registries import (
+            sessions_registry,
+            utils_registry,
+            websocket_registry,
+        )
         from dara.core.internal.websocket import WebsocketManager
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
@@ -224,7 +229,7 @@ class BackendStore(PersistenceStore):
             channels: Set[str] = set()
             for session_id in user_sessions:
                 if websocket_registry.has(session_id):
-                    channels = channels.union(websocket_registry.get(session_id))
+                    channels |= websocket_registry.get(session_id)
 
             # Notify all channels
             async with anyio.create_task_group() as tg:
@@ -278,7 +283,13 @@ class BackendStore(PersistenceStore):
         """
         Get all the values from the store
         """
-        return await run_user_handler(self.backend.get_all)
+        all_data = await run_user_handler(self.backend.get_all)
+
+        # Clean keys to be just user ids
+        if self.scope == 'user':
+            return {k.split(':')[0]: v for k, v in all_data.items()}
+
+        return all_data
 
 
 class BackendStoreEntry(BaseModel):
