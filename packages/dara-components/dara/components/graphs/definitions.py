@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Optional, Literal, Union, ClassVar, Type, Dict, List
+from typing import ClassVar, Dict, List, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, Field
 

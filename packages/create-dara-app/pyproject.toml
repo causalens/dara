@@ -4,7 +4,8 @@ requires = ["poetry-core>=1.0.0"]
 [tool.blue]
 line-length = 120
 [tool.borg.scripts]
-format = "poetry run isort create_dara_app && poetry run blue create_dara_app"
+format = "poetry run isort --sg */templates/ create_dara_app && poetry run blue --exclude templates/ create_dara_app"
+format-check = "poetry run isort --check --sg */templates/ create_dara_app && poetry run blue --check --exclude templates/ create_dara_app"
 lint = "poetry run mypy --ignore-missing-imports create_dara_app && poetry run pylint create_dara_app"
 package = "poetry build -f wheel"
 publish = "poetry publish"

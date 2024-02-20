@@ -17,7 +17,12 @@ limitations under the License.
 
 from typing import Dict, List, Optional, Union
 
-from dara.components.graphs.definitions import ZoomThresholds, EditorMode, DEFAULT_LEGENDS, GraphLegend
+from dara.components.graphs.definitions import (
+    DEFAULT_LEGENDS,
+    EditorMode,
+    GraphLegend,
+    ZoomThresholds,
+)
 from dara.components.graphs.graph_layout import FcoseLayout, GraphLayout
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance

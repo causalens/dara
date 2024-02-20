@@ -79,6 +79,8 @@ jobs:
         run: make prepare
       - name: Run linting
         run: make lint
+      - name: Run format check
+        run: make format-check
       - name: Run Python security - Bandit
         run: make security-scan
       - name: Run JS security - Bearer
