@@ -156,7 +156,7 @@ class BackendStore(PersistenceStore):
         Get the key for this store
         """
         if self.scope == 'global':
-            key = self.uid
+            key = 'global'
 
             # Make sure the store is initialized
             if 'global' not in self._initialized_scopes:
@@ -169,14 +169,13 @@ class BackendStore(PersistenceStore):
 
         if user:
             user_key = user.identity_id or user.identity_name
-            key = f'{user_key}:{self.uid}'
 
             # Make sure the store is initialized
             if user_key not in self._initialized_scopes:
                 self._initialized_scopes.add(user_key)
-                await run_user_handler(self.backend.write, (key, self._default_value))
+                await run_user_handler(self.backend.write, (user_key, self._default_value))
 
-            return key
+            return user_key
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
@@ -204,11 +203,7 @@ class BackendStore(PersistenceStore):
 
         :param value: value to notify about
         """
-        from dara.core.internal.registries import (
-            sessions_registry,
-            utils_registry,
-            websocket_registry,
-        )
+        from dara.core.internal.registries import sessions_registry, utils_registry, websocket_registry
         from dara.core.internal.websocket import WebsocketManager
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
@@ -283,13 +278,7 @@ class BackendStore(PersistenceStore):
         """
         Get all the values from the store
         """
-        all_data = await run_user_handler(self.backend.get_all)
-
-        # Clean keys to be just user ids
-        if self.scope == 'user':
-            return {k.split(':')[0]: v for k, v in all_data.items()}
-
-        return all_data
+        return await run_user_handler(self.backend.get_all)
 
 
 class BackendStoreEntry(BaseModel):
