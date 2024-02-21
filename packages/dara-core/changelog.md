@@ -7,7 +7,7 @@ title: Changelog
 -   Implement `FileBackend` for `BackendStore` in `dara.core.persistence` to allow for persistent file-based storage of `Variable` state in a JSON file
 -   Add `scope` param to `BackendStore` which accepts either `'global'` or `'user'`. When scope=user, the store methods read/write/delete state for the current user only.
 -   Add `get_all` to `BackendStore` to retrieve a key-value map of all state stored in the store. For user-scoped stores, this will be in the form of `{'user_id': 'value'}`; for global-scoped stores, this will be a dict of `{'global': 'value'}`
-
+-   Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
 
 ## 1.7.2
 
@@ -47,21 +47,22 @@ await store.write('new value')
 # Read the current value from the store
 value = await store.read()
 ```
+
 -   Deps: upgrade FastAPI to `0.109.0`, fixes security vulnerability in `starlette` dependency
 
 ## 1.6.3
 
-- Fix and issue where an error being thrown when processing a get_current_value request would crash the stream and prevent all future requests from being handled.
+-   Fix and issue where an error being thrown when processing a get_current_value request would crash the stream and prevent all future requests from being handled.
 
 ## 1.6.2
 
-- Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
-- Fix an issue where the websocket connection was not properly recreated on reconnection
+-   Fix an issue where `Node` is required even if the JS build is skipped explicitly via `--skip-jsbuild` flag
+-   Fix an issue where the websocket connection was not properly recreated on reconnection
 
 ## 1.6.1
 
--  Address action execution blocking new requests due to an issue around BackgroundTask processing in starlette
--  Fix `get_current_value` not working for `DerivedDataVariable`
+-   Address action execution blocking new requests due to an issue around BackgroundTask processing in starlette
+-   Fix `get_current_value` not working for `DerivedDataVariable`
 
 ## 1.6.0
 
@@ -70,7 +71,7 @@ value = await store.read()
 
 ## 1.5.3
 
--  Fixed an issue where the websocket channel would fail to be set correctly when using get_current_value after the user has reconnected their browser on a different websocket channel.
+-   Fixed an issue where the websocket channel would fail to be set correctly when using get_current_value after the user has reconnected their browser on a different websocket channel.
 
 ## 1.5.1
 
