@@ -142,6 +142,11 @@ class PersistenceStore(BaseModel, abc.ABC):
 class BackendStore(PersistenceStore):
     """
     Persistence store implementation that uses a backend implementation to store data server-side
+
+    :param uid: unique identifier for this store; defaults to a random UUID
+    :param backend: the backend to use for storing data; defaults to an in-memory backend
+    :param scope: the scope for the store; if 'global' a single value is stored for all users,
+        if 'user' a value is stored per user
     """
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
@@ -232,7 +237,9 @@ class BackendStore(PersistenceStore):
 
     async def write(self, value: Any, notify=True):
         """
-        Persist a value to the store
+        Persist a value to the store.
+
+        If scope='user', the value is written for the current user.
 
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
@@ -246,7 +253,9 @@ class BackendStore(PersistenceStore):
 
     async def read(self):
         """
-        Read a value from the store
+        Read a value from the store.
+
+        If scope='user', the value is read for the current user.
         """
 
         key = await self._get_key()
@@ -256,6 +265,8 @@ class BackendStore(PersistenceStore):
         """
         Delete the persisted value from the store
 
+        If scope='user', the value is deleted for the current user.
+
         :param notify: whether to broadcast that the value was deleted to clients
         """
         key = await self._get_key()
@@ -264,9 +275,12 @@ class BackendStore(PersistenceStore):
             await self._notify(None)
         return await run_user_handler(self.backend.delete, (key,))
 
-    async def get_all(self):
+    async def get_all(self) -> Dict[str, Any]:
         """
-        Get all the values from the store
+        Get all the values from the store as a dictionary of key-value pairs.
+
+        For global scope, the dictionary contains a single key-value pair `{'global': value}`.
+        For user scope, the dictionary contains a key-value pair for each user `{'user1': value1, 'user2': value2, ...}`.
         """
         return await run_user_handler(self.backend.get_all)
 
