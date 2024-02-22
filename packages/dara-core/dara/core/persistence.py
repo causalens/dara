@@ -1,9 +1,14 @@
 import abc
-from typing import TYPE_CHECKING, Any, Dict
+import json
+import os
+from typing import TYPE_CHECKING, Any, Dict, Literal, Set
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+import aiorwlock
+import anyio
+from pydantic import BaseModel, Field, PrivateAttr, validator
 
+from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 
 if TYPE_CHECKING:
@@ -18,21 +23,27 @@ class PersistenceBackend(BaseModel, abc.ABC):
     """
 
     @abc.abstractmethod
-    def write(self, key: str, value: Any):
+    async def write(self, key: str, value: Any):
         """
         Persist a value
         """
 
     @abc.abstractmethod
-    def read(self, key: str) -> Any:
+    async def read(self, key: str) -> Any:
         """
         Read a value
         """
 
     @abc.abstractmethod
-    def delete(self, key: str):
+    async def delete(self, key: str):
         """
         Delete a value
+        """
+
+    @abc.abstractmethod
+    async def get_all(self) -> Dict[str, Any]:
+        """
+        Get all the values as a dictionary of key-value pairs
         """
 
 
@@ -43,15 +54,70 @@ class InMemoryBackend(PersistenceBackend):
 
     data: Dict[str, Any] = Field(default_factory=dict)
 
-    def write(self, key: str, value: Any):
+    async def write(self, key: str, value: Any):
         self.data[key] = value
 
-    def read(self, key: str):
+    async def read(self, key: str):
         return self.data.get(key)
 
-    def delete(self, key: str):
+    async def delete(self, key: str):
         if key in self.data:
             del self.data[key]
+
+    async def get_all(self):
+        return self.data.copy()
+
+
+class FileBackend(PersistenceBackend):
+    """
+    File persistence backend implementation.
+
+    Stores data in a JSON file
+    """
+
+    path: str
+    _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
+
+    @validator('path', check_fields=True)
+    @classmethod
+    def validate_path(cls, value):
+        if not os.path.splitext(value)[1] == '.json':
+            raise ValueError('FileBackend path must be a .json file')
+        return value
+
+    async def _read_data(self):
+        async with await anyio.open_file(self.path, 'r') as f:
+            content = await f.read()
+            return json.loads(content) if content else {}
+
+    async def _write_data(self, data: Dict[str, Any]):
+        async with await anyio.open_file(self.path, 'w') as f:
+            await f.write(json.dumps(data))
+
+    async def write(self, key: str, value: Any):
+        async with self._lock.writer:
+            data = await self._read_data() if os.path.exists(self.path) else {}
+            data[key] = value
+            await self._write_data(data)
+
+    async def read(self, key: str):
+        if not os.path.exists(self.path):
+            return None
+
+        async with self._lock.reader:
+            data = await self._read_data()
+            return data.get(key)
+
+    async def delete(self, key: str):
+        async with self._lock.writer:
+            data = await self._read_data()
+            if key in data:
+                del data[key]
+                await self._write_data(data)
+
+    async def get_all(self):
+        async with self._lock.reader:
+            return await self._read_data()
 
 
 class PersistenceStore(BaseModel, abc.ABC):
@@ -76,10 +142,47 @@ class PersistenceStore(BaseModel, abc.ABC):
 class BackendStore(PersistenceStore):
     """
     Persistence store implementation that uses a backend implementation to store data server-side
+
+    :param uid: unique identifier for this store; defaults to a random UUID
+    :param backend: the backend to use for storing data; defaults to an in-memory backend
+    :param scope: the scope for the store; if 'global' a single value is stored for all users,
+        if 'user' a value is stored per user
     """
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
+    scope: Literal['global', 'user'] = 'global'
+
+    _default_value: Any = PrivateAttr(default=None)
+    _initialized_scopes: Set[str] = PrivateAttr(default_factory=set)
+
+    async def _get_key(self):
+        """
+        Get the key for this store
+        """
+        if self.scope == 'global':
+            key = 'global'
+
+            # Make sure the store is initialized
+            if 'global' not in self._initialized_scopes:
+                self._initialized_scopes.add('global')
+                await run_user_handler(self.backend.write, (key, self._default_value))
+
+            return key
+
+        user = USER.get()
+
+        if user:
+            user_key = user.identity_id or user.identity_name
+
+            # Make sure the store is initialized
+            if user_key not in self._initialized_scopes:
+                self._initialized_scopes.add(user_key)
+                await run_user_handler(self.backend.write, (user_key, self._default_value))
+
+            return user_key
+
+        raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
     def _register(self):
         """
@@ -109,7 +212,19 @@ class BackendStore(PersistenceStore):
         from dara.core.internal.websocket import WebsocketManager
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-        await ws_mgr.broadcast({'store_uid': self.uid, 'value': value})
+        msg = {'store_uid': self.uid, 'value': value}
+
+        if self.scope == 'global':
+            return await ws_mgr.broadcast(msg)
+
+        # For user scope, we need to find channels for the user and notify them
+        user = USER.get()
+
+        if not user:
+            return
+
+        user_identifier = user.identity_id or user.identity_name
+        return await ws_mgr.send_message_to_user(user_identifier, msg)
 
     async def init(self, variable: 'Variable'):
         """
@@ -118,40 +233,56 @@ class BackendStore(PersistenceStore):
         :param variable: the variable to initialize the store for
         """
         self._register()
-
-        if await self.read() is None:
-            await self.write(variable.default, notify=False)
+        self._default_value = variable.default
 
     async def write(self, value: Any, notify=True):
         """
-        Persist a value to the store
+        Persist a value to the store.
+
+        If scope='user', the value is written for the current user.
 
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
         """
+        key = await self._get_key()
+
         if notify:
-            # Schedule notification on write
             await self._notify(value)
 
-        # TODO: in the future key can be self.uid + user_id if scope='user'
-        return await run_user_handler(self.backend.write, (self.uid, value))
+        return await run_user_handler(self.backend.write, (key, value))
 
     async def read(self):
         """
-        Read a value from the store
+        Read a value from the store.
+
+        If scope='user', the value is read for the current user.
         """
-        return await run_user_handler(self.backend.read, (self.uid,))
+
+        key = await self._get_key()
+        return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
         """
         Delete the persisted value from the store
 
+        If scope='user', the value is deleted for the current user.
+
         :param notify: whether to broadcast that the value was deleted to clients
         """
+        key = await self._get_key()
         if notify:
             # Schedule notification on delete
             await self._notify(None)
-        return await run_user_handler(self.backend.delete, (self.uid,))
+        return await run_user_handler(self.backend.delete, (key,))
+
+    async def get_all(self) -> Dict[str, Any]:
+        """
+        Get all the values from the store as a dictionary of key-value pairs.
+
+        For global scope, the dictionary contains a single key-value pair `{'global': value}`.
+        For user scope, the dictionary contains a key-value pair for each user `{'user1': value1, 'user2': value2, ...}`.
+        """
+        return await run_user_handler(self.backend.get_all)
 
 
 class BackendStoreEntry(BaseModel):

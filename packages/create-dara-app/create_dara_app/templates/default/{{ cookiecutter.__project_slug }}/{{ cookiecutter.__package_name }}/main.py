@@ -5,7 +5,6 @@ from {{cookiecutter.__package_name}}.utils.template import template_renderer
 from dara.core import ConfigurationBuilder
 from dara.core.css import get_icon
 
-
 # Create the configuration builder
 config = ConfigurationBuilder()
 

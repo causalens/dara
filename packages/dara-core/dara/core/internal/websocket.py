@@ -18,7 +18,7 @@ limitations under the License.
 import math
 import uuid
 from contextvars import ContextVar
-from typing import Any, Dict, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
 from uuid import uuid4
 
 import anyio
@@ -219,6 +219,27 @@ class WebSocketHandler:
         return response_data
 
 
+def get_user_channels(user_identifier: str) -> Set[str]:
+    """
+    Get connected websocket channels associated with a given user.
+
+    :param user_identifier: The user identifier to get channels for
+    """
+    from dara.core.internal.registries import sessions_registry, websocket_registry
+
+    if sessions_registry.has(user_identifier):
+        user_sessions = sessions_registry.get(user_identifier)
+
+        channels: Set[str] = set()
+        for session_id in user_sessions:
+            if websocket_registry.has(session_id):
+                channels |= websocket_registry.get(session_id)
+
+        return channels
+
+    return set()
+
+
 class WebsocketManager:
     """
     Manages WebSocket connections to clients and communication with them.
@@ -256,8 +277,26 @@ class WebsocketManager:
         :param message: The message to send
         :param custom: Whether the message is a custom message
         """
-        for handler in self.handlers.values():
-            await handler.send_message(self._construct_message(message, custom))
+        async with anyio.create_task_group() as tg:
+            for handler in self.handlers.values():
+                tg.start_soon(handler.send_message, self._construct_message(message, custom))
+
+    async def send_message_to_user(self, user_id: str, message: LoosePayload, custom=False):
+        """
+        Send a message to all connected channels associated with the given user.
+
+        :param user_id: The user ID to send the message to
+        :param message: The message payload to send
+        :param custom: Whether the message is a custom message
+        """
+        channels = get_user_channels(user_id)
+
+        if len(channels) == 0:
+            return
+
+        async with anyio.create_task_group() as tg:
+            for channel in channels:
+                tg.start_soon(self.send_message, channel, message, custom)
 
     async def send_message(self, channel_id: str, message: LoosePayload, custom=False):
         """

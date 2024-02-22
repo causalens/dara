@@ -17,7 +17,7 @@ limitations under the License.
 
 import abc
 from enum import Enum
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 

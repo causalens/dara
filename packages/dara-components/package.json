@@ -7,8 +7,8 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && vite build && tsc && cp -R dist/umd/ dara/components/umd/",
-    "lint": "eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
-    "lint:fix": "eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
+    "lint": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
+    "lint:fix": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "jest --watch"
   },

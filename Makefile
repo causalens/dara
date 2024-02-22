@@ -19,6 +19,12 @@ prepare-docs:
 lint:
 	poetry run python ./tooling/scripts/run_borg_script.py lint && lerna run lint
 
+format:
+	poetry run python ./tooling/scripts/run_borg_script.py format && lerna run lint:fix
+
+format-check:
+	poetry run python ./tooling/scripts/run_borg_script.py format-check
+
 # Run security scan
 security-scan:
 	poetry run python ./tooling/scripts/run_borg_script.py security-scan

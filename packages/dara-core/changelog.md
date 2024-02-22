@@ -4,6 +4,9 @@ title: Changelog
 
 ## NEXT
 
+-   Implement `FileBackend` for `BackendStore` in `dara.core.persistence` to allow for persistent file-based storage of `Variable` state in a JSON file
+-   Add `scope` param to `BackendStore` which accepts either `'global'` or `'user'`. When scope=user, the store methods read/write/delete state for the current user only.
+-   Add `get_all` to `BackendStore` to retrieve a key-value map of all state stored in the store. For user-scoped stores, this will be in the form of `{'user_id': 'value'}`; for global-scoped stores, this will be a dict of `{'global': 'value'}`
 -   Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
 
 ## 1.7.2

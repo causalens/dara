@@ -22,6 +22,7 @@ from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintTy
 from pydantic import root_validator
 from typing_extensions import TypedDict
 
+from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
 from dara.components.graphs.graph_layout import (
     GraphLayout,
     MarketingLayout,
@@ -30,7 +31,6 @@ from dara.components.graphs.graph_layout import (
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
-from dara.components.graphs.definitions import EditorMode, DEFAULT_LEGENDS, GraphLegend
 
 
 class EdgeConstraint(TypedDict):

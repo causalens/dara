@@ -67,7 +67,7 @@ jobs:
       - name: Install system deps
         run: apt update && apt install sudo wget
       - name: Install and cache APT Cypress deps
-        uses: awalsh128/cache-apt-pkgs-action@v1
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.1
         with:
           packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
           version: cypress-${{ runner.os }}-${{ steps.set-cypress.outputs.cypress }}
@@ -79,6 +79,8 @@ jobs:
         run: make prepare
       - name: Run linting
         run: make lint
+      - name: Run format check
+        run: make format-check
       - name: Run Python security - Bandit
         run: make security-scan
       - name: Run JS security - Bearer
