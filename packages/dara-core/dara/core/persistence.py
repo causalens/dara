@@ -1,7 +1,7 @@
 import abc
 import json
 import os
-from typing import TYPE_CHECKING, Any, Dict, Literal, Set
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Set
 from uuid import uuid4
 
 import aiorwlock
@@ -153,8 +153,31 @@ class BackendStore(PersistenceStore):
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
     scope: Literal['global', 'user'] = 'global'
 
-    _default_value: Any = PrivateAttr(default=None)
-    _initialized_scopes: Set[str] = PrivateAttr(default_factory=set)
+    default_value: Any = Field(default=None, exclude=True)
+    initialized_scopes: Set[str] = Field(default_factory=set, exclude=True)
+
+    def __init__(
+        self, backend: Optional[PersistenceBackend] = None, uid: Optional[str] = None, scope: Optional[str] = None
+    ):
+        """
+        Persistence store implementation that uses a backend implementation to store data server-side
+
+        :param uid: unique identifier for this store; defaults to a random UUID
+        :param backend: the backend to use for storing data; defaults to an in-memory backend
+        :param scope: the scope for the store; if 'global' a single value is stored for all users,
+            if 'user' a value is stored per user
+        """
+        kwargs = {}
+        if backend:
+            kwargs['backend'] = backend
+
+        if uid:
+            kwargs['uid'] = uid
+
+        if scope:
+            kwargs['scope'] = scope
+
+        super().__init__(**kwargs)
 
     async def _get_key(self):
         """
@@ -164,9 +187,9 @@ class BackendStore(PersistenceStore):
             key = 'global'
 
             # Make sure the store is initialized
-            if 'global' not in self._initialized_scopes:
-                self._initialized_scopes.add('global')
-                await run_user_handler(self.backend.write, (key, self._default_value))
+            if 'global' not in self.initialized_scopes:
+                self.initialized_scopes.add('global')
+                await run_user_handler(self.backend.write, (key, self.default_value))
 
             return key
 
@@ -176,9 +199,9 @@ class BackendStore(PersistenceStore):
             user_key = user.identity_id or user.identity_name
 
             # Make sure the store is initialized
-            if user_key not in self._initialized_scopes:
-                self._initialized_scopes.add(user_key)
-                await run_user_handler(self.backend.write, (user_key, self._default_value))
+            if user_key not in self.initialized_scopes:
+                self.initialized_scopes.add(user_key)
+                await run_user_handler(self.backend.write, (user_key, self.default_value))
 
             return user_key
 
@@ -233,7 +256,7 @@ class BackendStore(PersistenceStore):
         :param variable: the variable to initialize the store for
         """
         self._register()
-        self._default_value = variable.default
+        self.default_value = variable.default
 
     async def write(self, value: Any, notify=True):
         """
