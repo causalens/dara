@@ -237,6 +237,19 @@ async def test_init_with_default(backend_store):
     ), 'The store should be initialized with the default value if it was empty.'
 
 
+async def test_init_with_default_user(user_backend_store):
+    USER.set(USER_1)
+    # Simulate the initialization with a default value
+    class MockVariable:
+        default = 'default_value'
+
+    await user_backend_store.init(MockVariable())
+    # Verify the store now contains the default value
+    assert (
+        await user_backend_store.read() == 'default_value'
+    ), 'The store should be initialized with the default value if it was empty.'
+
+
 async def test_notify_on_write(backend_store, mock_ws_mgr):
     # Write a value and check if _notify was called
     await backend_store.write('test_value')

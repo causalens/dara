@@ -167,7 +167,7 @@ class BackendStore(PersistenceStore):
         :param scope: the scope for the store; if 'global' a single value is stored for all users,
             if 'user' a value is stored per user
         """
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
         if backend:
             kwargs['backend'] = backend
 
