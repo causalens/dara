@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.3
 
 -   Implement `FileBackend` for `BackendStore` in `dara.core.persistence` to allow for persistent file-based storage of `Variable` state in a JSON file
 -   Add `scope` param to `BackendStore` which accepts either `'global'` or `'user'`. When scope=user, the store methods read/write/delete state for the current user only.
@@ -49,6 +49,10 @@ value = await store.read()
 ```
 
 -   Deps: upgrade FastAPI to `0.109.0`, fixes security vulnerability in `starlette` dependency
+
+## 1.6.5
+
+- **Backported** Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
 
 ## 1.6.3
 

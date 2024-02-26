@@ -1,6 +1,6 @@
 {
   "name": "@darajs/core",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Dara Framework core",
   "main": "dist/index.js",
   "module": "dist/index.js",
