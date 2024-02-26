@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.3
 
 -   Implement `FileBackend` for `BackendStore` in `dara.core.persistence` to allow for persistent file-based storage of `Variable` state in a JSON file
 -   Add `scope` param to `BackendStore` which accepts either `'global'` or `'user'`. When scope=user, the store methods read/write/delete state for the current user only.
