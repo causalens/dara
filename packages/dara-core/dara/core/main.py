@@ -20,6 +20,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
+from inspect import iscoroutine
 from pathlib import Path
 from typing import Optional
 
@@ -168,6 +169,15 @@ def _start_application(config: Configuration):
                 await task_pool.start(60)   # timeout after 60s
                 utils_registry.set('TaskPool', task_pool)
                 dev_logger.info('Task pool initialized')
+
+            # App is now ready, call user-defined startup functions
+            eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
+            for startup_function in config.startup_functions:
+                res = startup_function()
+
+                # Check if the response is awaitable and if it is then wait for it
+                if iscoroutine(res):
+                    await res
 
             # Yield back to the app
             yield
@@ -369,11 +379,6 @@ def _start_application(config: Configuration):
             @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
             async def serve_app(request: Request):  # pylint: disable=unused-variable
                 return jinja_templates.TemplateResponse(request, 'index.html')
-
-    # App is now ready, call user-defined startup functions
-    eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
-    for startup_function in config.startup_functions:
-        startup_function()
 
     return app
 
