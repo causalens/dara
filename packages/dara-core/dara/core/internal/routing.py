@@ -23,16 +23,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import anyio
 import pandas
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -442,6 +433,9 @@ def create_router(config: Configuration):
 
     @core_api_router.get('/store/{store_uid}', dependencies=[Depends(verify_session)])
     async def read_backend_store(store_uid: str):
+        """
+        Read from the backend store with the given uid, respecting user scope
+        """
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
         result = store_entry.store.read()
@@ -454,6 +448,10 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/store', dependencies=[Depends(verify_session)])
     async def sync_backend_store(values: Dict[str, Any] = Body()):
+        """
+        Sync data into backend stores with the given uids, receiving a map of {store_uid: value},
+        respecting user scope for each store
+        """
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
         async def _write(store_uid: str, value: Any):
@@ -467,6 +465,30 @@ def create_router(config: Configuration):
         async with anyio.create_task_group() as tg:
             for store_uid, value in values.items():
                 tg.start_soon(_write, store_uid, value)
+
+    @core_api_router.get('/store/{store_uid}/list', dependencies=[Depends(verify_session)])
+    async def get_all_backend_store(store_uid: str):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
+        result = store_entry.store.get_all()
+
+        # Backend implementation could return a coroutine
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
+
+    @core_api_router.delete('/store/{store_uid}', dependencies=[Depends(verify_session)])
+    async def delete_from_backend_store(store_uid: str):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
+        result = store_entry.store.delete()
+
+        # Backend implementation could return a coroutine
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
 
     @core_api_router.get('/tasks/{task_id}', dependencies=[Depends(verify_session)])
     async def get_task_result(task_id: str):   # pylint: disable=unused-variable

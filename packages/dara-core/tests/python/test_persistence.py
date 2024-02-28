@@ -1,16 +1,20 @@
 import inspect
 import tempfile
-from multiprocessing import Value
 from unittest.mock import AsyncMock, call
+import anyio
 
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
+from async_asgi_testclient import TestClient as AsyncClient
 
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.main import _start_application
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
+from tests.python.utils import AUTH_HEADERS, create_app, wait_assert
 
 pytestmark = pytest.mark.anyio
 
@@ -296,3 +300,76 @@ async def test_file_backend_requires_json():
         FileBackend(path='foo.bar')
 
     FileBackend(path='foo.json')
+
+async def test_remote_backend_read():
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore()
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+
+    async with AsyncClient(app) as client:
+        response = await client.get(f'/api/core/store/{backend_store.uid}', headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        assert response.json() == 'foo'
+
+async def test_remote_backend_write():
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore()
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+
+    async with AsyncClient(app) as client:
+        response = await client.post(f'/api/core/store', headers=AUTH_HEADERS, json={
+        backend_store.uid: 'bar'
+        })
+        assert response.status_code == 200
+        assert await backend_store.read() == 'bar'
+
+async def test_remote_backend_delete():
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore()
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+    # wait for store to be initialized (happens async)
+    await wait_assert(lambda: backend_store.default_value == 'foo')
+
+
+    assert await backend_store.read() == 'foo'
+
+
+    async with AsyncClient(app) as client:
+        response = await client.delete(f'/api/core/store/{backend_store.uid}', headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        assert await backend_store.read() == None
+
+async def test_remote_backend_get_all():
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore(scope='user')
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+    await wait_assert(lambda: backend_store.default_value == 'foo')
+
+    # write some values for different users
+    USER.set(USER_1)
+    await backend_store.write('bar')
+
+    USER.set(USER_2)
+    await backend_store.write('baz')
+
+    async with AsyncClient(app) as client:
+        response = await client.get(f'/api/core/store/{backend_store.uid}/list', headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        assert response.json() == {USER_1.identity_id: 'bar',USER_2.identity_id: 'baz'}
+        assert response.json() == await backend_store.get_all()

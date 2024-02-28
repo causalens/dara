@@ -22,6 +22,14 @@ class PersistenceBackend(BaseModel, abc.ABC):
     Warning: the API is not stable yet and may change in the future
     """
 
+    def connect(self, store: 'BackendStore'):
+        """
+        Connect the backend to a store.
+
+        Invoked when a backend is attached to a BackendStore. Some backends
+        can choose to restrict the number of stores they are attached to.
+        """
+
     @abc.abstractmethod
     async def write(self, key: str, value: Any):
         """
@@ -120,6 +128,7 @@ class FileBackend(PersistenceBackend):
             return await self._read_data()
 
 
+
 class PersistenceStore(BaseModel, abc.ABC):
     """
     Base class for a variable persistence store
@@ -179,6 +188,8 @@ class BackendStore(PersistenceStore):
 
         super().__init__(**kwargs)
 
+        self.backend.connect(self)
+
     async def _get_key(self):
         """
         Get the key for this store
@@ -189,6 +200,7 @@ class BackendStore(PersistenceStore):
             # Make sure the store is initialized
             if 'global' not in self.initialized_scopes:
                 self.initialized_scopes.add('global')
+                print('running write for global', self.default_value)
                 await run_user_handler(self.backend.write, (key, self.default_value))
 
             return key
@@ -257,6 +269,7 @@ class BackendStore(PersistenceStore):
         """
         self._register()
         self.default_value = variable.default
+        print('store registered', self.default_value)
 
     async def write(self, value: Any, notify=True):
         """

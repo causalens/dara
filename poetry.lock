@@ -224,19 +224,23 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.4.2"
+version = "0.4.4"
 description = "A Causal AI package for causal graphs."
 category = "main"
 optional = false
 python-versions = ">=3.8.0,<3.13.0"
 files = [
-    {file = "cai_causal_graph-0.4.2-py3-none-any.whl", hash = "sha256:1ed4778f0d357c6a9f8c3b36a93405eaa916baa608b16ffe18293a1c7f54177d"},
-    {file = "cai_causal_graph-0.4.2.tar.gz", hash = "sha256:f6620a1bfb103386aeb25b8adf441e505a1469fbcb0e00a7176aa9f3baf36121"},
+    {file = "cai_causal_graph-0.4.4-py3-none-any.whl", hash = "sha256:0ed03a0ddffd0d324963e44c95ed923ad35be6efab2ba87d21e0112753867dfc"},
+    {file = "cai_causal_graph-0.4.4.tar.gz", hash = "sha256:afa9c55e8a99783277e02284ce7327bd3b32ecb3dd096197180eeec700920ea7"},
 ]
 
 [package.dependencies]
+mypy = "*"
 networkx = ">=3.0.0,<4.0.0"
-numpy = ">=1.18.0,<2.0.0"
+numpy = [
+    {version = ">=1.20.0,<2.0.0", markers = "python_full_version >= \"3.9.0\" and python_full_version < \"3.13.0\""},
+    {version = ">=1.20.0,<1.25.0", markers = "python_full_version >= \"3.8.0\" and python_full_version < \"3.9.0\""},
+]
 pandas = ">=1.0.0,<3.0.0"
 
 [[package]]
@@ -1511,7 +1515,7 @@ files = [
 name = "mypy"
 version = "1.8.0"
 description = "Optional static typing for Python"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1559,7 +1563,7 @@ reports = ["lxml"]
 name = "mypy-extensions"
 version = "1.0.0"
 description = "Type system extensions for programs checked with the mypy type checker."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.5"
 files = [
@@ -2543,7 +2547,7 @@ files = [
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2553,14 +2557,14 @@ files = [
 
 [[package]]
 name = "tomlkit"
-version = "0.12.3"
+version = "0.12.4"
 description = "Style preserving TOML library"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "tomlkit-0.12.3-py3-none-any.whl", hash = "sha256:b0a645a9156dc7cb5d3a1f0d4bab66db287fcb8e0430bdd4664a095ea16414ba"},
-    {file = "tomlkit-0.12.3.tar.gz", hash = "sha256:75baf5012d06501f07bee5bf8e801b9f343e7aac5a92581f20f80ce632e6b5a4"},
+    {file = "tomlkit-0.12.4-py3-none-any.whl", hash = "sha256:5cd82d48a3dd89dee1f9d64420aa20ae65cfbd00668d6f094d7578a78efbb77b"},
+    {file = "tomlkit-0.12.4.tar.gz", hash = "sha256:7ca1cfc12232806517a8515047ba66a19369e71edf2439d0f5824f91032b6cc3"},
 ]
 
 [[package]]
