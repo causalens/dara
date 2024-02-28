@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
+
 ## 1.7.3
 
 -   Implement `FileBackend` for `BackendStore` in `dara.core.persistence` to allow for persistent file-based storage of `Variable` state in a JSON file
@@ -52,7 +56,7 @@ value = await store.read()
 
 ## 1.6.5
 
-- **Backported** Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
+-   **Backported** Resolve an issue with a previous fix to reconnect the websocket that prevented it from working on the 2nd/3rd/... times that the websocket was disconnected.
 
 ## 1.6.3
 

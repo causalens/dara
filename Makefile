@@ -37,7 +37,7 @@ BEARER_CONFIG := ./bearer.yml
 bearer:
 	@if [ ! -f "$(LOCAL_BEARER)" ]; then \
 		echo "Installing Bearer"; \
-		curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- v1.22.0; \
+		curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- v1.39.0; \
 	fi
 
 	@for package in $(shell ls packages) ; do \
