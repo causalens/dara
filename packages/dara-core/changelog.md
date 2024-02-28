@@ -1,7 +1,7 @@
 ---
 title: Changelog
 ---
-## NEXT
+## 1.6.6
 
 -   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
 
