@@ -378,7 +378,7 @@ async def test_remote_backend_get_all():
 
 
 @contextmanager
-def mock_ws_mgr():
+def do_mock_ws_mgr():
     from dara.core.internal.registries import utils_registry
 
     original_mgr = utils_registry.get('WebsocketManager')
@@ -406,7 +406,7 @@ async def test_remote_backend_notify_global():
     var = Variable(store=backend_store, default='foo')
 
     async with AsyncClient(app) as client:
-        with mock_ws_mgr() as ws_mgr:
+        with do_mock_ws_mgr() as ws_mgr:
             response = await client.post(
                 f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={'value': 'bar'}
             )
@@ -428,7 +428,7 @@ async def test_remote_backend_notify_user():
     var = Variable(store=backend_store, default='foo')
 
     async with AsyncClient(app) as client:
-        with mock_ws_mgr() as ws_mgr:
+        with do_mock_ws_mgr() as ws_mgr:
             response = await client.post(
                 f'/api/core/store/{backend_store.uid}/notify',
                 headers=AUTH_HEADERS,
