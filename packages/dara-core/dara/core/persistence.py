@@ -190,6 +190,17 @@ class BackendStore(PersistenceStore):
 
         self.backend.connect(self)
 
+    def _get_current_user_identifier(self):
+        """
+        Get idenfitier for the current user
+        """
+        user = USER.get()
+
+        if user:
+            return user.identity_id or user.identity_name
+
+        return None
+
     async def _get_key(self):
         """
         Get the key for this store
@@ -200,16 +211,13 @@ class BackendStore(PersistenceStore):
             # Make sure the store is initialized
             if 'global' not in self.initialized_scopes:
                 self.initialized_scopes.add('global')
-                print('running write for global', self.default_value)
                 await run_user_handler(self.backend.write, (key, self.default_value))
 
             return key
 
-        user = USER.get()
+        user_key = self._get_current_user_identifier()
 
-        if user:
-            user_key = user.identity_id or user.identity_name
-
+        if user_key:
             # Make sure the store is initialized
             if user_key not in self.initialized_scopes:
                 self.initialized_scopes.add(user_key)
@@ -237,11 +245,12 @@ class BackendStore(PersistenceStore):
         except ValueError as e:
             raise ValueError('BackendStore uid must be unique') from e
 
-    async def _notify(self, value: Any):
+    async def _notify(self, value: Any, user_id: Optional[str] = None):
         """
         Notify all clients about the new value for this store
 
         :param value: value to notify about
+        :param user_id: explicit user identifier to notify instead of the current user
         """
         from dara.core.internal.registries import utils_registry
         from dara.core.internal.websocket import WebsocketManager
@@ -253,13 +262,26 @@ class BackendStore(PersistenceStore):
             return await ws_mgr.broadcast(msg)
 
         # For user scope, we need to find channels for the user and notify them
-        user = USER.get()
+        user_identifier = user_id or self._get_current_user_identifier()
 
-        if not user:
+        if not user_identifier:
             return
 
-        user_identifier = user.identity_id or user.identity_name
         return await ws_mgr.send_message_to_user(user_identifier, msg)
+
+    async def notify(self, value: Any, user_id: Optional[str] = None):
+        """
+        Notify a specific user about the new value for this store
+
+        :param value: value to notify about
+        :param user_id: the user to notify
+        """
+        if self.scope == 'global':
+            return await self._notify(value)
+
+        return await self._notify(value, user_id)
+
+            
 
     async def init(self, variable: 'Variable'):
         """
@@ -269,7 +291,6 @@ class BackendStore(PersistenceStore):
         """
         self._register()
         self.default_value = variable.default
-        print('store registered', self.default_value)
 
     async def write(self, value: Any, notify=True):
         """

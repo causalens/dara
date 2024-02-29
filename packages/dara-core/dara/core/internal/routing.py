@@ -478,6 +478,18 @@ def create_router(config: Configuration):
 
         return result
 
+    @core_api_router.post('/store/{store_uid}/notify', dependencies=[Depends(verify_session)])
+    async def notify_backend_store(store_uid: str, value: Any = Body(), user_id: Optional[str] = Body(default=None)):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
+        result = store_entry.store.notify(value, user_id=user_id)
+
+        # Backend implementation could return a coroutine
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
+
     @core_api_router.delete('/store/{store_uid}', dependencies=[Depends(verify_session)])
     async def delete_from_backend_store(store_uid: str):
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')

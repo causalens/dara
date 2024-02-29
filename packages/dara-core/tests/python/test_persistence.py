@@ -1,6 +1,7 @@
+from contextlib import contextmanager
 import inspect
 import tempfile
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock, Mock, call
 import anyio
 
 import pytest
@@ -373,3 +374,67 @@ async def test_remote_backend_get_all():
         assert response.status_code == 200
         assert response.json() == {USER_1.identity_id: 'bar',USER_2.identity_id: 'baz'}
         assert response.json() == await backend_store.get_all()
+
+@contextmanager
+def mock_ws_mgr():
+    from dara.core.internal.registries import utils_registry
+
+    original_mgr = utils_registry.get('WebsocketManager')
+
+    try:
+        mgr_mock = Mock()
+        mgr_mock.broadcast = AsyncMock(side_effect=lambda _: None)
+        mgr_mock.send_message_to_user = AsyncMock(side_effect=lambda _, __: None)
+        utils_registry.set('WebsocketManager', mgr_mock)
+        yield mgr_mock
+    finally:
+        utils_registry.set('WebsocketManager', original_mgr)
+
+
+
+async def test_remote_backend_notify_global():
+    """
+    Test that a backend can be remotely notified via an endpoint to broadcast to all users
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore()
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+
+    async with AsyncClient(app) as client:
+        with mock_ws_mgr() as ws_mgr:
+            response = await client.post(f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={
+                'value': 'bar'
+            })
+            assert response.status_code == 200
+            assert ws_mgr.broadcast.call_count == 1
+            ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'bar'})
+
+
+async def test_remote_backend_notify_user():
+    """
+    Test that a backend can be remotely notified via an endpoint to notify a specific user
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+    app = _start_application(config)
+
+    backend_store = BackendStore(scope='user')
+    # must be attached to a variable
+    var = Variable(store=backend_store, default='foo')
+
+    async with AsyncClient(app) as client:
+        with mock_ws_mgr() as ws_mgr:
+            response = await client.post(f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={
+                'value': 'bar',
+                'user_id': 'mock_user'
+            })
+            assert response.status_code == 200
+            assert ws_mgr.send_message_to_user.call_count == 1
+            ws_mgr.send_message_to_user.assert_called_once_with('mock_user', {'store_uid': backend_store.uid, 'value': 'bar'})
+
+
+
