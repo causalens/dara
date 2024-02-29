@@ -477,6 +477,9 @@ def create_router(config: Configuration):
 
     @core_api_router.get('/store/{store_uid}/list', dependencies=[Depends(verify_session)])
     async def get_all_backend_store(store_uid: str):
+        """
+        Get all data from the backend store with the given uid
+        """
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
         result = store_entry.store.get_all()
@@ -489,6 +492,10 @@ def create_router(config: Configuration):
 
     @core_api_router.post('/store/{store_uid}/notify', dependencies=[Depends(verify_session)])
     async def notify_backend_store(store_uid: str, value: Any = Body(), user_id: Optional[str] = Body(default=None)):
+        """
+        Notify the backend store with the given uid, using provided user_id if specified.
+        Note that this does not perform any writes to the store, but rather notifies users of the store change.
+        """
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
         result = store_entry.store.notify(value, user_id=user_id)
@@ -501,6 +508,9 @@ def create_router(config: Configuration):
 
     @core_api_router.delete('/store/{store_uid}', dependencies=[Depends(verify_session)])
     async def delete_from_backend_store(store_uid: str):
+        """
+        Delete from the backend store with the given uid, respecting user scope
+        """
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
         result = store_entry.store.delete()
