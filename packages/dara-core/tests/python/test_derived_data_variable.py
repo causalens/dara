@@ -11,19 +11,6 @@ import pytest
 from anyio import move_on_after
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
-from tests.python.utils import (
-    AUTH_HEADERS,
-    TEST_JWT_SECRET,
-    _async_ws_connect,
-    _call_action,
-    _get_derived_variable,
-    _get_py_component,
-    _get_template,
-    create_app,
-    get_action_results,
-    get_ws_messages,
-    wait_assert,
-)
 
 from dara.core.auth.basic import BasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
@@ -39,6 +26,20 @@ from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.pandas_utils import append_index
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
+
+from tests.python.utils import (
+    AUTH_HEADERS,
+    TEST_JWT_SECRET,
+    _async_ws_connect,
+    _call_action,
+    _get_derived_variable,
+    _get_py_component,
+    _get_template,
+    create_app,
+    get_action_results,
+    get_ws_messages,
+    wait_assert,
+)
 
 from .tasks import data_task
 
@@ -71,7 +72,11 @@ async def reset_data_variable_cache():
     """
     Reset the data variable cache between tests
     """
-    from dara.core.internal.registries import data_variable_registry, derived_variable_registry, utils_registry
+    from dara.core.internal.registries import (
+        data_variable_registry,
+        derived_variable_registry,
+        utils_registry,
+    )
 
     data_variable_registry.replace({})
     derived_variable_registry.replace({})

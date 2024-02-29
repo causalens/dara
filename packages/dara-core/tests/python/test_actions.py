@@ -1,7 +1,15 @@
 import pytest
 from pandas import DataFrame
 
-from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect, UpdateVariable, UrlVariable, Variable
+from dara.core import (
+    DownloadContent,
+    DownloadVariable,
+    NavigateTo,
+    SideEffect,
+    UpdateVariable,
+    UrlVariable,
+    Variable,
+)
 from dara.core.base_definitions import ActionImpl, AnnotatedAction
 from dara.core.interactivity.actions import (
     ACTION_CONTEXT,

@@ -128,7 +128,6 @@ class FileBackend(PersistenceBackend):
             return await self._read_data()
 
 
-
 class PersistenceStore(BaseModel, abc.ABC):
     """
     Base class for a variable persistence store
@@ -280,8 +279,6 @@ class BackendStore(PersistenceStore):
             return await self._notify(value)
 
         return await self._notify(value, user_id)
-
-            
 
     async def init(self, variable: 'Variable'):
         """

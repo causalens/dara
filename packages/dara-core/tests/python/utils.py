@@ -1,28 +1,18 @@
 import datetime
 import json
 from contextlib import asynccontextmanager
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
-from typing_extensions import TypedDict
+from typing import Any, Callable, Dict, List, Mapping, Tuple, TypeVar, Union, cast
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import anyio
-from dara.core.base_definitions import ActionImpl, AnnotatedAction
 import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.websocket import WebSocketSession
+from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO
+from dara.core.base_definitions import ActionImpl, AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
@@ -232,10 +222,12 @@ async def _get_py_component(
 
     return response
 
+
 class ActionRequestBody(TypedDict):
     values: Mapping[str, Any]
     input: Any
     ws_channel: str
+
 
 async def _call_action(client: AsyncClient, action: AnnotatedAction, data: ActionRequestBody):
     normalized_values, lookup = normalize_request(data['values'], action.dynamic_kwargs)
@@ -334,6 +326,7 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict
 
     return messages
 
+
 async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> List[dict]:
     """
     Wait for action results until timeout is passed.
@@ -357,6 +350,7 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
             break
 
     return actions
+
 
 def create_app(configuration: ConfigurationBuilder, use_tasks=False):
     """

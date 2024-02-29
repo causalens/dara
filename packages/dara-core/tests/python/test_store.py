@@ -139,4 +139,3 @@ async def test_wait_and_get():
     # Check that the awaits resolve to the same value
     assert await var1 == 'value'
     assert await var2 == 'value'
-

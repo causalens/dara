@@ -11,7 +11,6 @@ import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from exceptiongroup import BaseExceptionGroup
 from freezegun import freeze_time
-from tests.python.utils import _async_ws_connect, _call_action, get_action_results
 
 from dara.core.auth.definitions import JWT_ALGO
 from dara.core.base_definitions import Action
@@ -20,10 +19,17 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import DownloadContent
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.download import DownloadDataEntry, DownloadRegistryEntry, download, generate_download_code
+from dara.core.internal.download import (
+    DownloadDataEntry,
+    DownloadRegistryEntry,
+    download,
+    generate_download_code,
+)
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
+
+from tests.python.utils import _async_ws_connect, _call_action, get_action_results
 
 pytestmark = pytest.mark.anyio
 

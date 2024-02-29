@@ -1,7 +1,7 @@
 import os
 from typing import List, Mapping, Union
 
-from dara.core.base_definitions import CacheType, BaseCachePolicy, Cache
+from dara.core.base_definitions import BaseCachePolicy, Cache, CacheType
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import (
     AnyVariable,

@@ -13,20 +13,6 @@ from anyio.abc import TaskStatus
 from async_asgi_testclient import TestClient as AsyncClient
 from exceptiongroup import BaseExceptionGroup
 from pydantic import BaseModel
-from tests.python.tasks import calc_task, delay_exception_task, exception_task
-from tests.python.utils import (
-    AUTH_HEADERS,
-    TEST_JWT_SECRET,
-    _async_ws_connect,
-    _call_action,
-    _get_derived_variable,
-    _get_latest_derived_variable,
-    _get_py_component,
-    _get_template,
-    create_app,
-    get_action_results,
-    get_ws_messages,
-)
 
 from dara.core import DerivedVariable, Variable, action, py_component
 from dara.core.auth.basic import MultiBasicAuthConfig
@@ -45,6 +31,21 @@ from dara.core.interactivity.actions import (
 from dara.core.internal.tasks import Task
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
+
+from tests.python.tasks import calc_task, delay_exception_task, exception_task
+from tests.python.utils import (
+    AUTH_HEADERS,
+    TEST_JWT_SECRET,
+    _async_ws_connect,
+    _call_action,
+    _get_derived_variable,
+    _get_latest_derived_variable,
+    _get_py_component,
+    _get_template,
+    create_app,
+    get_action_results,
+    get_ws_messages,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -2084,6 +2085,7 @@ async def test_add_custom_middlewares():
     async with AsyncClient(app) as client:
         await client.get('/api/core/config', headers=AUTH_HEADERS)
         assert side_effect == 2
+
 
 async def test_startup_function():
     """Check the components route returns the dict of components"""

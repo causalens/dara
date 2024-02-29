@@ -259,6 +259,7 @@ async def test_derived_variables():
         assert data == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
         assert mock_func.call_count == 2
 
+
 async def test_mixed_inputs():
     """
     Check that the py_component decorator returns a PyComponentDef when a mix of Variables and static args are
@@ -388,6 +389,7 @@ async def test_base_model_args_are_restored():
         )
         assert data == {'name': 'MockComponent', 'props': {'text': 'test'}, 'uid': 'uid'}
 
+
 async def test_base_model_not_restored_when_already_instance():
     """Test that when a type is expected by a PyComponent handler that an already instantiated instance is not restored"""
     builder = ConfigurationBuilder()
@@ -419,17 +421,12 @@ async def test_base_model_not_restored_when_already_instance():
             kwargs={'input_val': dv},
             data={
                 'uid': component.get('uid'),
-                'values': {
-                    'input_val': {
-                        'type': 'derived',
-                        'uid': str(dv.uid),
-                        'values': ['foo']
-                    }
-                },
-                'ws_channel': 'test_channel'
+                'values': {'input_val': {'type': 'derived', 'uid': str(dv.uid), 'values': ['foo']}},
+                'ws_channel': 'test_channel',
             },
         )
-        assert data== {'name': 'MockComponent', 'props': {'text': 'foo'}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': 'foo'}, 'uid': 'uid'}
+
 
 async def test_compatibility_with_polling():
     """Test that a py_component with polling gets passed the param correctly"""
@@ -595,7 +592,9 @@ async def test_derived_variables_with_polling():
         # Retrieve the component from the response and check polling_interval and cache
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval') == 2
-        assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == Cache.Policy.from_arg('global')
+        assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == Cache.Policy.from_arg(
+            'global'
+        )
 
 
 async def test_chained_derived_variables():
@@ -755,7 +754,10 @@ async def test_derive_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'}, 'lookup': {}}
+            assert result.json() == {
+                'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'},
+                'lookup': {},
+            }
 
 
 async def test_chain_derived_var_with_run_as_task_flag():
@@ -855,7 +857,10 @@ async def test_chain_derived_var_with_run_as_task_flag():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'}, 'lookup': {}}
+            assert result.json() == {
+                'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'},
+                'lookup': {},
+            }
 
 
 async def test_single_dv_track_progress():
@@ -926,7 +931,10 @@ async def test_single_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'}, 'lookup': {}}
+            assert result.json() == {
+                'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'},
+                'lookup': {},
+            }
 
 
 async def test_multiple_dv_track_progress():
@@ -1000,11 +1008,14 @@ async def test_multiple_dv_track_progress():
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
             assert result.status_code == 200
-            assert result.json() == {'data': {
-                'name': 'MockComponentTwo',
-                'props': {'text': 'result', 'text2': 'result2'},
-                'uid': 'uid',
-            }, 'lookup': {}}
+            assert result.json() == {
+                'data': {
+                    'name': 'MockComponentTwo',
+                    'props': {'text': 'result', 'text2': 'result2'},
+                    'uid': 'uid',
+                },
+                'lookup': {},
+            }
 
 
 @pytest.mark.parametrize('primitive', [(True), (False), (1), (-2.5), ('test_string')])

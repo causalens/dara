@@ -23,7 +23,16 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import anyio
 import pandas
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Response,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel

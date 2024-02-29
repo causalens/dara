@@ -1,20 +1,21 @@
-from contextlib import contextmanager
 import inspect
 import tempfile
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, Mock, call
-import anyio
 
+import anyio
 import pytest
 from anyio import sleep
+from async_asgi_testclient import TestClient as AsyncClient
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
-from async_asgi_testclient import TestClient as AsyncClient
 
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.main import _start_application
 from dara.core.auth.definitions import USER, UserData
+from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.main import _start_application
 from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
+
 from tests.python.utils import AUTH_HEADERS, create_app, wait_assert
 
 pytestmark = pytest.mark.anyio
@@ -302,6 +303,7 @@ async def test_file_backend_requires_json():
 
     FileBackend(path='foo.json')
 
+
 async def test_remote_backend_read():
     builder = ConfigurationBuilder()
     config = create_app(builder)
@@ -316,6 +318,7 @@ async def test_remote_backend_read():
         assert response.status_code == 200
         assert response.json() == 'foo'
 
+
 async def test_remote_backend_write():
     builder = ConfigurationBuilder()
     config = create_app(builder)
@@ -326,11 +329,10 @@ async def test_remote_backend_write():
     var = Variable(store=backend_store, default='foo')
 
     async with AsyncClient(app) as client:
-        response = await client.post(f'/api/core/store', headers=AUTH_HEADERS, json={
-        backend_store.uid: 'bar'
-        })
+        response = await client.post(f'/api/core/store', headers=AUTH_HEADERS, json={backend_store.uid: 'bar'})
         assert response.status_code == 200
         assert await backend_store.read() == 'bar'
+
 
 async def test_remote_backend_delete():
     builder = ConfigurationBuilder()
@@ -343,14 +345,13 @@ async def test_remote_backend_delete():
     # wait for store to be initialized (happens async)
     await wait_assert(lambda: backend_store.default_value == 'foo')
 
-
     assert await backend_store.read() == 'foo'
-
 
     async with AsyncClient(app) as client:
         response = await client.delete(f'/api/core/store/{backend_store.uid}', headers=AUTH_HEADERS)
         assert response.status_code == 200
         assert await backend_store.read() == None
+
 
 async def test_remote_backend_get_all():
     builder = ConfigurationBuilder()
@@ -372,8 +373,9 @@ async def test_remote_backend_get_all():
     async with AsyncClient(app) as client:
         response = await client.get(f'/api/core/store/{backend_store.uid}/list', headers=AUTH_HEADERS)
         assert response.status_code == 200
-        assert response.json() == {USER_1.identity_id: 'bar',USER_2.identity_id: 'baz'}
+        assert response.json() == {USER_1.identity_id: 'bar', USER_2.identity_id: 'baz'}
         assert response.json() == await backend_store.get_all()
+
 
 @contextmanager
 def mock_ws_mgr():
@@ -391,7 +393,6 @@ def mock_ws_mgr():
         utils_registry.set('WebsocketManager', original_mgr)
 
 
-
 async def test_remote_backend_notify_global():
     """
     Test that a backend can be remotely notified via an endpoint to broadcast to all users
@@ -406,9 +407,9 @@ async def test_remote_backend_notify_global():
 
     async with AsyncClient(app) as client:
         with mock_ws_mgr() as ws_mgr:
-            response = await client.post(f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={
-                'value': 'bar'
-            })
+            response = await client.post(
+                f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={'value': 'bar'}
+            )
             assert response.status_code == 200
             assert ws_mgr.broadcast.call_count == 1
             ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'bar'})
@@ -428,13 +429,13 @@ async def test_remote_backend_notify_user():
 
     async with AsyncClient(app) as client:
         with mock_ws_mgr() as ws_mgr:
-            response = await client.post(f'/api/core/store/{backend_store.uid}/notify', headers=AUTH_HEADERS, json={
-                'value': 'bar',
-                'user_id': 'mock_user'
-            })
+            response = await client.post(
+                f'/api/core/store/{backend_store.uid}/notify',
+                headers=AUTH_HEADERS,
+                json={'value': 'bar', 'user_id': 'mock_user'},
+            )
             assert response.status_code == 200
             assert ws_mgr.send_message_to_user.call_count == 1
-            ws_mgr.send_message_to_user.assert_called_once_with('mock_user', {'store_uid': backend_store.uid, 'value': 'bar'})
-
-
-
+            ws_mgr.send_message_to_user.assert_called_once_with(
+                'mock_user', {'store_uid': backend_store.uid, 'value': 'bar'}
+            )

@@ -6,8 +6,6 @@ from uuid import uuid4
 import anyio
 import pytest
 from async_asgi_testclient import TestClient as AsyncTestClient
-from tests.python.tasks import exception_task
-from tests.python.utils import AUTH_HEADERS, _async_ws_connect, _call_action, create_app, get_ws_messages
 
 from dara.core import DerivedVariable, UpdateVariable, Variable
 from dara.core.auth import BasicAuthConfig, MultiBasicAuthConfig
@@ -18,6 +16,15 @@ from dara.core.interactivity.any_variable import NOT_REGISTERED
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
 from dara.core.main import _start_application
+
+from tests.python.tasks import exception_task
+from tests.python.utils import (
+    AUTH_HEADERS,
+    _async_ws_connect,
+    _call_action,
+    create_app,
+    get_ws_messages,
+)
 
 pytestmark = pytest.mark.anyio
 

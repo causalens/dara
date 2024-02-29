@@ -4,8 +4,8 @@ import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 
-from dara.core.auth.definitions import JWT_ALGO, TokenData
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO, TokenData
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
 from dara.core.main import _start_application

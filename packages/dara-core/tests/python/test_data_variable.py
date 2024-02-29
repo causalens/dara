@@ -8,17 +8,6 @@ import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
-from tests.python.utils import (
-    AUTH_HEADERS,
-    TEST_JWT_SECRET,
-    _async_ws_connect,
-    _call_action,
-    _get_derived_variable,
-    _get_py_component,
-    _get_template,
-    get_action_results,
-    wait_assert,
-)
 
 from dara.core.auth.basic import BasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
@@ -33,6 +22,18 @@ from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.pandas_utils import append_index
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
+
+from tests.python.utils import (
+    AUTH_HEADERS,
+    TEST_JWT_SECRET,
+    _async_ws_connect,
+    _call_action,
+    _get_derived_variable,
+    _get_py_component,
+    _get_template,
+    get_action_results,
+    wait_assert,
+)
 
 pytestmark = pytest.mark.anyio
 
