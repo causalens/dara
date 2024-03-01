@@ -5,6 +5,13 @@ title: Changelog
 ## NEXT
 
 -   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
+-   Add endpoints to interact with `BackendStore` instances via a REST API, corresponding to the store methods: 
+    - GET `/api/core/store/{store_uid}` == `store.read()`,
+    - GET `/api/core/store/{store_uid}/list` == `store.get_all()`,
+    - POST `/api/core/store` ~= `store.write()`, accepts body with {'store_uid': 'value'},
+    - DELETE `/api/core/store/{store_uid}` == `store.delete()`,
+    - POST `/api/core/store/{store_uid}/notify` - invoke store notification with a given value
+
 
 ## 1.7.3
 
