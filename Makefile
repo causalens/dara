@@ -31,7 +31,7 @@ BEARER_CONFIG := ./bearer.yml
 bearer:
 	@if [ ! -f "$(LOCAL_BEARER)" ]; then \
 		echo "Installing Bearer"; \
-		curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- v1.22.0; \
+		curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- v1.39.0; \
 	fi
 
 	@for package in $(shell ls packages) ; do \
@@ -57,7 +57,7 @@ test:
 
 # Version all the main packages in lockstep as a patch - run pnpm i and lock to update the lockfiles accordingly
 version:
-	@lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version minor && borg lock
+	@lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version patch && borg lock
 
 # Run a borg script without using borg itself
 run:

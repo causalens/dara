@@ -43,6 +43,7 @@ class UploadDropzone(StyledComponentInstance):
     target: Optional[DataVariable] = None
     resolver: Optional[DropzoneResolver]
     on_drop: Optional[Action] = None
+    enable_paste: bool = False
 
     class Config:
         extra = 'allow'
@@ -53,6 +54,7 @@ class UploadDropzone(StyledComponentInstance):
         resolver: Optional[DropzoneResolver] = None,
         on_drop: Optional[Action] = None,
         accept: Optional[str] = None,
+        enable_paste: Optional[bool] = False,
         **kwargs
     ):
         """
@@ -67,6 +69,7 @@ class UploadDropzone(StyledComponentInstance):
             - if a target is specified, can be used to customise how the `bytes` received are turned into a `DataFrame`
             - if a target is not specified, can be treated as a side effect function to run on the `bytes` received (to i.e. store on disk)
         :param on_drop: optional action triggered when a file is successfully uploaded
+        :param enable_paste: determines if the component should listen for and handle paste events (e.g., CTRL+V or right-click and paste). When set to True, the component allows text to be pasted directly, creating a file from the pasted content. This feature is disabled by default to accommodate scenarios where pasting text is not intended or could interfere with the component's primary functionality.
         """
         from dara.core.interactivity.any_data_variable import upload
         from dara.core.internal.registries import upload_resolver_registry
@@ -75,6 +78,6 @@ class UploadDropzone(StyledComponentInstance):
         uid = str(uuid4())
         upload_resolver_registry.register(uid, UploadResolverDef(resolver=resolver, upload=upload))
 
-        super().__init__(target=target, on_drop=on_drop, accept=accept, **kwargs)
+        super().__init__(target=target, on_drop=on_drop, accept=accept, enable_paste=enable_paste, **kwargs)
 
         self.resolver_id = uid

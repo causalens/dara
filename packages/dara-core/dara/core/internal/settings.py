@@ -82,22 +82,35 @@ def get_settings():
     Get a cached instance of the settings, loading values from the .env if present.
     If .env is not present, prints a warning and generates one for the user.
     """
-    # Generate .env file if it's missing
-    if not os.path.isfile(os.path.join(os.getcwd(), '.env')):
-        dev_logger.debug('.env file not found, generating the file...')
-        generate_env_file()
 
     # Test purposes - if DARA_TEST_FLAG is set then override env with .env.test
     if os.environ.get('DARA_TEST_FLAG', None) is not None:
         return Settings(**dotenv_values('.env.test'))
 
+    env_error = False
+
+    # Generate .env file if it's missing
+    if not os.path.isfile(os.path.join(os.getcwd(), '.env')):
+        dev_logger.debug('.env file not found, generating the file...')
+        try:
+            generate_env_file()
+        except Exception as e:
+            dev_logger.error('Failed to generate .env file, falling back to default settings', error=e)
+            env_error = True
+
+    settings_kwargs = {}
+    if env_error:
+        settings_kwargs['_env_file'] = None
+
     # If AUDIENCE sso env variants are provided, use them and force verify audience to True
     # SSO_VERIFY_AUDIENCE can be set explicitly to False to override this behavior.
-    dotenv_vals = dotenv_values(os.path.join(os.getcwd(), '.env'))
+    dotenv_vals = dotenv_values(os.path.join(os.getcwd(), '.env')) if not env_error else {}
     audience_id = os.environ.get('SSO_AUDIENCE_CLIENT_ID', dotenv_vals.get('SSO_AUDIENCE_CLIENT_ID'))
     audience_secret = os.environ.get('SSO_AUDIENCE_CLIENT_SECRET', dotenv_vals.get('SSO_AUDIENCE_CLIENT_SECRET'))
     enable_audience_check = os.environ.get('SSO_VERIFY_AUDIENCE', dotenv_vals.get('SSO_VERIFY_AUDIENCE'))
     if enable_audience_check != 'False' and audience_id is not None and audience_secret is not None:
-        return Settings(sso_client_id=audience_id, sso_client_secret=audience_secret, sso_verify_audience=True)
+        return Settings(
+            sso_client_id=audience_id, sso_client_secret=audience_secret, sso_verify_audience=True, **settings_kwargs
+        )
 
-    return Settings()
+    return Settings(**settings_kwargs)

@@ -3,7 +3,7 @@ import datetime
 import json
 import os
 from typing import Any, Coroutine, Union
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import anyio
 import jwt
@@ -36,7 +36,12 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
-from dara.core.interactivity.actions import ACTION_CONTEXT, NavigateTo, UpdateVariable, UpdateVariableImpl
+from dara.core.interactivity.actions import (
+    ACTION_CONTEXT,
+    NavigateTo,
+    UpdateVariable,
+    UpdateVariableImpl,
+)
 from dara.core.internal.tasks import Task
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
@@ -2077,3 +2082,41 @@ async def test_add_custom_middlewares():
     async with AsyncClient(app) as client:
         await client.get('/api/core/config', headers=AUTH_HEADERS)
         assert side_effect == 2
+
+async def test_startup_function():
+    """Check the components route returns the dict of components"""
+
+    # Define a mock function to be run on startup
+    mock_startup = MagicMock(return_value=True)
+
+    config.startup_functions.append(mock_startup)
+
+    # Start the app and fetch config to make sure everything is executed
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+
+    mock_startup.assert_called_once()
+
+
+async def test_async_startup_function():
+    """Check the components route returns the dict of components"""
+    a = 1
+
+    async def side_effect():
+        nonlocal a
+        await asyncio.sleep(0.1)
+        a = 2
+
+    # Define a mock function to be run on startup
+    mock_startup = AsyncMock(side_effect=side_effect)
+
+    config.startup_functions.append(mock_startup)
+
+    # Start the app and fetch config to make sure everything is executed
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+
+    mock_startup.assert_called_once()
+    assert a == 2
