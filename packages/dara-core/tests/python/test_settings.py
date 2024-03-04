@@ -13,7 +13,7 @@ def unset_test_flag():
         os.environ.pop('DARA_TEST_FLAG')
         yield
     finally:
-        os.environ['DARA_TEST_FLAG'] = '1'
+        os.environ['DARA_TEST_FLAG'] = 'true'
 
 
 @contextmanager

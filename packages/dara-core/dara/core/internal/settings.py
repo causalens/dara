@@ -95,7 +95,7 @@ def get_settings():
         try:
             generate_env_file()
         except Exception as e:
-            dev_logger.error(f'Failed to generate .env file, falling back to default settings', error=e)
+            dev_logger.error('Failed to generate .env file, falling back to default settings', error=e)
             env_error = True
 
     settings_kwargs = {}
