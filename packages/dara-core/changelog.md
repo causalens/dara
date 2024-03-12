@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.4
 
 -   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
 -   Fix an issue where `get_settings` would crash when attempting to generate a missing `.env` file. It now
