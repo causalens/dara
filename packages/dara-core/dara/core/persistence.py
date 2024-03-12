@@ -23,6 +23,12 @@ class PersistenceBackend(BaseModel, abc.ABC):
     """
 
     @abc.abstractmethod
+    async def has(self, key: str) -> bool:
+        """
+        Check if a key exists
+        """
+
+    @abc.abstractmethod
     async def write(self, key: str, value: Any):
         """
         Persist a value
@@ -53,6 +59,9 @@ class InMemoryBackend(PersistenceBackend):
     """
 
     data: Dict[str, Any] = Field(default_factory=dict)
+
+    async def has(self, key: str) -> bool:
+        return key in self.data
 
     async def write(self, key: str, value: Any):
         self.data[key] = value
@@ -93,6 +102,14 @@ class FileBackend(PersistenceBackend):
     async def _write_data(self, data: Dict[str, Any]):
         async with await anyio.open_file(self.path, 'w') as f:
             await f.write(json.dumps(data))
+
+    async def has(self, key: str) -> bool:
+        if not os.path.exists(self.path):
+            return False
+
+        async with self._lock.reader:
+            data = await self._read_data()
+            return key in data
 
     async def write(self, key: str, value: Any):
         async with self._lock.writer:
@@ -189,7 +206,8 @@ class BackendStore(PersistenceStore):
             # Make sure the store is initialized
             if 'global' not in self.initialized_scopes:
                 self.initialized_scopes.add('global')
-                await run_user_handler(self.backend.write, (key, self.default_value))
+                if not await run_user_handler(self.backend.has, args=(key,)):
+                    await run_user_handler(self.backend.write, (key, self.default_value))
 
             return key
 
@@ -201,7 +219,8 @@ class BackendStore(PersistenceStore):
             # Make sure the store is initialized
             if user_key not in self.initialized_scopes:
                 self.initialized_scopes.add(user_key)
-                await run_user_handler(self.backend.write, (user_key, self.default_value))
+                if not await run_user_handler(self.backend.has, args=(user_key,)):
+                    await run_user_handler(self.backend.write, (user_key, self.default_value))
 
             return user_key
 
