@@ -732,24 +732,6 @@ type = "directory"
 url = "packages/dara-core"
 
 [[package]]
-name = "dara-demo"
-version = "1.7.5"
-description = ""
-category = "dev"
-optional = false
-python-versions = ">=3.8.0, <3.12.0"
-files = []
-develop = true
-
-[package.dependencies]
-dara-components = "=1.7.5"
-dara-core = "=1.7.5"
-
-[package.source]
-type = "directory"
-url = "packages/dara-demo"
-
-[[package]]
 name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
@@ -2977,4 +2959,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "7fc094d03bf657dbddc881a785e6b940192187b70f65d65a8d74b7463f53f918"
+content-hash = "a1e3c50c824a600cf7663ceb587b77429abd70b23b848d84e2220c98aadd073d"
