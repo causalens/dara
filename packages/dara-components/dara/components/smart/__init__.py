@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from dara.components.smart.chat import Chat
 from dara.components.smart.code_editor import CodeEditor, run_script
 from dara.components.smart.data_slicer import DataSlicer, DataSlicerModal
 from dara.components.smart.hierarchy import HierarchySelector, HierarchyViewer
 from dara.components.smart.hierarchy import Node as HierarchyNode
-from dara.components.smart.chat import Chat
 
 __all__ = [
     'DataSlicer',

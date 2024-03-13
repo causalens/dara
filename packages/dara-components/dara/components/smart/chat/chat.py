@@ -15,10 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from pydantic import validator
+
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 from dara.core.persistence import BackendStore
-from pydantic import validator
 
 
 class Chat(StyledComponentInstance):
