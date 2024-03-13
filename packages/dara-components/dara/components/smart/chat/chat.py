@@ -17,6 +17,7 @@ limitations under the License.
 
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
+from pydantic import validator
 
 
 class Chat(StyledComponentInstance):
@@ -25,9 +26,10 @@ class Chat(StyledComponentInstance):
     of your page and when clicked a chat sidebar will appear. This can be added on a page by page basis, with the chat
     state being store in a Variable.
 
-    If you would like for the Variable's state to be persistent between restarts, and shared across multiple app users,
-    you can use a BackendStore with your prefered backend. For example, to store the chat messages in a json file, you
-    can use the FileBackend, as showcased below:
+    For multiple users to be able to interact with the chat you have to have a BackendStore attached to your Variable.
+    This is so that the state of the chat can be accessed by all the users. You may also want to choose a backend that
+    is persistent so that the chat state is not lost when the app is restarted. For example to store it in a json file
+    rather than in memory. An example of this can be seen below:
 
     ```python
     from dara.core import Variable, ConfigurationBuilder
@@ -61,3 +63,14 @@ class Chat(StyledComponentInstance):
 
     class Config:
         extra = 'forbid'
+
+    @validator('value')
+    @classmethod
+    def validate_vaeiable(cls, value):
+        """
+        Validate that the Variable has a store attached to it.
+        """
+        if value.store is None:
+            raise ValueError('A Chat value variable must have a store attached to it')
+
+        return value
