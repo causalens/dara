@@ -17,6 +17,7 @@ limitations under the License.
 
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
+from dara.core.persistence import BackendStore
 from pydantic import validator
 
 
@@ -70,7 +71,7 @@ class Chat(StyledComponentInstance):
         """
         Validate that the Variable has a store attached to it.
         """
-        if value.store is None:
-            raise ValueError('A Chat value variable must have a store attached to it')
+        if value.store is None or isinstance(value.store, BackendStore) is False:
+            raise ValueError('A Chat value variable must have a BackendStore attached to it')
 
         return value
