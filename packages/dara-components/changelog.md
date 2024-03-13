@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added new `Chat` component. It can be added to any page to display a chat interface where users can add comments about their apps.
+
 ## 1.7.2
 
 -   Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
