@@ -53,6 +53,8 @@ export interface CausalGraphViewerProps extends StyledComponentProps {
     on_click_node?: Action;
     /** Action def for any updates to the graph */
     on_update?: Action;
+    /** Whether focusing the graph is required before mousewheel zooming is enabled */
+    require_focus_to_zoom?: boolean;
     /** Optional boolean defining whether a node and an edge can be selected simultaneously */
     simultaneous_edge_node_selection?: boolean;
     /** Optional parameter to force a tooltip to use a particular font size */
@@ -124,6 +126,7 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
             onClickNode={onClickNode}
             onNotify={pushNotification}
             onUpdate={onGraphUpdate}
+            requireFocusToZoom={props.require_focus_to_zoom}
             simultaneousEdgeNodeSelection={props.simultaneous_edge_node_selection}
             style={style}
             tooltipSize={props.tooltip_size}
