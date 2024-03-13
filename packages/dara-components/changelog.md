@@ -2,6 +2,18 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added new `Chat` component. It can be added to any page to display a chat interface where users can add comments about their apps.
+-   Fixed an issue with `NumericInput` where one could not enter decimal numbers ending in 0.
+-   Fixed an issue where one was not able to type a negative number in `NumericInput` unless they started with the number before adding the sign.
+-   Graph layout is now recalculated after every resize of the graph window detected, preventing scenarios where the initially computed layout is not optimal for the new window size due to a sudden graph pane resize
+-   Zooming the graph with mousewheel is now disabled by default and requires first focusing the graph by clicking on it. This is to prevent accidental zooming when scrolling through the page. The previous behaviour can be restored by setting `require_focus_to_zoom` prop to False.
+-   Fixed issues with graph viewer tooltip appearing even over parts of the graph which are not currently visible on the screen.
+-   Updated so that `TimeSeriesCausalGraph` now only adds to layers nodes which have at least one other node with the same `variable_name`.
+-   Updated so that is `PlanarLayout` is chosen we do not add the tiers for `TimeSeriesCausalGraph`.
+-   Fixed an issue where one could not add nodes to a `TimeSeriesCausalGraph`.
+
 ## 1.7.2
 
 -   Internal (JS): `UploadDropzone` now uses `RequestExtras` to pass additional headers to the upload request.
