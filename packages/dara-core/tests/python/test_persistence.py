@@ -1,4 +1,5 @@
 import inspect
+import json
 import tempfile
 from multiprocessing import Value
 from unittest.mock import AsyncMock, call
@@ -296,3 +297,44 @@ async def test_file_backend_requires_json():
         FileBackend(path='foo.bar')
 
     FileBackend(path='foo.json')
+
+
+async def test_file_backend_existing_value_not_overwritten():
+    """
+    Test that FileBackend does not overwrite existing values if a file already exists
+    """
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=True) as tmpfile:
+        init_data = {'global': 'value1'}
+        tmpfile.write(json.dumps({'global': 'value1'}).encode('utf-8'))
+        tmpfile.flush()
+
+        # sanity check that the file contains the expected value
+        with open(tmpfile.name, 'r') as f:
+            assert json.load(f) == init_data
+
+        backend = FileBackend(path=tmpfile.name)
+        variable = Variable(default='default_value', store=BackendStore(backend=backend, uid='my_var'))
+
+        # read value, ensure it's as existed in the file rather than default
+        assert await variable.store.read() == 'value1'
+
+
+async def test_file_backend_user_scope_existing_value_not_overwritten():
+    """
+    Test that FileBackend does not overwrite existing values if a file already exists for user values
+    """
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=True) as tmpfile:
+        USER.set(USER_1)
+        init_data = {USER_1.identity_id: 'value1'}
+        tmpfile.write(json.dumps(init_data).encode('utf-8'))
+        tmpfile.flush()
+
+        # sanity check that the file contains the expected value
+        with open(tmpfile.name, 'r') as f:
+            assert json.load(f) == init_data
+
+        backend = FileBackend(path=tmpfile.name)
+        variable = Variable(default='default_value', store=BackendStore(backend=backend, uid='my_var', scope='user'))
+
+        # read value, ensure it's as existed in the file rather than default
+        assert await variable.store.read() == 'value1'
