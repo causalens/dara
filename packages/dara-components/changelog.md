@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.7.5
 
 -   Added new `Chat` component. It can be added to any page to display a chat interface where users can add comments about their apps.
 -   Fixed an issue with `NumericInput` where one could not enter decimal numbers ending in 0.
