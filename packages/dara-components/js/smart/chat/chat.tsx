@@ -53,21 +53,14 @@ function Chat(props: ChatProps): JSX.Element {
     const [value, setValue] = useVariable(props.value);
     const [showChat, setShowChat] = React.useState(false);
 
-    const DeleteMessage = (messageId: string): void => {
-        const newMessages = value.filter((message) => message.id !== messageId);
-        setValue(newMessages);
-    };
-
     return (
         <ChatWrapper>
             {showChat && (
                 <StyledChat
                     $rawCss={css}
                     className={props.className}
-                    onAdd={setValue}
                     onClose={() => setShowChat(false)}
-                    onDelete={DeleteMessage}
-                    onEdit={setValue}
+                    onUpdate={setValue}
                     style={style}
                     value={value}
                 />
