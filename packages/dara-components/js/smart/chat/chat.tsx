@@ -51,7 +51,7 @@ const StyledChat = injectCss(UiChat);
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
-    const [showChat, setShowChat] = React.useState(false); 
+    const [showChat, setShowChat] = React.useState(false);
     const theme = useTheme();
 
     return (
@@ -70,10 +70,33 @@ function Chat(props: ChatProps): JSX.Element {
                 <ChatButton onClick={() => setShowChat(true)}>
                     <svg fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
                         <rect fill="none" height="24" rx="3" width="30" x="1" y="1.33594" />
-                        <rect height="24" rx="3" stroke={theme.colors.background} strokeWidth="2" width="30" x="1" y="1.33594" />
-                        <path d="M8 8.33594H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
-                        <path d="M8 13.3359H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
-                        <path d="M8 18.3359H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
+                        <rect
+                            height="24"
+                            rx="3"
+                            stroke={theme.colors.background}
+                            strokeWidth="2"
+                            width="30"
+                            x="1"
+                            y="1.33594"
+                        />
+                        <path
+                            d="M8 8.33594H24"
+                            stroke={theme.colors.background}
+                            strokeLinecap="round"
+                            strokeWidth="2"
+                        />
+                        <path
+                            d="M8 13.3359H24"
+                            stroke={theme.colors.background}
+                            strokeLinecap="round"
+                            strokeWidth="2"
+                        />
+                        <path
+                            d="M8 18.3359H24"
+                            stroke={theme.colors.background}
+                            strokeLinecap="round"
+                            strokeWidth="2"
+                        />
                         <path
                             d="M18.5981 26.1641L16 30.6641L13.4019 26.1641L18.5981 26.1641Z"
                             fill={theme.colors.background}
