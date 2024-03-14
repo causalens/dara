@@ -49,6 +49,8 @@ interface VisualEdgeEncoderProps extends StyledComponentProps {
     on_click_node?: Action;
     /** Handler called whenever constraints are updated */
     on_update?: Action;
+    /** Whether focusing the graph is required before mousewheel zooming is enabled */
+    require_focus_to_zoom?: boolean;
     /** Optional parameter to force a tooltip to use a particular font size */
     tooltip_size?: number;
     /** Optional user-defined zoom thresholds to use instead of defaults */
@@ -173,6 +175,7 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
             onClickNode={onClickNode}
             onEdgeConstraintsUpdate={onUpdate}
             onNotify={pushNotification}
+            requireFocusToZoom={props.require_focus_to_zoom}
             style={style}
             tooltipSize={props.tooltip_size}
             zoomThresholds={props.zoom_thresholds}

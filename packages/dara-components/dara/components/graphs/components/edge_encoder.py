@@ -116,6 +116,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     :param on_update: Optional `Action` for all hierarchy changes, called with built list of constraints.
         Note that when updating a Variable passed into `initial_constraints` it will re-render the component on each update,
         use a different Variable for the output of the component.
+    :param require_focus_to_zoom: Optional flag to require focus to be on the graph for the zoom to be active. Defaults to True.
     :param tooltip_size: Optional parameter to force a tooltip to use a particular font size
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
@@ -132,6 +133,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     on_click_edge: Optional[Action] = None
     on_click_node: Optional[Action] = None
     on_update: Optional[Action] = None
+    require_focus_to_zoom: Optional[bool] = True
     tooltip_size: Optional[str] = None
 
     class Config:
