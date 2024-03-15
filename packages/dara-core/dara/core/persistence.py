@@ -281,7 +281,8 @@ class BackendStore(PersistenceStore):
         """
         Persist a value to the store.
 
-        If scope='user', the value is written for the current user.
+        If scope='user', the value is written for the current user so the method can only
+        be used in authenticated contexts.
 
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
@@ -297,7 +298,9 @@ class BackendStore(PersistenceStore):
         """
         Read a value from the store.
 
-        If scope='user', the value is read for the current user.
+        If scope='user', the value is read for the current user so the method can only
+        be used in authenticated contexts.
+
         """
 
         key = await self._get_key()
@@ -307,7 +310,9 @@ class BackendStore(PersistenceStore):
         """
         Delete the persisted value from the store
 
-        If scope='user', the value is deleted for the current user.
+        If scope='user', the value is deleted for the current user so the method can only
+        be used in authenticated contexts.
+
 
         :param notify: whether to broadcast that the value was deleted to clients
         """

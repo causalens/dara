@@ -79,7 +79,7 @@ When using `user` scope, each user has their own copy of the date. A change made
 only be propagated to other sessions open **for that particular user**, e.g. among all currently open tabs for that user.
 In this mode, the `get_all` API returns a dictionary with user values keyed by the user identifiers, e.g. `{'user1': 'value1', 'user2': 'value2'}`.
 
-::: note
+:::note
 
 In `user` scope, the API methods `read`, `write` and `delete` can only be used in an authenticated context, i.e. within
 `py_component`s, `DerivedVariable` resolvers or `action`s. This is because these APIs will look up the currently operating
