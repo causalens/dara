@@ -1,0 +1,102 @@
+---
+title: Persistence and Collaboration
+---
+
+By default `Variable` state is purely client-side - by default its source of truth is the browser memory.
+It also means that refreshing the browser page resets the `Variable` state, and that each user has their own 'copy'
+of the data.
+
+## `store` parameter
+
+In order to make the aforementioned default behaviour more customizable to suit different needs, `Variable` accepts
+a `store` property. It can be used to customize the source of truth for a given `Variable`.
+
+
+## `dara.core.persistence.BackendStore`
+
+This type of store changes the source of truth for a given `Variable` to live on the server, rather than on the client.
+This has two main benefits:
+- the data can be persistent across page refreshes or even across server restarts
+- since the data lives server-side, we can 'sync' it across clients to enable collaboration
+
+To use a `BackendStore`, simply create a store instance and attach it to a `Variable`:
+
+```python
+from dara.core import Variable
+from dara.core.persistence import BackendStore
+from dara.components import Input
+
+# Tag the variable to be 'collaborative' and have a shared server state
+collab_variable = Variable(default=1, store=BackendStore())
+
+# Input value will automatically be kept in sync 'live' for all users
+Input(value=collab_variable)
+```
+
+Under the hood the `BackendStore` mechanism is very simple:
+- the store data is initialized with the `default` `Variable` value
+- on initial page load, the `Variable` value is fetched from the server
+- whenever a client makes an update, it makes a request to the server to update the state,
+  which then notifies all other clients about the new state
+
+You can interact with the store programmatically to read, write or delete data from the store.
+
+```python
+from dara.core import Variable
+from dara.core.persistence import BackendStore
+from dara.components import Input
+
+store = BackendStore()
+collab_variable = Variable(default='default value', store=store)
+
+# get current value in the store
+value = await store.read()
+# store can also be accessed from the variable
+value = await variable.store.read()
+
+# write a new value to the store
+await store.write('new value')
+
+# delete the existing value from the store
+await store.delete()
+
+# get all value from the store - see `scope` section below for details
+await store.get_all()
+```
+
+The behaviour of the store can be customized by passing arguments to the `BackendStore`.
+
+### `scope`
+
+Scope controls whether the data in a `BackendStore` is shared among all users (`scope='global'`) or separate and specific to a
+given user (`scope='user'`).
+
+When using `global` scope, the state is shared and synced among the users so a change being made to an attached `Variable`
+in one client will immediately be propagated to other users. In this mode, the `get_all` API method will return a dictionary
+of the shape `{'global': 'value'}`.
+
+When using `user` scope, each user has their own copy of the date. A change made to an attached `Variable` in one client will
+only be propagated to other sessions open **for that particular user**, e.g. among all currently open tabs for that user.
+In this mode, the `get_all` API returns a dictionary with user values keyed by the user identifiers, e.g. `{'user1': 'value1', 'user2': 'value2'}`.
+
+::: note
+
+In `user` scope, the API methods `read`, `write` and `delete` can only be used in an authenticated context, i.e. within
+`py_component`s, `DerivedVariable` resolvers or `action`s. This is because these APIs will look up the currently operating
+user and act on their behalf, e.g. `write` would update the value stored only for that particular user.
+
+:::
+
+### `backend`
+
+You can select a particular backend implemention to be used for storage. By default `BackendStore` uses the
+`dara.core.persistence.InMemoryBackend` implementation which simply stores the data in-memory.
+
+Alternatively, you can use the `FileBackend` which uses a JSON file for storage. This enables persisting
+the data across server restarts and easy access to the data for external processes.
+
+You can also choose to provide a custom backend implementation as long as it extends the `dara.core.persistence.PersistenceBackend` class.
+
+
+
+
