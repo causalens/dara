@@ -6,9 +6,8 @@ title: Persistence and Collaboration
 
 By default `Variable` state is purely client-side - by default its source of truth is the browser memory.
 It also means that refreshing the browser page resets the `Variable` state, and that each user has their own 'copy'
-of the data. In order to make the aforementioned default behaviour more customizable to suit different needs, `Variable` accepts
-a `store` property. It can be used to customize the source of truth for a given `Variable` and enables
-persistence and collaboration.
+of the data. To customize the behaviour, `Variable` accepts a store property. This allow changing the `Variable`'s source of truth,
+thereby enabling features like data persistence and collaborative interactions across users.
 
 The rest of the page goes in-depth into available stores and how they can be used in your application.
 
