@@ -56,6 +56,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param default: the initial value for the variable, defaults to None
         :param persist_value: whether to persist the variable value across page reloads
         :param uid: the unique identifier for this variable; if not provided a random one is generated
+        :param store: a persistence store to attach to the variable; modifies where the source of truth for the variable is
         """
         if store is not None and persist_value:
             # TODO: this is temporary, persist_value will eventually become a type of store

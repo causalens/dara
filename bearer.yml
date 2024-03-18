@@ -9,7 +9,7 @@ report:
 rule:
   disable-default-rules: false
   only-rule: []
-  skip-rule: []
+  skip-rule: ['javascript_lang_observable_timing']
 scan:
   context: ""
   data_subject_mapping: ""

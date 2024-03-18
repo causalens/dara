@@ -35,6 +35,7 @@
       "items": [
         "docs/advanced/loading-states",
         "docs/advanced/styling-components",
+        "docs/advanced/persistence-and-collaboration",
         "docs/advanced/custom-js",
         "docs/advanced/custom-themes",
         "docs/advanced/custom-templates",
