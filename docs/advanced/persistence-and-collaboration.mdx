@@ -4,9 +4,9 @@ title: Persistence and Collaboration
 
 ## Introduction
 
-By default `Variable` state is purely client-side - by default its source of truth is the browser memory.
-It also means that refreshing the browser page resets the `Variable` state, and that each user has their own 'copy'
-of the data. To customize the behaviour, `Variable` accepts a store property. This allow changing the `Variable`'s source of truth,
+By default `Variable` state is purely client-side, meaning its source of truth is the browser memory.
+It also means that refreshing the browser page resets `Variable` state, and that each user has their own "copy"
+of the data. To customize the behavior, `Variable` accepts a store property. This allows changing `Variable`'s source of truth,
 thereby enabling features like data persistence and collaborative interactions across users.
 
 The rest of the page goes in-depth into available stores and how they can be used in your application.
@@ -17,7 +17,7 @@ The rest of the page goes in-depth into available stores and how they can be use
 This type of store changes the source of truth for a given `Variable` to live on the server, rather than on the client.
 This has two main benefits:
 - the data can be persistent across page refreshes or even across server restarts
-- since the data lives server-side, we can 'sync' it across clients to enable collaboration
+- since the data lives server-side, we can "sync" it across clients to enable collaboration
 
 To use a `BackendStore`, simply create a store instance and attach it to a `Variable`:
 
@@ -26,10 +26,10 @@ from dara.core import Variable
 from dara.core.persistence import BackendStore
 from dara.components import Input
 
-# Tag the variable to be 'collaborative' and have a shared server state
+# Tag the variable to be "collaborative" and have a shared server state
 collab_variable = Variable(default=1, store=BackendStore())
 
-# Input value will automatically be kept in sync 'live' for all users
+# Input value will automatically be kept in sync "live" for all users
 Input(value=collab_variable)
 ```
 
@@ -64,7 +64,7 @@ await store.delete()
 await store.get_all()
 ```
 
-The behaviour of the store can be customized by passing arguments to the `BackendStore`.
+The behavior of the store can be customized by passing arguments to the `BackendStore`.
 
 ### `scope`
 
@@ -75,11 +75,11 @@ When using `global` scope, the state is shared and synced among the users so a c
 in one client will immediately be propagated to other users. In this mode, the `get_all` API method will return a dictionary
 of the shape `{'global': 'value'}`.
 
-When using `user` scope, each user has their own copy of the date. A change made to an attached `Variable` in one client will
+When using `user` scope, each user has their own copy of the data. A change made to an attached `Variable` in one client will
 only be propagated to other sessions open **for that particular user**, e.g. among all currently open tabs for that user.
 In this mode, the `get_all` API returns a dictionary with user values keyed by the user identifiers, e.g. `{'user1': 'value1', 'user2': 'value2'}`.
 
-:::note
+:::warning
 
 In `user` scope, the API methods `read`, `write` and `delete` can only be used in an authenticated context, i.e. within
 `py_component`s, `DerivedVariable` resolvers or `action`s. This is because these APIs will look up the currently operating
