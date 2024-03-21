@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.7.6
+
+-   Fixed an issue where if a word was too long, such as in an url, the `Chat` message would overflow instead of wrap.
+-   Fixed an issue where in `Chat` component if a newline character was added to a comment, on subsequent reloads it would show '/n' in the message.
+
 ## 1.7.5
 
 -   Added new `Chat` component. It can be added to any page to display a chat interface where users can add comments about their apps.
