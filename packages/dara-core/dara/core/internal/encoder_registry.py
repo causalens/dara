@@ -71,28 +71,13 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
     )
 
 
-def _df_encoder(df: pandas.DataFrame):
-    """
-    Convert a DataFrame to json format
-
-    :param df: The DataFrame to be encoded
-    """
-    # If a df have multiple index
-    if df.index.nlevels > 1 or df.columns.nlevels > 1:
-        stack_list = [i for i in range(0, df.columns.nlevels)]
-        # flatten the df
-        data = df.stack(stack_list).to_dict()
-        # construct the dict
-        df_dict = {}
-        for t, v in data.items():
-            e = df_dict.setdefault(t[0], {})
-            for k in t[1:-1]:
-                e = e.setdefault(k, {})
-            e[t[-1]] = v
-
-    else:
-        df_dict = df.to_dict(orient='dict')
-    return jsonable_encoder(df_dict)
+def _tuple_key_serialize(d):
+    encoded_dict = {}
+    for key, value in d.items():
+        encoded_key = '__tuple__' + str(key) if isinstance(key, tuple) else key
+        encoded_value = _tuple_key_serialize(value) if isinstance(value, dict) else value
+        encoded_dict[encoded_key] = encoded_value
+    return encoded_dict
 
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
@@ -158,7 +143,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
-        serialize=lambda x: _df_encoder(x),
+        serialize=lambda x: jsonable_encoder(_tuple_key_serialize(x.to_dict(orient='dict'))),
         deserialize=lambda x: x if isinstance(x, pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
     ),
 }
