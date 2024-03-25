@@ -15,6 +15,11 @@ from dara.core.internal.encoder_registry import deserialize, encoder_registry
 dates = pandas.date_range(start='2021-01-01', end='2021-01-02', freq='D')
 timestamp = pandas.Timestamp('2023-10-04')
 df_with_datetime_index = pandas.DataFrame({'col1': [1.0, numpy.nan], 'col2': [timestamp, timestamp]}, index=dates)
+df_with_multiple_index = pandas.DataFrame({('F','>50'): {('A', 'a'): 1, ('A', 'b'): 6, ('B', 'a'): 2, ('B', 'b'): 7},
+ ('F','<50'): {('A', 'a'): 2, ('A', 'b'): 7, ('B', 'a'): 3, ('B', 'b'): 8},
+ ('M','>50'): {('A', 'a'): 3, ('A', 'b'): 8, ('B', 'a'): 4, ('B', 'b'): 9},
+ ('M','<50'): {('A', 'a'): 4, ('A', 'b'): 9, ('B', 'a'): 5, ('B', 'b'): 10},
+})
 
 pytestmark = pytest.mark.anyio
 
@@ -73,6 +78,7 @@ pytestmark = pytest.mark.anyio
         (pandas.Index, pandas.Index([1, 2, 3]), False),
         (pandas.Timestamp, pandas.Timestamp('2023-10-04'), False),
         (pandas.DataFrame, df_with_datetime_index, True),
+        (pandas.DataFrame, df_with_multiple_index, True),
     ],
 )
 def test_serialization_deserialization(type_, value, raise_):
