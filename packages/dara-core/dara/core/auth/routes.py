@@ -31,6 +31,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
+from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
 
@@ -70,11 +71,14 @@ async def verify_session(
             # Because contextvars don't work in middlewares
             req.state.session_id = SESSION_ID.get()
             return SESSION_ID.get()
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as e:
+            dev_logger.error('Expired Token Signature', error=e)
             raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR)
-        except jwt.PyJWTError:
+        except jwt.PyJWTError as e:
+            dev_logger.error('Invalid Token', error=e)
             raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
         except AuthError as err:
+            dev_logger.error('Auth Error', error=err)
             raise HTTPException(status_code=err.code, detail=err.detail)
     raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No auth credentials passed'))
 
