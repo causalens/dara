@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
-import ast
 from inspect import Parameter, isclass
 from typing import (
     Any,
@@ -96,7 +95,7 @@ def _tuple_key_deserialize(d):
     """
     encoded_dict = {}
     for key, value in d.items():
-        encoded_key = ast.literal_eval(key[9:]) if isinstance(key, str) and key.startswith('__tuple__') else key
+        encoded_key = tuple(key[10:-1].split(',')) if isinstance(key, str) and key.startswith('__tuple__') else key
         encoded_value = _tuple_key_deserialize(value) if isinstance(value, dict) else value
         encoded_dict[encoded_key] = encoded_value
     return encoded_dict
