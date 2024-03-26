@@ -72,6 +72,13 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
 
 
 def _tuple_key_serialize(d):
+    """
+    A helper function to recursively check if a dict have a tuple key type and turn it into a string with "__tuple__" prefix.
+    The reason for this is jsonable_encoder will turn tuple into list, but list is not hashable.
+    Hence we serialize tuple key by our side.
+
+    :param d: the dict where tuple key to be serialized
+    """
     encoded_dict = {}
     for key, value in d.items():
         encoded_key = '__tuple__' + str(key) if isinstance(key, tuple) else key
