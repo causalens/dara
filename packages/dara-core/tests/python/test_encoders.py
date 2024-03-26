@@ -77,8 +77,8 @@ pytestmark = pytest.mark.anyio
         (pandas.Series, pandas.Series([1, 2, 3]), False),
         (pandas.Index, pandas.Index([1, 2, 3]), False),
         (pandas.Timestamp, pandas.Timestamp('2023-10-04'), False),
-        (pandas.DataFrame, df_with_datetime_index, True),
-        (pandas.DataFrame, df_with_multiple_index, True),
+        (pandas.DataFrame, df_with_datetime_index, False),
+        (pandas.DataFrame, df_with_multiple_index, False),
     ],
 )
 def test_serialization_deserialization(type_, value, raise_):
@@ -93,8 +93,10 @@ def test_serialization_deserialization(type_, value, raise_):
     deserialized = encoder['deserialize'](json.loads(serialized))
 
     # If it's a pandas type use built-in equality
-    if isinstance(value, pandas.Series) or isinstance(value, pandas.Index):
+    if isinstance(value, pandas.Series) or isinstance(value, pandas.Index) :
         assert value.equals(deserialized)
+    elif isinstance(value, pandas.DataFrame):
+        value.eq(deserialized)
     # Handle pandas arrays
     elif isinstance(value, ExtensionArray):
         assert numpy.array_equal(value, deserialized)

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: disable=unnecessary-lambda
+import ast
 from inspect import Parameter, isclass
 from typing import (
     Any,
@@ -87,6 +88,34 @@ def _tuple_key_serialize(d):
     return encoded_dict
 
 
+def _tuple_key_deserialize(d):
+    """
+    A helper function to recursively check if a dict have a key with "__tuple__" prefix and turn it back to tuple
+
+    :param d: the dict where tuple key to be deserialized
+    """
+    encoded_dict = {}
+    for key, value in d.items():
+        encoded_key = ast.literal_eval(key[9:]) if isinstance(key, str) and key.startswith('__tuple__') else key
+        encoded_value = _tuple_key_deserialize(value) if isinstance(value, dict) else value
+        encoded_dict[encoded_key] = encoded_value
+    return encoded_dict
+
+
+def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
+    """
+    A function to deserialize data into a DataFrame
+
+    :param x: the value to be deserialized to a DataFrame
+    """
+
+    if isinstance(x, pandas.DataFrame):
+        return x
+    if isinstance(x, dict):
+        return pandas.DataFrame(_tuple_key_deserialize(x))
+    _not_implemented(x, pandas.DataFrame)
+
+
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
     int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
@@ -151,7 +180,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
         serialize=lambda x: jsonable_encoder(_tuple_key_serialize(x.to_dict(orient='dict'))),
-        deserialize=lambda x: x if isinstance(x, pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
+        deserialize=lambda x: _df_deserialize(x),
     ),
 }
 
