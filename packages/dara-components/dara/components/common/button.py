@@ -56,14 +56,14 @@ class Button(LayoutComponent):
         'Click',
         onclick=NavigateTo('/test'),
         icon='Pen',
-        styling='ButtonStyle.SECONDARY,
+        styling=ButtonStyle.SECONDARY,
         outline=True,
     )
 
     ```
 
     The different button styles supported are: 'error', 'ghost', 'plain', 'primary' and 'secondary'. Other styling option
-    is to choose whether to show the outline or filled version with the outline property. This defults to False.
+    is to choose whether to show the outline or filled version with the outline property. This defaults to False.
 
     A button component that is disabled but can be enabled by updating the variable disabling it:
 
@@ -93,7 +93,7 @@ class Button(LayoutComponent):
     Button(
         Stack(
             Text(
-                'Stack passed to buton, when clicked I navigate to test page',
+                'Stack passed to button, when clicked I navigate to test page',
             ),
         ),
         onclick=NavigateTo('/test'),
