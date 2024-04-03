@@ -70,7 +70,7 @@
     "prism-react-renderer": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-markdown": "9.0.1",
+    "react-markdown": "^9.0.1",
     "react-plotly.js": "~2.6.0",
     "react-virtualized-auto-sizer": "1.0.6",
     "recoil": "^0.7.7",
