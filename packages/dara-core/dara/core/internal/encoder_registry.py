@@ -71,6 +71,50 @@ def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = 
     )
 
 
+def _tuple_key_serialize(d):
+    """
+    A helper function to recursively check if a dict have a tuple key type and turn it into a string with "__tuple__" prefix.
+    The reason for this is jsonable_encoder will turn tuple into list, but list is not hashable.
+    Hence we serialize tuple key by our side.
+
+    :param d: the dict where tuple key to be serialized
+    """
+    encoded_dict = {}
+    for key, value in d.items():
+        encoded_key = '__tuple__' + str(key) if isinstance(key, tuple) else key
+        encoded_value = _tuple_key_serialize(value) if isinstance(value, dict) else value
+        encoded_dict[encoded_key] = encoded_value
+    return encoded_dict
+
+
+def _tuple_key_deserialize(d):
+    """
+    A helper function to recursively check if a dict have a key with "__tuple__" prefix and turn it back to tuple
+
+    :param d: the dict where tuple key to be deserialized
+    """
+    encoded_dict = {}
+    for key, value in d.items():
+        encoded_key = tuple(key[10:-1].split(',')) if isinstance(key, str) and key.startswith('__tuple__') else key
+        encoded_value = _tuple_key_deserialize(value) if isinstance(value, dict) else value
+        encoded_dict[encoded_key] = encoded_value
+    return encoded_dict
+
+
+def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
+    """
+    A function to deserialize data into a DataFrame
+
+    :param x: the value to be deserialized to a DataFrame
+    """
+
+    if isinstance(x, pandas.DataFrame):
+        return x
+    if isinstance(x, dict):
+        return pandas.DataFrame(_tuple_key_deserialize(x))
+    _not_implemented(x, pandas.DataFrame)
+
+
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[Type[Any], Encoder] = {
     int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
@@ -134,8 +178,8 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
-        serialize=lambda x: jsonable_encoder(x.to_dict(orient='dict')),
-        deserialize=lambda x: x if isinstance(x, pandas.DataFrame) else _not_implemented(x, pandas.DataFrame),
+        serialize=lambda x: jsonable_encoder(_tuple_key_serialize(x.to_dict(orient='dict'))),
+        deserialize=lambda x: _df_deserialize(x),
     ),
 }
 
