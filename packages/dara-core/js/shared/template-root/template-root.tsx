@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useEffect, useState } from 'react';
 
 import styled, { ThemeProvider } from '@darajs/styled-components';

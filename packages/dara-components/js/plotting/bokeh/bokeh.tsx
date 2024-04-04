@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import type * as BokehLib from '@bokeh/bokehjs/build/js/lib';
 import type { DocJson } from '@bokeh/bokehjs/build/js/lib/document';
 import { useEffect, useId, useMemo, useState } from 'react';

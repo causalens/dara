@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useEffect } from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';

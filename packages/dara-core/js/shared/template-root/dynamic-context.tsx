@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import * as React from 'react';
 
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';

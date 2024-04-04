@@ -12,9 +12,8 @@ import { NotificationWrapper } from '@darajs/ui-notifications';
 import { useUrlSync } from '@/shared/utils';
 
 import AuthWrapper from './auth/auth-wrapper';
-import { DirectionCtx, ImportersCtx, TemplateRoot } from './shared';
-
 import './index.css';
+import { DirectionCtx, ImportersCtx, TemplateRoot } from './shared';
 
 declare global {
     interface Window {

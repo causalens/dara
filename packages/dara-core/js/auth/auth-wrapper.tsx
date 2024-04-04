@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { ReactNode, useContext, useEffect, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 

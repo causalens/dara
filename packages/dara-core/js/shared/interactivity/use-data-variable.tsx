@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react-hooks/exhaustive-deps */
 
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useRecoilValueLoadable } from 'recoil';
 
