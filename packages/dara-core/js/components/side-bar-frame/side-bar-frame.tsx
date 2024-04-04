@@ -25,7 +25,7 @@ const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
     min-width: 150px;
     max-width: 350px;
     height: 100%;
-    padding: 2rem 1rem 1.5rem 1rem;
+    padding: 2rem 1rem 1.5rem;
 
     color: ${(props) => props.theme.colors.secondary};
 
@@ -47,7 +47,7 @@ const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
             props.theme.colors.success
         )} 200%, ${transparentize(0.2, props.theme.colors.blue4)} 610%)`;
     }};
-    box-shadow: rgba(20, 20, 25, 0.15) 0px 4px 16px, rgba(20, 20, 25, 0.15) 0px 8px 32px;
+    box-shadow: rgb(20 20 25 / 15%) 0 4px 16px, rgb(20 20 25 / 15%) 0 8px 32px;
 `;
 
 const LogoutButton = styled(Button)`

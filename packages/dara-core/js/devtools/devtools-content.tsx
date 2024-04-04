@@ -58,7 +58,7 @@ const SelectionButton = styled(Button)<{
 }>`
     color: ${(props) => props.theme.colors.text};
     border-bottom: 2px solid ${(props) => props.theme.colors.primary};
-    border-radius: 0px;
+    border-radius: 0;
 
     :hover:not(:disabled) {
         color: ${(props) => props.theme.colors.text};

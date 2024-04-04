@@ -16,6 +16,7 @@ import DynamicContext from './dynamic-context';
 
 const RootWrapper = styled.div`
     scrollbar-color: ${(props) => `${props.theme.colors.grey5} ${props.theme.colors.grey2}`};
+
     /* Works on Firefox */
     scrollbar-width: thin;
 
@@ -26,18 +27,22 @@ const RootWrapper = styled.div`
     height: 100%;
 
     color: ${(props) => props.theme.colors.text};
+
     /* Works on Chrome, Edge and Safari */
     *::-webkit-scrollbar {
         width: 8px;
         height: 8px;
     }
+
     *::-webkit-scrollbar-track {
         background: ${(props) => props.theme.colors.grey2};
         border-radius: 100px;
     }
+
     *::-webkit-scrollbar-corner {
         background: ${(props) => props.theme.colors.grey2};
     }
+
     *::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.colors.grey5};
         border-radius: 100px;

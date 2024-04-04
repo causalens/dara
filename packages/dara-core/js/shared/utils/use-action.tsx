@@ -307,7 +307,6 @@ export default function useAction(
             // execute actions sequentially
             for (const actionToExecute of actionsToExecute) {
                 // this is redefined for each action to have up-to-date snapshot
-                /* eslint-disable sort-keys-fix/sort-keys-fix */
                 const fullActionContext: ActionContext = {
                     ...actionCtx.current,
                     input,
@@ -320,7 +319,6 @@ export default function useAction(
                     snapshot: cbInterface.snapshot,
                     transact_UNSTABLE: cbInterface.transact_UNSTABLE,
                 };
-                /* eslint-enable sort-keys-fix/sort-keys-fix */
 
                 try {
                     // eslint-disable-next-line no-await-in-loop

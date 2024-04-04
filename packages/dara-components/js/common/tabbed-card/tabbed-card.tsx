@@ -27,7 +27,7 @@ const Card = styled.div`
 `;
 
 const TabbedCardWrapper = styled(CardDiv)`
-    padding: 0rem;
+    padding: 0;
 `;
 
 interface Tab {

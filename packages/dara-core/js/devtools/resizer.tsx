@@ -31,6 +31,7 @@ const ResizerDisplay = styled.div<{
 const ResizerGrabArea = styled.button`
     cursor: col-resize;
     resize: horizontal;
+
     /* This means the grab area will have 16px to the left of the sidebar and 8px on the right side */
     position: absolute;
     right: -8px;

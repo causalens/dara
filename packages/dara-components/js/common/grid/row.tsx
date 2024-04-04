@@ -29,8 +29,7 @@ interface RowProps extends LayoutComponentProps {
 const RowComponent = styled.div`
     display: flex;
     flex: 1 1 auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-flow: row wrap;
 `;
 
 type ColumnInstance = ComponentInstance<ColumnProps>;

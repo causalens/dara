@@ -44,7 +44,7 @@ const Card = styled.div`
     border-radius: 1rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
-    @media (min-width: 640px) {
+    @media (width >= 640px) {
         width: 100%;
         max-width: 24rem;
         margin-right: auto;
@@ -97,15 +97,15 @@ const StyledInput = styled.input<{ $error?: boolean }>`
     border: none;
     border-radius: 0.25rem;
     outline: none;
-    box-shadow: inset 0 0 0 0px ${(props) => props.theme.colors.blue1},
+    box-shadow: inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
         inset 0 0 0 1px ${(props) => (props.$error ? props.theme.colors.error : props.theme.colors.grey2)},
-        0 1px 2px 0 rgb(0 0 0 / 0.05);
+        0 1px 2px 0 rgb(0 0 0 / 5%);
 
     :active,
     :focus {
-        box-shadow: inset 0 0 0 0px ${(props) => props.theme.colors.blue1},
+        box-shadow: inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
             inset 0 0 0 2px ${(props) => (props.$error ? props.theme.colors.error : props.theme.colors.primary)},
-            0 1px 2px 0 rgb(0 0 0 / 0.05);
+            0 1px 2px 0 rgb(0 0 0 / 5%);
     }
 `;
 
@@ -113,7 +113,7 @@ const StyledButton = styled(Button)`
     width: 100%;
     font-weight: 600;
     line-height: 1.5rem;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
 
     :active,
     :focus {

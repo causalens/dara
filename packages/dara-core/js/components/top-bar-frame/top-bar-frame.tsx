@@ -45,7 +45,7 @@ const TopBar = styled.div.withConfig({ shouldForwardProp })<TopBarProps>`
             props.theme.colors.blue4
         )} 50%)`;
     }};
-    box-shadow: rgba(20, 20, 25, 0.15) 0px 4px 16px, rgba(20, 20, 25, 0.15) 0px 8px 32px;
+    box-shadow: rgb(20 20 25 / 15%) 0 4px 16px, rgb(20 20 25 / 15%) 0 8px 32px;
 `;
 
 const TopBarContent = styled.div`
