@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import Any, Callable
 
 import anyio
 import pytest
@@ -12,6 +11,7 @@ from tests.python.utils import (
     _call_action,
     create_app,
     get_ws_messages,
+    wait_for,
 )
 
 from dara.core import DerivedVariable, UpdateVariable, Variable
@@ -26,6 +26,7 @@ from dara.core.internal.websocket import (
     DaraClientMessage,
     DaraServerMessage,
     ServerMessagePayload,
+    WebSocketHandler,
     WebsocketManager,
 )
 from dara.core.main import _start_application
@@ -47,20 +48,15 @@ config = create_app(builder)
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
 
-async def _await_for_condition(fn: Callable[..., Any]):
-    i = 0
-    while not fn():
-        await asyncio.sleep(0.1)
-        i += 1
+async def _send_task(handler: WebSocketHandler, messages: list):
+    """
+    Helper function to send messages to a websocket handler in an async thread
 
-        # If we fail 20 times, ~2secs has expired so bail out
-        if i > 20:
-            raise Exception('Timeout')
-
-
-async def _send_task(handler, messages):
+    :param handler: the ws_handler to use
+    :param messages: the messages to send
+    """
     # First we wait for the first task to send the message in the first place
-    await _await_for_condition(lambda: len(handler.pending_responses) > 0)
+    await wait_for(lambda: list(handler.pending_responses.keys())[0])
 
     msg_id = list(handler.pending_responses.keys())[0]
 
@@ -91,7 +87,7 @@ async def test_websocket_send_and_wait():
         tg.start_soon(_send_task, ws_handler, ['hello'])
         tg.start_soon(get_task)
 
-    # Verify that a single doc was returned
+    # Verify that a single response was returned
     assert result == 'hello'
 
 
@@ -113,7 +109,7 @@ async def test_websocket_send_and_wait_with_chunks():
         tg.start_soon(_send_task, ws_handler, ['hello', 'world', '!!!'])
         tg.start_soon(get_task)
 
-    # Verify that a single doc was returned
+    # Verify that a list of responses was returned
     assert result == ['hello', 'world', '!!!']
 
 
