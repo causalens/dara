@@ -492,16 +492,16 @@ function Table(props: TableProps): JSX.Element {
 
         // Construct filter query
         const newSearchQuery: ClauseQuery =
-            searchTermClean.length > 0
-                ? {
-                      clauses: searchColumns.map((col) => ({
-                          column: col,
-                          operator: 'CONTAINS',
-                          value: searchTermClean,
-                      })),
-                      combinator: 'OR',
-                  }
-                : null;
+            searchTermClean.length > 0 ?
+                {
+                    clauses: searchColumns.map((col) => ({
+                        column: col,
+                        operator: 'CONTAINS',
+                        value: searchTermClean,
+                    })),
+                    combinator: 'OR',
+                }
+            :   null;
 
         debouncedSetSearchQuery(newSearchQuery);
     };

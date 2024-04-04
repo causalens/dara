@@ -117,11 +117,11 @@ export async function fetchDerivedVariable<T>({
     is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<T>> {
     const cacheControl =
-        cache === null
-            ? ({
-                  'cache-control': 'none',
-              } as const)
-            : undefined;
+        cache === null ?
+            ({
+                'cache-control': 'none',
+            } as const)
+        :   undefined;
 
     const ws_channel = await wsClient.getChannel();
     const res = await request(
@@ -227,9 +227,9 @@ export function getDeps(values: Array<ResolvedDerivedVariable | any>, deps?: num
             return [];
         }
 
-        return isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val)
-            ? getDeps(val.values, val.deps).flat()
-            : val;
+        return isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val) ?
+                getDeps(val.values, val.deps).flat()
+            :   val;
     });
 }
 

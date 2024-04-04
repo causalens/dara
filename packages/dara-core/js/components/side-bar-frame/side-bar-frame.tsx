@@ -47,7 +47,9 @@ const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
             props.theme.colors.success
         )} 200%, ${transparentize(0.2, props.theme.colors.blue4)} 610%)`;
     }};
-    box-shadow: rgb(20 20 25 / 15%) 0 4px 16px, rgb(20 20 25 / 15%) 0 8px 32px;
+    box-shadow:
+        rgb(20 20 25 / 15%) 0 4px 16px,
+        rgb(20 20 25 / 15%) 0 8px 32px;
 `;
 
 const LogoutButton = styled(Button)`

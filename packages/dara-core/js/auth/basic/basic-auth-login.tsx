@@ -97,13 +97,15 @@ const StyledInput = styled.input<{ $error?: boolean }>`
     border: none;
     border-radius: 0.25rem;
     outline: none;
-    box-shadow: inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
+    box-shadow:
+        inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
         inset 0 0 0 1px ${(props) => (props.$error ? props.theme.colors.error : props.theme.colors.grey2)},
         0 1px 2px 0 rgb(0 0 0 / 5%);
 
     :active,
     :focus {
-        box-shadow: inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
+        box-shadow:
+            inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
             inset 0 0 0 2px ${(props) => (props.$error ? props.theme.colors.error : props.theme.colors.primary)},
             0 1px 2px 0 rgb(0 0 0 / 5%);
     }

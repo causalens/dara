@@ -100,9 +100,9 @@ function Button(props: ButtonProps): JSX.Element {
                 />
             )}
             <DisplayCtx.Provider value={{ component: ComponentType.BUTTON, direction: 'horizontal' }}>
-                {typeof props.children === 'string'
-                    ? props.children
-                    : props.children.map((child) => <DynamicComponent component={child} key={`button-${child.uid}`} />)}
+                {typeof props.children === 'string' ?
+                    props.children
+                :   props.children.map((child) => <DynamicComponent component={child} key={`button-${child.uid}`} />)}
             </DisplayCtx.Provider>
         </StyledButton>
     );

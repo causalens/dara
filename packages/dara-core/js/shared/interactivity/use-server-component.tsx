@@ -104,10 +104,13 @@ export function cleanValue(value: unknown, force: boolean): any {
 }
 
 function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string, any> {
-    return Object.keys(kwargs).reduce((acc, k) => {
-        acc[k] = cleanValue(kwargs[k], force);
-        return acc;
-    }, {} as Record<string, any>);
+    return Object.keys(kwargs).reduce(
+        (acc, k) => {
+            acc[k] = cleanValue(kwargs[k], force);
+            return acc;
+        },
+        {} as Record<string, any>
+    );
 }
 
 function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexValue> {
@@ -161,11 +164,14 @@ function getOrRegisterServerComponent(
                     (extrasSerializable: RequestExtrasSerializable) =>
                     async ({ get }) => {
                         // Kwargs resolved to their simple values
-                        const resolvedKwargs = Object.keys(dynamicKwargs).reduce((acc, k) => {
-                            const value = dynamicKwargs[k];
-                            acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
-                            return acc;
-                        }, {} as Record<string, any>);
+                        const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
+                            (acc, k) => {
+                                const value = dynamicKwargs[k];
+                                acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
+                                return acc;
+                            },
+                            {} as Record<string, any>
+                        );
 
                         // Turn kwargs into lists so we can re-use the DerivedVariable logic
                         const resolvedKwargsList = Object.values(resolvedKwargs);
@@ -195,10 +201,13 @@ function getOrRegisterServerComponent(
 
                         // turn the resolved values back into an object and clean them up
                         const kwargValues = cleanKwargs(
-                            Object.keys(dynamicKwargs).reduce((acc, k, idx) => {
-                                acc[k] = derivedResult.values[idx];
-                                return acc;
-                            }, {} as Record<string, any>),
+                            Object.keys(dynamicKwargs).reduce(
+                                (acc, k, idx) => {
+                                    acc[k] = derivedResult.values[idx];
+                                    return acc;
+                                },
+                                {} as Record<string, any>
+                            ),
                             derivedResult.force
                         );
 

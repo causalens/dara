@@ -90,10 +90,10 @@ async function resolveComponent(
         if (!importer) {
             // This error should only be seen by the app developer, so include details on how to solve it
             const errorDescription =
-                componentEntry.py_module === 'LOCAL'
-                    ? `This is a local component so make sure you are in production mode and dara.config.json is present.
+                componentEntry.py_module === 'LOCAL' ?
+                    `This is a local component so make sure you are in production mode and dara.config.json is present.
                     You can try re-building JavaScript by running Dara with the --rebuild flag.`
-                    : `This means that the JavaScript module for the component was not included by the discovery system.
+                :   `This means that the JavaScript module for the component was not included by the discovery system.
                     You can try re-building JavaScript by running Dara with the --rebuild flag
                     and/or explicitly registering the component with "config.add_component(MyComponentClass)".`;
             return (

@@ -35,15 +35,18 @@ async function invokeAction(
     actionCtx: ActionContext
 ): Promise<void> {
     // resolve kwargs to primitives, this registers variables if not already registered
-    const resolvedKwargs = Object.keys(annotatedAction.dynamic_kwargs).reduce((acc, k) => {
-        const value = annotatedAction.dynamic_kwargs[k];
-        acc[k] = resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
-            // This is only called for primitive variables so it should always resolve successfully
-            // hence not using a promise
-            actionCtx.snapshot.getLoadable(v).getValue()
-        );
-        return acc;
-    }, {} as Record<string, any>);
+    const resolvedKwargs = Object.keys(annotatedAction.dynamic_kwargs).reduce(
+        (acc, k) => {
+            const value = annotatedAction.dynamic_kwargs[k];
+            acc[k] = resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
+                // This is only called for primitive variables so it should always resolve successfully
+                // hence not using a promise
+                actionCtx.snapshot.getLoadable(v).getValue()
+            );
+            return acc;
+        },
+        {} as Record<string, any>
+    );
 
     const ws_channel = await actionCtx.wsClient.getChannel();
 

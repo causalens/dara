@@ -21,13 +21,11 @@ interface BadgeFormattedCellProps {
  */
 function BadgeFormattedCell(badges: BadgesInterface): (props: BadgeFormattedCellProps) => JSX.Element {
     function FormattedBadge({ value }: BadgeFormattedCellProps): JSX.Element {
-        return badges[value] ? (
-            <Badge color={badges[value].color} width="100%">
-                {badges[value].label}
-            </Badge>
-        ) : (
-            <span>{value}</span>
-        );
+        return badges[value] ?
+                <Badge color={badges[value].color} width="100%">
+                    {badges[value].label}
+                </Badge>
+            :   <span>{value}</span>;
     }
     return FormattedBadge;
 }

@@ -27,7 +27,9 @@ function headerRenderer(item: AccordionItemType): JSX.Element {
     const theme = useTheme();
     return (
         <StyledHeader>
-            {typeof item.label === 'string' ? <span>{item.label}</span> : <DynamicComponent component={item.label} />}
+            {typeof item.label === 'string' ?
+                <span>{item.label}</span>
+            :   <DynamicComponent component={item.label} />}
             {item.badge && (
                 <Badge color={item.badge.color || theme.colors.primary} height={24} width="10rem">
                     {item.badge.label}
