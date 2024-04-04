@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.0
 
 -   In `Chat` messages, changed `timestamp` prop to be divided into two `created_at` and `updated_at`.
 -   Added "(edited)" indicator to the messages which have been edited in the `Chat` component.
