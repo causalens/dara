@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.7.7
+
+-   Fixed an issue where `DataFrame`s with multiple indexes would fail to serialize correctly
+-   Improved logging within the authentication system
+
 ## 1.7.4
 
 -   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
