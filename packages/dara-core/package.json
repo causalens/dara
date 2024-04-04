@@ -1,6 +1,6 @@
 {
   "name": "@darajs/core",
-  "version": "1.7.7",
+  "version": "1.8.0",
   "description": "Dara Framework core",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -66,8 +66,8 @@
     "jest-css-modules": "^2.1.0",
     "jest-environment-jsdom": "^29.5.0",
     "msw": "1.0.1",
-    "prettier": "^3.0.0",
     "postcss": "^8.4.35",
+    "prettier": "^3.0.0",
     "react-test-renderer": "^17.0.2",
     "rimraf": "^3.0.2",
     "start-server-and-test": "^1.14.0",
