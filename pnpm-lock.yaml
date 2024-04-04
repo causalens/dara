@@ -168,6 +168,7 @@ importers:
       object-hash: ^3.0.0
       polished: ^4.1.1
       postcss: ^8.4.35
+      prettier: ^3.0.0
       query-string: ^7.1.1
       react: ^18.2.0
       react-collapse: ^5.1.1
@@ -259,6 +260,7 @@ importers:
       jest-environment-jsdom: 29.7.0
       msw: 1.0.1_typescript@5.3.3
       postcss: 8.4.38
+      prettier: 3.2.5
       react-test-renderer: 17.0.2_react@18.2.0
       rimraf: 3.0.2
       start-server-and-test: 1.15.4
