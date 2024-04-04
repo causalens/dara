@@ -433,10 +433,22 @@ export class WebSocketClient implements WebSocketClientInterface {
      * @param channel return channel to identify the message
      */
     sendVariable(value: any, channel: string): void {
+        this.sendMessage(value, channel);
+    }
+
+    /**
+     * Send an internal message to the backend. This is used to respond to sendAndWait calls from the backend.
+     *
+     * @param value variable value to send
+     * @param channel return channel to identify the message
+     * @param chunkCount total number of chunks this message has been split into
+     */
+    sendMessage(value: any, channel: string, chunkCount?: number): void {
         if (this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(
                 JSON.stringify({
                     channel,
+                    chunk_count: chunkCount ?? null,
                     message: value,
                     type: 'message',
                 })
