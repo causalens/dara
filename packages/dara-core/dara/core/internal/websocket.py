@@ -40,10 +40,13 @@ from dara.core.logging import dev_logger, eng_logger
 class DaraClientMessage(BaseModel):
     """
     Represents a message sent by Dara internals from the frontend to the backend.
+
+    An optional chunk_count field can be used to indicate that a message is chunked and what number of messages to expect
     """
 
     type: Literal['message'] = Field(default='message', const=True)
     channel: str
+    chunk_count: Optional[int] = None
     message: Any
 
 
@@ -132,7 +135,7 @@ class WebSocketHandler:
     Stream containing messages to send to the client.
     """
 
-    pending_responses: Dict[str, Tuple[Event, Optional[Any]]] = {}
+    pending_responses: Dict[str, Tuple[Event, Optional[Any]]]
     """
     A map of pending responses from the client. The key is the message ID and the value is a tuple of the event to
     notify when the response is received and the response data.
@@ -146,6 +149,7 @@ class WebSocketHandler:
         self.channel_id = channel_id
         self.send_stream = send_stream
         self.receive_stream = receive_stream
+        self.pending_responses = {}
 
     async def send_message(self, message: ServerMessage):
         """
@@ -168,11 +172,23 @@ class WebSocketHandler:
             # If the message has a channel ID, it's a response to a previous message
             if message_id:
                 if message_id in self.pending_responses:
-                    event, _ = self.pending_responses[message_id]
+                    event, existing_messages = self.pending_responses[message_id]
 
-                    # Store the response and set the event to notify the waiting coroutine
-                    self.pending_responses[message_id] = (event, message.message)
-                    event.set()
+                    # If the response is chunked then collect the messages in pending responses
+                    if message.chunk_count is not None:
+                        if existing_messages is not None and isinstance(existing_messages, list):
+                            existing_messages.append(message.message)
+                        else:
+                            existing_messages = [message.message]
+                            self.pending_responses[message_id] = (event, existing_messages)
+
+                        # If all chunks have been received, set the event to notify the waiting coroutine
+                        if len(existing_messages) == message.chunk_count:
+                            event.set()
+                    else:
+                        # Store the response and set the event to notify the waiting coroutine
+                        self.pending_responses[message_id] = (event, message.message)
+                        event.set()
 
         if message.type == 'custom':
             # import required internals
@@ -195,7 +211,7 @@ class WebSocketHandler:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
                 return
 
-    async def send_and_wait(self, message: ServerMessage) -> Optional[ClientMessage]:
+    async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
         """
         Send a message to the client and return the client's response
 

@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.7.7
+
+-   Fixed an issue where if `EditorMode` was not defined edges were always added as undirected.
+-   Fixed an issue where graph rendering would enter an infinite loop and cause crashes in some circumstances.
+
 ## 1.7.6
 
 -   Fixed an issue where if a word was too long, such as in an url, the `Chat` message would overflow instead of wrap.

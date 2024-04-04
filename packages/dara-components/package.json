@@ -1,6 +1,6 @@
 {
   "name": "@darajs/components",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Components for the Dara framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",
-    "@darajs/core": "1.7.6",
+    "@darajs/core": "1.7.7",
     "@darajs/styled-components": "~1.8.0",
     "@darajs/ui-causal-graph-editor": "~1.8.0",
     "@darajs/ui-code-editor": "~1.8.0",
@@ -72,12 +72,12 @@
     "prism-react-renderer": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-markdown": "8.0.6",
+    "react-markdown": "^9.0.1",
     "react-plotly.js": "~2.6.0",
     "react-virtualized-auto-sizer": "1.0.6",
     "recoil": "^0.7.7",
     "rehype-raw": "^6.1.1",
-    "remark-gfm": "^3.0.1"
+    "remark-gfm": "^4.0.0"
   },
   "files": [
     "dist"
