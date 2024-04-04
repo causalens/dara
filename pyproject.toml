@@ -58,7 +58,7 @@ version = "=1.8.0"
 optional = true
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0.0"
+pytest = "^8.1.1"
 freezegun = "^1.2.2"
 mypy = "^1.6.0"
 pytest-timeout = "^2.1.0"
