@@ -20,10 +20,10 @@ lint:
 	poetry run python ./tooling/scripts/run_borg_script.py lint && lerna run lint
 
 format:
-	poetry run python ./tooling/scripts/run_borg_script.py format && lerna run lint:fix
+	poetry run python ./tooling/scripts/run_borg_script.py format && lerna run format
 
 format-check:
-	poetry run python ./tooling/scripts/run_borg_script.py format-check
+	poetry run python ./tooling/scripts/run_borg_script.py format-check && lerna run format:check
 
 # Run security scan
 security-scan:

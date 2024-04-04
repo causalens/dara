@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useMemo } from 'react';
 
 import {
@@ -30,8 +29,7 @@ interface RowProps extends LayoutComponentProps {
 const RowComponent = styled.div`
     display: flex;
     flex: 1 1 auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-flow: row wrap;
 `;
 
 type ColumnInstance = ComponentInstance<ColumnProps>;
@@ -103,9 +101,10 @@ function getCellWidth(
     breakpoints: Breakpoints
 ): number {
     const widthAvailable = 100 - (row.length - 1) * columnGap;
-    const width = childSpan
-        ? (childSpan * widthAvailable) / MAX_COLUMNS
-        : (getCellWidthByRow(row, breakpoint, breakpoints) * widthAvailable) / MAX_COLUMNS;
+    const width =
+        childSpan ?
+            (childSpan * widthAvailable) / MAX_COLUMNS
+        :   (getCellWidthByRow(row, breakpoint, breakpoints) * widthAvailable) / MAX_COLUMNS;
     return width > 100 ? 100 : width;
 }
 

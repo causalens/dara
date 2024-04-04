@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { formatISO } from 'date-fns';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -493,16 +492,16 @@ function Table(props: TableProps): JSX.Element {
 
         // Construct filter query
         const newSearchQuery: ClauseQuery =
-            searchTermClean.length > 0
-                ? {
-                      clauses: searchColumns.map((col) => ({
-                          column: col,
-                          operator: 'CONTAINS',
-                          value: searchTermClean,
-                      })),
-                      combinator: 'OR',
-                  }
-                : null;
+            searchTermClean.length > 0 ?
+                {
+                    clauses: searchColumns.map((col) => ({
+                        column: col,
+                        operator: 'CONTAINS',
+                        value: searchTermClean,
+                    })),
+                    combinator: 'OR',
+                }
+            :   null;
 
         debouncedSetSearchQuery(newSearchQuery);
     };

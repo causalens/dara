@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useCallback, useEffect, useRef } from 'react';
 
 import styled from '@darajs/styled-components';
@@ -29,10 +28,7 @@ const FloatingDevtoolButton = styled.button<{
     border-color: ${(props) => props.theme.colors.secondary};
     border-radius: 30%;
 
-    transition-delay: 0s;
-    transition-timing-function: ease;
-    transition-duration: 150ms;
-    transition-property: ${(props) => (!props.$isDragging ? 'left top' : 'none')};
+    transition: ${(props) => (!props.$isDragging ? 'left top' : 'none')} 150ms ease 0s;
 `;
 
 const ErrorBadge = styled.i`

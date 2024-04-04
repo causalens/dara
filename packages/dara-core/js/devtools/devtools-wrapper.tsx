@@ -38,7 +38,7 @@ const SidebarWrapper = styled.div`
     max-width: ${MAX_WIDTH}px;
     height: 100%;
 
-    box-shadow: 8px 2px 32px -2px rgba(0, 0, 0, 0.25);
+    box-shadow: 8px 2px 32px -2px rgb(0 0 0 / 25%);
 `;
 
 /**

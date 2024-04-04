@@ -65,6 +65,7 @@ const FlashingDots = styled.div`
         0% {
             background-color: ${(props) => props.theme.colors.grey4};
         }
+
         50%,
         100% {
             background-color: ${(props) => props.theme.colors.grey3};

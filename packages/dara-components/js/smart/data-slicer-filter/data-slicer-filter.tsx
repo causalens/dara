@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
-/* eslint-disable react-hooks/exhaustive-deps */
 
+/* eslint-disable react-hooks/exhaustive-deps */
 import { formatISO, parseISO } from 'date-fns';
 import { produce } from 'immer';
 import debounce from 'lodash/debounce';

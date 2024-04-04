@@ -11,9 +11,11 @@ const ErrorWrapper = styled.div`
     flex-direction: column;
     width: 100%;
 
+    /* stylelint-disable selector-class-pattern */
     .ReactCollapse--collapse {
         transition: height 0.35s ease;
     }
+    /* stylelint-enable selector-class-pattern */
 `;
 
 const ErrorHeader = styled.div`

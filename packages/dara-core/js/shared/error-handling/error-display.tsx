@@ -78,7 +78,9 @@ const RetryButton = styled.button`
     border-color: ${(props) => props.theme.colors.error};
     border-radius: 5px;
 
-    transition: color border-color 100ms ease;
+    transition-timing-function: ease;
+    transition-duration: 100ms;
+    transition-property: color, border-color;
 
     i {
         line-height: 21px;

@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useEffect } from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';
@@ -11,12 +10,15 @@ import { useDeepCompare } from '@darajs/ui-utils';
  * @param delay the delay in seconds between each interval
  */
 function useInterval(callback: () => void, delay: number): void {
-    useEffect(() => {
-        if (delay) {
-            const id = setInterval(callback, delay * 1000);
-            return () => clearInterval(id);
-        }
-    }, useDeepCompare([delay, callback]));
+    useEffect(
+        () => {
+            if (delay) {
+                const id = setInterval(callback, delay * 1000);
+                return () => clearInterval(id);
+            }
+        },
+        useDeepCompare([delay, callback])
+    );
 }
 
 export default useInterval;

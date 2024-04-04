@@ -36,11 +36,11 @@ import type {
     Task,
     TaskResponse,
     Template,
+    TemplateMarker,
+    TemplatedComponentInstance,
     UrlVariable,
     ValueQuery,
     Variable,
-    TemplatedComponentInstance,
-    TemplateMarker,
 } from './core';
 
 export type {

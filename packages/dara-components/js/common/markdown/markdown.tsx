@@ -27,7 +27,9 @@ const _CustomMarkdown = styled.div`
     }
 
     blockquote {
+        /* stylelint-disable declaration-property-value-no-unknown */
         quotes: '"\\201C""\\201D""\\2018""\\2019"';
+        /* stylelint-enable declaration-property-value-no-unknown */
 
         margin-top: 1.5rem;
         margin-bottom: 1.5rem;
@@ -96,15 +98,24 @@ const _CustomMarkdown = styled.div`
 
         margin-top: 1.7rem;
         margin-bottom: 1.7rem;
-        padding-top: 0.85rem;
-        padding-right: 1.15rem;
-        padding-bottom: 0.85rem;
-        padding-left: 1.15rem;
+        padding: 0.85rem 1.15rem;
 
         font-size: 0.9rem;
         line-height: 1.7;
 
         border-radius: 0.375rem;
+    }
+
+    hr {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    hr + *,
+    h2 + *,
+    h3 + *,
+    h4 + * {
+        margin-top: 0;
     }
 
     ol,
@@ -131,19 +142,6 @@ const _CustomMarkdown = styled.div`
                 margin-bottom: 1.25rem;
             }
         }
-    }
-
-    hr {
-        margin-top: 3rem;
-
-        margin-bototm: 3rem;
-    }
-
-    hr + *,
-    h2 + *,
-    h3 + *,
-    h4 + * {
-        margin-top: 0;
     }
 
     table {

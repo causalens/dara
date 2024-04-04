@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useEffect, useState } from 'react';
 
 import {
@@ -28,7 +27,7 @@ const Card = styled.div`
 `;
 
 const TabbedCardWrapper = styled(CardDiv)`
-    padding: 0rem;
+    padding: 0;
 `;
 
 interface Tab {

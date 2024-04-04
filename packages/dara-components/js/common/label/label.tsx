@@ -40,7 +40,7 @@ function Label(props: LabelProps): JSX.Element {
                 ...style,
             }}
         >
-            {typeof props.value === 'string' ? (
+            {typeof props.value === 'string' ?
                 <span
                     style={{
                         alignItems: 'center',
@@ -51,9 +51,7 @@ function Label(props: LabelProps): JSX.Element {
                 >
                     {props.value}
                 </span>
-            ) : (
-                <DynamicComponent component={props.value} />
-            )}
+            :   <DynamicComponent component={props.value} />}
             {props.children.map((child, idx) => (
                 <DynamicComponent component={child} key={`cell-${idx}-${child.uid}`} />
             ))}

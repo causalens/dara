@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useMemo } from 'react';
 
 import {
@@ -138,23 +137,26 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
     const graphData = useMemo<CausalGraph>(() => {
         return {
             // If initial constraints are passed, we need to also add edges for each constraint
-            edges: parsedConstraints.reduce((acc, c) => {
-                // Make sure the constraint is fully built - could be i.e. half-built by simple edge encoder
-                if (c.source && c.target) {
-                    if (!(c.source in acc)) {
-                        acc[c.source] = {};
+            edges: parsedConstraints.reduce(
+                (acc, c) => {
+                    // Make sure the constraint is fully built - could be i.e. half-built by simple edge encoder
+                    if (c.source && c.target) {
+                        if (!(c.source in acc)) {
+                            acc[c.source] = {};
+                        }
+
+                        acc[c.source][c.target] = {
+                            destination: parsedNodes[c.target],
+                            edge_type: EdgeType.UNDIRECTED_EDGE,
+                            meta: {},
+                            source: parsedNodes[c.source],
+                        };
                     }
 
-                    acc[c.source][c.target] = {
-                        destination: parsedNodes[c.target],
-                        edge_type: EdgeType.UNDIRECTED_EDGE,
-                        meta: {},
-                        source: parsedNodes[c.source],
-                    };
-                }
-
-                return acc;
-            }, {} as Record<string, Record<string, CausalGraphEdge>>),
+                    return acc;
+                },
+                {} as Record<string, Record<string, CausalGraphEdge>>
+            ),
             nodes: parsedNodes,
             version: 'none', // doesn't matter as we don't output a whole graph
         };

@@ -31,12 +31,15 @@ const StyledA = injectCss(styled.a<DefaultTheme>`
     :visited {
         color: ${(props) => props.theme.colors.secondary};
     }
+
     :link {
         color: ${(props) => props.theme.colors.primary};
     }
+
     :hover {
         color: ${(props) => props.theme.colors.primaryHover};
     }
+
     :active {
         color: ${(props) => props.theme.colors.primaryDown};
     }

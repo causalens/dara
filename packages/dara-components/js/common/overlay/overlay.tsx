@@ -19,10 +19,10 @@ interface RenderProp {
 const OverlayWrapper = injectCss(styled.div<RenderProp>`
     position: absolute;
     z-index: 2000;
-    top: ${(props) => (props.position?.includes('top') ? '0' : null)};
-    right: ${(props) => (props.position?.includes('right') ? '0' : null)};
-    bottom: ${(props) => (props.position?.includes('bottom') ? '0' : null)};
-    left: ${(props) => (props.position?.includes('left') ? '0' : null)};
+    inset: ${(props) => (props.position?.includes('top') ? '0' : null)}
+        ${(props) => (props.position?.includes('right') ? '0' : null)}
+        ${(props) => (props.position?.includes('bottom') ? '0' : null)}
+        ${(props) => (props.position?.includes('left') ? '0' : null)};
 
     display: ${(props) => (props.render ? 'inline-flex' : 'none')};
     flex-direction: column;

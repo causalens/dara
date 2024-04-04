@@ -138,15 +138,16 @@ export function getOrRegisterPlainVariable<T>(
 
                 Otherwise just use variable.default directly.
                 */
-                default: isDefaultDerived
-                    ? (extrasSerializable: RequestExtrasSerializable) =>
-                          getOrRegisterDerivedVariableValue(
-                              variable.default as DerivedVariable,
-                              wsClient,
-                              taskContext,
-                              extrasSerializable.extras
-                          )
-                    : variable.default,
+                default:
+                    isDefaultDerived ?
+                        (extrasSerializable: RequestExtrasSerializable) =>
+                            getOrRegisterDerivedVariableValue(
+                                variable.default as DerivedVariable,
+                                wsClient,
+                                taskContext,
+                                extrasSerializable.extras
+                            )
+                    :   variable.default,
                 effects: (extrasSerializable: RequestExtrasSerializable) => {
                     const familySync: AtomEffect<T> = ({ onSet, setSelf, resetSelf, node }) => {
                         // Register the atom in the state synchronizer if not already registered

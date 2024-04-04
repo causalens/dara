@@ -2,6 +2,13 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   In `Chat` messages, changed `timestamp` prop to be divided into two `created_at` and `updated_at`.
+-   Added "(edited)" indicator to the messages which have been edited in the `Chat` component.
+-   `Chat` will now send a message when `Enter` is pressed by the user.
+-   `Chat` now shows a disabled state for the `Send` button if the message to be sent is empty.
+
 ## 1.7.7
 
 -   Fixed an issue where if `EditorMode` was not defined edges were always added as undirected.
