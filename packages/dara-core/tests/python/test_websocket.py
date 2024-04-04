@@ -1,13 +1,18 @@
 import asyncio
 import os
-import token
-from uuid import uuid4
+from typing import Any, Callable
 
 import anyio
 import pytest
 from async_asgi_testclient import TestClient as AsyncTestClient
 from tests.python.tasks import exception_task
-from tests.python.utils import AUTH_HEADERS, _async_ws_connect, _call_action, create_app, get_ws_messages
+from tests.python.utils import (
+    AUTH_HEADERS,
+    _async_ws_connect,
+    _call_action,
+    create_app,
+    get_ws_messages,
+)
 
 from dara.core import DerivedVariable, UpdateVariable, Variable
 from dara.core.auth import BasicAuthConfig, MultiBasicAuthConfig
@@ -16,7 +21,13 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.any_variable import NOT_REGISTERED
 from dara.core.internal.registries import utils_registry
-from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
+from dara.core.internal.websocket import (
+    WS_CHANNEL,
+    DaraClientMessage,
+    DaraServerMessage,
+    ServerMessagePayload,
+    WebsocketManager,
+)
 from dara.core.main import _start_application
 
 pytestmark = pytest.mark.anyio
@@ -34,6 +45,76 @@ config = create_app(builder)
 
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
+
+
+async def _await_for_condition(fn: Callable[..., Any]):
+    i = 0
+    while not fn():
+        await asyncio.sleep(0.1)
+        i += 1
+
+        # If we fail 20 times, ~2secs has expired so bail out
+        if i > 20:
+            raise Exception('Timeout')
+
+
+async def _send_task(handler, messages):
+    # First we wait for the first task to send the message in the first place
+    await _await_for_condition(lambda: len(handler.pending_responses) > 0)
+
+    msg_id = list(handler.pending_responses.keys())[0]
+
+    # Process the messages which should unblock the first task and allow it to complete
+    for message in messages:
+        msg = DaraClientMessage(
+            channel=msg_id,
+            message=message,
+            chunk_count=None if len(messages) == 1 else len(messages),
+        )
+        await handler.process_client_message(msg)
+
+
+async def test_websocket_send_and_wait():
+    """
+    Test that calling send_and_wait on a websocket handler will block until a response is received
+    """
+    result = {}
+    ws_mgr = WebsocketManager()
+    ws_handler = ws_mgr.create_handler('CHANNEL')
+
+    async def get_task():
+        nonlocal result
+        result = await ws_handler.send_and_wait(DaraServerMessage(message=ServerMessagePayload()))
+
+    # Run the two tasks concurrently
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(_send_task, ws_handler, ['hello'])
+        tg.start_soon(get_task)
+
+    # Verify that a single doc was returned
+    assert result == 'hello'
+
+
+async def test_websocket_send_and_wait_with_chunks():
+    """
+    Test that calling send_and_wait on a websocket handler will block until a response is received even when the
+    response is sent in multiple chunks
+    """
+    result = {}
+    ws_mgr = WebsocketManager()
+    ws_handler = ws_mgr.create_handler('CHANNEL')
+
+    async def get_task():
+        nonlocal result
+        result = await ws_handler.send_and_wait(DaraServerMessage(message=ServerMessagePayload()))
+
+    # Run the two tasks concurrently
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(_send_task, ws_handler, ['hello', 'world', '!!!'])
+        tg.start_soon(get_task)
+
+    # Verify that a single doc was returned
+    assert result == ['hello', 'world', '!!!']
 
 
 async def test_websocket_broadcast():
