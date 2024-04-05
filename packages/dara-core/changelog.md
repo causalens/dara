@@ -2,6 +2,9 @@
 title: Changelog
 ---
 
+## NEXT 
+-   Added missing interface definition to the WebsocketClientInterface in the ui code
+
 ## 1.7.7
 
 -   Fixed an issue where `DataFrame`s with multiple indexes would fail to serialize correctly
