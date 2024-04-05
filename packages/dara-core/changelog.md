@@ -2,7 +2,8 @@
 title: Changelog
 ---
 
-## NEXT 
+## 1.7.8
+
 -   Added missing interface definition to the WebsocketClientInterface in the ui code
 
 ## 1.7.7
