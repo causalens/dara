@@ -106,7 +106,6 @@ def _tuple_key_deserialize(d):
         else:
             encoded_key = key
 
-        # encoded_key = tuple(key[10:-1].split(',')) if isinstance(key, str) and key.startswith('__tuple__') else key
         encoded_value = _tuple_key_deserialize(value) if isinstance(value, dict) else value
         encoded_dict[encoded_key] = encoded_value
     return encoded_dict
