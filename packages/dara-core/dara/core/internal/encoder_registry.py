@@ -95,7 +95,17 @@ def _tuple_key_deserialize(d):
     """
     encoded_dict = {}
     for key, value in d.items():
-        encoded_key = tuple(key[10:-1].split(',')) if isinstance(key, str) and key.startswith('__tuple__') else key
+        if isinstance(key, str) and key.startswith('__tuple__'):
+            key_list = []
+            for each in key[10:-1].split(', '):
+                if (each.startswith("'") and each.endswith(("'"))) or (each.startswith('"') and each.endswith(('"'))):
+                    key_list.append(each[1:-1])
+                else:
+                    key_list.append(each)
+            encoded_key = encoded_key = tuple(key_list)
+        else:
+            encoded_key = key
+
         encoded_value = _tuple_key_deserialize(value) if isinstance(value, dict) else value
         encoded_dict[encoded_key] = encoded_value
     return encoded_dict
