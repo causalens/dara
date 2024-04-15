@@ -1,9 +1,16 @@
 import * as React from 'react';
 
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useUser, useVariable, UserData } from '@darajs/core';
+import {
+    StyledComponentProps,
+    UserData,
+    Variable,
+    injectCss,
+    useComponentStyles,
+    useUser,
+    useVariable,
+} from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
-
 
 interface ChatProps extends StyledComponentProps {
     /** Passthrough the className property */
