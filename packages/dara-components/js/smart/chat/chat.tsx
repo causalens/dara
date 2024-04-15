@@ -1,8 +1,16 @@
 import * as React from 'react';
 
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import {
+    StyledComponentProps,
+    UserData,
+    Variable,
+    injectCss,
+    useComponentStyles,
+    useUser,
+    useVariable,
+} from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
-import { Message, Chat as UiChat } from '@darajs/ui-components';
+import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
 
 interface ChatProps extends StyledComponentProps {
     /** Passthrough the className property */
@@ -44,6 +52,22 @@ const ChatButton = styled.button`
 const StyledChat = injectCss(UiChat);
 
 /**
+ * Parse the user data into the UI user data format
+ *
+ * @param user the user data to parse
+ */
+function parseUserData(user: UserData): UiUserData {
+    return {
+        id: user?.identity_id,
+        name: user.identity_name,
+        email: user?.identity_email,
+    };
+}
+
+/** User data for an unknown user */
+const anonymousUser: UserData = { identity_name: 'Anonymous' };
+
+/**
  * The Chat component switches between a chat button and a chat sidebar, allowing the user to interact with a chat.
  *
  * @param props the component props
@@ -51,6 +75,8 @@ const StyledChat = injectCss(UiChat);
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
+    const user = useUser();
+    const userData = user.data ?? anonymousUser;
     const [showChat, setShowChat] = React.useState(false);
     const theme = useTheme();
 
@@ -64,6 +90,7 @@ function Chat(props: ChatProps): JSX.Element {
                     onUpdate={setValue}
                     style={style}
                     value={value}
+                    activeUser={parseUserData(userData)}
                 />
             )}
             {!showChat && (
