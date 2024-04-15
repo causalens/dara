@@ -24,6 +24,7 @@ import type {
     StyledComponentProps,
     Template,
     UrlVariable,
+    UserData,
     ValueQuery,
     Variable,
 } from './types';
@@ -59,6 +60,7 @@ export type {
     RequestExtras,
     RequestOptions,
     LayoutComponentProps,
+    UserData,
 };
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
