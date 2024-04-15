@@ -51,7 +51,11 @@ const ChatButton = styled.button`
 
 const StyledChat = injectCss(UiChat);
 
-// function parseUserData
+/**
+ * Parse the user data into the UI user data format
+ *
+ * @param user the user data to parse
+ */
 function parseUserData(user: UserData): UiUserData {
     return {
         id: user?.identity_id,
@@ -59,6 +63,9 @@ function parseUserData(user: UserData): UiUserData {
         email: user?.identity_email,
     };
 }
+
+/** User data for an unknown user */
+const anonymousUser: UserData = { identity_name: 'Anonymous' };
 
 /**
  * The Chat component switches between a chat button and a chat sidebar, allowing the user to interact with a chat.
@@ -68,7 +75,6 @@ function parseUserData(user: UserData): UiUserData {
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
-    const anonymousUser: UserData = { identity_name: 'Anonymous' };
     const user = useUser();
     let userData = user.data ?? anonymousUser;
     const [showChat, setShowChat] = React.useState(false);
