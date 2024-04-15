@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   `Chat` component now shows the user who has written a message
+-   `Chat` component now displays its messages content as `Markdown`.
+
 ## 1.8.0
 
 -   In `Chat` messages, changed `timestamp` prop to be divided into two `created_at` and `updated_at`.
