@@ -54,9 +54,9 @@ const StyledChat = injectCss(UiChat);
 // function parseUserData
 function parseUserData(user: UserData): UiUserData {
     return {
-        id: user.identity_id,
+        id: user?.identity_id,
         name: user.identity_name,
-        email: user.identity_email,
+        email: user?.identity_email,
     };
 }
 
@@ -68,7 +68,9 @@ function parseUserData(user: UserData): UiUserData {
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
+    const anonymousUser: UserData = { identity_name: 'Anonymous' };
     const user = useUser();
+    let userData = user.data ?? anonymousUser;
     const [showChat, setShowChat] = React.useState(false);
     const theme = useTheme();
 
@@ -82,7 +84,7 @@ function Chat(props: ChatProps): JSX.Element {
                     onUpdate={setValue}
                     style={style}
                     value={value}
-                    activeUser={parseUserData(user.data)}
+                    activeUser={parseUserData(userData)}
                 />
             )}
             {!showChat && (
