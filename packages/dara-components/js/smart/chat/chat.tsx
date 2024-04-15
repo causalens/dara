@@ -76,7 +76,7 @@ function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
     const user = useUser();
-    let userData = user.data ?? anonymousUser;
+    const userData = user.data ?? anonymousUser;
     const [showChat, setShowChat] = React.useState(false);
     const theme = useTheme();
 
