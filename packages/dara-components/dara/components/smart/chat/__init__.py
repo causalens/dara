@@ -16,5 +16,8 @@ limitations under the License.
 """
 
 from dara.components.smart.chat.chat import Chat
+from dara.components.smart.chat.chat_interface import ChatInterface
+from dara.components.smart.chat.types import NewMessageBody
+from dara.components.smart.chat.config import ChatConfig
 
-__all__ = ['Chat']
+__all__ = ['Chat', 'ChatInterface', 'NewMessageBody', 'ChatConfig']
