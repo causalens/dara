@@ -6,6 +6,7 @@ title: Changelog
 
 -   `Chat` component now shows the user who has written a message
 -   `Chat` component now displays its messages content as `Markdown`.
+-   `Chat` sends a notification when a new message is addded to it.
 
 ## 1.8.0
 
