@@ -11,6 +11,6 @@ from dara.components.smart.chat.types import NewMessageBody
 mimetypes.init()
 
 
-@post(f'/chat/messages')
+@post('/chat/messages')
 def on_new_message(chat_config: ChatConfig, body: NewMessageBody):
     return chat_config.on_new_message(body)
