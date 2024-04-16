@@ -50,4 +50,4 @@ class NewMessageBody(BaseModel):
 
     app_url: str
     users: List[ChatUserData]
-    content: str
+    content: ChatMessage

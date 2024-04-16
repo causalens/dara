@@ -9,6 +9,9 @@ import {
     useComponentStyles,
     useUser,
     useVariable,
+    handleAuthErrors,
+    useRequestExtras,
+    RequestExtras
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
@@ -96,14 +99,15 @@ function getAllUsersInChat(chat: Message[]): UiUserData[] {
 const anonymousUser: UserData = { identity_name: 'Anonymous' };
 
 /**
- * Api call to send the new message notification
+ * Api call to send the new message payload
  */
-async function sendNotification(payload: MessageNotificationPayload): Promise<void> {
+async function sendNewMessage(payload: MessageNotificationPayload, extras: RequestExtras): Promise<void> {
     try {
-        const res = await request('/notification/messages', {
+        const res = await request('/api/chat/messages', {
             body: JSON.stringify(payload),
             method: HTTP_METHOD.POST,
-        });
+        }, extras);
+        await handleAuthErrors(res);
         await validateResponse(res, 'Failed to send message notification');
     } catch (error) {
         // eslint-disable-next-line no-console
@@ -119,10 +123,11 @@ async function sendNotification(payload: MessageNotificationPayload): Promise<vo
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
-    const user = useUser();
-    const userData = user.data ?? anonymousUser;
     const [showChat, setShowChat] = React.useState(false);
+    const user = useUser();
     const theme = useTheme();
+    const extras = useRequestExtras();
+    const userData = user.data ?? anonymousUser;
 
     const onUpdate = (newValue: Message[]): void => {
         // If the new value is longer than the old value, we can assume that a new message was added
@@ -134,7 +139,7 @@ function Chat(props: ChatProps): JSX.Element {
                 users,
                 content: newMessage,
             };
-            sendNotification(notificationPayload);
+            sendNewMessage(notificationPayload, extras);
         }
         setValue(newValue);
     };
