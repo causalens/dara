@@ -96,7 +96,7 @@ function getAllUsersInChat(chat: Message[]): UiUserData[] {
 const anonymousUser: UserData = { identity_name: 'Anonymous' };
 
 /**
- * Api call to get user data from the backend
+ * Api call to send the new message notification
  */
 async function sendNotification(payload: MessageNotificationPayload): Promise<void> {
     try {
