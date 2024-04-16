@@ -1,17 +1,17 @@
 import * as React from 'react';
 
 import {
+    RequestExtras,
     StyledComponentProps,
     UserData,
     Variable,
+    handleAuthErrors,
     injectCss,
     request,
     useComponentStyles,
+    useRequestExtras,
     useUser,
     useVariable,
-    handleAuthErrors,
-    useRequestExtras,
-    RequestExtras
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
@@ -103,10 +103,14 @@ const anonymousUser: UserData = { identity_name: 'Anonymous' };
  */
 async function sendNewMessage(payload: MessageNotificationPayload, extras: RequestExtras): Promise<void> {
     try {
-        const res = await request('/api/chat/messages', {
-            body: JSON.stringify(payload),
-            method: HTTP_METHOD.POST,
-        }, extras);
+        const res = await request(
+            '/api/chat/messages',
+            {
+                body: JSON.stringify(payload),
+                method: HTTP_METHOD.POST,
+            },
+            extras
+        );
         await handleAuthErrors(res);
         await validateResponse(res, 'Failed to send message notification');
     } catch (error) {
