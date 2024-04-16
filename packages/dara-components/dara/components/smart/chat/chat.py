@@ -17,10 +17,10 @@ limitations under the License.
 
 from pydantic import validator
 
+from dara.components.smart.chat.endpoints import on_new_message
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 from dara.core.persistence import BackendStore
-from dara.components.smart.chat.endpoints import on_new_message
 
 
 class Chat(StyledComponentInstance):

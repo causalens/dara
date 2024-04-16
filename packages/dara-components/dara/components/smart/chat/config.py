@@ -2,10 +2,10 @@
 Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of the causaLens product.
 """
 
-from dara.core.definitions import EndpointConfiguration
-from dara.core.logging import dev_logger
 from typing import Callable
+
 from dara.components.smart.chat.types import NewMessageBody
+from dara.core.definitions import EndpointConfiguration
 
 
 class ChatConfig(EndpointConfiguration):
@@ -19,5 +19,4 @@ class ChatConfig(EndpointConfiguration):
 
     @classmethod
     def default(cls):
-        dev_logger.warning('Using default configuration for ChatConfig. Please provide a valid configuration.')
         return cls(on_new_message=lambda _: None)

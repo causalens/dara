@@ -2,7 +2,8 @@
 Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of the causaLens product.
 """
 
-from typing import Optional, List
+from typing import List, Optional
+
 from pydantic import BaseModel
 
 
