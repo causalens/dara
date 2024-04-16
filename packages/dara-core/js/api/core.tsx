@@ -98,6 +98,7 @@ export function useTemplate(template: string): UseQueryResult<Template, RequestE
  */
 export async function fetchTaskResult<T>(taskId: string, extras: RequestExtras): Promise<T> {
     const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.GET }, extras);
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to fetch the result of task with id: ${taskId}`);
 
     const resJson = await res.json();
@@ -117,6 +118,7 @@ export async function fetchTaskResult<T>(taskId: string, extras: RequestExtras):
  */
 export async function cancelTask(taskId: string, extras: RequestExtras): Promise<boolean> {
     const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.DELETE }, extras);
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to cancel task with id: ${taskId}`);
     return true;
 }

@@ -7,6 +7,7 @@ import {
     DefaultFallback,
     RequestExtras,
     StyledComponentProps,
+    handleAuthErrors,
     injectCss,
     request,
     useAction,
@@ -61,6 +62,7 @@ async function uploadFileToExtension(
         },
         extras
     );
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to upload file: ${file.name}`);
     const result: { [k: string]: any } = await res.json();
     return { newStatus: result.status };
