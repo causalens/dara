@@ -5,18 +5,26 @@ import {
     UserData,
     Variable,
     injectCss,
+    request,
     useComponentStyles,
     useUser,
     useVariable,
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
+import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 interface ChatProps extends StyledComponentProps {
     /** Passthrough the className property */
     className: string;
     /** The value Variable to display and update */
     value?: Variable<Message[]>;
+}
+
+interface MessageNotificationPayload {
+    app_url: string;
+    users: UiUserData[];
+    content: Message;
 }
 
 const ChatWrapper = styled.div`
@@ -64,8 +72,44 @@ function parseUserData(user: UserData): UiUserData {
     };
 }
 
+/**
+ * Get all the users which have been active in the chat
+ *
+ * @param chat the chat to get users from
+ */
+function getAllUsersInChat(chat: Message[]): UiUserData[] {
+    const userMap = new Map<string, UiUserData>();
+
+    chat.forEach((message) => {
+        const { email } = message.user;
+        // we get the users by email, since this list will be used to send users notifications later on about activity in chat, and this is the most relevant way of identifying them
+        if (email && !userMap.has(email)) {
+            userMap.set(email, message.user);
+        }
+    });
+
+    // Return only the unique users who have an email
+    return Array.from(userMap.values());
+}
+
 /** User data for an unknown user */
 const anonymousUser: UserData = { identity_name: 'Anonymous' };
+
+/**
+ * Api call to get user data from the backend
+ */
+async function sendNotification(payload: MessageNotificationPayload): Promise<void> {
+    try {
+        const res = await request('/notification/messages', {
+            body: JSON.stringify(payload),
+            method: HTTP_METHOD.POST,
+        });
+        await validateResponse(res, 'Failed to send message notification');
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to send message notification:', error);
+    }
+}
 
 /**
  * The Chat component switches between a chat button and a chat sidebar, allowing the user to interact with a chat.
@@ -80,6 +124,21 @@ function Chat(props: ChatProps): JSX.Element {
     const [showChat, setShowChat] = React.useState(false);
     const theme = useTheme();
 
+    const onUpdate = (newValue: Message[]): void => {
+        // If the new value is longer than the old value, we can assume that a new message was added
+        if (newValue.length > value.length) {
+            const newMessage = newValue[newValue.length - 1];
+            const users = getAllUsersInChat(newValue);
+            const notificationPayload: MessageNotificationPayload = {
+                app_url: window.location.href,
+                users,
+                content: newMessage,
+            };
+            sendNotification(notificationPayload);
+        }
+        setValue(newValue);
+    };
+
     return (
         <ChatWrapper>
             {showChat && (
@@ -87,7 +146,7 @@ function Chat(props: ChatProps): JSX.Element {
                     $rawCss={css}
                     className={props.className}
                     onClose={() => setShowChat(false)}
-                    onUpdate={setValue}
+                    onUpdate={onUpdate}
                     style={style}
                     value={value}
                     activeUser={parseUserData(userData)}
