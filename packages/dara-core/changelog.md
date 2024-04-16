@@ -2,8 +2,10 @@
 title: Changelog
 ---
 
-## NEXT 
+## NEXT
+
 -   Added missing interface definition to the WebsocketClientInterface in the ui code
+-   Fix an issue where action requests did not handle auth errors properly
 
 ## 1.7.7
 
