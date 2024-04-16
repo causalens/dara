@@ -8,7 +8,7 @@ import shortid from 'shortid';
 import { useNotifications } from '@darajs/ui-notifications';
 import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 
-import { fetchTaskResult } from '@/api';
+import { fetchTaskResult, handleAuthErrors } from '@/api';
 import { request } from '@/api/http';
 import { ImportersCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { Action, ActionHandler } from '@/types';
@@ -62,6 +62,7 @@ async function invokeAction(
         actionCtx.extras
     );
 
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to fetch the action value with uid: ${annotatedAction.uid}`);
 
     const resContent = await res.json();

@@ -9,7 +9,7 @@ import shortid from 'shortid';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
+import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
@@ -134,6 +134,7 @@ export async function fetchDerivedVariable<T>({
         },
         extras
     );
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
     return res.json();
 }

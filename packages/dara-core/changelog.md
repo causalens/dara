@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   **Backported** Fix an issue where internal requests did not handle auth errors properly so users would not immediately
+be logged out when their session expired
+
 ## 1.7.8
 
 -   Added missing interface definition to the WebsocketClientInterface in the ui code

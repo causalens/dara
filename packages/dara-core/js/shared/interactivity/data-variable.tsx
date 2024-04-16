@@ -5,7 +5,7 @@ import { atom } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult } from '@/api';
+import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors } from '@/api';
 import { RequestExtras, request } from '@/api/http';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { DataFrame, DataVariable, DerivedDataVariable, FilterQuery, Pagination, ResolvedDataVariable } from '@/types';
@@ -74,6 +74,7 @@ export async function fetchDataVariable(
     const url = createDataUrl(`/api/core/data-variable/${uid}`, pagination);
 
     const response = await request(url, { body: JSON.stringify({ filters }), method: HTTP_METHOD.POST }, extras);
+    await handleAuthErrors(response, true);
     await validateResponse(response, 'Failed to fetch data variable');
     return response.json();
 }
@@ -115,6 +116,7 @@ export async function fetchDerivedDataVariable(
         { body: JSON.stringify({ cache_key: cacheKey, filters, ws_channel: wsChannel }), method: HTTP_METHOD.POST },
         extras
     );
+    await handleAuthErrors(response, true);
     await validateResponse(response, 'Failed to fetch data variable');
     return response.json();
 }
@@ -137,6 +139,7 @@ async function fetchDataVariableCount(
         { body: JSON.stringify({ cache_key: cacheKey, filters }), method: HTTP_METHOD.POST },
         extras
     );
+    await handleAuthErrors(response, true);
     await validateResponse(response, 'Failed to fetch data variable total count');
     return response.json();
 }

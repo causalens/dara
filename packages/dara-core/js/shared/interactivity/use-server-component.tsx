@@ -5,7 +5,7 @@ import { RecoilState, RecoilValue, atom, selectorFamily, useRecoilCallback, useR
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, request } from '@/api';
+import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
@@ -77,6 +77,7 @@ async function fetchFunctionComponent(
         },
         extras
     );
+    await handleAuthErrors(res, true);
     await validateResponse(res, `Failed to fetch the component: ${component}`);
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
     return result;
