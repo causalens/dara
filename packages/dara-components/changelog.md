@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`. 
+
 ## 1.8.1
 
 -   `Chat` component now shows the user who has written a message
