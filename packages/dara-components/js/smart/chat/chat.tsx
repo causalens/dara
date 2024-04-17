@@ -135,7 +135,7 @@ function Chat(props: ChatProps): JSX.Element {
 
     const onUpdate = (newValue: Message[]): void => {
         // If the new value is longer than the old value, we can assume that a new message was added
-        if (newValue.length > value.length) {
+        if (newValue?.length > value?.length) {
             const newMessage = newValue[newValue.length - 1];
             const users = getAllUsersInChat(newValue);
             const notificationPayload: MessageNotificationPayload = {
