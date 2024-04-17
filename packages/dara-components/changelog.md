@@ -6,6 +6,20 @@ title: Changelog
 
 -   `Chat` component now shows the user who has written a message
 -   `Chat` component now displays its messages content as `Markdown`.
+-   It is now possible to add a callback to your configuration for when a message is sent in `Chat` component, an example can be found below:
+
+```python
+from dara.core.configuration import ConfigurationBuilder
+from dara.components.smart.chat import NewMessageBody, ChatConfig
+
+
+def example_callback(payload: NewMessageBody):
+    print('New message received!')
+    print(payload)
+
+config = ConfigurationBuilder()
+config.add_configuration(ChatConfig(on_new_message=example_callback))
+```
 
 ## 1.8.0
 

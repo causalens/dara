@@ -17,6 +17,7 @@ limitations under the License.
 
 from pydantic import validator
 
+from dara.components.smart.chat.endpoints import on_new_message
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 from dara.core.persistence import BackendStore
@@ -60,6 +61,7 @@ class Chat(StyledComponentInstance):
     """
 
     js_module = '@darajs/components'
+    required_routes = [on_new_message]
 
     value: NonDataVariable
 
