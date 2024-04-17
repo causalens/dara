@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.1
 
 -   `Chat` component now shows the user who has written a message
 -   `Chat` component now displays its messages content as `Markdown`.

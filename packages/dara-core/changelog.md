@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.1
 
 -   Added missing interface definition to the WebsocketClientInterface in the ui code
 -   Fix an issue where internal requests did not handle auth errors properly so users would not immediately
