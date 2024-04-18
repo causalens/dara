@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`. 
+-   Fixed an issue where empty `Chat` component caused an error due to having undefined length.
 
 ## 1.8.1
 
