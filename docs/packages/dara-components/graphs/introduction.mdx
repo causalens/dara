@@ -177,7 +177,9 @@ Displays a node symbol, this can be useful to explain what different colors of n
 - `center_symbol: CenterSymbol` - One of none, cross, question, bidirected. It is an optional symbol to show at the center of the edge, defaults to none
 - `dash_array: string` - Optional [stroke-dasharray](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray) SVG path property - line will be dashed if specified
 
-### Legend Example
+### Legend Examples
+
+#### `additional_legends` Example
 
 ```python
 from dara.core.configuration import ConfigurationBuilder
@@ -220,6 +222,49 @@ config.add_page(
 ```
 
 ![CausalGraphViewer Legend Example](./assets/graph_legend.png)
+
+
+#### `default_legends` Example
+
+Default legends is structured slightly differently. By default it takes a dict of key [EditorMode](../../../../reference/dara/components/graphs/definitions#editormode) and legends array value. This is so the correct default
+legends appear for whichever `editor_mode` is set by the user.
+
+When updating these however you may only care for overwriting it for the `editor_mode` you use. An example of this can be found below:
+```python
+from dara.core.configuration import ConfigurationBuilder
+from cai_causal_graph import CausalGraph
+from dara.core.visual.themes.light import Light
+from dara.components import CausalGraphViewer, EditorMode
+from dara.components.graphs.definitions import Legend
+
+# Create a causal graph with nodes of different colors
+cg = CausalGraph()
+cg.add_node(
+    'A', meta={'rendering_properties': {'color': Light.colors.warning, 'highlight_color': Light.colors.warningDown}}
+)
+cg.add_node(
+    'B', meta={'rendering_properties': {'color': Light.colors.success, 'highlight_color': Light.colors.successDown}}
+)
+cg.add_edge('A', 'B')
+cg.add_edge('B', 'C')
+
+config = ConfigurationBuilder()
+config.add_page(
+    name='Legends',
+    content=CausalGraphViewer(
+        causal_graph=cg,
+        # override the default legends with your own
+        default_legends={
+            EditorMode.DEFAULT: [
+                # You can define the colors just as you would in any other component
+                Legend.Node(color=Light.colors.warning, label='Warning Node', highlight_color=Light.colors.warningDown),
+                # Alternative you can also directly pass a theme. to get them
+                Legend.Node(color='theme.success', label='Success Node', highlight_color='theme.successDown'),
+            ]
+        },
+    ),
+)
+```
 
 ### Edge thickness
 

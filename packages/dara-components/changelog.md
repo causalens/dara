@@ -2,6 +2,37 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   **Backported** Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`.
+
+## 1.8.1
+
+-   `Chat` component now shows the user who has written a message
+-   `Chat` component now displays its messages content as `Markdown`.
+-   It is now possible to add a callback to your configuration for when a message is sent in `Chat` component, an example can be found below:
+
+```python
+from dara.core.configuration import ConfigurationBuilder
+from dara.components.smart.chat import NewMessageBody, ChatConfig
+
+
+def example_callback(payload: NewMessageBody):
+    print('New message received!')
+    print(payload)
+
+config = ConfigurationBuilder()
+config.add_configuration(ChatConfig(on_new_message=example_callback))
+```
+
+## 1.8.0
+
+-   In `Chat` messages, changed `timestamp` prop to be divided into two `created_at` and `updated_at`.
+-   Added "(edited)" indicator to the messages which have been edited in the `Chat` component.
+-   `Chat` will now send a message when `Enter` is pressed by the user.
+-   `Chat` now shows a disabled state for the `Send` button if the message to be sent is empty.
+
+>>>>>>> fdd3a6b (Fix: DO-2883: remove optional for default legends as it doesnt accept none (#264))
 ## 1.7.7
 
 -   Fixed an issue where if `EditorMode` was not defined edges were always added as undirected.

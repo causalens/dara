@@ -57,7 +57,7 @@ class BaseGraphComponent(StyledComponentInstance):
     additional_legends: Optional[List[GraphLegend]] = None
     allow_selection_when_not_editable: Optional[bool] = False
     available_inputs: Optional[List[str]] = None
-    default_legends: Optional[Dict[Union[EditorMode, str], List[GraphLegend]]] = DEFAULT_LEGENDS
+    default_legends: Dict[Union[EditorMode, str], List[GraphLegend]] = DEFAULT_LEGENDS
     disable_edge_add: Optional[bool] = None
     disable_latent_node_add: Optional[bool] = None
     disable_node_removal: Optional[bool] = None
