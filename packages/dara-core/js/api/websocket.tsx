@@ -182,43 +182,43 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     closeHandler: () => void;
 
-    _maxAttempts: number;
+    maxAttempts: number;
 
-    _pingInterval: NodeJS.Timeout;
+    #pingInterval: NodeJS.Timeout;
 
-    _socketUrl: string;
+    #socketUrl: string;
 
-    _reconnectCount: number;
+    #reconnectCount: number;
 
     constructor(_socketUrl: string, _token: string, _liveReload = false) {
         this.token = _token;
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
         this.closeHandler = this.onClose.bind(this);
-        this._socketUrl = _socketUrl;
-        this._reconnectCount = 0;
-        this._pingInterval = null;
-        this._maxAttempts = maxAttempts;
+        this.maxAttempts = maxAttempts;
+        this.#socketUrl = _socketUrl;
+        this.#reconnectCount = 0;
+        this.#pingInterval = null;
 
         // Lastly call initialize to setup the socket properly
         this.socket = this.initialize();
     }
 
-    initialize(): WebSocket {
+    initialize(isReconnect = false): WebSocket {
         // Create the underlying socket instance from the url and token
-        const url = new URL(this._socketUrl);
+        const url = new URL(this.#socketUrl);
         url.searchParams.set('token', this.token);
         const socket = new WebSocket(url);
 
         // Send heartbeat to ping every few seconds and clear it on error
-        this._pingInterval = setInterval(() => {
+        this.#pingInterval = setInterval(() => {
             if (socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify(pingMessage));
             }
         }, interPingInterval);
         socket.addEventListener('error', () => {
-            if (this._pingInterval) {
-                clearInterval(this._pingInterval);
+            if (this.#pingInterval) {
+                clearInterval(this.#pingInterval);
             }
         });
 
@@ -233,12 +233,17 @@ export class WebSocketClient implements WebSocketClientInterface {
             const handler = (ev: MessageEvent<any>): void => {
                 const msg = JSON.parse(ev.data) as WebSocketMessage;
                 if (msg.type === 'init') {
-                    this._reconnectCount = 0;
+                    this.#reconnectCount = 0;
                     this.messages$.next(msg);
 
                     // Remove the handler after the channel is received and then resolve the promise
                     socket.removeEventListener('message', handler);
                     resolve(msg.message?.channel);
+
+                    // If liveReload is true and this is a reconnect attempt then reload the page
+                    if (this.liveReload && isReconnect) {
+                        window.location.reload();
+                    }
                 }
             };
             socket.addEventListener('message', handler);
@@ -253,7 +258,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Close handler to attempt to reconnect on WS closed
      */
     onClose(): void {
-        if (this._reconnectCount >= this._maxAttempts) {
+        if (this.#reconnectCount >= this.maxAttempts) {
             // eslint-disable-next-line no-console
             console.error('Could not reconnect the websocket to the server');
 
@@ -261,7 +266,7 @@ export class WebSocketClient implements WebSocketClientInterface {
             const handler = (): void => {
                 if (document.visibilityState === 'visible') {
                     // Reset the retry loop and attempt to initialize the socket again
-                    this._reconnectCount = 0;
+                    this.#reconnectCount = 0;
                     this.initialize();
 
                     // Remove the visibility change listener after we enter the retry loop again
@@ -272,8 +277,8 @@ export class WebSocketClient implements WebSocketClientInterface {
             return;
         }
         setTimeout(() => {
-            this._reconnectCount++;
-            this.initialize();
+            this.#reconnectCount++;
+            this.initialize(true);
         }, interAttemptTimeout);
     }
 
@@ -281,7 +286,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Forcefully close the websocket connection, first clearing the closehandler
      */
     close(): void {
-        clearInterval(this._pingInterval);
+        clearInterval(this.#pingInterval);
         this.socket.removeEventListener('close', this.closeHandler);
         this.socket.close();
     }

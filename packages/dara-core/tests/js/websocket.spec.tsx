@@ -12,12 +12,12 @@ import { WebSocketClient } from '@/api';
  * @returns the message as a string
  */
 function toMsg(type: string, message: any): string {
-    return JSON.stringify({ type, message: message });
+    return JSON.stringify({ type, message });
 }
 
-async function initialize(): Promise<[server: WS, client: WebSocketClient]> {
+async function initialize(liveReload = false): Promise<[server: WS, client: WebSocketClient]> {
     const server = new WS('ws://localhost:1234');
-    const client = new WebSocketClient('ws://localhost:1234', 'test', false);
+    const client = new WebSocketClient('ws://localhost:1234', 'test', liveReload);
 
     await server.connected;
     server.send(toMsg('init', { channel: 'test' }));
@@ -31,7 +31,7 @@ describe('WebsocketClient', () => {
     });
 
     it('should initialize the websocket connection when the client is instantiated', async () => {
-        const [_, client] = await initialize();
+        const client = (await initialize())[1];
 
         expect(await client.channel).toEqual('test');
     });
@@ -137,7 +137,7 @@ describe('WebsocketClient', () => {
         const [server, client] = await initialize();
 
         // Set the max attempts to 1 so it will retry once then fail
-        client._maxAttempts = 1;
+        client.maxAttempts = 1;
 
         // Wait for the client to connect fully
         await client.channel;
@@ -161,7 +161,7 @@ describe('WebsocketClient', () => {
         const [server, client] = await initialize();
 
         // Set the max attempts to 1 so it will retry once then fail
-        client._maxAttempts = 1;
+        client.maxAttempts = 1;
 
         // Wait for the client to connect fully
         await client.channel;
@@ -192,5 +192,39 @@ describe('WebsocketClient', () => {
 
         // Check that the client has reconnected
         expect(await client.channel).toEqual('test_1');
+    });
+
+    it('should reload the window on reconnect when liveReload is true', async () => {
+        // Configure mock of window location
+        const original = window.location;
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: { reload: jest.fn() },
+        });
+
+        // Initialize the client with live reload enabled and wait for the channel to be set
+        const [server, client] = await initialize(true);
+        expect(await client.channel).toEqual('test');
+
+        // Verify that we have not reloaded the window on first load
+        expect(window.location.reload).toHaveBeenCalledTimes(0);
+
+        const initializeSpy = jest.spyOn(client, 'initialize');
+
+        // Close the server connection and then reconnect
+        server.close();
+        const serverNew = new WS('ws://localhost:1234');
+        await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
+        await serverNew.connected;
+        serverNew.send(toMsg('init', { channel: 'test_1' }));
+
+        // Check that the client has reconnected correctly
+        expect(await client.channel).toEqual('test_1');
+
+        // Verify that we have reloaded the window on reconnect
+        expect(window.location.reload).toHaveBeenCalledTimes(1);
+
+        // Tear down mock of window location
+        Object.defineProperty(window, 'location', { configurable: true, value: original });
     });
 });
