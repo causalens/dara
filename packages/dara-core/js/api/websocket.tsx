@@ -8,11 +8,6 @@ const maxDisconnectedTime = 10000;
 const interPingInterval = 5000;
 const maxAttempts = Math.round(maxDisconnectedTime / interAttemptTimeout);
 
-let socketUrl: string = null;
-
-let socket: WebSocket = null;
-let pingInterval: NodeJS.Timeout = null;
-
 interface InitMessage {
     message: {
         channel: 'string';
@@ -153,77 +148,6 @@ const pingMessage: PingPongMessage = {
     type: 'ping',
 };
 
-/**
- * Set up the heartbeat to make sure the connection is open.
- */
-function setupHeartbeat(): void {
-    // Send ping every few seconds
-    pingInterval = setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify(pingMessage));
-        }
-    }, interPingInterval);
-
-    // Clear interval on error
-    socket.addEventListener('error', () => {
-        if (pingInterval) {
-            clearInterval(pingInterval);
-        }
-    });
-}
-
-/**
- * WebSocket close event handler.
- * Tries reconnecting for a few seconds after detecting the close event,
- * and refreshes the browser on reconnect.
- */
-function onCloseWs(token: string, liveReload: boolean): WebSocket {
-    let attempts = 0;
-
-    const attemptReconnect = (): WebSocket => {
-        attempts++;
-
-        if (attempts > maxAttempts) {
-            // eslint-disable-next-line no-console
-            console.error('Could not reconnect to server');
-            return;
-        }
-
-        // Try reconnecting
-        const url = new URL(socketUrl);
-        url.searchParams.set('token', token);
-
-        socket = new WebSocket(url);
-        // If reconnect failed, retry after some time
-        socket.addEventListener('error', () => {
-            setTimeout(attemptReconnect, interAttemptTimeout);
-        });
-
-        if (liveReload) {
-            // On reconnect, reload page
-            socket.addEventListener('open', () => {
-                socket.addEventListener('close', () => {
-                    // If socket failed to open and closed again before getting a message, attempt again
-                    attemptReconnect();
-                });
-
-                setupHeartbeat();
-
-                socket.addEventListener('message', (ev) => {
-                    const msg = JSON.parse(ev.data) as WebSocketMessage;
-                    if (msg.type === 'init') {
-                        // Reload once app successfully initialized
-                        window.location.reload();
-                    }
-                });
-            });
-        }
-        return socket;
-    };
-
-    return attemptReconnect();
-}
-
 export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
     backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
@@ -258,48 +182,106 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     closeHandler: () => void;
 
-    constructor(_socket: WebSocket, _token: string, _liveReload = false) {
-        this.socket = _socket;
+    _maxAttempts: number;
+
+    _pingInterval: NodeJS.Timeout;
+
+    _socketUrl: string;
+
+    _reconnectCount: number;
+
+    constructor(_socketUrl: string, _token: string, _liveReload = false) {
         this.token = _token;
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
         this.closeHandler = this.onClose.bind(this);
-        this.initialize();
+        this._socketUrl = _socketUrl;
+        this._reconnectCount = 0;
+        this._pingInterval = null;
+        this._maxAttempts = maxAttempts;
+
+        // Lastly call initialize to setup the socket properly
+        this.socket = this.initialize();
     }
 
-    initialize(): void {
+    initialize(): WebSocket {
+        // Create the underlying socket instance from the url and token
+        const url = new URL(this._socketUrl);
+        url.searchParams.set('token', this.token);
+        const socket = new WebSocket(url);
+
+        // Send heartbeat to ping every few seconds and clear it on error
+        this._pingInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(pingMessage));
+            }
+        }, interPingInterval);
+        socket.addEventListener('error', () => {
+            if (this._pingInterval) {
+                clearInterval(this._pingInterval);
+            }
+        });
+
         // Register the message event listener to start the stream of messages and get the new channel
-        this.socket.addEventListener('message', (ev) => {
+        socket.addEventListener('message', (ev) => {
             const msg = JSON.parse(ev.data) as WebSocketMessage;
             this.messages$.next(msg);
         });
+
         // Update the channel on the class and broadcast the init message to subscribers
         this.channel = new Promise((resolve) => {
-            this.socket.addEventListener('message', (ev) => {
+            const handler = (ev: MessageEvent<any>): void => {
                 const msg = JSON.parse(ev.data) as WebSocketMessage;
                 if (msg.type === 'init') {
+                    this._reconnectCount = 0;
                     this.messages$.next(msg);
+
+                    // Remove the handler after the channel is received and then resolve the promise
+                    socket.removeEventListener('message', handler);
                     resolve(msg.message?.channel);
                 }
-            });
+            };
+            socket.addEventListener('message', handler);
         });
+
         // Bind the close handler so the re-initialize logic is added every time
-        this.socket.addEventListener('close', this.closeHandler);
+        socket.addEventListener('close', this.closeHandler);
+        return socket;
     }
 
     /**
      * Close handler to attempt to reconnect on WS closed
      */
     onClose(): void {
-        this.socket = onCloseWs(this.token, this.liveReload);
-        this.initialize();
+        if (this._reconnectCount >= this._maxAttempts) {
+            // eslint-disable-next-line no-console
+            console.error('Could not reconnect the websocket to the server');
+
+            // Add a visibility change listener to attempt the connection again when the tab becomes visible again
+            const handler = (): void => {
+                if (document.visibilityState === 'visible') {
+                    // Reset the retry loop and attempt to initialize the socket again
+                    this._reconnectCount = 0;
+                    this.initialize();
+
+                    // Remove the visibility change listener after we enter the retry loop again
+                    document.removeEventListener('visibilitychange', handler);
+                }
+            };
+            document.addEventListener('visibilitychange', handler);
+            return;
+        }
+        setTimeout(() => {
+            this._reconnectCount++;
+            this.initialize();
+        }, interAttemptTimeout);
     }
 
     /**
      * Forcefully close the websocket connection, first clearing the closehandler
      */
     close(): void {
-        clearInterval(pingInterval);
+        clearInterval(this._pingInterval);
         this.socket.removeEventListener('close', this.closeHandler);
         this.socket.close();
     }
@@ -499,15 +481,11 @@ export function setupWebsocket(sessionToken: string, liveReload: boolean): WebSo
         host = baseUrl.host + pathname;
     }
 
-    socketUrl = `${window.location.protocol === 'https:' ? 'wss://' : 'ws://'}${host}/api/core/ws`;
+    const socketUrl = `${window.location.protocol === 'https:' ? 'wss://' : 'ws://'}${host}/api/core/ws`;
 
     // Append session token to the WS url for authentication
     const url = new URL(socketUrl);
     url.searchParams.set('token', sessionToken);
 
-    socket = new WebSocket(url);
-
-    setupHeartbeat();
-
-    return new WebSocketClient(socket, sessionToken, liveReload);
+    return new WebSocketClient(socketUrl, sessionToken, liveReload);
 }
