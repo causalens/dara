@@ -40,6 +40,6 @@ export {
     resolveValue,
     useVariableValue,
 } from './interactivity';
-export { useEventBus, EventBus, EventBusProvider} from './event-bus/event-bus';
+export { useEventBus, EventBus, EventCapturer } from './event-bus/event-bus';
 export { default as Wrapper } from './wrapper/wrapper';
 export type { RawCssProp };

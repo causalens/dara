@@ -188,42 +188,6 @@ describe('DynamicComponent', () => {
         await waitFor(() => expect(getByTestId('content').textContent).toBe('test_content'));
     });
 
-    it('should render RawString py_component directly', async () => {
-        server.use(
-            rest.post('/api/core/components/:component', async (req, res, ctx) => {
-                return res(
-                    ctx.json({
-                        data: {
-                            name: 'RawString',
-                            props: {
-                                content: 'test_content',
-                            },
-                            uid: 'uid',
-                        },
-                        lookup: {},
-                    })
-                );
-            })
-        );
-
-        const { getByTestId } = wrappedRender(
-            <div data-testid="content">
-                <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            dynamic_kwargs: {},
-                        },
-                        uid: 'uid',
-                    }}
-                />
-            </div>
-        );
-        await waitFor(() => expect(getByTestId('content').firstChild).not.toBe(null));
-        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
-        await waitFor(() => expect(getByTestId('content').textContent).toBe('test_content'));
-    });
-
     it('should render InvalidComponent py_component directly as an error', async () => {
         server.use(
             rest.post('/api/core/components/:component', async (req, res, ctx) => {

@@ -110,7 +110,7 @@ export {
     PartialRequestExtrasProvider,
     useEventBus,
     EventBus,
-    EventBusProvider,
+    EventCapturer,
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };

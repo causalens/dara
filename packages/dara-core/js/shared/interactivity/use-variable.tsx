@@ -33,8 +33,8 @@ function warnUpdateOnDerivedState(): void {
 // extend the event map
 declare module '../../types/event-types' {
     interface DaraEventMap {
-        DERIVED_VARIABLE_LOADED: { variable: DerivedVariable, value: any };
-        PLAIN_VARIABLE_LOADED: { variable: Variable<any>, value: any };
+        DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
+        PLAIN_VARIABLE_LOADED: { variable: Variable<any>; value: any };
     }
 }
 

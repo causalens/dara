@@ -1,17 +1,17 @@
 /**
-* Map of available global events,
-* format: {eventName: eventData}
-*
-* Should be extended by internal features to add their own events, e.g.:
-*
-* ```ts
-* declare module 'path/to/this/module' {
-*   interface EventMap {
-*       'myEvent': { myData: string }
-*   }
-* }
-* ```
-*/
+ * Map of available global events,
+ * format: {eventName: eventData}
+ *
+ * Should be extended by internal features to add their own events, e.g.:
+ *
+ * ```ts
+ * declare module 'path/to/this/module' {
+ *   interface EventMap {
+ *       'myEvent': { myData: string }
+ *   }
+ * }
+ * ```
+ */
 export interface DaraEventMap {}
 
 /**

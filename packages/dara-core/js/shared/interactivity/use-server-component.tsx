@@ -19,6 +19,7 @@ import {
 
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { GlobalTaskContext, useTaskContext } from '../context/global-task-context';
+import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
 import {
@@ -28,7 +29,6 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
-import { useEventBus } from '../event-bus/event-bus';
 
 function isTaskResponse(response: any): response is TaskResponse {
     return response && typeof response === 'object' && 'task_id' in response;
@@ -294,7 +294,7 @@ function getOrRegisterServerComponent(
 // extend the event map
 declare module '../../types/event-types' {
     interface DaraEventMap {
-        SERVER_COMPONENT_LOADED: { name: string, uid: string, value: ComponentInstance };
+        SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
     }
 }
 /**
