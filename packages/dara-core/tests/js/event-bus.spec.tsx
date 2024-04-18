@@ -21,7 +21,7 @@ describe('Event Bus', () => {
 
         bus.publish('test_type', { test: 'data_new' });
 
-        // no new invokation
+        // no new invocation
         expect(callback).toHaveBeenCalledTimes(1);
     });
 
