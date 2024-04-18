@@ -108,6 +108,9 @@ export {
     useRequestExtras,
     RequestExtrasProvider,
     PartialRequestExtrasProvider,
+    useEventBus,
+    EventBus,
+    EventBusProvider,
 } from './shared';
 export { ConditionOperator, isVariable } from './types';
 export type { RawCssProp };

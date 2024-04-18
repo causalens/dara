@@ -4,7 +4,9 @@ import { rest } from 'msw';
 import * as React from 'react';
 
 import { FallbackCtx } from '@/shared/context';
+import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
+import { DaraEventMap } from '@/types/event-types';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
 import { Action, DerivedVariable, SingleVariable, Variable } from '../../js/types';
@@ -99,6 +101,91 @@ describe('DynamicComponent', () => {
                 )
             ).toBeInstanceOf(HTMLDivElement);
         });
+    });
+
+    it('should publish EventBus notification on server component render', async () => {
+        const receivedData: Array<DaraEventMap['SERVER_COMPONENT_LOADED']> = [];
+
+        const { getByText } = wrappedRender(
+            <EventCapturer
+                onEvent={(event) => {
+                    if (event.type === 'SERVER_COMPONENT_LOADED') {
+                        receivedData.push(event.data);
+                    }
+                }}
+            >
+                <DynamicComponent
+                    component={{
+                        name: 'TestComponent2',
+                        props: {
+                            // Check that dynamic kwargs get passed to the backend
+                            dynamic_kwargs: {
+                                test: {
+                                    __typename: 'Variable',
+                                    default: 'test',
+                                    uid: 'uid',
+                                },
+                            },
+                        },
+                        uid: 'uid',
+                    }}
+                />
+            </EventCapturer>
+        );
+        await waitFor(() => {
+            expect(getByText(/TestComponent2/)).toBeInstanceOf(HTMLDivElement);
+        });
+
+        const value = getByText(/TestComponent2/).textContent;
+
+        // single event bus notification should come through
+        expect(receivedData).toHaveLength(1);
+        expect(receivedData[0]).toEqual({
+            uid: 'uid',
+            name: 'TestComponent2',
+            value: {
+                name: 'RawString',
+                props: {
+                    content: value,
+                },
+            }
+        });
+    });
+
+    it('should render RawString py_component directly', async () => {
+        server.use(
+            rest.post('/api/core/components/:component', async (req, res, ctx) => {
+                return res(
+                    ctx.json({
+                        data: {
+                            name: 'RawString',
+                            props: {
+                                content: 'test_content',
+                            },
+                            uid: 'uid',
+                        },
+                        lookup: {},
+                    })
+                );
+            })
+        );
+
+        const { getByTestId } = wrappedRender(
+            <div data-testid="content">
+                <DynamicComponent
+                    component={{
+                        name: 'TestComponent2',
+                        props: {
+                            dynamic_kwargs: {},
+                        },
+                        uid: 'uid',
+                    }}
+                />
+            </div>
+        );
+        await waitFor(() => expect(getByTestId('content').firstChild).not.toBe(null));
+        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
+        await waitFor(() => expect(getByTestId('content').textContent).toBe('test_content'));
     });
 
     it('should render RawString py_component directly', async () => {

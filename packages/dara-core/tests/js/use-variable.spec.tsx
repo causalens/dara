@@ -4,7 +4,9 @@ import { rest } from 'msw';
 import hash from 'object-hash';
 import { useRecoilCallback } from 'recoil';
 
+import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
+import { DaraEventMap } from '@/types/event-types';
 
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import {
@@ -638,6 +640,42 @@ describe('useVariable', () => {
                 });
                 expect(result.current[1]).toBeInstanceOf(Function);
             });
+        });
+
+        it('should publish EventBus notification on resolution', async () => {
+            const variable = {
+                __typename: 'DerivedVariable',
+                deps: [
+                    { __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>,
+                    { __typename: 'Variable', default: '2', uid: 'dep2' } as Variable<string>,
+                ],
+                nested: [] as string[],
+                uid: 'uid',
+                variables: [
+                    { __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>,
+                    { __typename: 'Variable', default: '2', uid: 'dep2' } as Variable<string>,
+                ],
+            } satisfies DerivedVariable;
+            const receivedData: Array<DaraEventMap['DERIVED_VARIABLE_LOADED']> = [];
+
+            const { result} = renderHook(() => useVariable<string>(variable), {
+                wrapper: (props) => (
+                    <EventCapturer
+                        onEvent={(ev) => {
+                            if (ev.type === 'DERIVED_VARIABLE_LOADED') {
+                                receivedData.push(ev.data);
+                            }
+                        }}
+                    >
+                        <Wrapper>{props.children}</Wrapper>
+                    </EventCapturer>
+                ),
+            });
+            await waitFor(() => {
+                expect(receivedData).toHaveLength(1);
+            });
+            expect(receivedData[0].variable).toEqual(variable);
+            expect(receivedData[0].value).toEqual(result.current[0]);
         });
 
         it('should resolve nested value using the selector for a DerivedVariable', async () => {

@@ -3,8 +3,17 @@ import { useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTA
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { useDeferLoadable } from '@/shared/utils';
-import { Variable, isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types';
+import {
+    DerivedVariable,
+    Variable,
+    isDataVariable,
+    isDerivedDataVariable,
+    isDerivedVariable,
+    isUrlVariable,
+    isVariable,
+} from '@/types';
 
+import { useEventBus } from '../event-bus/event-bus';
 import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
@@ -21,6 +30,14 @@ function warnUpdateOnDerivedState(): void {
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
 }
 
+// extend the event map
+declare module '../../types/event-types' {
+    interface DaraEventMap {
+        DERIVED_VARIABLE_LOADED: { variable: DerivedVariable, value: any };
+        PLAIN_VARIABLE_LOADED: { variable: Variable<any>, value: any };
+    }
+}
+
 /**
  * A helper hook that turns a Variable class into the actual value by accessing the appropriate recoil state from the
  * atomRegistry defined above. For convenience, it will also handle a non variable being passed and will return it
@@ -35,6 +52,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     const { client: WsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
+    const bus = useEventBus();
 
     if (!isVariable(variable)) {
         return useState(variable);
@@ -57,6 +75,12 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         const selector = useDerivedVariable(variable, WsClient, taskContext, extras);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
+        useEffect(() => {
+            if (selectorLoadable.state === 'hasValue') {
+                bus.publish('DERIVED_VARIABLE_LOADED', { variable, value: selectorLoadable.contents.value });
+            }
+        }, [selectorLoadable]);
+
         const deferred = useDeferLoadable(selectorLoadable);
 
         return [deferred.value, warnUpdateOnDerivedState];
@@ -68,7 +92,14 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
 
     const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
     const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
+
     const deferred = useDeferLoadable(loadable);
+
+    useEffect(() => {
+        if (loadable.state === 'hasValue') {
+            bus.publish('PLAIN_VARIABLE_LOADED', { variable, value: loadable.contents });
+        }
+    }, [loadable]);
 
     return [deferred, setLoadable];
 }
