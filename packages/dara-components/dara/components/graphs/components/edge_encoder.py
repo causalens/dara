@@ -125,7 +125,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     additional_legends: Optional[List[GraphLegend]] = None
     allow_selection_when_not_editable: Optional[bool] = False
-    default_legends: Optional[Dict[Union[EditorMode, str], List[GraphLegend]]] = DEFAULT_LEGENDS
+    default_legends: Dict[Union[EditorMode, str], List[GraphLegend]] = DEFAULT_LEGENDS
     editable: Optional[bool] = False
     graph_layout: Optional[GraphLayout] = MarketingLayout()
     initial_constraints: Optional[Union[List[EdgeConstraint], NonDataVariable]] = None
