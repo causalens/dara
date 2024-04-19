@@ -6,7 +6,7 @@
  *
  * ```ts
  * declare module 'path/to/this/module' {
- *   interface EventMap {
+ *   interface DaraEventMap {
  *       'myEvent': { myData: string }
  *   }
  * }
