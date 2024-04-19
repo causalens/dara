@@ -5,7 +5,8 @@ title: Changelog
 ## 1.8.3
 
 -   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
--   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance.
+-   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
+then number of items in the select was large.
 
 ## 1.8.2
 
