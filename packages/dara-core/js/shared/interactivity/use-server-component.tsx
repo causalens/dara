@@ -20,6 +20,7 @@ import {
 
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { GlobalTaskContext, useTaskContext } from '../context/global-task-context';
+import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
 import {
@@ -282,6 +283,12 @@ function getOrRegisterServerComponent(
     return selectorInstance;
 }
 
+// extend the event map
+declare module '../../types/event-types' {
+    interface DaraEventMap {
+        SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
+    }
+}
 /**
  * A hook to fetch a server component
  *
@@ -299,6 +306,8 @@ export default function useServerComponent(
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
 
+    const bus = useEventBus();
+
     // Synchronously register the py_component uid, and clean it up on unmount
     variablesContext.variables.current.add(getComponentRegistryKey(uid));
     useEffect(() => {
@@ -309,6 +318,13 @@ export default function useServerComponent(
 
     const componentSelector = getOrRegisterServerComponent(name, uid, dynamicKwargs, wsClient, taskContext, extras);
     const componentLoadable = useRecoilValueLoadable(componentSelector);
+
+    useEffect(() => {
+        if (componentLoadable.state === 'hasValue') {
+            bus.publish('SERVER_COMPONENT_LOADED', { name, uid, value: componentLoadable.contents });
+        }
+    }, [componentLoadable]);
+
     const deferred = useDeferLoadable(componentLoadable);
 
     return deferred;

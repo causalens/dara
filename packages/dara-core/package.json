@@ -42,6 +42,7 @@
     "@testing-library/dom": "^9.3.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/file-saver": "^2.0.5",
     "@types/history": "^4.7.0",
     "@types/jest": "^29.5.1",

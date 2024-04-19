@@ -7,6 +7,8 @@ title: Changelog
 -   **Backported** Fix an issue where internal requests did not handle auth errors properly so users would not immediately
 be logged out when their session expired
 -   **Backported** Fixed websocket reconnection logic so that it correctly retries for 10 seconds before bailing out and then retries the connection if the document becomes visible again.
+-   **Backported** Internal (JS): implement a global `EventBus`, Dara internals now fire events to the EventBus which can be subscribed to.
+Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.
 
 ## 1.7.7
 
