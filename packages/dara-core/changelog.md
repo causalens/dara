@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+-   Internal (JS): implement a global `EventBus`, Dara internals now fire events to the EventBus which can be subscribed to.
+Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.
 -   Fixed websocket reconnection logic so that it correctly retries for 10 seconds before bailing out and then retries the connection if the document becomes visible again.
 
 ## 1.8.1

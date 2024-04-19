@@ -137,6 +137,7 @@ importers:
       '@testing-library/dom': ^9.3.0
       '@testing-library/jest-dom': ^5.16.5
       '@testing-library/react': ^14.0.0
+      '@testing-library/user-event': ^14.5.2
       '@types/file-saver': ^2.0.5
       '@types/history': ^4.7.0
       '@types/jest': ^29.5.1
@@ -238,6 +239,7 @@ importers:
       '@testing-library/dom': 9.3.3
       '@testing-library/jest-dom': 5.17.0
       '@testing-library/react': 14.1.2_react-dom@18.2.0+react@18.2.0
+      '@testing-library/user-event': 14.5.2_@testing-library+dom@9.3.3
       '@types/file-saver': 2.0.7
       '@types/history': 4.7.11
       '@types/jest': 29.5.11
@@ -4196,6 +4198,15 @@ packages:
       '@types/react-dom': 18.2.18
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+    dev: true
+
+  /@testing-library/user-event/14.5.2_@testing-library+dom@9.3.3:
+    resolution: {integrity: sha512-YAh82Wh4TIrxYLmfGcixwD18oIjyC1pFQC2Y01F2lzV2HTMiYrI0nze0FD0ocB//CKS/7jIUgae+adPqxK5yCQ==}
+    engines: {node: '>=12', npm: '>=6'}
+    peerDependencies:
+      '@testing-library/dom': '>=7.21.4'
+    dependencies:
+      '@testing-library/dom': 9.3.3
     dev: true
 
   /@tippyjs/react/4.1.0_react-dom@18.2.0+react@18.2.0:
