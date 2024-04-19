@@ -163,6 +163,7 @@ importers:
       jest: ^29.5.0
       jest-css-modules: ^2.1.0
       jest-environment-jsdom: ^29.5.0
+      jest-websocket-mock: ^2.5.0
       jwt-decode: ^3.1.2
       lodash: ^4.17.21
       msw: 1.0.1
@@ -260,6 +261,7 @@ importers:
       jest: 29.7.0_@types+node@18.19.5
       jest-css-modules: 2.1.0
       jest-environment-jsdom: 29.7.0
+      jest-websocket-mock: 2.5.0
       msw: 1.0.1_typescript@5.3.3
       postcss: 8.4.38
       prettier: 3.2.5
@@ -5834,6 +5836,7 @@ packages:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
+    dev: false
 
   /chalk/4.1.1:
     resolution: {integrity: sha512-diHzdDKxcU+bAsUboHLPEDQiw0qEe0qd7SYUn3HgcFlWgbDcfLGswOHYeGrHKzG9z6UYf01d9VFMfZxPM1xZSg==}
@@ -10267,7 +10270,7 @@ packages:
     resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      chalk: 4.1.0
+      chalk: 4.1.2
       diff-sequences: 29.6.3
       jest-get-type: 29.6.3
       pretty-format: 29.7.0
@@ -10555,6 +10558,13 @@ packages:
       emittery: 0.13.1
       jest-util: 29.7.0
       string-length: 4.0.2
+    dev: true
+
+  /jest-websocket-mock/2.5.0:
+    resolution: {integrity: sha512-a+UJGfowNIWvtIKIQBHoEWIUqRxxQHFx4CXT+R5KxxKBtEQ5rS3pPOV/5299sHzqbmeCzxxY5qE4+yfXePePig==}
+    dependencies:
+      jest-diff: 29.7.0
+      mock-socket: 9.3.1
     dev: true
 
   /jest-worker/29.7.0:
@@ -11963,6 +11973,11 @@ packages:
     dependencies:
       obliterator: 2.0.4
     dev: false
+
+  /mock-socket/9.3.1:
+    resolution: {integrity: sha512-qxBgB7Qa2sEQgHFjj0dSigq7fX4k6Saisd5Nelwp2q8mlbAFh5dHV9JTTlF8viYJLSSWgMCZFUom8PJcMNBoJw==}
+    engines: {node: '>= 8'}
+    dev: true
 
   /modify-values/1.0.1:
     resolution: {integrity: sha512-xV2bxeN6F7oYjZWTe/YPAy6MN2M+sL4u/Rlm2AHCIVGfo2p1yGmBHQ6vHehl4bRTZBdHu3TSkWdYgkwpYzAGSw==}
@@ -13547,7 +13562,7 @@ packages:
     dependencies:
       object-assign: 4.1.1
       react: 18.2.0
-      react-is: 17.0.2
+      react-is: 18.2.0
     dev: true
 
   /react-table-sticky/1.1.3:

@@ -6,12 +6,13 @@ title: Changelog
 
 -   Internal (JS): implement a global `EventBus`, Dara internals now fire events to the EventBus which can be subscribed to.
 Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.
+-   Fixed websocket reconnection logic so that it correctly retries for 10 seconds before bailing out and then retries the connection if the document becomes visible again.
 
 ## 1.8.1
 
 -   Added missing interface definition to the WebsocketClientInterface in the ui code
 -   Fix an issue where internal requests did not handle auth errors properly so users would not immediately
-be logged out when their session expired
+    be logged out when their session expired
 
 ## 1.7.7
 
@@ -23,9 +24,9 @@ be logged out when their session expired
 
 -   Added the ability to pass an asynchronous function to `ConfigurationBuilder.on_startup(...)`.
 -   Fix an issue where `get_settings` would crash when attempting to generate a missing `.env` file. It now
-instead warns and falls back to using an in-memory set of default settings.
+    instead warns and falls back to using an in-memory set of default settings.
 -   Fix an issue where the `BackendStore` would not respect existing value and overwrite it with the variable default,
-e.g. when an existing JSON file was present on disk with the `FileBackend`
+    e.g. when an existing JSON file was present on disk with the `FileBackend`
 
 ## 1.7.3
 
