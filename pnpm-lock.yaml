@@ -21,16 +21,16 @@ importers:
       '@babel/core': ^7.23.5
       '@bokeh/bokehjs': ~3.1.1
       '@darajs/core': 1.7.8
-      '@darajs/eslint-config': ~1.7.4
-      '@darajs/prettier-config': ~1.7.4
-      '@darajs/styled-components': ~1.7.4
-      '@darajs/stylelint-config': ~1.7.4
-      '@darajs/ui-causal-graph-editor': ~1.7.4
-      '@darajs/ui-code-editor': ~1.7.4
-      '@darajs/ui-components': ~1.7.4
-      '@darajs/ui-hierarchy-viewer': ~1.7.4
-      '@darajs/ui-icons': ~1.7.4
-      '@darajs/ui-utils': ~1.7.4
+      '@darajs/eslint-config': ~1.7.5
+      '@darajs/prettier-config': ~1.7.5
+      '@darajs/styled-components': ~1.7.5
+      '@darajs/stylelint-config': ~1.7.5
+      '@darajs/ui-causal-graph-editor': ~1.7.5
+      '@darajs/ui-code-editor': ~1.7.5
+      '@darajs/ui-components': ~1.7.5
+      '@darajs/ui-hierarchy-viewer': ~1.7.5
+      '@darajs/ui-icons': ~1.7.5
+      '@darajs/ui-utils': ~1.7.5
       '@popperjs/core': 2.4.0
       '@testing-library/react-hooks': ^3.4.2
       '@types/lodash': ^4.14.155
@@ -69,13 +69,13 @@ importers:
     dependencies:
       '@bokeh/bokehjs': 3.1.1
       '@darajs/core': link:../dara-core
-      '@darajs/styled-components': 1.7.4_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-causal-graph-editor': 1.7.4_a863992e9d3a38769d10e745ab6db249
-      '@darajs/ui-code-editor': 1.7.4_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-components': 1.7.4_@babel+core@7.23.7
-      '@darajs/ui-hierarchy-viewer': 1.7.4_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-icons': 1.7.4_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.7.4
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-causal-graph-editor': 1.7.5_a863992e9d3a38769d10e745ab6db249
+      '@darajs/ui-code-editor': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-components': 1.7.5_@babel+core@7.23.7
+      '@darajs/ui-hierarchy-viewer': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-icons': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
       '@popperjs/core': 2.4.0
       date-fns: 2.9.0
       immer: 9.0.21
@@ -94,9 +94,9 @@ importers:
       remark-gfm: 4.0.0
     devDependencies:
       '@babel/core': 7.23.7
-      '@darajs/eslint-config': 1.7.4
-      '@darajs/prettier-config': 1.7.4
-      '@darajs/stylelint-config': 1.7.4
+      '@darajs/eslint-config': 1.7.5
+      '@darajs/prettier-config': 1.7.5
+      '@darajs/stylelint-config': 1.7.5
       '@testing-library/react-hooks': 3.7.0_e3c3a9642110d97b198a732a97c3b837
       '@types/lodash': 4.14.202
       '@types/react': 18.2.60
@@ -123,13 +123,13 @@ importers:
       '@babel/preset-env': ^7.23.0
       '@babel/preset-react': ^7.22.15
       '@babel/preset-typescript': ^7.23.0
-      '@darajs/eslint-config': ~1.7.4
-      '@darajs/prettier-config': ~1.7.4
-      '@darajs/styled-components': ~1.7.4
-      '@darajs/stylelint-config': ~1.7.4
-      '@darajs/ui-components': ~1.7.4
-      '@darajs/ui-notifications': ~1.7.4
-      '@darajs/ui-utils': ~1.7.4
+      '@darajs/eslint-config': ~1.7.5
+      '@darajs/prettier-config': ~1.7.5
+      '@darajs/styled-components': ~1.7.5
+      '@darajs/stylelint-config': ~1.7.5
+      '@darajs/ui-components': ~1.7.5
+      '@darajs/ui-notifications': ~1.7.5
+      '@darajs/ui-utils': ~1.7.5
       '@fortawesome/fontawesome-free': ~6.4.0
       '@recoiljs/refine': ^0.1.1
       '@rollup/plugin-inject': ^4.0.4
@@ -195,10 +195,10 @@ importers:
       vite: 3.1.8
       whatwg-fetch: ^3.6.2
     dependencies:
-      '@darajs/styled-components': 1.7.4_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-components': 1.7.4_@babel+core@7.23.7
-      '@darajs/ui-notifications': 1.7.4_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.7.4
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-components': 1.7.5_@babel+core@7.23.7
+      '@darajs/ui-notifications': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
       '@fortawesome/fontawesome-free': 6.4.2
       '@recoiljs/refine': 0.1.1
       '@tanstack/query-core': 4.36.1
@@ -232,9 +232,9 @@ importers:
       '@babel/preset-env': 7.23.7_@babel+core@7.23.7
       '@babel/preset-react': 7.23.3_@babel+core@7.23.7
       '@babel/preset-typescript': 7.23.3_@babel+core@7.23.7
-      '@darajs/eslint-config': 1.7.4_jest@29.7.0
-      '@darajs/prettier-config': 1.7.4
-      '@darajs/stylelint-config': 1.7.4
+      '@darajs/eslint-config': 1.7.5_jest@29.7.0
+      '@darajs/prettier-config': 1.7.5
+      '@darajs/stylelint-config': 1.7.5
       '@rollup/plugin-inject': 4.0.4_rollup@2.79.1
       '@testing-library/dom': 9.3.3
       '@testing-library/jest-dom': 5.17.0
@@ -388,15 +388,6 @@ packages:
       semver: 6.3.1
     transitivePeerDependencies:
       - supports-color
-    dev: true
-
-  /@babel/generator/7.17.7:
-    resolution: {integrity: sha512-oLcVCTeIFadUoArDTwpluncplrYBmTCCZZgXCbgNGvOBBiSDDK3eWO4b/+eOTli5tKv1lg+a5/NAXg+nTcei1w==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/types': 7.24.0
-      jsesc: 2.5.2
-      source-map: 0.5.7
     dev: true
 
   /@babel/generator/7.23.6:
@@ -1888,24 +1879,6 @@ packages:
       '@babel/parser': 7.24.1
       '@babel/types': 7.24.0
 
-  /@babel/traverse/7.23.2:
-    resolution: {integrity: sha512-azpe59SQ48qG6nu2CzcMLbxUudtN+dOM9kDbUqGq3HXUJRlo7i8fvPoxQUzYgLZ4cMVmuZgm8vvBpNeRhd6XSw==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/code-frame': 7.24.2
-      '@babel/generator': 7.24.1
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.24.1
-      '@babel/types': 7.24.0
-      debug: 4.3.4
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
   /@babel/traverse/7.23.7:
     resolution: {integrity: sha512-tY3mM8rH9jM0YHFGyfC0/xf+SB5eKUu7HPj7/k3fpi9dAlsMc5YbQvDi0Sh2QTPXqMhyaAtzAr807TIyfQrmyg==}
     engines: {node: '>=6.9.0'}
@@ -1975,14 +1948,6 @@ packages:
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-    dev: true
-
-  /@babel/types/7.17.0:
-    resolution: {integrity: sha512-TmKSNO4D5rzhL5bjWFcVHHLETzfQ/AmbKpKPOSjlP0WoHZ6L911fgoOKY4Alp/emzG4cHJdyN49zpgkbXFEHHw==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/helper-validator-identifier': 7.22.20
-      to-fast-properties: 2.0.0
     dev: true
 
   /@babel/types/7.23.6:
@@ -2131,10 +2096,10 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/eslint-config/1.7.4:
-    resolution: {integrity: sha512-sPy71c9ZdokHoCttk0uZFNB5FHbKN9wkQtTdKcddJ3TTEpjU+1giuytoDIbbJiPpKFMqQOPdvYxH5gdDMkksxQ==}
+  /@darajs/eslint-config/1.7.5:
+    resolution: {integrity: sha512-OnAJNnZ4aT2Dh6DjtObk0kj+QKHmTJyWDxsFrpOpdZsSNEHSKbkQbvupxUvQLwEktZOf8gXVGWgBaRTcQxtJ/g==}
     dependencies:
-      '@darajs/prettier-config': 1.8.0
+      '@darajs/prettier-config': 1.7.5
       '@typescript-eslint/eslint-plugin': 6.21.0_600f1e48d30ed4bd1f92855871c852fd
       '@typescript-eslint/parser': 6.21.0_eslint@7.32.0+typescript@5.3.3
       eslint: 7.32.0
@@ -2152,17 +2117,16 @@ packages:
       prettier: 2.8.8
       typescript: 5.3.3
     transitivePeerDependencies:
-      - '@vue/compiler-sfc'
       - eslint-import-resolver-node
       - eslint-import-resolver-webpack
       - jest
       - supports-color
     dev: true
 
-  /@darajs/eslint-config/1.7.4_jest@29.7.0:
-    resolution: {integrity: sha512-sPy71c9ZdokHoCttk0uZFNB5FHbKN9wkQtTdKcddJ3TTEpjU+1giuytoDIbbJiPpKFMqQOPdvYxH5gdDMkksxQ==}
+  /@darajs/eslint-config/1.7.5_jest@29.7.0:
+    resolution: {integrity: sha512-OnAJNnZ4aT2Dh6DjtObk0kj+QKHmTJyWDxsFrpOpdZsSNEHSKbkQbvupxUvQLwEktZOf8gXVGWgBaRTcQxtJ/g==}
     dependencies:
-      '@darajs/prettier-config': 1.8.0
+      '@darajs/prettier-config': 1.7.5
       '@typescript-eslint/eslint-plugin': 6.21.0_600f1e48d30ed4bd1f92855871c852fd
       '@typescript-eslint/parser': 6.21.0_eslint@7.32.0+typescript@5.3.3
       eslint: 7.32.0
@@ -2180,31 +2144,20 @@ packages:
       prettier: 2.8.8
       typescript: 5.3.3
     transitivePeerDependencies:
-      - '@vue/compiler-sfc'
       - eslint-import-resolver-node
       - eslint-import-resolver-webpack
       - jest
       - supports-color
     dev: true
 
-  /@darajs/prettier-config/1.7.4:
-    resolution: {integrity: sha512-jA2cdMtS3LiVUqBsXCXHqv0ZCff/5qdMcipUBAuVL+rb9Nfp45rUZwTLr0tPZJZlVR9EVysThbx3O/ukIOeyZA==}
+  /@darajs/prettier-config/1.7.5:
+    resolution: {integrity: sha512-+KCbDXOrEhKnI0r/SeijtxhWEAFHFzax0f1gkY3QwXn5loxQBmQqPqq11eahlERYYfTjATzrPyaspVsyK6/HAQ==}
     dependencies:
       prettier: 2.8.8
     dev: true
 
-  /@darajs/prettier-config/1.8.0:
-    resolution: {integrity: sha512-NK17KI9p3UkxhMM04fmapRiJqSIk6eJKbwEq/+mbOq1FW4y1cXxP857MRxkIWw/L8pYfnAKD8Vf2P+PplP5SDA==}
-    dependencies:
-      '@trivago/prettier-plugin-sort-imports': 4.3.0_prettier@2.8.8
-      prettier: 2.8.8
-    transitivePeerDependencies:
-      - '@vue/compiler-sfc'
-      - supports-color
-    dev: true
-
-  /@darajs/styled-components/1.7.4_3468e0131e0a7bd0bc8f701237cb9d6a:
-    resolution: {integrity: sha512-D8Jkw2Rwu7K9IgMHw4mvMOE+uWaTanyhso4uvfRUZ1Xi3CY+oRvxO7fsEMy58fmxifgnvobGI2/AvmY4pxZ/iw==}
+  /@darajs/styled-components/1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a:
+    resolution: {integrity: sha512-BJu/2qvq1DxJ3+VL2gKAZPnQhwgBfbG2OqKEgxD1BxJcsQN/2iQI5SGZpjV4nFpUvucJeD5Q4AshP8n+ZWPilw==}
     dependencies:
       polished: 4.3.1
       styled-components: 5.3.11_3468e0131e0a7bd0bc8f701237cb9d6a
@@ -2214,19 +2167,8 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/styled-components/1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a:
-    resolution: {integrity: sha512-cqdTihDE+ikcGJy/XCaSNkHMcOPfE72kLaPoaCqRyM7RqVE/twnhgxsp52iyUonQfI8LqLyEFaYGbXspRuU7MQ==}
-    dependencies:
-      polished: 4.3.1
-      styled-components: 5.3.11_3468e0131e0a7bd0bc8f701237cb9d6a
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react
-      - react-dom
-    dev: false
-
-  /@darajs/stylelint-config/1.7.4:
-    resolution: {integrity: sha512-I3Bnj4c5YBGkBxcjKFaLpbuHbwQrcq4HaCBvZuvi3vQ28dWvjR7pdRDASbNexwO91wek9QcAUpvOnH9JQLxB3g==}
+  /@darajs/stylelint-config/1.7.5:
+    resolution: {integrity: sha512-P6GzaG9AlIZi23JSkqaapjsS9AwWUtzJYqsf1uH4BUqLrHXhzEZLhsfQnPLsjpRqxO8EyWp377bEfi7OeqSxPg==}
     dependencies:
       '@stylelint/postcss-css-in-js': 0.37.3_394acab2f4b311207e67bcf378b93035
       postcss: 8.4.38
@@ -2248,15 +2190,15 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/ui-causal-graph-editor/1.7.4_a863992e9d3a38769d10e745ab6db249:
-    resolution: {integrity: sha512-PT51HIILaB600eGqpBV6JnAOqgOJywSiw7GwT5+UCIN9WNx/Pq5zQfLe6oH06tgAIJ6/tZOWKHpsMB/1PSkWgQ==}
+  /@darajs/ui-causal-graph-editor/1.7.5_a863992e9d3a38769d10e745ab6db249:
+    resolution: {integrity: sha512-i9eSNmsgzLvExc4zxSeTlIwYiS+oSbPF459pQaBBdRt7aO1Ikse0HXe79WNc5/1LyXH36kOk6Kcz/XRxeWSf8Q==}
     dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-components': 1.8.0_@babel+core@7.23.7
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-notifications': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
-      '@darajs/ui-widgets': 1.8.0_@babel+core@7.23.7
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-components': 1.7.5_@babel+core@7.23.7
+      '@darajs/ui-icons': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-notifications': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
+      '@darajs/ui-widgets': 1.7.5_@babel+core@7.23.7
       '@pixi-essentials/cull': 2.0.0_91556dff58e2ea690004dd7ebb60bcd2
       '@pixi/app': 7.2.4_44e40742d0ef8a2ce831687ffd8eb5d7
       '@pixi/constants': 7.2.4
@@ -2312,8 +2254,8 @@ packages:
       - vis-util
     dev: false
 
-  /@darajs/ui-code-editor/1.7.4_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-wM+h52Uc1g7q8q24XiQHlUVp6AMQOwQRAn/cJkwoJY28yaa8TEpK6knLg4p/IfsLMk0DYp6sdY+/QTQ9w5azhw==}
+  /@darajs/ui-code-editor/1.7.5_8a07774e5f22633856d20b43cd68283e:
+    resolution: {integrity: sha512-c1sMvzmlzK2E6IoPeblw2iBbFLqQ3zrS15GfTMTGb/P64h2uGkPSjAZgX+TuEbe1az16mlPqkGXlaIUwVMsR6w==}
     dependencies:
       '@codemirror/autocomplete': 6.15.0
       '@codemirror/commands': 6.3.3
@@ -2323,19 +2265,20 @@ packages:
       '@codemirror/search': 6.5.6
       '@codemirror/state': 6.4.1
       '@codemirror/view': 6.26.0
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
       react: 18.2.0
     transitivePeerDependencies:
       - '@babel/core'
       - react-dom
     dev: false
 
-  /@darajs/ui-components/1.7.4_@babel+core@7.23.7:
-    resolution: {integrity: sha512-EDxxf8tbhxiSxtuXPBndgADyVuB8cK4pg1hJAKvjG7O03FMa/Nu5T1Y3BFwg2riW+xqh1dHMuCnYg2zkQdb/ew==}
+  /@darajs/ui-components/1.7.5_@babel+core@7.23.7:
+    resolution: {integrity: sha512-C7HPlD1mPur+efcSoxGyNJAecZ1dXJ+XvuZySoRQLGSk4uM6foELhNf0akerw2fP8PD2kn70o5RUZG3D8JOr2A==}
     dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-icons': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
+      '@floating-ui/react': 0.26.12_react-dom@18.2.0+react@18.2.0
       '@fortawesome/fontawesome-svg-core': 6.4.2
       '@fortawesome/free-regular-svg-icons': 6.4.2
       '@fortawesome/free-solid-svg-icons': 6.4.2
@@ -2365,46 +2308,11 @@ packages:
       - '@babel/core'
     dev: false
 
-  /@darajs/ui-components/1.8.0_@babel+core@7.23.7:
-    resolution: {integrity: sha512-Pcp/MVlQTNo7pwLBcWcGoUFIeOaAriegTVXn5MZPqCxFYXyoXhMwJWWwFKfBmAn3Ev/4Ffz8wGERteQ3iIr8QA==}
+  /@darajs/ui-hierarchy-viewer/1.7.5_8a07774e5f22633856d20b43cd68283e:
+    resolution: {integrity: sha512-FRnASmCqnulDD939bsTyayG4JSCYCsc12GiQwM4f5Ree70J7+kWU9NI8n3e42Mjlj3bx1Ty358+ekeVzWMxl4g==}
     dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.0_6f891d2752294bb2e94777f4be5e8a26
-      '@popperjs/core': 2.4.0
-      '@tippyjs/react': 4.1.0_react-dom@18.2.0+react@18.2.0
-      date-fns: 2.9.0
-      downshift: 7.6.2_react@18.2.0
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.7
-      polished: 3.6.4
-      react: 18.2.0
-      react-collapse: 5.1.1_react@18.2.0
-      react-compound-slider: 3.3.0_react@18.2.0
-      react-datepicker: 4.8.0_react-dom@18.2.0+react@18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-dropzone: 11.0.1_react@18.2.0
-      react-popper: 2.3.0_3d64b7be2882c124e16faa6277c76e4e
-      react-table: 7.7.0_react@18.2.0
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6_react-dom@18.2.0+react@18.2.0
-      react-window: 1.8.10_react-dom@18.2.0+react@18.2.0
-      shortid: 2.2.15
-      tippy.js: 6.2.6
-    transitivePeerDependencies:
-      - '@babel/core'
-    dev: false
-
-  /@darajs/ui-hierarchy-viewer/1.7.4_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-qfXu6dDfGrhR8ex+5FUxRCkUOADT+UXUc8oL9R+Tgdd+qPT3mwx7Cn3tR7Vr3pwr2IPNAKSVprnCyJYtz4E+vw==}
-    dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-utils': 1.8.0
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-utils': 1.7.5
       d3: 6.2.0
       react: 18.2.0
     transitivePeerDependencies:
@@ -2412,10 +2320,10 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/ui-icons/1.7.4_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-/4m+hYygXtb3mecvkZFYzNoMUPqyLYK1IfGYXH1hUo4W9G5JqCMn71/GF1glPOxZVrMz34cYWY+xTK3bhMseIw==}
+  /@darajs/ui-icons/1.7.5_8a07774e5f22633856d20b43cd68283e:
+    resolution: {integrity: sha512-UO9jvSEqWqtn+fbJz+CsYIl27i8wDMZN50cV/R7qFzv6LoKUJkKk8cVD6Zqnu9zt10aGp59YnyuFdhH4WhxAww==}
     dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
       '@fortawesome/fontawesome-svg-core': 6.4.2
       '@fortawesome/free-brands-svg-icons': 6.4.2
       '@fortawesome/free-regular-svg-icons': 6.4.2
@@ -2429,29 +2337,12 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/ui-icons/1.8.0_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-fodRYdf97fupf6mbzFAYpB5Xrtc2Jq8Gp7qzl0xbFguaUuTVMYkSw1Ufqg1KzRHNo9WZlpWnlxj5+BLCnqxYLA==}
+  /@darajs/ui-notifications/1.7.5_8a07774e5f22633856d20b43cd68283e:
+    resolution: {integrity: sha512-mM5bZa3Q+CQZmhPYMiEjmsNNWoo7+wUDUaJGxY+QGzGaBQK1LZuy7jC/yqsCdXQFf44GOxIo41rtcn3s7w6Nbw==}
     dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-brands-svg-icons': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.0_6f891d2752294bb2e94777f4be5e8a26
-      '@mdi/js': 5.9.55
-      '@mdi/react': 1.4.0
-      react: 18.2.0
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react-dom
-    dev: false
-
-  /@darajs/ui-notifications/1.7.4_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-g8Ek7k84rbftfjvPcTxUsj+inQIYc90IhooMGJAe+ssCCuk/Kj2nTO5oWac49uLwAU9H32zPpSX0iYozvTG8fg==}
-    dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-icons': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
       lodash: 4.17.21
       polished: 4.3.1
       react: 18.2.0
@@ -2461,23 +2352,8 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/ui-notifications/1.8.0_8a07774e5f22633856d20b43cd68283e:
-    resolution: {integrity: sha512-3F8Yk1pJtlYs7Ja39z6s9T4SI/FVgOiVnqGW73wPbeZMWKX2K6zOR+B+DPobNweWPYPac1TrfLrynmmDWDzprQ==}
-    dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
-      lodash: 4.17.21
-      polished: 4.3.1
-      react: 18.2.0
-      rxjs: 7.8.1
-    transitivePeerDependencies:
-      - '@babel/core'
-      - react-dom
-    dev: false
-
-  /@darajs/ui-utils/1.7.4:
-    resolution: {integrity: sha512-qmUZPSrVAGHQdEnhAN6me3m63gMqd2ys+6C+WSTD7jctsvXRseOdrIxwGptzsfSkEATCHGY2rObng3AjkSaNHg==}
+  /@darajs/ui-utils/1.7.5:
+    resolution: {integrity: sha512-GQ/T39lundAhuVr5e30Z+A6+VuNg2TuC4qr1JeEWUTFOVmm2i+micgVKXX/0rIiWHSQ3G1lIT1R9WBcyhqF8uQ==}
     dependencies:
       d3-scale: 3.2.1
       lodash: 4.17.21
@@ -2486,27 +2362,19 @@ packages:
       shortid: 2.2.15
     dev: false
 
-  /@darajs/ui-utils/1.8.0:
-    resolution: {integrity: sha512-mSjKApUu9WRI9zpL57ajnJGn+7ZFnL27u2VqmTMliPirGLQfj0XiOozuomJgK6KSC5Yy8nolfF4FmxyVbnUz7Q==}
+  /@darajs/ui-widgets/1.7.5_@babel+core@7.23.7:
+    resolution: {integrity: sha512-PtvOjnOEK5VhVH618hq5qRwbsoCzrHhkz6Jcknp+Hl0hH/bAuca7ILUoJ/aH2ATeNKGl2OXr56R71sWx1IJKEQ==}
     dependencies:
-      d3-scale: 3.2.1
-      lodash: 4.17.21
-      react: 18.2.0
-      rxjs: 7.8.1
-      shortid: 2.2.15
-    dev: false
-
-  /@darajs/ui-widgets/1.8.0_@babel+core@7.23.7:
-    resolution: {integrity: sha512-C4kVBwdefe8wkqcs0ioRKJrIGvC2GGJR37agSI8Ym+d22zWv3aaJEtfC/zWDOYvIgB4mu+gJ6mRY+QGyTca2Ww==}
-    dependencies:
-      '@darajs/styled-components': 1.8.0_3468e0131e0a7bd0bc8f701237cb9d6a
-      '@darajs/ui-components': 1.8.0_@babel+core@7.23.7
-      '@darajs/ui-icons': 1.8.0_8a07774e5f22633856d20b43cd68283e
-      '@darajs/ui-utils': 1.8.0
+      '@darajs/styled-components': 1.7.5_3468e0131e0a7bd0bc8f701237cb9d6a
+      '@darajs/ui-components': 1.7.5_@babel+core@7.23.7
+      '@darajs/ui-icons': 1.7.5_8a07774e5f22633856d20b43cd68283e
+      '@darajs/ui-utils': 1.7.5
+      immer: 9.0.21
       lodash: 4.17.21
       nanoid: 3.3.7
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+      use-immer: 0.6.0_immer@9.0.21+react@18.2.0
     transitivePeerDependencies:
       - '@babel/core'
     dev: false
@@ -2607,6 +2475,47 @@ packages:
       lodash.isnil: 4.0.0
       lodash.isundefined: 3.0.1
       lodash.uniq: 4.5.0
+    dev: false
+
+  /@floating-ui/core/1.6.0:
+    resolution: {integrity: sha512-PcF++MykgmTj3CIyOQbKA/hDzOAiqI3mhuoN44WRCopIs1sgoDoU4oty4Jtqaj/y3oDU6fnVSm4QG0a3t5i0+g==}
+    dependencies:
+      '@floating-ui/utils': 0.2.1
+    dev: false
+
+  /@floating-ui/dom/1.6.3:
+    resolution: {integrity: sha512-RnDthu3mzPlQ31Ss/BTwQ1zjzIhr3lk1gZB1OC56h/1vEtaXkESrOqL5fQVMfXpwGtRwX+YsZBdyHtJMQnkArw==}
+    dependencies:
+      '@floating-ui/core': 1.6.0
+      '@floating-ui/utils': 0.2.1
+    dev: false
+
+  /@floating-ui/react-dom/2.0.8_react-dom@18.2.0+react@18.2.0:
+    resolution: {integrity: sha512-HOdqOt3R3OGeTKidaLvJKcgg75S6tibQ3Tif4eyd91QnIJWr0NLvoXFpJA/j8HqkFSL68GDca9AuyWEHlhyClw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@floating-ui/dom': 1.6.3
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
+  /@floating-ui/react/0.26.12_react-dom@18.2.0+react@18.2.0:
+    resolution: {integrity: sha512-D09o62HrWdIkstF2kGekIKAC0/N/Dl6wo3CQsnLcOmO3LkW6Ik8uIb3kw8JYkwxNCcg+uJ2bpWUiIijTBep05w==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@floating-ui/react-dom': 2.0.8_react-dom@18.2.0+react@18.2.0
+      '@floating-ui/utils': 0.2.1
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      tabbable: 6.2.0
+    dev: false
+
+  /@floating-ui/utils/0.2.1:
+    resolution: {integrity: sha512-9TANp6GPoMtYzQdt54kfAyMmz1+osLlXdg2ENroU7zzrtflTLrrC/lgrIfaSe+Wu0b89GKccT7vxXA0MoAIO+Q==}
     dev: false
 
   /@fortawesome/fontawesome-common-types/6.4.2:
@@ -4238,26 +4147,6 @@ packages:
   /@tootallnate/once/2.0.0:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
-
-  /@trivago/prettier-plugin-sort-imports/4.3.0_prettier@2.8.8:
-    resolution: {integrity: sha512-r3n0onD3BTOVUNPhR4lhVK4/pABGpbA7bW3eumZnYdKaHkf1qEC+Mag6DPbGNuuh0eG8AaYj+YqmVHSiGslaTQ==}
-    peerDependencies:
-      '@vue/compiler-sfc': 3.x
-      prettier: 2.x - 3.x
-    peerDependenciesMeta:
-      '@vue/compiler-sfc':
-        optional: true
-    dependencies:
-      '@babel/generator': 7.17.7
-      '@babel/parser': 7.24.1
-      '@babel/traverse': 7.23.2
-      '@babel/types': 7.17.0
-      javascript-natural-sort: 0.7.1
-      lodash: 4.17.21
-      prettier: 2.8.8
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
 
   /@tufjs/canonical-json/1.0.0:
     resolution: {integrity: sha512-QTnf++uxunWvG2z3UFNzAoQPHxnSXOwtaI3iJ+AohhV+5vONuArPjJE7aPXPVXfXJsqrVbZBu9b81AJoSd09IQ==}
@@ -10191,10 +10080,6 @@ packages:
     resolution: {integrity: sha512-5edoDKnMrt/u3M6GnZKDDIPxOyFOg+WrwDv8mjNiMC2DePhy2H9/FFQgf4ggywaXT1utvkxusJcjQUER72cZmA==}
     dev: false
 
-  /javascript-natural-sort/0.7.1:
-    resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
-    dev: true
-
   /jest-changed-files/29.7.0:
     resolution: {integrity: sha512-fEArFiwf1BpQ+4bXSprcDc3/x4HSzL4al2tozwVpDFpsxALjLYdyiIK4e5Vz66GQJIbXJ82+35PtysofptNX2w==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -13545,20 +13430,6 @@ packages:
       warning: 4.0.3
     dev: false
 
-  /react-popper/2.3.0_3d64b7be2882c124e16faa6277c76e4e:
-    resolution: {integrity: sha512-e1hj8lL3uM+sgSR4Lxzn5h1GxBlpa4CQz0XLF8kx4MDrDRWY0Ena4c97PUeSX9i5W3UAfDP0z0FXCTQkoXUl3Q==}
-    peerDependencies:
-      '@popperjs/core': ^2.0.0
-      react: ^16.8.0 || ^17 || ^18
-      react-dom: ^16.8.0 || ^17 || ^18
-    dependencies:
-      '@popperjs/core': 2.4.0
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-fast-compare: 3.2.2
-      warning: 4.0.3
-    dev: false
-
   /react-popper/2.3.0_47d1cc49ad40b9295ede2b52dc5ed9a2:
     resolution: {integrity: sha512-e1hj8lL3uM+sgSR4Lxzn5h1GxBlpa4CQz0XLF8kx4MDrDRWY0Ena4c97PUeSX9i5W3UAfDP0z0FXCTQkoXUl3Q==}
     peerDependencies:
@@ -14482,11 +14353,6 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /source-map/0.5.7:
-    resolution: {integrity: sha512-LbrmJOMUSdEVxIKvdcJzQC+nQhe8FUZQTXQy6+I75skNgn3OoQ0DZA8YnFa7gp8tqtL3KPf1kmo0R5DoApeSGQ==}
-    engines: {node: '>=0.10.0'}
-    dev: true
-
   /source-map/0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
@@ -15079,6 +14945,10 @@ packages:
   /symbol-tree/3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
     dev: true
+
+  /tabbable/6.2.0:
+    resolution: {integrity: sha512-Cat63mxsVJlzYvN51JmVXIgNoUokrIaT2zLclCXjRd8boZ0004U4KCs/sToJ75C6sdlByWxpYnb5Boif1VSFew==}
+    dev: false
 
   /table/6.8.1:
     resolution: {integrity: sha512-Y4X9zqrCftUhMeH2EptSSERdVKt/nEdijTOacGD/97EKjhQ/Qs8RTlEGABSJNNN8lac9kheH+af7yAkEWlgneA==}

@@ -5,6 +5,9 @@ title: Changelog
 ## NEXT
 
 -   **Backported** Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`.
+-   **Backported** `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
+-   **Backported** Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
+then number of items in the select was large.
 
 ## 1.8.1
 
