@@ -30,26 +30,30 @@ interface MessageNotificationPayload {
     content: Message;
 }
 
-const ChatWrapper = styled.div`
-    pointer-events: auto;
+const ThreadWrapper = styled.div`
+    pointer-events: auto;    
+    margin: 1rem;
+    border-radius: 0.4rem;
 
     position: fixed;
-    z-index: 999;
     right: 1rem;
     bottom: -0.1rem;
 `;
 
 const ChatButton = styled.button`
-    width: 3.5rem;
-    height: 3.5rem;
-    margin: 0 2rem 2rem 0;
-    padding-top: 0.5rem;
+    width: 2.0rem;
+    height: 2.0rem;
+    padding-top: 0.45rem;
+
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
 
     color: ${(props) => props.theme.colors.background};
 
     background-color: ${(props) => props.theme.colors.primary};
     border: none;
-    border-radius: 3rem;
+    border-radius: 2rem;
 
     :hover {
         background-color: ${(props) => props.theme.colors.primaryHover};
@@ -120,6 +124,33 @@ async function sendNewMessage(payload: MessageNotificationPayload, extras: Reque
 }
 
 /**
+ * Check if the given selector has been rendered
+ *
+ * @param selector the selector to check
+ */
+function checkRenderedElements(selector: string): boolean {
+    const elements = document.querySelectorAll(selector);
+    return elements.length > 0;
+}
+
+/**
+ * Get the highest z-index of the elements with the given selector
+ *
+ * @param selector the selector to get the z-index from
+ */
+function getHighestZIndex(selector: string): number {
+    const elements = document.querySelectorAll(selector);
+    let highest = 998; // Start with 998
+    elements.forEach(element => {
+        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex, 10);
+        if (zIndex > highest) {
+            highest = zIndex;
+        }
+    });
+    return highest;
+}
+
+/**
  * The Chat component switches between a chat button and a chat sidebar, allowing the user to interact with a chat.
  *
  * @param props the component props
@@ -149,60 +180,72 @@ function Chat(props: ChatProps): JSX.Element {
         setValue(newValue);
     };
 
+    /** Keeps track if there are other chat threads open */
+    const areThereOtherChats = React.useMemo(() => {
+        if (checkRenderedElements('.chatThread')) {
+            return true;
+        } else {
+            return false;
+        }
+    }, [showChat])
+
     return (
-        <ChatWrapper>
+        <>
             {showChat && (
-                <StyledChat
-                    $rawCss={css}
-                    className={props.className}
-                    onClose={() => setShowChat(false)}
-                    onUpdate={onUpdate}
-                    style={style}
-                    value={value}
-                    activeUser={parseUserData(userData)}
-                />
+                // we set the z-index so that the latest chat thread opened is always on top, and if there is a chat thread open, we set the background color so that the transparency does not show the thread behind
+                <ThreadWrapper className='chatThread' style={{ zIndex: getHighestZIndex('.chatThread') + 1, backgroundColor: areThereOtherChats ? theme.colors.background : 'inherit' }}>
+                    <StyledChat
+                        $rawCss={css}
+                        className={props.className}
+                        onClose={() => setShowChat(false)}
+                        onUpdate={onUpdate}
+                        // TODO: remove margin 0 when dara-ui is updated to not set it
+                        style={{ margin: 0, ...style }}
+                        value={value}
+                        activeUser={parseUserData(userData)}
+                    />
+                </ThreadWrapper>
             )}
-            {!showChat && (
-                <ChatButton onClick={() => setShowChat(true)}>
-                    <svg fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
-                        <rect fill="none" height="24" rx="3" width="30" x="1" y="1.33594" />
-                        <rect
-                            height="24"
-                            rx="3"
-                            stroke={theme.colors.background}
-                            strokeWidth="2"
-                            width="30"
-                            x="1"
-                            y="1.33594"
-                        />
-                        <path
-                            d="M8 8.33594H24"
-                            stroke={theme.colors.background}
-                            strokeLinecap="round"
-                            strokeWidth="2"
-                        />
-                        <path
-                            d="M8 13.3359H24"
-                            stroke={theme.colors.background}
-                            strokeLinecap="round"
-                            strokeWidth="2"
-                        />
-                        <path
-                            d="M8 18.3359H24"
-                            stroke={theme.colors.background}
-                            strokeLinecap="round"
-                            strokeWidth="2"
-                        />
-                        <path
-                            d="M18.5981 26.1641L16 30.6641L13.4019 26.1641L18.5981 26.1641Z"
-                            fill={theme.colors.background}
-                            stroke={theme.colors.background}
-                        />
-                        <path d="M16 28.3359L13.4019 23.8359L18.5981 23.8359L16 28.3359Z" fill="none" />
-                    </svg>
-                </ChatButton>
-            )}
-        </ChatWrapper>
+            <ChatButton onClick={() => setShowChat(true)}>
+                <svg fill="none" height="32" viewBox="0 0 52 52" width="32" xmlns="http://www.w3.org/2000/svg">
+                    <rect fill="none" height="24" rx="3" width="30" x="1" y="1.33594" />
+                    <rect
+                        height="24"
+                        rx="3"
+                        stroke={theme.colors.background}
+                        strokeWidth="2"
+                        width="30"
+                        x="1"
+                        y="1.33594"
+                    />
+                    <path
+                        d="M8 8.33594H24"
+                        stroke={theme.colors.background}
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                    />
+                    <path
+                        d="M8 13.3359H24"
+                        stroke={theme.colors.background}
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                    />
+                    <path
+                        d="M8 18.3359H24"
+                        stroke={theme.colors.background}
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                    />
+                    <path
+                        d="M18.5981 26.1641L16 30.6641L13.4019 26.1641L18.5981 26.1641Z"
+                        fill={theme.colors.background}
+                        stroke={theme.colors.background}
+                    />
+                    <path d="M16 28.3359L13.4019 23.8359L18.5981 23.8359L16 28.3359Z" fill="none" />
+                </svg>
+            </ChatButton>
+
+        </>
     );
 }
 
