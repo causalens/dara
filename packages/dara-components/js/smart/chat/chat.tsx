@@ -163,6 +163,7 @@ function Chat(props: ChatProps): JSX.Element {
 
     const [showChat, setShowChat] = React.useState(false);
     const [areThereOtherChats, setAreThereOtherChats] = React.useState(false);
+    const [zIndex, setZIndex] = React.useState(998);
 
     const user = useUser();
     const theme = useTheme();
@@ -186,6 +187,13 @@ function Chat(props: ChatProps): JSX.Element {
         setValue(newValue);
     };
 
+    const onClickChatButton = (): void => {
+        setShowChat(true);
+        setZIndex(getHighestZIndex('.chatThread') + 1);
+        // we need to update here so that if the chat button is clicked again when it is already open, the background color is updated
+        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chatThread'));
+    };
+
     React.useLayoutEffect(() => {
         setAreThereOtherChats(checkMoreThanOneRenderedElement('.chatThread'));
     }, [showChat]);
@@ -197,7 +205,7 @@ function Chat(props: ChatProps): JSX.Element {
                 <ThreadWrapper
                     className="chatThread"
                     style={{
-                        zIndex: getHighestZIndex('.chatThread') + 1,
+                        zIndex,
                         backgroundColor: areThereOtherChats ? theme.colors.background : 'inherit',
                     }}
                 >
@@ -213,7 +221,7 @@ function Chat(props: ChatProps): JSX.Element {
                     />
                 </ThreadWrapper>
             )}
-            <ChatButton onClick={() => setShowChat(true)}>
+            <ChatButton onClick={onClickChatButton}>
                 <svg fill="none" height="32" viewBox="0 0 52 52" width="32" xmlns="http://www.w3.org/2000/svg">
                     <rect fill="none" height="24" rx="3" width="30" x="1" y="1.33594" />
                     <rect
