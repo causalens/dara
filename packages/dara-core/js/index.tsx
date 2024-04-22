@@ -13,6 +13,9 @@ import type {
     ClauseQuery,
     ComponentInstance,
     Condition,
+    DaraEvent,
+    DaraEventMap,
+    DaraEventType,
     DataFrame,
     DataVariable,
     DerivedVariable,
@@ -61,6 +64,9 @@ export type {
     RequestOptions,
     LayoutComponentProps,
     UserData,
+    DaraEventMap,
+    DaraEvent,
+    DaraEventType,
 };
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
