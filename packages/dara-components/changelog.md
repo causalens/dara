@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   `Chat` component button is now attached to the container it was added in instead of the page. This means it is now possible to add multiple chat components in a page.
+
 ## 1.8.2
 
 -   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`. 
