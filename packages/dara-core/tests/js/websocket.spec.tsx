@@ -12,7 +12,7 @@ import { WebSocketClient } from '@/api';
  * @returns the message as a string
  */
 function toMsg(type: string, message: any): string {
-    return JSON.stringify({ type, message });
+    return JSON.stringify({ message, type });
 }
 
 async function initialize(liveReload = false): Promise<[server: WS, client: WebSocketClient]> {
@@ -49,7 +49,7 @@ describe('WebsocketClient', () => {
         server.send(toMsg('custom', { message: 'test' }));
 
         // Check that the message was received
-        expect(await message).toEqual({ type: 'custom', message: { message: 'test' } });
+        expect(await message).toEqual({ message: { message: 'test' }, type: 'custom' });
     });
 
     it('should allow the client to send messages to the server', async () => {

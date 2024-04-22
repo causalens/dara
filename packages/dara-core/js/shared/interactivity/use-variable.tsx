@@ -33,8 +33,8 @@ function warnUpdateOnDerivedState(): void {
 // extend the event map
 declare module '../../types/event-types' {
     interface DaraEventMap {
-        DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
-        PLAIN_VARIABLE_LOADED: { variable: Variable<any>; value: any };
+        DERIVED_VARIABLE_LOADED: { value: any; variable: DerivedVariable };
+        PLAIN_VARIABLE_LOADED: { value: any; variable: Variable<any> };
     }
 }
 
@@ -77,7 +77,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
 
         useEffect(() => {
             if (selectorLoadable.state === 'hasValue') {
-                bus.publish('DERIVED_VARIABLE_LOADED', { variable, value: selectorLoadable.contents.value });
+                bus.publish('DERIVED_VARIABLE_LOADED', { value: selectorLoadable.contents.value, variable });
             }
         }, [selectorLoadable]);
 
@@ -97,7 +97,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
 
     useEffect(() => {
         if (loadable.state === 'hasValue') {
-            bus.publish('PLAIN_VARIABLE_LOADED', { variable, value: loadable.contents });
+            bus.publish('PLAIN_VARIABLE_LOADED', { value: loadable.contents, variable });
         }
     }, [loadable]);
 

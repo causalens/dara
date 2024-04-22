@@ -141,14 +141,14 @@ describe('DynamicComponent', () => {
         // single event bus notification should come through
         expect(receivedData).toHaveLength(1);
         expect(receivedData[0]).toEqual({
-            uid: 'uid',
             name: 'TestComponent2',
+            uid: 'uid',
             value: {
                 name: 'RawString',
                 props: {
                     content: value,
                 },
-            }
+            },
         });
     });
 

@@ -5,14 +5,14 @@ import { DaraEvent, DaraEventMap } from '@/types/event-types';
 
 type EventMap = Record<string, any>;
 type UnionFromMap<M extends EventMap> = {
-    [K in keyof M]: { type: K; data: M[K] };
+    [K in keyof M]: { data: M[K]; type: K };
 }[keyof M];
 
 /**
  * Global event bus that allows to publish and subscribe to events.
  */
 export class EventBus<MapT extends EventMap> {
-    #events$: Subject<{ type: keyof MapT; data: MapT[keyof MapT] }> = new Subject();
+    #events$: Subject<{ data: MapT[keyof MapT]; type: keyof MapT }> = new Subject();
 
     #parentBus: EventBus<MapT> | null = null;
 
@@ -21,7 +21,7 @@ export class EventBus<MapT extends EventMap> {
     }
 
     publish<T extends keyof MapT>(type: T, data: MapT[T]): void {
-        this.#events$.next({ type, data });
+        this.#events$.next({ data, type });
 
         // bubble up the event
         if (this.#parentBus) {

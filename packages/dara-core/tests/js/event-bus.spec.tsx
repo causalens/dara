@@ -15,7 +15,7 @@ describe('Event Bus', () => {
 
         bus.publish('test_type', { test: 'data' });
 
-        expect(callback).toHaveBeenCalledWith({ type: 'test_type', data: { test: 'data' } });
+        expect(callback).toHaveBeenCalledWith({ data: { test: 'data' }, type: 'test_type' });
 
         unsub();
 
@@ -37,21 +37,21 @@ describe('Event Bus', () => {
 
         childBus.publish('test_type', { test: 'data' });
 
-        expect(callback).toHaveBeenCalledWith({ type: 'test_type', data: { test: 'data' } });
-        expect(childCallback).toHaveBeenCalledWith({ type: 'test_type', data: { test: 'data' } });
+        expect(callback).toHaveBeenCalledWith({ data: { test: 'data' }, type: 'test_type' });
+        expect(childCallback).toHaveBeenCalledWith({ data: { test: 'data' }, type: 'test_type' });
     });
 });
 
-function TestComponent(props: { eventType: keyof DaraEventMap; eventData: any }): JSX.Element {
+function TestComponent(props: { eventData: any; eventType: keyof DaraEventMap }): JSX.Element {
     const bus = useEventBus();
 
     return (
         <button
-            type="button"
+            data-testid="button"
             onClick={() => {
                 bus.publish(props.eventType, props.eventData);
             }}
-            data-testid="button"
+            type="button"
         >
             click
         </button>
@@ -64,16 +64,16 @@ describe('EventCapturer', () => {
         const callback = jest.fn();
 
         const daraEvent = {
-            type: 'DERIVED_VARIABLE_LOADED',
             data: {
-                variable: { uid: 'test' },
                 value: 'test_value',
+                variable: { uid: 'test' },
             },
+            type: 'DERIVED_VARIABLE_LOADED',
         };
 
         render(
             <EventCapturer onEvent={callback}>
-                <TestComponent eventType="DERIVED_VARIABLE_LOADED" eventData={daraEvent.data} />
+                <TestComponent eventData={daraEvent.data} eventType="DERIVED_VARIABLE_LOADED" />
             </EventCapturer>
         );
 
@@ -92,11 +92,11 @@ describe('EventCapturer', () => {
         const rootCallback = jest.fn();
 
         const daraEvent = {
-            type: 'DERIVED_VARIABLE_LOADED',
             data: {
-                variable: { uid: 'test' },
                 value: 'test_value',
+                variable: { uid: 'test' },
             },
+            type: 'DERIVED_VARIABLE_LOADED',
         };
 
         DEFAULT_BUS.subscribe(rootCallback);
@@ -104,7 +104,7 @@ describe('EventCapturer', () => {
         render(
             <EventCapturer onEvent={parentCallback}>
                 <EventCapturer onEvent={callback}>
-                    <TestComponent eventType="DERIVED_VARIABLE_LOADED" eventData={daraEvent.data} />
+                    <TestComponent eventData={daraEvent.data} eventType="DERIVED_VARIABLE_LOADED" />
                 </EventCapturer>
             </EventCapturer>
         );

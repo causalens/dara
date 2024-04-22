@@ -658,7 +658,7 @@ describe('useVariable', () => {
             } satisfies DerivedVariable;
             const receivedData: Array<DaraEventMap['DERIVED_VARIABLE_LOADED']> = [];
 
-            const { result} = renderHook(() => useVariable<string>(variable), {
+            const { result } = renderHook(() => useVariable<string>(variable), {
                 wrapper: (props) => (
                     <EventCapturer
                         onEvent={(ev) => {
