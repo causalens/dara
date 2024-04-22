@@ -126,7 +126,7 @@ async function sendNewMessage(payload: MessageNotificationPayload, extras: Reque
 }
 
 /**
- * Check if the given selector has been rendered
+ * Check if the given selector has been rendered more than once in the document
  *
  * @param selector the selector to check
  */
