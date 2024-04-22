@@ -206,7 +206,7 @@ function Chat(props: ChatProps): JSX.Element {
                     className="chatThread"
                     style={{
                         zIndex,
-                        backgroundColor: areThereOtherChats ? theme.colors.background : 'inherit',
+                        backgroundColor: areThereOtherChats ? theme.colors.background : 'transparent',
                     }}
                 >
                     <StyledChat
