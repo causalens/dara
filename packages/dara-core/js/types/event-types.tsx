@@ -1,18 +1,14 @@
+import { ComponentInstance, DerivedVariable, Variable } from './core';
+
 /**
  * Map of available global events,
  * format: {eventName: eventData}
- *
- * Should be extended by internal features to add their own events, e.g.:
- *
- * ```ts
- * declare module 'path/to/this/module' {
- *   interface DaraEventMap {
- *       'myEvent': { myData: string }
- *   }
- * }
- * ```
  */
-export interface DaraEventMap {}
+export interface DaraEventMap {
+    SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
+    DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
+    PLAIN_VARIABLE_LOADED: { variable: Variable<any>; value: any };
+}
 
 /**
  * Event type

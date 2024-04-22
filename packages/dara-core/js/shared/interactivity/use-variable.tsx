@@ -3,15 +3,7 @@ import { useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTA
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { useDeferLoadable } from '@/shared/utils';
-import {
-    DerivedVariable,
-    Variable,
-    isDataVariable,
-    isDerivedDataVariable,
-    isDerivedVariable,
-    isUrlVariable,
-    isVariable,
-} from '@/types';
+import { Variable, isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
 import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
@@ -28,14 +20,6 @@ import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from '
 function warnUpdateOnDerivedState(): void {
     // eslint-disable-next-line no-console
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
-}
-
-// extend the event map
-declare module '../../types/event-types' {
-    interface DaraEventMap {
-        DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
-        PLAIN_VARIABLE_LOADED: { variable: Variable<any>; value: any };
-    }
 }
 
 /**

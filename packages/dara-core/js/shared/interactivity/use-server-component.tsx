@@ -291,12 +291,6 @@ function getOrRegisterServerComponent(
     return selectorInstance;
 }
 
-// extend the event map
-declare module '../../types/event-types' {
-    interface DaraEventMap {
-        SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
-    }
-}
 /**
  * A hook to fetch a server component
  *
