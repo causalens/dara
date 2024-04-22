@@ -23,8 +23,8 @@ dark_colors = dark.Dark.colors
 
 light_theme = {
     'layout': {
-        'paper_bgcolor': light_colors.blue1,  # Set the background color of the plot
-        'plot_bgcolor': light_colors.blue1,  # Set the background color of the plot area
+        'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
+        'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
         'colorway': CategoricalLight10,
         'title': {'font': {'size': 16}},
         'margin': {'t': 70, 'b': 70},
@@ -83,8 +83,8 @@ light_theme = {
 
 dark_theme = {
     'layout': {
-        'paper_bgcolor': dark_colors.blue1,  # Set the background color of the plot
-        'plot_bgcolor': dark_colors.blue1,  # Set the background color of the plot area
+        'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
+        'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
         'colorway': CategoricalDark10,
         'title': {'font': {'size': 16}},
         'margin': {'t': 70, 'b': 70},
