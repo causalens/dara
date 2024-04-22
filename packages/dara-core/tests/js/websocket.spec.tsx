@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/dom';
 import WS from 'jest-websocket-mock';
-import { firstValueFrom } from 'rxjs';
+import { take } from 'rxjs/operators';
 
 import { WebSocketClient } from '@/api';
 
@@ -43,7 +43,7 @@ describe('WebsocketClient', () => {
         await client.channel;
 
         // Setup a listener for the messages stream
-        const message = firstValueFrom(client.messages$);
+        const message = client.messages$.pipe(take(1)).toPromise();
 
         // Send a message to the client
         server.send(toMsg('custom', { message: 'test' }));
