@@ -31,23 +31,25 @@ interface MessageNotificationPayload {
 }
 
 const ThreadWrapper = styled.div`
-    pointer-events: auto;    
-    margin: 1rem;
-    border-radius: 0.4rem;
+    pointer-events: auto;
 
     position: fixed;
     right: 1rem;
     bottom: -0.1rem;
+
+    margin: 1rem;
+
+    border-radius: 0.4rem;
 `;
 
 const ChatButton = styled.button`
-    width: 2.0rem;
-    height: 2.0rem;
-    padding-top: 0.45rem;
-
     position: absolute;
-    bottom: 1rem;
     right: 1rem;
+    bottom: 1rem;
+
+    width: 2rem;
+    height: 2rem;
+    padding-top: 0.45rem;
 
     color: ${(props) => props.theme.colors.background};
 
@@ -128,9 +130,9 @@ async function sendNewMessage(payload: MessageNotificationPayload, extras: Reque
  *
  * @param selector the selector to check
  */
-function checkRenderedElements(selector: string): boolean {
+function checkMoreThanOneRenderedElement(selector: string): boolean {
     const elements = document.querySelectorAll(selector);
-    return elements.length > 0;
+    return elements.length > 1;
 }
 
 /**
@@ -141,8 +143,8 @@ function checkRenderedElements(selector: string): boolean {
 function getHighestZIndex(selector: string): number {
     const elements = document.querySelectorAll(selector);
     let highest = 998; // Start with 998
-    elements.forEach(element => {
-        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex, 10);
+    elements.forEach((element) => {
+        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex);
         if (zIndex > highest) {
             highest = zIndex;
         }
@@ -158,10 +160,14 @@ function getHighestZIndex(selector: string): number {
 function Chat(props: ChatProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
+
     const [showChat, setShowChat] = React.useState(false);
+    const [areThereOtherChats, setAreThereOtherChats] = React.useState(false);
+
     const user = useUser();
     const theme = useTheme();
     const extras = useRequestExtras();
+
     const userData = user.data ?? anonymousUser;
 
     const onUpdate = (newValue: Message[]): void => {
@@ -180,20 +186,21 @@ function Chat(props: ChatProps): JSX.Element {
         setValue(newValue);
     };
 
-    /** Keeps track if there are other chat threads open */
-    const areThereOtherChats = React.useMemo(() => {
-        if (checkRenderedElements('.chatThread')) {
-            return true;
-        } else {
-            return false;
-        }
-    }, [showChat])
+    React.useLayoutEffect(() => {
+        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chatThread'));
+    }, [showChat]);
 
     return (
         <>
             {showChat && (
                 // we set the z-index so that the latest chat thread opened is always on top, and if there is a chat thread open, we set the background color so that the transparency does not show the thread behind
-                <ThreadWrapper className='chatThread' style={{ zIndex: getHighestZIndex('.chatThread') + 1, backgroundColor: areThereOtherChats ? theme.colors.background : 'inherit' }}>
+                <ThreadWrapper
+                    className="chatThread"
+                    style={{
+                        zIndex: getHighestZIndex('.chatThread') + 1,
+                        backgroundColor: areThereOtherChats ? theme.colors.background : 'inherit',
+                    }}
+                >
                     <StyledChat
                         $rawCss={css}
                         className={props.className}
@@ -218,24 +225,9 @@ function Chat(props: ChatProps): JSX.Element {
                         x="1"
                         y="1.33594"
                     />
-                    <path
-                        d="M8 8.33594H24"
-                        stroke={theme.colors.background}
-                        strokeLinecap="round"
-                        strokeWidth="2"
-                    />
-                    <path
-                        d="M8 13.3359H24"
-                        stroke={theme.colors.background}
-                        strokeLinecap="round"
-                        strokeWidth="2"
-                    />
-                    <path
-                        d="M8 18.3359H24"
-                        stroke={theme.colors.background}
-                        strokeLinecap="round"
-                        strokeWidth="2"
-                    />
+                    <path d="M8 8.33594H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
+                    <path d="M8 13.3359H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
+                    <path d="M8 18.3359H24" stroke={theme.colors.background} strokeLinecap="round" strokeWidth="2" />
                     <path
                         d="M18.5981 26.1641L16 30.6641L13.4019 26.1641L18.5981 26.1641Z"
                         fill={theme.colors.background}
@@ -244,7 +236,6 @@ function Chat(props: ChatProps): JSX.Element {
                     <path d="M16 28.3359L13.4019 23.8359L18.5981 23.8359L16 28.3359Z" fill="none" />
                 </svg>
             </ChatButton>
-
         </>
     );
 }
