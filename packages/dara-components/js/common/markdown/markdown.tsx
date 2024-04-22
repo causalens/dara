@@ -35,6 +35,7 @@ function Markdown(props: MarkdownProps): JSX.Element {
             className={props.className}
             style={style}
             markdown={markdown}
+            // @ts-expect-error rehype type
             rehypePlugins={rehypePlugins}
         />
     );
