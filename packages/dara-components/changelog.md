@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Updating default theme for `Bokeh` and `Plotly` so that background is transparent by default.
+
 ## 1.8.2
 
 -   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`. 
