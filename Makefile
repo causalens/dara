@@ -63,11 +63,11 @@ test:
 
 # Version all the main packages in lockstep as a patch - run pnpm i and lock to update the lockfiles accordingly
 version-patch:
-	@lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version patch && borg lock
+	@pnpm lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version patch && borg lock
 version-minor:
-	@lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version minor && borg lock
+	@pnpm lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version minor && borg lock
 version-major:
-	@lerna version major --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version major && borg lock
+	@pnpm lerna version major --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version major && borg lock
 # Run a borg script without using borg itself
 run:
 	poetry run python ./tooling/scripts/run_borg_script.py $(script)
