@@ -173,7 +173,7 @@ export function useFetchDataVariable(
                 totalCount,
             };
         },
-        [variable, extras, serverTriggerCounter]
+        [variable, extras, serverTriggerCounter, eventBus]
     );
 
     return dataCallback;
