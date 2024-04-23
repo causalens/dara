@@ -14,6 +14,10 @@ title: Changelog
 -   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
 then number of items in the select was large.
 
+## NEXT
+
+-   `Chat` component button is now attached to the container it was added in instead of the page. This means it is now possible to add multiple chat components in a page.
+
 ## 1.8.2
 
 -   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`.
