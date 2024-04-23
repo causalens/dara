@@ -189,13 +189,13 @@ function Chat(props: ChatProps): JSX.Element {
 
     const onClickChatButton = (): void => {
         setShowChat(true);
-        setZIndex(getHighestZIndex('.chatThread') + 1);
+        setZIndex(getHighestZIndex('.chat-thread') + 1);
         // we need to update here so that if the chat button is clicked again when it is already open, the background color is updated
-        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chatThread'));
+        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chat-thread'));
     };
 
     React.useLayoutEffect(() => {
-        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chatThread'));
+        setAreThereOtherChats(checkMoreThanOneRenderedElement('.chat-thread'));
     }, [showChat]);
 
     return (
