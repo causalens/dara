@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Any, Dict
+
 from dara.components.plotting.palettes import CategoricalDark10, CategoricalLight10
 from dara.core.visual.themes import dark, light
 
@@ -23,8 +25,8 @@ dark_colors = dark.Dark.colors
 
 light_theme = {
     'layout': {
-        'paper_bgcolor': light_colors.blue1,  # Set the background color of the plot
-        'plot_bgcolor': light_colors.blue1,  # Set the background color of the plot area
+        'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
+        'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
         'colorway': CategoricalLight10,
         'title': {'font': {'size': 16}},
         'margin': {'t': 70, 'b': 70},
@@ -79,12 +81,12 @@ light_theme = {
             },
         },
     },
-}
+}  # type: Dict[str, Dict[str, Any]]
 
 dark_theme = {
     'layout': {
-        'paper_bgcolor': dark_colors.blue1,  # Set the background color of the plot
-        'plot_bgcolor': dark_colors.blue1,  # Set the background color of the plot area
+        'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
+        'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
         'colorway': CategoricalDark10,
         'title': {'font': {'size': 16}},
         'margin': {'t': 70, 'b': 70},
@@ -139,4 +141,4 @@ dark_theme = {
             },
         },
     },
-}
+}   # type: Dict[str, Dict[str, Any]]

@@ -30,8 +30,8 @@ light_theme = {
             'minor_tick_line_color': '#6A6D83',
         },
         'figure': {
-            'background_fill_color': '#FBFCFF',
-            'border_fill_color': '#FBFCFF',
+            'background_fill_color': 'rgba(255,255,255,0)',
+            'border_fill_color': 'rgba(255,255,255,0)',
             'min_border_bottom': 20,
             'min_border_left': 20,
             'min_border_right': 20,
@@ -50,8 +50,8 @@ light_theme = {
 dark_theme = {
     'attrs': {
         'figure': {
-            'background_fill_color': '#252A31',
-            'border_fill_color': '#252A31',
+            'background_fill_color': 'rgba(255,255,255,0)',
+            'border_fill_color': 'rgba(255,255,255,0)',
             'outline_line_color': '#E0E0E0',
             'outline_line_alpha': 0.25,
             'min_border_bottom': 20,

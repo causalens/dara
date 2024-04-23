@@ -5,6 +5,9 @@ title: Changelog
 
 -   Internal (JS): Updated `Markdown` to use `dara-ui`'s component.
 
+## NEXT
+
+-   Updating default theme for `Bokeh` and `Plotly` so that background is transparent by default.
 ## 1.8.3
 
 -   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
