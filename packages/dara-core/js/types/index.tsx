@@ -42,6 +42,7 @@ import type {
     ValueQuery,
     Variable,
 } from './core';
+import type { DaraEvent, DaraEventMap, DaraEventType } from './event-types';
 
 export type {
     Action,
@@ -87,6 +88,9 @@ export type {
     StyledComponentProps,
     TemplatedComponentInstance,
     TemplateMarker,
+    DaraEventMap,
+    DaraEventType,
+    DaraEvent,
 };
 
 export { AuthType } from './auth';

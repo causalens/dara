@@ -2,7 +2,11 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.4
+
+-   Internal (JS): Typing fix for `EventBus`
+
+## 1.8.3
 
 -   Internal (JS): implement a global `EventBus`, Dara internals now fire events to the EventBus which can be subscribed to.
 Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.

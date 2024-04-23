@@ -5,10 +5,15 @@ title: Changelog
 ## NEXT
 
 -   Updating default theme for `Bokeh` and `Plotly` so that background is transparent by default.
+## 1.8.3
+
+-   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
+-   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
+then number of items in the select was large.
 
 ## 1.8.2
 
--   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`. 
+-   Fix type of `default_legends` in `CausalGraphViewer` and `VisualEdgeEncoder` to reflect that it does not accept `None`.
 -   Fixed an issue where empty `Chat` component caused an error due to having undefined length.
 
 ## 1.8.1
