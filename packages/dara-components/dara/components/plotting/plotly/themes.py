@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Any, Dict
+
 from dara.components.plotting.palettes import CategoricalDark10, CategoricalLight10
 from dara.core.visual.themes import dark, light
 
@@ -79,7 +81,7 @@ light_theme = {
             },
         },
     },
-}
+}  # type: Dict[str, Dict[str, Any]]
 
 dark_theme = {
     'layout': {
@@ -139,4 +141,4 @@ dark_theme = {
             },
         },
     },
-}
+}   # type: Dict[str, Dict[str, Any]]
