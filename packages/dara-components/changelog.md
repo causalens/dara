@@ -1,22 +1,18 @@
 ---
 title: Changelog
 ---
-## NEXT
+
+## 1.8.5
 
 -   Internal (JS): Updated `Markdown` to use `dara-ui`'s component.
-
-## NEXT
-
 -   Updating default theme for `Bokeh` and `Plotly` so that background is transparent by default.
+-   `Chat` component button is now attached to the container it was added in instead of the page. This means it is now possible to add multiple chat components in a page.
+
 ## 1.8.3
 
 -   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
 -   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
 then number of items in the select was large.
-
-## NEXT
-
--   `Chat` component button is now attached to the container it was added in instead of the page. This means it is now possible to add multiple chat components in a page.
 
 ## 1.8.2
 
