@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal (JS): add `EventBus` events for resolving data variables
+
 ## 1.8.4
 
 -   Internal (JS): Typing fix for `EventBus`

@@ -10,6 +10,7 @@ import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { DataFrame, DataVariable, DerivedDataVariable, FilterQuery, Pagination, ResolvedDataVariable } from '@/types';
 
 import { useRequestExtras } from '../context';
+import { useEventBus } from '../event-bus/event-bus';
 import { combineFilters } from './filtering';
 // eslint-disable-next-line import/no-cycle
 import { DerivedVariableValueResponse } from './internal';
@@ -153,6 +154,7 @@ export function useFetchDataVariable(
     variable: DataVariable,
     serverTriggerCounter: number
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
+    const eventBus = useEventBus();
     const extras = useRequestExtras();
 
     const dataCallback = useCallback(
@@ -163,12 +165,15 @@ export function useFetchDataVariable(
 
             const totalCount = await fetchDataVariableCount(variable.uid, extras, mergedFilters);
 
+            // publish the event
+            eventBus.publish('DATA_VARIABLE_LOADED', { variable, value: { data, totalCount } });
+
             return {
                 data,
                 totalCount,
             };
         },
-        [variable, extras, serverTriggerCounter]
+        [variable, extras, serverTriggerCounter, eventBus]
     );
 
     return dataCallback;
@@ -189,6 +194,7 @@ export function useFetchDerivedDataVariable(
     wsClient: WebSocketClientInterface,
     dvValuePromise: Promise<DerivedVariableValueResponse<any>>
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
+    const eventBus = useEventBus();
     const extras = useRequestExtras();
     const previousResult = useRef<DataResponse>({ data: null, totalCount: 0 });
     const dataCallback = useCallback(
@@ -222,6 +228,8 @@ export function useFetchDerivedDataVariable(
                 try {
                     await wsClient.waitForTask(taskId);
                 } catch {
+                    eventBus.publish('DERIVED_DATA_VARIABLE_LOADED', { variable, value: null });
+
                     // If an error occurred (i.e. task was cancelled) return the previous result.
                     // This would also cause the callback's identity to change so if the consuming component is
                     // honouring the contract, it should execute the callback again
@@ -242,12 +250,15 @@ export function useFetchDerivedDataVariable(
 
             previousResult.current = { data, totalCount };
 
+            // publish the event
+            eventBus.publish('DERIVED_DATA_VARIABLE_LOADED', { variable, value: { data, totalCount } });
+
             return {
                 data,
                 totalCount,
             };
         },
-        [variable, extras, dvValuePromise]
+        [variable, extras, dvValuePromise, eventBus]
     );
 
     return dataCallback;
