@@ -203,7 +203,7 @@ function Chat(props: ChatProps): JSX.Element {
             {showChat && (
                 // we set the z-index so that the latest chat thread opened is always on top, and if there is a chat thread open, we set the background color so that the transparency does not show the thread behind
                 <ThreadWrapper
-                    className="chatThread"
+                    className="chat-thread"
                     style={{
                         zIndex,
                         backgroundColor: areThereOtherChats ? theme.colors.background : 'transparent',
