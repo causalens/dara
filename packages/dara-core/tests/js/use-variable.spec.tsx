@@ -675,7 +675,10 @@ describe('useVariable', () => {
                 expect(receivedData).toHaveLength(1);
             });
             expect(receivedData[0].variable).toEqual(variable);
-            expect(receivedData[0].value).toEqual(result.current[0]);
+            expect(receivedData[0].value).toEqual({
+                value: result.current[0],
+                cache_key: expect.any(String)
+            });
         });
 
         it('should resolve nested value using the selector for a DerivedVariable', async () => {

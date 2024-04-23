@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { rest } from 'msw';
 
-import { combineFilters, useDataVariable } from '../../js/shared';
-import { DataVariable, DerivedDataVariable, FilterQuery, Pagination, SingleVariable } from '../../js/types';
+import { EventCapturer, combineFilters, useDataVariable } from '../../js/shared';
+import { DaraEventMap, DataVariable, DerivedDataVariable, FilterQuery, Pagination, SingleVariable } from '../../js/types';
 import { MockWebSocketClient, Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
@@ -24,7 +24,10 @@ describe('useDataVariable', () => {
         it('returns a callback which requests data', async () => {
             const dataVariable: DataVariable = {
                 __typename: 'DataVariable',
-                cache: 'global',
+                cache: {
+                    policy: 'keep-all',
+                    cache_type: 'global',
+                },
                 filters: {
                     clauses: [
                         {
@@ -43,19 +46,38 @@ describe('useDataVariable', () => {
                 uid: 'dep2',
             };
 
-            const { result } = renderHook(() => useDataVariable(dataVariable), { wrapper: Wrapper });
+            const receivedData: Array<DaraEventMap['DATA_VARIABLE_LOADED']> = [];
+
+            const { result } = renderHook(() => useDataVariable(dataVariable), {
+                wrapper: (props) => (
+                    <EventCapturer onEvent={(ev) => {
+                        if (ev.type === 'DATA_VARIABLE_LOADED') {
+                            receivedData.push(ev.data);
+                        }
+                    }}>
+                        <Wrapper>{props.children}</Wrapper>
+                    </EventCapturer>
+                ),
+            });
             expect(result.current).toBeInstanceOf(Function);
             const dataResponse = await result.current();
             expect(dataResponse.data).toBeInstanceOf(Array);
             // check filters were passed to the endpoint correctly (they are returned from the mock endpoint as-is)
             expect(dataResponse.data[2].filters).toEqual(dataVariable.filters);
             expect(dataResponse.totalCount).toEqual(10); // the mock endpoint always returns 10
+
+            expect(receivedData).toHaveLength(1);
+            expect(receivedData[0].variable).toEqual(dataVariable);
+            expect(receivedData[0].value).toEqual(dataResponse);
         });
 
         it('merges filters and pagination with variable filters', async () => {
             const dataVariable: DataVariable = {
                 __typename: 'DataVariable',
-                cache: 'global',
+                cache: {
+                    policy: 'keep-all',
+                    cache_type: 'global',
+                },
                 filters: {
                     clauses: [
                         {
@@ -100,7 +122,10 @@ describe('useDataVariable', () => {
         it('callback updates when server trigger is received', () => {
             const dataVariable: DataVariable = {
                 __typename: 'DataVariable',
-                cache: 'global',
+                cache: {
+                    policy: 'keep-all',
+                    cache_type: 'global',
+                },
                 filters: {
                     clauses: [
                         {
@@ -147,7 +172,10 @@ describe('useDataVariable', () => {
             };
             const dataVariable: DerivedDataVariable = {
                 __typename: 'DerivedDataVariable',
-                cache: 'global',
+                cache: {
+                    policy: 'keep-all',
+                    cache_type: 'global',
+                },
                 deps: [variableA],
                 filters: {
                     clauses: [
@@ -168,7 +196,19 @@ describe('useDataVariable', () => {
                 variables: [variableA],
             };
 
-            const { result } = renderHook(() => useDataVariable(dataVariable), { wrapper: Wrapper });
+            const receivedData: Array<DaraEventMap['DERIVED_DATA_VARIABLE_LOADED']> = [];
+
+            const { result } = renderHook(() => useDataVariable(dataVariable), {
+                wrapper: (props) => (
+                    <EventCapturer onEvent={(ev) => {
+                        if (ev.type === 'DERIVED_DATA_VARIABLE_LOADED') {
+                            receivedData.push(ev.data);
+                        }
+                    }}>
+                        <Wrapper>{props.children}</Wrapper>
+                    </EventCapturer>
+                ),
+            });
             expect(result.current).toBeInstanceOf(Function);
             let dataResponse;
             await act(async () => {
@@ -178,6 +218,10 @@ describe('useDataVariable', () => {
             expect(dataResponse.data[2].cache_key).toEqual(
                 '{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":1}}'
             ); // cache key is the cache key returned by the derived variable endpoint
+
+            expect(receivedData).toHaveLength(1);
+            expect(receivedData[0].variable).toEqual(dataVariable);
+            expect(receivedData[0].value).toEqual(dataResponse);
         });
 
         it('callback returns value correctly if task is returned', async () => {
@@ -227,7 +271,10 @@ describe('useDataVariable', () => {
             };
             const dataVariable: DerivedDataVariable = {
                 __typename: 'DerivedDataVariable',
-                cache: 'global',
+                cache: {
+                    policy: 'keep-all',
+                    cache_type: 'global',
+                },
                 deps: [variableA],
                 filters: {
                     clauses: [

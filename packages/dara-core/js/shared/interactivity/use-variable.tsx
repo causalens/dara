@@ -60,8 +60,8 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         useEffect(() => {
-            if (selectorLoadable.state === 'hasValue') {
-                bus.publish('DERIVED_VARIABLE_LOADED', { variable, value: selectorLoadable.contents.value });
+            if (selectorLoadable.state !== 'loading') {
+                bus.publish('DERIVED_VARIABLE_LOADED', { variable, value: selectorLoadable.contents });
             }
         }, [selectorLoadable]);
 
@@ -80,7 +80,8 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     const deferred = useDeferLoadable(loadable);
 
     useEffect(() => {
-        if (loadable.state === 'hasValue') {
+        // when loadable resolves to a value/error
+        if (loadable.state !== 'loading') {
             bus.publish('PLAIN_VARIABLE_LOADED', { variable, value: loadable.contents });
         }
     }, [loadable]);

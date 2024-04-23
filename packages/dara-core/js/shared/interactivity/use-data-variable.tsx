@@ -29,11 +29,11 @@ export function useDataVariable(
     variable: AnyDataVariable
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
     const extras = useRequestExtras();
-    const { client: WsClient } = useContext(WebSocketCtx);
+    const { client: wsClient } = useContext(WebSocketCtx);
 
     if (isDataVariable(variable)) {
         registerDataVariable(variable);
-        const serverTriggers$ = useMemo(() => WsClient.serverTriggers$(variable.uid), []);
+        const serverTriggers$ = useMemo(() => wsClient.serverTriggers$(variable.uid), []);
         const [serverTriggerCounter, setServerTriggerCounter] = useState(0);
         useEffect(() => {
             const sub = serverTriggers$.subscribe(() => setServerTriggerCounter((c) => c + 1));
@@ -57,7 +57,7 @@ export function useDataVariable(
 
     const taskContext = useTaskContext();
 
-    const dvSelector = useDerivedVariable(variable, WsClient, taskContext, extras);
+    const dvSelector = useDerivedVariable(variable, wsClient, taskContext, extras);
     const dvLoadable = useRecoilValueLoadable(dvSelector);
 
     // We can't directly use the loadable as the callback's dependency because the loadable identity
@@ -70,7 +70,7 @@ export function useDataVariable(
         }
     }, [dvLoadable]);
 
-    const fetchDerivedDataVariable = useFetchDerivedDataVariable(variable, taskContext, WsClient, dvValue);
+    const fetchDerivedDataVariable = useFetchDerivedDataVariable(variable, taskContext, wsClient, dvValue);
 
     return fetchDerivedDataVariable;
 }
