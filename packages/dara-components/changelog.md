@@ -1,6 +1,9 @@
 ---
 title: Changelog
 ---
+## NEXT
+
+-   Internal (JS): Updated `Markdown` to use `dara-ui`'s component.
 
 ## 1.8.3
 
