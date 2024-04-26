@@ -20,7 +20,7 @@ df_with_multiple_index = pandas.DataFrame({('F','>50'): {('A', 'a'): 1, ('A', 'b
  ('M','>50'): {('A', 'a'): 3, ('A', 'b'): 8, ('B', 'a'): 4, ('B', 'b'): 9},
  ('M','<50'): {('A', 'a'): 4, ('A', 'b'): 9, ('B', 'a'): 5, ('B', 'b'): 10},
 })
-
+df_with_default_index = pandas.DataFrame({('A', 'mean'): [1, 2, 3], ('A', 'std'): [4, 5, 6]})
 pytestmark = pytest.mark.anyio
 
 @pytest.mark.parametrize(
@@ -79,6 +79,7 @@ pytestmark = pytest.mark.anyio
         (pandas.Timestamp, pandas.Timestamp('2023-10-04'), False),
         (pandas.DataFrame, df_with_datetime_index, False),
         (pandas.DataFrame, df_with_multiple_index, False),
+        (pandas.DataFrame, df_with_default_index, False),
     ],
 )
 def test_serialization_deserialization(type_, value, raise_):
@@ -96,7 +97,7 @@ def test_serialization_deserialization(type_, value, raise_):
     if value is df_with_datetime_index:
         # DF with datetime index like 2023-10-04 will be encoded and decoded to 2023-10-04T00:00:00
         pass
-    elif isinstance(value, pandas.Series) or isinstance(value, pandas.Index) :
+    elif isinstance(value, pandas.Series) or isinstance(value, pandas.Index) or isinstance(value, pandas.DataFrame) :
         assert value.equals(deserialized)
     # Handle pandas arrays
     elif isinstance(value, ExtensionArray):

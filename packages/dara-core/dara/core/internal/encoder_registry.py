@@ -111,6 +111,15 @@ def _tuple_key_deserialize(d):
     return encoded_dict
 
 
+def _df_serialize(x):
+    return jsonable_encoder(
+        {
+            'idx_type': 'RangeIndex' if isinstance(x.index, pandas.RangeIndex) else 'Array',
+            'df': _tuple_key_serialize(x.to_dict(orient='dict')),
+        }
+    )
+
+
 def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
     """
     A function to deserialize data into a DataFrame
@@ -121,6 +130,15 @@ def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
     if isinstance(x, pandas.DataFrame):
         return x
     if isinstance(x, dict):
+        if 'idx_type' in x:
+            if x['idx_type'] == 'RangeIndex':
+                df = pandas.DataFrame(_tuple_key_deserialize(x['df']))
+                # Deserialize will make the default range index to a array index
+                # If it is RangeIndex, reset it to default
+                return df.reset_index(drop=True)
+            else:
+                return pandas.DataFrame(_tuple_key_deserialize(x['df']))
+
         return pandas.DataFrame(_tuple_key_deserialize(x))
     _not_implemented(x, pandas.DataFrame)
 
@@ -188,7 +206,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
     pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
     pandas.DataFrame: Encoder(
-        serialize=lambda x: jsonable_encoder(_tuple_key_serialize(x.to_dict(orient='dict'))),
+        serialize=lambda x: _df_serialize(x),
         deserialize=lambda x: _df_deserialize(x),
     ),
 }
