@@ -104,4 +104,5 @@ async def test_derived_variables_with_df_nan():
             client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
         )
         assert response.status_code == 200
-        assert response.json()['value'] == {'a': {'0': 1.0, '1': None, '2': None}, 'b': {'0': 2.0, '1': None, '2': None}}
+        assert response.json()['value']['idx_type'] == 'RangeIndex'
+        assert response.json()['value']['df'] == {'a': {'0': 1.0, '1': None, '2': None}, 'b': {'0': 2.0, '1': None, '2': None}}
