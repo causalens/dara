@@ -59,7 +59,7 @@ version = "^0.22.0"
 
 [tool.poetry.dev-dependencies]
 blue = "^0.9.0"
-freezegun = "^1.2.2"
+freezegun = "^1.5.0"
 types-croniter = "^1.0.10"
 pytest = "^7.0.0"
 pytest-timeout = "^2.1.0"
