@@ -44,12 +44,12 @@ const ThreadWrapper = styled.div`
 
 const ChatButton = styled.button`
     position: absolute;
-    right: 1rem;
-    bottom: 1rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
 
-    width: 2rem;
-    height: 2rem;
-    padding-top: 0.45rem;
+    width: 32px;
+    height: 32px;
+    padding: 7px 6px;
 
     color: ${(props) => props.theme.colors.background};
 
@@ -222,7 +222,7 @@ function Chat(props: ChatProps): JSX.Element {
                 </ThreadWrapper>
             )}
             <ChatButton onClick={onClickChatButton}>
-                <svg fill="none" height="32" viewBox="0 0 52 52" width="32" xmlns="http://www.w3.org/2000/svg">
+                <svg fill="none" height="20" viewBox="0 0 32 32" width="20" xmlns="http://www.w3.org/2000/svg">
                     <rect fill="none" height="24" rx="3" width="30" x="1" y="1.33594" />
                     <rect
                         height="24"
