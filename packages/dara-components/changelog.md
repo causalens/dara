@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `Chat` button looked off centre on different base font size apps.
+
 ## 1.8.5
 
 -   Internal (JS): Updated `Markdown` to use `dara-ui`'s component.
