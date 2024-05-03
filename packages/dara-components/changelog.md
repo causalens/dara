@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
 -   Removed margin from `Chat` component
