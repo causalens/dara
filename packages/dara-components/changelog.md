@@ -2,9 +2,12 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
+-   Fixed an issue where if parent hugged content `NodeHierarchyBuilder` would always scroll.
+-   Fixed an issue where `CausalGraphViewer`'s `FcoseLayout` would crash when an array of array of nodes was passed to tiers which included a node that did not exist on the graph.
+-   Fixed an issue where other `Select` component types would degrade performance with large number of items (`multiselect=True` has been fixed in v1.8.3).
 
 ## 1.8.5
 
