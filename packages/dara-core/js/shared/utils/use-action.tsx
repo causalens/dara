@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
@@ -275,6 +275,7 @@ export function useActionIsLoading(action: Action): boolean {
     if (!action || isActionImpl(action) || Array.isArray(action)) {
         return false;
     }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     return useVariable(action.loading)[0];
 }
 
