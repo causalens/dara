@@ -14,7 +14,8 @@ from dara.components import Button
 def on_click(ctx: action.Ctx):
     # Do Something...
 
-Button('Click Me', onclick=on_click, disabled=on_click.loading)
+on_click_action = on_click()
+Button('Click Me', onclick=on_click_action, disabled=on_click_action.loading)
 ```
 
 -   On the JS Api side the `useAction` hook has been changed to only return the action function rather than a tuple of `[action_fn, isLoading]`. To retrieve the loading state a new hook `useActionIsLoading` now returns the isLoading state of the action as a piece of react state that will trigger redraws when its value changes.

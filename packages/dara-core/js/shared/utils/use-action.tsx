@@ -272,7 +272,7 @@ export function useActionIsLoading(action: Action): boolean {
     // component lifetime. As ActionImpls have no loading variable we return false. As we expect to deprecate array's
     // of actions in the near future as all the functionality then we return false as well due to the complexity of
     // extracting potentially multiple annotated actions out of the array and resolving all their loading states
-    if (isActionImpl(action) || Array.isArray(action)) {
+    if (!action || isActionImpl(action) || Array.isArray(action)) {
         return false;
     }
     return useVariable(action.loading)[0];

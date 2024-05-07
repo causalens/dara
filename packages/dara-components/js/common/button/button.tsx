@@ -71,7 +71,7 @@ const StyledButton = injectCss(styled(UiButton)<StyledButtonProps>`
 function Button(props: ButtonProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const onClick = useAction(props.onclick);
-    const loading = useActionIsLoading(props.onclick.loading);
+    const loading = useActionIsLoading(props.onclick);
     const disabled = useConditionOrVariable(props.disabled);
 
     // Extract icon and grab color from first child if it has it
