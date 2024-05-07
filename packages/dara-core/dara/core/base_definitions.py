@@ -423,6 +423,17 @@ class AnnotatedAction(BaseModel):
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
 
+    loading: 'Variable'
+    """Loading Variable instance"""
+
+    def __init__(self, **data):
+        # Resolve the circular dependency to add a loading Variable to the model upon creation
+        # pylint: disable-next=import-error, import-outside-toplevel
+        from dara.core.interactivity.plain_variable import Variable
+
+        self.update_forward_refs(Variable=Variable)
+        super().__init__(**data, loading=Variable(False))
+
 
 class ActionImpl(DaraBaseModel):
     """

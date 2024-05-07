@@ -96,6 +96,7 @@ export {
     DynamicComponent,
     Center,
     useAction,
+    useActionIsLoading,
     useVariable,
     getIcon,
     useDataVariable,

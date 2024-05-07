@@ -2,6 +2,23 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Updated AnnotatedAction to have a `loading` property that is automatically set to be a Variable[bool] instance tracking the loading state of the action. The example below shows how you can disable a button whilst the action it triggers is running.
+
+```python
+from dara.core import action
+from dara.components import Button
+
+@action
+def on_click(ctx: action.Ctx):
+    # Do Something...
+
+Button('Click Me', onclick=on_click, disabled=on_click.loading)
+```
+
+-   On the JS Api side the `useAction` hook has been changed to only return the action function rather than a tuple of `[action_fn, isLoading]`. To retrieve the loading state a new hook `useActionIsLoading` now returns the isLoading state of the action as a piece of react state that will trigger redraws when its value changes.
+
 ## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
@@ -19,7 +36,7 @@ title: Changelog
 
 -   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
 -   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
-then number of items in the select was large.
+    then number of items in the select was large.
 
 ## 1.8.2
 
@@ -96,15 +113,18 @@ config.add_configuration(ChatConfig(on_new_message=example_callback))
 ## 1.6.0
 
 **Graphs**
+
 -   Added support for tiered layout in `FcoseLayout`, `PlanarLayout`, `SpringLayout` and `MarketingLayout`. It allows for nodes to be placed on tiers following some hierarchy and to further define requirements of nodes positions within that tier.
 -   If `TimeSeriesCausalGraph` object is passed to `CausalGraphViewer` and no tiers are defines, it will use `time_lag` and `variable_name` to define the `order_nodes_by` and `group` respectively.
 -   Added `simultaneous_edge_node_selection` to `CausalGraphViewer`, when set to True, the selected node will not be reset when an edge is chosen and vice versa.
 -   Added `layering_algorithm` prop to `PlanarLayout`. This allows users to choose between `LayeringAlgorithm.SIMPLEX` and `LayeringAlgorithm.LONGEST_PATH` for the layering step of the d3-dag sugyiama algorithm.
 
 **Plotting**
+
 -   Set `Bokeh` default `min-height` and `min-width` to `350px`.
 
 **Common**
+
 -   **Renamed:** `align-items` to `align` in `Grid.Column` to be more consistent with other layout components.
 -   Added `justify` and `align` shortcut props to `Card`, `Modal`, `Form`, `Grid`, `Grid.Row`, `Grid.Column`.
 -   Fixed an issue where if setting an initial number value to `Select` and it had a list of `Item`s, then the value showed was the number instead of the corresponding label to that value.
