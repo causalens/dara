@@ -94,7 +94,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [currentStatus, setCurrentStatus] = useState(status.INITIALIZED);
     const [errorMessage, setErrorMessage] = useState<string>();
-    const [onFileDrop] = useAction(props.on_drop);
+    const onFileDrop = useAction(props.on_drop);
     const extras = useRequestExtras();
 
     const onDrop = async (acceptedFiles: Array<File>): Promise<void> => {

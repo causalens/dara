@@ -38,7 +38,7 @@ function NodeHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const mounted = useRef(false);
     const [nodes, setNodes] = useVariable(props.nodes);
-    const [updateHandler] = useAction(props.on_update);
+    const updateHandler = useAction(props.on_update);
 
     if (mounted.current === false) {
         /**

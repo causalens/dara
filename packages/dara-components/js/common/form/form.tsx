@@ -50,7 +50,7 @@ const StyledForm = injectCss('div');
 function Form(props: FormProps): JSX.Element {
     const [formState, setFormState] = useVariable<VariablesMap>(props.value);
 
-    const [onSubmit] = useAction(props.onsubmit);
+    const onSubmit = useAction(props.onsubmit);
     const [style, css] = useComponentStyles(props);
 
     const updateForm = useCallback(

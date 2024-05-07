@@ -27,7 +27,7 @@ function Switch(props: SwitchProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
-    const [onChangeAction] = useAction(props.onchange);
+    const onChangeAction = useAction(props.onchange);
 
     function onChange(enabled: boolean): void {
         setValue(enabled);
