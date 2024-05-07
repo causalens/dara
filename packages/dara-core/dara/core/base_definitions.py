@@ -423,7 +423,7 @@ class AnnotatedAction(BaseModel):
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
 
-    loading: 'Variable'
+    loading: 'Variable' # type: ignore
     """Loading Variable instance"""
 
     def __init__(self, **data):
