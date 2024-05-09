@@ -111,7 +111,7 @@ function Select(props: SelectProps): JSX.Element {
         return typeof val === 'string' || typeof val === 'number' ? { label: String(val), val } : val;
     };
 
-    const [onChangeAction] = useAction(props.onchange);
+    const onChangeAction = useAction(props.onchange);
 
     //  if someone were to update the component rule of Hooks could be broken if items switched from having sections to not, so we use a ref for this to be only run once
     const itemHasListSection = useRef(null);

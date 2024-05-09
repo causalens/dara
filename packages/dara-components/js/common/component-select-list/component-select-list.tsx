@@ -39,7 +39,7 @@ const StyledComponentSelectList = injectCss(UIComponentSelectList);
 function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [selectedItems, setSelectedItems] = useVariable(props.selected_items);
-    const [onSelect] = useAction(props.on_select);
+    const onSelect = useAction(props.on_select);
 
     const updateSelectedItems = useCallback(
         (items: Array<string>): void => {

@@ -54,7 +54,7 @@ interface FilterStatusButtonProps {
 
 function FilterStatusButton(props: FilterStatusButtonProps): JSX.Element {
     const [filterStats] = useVariable(props.filter_stats);
-    const [onClick] = useAction(props.on_click);
+    const onClick = useAction(props.on_click);
 
     function clickHandler(): void {
         onClick(null);

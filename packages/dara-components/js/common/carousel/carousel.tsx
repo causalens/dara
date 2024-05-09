@@ -41,7 +41,7 @@ const StyledCarousel = injectCss(UICarousel);
 function Carousel(props: CarouselProps): JSX.Element {
     const [items] = useVariable(props.items);
     const [value, setValue] = useVariable(props.value);
-    const [onCarouselAction] = useAction(props.onchange);
+    const onCarouselAction = useAction(props.onchange);
 
     function handleChange(val: number): void {
         setValue(val);

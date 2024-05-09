@@ -427,7 +427,7 @@ function Table(props: TableProps): JSX.Element {
     }, [getData]);
 
     const [style, css] = useComponentStyles(props);
-    const [onClickRow] = useAction(props.onclick_row);
+    const onClickRow = useAction(props.onclick_row);
 
     const columns = useMemo(() => {
         const mappedCols = mapColumns(resolvedColumns);

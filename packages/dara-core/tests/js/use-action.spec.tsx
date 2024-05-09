@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { clearActionHandlerCache_TEST } from '@/shared/utils/use-action';
+import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/utils/use-action';
 
 import { useAction, useVariable } from '../../js/shared';
 import {
@@ -22,6 +22,13 @@ import {
     Variable,
 } from '../../js/types/core';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
+
+const LOADING_VARIABLE: SingleVariable<boolean> = {
+    __typename: 'Variable',
+    default: false,
+    nested: [],
+    uid: 'loading_uid',
+};
 
 describe('useAction', () => {
     beforeEach(() => {
@@ -52,8 +59,7 @@ describe('useAction', () => {
         );
 
         await waitFor(() => {
-            expect(result.current[0]).toBeInstanceOf(Function);
-            expect(result.current[1]).toEqual(false);
+            expect(result.current).toBeInstanceOf(Function);
         });
     });
 
@@ -72,11 +78,11 @@ describe('useAction', () => {
             { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
         );
         await waitFor(() => {
-            expect(result.current[0]).toBeInstanceOf(Function);
+            expect(result.current).toBeInstanceOf(Function);
         });
 
         act(() => {
-            result.current[0](null);
+            result.current(null);
         });
         await waitFor(() => expect(history.location.pathname).toBe('/simple/url'));
     });
@@ -98,7 +104,7 @@ describe('useAction', () => {
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
             const [a] = useVariable(props.var);
-            const [update] = useAction(props.action);
+            const update = useAction(props.action);
 
             return (
                 <>
@@ -148,7 +154,8 @@ describe('useAction', () => {
         };
 
         const MockComponent = (props: { action: Action }): JSX.Element => {
-            const [update, loading] = useAction(props.action);
+            const update = useAction(props.action);
+            const loading = useActionIsLoading(props.action);
             const [renderVariable, setRenderVariable] = useState(false);
 
             return (
@@ -223,8 +230,8 @@ describe('useAction', () => {
 
         const MockComponent = (): JSX.Element => {
             const [a] = useVariable(variable);
-            const [updateNested] = useAction(actionNested);
-            const [updateInnerNested] = useAction(actionInnerNested);
+            const updateNested = useAction(actionNested);
+            const updateInnerNested = useAction(actionInnerNested);
 
             return (
                 <>
@@ -284,7 +291,7 @@ describe('useAction', () => {
 
         const MockComponent = (): JSX.Element => {
             const [a] = useVariable(variable);
-            const [update] = useAction(action);
+            const update = useAction(action);
 
             return (
                 <>
@@ -350,8 +357,8 @@ describe('useAction', () => {
 
         const MockComponent = (): JSX.Element => {
             const [a] = useVariable(variable);
-            const [updateNested] = useAction(actionNested);
-            const [updateInnerNested] = useAction(actionInnerNested);
+            const updateNested = useAction(actionNested);
+            const updateInnerNested = useAction(actionInnerNested);
 
             return (
                 <>
@@ -409,7 +416,7 @@ describe('useAction', () => {
 
         const MockComponent = (): JSX.Element => {
             const [a] = useVariable(variable);
-            const [update] = useAction(action);
+            const update = useAction(action);
 
             return (
                 <>
@@ -475,8 +482,8 @@ describe('useAction', () => {
 
         const MockComponent = (): JSX.Element => {
             const [a] = useVariable(variable);
-            const [updateNested] = useAction(actionNested);
-            const [updateInnerNested] = useAction(actionInnerNested);
+            const updateNested = useAction(actionNested);
+            const updateInnerNested = useAction(actionInnerNested);
 
             return (
                 <>
@@ -537,7 +544,7 @@ describe('useAction', () => {
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
             const [a] = useVariable(props.var);
-            const [update] = useAction(props.action);
+            const update = useAction(props.action);
 
             return (
                 <>
@@ -597,7 +604,7 @@ describe('useAction', () => {
         const MockComponent = (props: { action: Action; var1: Variable<any>; var2: Variable<any> }): JSX.Element => {
             const [a] = useVariable(props.var1);
             const [b] = useVariable(props.var2);
-            const [update] = useAction(props.action);
+            const update = useAction(props.action);
 
             return (
                 <>
@@ -676,12 +683,13 @@ describe('useAction', () => {
                 var: variableResult,
                 var2: dataVariableResult,
             },
+            loading: LOADING_VARIABLE,
             uid: 'uid',
         };
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
             const [a] = useVariable(props.var);
-            const [update] = useAction(props.action);
+            const update = useAction(props.action);
 
             return (
                 <>
@@ -796,8 +804,8 @@ describe('useAction', () => {
             var: Variable<any>;
         }): JSX.Element => {
             const [a] = useVariable(props.var);
-            const [reset] = useAction(props.resetAction);
-            const [update] = useAction(props.updateAction);
+            const reset = useAction(props.resetAction);
+            const update = useAction(props.updateAction);
 
             return (
                 <>
@@ -868,13 +876,12 @@ describe('useAction', () => {
         );
 
         await waitFor(() => {
-            expect(result.current[0]).toBeInstanceOf(Function);
-            expect(result.current[1]).toEqual(false);
+            expect(result.current).toBeInstanceOf(Function);
         });
 
         // Call the action handler
         await act(async () => {
-            await result.current[0]('input');
+            await result.current('input');
         });
 
         // There should be two calls to onUnhandledAction
@@ -930,6 +937,7 @@ describe('useAction', () => {
             dynamic_kwargs: {
                 foo: variable,
             },
+            loading: LOADING_VARIABLE,
             uid: 'uid',
         };
 
@@ -938,10 +946,13 @@ describe('useAction', () => {
         const wsClient = new MockWebSocketClient('uid');
 
         const { result } = renderHook(
-            () =>
-                useAction(annotated, {
+            (): [(input?: any) => Promise<void>, boolean] => {
+                const action = useAction(annotated, {
                     onUnhandledAction,
-                }),
+                });
+                const isLoading = useActionIsLoading(annotated);
+                return [action, isLoading];
+            },
             { wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper> }
         );
 

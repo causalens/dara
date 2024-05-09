@@ -18,7 +18,7 @@ const StyledHierarchyViewer = injectCss(UiHierarchyViewer);
 function HierarchyViewer(props: HierarchyViewerProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const hierarchy = useVariable(props.hierarchy)[0];
-    const [onClick] = useAction(props.on_click_node);
+    const onClick = useAction(props.on_click_node);
 
     return (
         <StyledHierarchyViewer

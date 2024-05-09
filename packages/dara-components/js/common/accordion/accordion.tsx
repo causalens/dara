@@ -59,7 +59,7 @@ interface AccordionProps extends StyledComponentProps {
 function Accordion(props: AccordionProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(props.value);
-    const [onCarouselAction] = useAction(props.onchange);
+    const onCarouselAction = useAction(props.onchange);
 
     function handleChange(val: number): void {
         setValue(val);

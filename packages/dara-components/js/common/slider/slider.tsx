@@ -39,7 +39,7 @@ function Slider(props: SliderProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue(props.domain[0]));
-    const [onTrack] = useAction(props.onchange);
+    const onTrack = useAction(props.onchange);
 
     const debouncedSetValue = useMemo(() => _debounce(setValue, 300), [setValue]);
     const debouncedOnTrack = useMemo(() => _debounce(onTrack, 300), [onTrack]);

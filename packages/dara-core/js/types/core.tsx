@@ -434,6 +434,10 @@ export interface AnnotatedAction {
      * Dynamic kwargs passed to the action
      */
     dynamic_kwargs: Record<string, AnyVariable<any>>;
+    /**
+     * Loading Variable instance so we can update listening components when the action is running.
+     */
+    loading: SingleVariable<boolean>;
 }
 
 export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;
