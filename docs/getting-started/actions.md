@@ -123,22 +123,25 @@ To see how `trigger` works, consider the following example:
 ```python
 
 from dara.core import action, ConfigurationBuilder, Variable, DerivedVariable
-from dara.components import Input, Stack, Button, Text
+from dara.components import Input, Stack, Button, Label, Text
 
 config = ConfigurationBuilder()
 
 my_var = Variable(1)
-der_var = DerivedVariable(lambda x: float(x) ** 2 , variables=[my_var], deps=[])
+der_var = DerivedVariable(lambda x: float(x) ** 2, variables=[my_var], deps=[])
 
 @action
 async def trigger_my_var(ctx: action.Ctx):
-    await ctx.trigger(variable=my_var)
+    await ctx.trigger(variable=der_var)
 
 def test_page():
     return Stack(
-        # Display variable
-        Stack(Text('Value:'), Input(value=my_var), direction='horizontal'),
-
+        # Display input where one can change the value of my_var
+        Label(
+            Input(value=my_var),
+            value='Value:',
+            direction='horizontal',
+        ),
         # When clicking this button der_var syncs and calculates latest the
         Button('Trigger Derived Variable', onclick=trigger_my_var()),
         Stack(Text('Value Squared:'), Text(der_var), direction='horizontal'),
@@ -540,12 +543,12 @@ This method is also available for [UrlVariable](dara.core.interactivity.url_vari
 
 ```python
 from dara.core import action, ConfigurationBuilder, Variable, DerivedVariable
-from dara.components import Input, Stack, Button, Text
+from dara.components import Input, Stack, Button, Text, Label
 
 config = ConfigurationBuilder()
 
 my_var = Variable(1)
-der_var = DerivedVariable(lambda x: float(x) ** 2 , variables=[my_var], deps=[])
+der_var = DerivedVariable(lambda x: float(x) ** 2, variables=[my_var], deps=[])
 
 @action
 async def trigger_my_var(ctx: action.Ctx):
@@ -554,8 +557,12 @@ async def trigger_my_var(ctx: action.Ctx):
 def test_page():
     return Stack(
         # Display variable
-        Stack(Text('Value:'), Input(value=my_var), direction='horizontal'),
-        Stack(Text('Value Squared:'), Text(der_var), direction='horizontal'),
+        Label(
+            Input(value=my_var),
+            value='Value:',
+            direction='horizontal',
+        ),
+        Stack(Text('Value Squared:'), Text(der_var), direction='horizontal', hug=True),
         Button('Trigger Derived Variable', onclick=trigger_my_var()),
         Button('Trigger shortcut', onclick=der_var.trigger()),
     )

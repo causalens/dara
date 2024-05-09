@@ -48,13 +48,14 @@ DerivedVariable(my_function, variables=[my_first_data_variable])
 
 ```python
 import pandas
-from bokeh import figure
+from bokeh.plotting import figure
 
-from dara.core import py_component, DataVariable, CacheType
-from DerivedVariable import Table, Bokeh
+from dara.core import py_component, DataVariable, CacheType, ConfigurationBuilder
+from dara.components import Bokeh
+
 
 @py_component
-def plot_data(data: pandas.DataFrame)
+def plot_data(data: pandas.DataFrame):
     p = figure(title='My Plot')
     p.line(x=data['a'], y=data['b'])
     return Bokeh(p)
@@ -62,6 +63,7 @@ def plot_data(data: pandas.DataFrame)
 data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
 my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
 
+config = ConfigurationBuilder()
 config.add_page('data page', plot_data(my_first_data_variable))
 ```
 
@@ -125,7 +127,7 @@ as needed.
 ```python
 import pandas
 
-from dara.core import DataVariable
+from dara.core import DataVariable, ConfigurationBuilder
 from dara.core.interactivity.filtering import ClauseQuery, ValueQuery
 from dara.components import Table
 
@@ -146,9 +148,11 @@ variable_filtered_2 = variable.filter(
 ...
 
 filtered_tables = Stack(
-    Table(variable_filtered_1, columns=['a', 'b']),
-    Table(variable_filtered_2, columns=['a', 'b'])
+    Table(data=variable_filtered_1, columns=['a', 'b']),
+    Table(data=variable_filtered_2, columns=['a', 'b'])
 )
+
+config = ConfigurationBuilder()
 config.add_page('Filtered Data', filtered_tables)
 ```
 
