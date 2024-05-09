@@ -130,11 +130,9 @@ config = ConfigurationBuilder()
 my_var = Variable(1)
 der_var = DerivedVariable(lambda x: float(x) ** 2, variables=[my_var], deps=[])
 
-
 @action
 async def trigger_my_var(ctx: action.Ctx):
     await ctx.trigger(variable=der_var)
-
 
 def test_page():
     return Stack(
@@ -552,11 +550,9 @@ config = ConfigurationBuilder()
 my_var = Variable(1)
 der_var = DerivedVariable(lambda x: float(x) ** 2, variables=[my_var], deps=[])
 
-
 @action
 async def trigger_my_var(ctx: action.Ctx):
     await ctx.trigger(variable=der_var)
-
 
 def test_page():
     return Stack(
