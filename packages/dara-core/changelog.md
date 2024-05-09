@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Further fix for the websocket reconnection logic that meant the socket class wasn't updated after re-initialization which meant that message sends were routed to the old socket rather than the new one.
+
 ## 1.8.5
 
 -   Internal (JS): add `EventBus` events for resolving data variables
