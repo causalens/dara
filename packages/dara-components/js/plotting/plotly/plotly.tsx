@@ -304,7 +304,7 @@ function Plotly(props: PlotlyProps): JSX.Element {
             const actions = new Array<ActionEvent>();
             event?.actions.forEach((action) => {
                 // eslint-disable-next-line react-hooks/rules-of-hooks
-                const [actionHandler] = useAction(action);
+                const actionHandler = useAction(action);
                 actions.push({ custom_js: event.custom_js, handler: actionHandler });
             });
             const currentActions = eventActions.get(event.event_name) ?? [];

@@ -9,6 +9,7 @@ import {
     getIcon,
     injectCss,
     useAction,
+    useActionIsLoading,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
@@ -69,7 +70,8 @@ const StyledButton = injectCss(styled(UiButton)<StyledButtonProps>`
  */
 function Button(props: ButtonProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
-    const [onClick, loading] = useAction(props.onclick);
+    const onClick = useAction(props.onclick);
+    const loading = useActionIsLoading(props.onclick);
     const disabled = useConditionOrVariable(props.disabled);
 
     // Extract icon and grab color from first child if it has it

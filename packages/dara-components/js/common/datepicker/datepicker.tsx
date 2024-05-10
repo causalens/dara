@@ -61,7 +61,7 @@ function Datepicker(props: DatepickerProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
-    const [onChangeAction] = useAction(props.onchange);
+    const onChangeAction = useAction(props.onchange);
     const isFirstRender = useRef(true);
 
     const onChange = (date: Date | [Date, Date]): void => {

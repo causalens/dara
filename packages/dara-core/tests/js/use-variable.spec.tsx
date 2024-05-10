@@ -658,7 +658,7 @@ describe('useVariable', () => {
             } satisfies DerivedVariable;
             const receivedData: Array<DaraEventMap['DERIVED_VARIABLE_LOADED']> = [];
 
-            const { result} = renderHook(() => useVariable<string>(variable), {
+            const { result } = renderHook(() => useVariable<string>(variable), {
                 wrapper: (props) => (
                     <EventCapturer
                         onEvent={(ev) => {
@@ -677,7 +677,7 @@ describe('useVariable', () => {
             expect(receivedData[0].variable).toEqual(variable);
             expect(receivedData[0].value).toEqual({
                 value: result.current[0],
-                cache_key: expect.any(String)
+                cache_key: expect.any(String),
             });
         });
 
@@ -1154,7 +1154,7 @@ describe('useVariable', () => {
                 const [a, setA] = useVariable(props.variableA);
                 const [b, setB] = useVariable(props.variableB);
                 const [c] = useVariable(props.derivedVar);
-                const [callAction] = useAction(props.action);
+                const callAction = useAction(props.action);
 
                 return (
                     <div>
@@ -1263,7 +1263,7 @@ describe('useVariable', () => {
                 variableA: Variable<any>;
             }): JSX.Element => {
                 const [a, setA] = useVariable(props.variableA);
-                const [callAction] = useAction(props.action);
+                const callAction = useAction(props.action);
                 const [c] = useVariable(props.derivedVar);
 
                 return (
