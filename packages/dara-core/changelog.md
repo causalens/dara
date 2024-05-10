@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.8.7
 
 -   Further fix for the websocket reconnection logic that meant the socket class wasn't updated after re-initialization which meant that message sends were routed to the old socket rather than the new one.
 -   Updated AnnotatedAction to have a `loading` property that is automatically set to be a Variable[bool] instance tracking the loading state of the action. The example below shows how you can disable a button whilst the action it triggers is running.
