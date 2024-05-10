@@ -2,24 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
--   Updated AnnotatedAction to have a `loading` property that is automatically set to be a Variable[bool] instance tracking the loading state of the action. The example below shows how you can disable a button whilst the action it triggers is running.
-
-```python
-from dara.core import action
-from dara.components import Button
-
-@action
-def on_click(ctx: action.Ctx):
-    # Do Something...
-
-on_click_action = on_click()
-Button('Click Me', onclick=on_click_action, disabled=on_click_action.loading)
-```
-
--   On the JS Api side the `useAction` hook has been changed to only return the action function rather than a tuple of `[action_fn, isLoading]`. To retrieve the loading state a new hook `useActionIsLoading` now returns the isLoading state of the action as a piece of react state that will trigger redraws when its value changes.
-
 ## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
