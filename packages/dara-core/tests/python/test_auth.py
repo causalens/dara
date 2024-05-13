@@ -55,7 +55,7 @@ async def test_verify_session():
 
         # Test wrong scheme
         response = await client.get('/api/test-ext/test', headers={'Authorization': f'Basic user:pw'})
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         # Test invalid token
         response = await client.get('/api/test-ext/test', headers={'Authorization': f'Bearer {invalid_token}'})
