@@ -20,7 +20,6 @@ function DefaultAuthLogin(): JSX.Element {
     const queryParams = new URLSearchParams(location.search);
 
     const previousLocation = queryParams.get('referrer') ?? '/';
-    console.log('previousLocation', previousLocation);
 
     async function getNewToken(): Promise<void> {
         const sessionToken = await getSessionToken({});
