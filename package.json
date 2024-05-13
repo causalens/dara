@@ -24,6 +24,11 @@
         "dependencies": {
           "@fortawesome/fontawesome-svg-core": "~6.4.0"
         }
+      },
+      "react-markdown": {
+        "dependencies": {
+          "@types/react": "18.2.60"
+        }
       }
     },
     "overrides": {

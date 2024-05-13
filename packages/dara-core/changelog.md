@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.9.1
 
 -   Fixed an issue where desired pathname + search params were not retained when redirected to the login page and then back to the original page
 
