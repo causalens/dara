@@ -141,9 +141,7 @@ function BasicAuthLogin(): JSX.Element {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
 
-    // Put any type here as typescript couldn't resolve location's typings
-    const previousLocation: any = location.state || { from: { pathname: queryParams.get('referrer') ?? '/' } };
-    const { from } = previousLocation;
+    const previousLocation = queryParams.get('referrer') ?? '/';
 
     const login = async (): Promise<void> => {
         setIsLoggingIn(true);
@@ -154,7 +152,7 @@ function BasicAuthLogin(): JSX.Element {
 
             if (sessionToken) {
                 setToken(sessionToken);
-                history.replace(from);
+                history.replace(decodeURIComponent(previousLocation));
             }
         } catch {
             setIsError(true);
@@ -171,7 +169,7 @@ function BasicAuthLogin(): JSX.Element {
             verifySessionToken(localStorage.getItem(key)).then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
-                    history.replace(from);
+                    history.replace(decodeURIComponent(previousLocation));
                 } else {
                     setIsVerifyingToken(false);
                 }

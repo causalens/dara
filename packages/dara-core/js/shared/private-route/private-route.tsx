@@ -36,7 +36,15 @@ function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode
     }, []);
 
     if (!token) {
-        return <Redirect to="/login" />;
+        const referrer = encodeURIComponent(window.location.pathname + window.location.search);
+        return (
+            <Redirect
+                to={{
+                    pathname: '/login',
+                    search: `?referrer=${referrer}`,
+                }}
+            />
+        );
     }
 
     // Show fallback while the onLoad action is in progress
