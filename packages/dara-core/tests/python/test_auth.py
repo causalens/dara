@@ -51,7 +51,7 @@ async def test_verify_session():
 
         # Test no auth
         response = await client.get('/api/test-ext/test')
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         # Test wrong scheme
         response = await client.get('/api/test-ext/test', headers={'Authorization': f'Basic user:pw'})

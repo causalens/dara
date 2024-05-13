@@ -19,16 +19,15 @@ function DefaultAuthLogin(): JSX.Element {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
 
-    // Put any type here as typescript couldn't resolve location's typings
-    const previousLocation: any = location.state || { from: { pathname: queryParams.get('referrer') ?? '/' } };
-    const { from } = previousLocation;
+    const previousLocation = queryParams.get('referrer') ?? '/';
+    console.log('previousLocation', previousLocation);
 
     async function getNewToken(): Promise<void> {
         const sessionToken = await getSessionToken({});
         // in default auth this always succeeds
         if (sessionToken) {
             setToken(sessionToken);
-            history.replace(from);
+            history.replace(decodeURIComponent(previousLocation));
         }
     }
 
@@ -46,7 +45,7 @@ function DefaultAuthLogin(): JSX.Element {
             verifySessionToken(localStorage.getItem(key)).then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
-                    history.replace(from);
+                    history.replace(decodeURIComponent(previousLocation));
                 } else {
                     // Otherwise grab a new token
                     getNewToken();
