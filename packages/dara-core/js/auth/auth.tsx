@@ -143,9 +143,13 @@ export async function handleAuthErrors(
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
-        const referrer = queryParams.get('referrer') ?? encodeURIComponent(window.location.pathname + window.location.search);
+        const referrer =
+            queryParams.get('referrer') ?? encodeURIComponent(window.location.pathname + window.location.search);
 
-        const path = toLogin || shouldRedirectToLogin(content.detail) ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
+        const path =
+            toLogin || shouldRedirectToLogin(content.detail) ?
+                `/login?referrer=${referrer}`
+            :   `/error?code=${res.status}`;
         window.location.href = `${window.dara.base_url}${path}`;
 
         return true;
