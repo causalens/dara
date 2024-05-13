@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where desired pathname + search params were not retained when redirected to the login page and then back to the original page
+
 ## 1.9.0
 
 -   Further fix for the websocket reconnection logic that meant the socket class wasn't updated after re-initialization which meant that message sends were routed to the old socket rather than the new one.
