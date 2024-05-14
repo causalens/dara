@@ -46,6 +46,18 @@ class CheckboxGroup(FormComponent):
     )
     ```
 
+    CheckboxGroup with items with custom labels and values:
+
+    ```python
+    from dara.core import Variable
+    from dara.components.common import CheckboxGroup
+
+    CheckboxGroup(
+        items=[Item(label='first',value=1), Item(label='second',value=2)],
+        value=Variable(1),
+    )
+    ```
+
     CheckboxGroup component with at most two values selectable at a time:
 
     ```python
