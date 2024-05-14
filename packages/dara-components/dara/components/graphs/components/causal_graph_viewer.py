@@ -228,6 +228,10 @@ class CausalGraphViewer(BaseGraphComponent):
     :param disable_latent_node_add: Optional flag for disabling latent node addition
     :param disable_node_removal: Optional flag for disabling node removal
     :param editable: Optional flag to enable editing the graph by showing an editor frame around the graph
+    :param editor_mode: Optional editor mode to use. The following options are available:
+        EditorMode.DEFAULT - Default DAG viewer, assumes all edges are directed.
+        EditorMode.PAG - PAG viewer, displays all edge types.
+        EditorMode.RESOLVER - Resolver mode, allows users to accept edges.
     :param graph_layout: Optional layout configuration object
     :param non_removable_nodes: Optional list of node names that cannot be removed
     :param on_click_edge: Event handler for clicking on an edge
