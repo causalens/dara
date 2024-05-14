@@ -50,7 +50,7 @@ class CheckboxGroup(FormComponent):
 
     ```python
     from dara.core import Variable
-    from dara.components.common import CheckboxGroup
+    from dara.components.common import CheckboxGroup, Item
 
     CheckboxGroup(
         items=[Item(label='first',value=1), Item(label='second',value=2)],
