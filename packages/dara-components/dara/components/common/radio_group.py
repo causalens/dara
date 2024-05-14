@@ -48,7 +48,7 @@ class RadioGroup(FormComponent):
     # or as an `Item` list
     RadioGroup(
         items=[Item(label='first',value=1), Item(label='second',value=2)],
-        value=Variable('first'),
+        value=Variable(1),
     )
     ```
 
