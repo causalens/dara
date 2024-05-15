@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.
+
 ## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
