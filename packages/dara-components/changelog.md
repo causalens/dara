@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Clarified docs for `CausalGraphViewer`'s `editor_mode` prop.
+
 ## 1.8.6
 
 -   Fixed an issue where `Chat` button looked off centre on different base font size apps.
