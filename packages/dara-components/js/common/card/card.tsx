@@ -49,6 +49,7 @@ interface ChildrenWrapperProps {
 const ChildrenWrapper = styled.div<ChildrenWrapperProps>`
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
     gap: 0.75rem;
 
     width: 100%;
