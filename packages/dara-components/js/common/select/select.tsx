@@ -177,7 +177,7 @@ function Select(props: SelectProps): JSX.Element {
         // the race condition and respect the main value if it is updated elsewhere.
         useEffect(() => {
             const found = getMultiselectItems(value, itemArray);
-            setSelectedItems(isEmpty(found) ? explicitValues : found);
+            setSelectedItems(isEmpty(found) ? (explicitValues ?? null) : found);
         }, [formattedItems, value]);
         return (
             <StyledMultiSelect
