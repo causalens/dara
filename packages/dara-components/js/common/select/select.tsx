@@ -157,8 +157,9 @@ function Select(props: SelectProps): JSX.Element {
 
     // We need to redefine items as the type is not known at this point
     const itemArray = formattedItems as Array<Item>;
+
     if (props.multiselect) {
-        const explicitValues = isArray(value) ? value.map(toItem) : value;
+        const explicitValues = useMemo(() => isArray(value) ? value.map(toItem) : value, [value]);
         const foundItems = getMultiselectItems(value, itemArray);
         const [selectedItems, setSelectedItems] = useState(isEmpty(foundItems) ? explicitValues : foundItems);
         const onSelect = useCallback(
@@ -175,7 +176,8 @@ function Select(props: SelectProps): JSX.Element {
         // it fail to update the value sometimes. By keeping a local copy of the value and updating it like this we fix
         // the race condition and respect the main value if it is updated elsewhere.
         useEffect(() => {
-            setSelectedItems(getMultiselectItems(value, itemArray));
+            const found = getMultiselectItems(value, itemArray);
+            setSelectedItems(isEmpty(found) ? explicitValues : found);
         }, [formattedItems, value]);
         return (
             <StyledMultiSelect
