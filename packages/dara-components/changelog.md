@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+-   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.
 -   Clarified docs for `CausalGraphViewer`'s `editor_mode` prop.
 
 ## 1.8.6
