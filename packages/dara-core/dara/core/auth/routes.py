@@ -39,7 +39,7 @@ auth_router = APIRouter()
 @auth_router.post('/verify-session')
 async def verify_session(
     req: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ):
     """
     Helper to verify whether the user has a valid session JWT in the request they made. The function should be applied

@@ -148,7 +148,7 @@ describe('DynamicComponent', () => {
                 props: {
                     content: value,
                 },
-            }
+            },
         });
     });
 
@@ -486,7 +486,7 @@ describe('DynamicComponent', () => {
         const MockComponent = (props: { action: Action; varA: Variable<any>; varB: Variable<any> }): JSX.Element => {
             const [a, setA] = useVariable<number>(props.varA);
             const [b, setB] = useVariable<number>(props.varB);
-            const [callAction] = useAction(props.action);
+            const callAction = useAction(props.action);
 
             return (
                 <>
@@ -595,7 +595,7 @@ describe('DynamicComponent', () => {
         // Custom mock component version
         const MockComponentTrigger = (props: { action: Action; variableA: Variable<any> }): JSX.Element => {
             const [a, setA] = useVariable<number>(props.variableA);
-            const [callAction] = useAction(props.action);
+            const callAction = useAction(props.action);
 
             return (
                 <>
@@ -1118,7 +1118,7 @@ describe('DynamicComponent', () => {
         const MockComponent = (props: { action: Action; varA: Variable<any>; varB: Variable<any> }): JSX.Element => {
             const [a, setA] = useVariable<number>(props.varA);
             const [b, setB] = useVariable<number>(props.varB);
-            const [callAction] = useAction(props.action);
+            const callAction = useAction(props.action);
 
             return (
                 <>

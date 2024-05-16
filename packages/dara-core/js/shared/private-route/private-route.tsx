@@ -4,7 +4,7 @@ import { Redirect } from 'react-router-dom';
 
 import { useSessionToken } from '@/auth/auth-context';
 import DefaultFallback from '@/components/fallback/default';
-import useAction from '@/shared/utils/use-action';
+import useAction, { useActionIsLoading } from '@/shared/utils/use-action';
 import useWindowTitle from '@/shared/utils/use-window-title';
 import { Action } from '@/types';
 
@@ -25,7 +25,8 @@ interface PrivateRouteProps {
  */
 function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode {
     const token = useSessionToken();
-    const [onLoad, isLoading] = useAction(on_load);
+    const onLoad = useAction(on_load);
+    const isLoading = useActionIsLoading(on_load);
 
     useWindowTitle(name);
 
@@ -35,7 +36,15 @@ function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode
     }, []);
 
     if (!token) {
-        return <Redirect to="/login" />;
+        const referrer = encodeURIComponent(window.location.pathname + window.location.search);
+        return (
+            <Redirect
+                to={{
+                    pathname: '/login',
+                    search: `?referrer=${referrer}`,
+                }}
+            />
+        );
     }
 
     // Show fallback while the onLoad action is in progress

@@ -19,6 +19,7 @@ export {
     isJsComponent,
     resolveTheme,
     useAction,
+    useActionIsLoading,
     useComponentRegistry,
     useWindowTitle,
     getIcon,

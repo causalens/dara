@@ -100,6 +100,16 @@ describe('WebsocketClient', () => {
 
         // Check that the client has reconnected
         expect(await client.channel).toEqual('test_1');
+
+        const messagePromise = serverNew.nextMessage;
+
+        // Check that we can still send messages
+        client.sendMessage({ message: 'test' }, 'channel');
+
+        // Check that the message was received
+        expect(await messagePromise).toEqual(
+            '{"channel":"channel","chunk_count":null,"message":{"message":"test"},"type":"message"}'
+        );
     });
 
     it('should attempt to reconnect to the server multiple times if the initial one fails', async () => {

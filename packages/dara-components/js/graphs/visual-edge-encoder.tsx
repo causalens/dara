@@ -117,9 +117,9 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
 
     const graphLayout = useMemo(() => parseLayoutDefinition(props.graph_layout), []);
 
-    const [onClickEdge] = useAction(props.on_click_edge);
-    const [onClickNode] = useAction(props.on_click_node);
-    const [onUpdate] = useAction(props.on_update);
+    const onClickEdge = useAction(props.on_click_edge);
+    const onClickNode = useAction(props.on_click_node);
+    const onUpdate = useAction(props.on_update);
 
     const formattedDefaultLegends = useMemo(() => {
         return Object.fromEntries(

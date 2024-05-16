@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.
+-   Clarified docs for `CausalGraphViewer`'s `editor_mode` prop.
 
 ## 1.8.6
 
@@ -23,7 +24,7 @@ title: Changelog
 
 -   `CausalGraphViewer` now only recalculates its layout on resize of the graph window if the graph is not in focus.
 -   Fixed an issue where `Select(..., multiselect=True)` would cause excessive rerenders and degrade performance when
-then number of items in the select was large.
+    then number of items in the select was large.
 
 ## 1.8.2
 
@@ -100,15 +101,18 @@ config.add_configuration(ChatConfig(on_new_message=example_callback))
 ## 1.6.0
 
 **Graphs**
+
 -   Added support for tiered layout in `FcoseLayout`, `PlanarLayout`, `SpringLayout` and `MarketingLayout`. It allows for nodes to be placed on tiers following some hierarchy and to further define requirements of nodes positions within that tier.
 -   If `TimeSeriesCausalGraph` object is passed to `CausalGraphViewer` and no tiers are defines, it will use `time_lag` and `variable_name` to define the `order_nodes_by` and `group` respectively.
 -   Added `simultaneous_edge_node_selection` to `CausalGraphViewer`, when set to True, the selected node will not be reset when an edge is chosen and vice versa.
 -   Added `layering_algorithm` prop to `PlanarLayout`. This allows users to choose between `LayeringAlgorithm.SIMPLEX` and `LayeringAlgorithm.LONGEST_PATH` for the layering step of the d3-dag sugyiama algorithm.
 
 **Plotting**
+
 -   Set `Bokeh` default `min-height` and `min-width` to `350px`.
 
 **Common**
+
 -   **Renamed:** `align-items` to `align` in `Grid.Column` to be more consistent with other layout components.
 -   Added `justify` and `align` shortcut props to `Card`, `Modal`, `Form`, `Grid`, `Grid.Row`, `Grid.Column`.
 -   Fixed an issue where if setting an initial number value to `Select` and it had a list of `Item`s, then the value showed was the number instead of the corresponding label to that value.

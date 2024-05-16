@@ -58,7 +58,7 @@ function Bokeh(props: BokehProps): JSX.Element {
 
     const events: [string, (...args: any) => any][] = [];
 
-    const eventActions: [string, [(value: any) => Promise<void>, boolean]][] = [];
+    const eventActions: [string, (value: any) => Promise<void>][] = [];
 
     if (props.events) {
         for (let i = 0; i < props.events.length; i++) {
@@ -113,7 +113,7 @@ function Bokeh(props: BokehProps): JSX.Element {
             document.removeEventListener(ev, handler);
         });
 
-        eventActions.forEach(([name, [action]]) => {
+        eventActions.forEach(([name, action]) => {
             const handler: EventListener = (e: CustomEvent) => {
                 action(e.detail);
             };

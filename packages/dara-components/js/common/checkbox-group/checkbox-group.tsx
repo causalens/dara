@@ -35,7 +35,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
     const [items] = useVariable(props.items);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue([]));
     const [style, css] = useComponentStyles(props);
-    const [onChangeAction] = useAction(props.onchange);
+    const onChangeAction = useAction(props.onchange);
 
     const onChange = useCallback(
         (values: Item | Array<Item>) => {

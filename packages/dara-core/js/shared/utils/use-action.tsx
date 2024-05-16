@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
@@ -15,6 +15,8 @@ import { Action, ActionHandler } from '@/types';
 import { ActionContext, ActionDef, ActionImpl, AnnotatedAction } from '@/types/core';
 import { isActionImpl } from '@/types/utils';
 
+import { useVariable } from '../interactivity';
+import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { resolveVariable } from '../interactivity/resolve-variable';
 import { normalizeRequest } from './normalization';
 import useActionRegistry from './use-action-registry';
@@ -257,6 +259,26 @@ async function executeAction(
 
 const noop = (): Promise<void> => Promise.resolve();
 
+/**
+ * The useActionIsLoading hook returns a boolean indicating whether the action is currently in progress. This is
+ * currently only supported for single AnnotatedAction instances of actions and will return false in all other cases
+ * due to the lack of loading variable to use as a source of truth.
+ *
+ * @param action - the action to check the loading state of
+ * @returns the loading state of the action
+ */
+export function useActionIsLoading(action: Action): boolean {
+    // We allow conditional logic with hooks here under the assumption that the action will never change during the
+    // component lifetime. As ActionImpls have no loading variable we return false. As we expect to deprecate array's
+    // of actions in the near future as all the functionality then we return false as well due to the complexity of
+    // extracting potentially multiple annotated actions out of the array and resolving all their loading states
+    if (!action || isActionImpl(action) || Array.isArray(action)) {
+        return false;
+    }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useVariable(action.loading)[0];
+}
+
 interface UseActionOptions {
     /**
      * Callback to invoke when an unhandled action is encountered.
@@ -274,10 +296,7 @@ interface UseActionOptions {
  * @param action the action passed in
  * @param options optional extra options for the hook
  */
-export default function useAction(
-    action: Action,
-    options?: UseActionOptions
-): [(input?: any) => Promise<void>, boolean] {
+export default function useAction(action: Action, options?: UseActionOptions): (input?: any) => Promise<void> {
     const { client: wsClient } = useContext(WebSocketCtx);
     const importers = useContext(ImportersCtx);
     const { get: getAction } = useActionRegistry();
@@ -286,7 +305,6 @@ export default function useAction(
     const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
-    const [isLoading, setIsLoading] = useState(false);
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
@@ -304,12 +322,19 @@ export default function useAction(
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {
-            setIsLoading(true);
-
             const actionsToExecute = Array.isArray(action) ? action : [action];
 
             // execute actions sequentially
             for (const actionToExecute of actionsToExecute) {
+                const loadingVariable =
+                    !isActionImpl(actionToExecute) ?
+                        getOrRegisterPlainVariable(actionToExecute.loading, wsClient, taskCtx, extras)
+                    :   null;
+
+                if (loadingVariable) {
+                    cbInterface.set(loadingVariable, true);
+                }
+
                 // this is redefined for each action to have up-to-date snapshot
                 const fullActionContext: ActionContext = {
                     ...actionCtx.current,
@@ -346,17 +371,19 @@ export default function useAction(
                         title: 'Error executing action',
                     });
                 }
-            }
 
-            setIsLoading(false);
+                if (loadingVariable) {
+                    cbInterface.set(loadingVariable, false);
+                }
+            }
         },
         [action, getAction, importers]
     );
 
     // return a noop if no action is passed
     if (!action) {
-        return [noop, false];
+        return noop;
     }
 
-    return [callback, isLoading];
+    return callback;
 }

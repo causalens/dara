@@ -31,7 +31,7 @@ function Textarea(props: TextareaProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
     const [internalValue, setInternalValue] = useState(value);
-    const [onInputAction] = useAction(props.onchange);
+    const onInputAction = useAction(props.onchange);
 
     const debouncedAction = useMemo(() => _debounce(onInputAction, 500), [onInputAction]);
     const debouncedSetValue = useMemo(() => _debounce(setValue, 500), [setValue]);

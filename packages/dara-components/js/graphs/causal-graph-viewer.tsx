@@ -80,9 +80,9 @@ function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
     const theme = useTheme();
 
     const [graphData, setCausalGraphVariable] = useVariable(props.causal_graph);
-    const [onClickNode] = useAction(props.on_click_node);
-    const [onClickEdge] = useAction(props.on_click_edge);
-    const [onUpdate] = useAction(props.on_update);
+    const onClickNode = useAction(props.on_click_node);
+    const onClickEdge = useAction(props.on_click_edge);
+    const onUpdate = useAction(props.on_update);
 
     const graphLayout = useMemo(() => parseLayoutDefinition(props.graph_layout), [props.graph_layout]);
 
