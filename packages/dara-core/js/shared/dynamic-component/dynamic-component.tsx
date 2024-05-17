@@ -18,6 +18,7 @@ import {
     isDerivedVariable,
 } from '@/types';
 import { AnyVariable, isInvalidComponent, isRawString } from '@/types/core';
+import { cleanProps } from './clean-props';
 
 /**
  * Helper function to take a derived variable and get the lowest polling_interval of it and its chained derived
@@ -144,7 +145,9 @@ async function resolveComponent(
             );
         }
 
-        return <ResolvedComponent uid={component.uid} {...component.props} />;
+        const props = cleanProps(component.props);
+
+        return <ResolvedComponent uid={component.uid} {...props} />;
     }
 
     // Otherwise it's a @py_component

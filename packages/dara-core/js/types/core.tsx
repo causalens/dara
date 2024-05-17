@@ -208,7 +208,7 @@ export interface BaseStylingProps {
     /** Set the radius of an element's corners */
     border_radius?: string;
     /** Component children */
-    children?: any;
+    children?: Array<ComponentInstance | null>;
     /** Unique name of component */
     className?: string;
     /** Set the color of the text */
