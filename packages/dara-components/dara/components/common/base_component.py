@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 
@@ -77,7 +77,7 @@ class BaseDashboardComponent(StyledComponentInstance):
         extra = 'forbid'
         use_enum_values = True
 
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         super().__init__(children=list(args), **kwargs)
 
 
