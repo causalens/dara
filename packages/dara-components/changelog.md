@@ -6,6 +6,7 @@ title: Changelog
 
 -   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.
 -   Clarified docs for `CausalGraphViewer`'s `editor_mode` prop.
+-   Fixed an issue where `value` of `Select(multiselect=True, ...)` value would not be displayed even when it's outside the items list.
 
 ## 1.8.6
 
