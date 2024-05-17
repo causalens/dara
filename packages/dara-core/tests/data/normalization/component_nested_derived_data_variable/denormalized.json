@@ -26,8 +26,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "filters": {
@@ -42,8 +41,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "__typename": "DerivedDataVariable"
@@ -61,8 +59,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "filters": {
@@ -77,8 +74,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "__typename": "DerivedDataVariable"
@@ -104,8 +100,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "filters": {
@@ -120,8 +115,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "__typename": "DerivedDataVariable"
@@ -139,8 +133,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "filters": {
@@ -155,8 +148,7 @@
                     "nested": [],
                     "persist_value": false,
                     "uid": "{{root_var_uid}}",
-                    "__typename": "Variable",
-                    "store": null
+                    "__typename": "Variable"
                   }
                 ],
                 "__typename": "DerivedDataVariable"
