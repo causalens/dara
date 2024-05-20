@@ -3,8 +3,6 @@
     "type": "derived",
     "uid": "{{var_2_uid}}",
     "force": false,
-    "values": [
-      1
-    ]
+    "values": [1]
   }
 ]

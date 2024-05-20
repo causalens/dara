@@ -23,10 +23,7 @@ class TestLabelComponent(unittest.TestCase):
             'name': 'Label',
             'props': {
                 'children': [input.dict(exclude_none=True)],
-                'bold': False,
-                'italic': False,
                 'direction': Direction.VERTICAL.value,
-                'underline': False,
                 'value': 'test label:',
             },
             'uid': str(test_uid),

@@ -137,5 +137,5 @@ class Stack(LayoutComponent):
     scroll: bool = False
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         super().__init__(*args, **kwargs)

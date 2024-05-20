@@ -19,6 +19,23 @@ def test_base_component_instance():
     assert instance.dict() == {'name': 'TestInstance', 'props': {'test_prop': 'test'}, 'uid': instance.uid}
 
 
+def test_children():
+    class TestComponent(StyledComponentInstance):
+        foo: str
+
+    instance = TestComponent(foo='bar', children=[TestComponent(foo='baz'), None])
+    assert instance.dict() == {
+        'name': 'TestComponent',
+        'uid': instance.uid,
+        'props': {
+            'foo': 'bar',
+            'children': [
+                {'name': 'TestComponent', 'uid': instance.children[0].uid, 'props': {'foo': 'baz'}},
+            ],
+        },
+    }
+
+
 def test_raw_css():
     """
     Test that raw_css can be serialized correctly in different formats

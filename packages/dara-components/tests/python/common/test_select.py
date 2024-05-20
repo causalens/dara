@@ -20,9 +20,7 @@ class TestSelectComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Select',
             'props': {
-                'bold': False,
                 'children': [],
-                'italic': False,
                 'items': [
                     {'label': 'test1', 'value': 'test1'},
                     {'label': 'test2', 'value': 'test2'},
@@ -31,7 +29,6 @@ class TestSelectComponent(unittest.TestCase):
                 'max_rows': 3,
                 'multiselect': False,
                 'searchable': False,
-                'underline': False,
                 'value': value.dict(exclude_none=True),
             },
             'uid': str(test_uid),

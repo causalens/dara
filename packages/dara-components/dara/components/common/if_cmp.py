@@ -82,8 +82,8 @@ class If(ModifierComponent):
     def __init__(
         self,
         condition: Union[Condition, AnyVariable, TemplateMarker],  # type: ignore
-        true_children: Union[ComponentInstance, List[ComponentInstance]],
-        false_children: Optional[Union[ComponentInstance, List[ComponentInstance]]] = None,
+        true_children: Union[ComponentInstance, List[Union[ComponentInstance, None]]],
+        false_children: Optional[Union[ComponentInstance, List[Union[ComponentInstance, None]]]] = None,
     ):
         if false_children is None:
             false_children = []

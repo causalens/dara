@@ -25,9 +25,6 @@ class TestImageComponent(TestCase):
             'name': 'Image',
             'props': {
                 'children': [],
-                'bold': False,
-                'italic': False,
-                'underline': False,
                 'src': '/static/test.jpg',
             },
             'uid': 'uid',

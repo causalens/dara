@@ -12,8 +12,7 @@
             "nested": [],
             "persist_value": false,
             "uid": "{{var_1_uid}}",
-            "__typename": "Variable",
-            "store": null
+            "__typename": "Variable"
           }
         ],
         "nested": [],
@@ -24,8 +23,7 @@
             "nested": [],
             "persist_value": false,
             "uid": "{{var_1_uid}}",
-            "__typename": "Variable",
-            "store": null
+            "__typename": "Variable"
           }
         ],
         "__typename": "DerivedVariable"
@@ -43,8 +41,7 @@
             "nested": [],
             "persist_value": false,
             "uid": "{{var_1_uid}}",
-            "__typename": "Variable",
-            "store": null
+            "__typename": "Variable"
           }
         ],
         "nested": [],
@@ -55,8 +52,7 @@
             "nested": [],
             "persist_value": false,
             "uid": "{{var_1_uid}}",
-            "__typename": "Variable",
-            "store": null
+            "__typename": "Variable"
           }
         ],
         "__typename": "DerivedVariable"

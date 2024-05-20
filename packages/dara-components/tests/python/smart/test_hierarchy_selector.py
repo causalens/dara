@@ -22,9 +22,6 @@ class TestHierarchySelectorComponent(unittest.TestCase):
             'props': {
                 'allow_category_select': True,
                 'allow_leaf_select': True,
-                'bold': False,
-                'italic': False,
-                'underline': False,
                 'hierarchy': {
                     'children': [{'id': 'node2', 'label': 'node2', 'weight': 0.0}],
                     'id': 'node1',

@@ -4,8 +4,7 @@
     "nested": [],
     "persist_value": false,
     "uid": "{{root_var_uid}}",
-    "__typename": "Variable",
-    "store": null
+    "__typename": "Variable"
   },
   "DerivedVariable:{{dv_1_uid}}": {
     "cache": {

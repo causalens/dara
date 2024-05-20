@@ -18,13 +18,10 @@ class TestTooltipComponent(TestCase):
         expected_dict = {
             'name': 'Tooltip',
             'props': {
-                'bold': False,
                 'children': [Stack(t1).dict(exclude_none=True)],
                 'content': 'Hover Content',
-                'italic': False,
                 'placement': 'auto',
                 'styling': 'default',
-                'underline': False,
             },
             'uid': 'uid',
         }
@@ -36,13 +33,10 @@ class TestTooltipComponent(TestCase):
         expected_dict = {
             'name': 'Tooltip',
             'props': {
-                'bold': False,
                 'children': [t1_stack.dict(exclude_none=True)],
                 'content': t2.dict(exclude_none=True),
-                'italic': False,
                 'placement': 'bottom',
                 'styling': 'default',
-                'underline': False,
             },
             'uid': 'uid',
         }

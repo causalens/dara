@@ -562,4 +562,4 @@ async def test_py_component_with_derived_variable():
         )
 
         # Should return (2 + len(df, where df.col1=3)) + len(df, where df.col1=1), so (2 + 1 + 2) = 5
-        assert data == {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '5'}, 'uid': 'uid'}

@@ -22,13 +22,10 @@ class TestAnchorComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Anchor',
             'props': {
-                'bold': False,
                 'children': [t1.dict(exclude_none=True)],
                 'clean': False,
                 'href': '#anchor1',
-                'italic': False,
                 'name': 'anchor1',
-                'underline': False,
                 'new_tab': False,
             },
             'uid': 'uid',

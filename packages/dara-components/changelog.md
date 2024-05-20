@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Allow components to receive `None` as one of their `children`
+-   Remove redundant `None` properties when serializing components to JSON
+
 ## 1.9.2
 
 -   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.

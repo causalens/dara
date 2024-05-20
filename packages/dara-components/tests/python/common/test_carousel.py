@@ -15,11 +15,8 @@ class TestCarouselComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Carousel',
             'props': {
-                'bold': False,
                 'children': [],
-                'italic': False,
                 'items': [{'title': 'test', 'subtitle': 'item'}],
-                'underline': False,
             },
             'uid': 'uid',
         }

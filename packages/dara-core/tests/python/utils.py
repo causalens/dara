@@ -74,13 +74,16 @@ def read_template_json(path: str, data: dict) -> dict:
     :param path: path to JSON file
     :param data: data to use for replacements
     """
-    with open(path, 'r', encoding='utf-8') as fp:
-        json_string = fp.read()
+    try:
+        with open(path, 'r', encoding='utf-8') as fp:
+            json_string = fp.read()
 
-        for key in data:
-            json_string = json_string.replace('{{' + key + '}}', data[key])
+            for key in data:
+                json_string = json_string.replace('{{' + key + '}}', data[key])
 
-        return json.loads(json_string)
+            return json.loads(json_string)
+    except Exception as e:
+        raise Exception(f'Failed to load file: {path}') from e
 
 
 class ResolvedDerivedVariable(TypedDict):

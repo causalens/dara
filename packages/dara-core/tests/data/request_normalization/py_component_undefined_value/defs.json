@@ -1,14 +1,7 @@
 {
   "{{var_1_name}}": {
     "__typename": "Variable",
-    "store": null,
-    "default": [
-      0.4043240121086956,
-      0.14600226520370102,
-      0.5744194670867628,
-      62.34411669964567,
-      1.5716702625085823
-    ],
+    "default": [0.4043240121086956, 0.14600226520370102, 0.5744194670867628, 62.34411669964567, 1.5716702625085823],
     "nested": [],
     "uid": "{{var_1_uid}}"
   },
@@ -17,10 +10,7 @@
     "deps": [
       {
         "__typename": "Variable",
-        "store": null,
-        "default": [
-          1
-        ],
+        "default": [1],
         "nested": [],
         "uid": "{{var_3_uid}}"
       }
@@ -30,10 +20,7 @@
     "variables": [
       {
         "__typename": "Variable",
-        "store": null,
-        "default": [
-          1
-        ],
+        "default": [1],
         "nested": [],
         "uid": "{{var_3_uid}}"
       }

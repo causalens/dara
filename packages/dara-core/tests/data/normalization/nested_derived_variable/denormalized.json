@@ -19,8 +19,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "nested": [],
@@ -31,8 +30,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "__typename": "DerivedVariable"
@@ -50,8 +48,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "nested": [],
@@ -62,8 +59,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "__typename": "DerivedVariable"
@@ -85,8 +81,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "nested": [],
@@ -97,8 +92,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "__typename": "DerivedVariable"
@@ -116,8 +110,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "nested": [],
@@ -128,8 +121,7 @@
           "nested": [],
           "persist_value": false,
           "uid": "{{root_var_uid}}",
-          "__typename": "Variable",
-          "store": null
+          "__typename": "Variable"
         }
       ],
       "__typename": "DerivedVariable"

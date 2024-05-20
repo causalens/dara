@@ -32,9 +32,6 @@ class TestIfComponent(unittest.TestCase):
                 },
                 'false_children': [t3.dict(exclude_none=True)],
                 'true_children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
-                'bold': False,
-                'italic': False,
-                'underline': False,
             },
             'uid': str(test_uid),
         }
