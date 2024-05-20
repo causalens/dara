@@ -1,6 +1,6 @@
 {
   "name": "@darajs/core",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "description": "Dara Framework core",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -79,10 +79,10 @@
     "whatwg-fetch": "^3.6.2"
   },
   "dependencies": {
-    "@darajs/styled-components": "~1.9.4",
-    "@darajs/ui-components": "~1.9.4",
-    "@darajs/ui-notifications": "~1.9.4",
-    "@darajs/ui-utils": "~1.9.4",
+    "@darajs/styled-components": "~1.9.5",
+    "@darajs/ui-components": "~1.9.5",
+    "@darajs/ui-notifications": "~1.9.5",
+    "@darajs/ui-utils": "~1.9.5",
     "@fortawesome/fontawesome-free": "~6.4.0",
     "@recoiljs/refine": "^0.1.1",
     "@tanstack/query-core": "^4.0.0",
