@@ -16,7 +16,7 @@ import styled from '@darajs/styled-components';
 // The props are actually used deep within the useComponentStyles etc hooks
 /* eslint-disable react/no-unused-prop-types */
 interface StackProps extends LayoutComponentProps {
-    children: Array<ComponentInstance | null>;
+    children: Array<ComponentInstance>;
     className: string;
     collapsed: Variable<boolean>;
     direction: 'horizontal' | 'vertical';
