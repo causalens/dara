@@ -80,7 +80,7 @@ class Tooltip(ModifierComponent):
 
     def __init__(
         self,
-        *components: ComponentInstance,
+        *components: Union[ComponentInstance, None],
         content: Union[str, ComponentInstance, Variable[str], DerivedVariable[str]],
         placement: str = 'auto',
         styling: str = 'default',
