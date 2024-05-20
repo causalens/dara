@@ -7,6 +7,8 @@ title: Changelog
 -   Fixed an issue with `Card` where its content would render with zero height in some scenarios due to a missing `flex-grow` property.
 -   Clarified docs for `CausalGraphViewer`'s `editor_mode` prop.
 -   Fixed an issue where `value` of `Select(multiselect=True, ...)` value would not be displayed even when it's outside the items list.
+-   Allow components to receive `None` as one of their `children`
+-   Remove redundant `None` properties when serializing components to JSON
 
 ## 1.8.6
 
