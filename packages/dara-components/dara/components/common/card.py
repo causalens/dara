@@ -56,5 +56,5 @@ class Card(LayoutComponent):
     title: Optional[str] = None
     accent: bool = False
 
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         super().__init__(*args, **kwargs)

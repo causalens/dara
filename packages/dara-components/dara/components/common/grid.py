@@ -72,7 +72,7 @@ class Column(LayoutComponent):
     offset: Optional[Union[int, ScreenBreakpoints]]
     direction: Direction = Direction.HORIZONTAL
 
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         super().__init__(*args, **kwargs)
 
 
@@ -102,7 +102,7 @@ class Row(LayoutComponent):
 
     column_gap: Optional[int] = None
 
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         super().__init__(*args, **kwargs)
 
 
@@ -124,7 +124,7 @@ class Grid(LayoutComponent):
     Breakpoints = ScreenBreakpoints
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
-    def __init__(self, *args: ComponentInstance, **kwargs):
+    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
         """
         Grid Layout provides a flexbox grid with a twelve column system.
         Rows will automatically calculate their widths and wrap on the page as needed.
