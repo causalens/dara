@@ -18,6 +18,7 @@ import {
     isDerivedVariable,
 } from '@/types';
 import { AnyVariable, isInvalidComponent, isRawString } from '@/types/core';
+
 import { cleanProps } from './clean-props';
 
 /**

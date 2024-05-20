@@ -20,7 +20,7 @@ import { ComponentType } from '../constants';
 import { isConditionTrue } from '../if/if';
 
 type OmitFromMappedType<Type, ToOmit> = {
-  [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
+    [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
 };
 
 interface ButtonProps extends OmitFromMappedType<StyledComponentProps, 'children'> {

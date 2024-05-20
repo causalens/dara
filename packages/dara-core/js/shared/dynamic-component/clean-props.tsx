@@ -1,4 +1,4 @@
-import { BaseComponentProps, ComponentInstance } from "@/types";
+import { BaseComponentProps, ComponentInstance } from '@/types';
 
 /**
  * Clean properties for a component.
