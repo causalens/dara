@@ -19,7 +19,11 @@ import { Button as UiButton } from '@darajs/ui-components';
 import { ComponentType } from '../constants';
 import { isConditionTrue } from '../if/if';
 
-interface ButtonProps extends StyledComponentProps {
+type OmitFromMappedType<Type, ToOmit> = {
+  [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
+};
+
+interface ButtonProps extends OmitFromMappedType<StyledComponentProps, 'children'> {
     children: Array<ComponentInstance> | string;
     /** Passthrough the className property */
     className: string;
@@ -69,7 +73,7 @@ const StyledButton = injectCss(styled(UiButton)<StyledButtonProps>`
  * @param props the component props
  */
 function Button(props: ButtonProps): JSX.Element {
-    const [style, css] = useComponentStyles(props);
+    const [style, css] = useComponentStyles(props as Omit<ButtonProps, 'children'>); // the styles hook doesn't care about children though here it's wider, includes string
     const onClick = useAction(props.onclick);
     const loading = useActionIsLoading(props.onclick);
     const disabled = useConditionOrVariable(props.disabled);
