@@ -23,15 +23,12 @@ class TestStackComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Stack',
             'props': {
-                'bold': False,
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
                 'collapsed': False,
                 'direction': Direction.VERTICAL.value,
-                'italic': False,
                 'position': 'relative',
                 'scroll': False,
                 'hug': False,
-                'underline': False,
             },
             'uid': 'uid',
         }
@@ -43,15 +40,12 @@ class TestStackComponent(unittest.TestCase):
             'name': 'Stack',
             'props': {
                 'align': 'end',
-                'bold': False,
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
                 'collapsed': False,
                 'direction': Direction.HORIZONTAL.value,
-                'italic': False,
                 'position': 'relative',
                 'scroll': False,
                 'hug': False,
-                'underline': False,
             },
             'uid': 'uid',
         }

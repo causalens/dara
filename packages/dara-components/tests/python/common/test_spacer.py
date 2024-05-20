@@ -14,13 +14,10 @@ class TestSpacerComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Spacer',
             'props': {
-                'bold': False,
                 'children': [],
                 'inset': '0rem',
-                'italic': False,
                 'line': False,
                 'size': '0.75rem',
-                'underline': False,
             },
             'uid': 'uid',
         }
@@ -31,13 +28,10 @@ class TestSpacerComponent(unittest.TestCase):
             'name': 'Spacer',
             'props': {
                 'align': 'start',
-                'bold': False,
                 'children': [],
                 'inset': '5%',
-                'italic': False,
                 'line': True,
                 'size': '12px',
-                'underline': False,
             },
             'uid': 'uid',
         }

@@ -23,10 +23,7 @@ class TestSwitchComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Switch',
             'props': {
-                'bold': False,
                 'children': [],
-                'italic': False,
-                'underline': False,
                 'value': value.dict(exclude_none=True),
             },
             'uid': str(test_uid),

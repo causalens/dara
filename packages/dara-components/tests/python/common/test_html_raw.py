@@ -15,11 +15,8 @@ class TestHtmlRawComponent(unittest.TestCase):
         expected_dict = {
             'name': 'HtmlRaw',
             'props': {
-                'bold': False,
                 'children': [],
                 'html': html,
-                'italic': False,
-                'underline': False,
             },
             'uid': 'uid',
         }

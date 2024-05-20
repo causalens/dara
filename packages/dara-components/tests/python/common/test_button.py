@@ -20,14 +20,11 @@ class TestButtonComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Button',
             'props': {
-                'bold': False,
                 'children': [Text(text='Click Here').dict(exclude_none=True)],
-                'italic': False,
                 'onclick': action.dict(),
                 'styling': ButtonStyle.PRIMARY.value,
                 'outline': False,
                 'position': 'relative',
-                'underline': False,
             },
             'uid': str(test_uid),
         }

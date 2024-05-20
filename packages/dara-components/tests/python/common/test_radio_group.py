@@ -20,17 +20,14 @@ class TestRadioComponent(unittest.TestCase):
         expected_dict = {
             'name': 'RadioGroup',
             'props': {
-                'bold': False,
                 'children': [],
                 'direction': 'vertical',
-                'italic': False,
                 'items': [
                     {'label': 'test1', 'value': 'test1'},
                     {'label': 'test2', 'value': 'test2'},
                     {'label': 'test3', 'value': 'test3'},
                 ],
                 'list_styling': False,
-                'underline': False,
                 'value': value.dict(exclude_none=True),
             },
             'uid': str(test_uid),

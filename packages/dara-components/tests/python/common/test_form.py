@@ -24,10 +24,7 @@ class TestFormComponent(unittest.TestCase):
             'name': 'Form',
             'props': {
                 'children': [s1.dict(exclude_none=True)],
-                'bold': False,
-                'italic': False,
                 'position': 'relative',
-                'underline': False,
                 'value': form_state.dict(exclude_none=True),
             },
             'uid': str(test_uid),
