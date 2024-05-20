@@ -370,11 +370,11 @@ class StyledComponentInstance(ComponentInstance):
 
     @validator('children', pre=True)
     @classmethod
-    def validate_children(cls, value):
+    def validate_children(cls, children):
         # Filter out None children
-        if isinstance(value, list):
-            return [x for x in value if x is not None]
-        return value
+        if isinstance(children, list):
+            return [x for x in children if x is not None]
+        return children
 
     def dict(self, *args, **kwargs):
         kwargs['exclude_none'] = True
