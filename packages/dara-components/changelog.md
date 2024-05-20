@@ -6,6 +6,7 @@ title: Changelog
 
 -   Allow components to receive `None` as one of their `children`
 -   Remove redundant `None` properties when serializing components to JSON
+-   Fix an issue where `Select` component would error out in few rare cases
 
 ## 1.9.2
 
