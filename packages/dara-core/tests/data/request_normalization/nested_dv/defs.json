@@ -8,7 +8,8 @@
         "nested": [],
         "persist_value": false,
         "uid": "{{var_1_uid}}",
-        "__typename": "Variable"
+        "__typename": "Variable",
+        "store": null
       }
     ],
     "nested": [],
@@ -19,7 +20,8 @@
         "nested": [],
         "persist_value": false,
         "uid": "{{var_1_uid}}",
-        "__typename": "Variable"
+        "__typename": "Variable",
+        "store": null
       }
     ],
     "__typename": "DerivedVariable"
