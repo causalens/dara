@@ -24,7 +24,10 @@ class TestModalComponent(unittest.TestCase):
             'name': 'Modal',
             'props': {
                 'children': [t1.dict(exclude_none=True)],
+                'bold': False,
+                'italic': False,
                 'position': 'relative',
+                'underline': False,
                 'show': show.dict(exclude_none=True),
             },
             'uid': str(test_uid),

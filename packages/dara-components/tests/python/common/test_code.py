@@ -20,6 +20,9 @@ class TestCodeComponent(unittest.TestCase):
                 'children': [],
                 'code': self.code,
                 'language': 'js',
+                'bold': False,
+                'italic': False,
+                'underline': False,
             },
             'uid': 'uid',
         }

@@ -14,9 +14,12 @@ class TestHeadingComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Heading',
             'props': {
+                'bold': False,
                 'children': [],
                 'heading': 'Heading',
+                'italic': False,
                 'level': 3,
+                'underline': False,
             },
             'uid': 'uid',
         }

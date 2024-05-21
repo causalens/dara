@@ -15,6 +15,9 @@ class TestIconComponent(unittest.TestCase):
             'name': 'Icon',
             'props': {
                 'children': [],
+                'bold': False,
+                'italic': False,
+                'underline': False,
                 'icon': 'wrench',
                 'color': 'red',
             },

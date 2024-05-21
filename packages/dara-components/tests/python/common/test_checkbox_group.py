@@ -20,7 +20,9 @@ class TestCheckboxComponent(unittest.TestCase):
         expected_dict = {
             'name': 'CheckboxGroup',
             'props': {
+                'bold': False,
                 'children': [],
+                'italic': False,
                 'items': [
                     {'label': 'test1', 'value': 'test1'},
                     {'label': 'test2', 'value': 'test2'},
@@ -28,6 +30,7 @@ class TestCheckboxComponent(unittest.TestCase):
                 ],
                 'list_styling': False,
                 'select_max': 2,
+                'underline': False,
                 'value': value.dict(exclude_none=True),
             },
             'uid': str(test_uid),
