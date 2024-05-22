@@ -6,7 +6,9 @@
       {
         "type": "derived",
         "uid": "{{var_2_uid}}",
-        "values": [1],
+        "values": [
+          1
+        ],
         "force": false
       }
     ],

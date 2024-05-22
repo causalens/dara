@@ -27,6 +27,9 @@ class TestBokehComponent(unittest.TestCase):
             'name': 'Bokeh',
             'props': {
                 'document': cmp.document,
+                'bold': False,
+                'italic': False,
+                'underline': False,
             },
             'uid': str(test_uid),
         }

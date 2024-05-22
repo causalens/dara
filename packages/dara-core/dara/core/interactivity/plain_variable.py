@@ -204,7 +204,4 @@ class Variable(NonDataVariable, Generic[VariableType]):
     def dict(self, *args, **kwargs):
         parent_dict = super().dict(*args, **kwargs)
 
-        if 'store' in parent_dict and parent_dict.get('store') is None:
-            parent_dict.pop('store')
-
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

@@ -21,6 +21,9 @@ class TestCodeEditorComponent(unittest.TestCase):
             'name': 'CodeEditor',
             'props': {
                 'script': script.dict(exclude_none=True),
+                'bold': False,
+                'italic': False,
+                'underline': False,
             },
             'uid': str(test_uid),
         }

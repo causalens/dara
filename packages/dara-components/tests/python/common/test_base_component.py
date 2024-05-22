@@ -32,6 +32,9 @@ class TestBaseComponent(unittest.TestCase):
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True), t1.dict(exclude_none=True)],
                 'height': '10%',
                 'width': '10px',
+                'bold': False,
+                'italic': False,
+                'underline': False,
             },
             'uid': 'uid',
         }

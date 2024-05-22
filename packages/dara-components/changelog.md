@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Revert: "Remove redundant `None` properties when serializing components to JSON". This will be brought back in a future minor release
+
 ## 1.9.3
 
 -   Allow components to receive `None` as one of their `children`

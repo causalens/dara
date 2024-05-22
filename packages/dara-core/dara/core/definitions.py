@@ -231,11 +231,13 @@ class ComponentInstance(DaraBaseModel):
         return css
 
     def dict(self, *args, **kwargs):
-        kwargs['exclude_none'] = True
         props = super().dict(*args, **kwargs)
-        props.pop('uid', None)
+        props.pop('uid')
 
-        if isinstance(self.raw_css, CSSProperties):
+        # Exclude raw_css if not set
+        if 'raw_css' in props and props.get('raw_css') is None:
+            props.pop('raw_css')
+        elif isinstance(self.raw_css, CSSProperties):
             # If it's an instance of CSSProperties, serialize but exclude none
             props['raw_css'] = self.raw_css.dict(exclude_none=True)
 
@@ -243,9 +245,17 @@ class ComponentInstance(DaraBaseModel):
         if 'track_progress' in props and props.get('track_progress') is False:
             props.pop('track_progress')
 
+        # Exclude error handler if not set
+        if 'error_handler' in props and props.get('error_handler') is None:
+            props.pop('error_handler')
+
         # Exclude template if not set
         if 'templated' in props and props.get('templated') is False:
             props.pop('templated')
+
+        # Exclude fallback if not set
+        if 'fallback' in props and props.get('fallback') is None:
+            props.pop('fallback')
 
         return {
             'name': self.py_component or type(self).__name__,
@@ -312,10 +322,10 @@ class StyledComponentInstance(ComponentInstance):
     align: Optional[str] = None
     background: Optional[str] = None
     basis: Optional[Union[int, str, bool]] = None
-    bold: Optional[bool] = None
+    bold: bool = False
     border: Optional[str] = None
     border_radius: Optional[Union[float, int, str]] = None
-    children: Optional[List[Union[ComponentInstance, TemplateMarker, None]]] = None
+    children: Optional[List[Union[ComponentInstance, TemplateMarker]]] = None
     color: Optional[str] = None
     font: Optional[str] = None
     font_size: Optional[str] = None
@@ -323,7 +333,7 @@ class StyledComponentInstance(ComponentInstance):
     grow: Optional[Union[int, str, float, bool]] = None
     height: Optional[Union[float, int, str]] = None
     hug: Optional[bool] = None
-    italic: Optional[bool] = None
+    italic: bool = False
     margin: Optional[Union[float, int, str]] = None
     max_height: Optional[Union[float, int, str]] = None
     max_width: Optional[Union[float, int, str]] = None
@@ -333,7 +343,7 @@ class StyledComponentInstance(ComponentInstance):
     position: Optional[str] = None
     padding: Optional[Union[float, int, str]] = None
     shrink: Optional[Union[int, str, float, bool]] = None
-    underline: Optional[bool] = None
+    underline: bool = False
     width: Optional[Union[float, int, str]] = None
 
     class Config:
@@ -375,10 +385,6 @@ class StyledComponentInstance(ComponentInstance):
         if isinstance(children, list):
             return [x for x in children if x is not None]
         return children
-
-    def dict(self, *args, **kwargs):
-        kwargs['exclude_none'] = True
-        return super().dict(*args, **kwargs)
 
 
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]

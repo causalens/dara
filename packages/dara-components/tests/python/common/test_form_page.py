@@ -24,6 +24,9 @@ class TestFormPageComponent(unittest.TestCase):
             'name': 'FormPage',
             'props': {
                 'children': [s1.dict(exclude_none=True)],
+                'bold': False,
+                'italic': False,
+                'underline': False,
                 'title': 'Page',
             },
             'uid': str(test_uid),
