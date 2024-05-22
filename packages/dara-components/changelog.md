@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.9.4
 
 -   Revert: "Remove redundant `None` properties when serializing components to JSON". This will be brought back in a future minor release
 
