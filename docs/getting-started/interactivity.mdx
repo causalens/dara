@@ -30,7 +30,8 @@ You can give your variable an initial `default` value of any type:
 my_variable_with_default = Variable(default='initial value')
 ```
 
-<details><summary>What can you store in a <code>Variable</code>?</summary>
+<details>
+<summary>What can you store in a <code>Variable</code>?</summary>
 
 Values stored by a `Variable` do not have to be primitive types. They can also store JSON serializable types such as lists and dictionaries. As an example, you could store a dictionary representing application state in a single Variable:
 
@@ -359,7 +360,8 @@ layout = Stack(
 
 This feature is useful in a scenario when the computation is very expensive and takes multiple inputs. It should not be rerun every time a user changes one of the settings as you would want to group the updates together.
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}> Tasks:<code>DerivedVariables</code> with Heavy CPU Calculations</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}> Tasks:<code>DerivedVariables</code> with Heavy CPU Calculations</h3></summary>
 
 CPU bound calculations are calculations that require intensive processing. Typically this will include machine learning calculations or expensive data manipulations. These calls block not only the thread they are running on, but all the other threads of the webserver as well. This is due to python's GIL (Global Interpreter Lock) and if you want to avoid this then you need to offload these calculations to separate processes, or even to another machine if you have it available. You can learn more about python's Global Interpreter Lock [here](https://docs.python.org/3/c-api/init.html#thread-state-and-the-global-interpreter-lock).
 
@@ -504,7 +506,8 @@ config.add_page('Second Page', FormattedNumber(150, '£'))
 config.add_page('Third Page', FormattedNumber(number_variable, symbol_variable))
 ```
 
-<details><summary>What is a python decorator?</summary>
+<details>
+<summary>What is a python decorator?</summary>
 
 Decorators allow you to add new functionality to an existing object without modifying its structure.
 

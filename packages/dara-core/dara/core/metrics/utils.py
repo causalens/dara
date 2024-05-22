@@ -41,8 +41,10 @@ def total_size(o: object):
     their subclasses:  tuple, list, deque, dict, set and frozenset.
     To search other containers, add handlers to iterate over their contents:
 
+    ```
         handlers = {SomeContainerClass: iter,
                     OtherContainerClass: OtherContainerClass.get_elements}
+    ```
 
     """
     if o is None:

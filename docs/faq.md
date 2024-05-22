@@ -2,7 +2,8 @@
 title: FAQ
 ---
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I use an extension or plugin?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I use an extension or plugin?</h3></summary>
 
 1. Install the package.
 
@@ -32,7 +33,8 @@ The same process applies to plugins, however plugins are just plain functions so
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I customize the appearance of my app?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I customize the appearance of my app?</h3></summary>
 
 Like any web app, your app can be customized with CSS.
 
@@ -46,7 +48,8 @@ You can also give a specific color-way to your entire application. The [**Themes
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my app not reflecting the latest version?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my app not reflecting the latest version?</h3></summary>
 
 There are a few reasons why your app might not be showing the latest changes. This section will cover some common fixes for this problem.
 
@@ -99,7 +102,8 @@ Delete your `.venv` file and run either `poetry update` or `poetry install`, thi
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I access the values in my Variables?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I access the values in my Variables?</h3></summary>
 
 As mentioned in the [**user guide**](./getting-started/interactivity#variables), you cannot extract values or do operations on `Variable`s through traditional python code.
 
@@ -170,7 +174,8 @@ display_results(result)
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>When should I run a DerivedVariable as a task?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>When should I run a DerivedVariable as a task?</h3></summary>
 
 Running a `dara.core.interactivity.derived_variable.DerivedVariable` with `run_as_task=True` tells the app to run the resolver function in a separate process within a process pool, with the `DerivedVariable`'s list of `variables` and `extras`.
 
@@ -245,7 +250,8 @@ config.task_module = 'my_app.tasks'
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why are the components from an extension or plugin not showing up in my app?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why are the components from an extension or plugin not showing up in my app?</h3></summary>
 
 You may have installed and imported an extension but the components from that package are not rendering in your app.
 
@@ -267,7 +273,8 @@ config.add_component(SomeComponent)
 
 </details>
 
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why do I see unexpected behavior with `plotting.Matplotlib`?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why do I see unexpected behavior with `plotting.Matplotlib`?</h3></summary>
 
 This is likely caused by the use of pyplot to create a figure. In the context of the framework you should always use matplotlib's Figure object to instantiate your figure. The reason being that pyplot is not thread safe and can cause some unwanted behavior.
 
@@ -293,7 +300,8 @@ Matplotlib(fig)
 ```
 
 </details>
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my graph not occupying the whole canvas?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why is my graph not occupying the whole canvas?</h3></summary>
 
 Sometimes when rendering a graph inside of a Carousel it might end up looking like this:
 ![Carousel with a graph not occupying full space](assets/faq_carousel_graph.png)
@@ -306,7 +314,8 @@ The problem arises when the Graph component is unable to accurately determine th
 3. **Provide Feedback if Needed:** If you encounter this issue, we would greatly appreciate your feedback on [GitHub](https://github.com/causalens/dara). Sharing your examples and experiences may shed light on the underlying problem, allowing us to diagnose it more accurately.
 
 </details>
-<details><summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why am I getting `ValueError` with Plotly?</h3></summary>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>Why am I getting `ValueError` with Plotly?</h3></summary>
 
 Sometimes, when rendering multiple Plotly graphs on a page, one can encounter a `ValueError`. This error appears inconsistently, varying between re-renders of the page.
 This seems to be a [known issue](https://github.com/plotly/plotly.py/issues/3441) with Plotly.
