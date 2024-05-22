@@ -63,7 +63,7 @@ class GraphLayout(BaseModel, abc.ABC):
 
 
 class TiersConfig(BaseModel):
-    """
+    r"""
     TiersConfig provides a way of defining tiers for a graph layout.
 
     :param group: Path within node to group property which defines the tier it belong to,
