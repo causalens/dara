@@ -23,13 +23,25 @@ def test_children():
         foo: str
 
     instance = TestComponent(foo='bar', children=[TestComponent(foo='baz'), None])
-    assert instance.dict() == {
+    assert instance.dict(exclude_none=True) == {
         'name': 'TestComponent',
         'uid': instance.uid,
         'props': {
             'foo': 'bar',
+            'underline': False,
+            'bold': False,
+            'italic': False,
             'children': [
-                {'name': 'TestComponent', 'uid': instance.children[0].uid, 'props': {'foo': 'baz'}},
+                {
+                    'name': 'TestComponent',
+                    'uid': instance.children[0].uid,
+                    'props': {
+                        'foo': 'baz',
+                        'bold': False,
+                        'underline': False,
+                        'italic': False,
+                    }
+                },
             ],
         },
     }
