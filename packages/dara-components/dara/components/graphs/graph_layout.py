@@ -63,13 +63,13 @@ class GraphLayout(BaseModel, abc.ABC):
 
 
 class TiersConfig(BaseModel):
-    """
+    r"""
     TiersConfig provides a way of defining tiers for a graph layout.
 
     :param group: Path within node to group property which defines the tier it belong to,
-        e.g. 'meta.group' would correspond to a group attribute in the meta of the node, 'meta': {'group': 'countries'}
+        e.g. 'meta.group' would correspond to a group attribute in the meta of the node, 'meta': \{'group': 'countries'\}
     :param order_nodes_by: A path to a node property which contains a number defining the order of nodes within a tier,
-        e.g. 'meta.order' would correspond to an order attribute in the meta of the node, 'meta': {'order': 1}
+        e.g. 'meta.order' would correspond to an order attribute in the meta of the node, 'meta': \{'order': 1\}
     :param rank: A list of group values defining the order they should appear in, e.g. ['countries', 'currency', 'industry']
         would result in the nodes representing nodes appearing in the first tier, then nodes representing currency in the second tier and finally those representing industry.
     """
