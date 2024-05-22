@@ -282,8 +282,8 @@ class ConfigurationBuilder:
         return config
 
     def add_static_folder(self, path: str):
-        """
-        Register a static folder, its contents can be then addressed with /static/{asset} URLs.
+        r"""
+        Register a static folder, its contents can be then addressed with /static/\{asset\} URLs.
 
         Its contents will be moved into the local 'static' folder to be served when:
         - running the app locally

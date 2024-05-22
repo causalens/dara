@@ -54,7 +54,8 @@ Below is an example of how it can be used to customize a component.
 
 ![raw_css as dict example](../assets/styling/raw_css_dict.gif)
 
-<details><summary> Common CSS Properties</summary>
+<details>
+<summary> Common CSS Properties</summary>
 
 Below you will see some commonly used CSS Properties. These properties are measured with different units. It is helpful to know that CSS measures length in two different ways.
 
