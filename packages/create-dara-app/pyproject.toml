@@ -28,7 +28,7 @@ license = "Apache-2.0"
 name = "create-dara-app"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.9.4"
+version = "1.9.5"
 
 [tool.poetry.dependencies]
 click = "=8.1.3"
@@ -37,7 +37,7 @@ python = ">=3.8, <3.12.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
-blue = "^0.9.0"
+blue = "^0.9.1"
 isort = "^5.10.1"
 mypy = "^1.6.0"
 pylint = "^3.0.0"
