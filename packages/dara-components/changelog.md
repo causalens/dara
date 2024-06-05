@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.9.5
 
 -   Increased performance of various `Select` and `Datepicker` components in large lists by upto 485x.
 -   Fixed a crash when `selected_items=None` was passed to `Select(multiselect=True, ...)`.
