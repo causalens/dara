@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Increased performance of various `Select` and `Datepicker` components in large lists by upto 485x.
+-   Fixed a crash when `selected_items=None` was passed to `Select(multiselect=True, ...)`.
+
 ## 1.9.4
 
 -   Revert: "Remove redundant `None` properties when serializing components to JSON". This will be brought back in a future minor release
