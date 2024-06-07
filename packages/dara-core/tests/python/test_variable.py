@@ -105,3 +105,27 @@ async def test_derived_variables_with_df_nan():
         )
         assert response.status_code == 200
         assert response.json()['value'] == {'a': {'0': 1.0, '1': None, '2': None}, 'b': {'0': 2.0, '1': None, '2': None}}
+
+async def test_variable_init_override():
+    """
+    Test that the variable init override works
+    """
+    counter = 0
+    def override(kwargs):
+        nonlocal counter
+        kwargs['default'] = counter
+        counter += 1
+        return kwargs
+
+    with Variable.init_override(override):
+        variable = Variable(default='foo')
+        variable2 = Variable(default='bar')
+
+    assert variable.default == 0
+    assert variable2.default == 1
+
+    # check that the override is not active anymore
+    new_variable = Variable(default='foo')
+    assert new_variable.default == 'foo'
+
+

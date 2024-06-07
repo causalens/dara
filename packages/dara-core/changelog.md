@@ -2,6 +2,19 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Implement `Variable.init_override` static method to allow overriding how variables are initialized within a given context.
+
+```python
+from dara.core import Variable
+
+with Variable.init_override(lambda kwargs: {**kwargs, 'default': 'foo'}):
+    var = Variable()
+
+assert var.default == 'foo'
+```
+
 ## 1.9.1
 
 -   Fixed an issue where desired pathname + search params were not retained when redirected to the login page and then back to the original page
