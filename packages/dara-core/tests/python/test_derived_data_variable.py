@@ -6,11 +6,28 @@ from multiprocessing import active_children
 from typing import Optional, Union
 from unittest.mock import Mock
 
+import anyio
 import jwt
 import pytest
-from anyio import move_on_after
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
+
+from dara.core.auth.basic import BasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO
+from dara.core.base_definitions import Action, CacheType, PendingValue, Cache
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.definitions import ComponentInstance
+from dara.core.interactivity.actions import UpdateVariable
+from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.filtering import ValueQuery
+from dara.core.interactivity.plain_variable import Variable
+from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.registries import derived_variable_registry, utils_registry
+from dara.core.main import _start_application
+from dara.core.visual.dynamic_component import py_component
+
 from tests.python.utils import (
     AUTH_HEADERS,
     TEST_JWT_SECRET,
@@ -24,21 +41,6 @@ from tests.python.utils import (
     get_ws_messages,
     wait_assert,
 )
-
-from dara.core.auth.basic import BasicAuthConfig
-from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import Action, CacheType
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.definitions import ComponentInstance
-from dara.core.interactivity.actions import UpdateVariable
-from dara.core.interactivity.data_variable import DataVariable
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
-from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.filtering import ValueQuery
-from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.pandas_utils import append_index
-from dara.core.main import _start_application
-from dara.core.visual.dynamic_component import py_component
 
 from .tasks import data_task
 
@@ -71,7 +73,11 @@ async def reset_data_variable_cache():
     """
     Reset the data variable cache between tests
     """
-    from dara.core.internal.registries import data_variable_registry, derived_variable_registry, utils_registry
+    from dara.core.internal.registries import (
+        data_variable_registry,
+        derived_variable_registry,
+        utils_registry,
+    )
 
     data_variable_registry.replace({})
     derived_variable_registry.replace({})
@@ -1170,4 +1176,178 @@ async def test_derived_data_variable_with_derived_variable():
         )
         assert response.status_code == 200
         resp_data = DataFrame(response.json())
+        assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
+
+
+async def test_derived_data_variable_pending_value():
+    """
+    Test that DerivedDataVariable handles the case where it's being recalculated twice
+    while being requested.
+    This is a regression test for a bug where a PendingValue would instead be returned from the
+    DerivedDataVariable.
+    """
+    builder = ConfigurationBuilder()
+
+    dv = ContextVar('dv')
+
+    async def calc(a: DataFrame, b: int):
+        for i in range(16):
+            await anyio.sleep(0.25)
+        assert '__index__' not in a.columns
+        cp = a.copy()
+        cp['col1'] += int(b)
+        return cp
+
+    def page():
+        data = DataVariable(TEST_DATA, uid='data')
+        data_var = DerivedDataVariable(calc, uid='uid', variables=[data, Variable(10)])
+
+        dv.set(data_var)
+
+        return MockComponent(text=data_var)
+
+    builder.add_page('Test', page)
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # invoke the derived part once
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'type': 'derived-data',
+                'uid': 'uid',
+                'values': [{'type': 'data', 'uid': 'data'}, 10],
+                'filters': None,
+                'ws_channel': 'test_channel',
+                'force': False,
+                'is_data_variable': True,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == True
+        cache_key = response.json()['cache_key']
+
+        # wait until ~halfway through the calculation
+        for _ in range(8):
+            await anyio.sleep(0.25)
+
+        async with anyio.create_task_group() as tg:
+            # kick off the second calculation
+            tg.start_soon(
+                _get_derived_variable,
+                client,
+                dv.get(),
+                {
+                    'type': 'derived-data',
+                    'uid': 'uid',
+                    'values': [{'type': 'data', 'uid': 'data'}, 10],
+                    'filters': None,
+                    'ws_channel': 'test_channel',
+                    'force': True,  # force recalculation
+                    'is_data_variable': True,
+                },
+            )
+
+            # immediately request the data
+            await anyio.sleep(0.5)
+
+            # check that at this point the cached value is a pending value
+            dv_entry = derived_variable_registry.get('uid')
+            store = utils_registry.get('Store')
+            data = await store.get(dv_entry, key=cache_key)
+            assert isinstance(data, PendingValue)
+
+            response3 = await client.post(
+                '/api/core/data-variable/uid',
+                json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
+                headers=AUTH_HEADERS,
+            )
+
+            # check response3 is the correct data
+            assert response3.status_code == 200
+            resp_data = DataFrame(response3.json())
+            assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
+
+async def test_derived_data_variable_cache_eviction():
+    """
+    Test that DerivedDataVariable value is not evicted before it's queried.
+    """
+    builder = ConfigurationBuilder()
+
+    dv = ContextVar('dv')
+
+    async def calc(a: DataFrame, b: int):
+        for i in range(16):
+            await anyio.sleep(0.25)
+        assert '__index__' not in a.columns
+        cp = a.copy()
+        cp['col1'] += int(b)
+        return cp
+
+    def page():
+        data = DataVariable(TEST_DATA, uid='data')
+        data_var = DerivedDataVariable(calc, uid='uid', variables=[data, Variable(10)], cache=Cache.Policy.MostRecent())
+
+        dv.set(data_var)
+
+        return MockComponent(text=data_var)
+
+    builder.add_page('Test', page)
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # invoke the derived part once
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'type': 'derived-data',
+                'uid': 'uid',
+                'values': [{'type': 'data', 'uid': 'data'}, 10],
+                'filters': None,
+                'ws_channel': 'test_channel',
+                'force': False,
+                'is_data_variable': True,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == True
+        cache_key = response.json()['cache_key']
+
+        # invoke again with different input
+        res2 = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'type': 'derived-data',
+                'uid': 'uid',
+                'values': [{'type': 'data', 'uid': 'data'}, 20],
+                'filters': None,
+                'ws_channel': 'test_channel',
+                'force': False,
+                'is_data_variable': True,
+            },
+        )
+
+        # attempt to retrieve data with the first cache key
+        response3 = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+
+        # check response3 is the correct data, i.e. it wasn't evicted
+        assert response3.status_code == 200
+        resp_data = DataFrame(response3.json())
         assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
