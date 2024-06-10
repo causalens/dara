@@ -17,13 +17,17 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Generic, List, Optional, TypeVar
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, Callable, Generic, List, Optional, TypeVar
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.persistence import PersistenceStore
+
+VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
 VariableType = TypeVar('VariableType')
 PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceStore, covariant=True)
@@ -58,14 +62,38 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         :param store: a persistence store to attach to the variable; modifies where the source of truth for the variable is
         """
-        if store is not None and persist_value:
+        kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store}
+
+        # If an override is active, run the kwargs through it
+        override = VARIABLE_INIT_OVERRIDE.get()
+        if override is not None:
+            kwargs = override(kwargs)
+
+        if kwargs.get('store') is not None and kwargs.get('persist_value'):
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 
-        super().__init__(default=default, uid=uid, persist_value=persist_value, store=store)
+        super().__init__(**kwargs)   # type: ignore
 
         if self.store:
             call_async(self.store.init, self)
+
+    @staticmethod
+    @contextmanager
+    def init_override(override: Callable[[dict], dict]):
+        """
+        Override the init function of all Variables created within the context of this function.
+
+        ```python
+        with Variable.init_override(lambda kwargs: {**kwargs, 'persist_value': True}):
+            var = Variable()
+        ```
+
+        :param override: a function that takes a dict of kwargs and returns a modified dict of kwargs
+        """
+        token = VARIABLE_INIT_OVERRIDE.set(override)
+        yield
+        VARIABLE_INIT_OVERRIDE.reset(token)
 
     def get(self, key: str):
         """
