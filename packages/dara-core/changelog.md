@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where in some cases a `DerivedDataVariable` would be invoked with an internal `PendingValue`
+
 ## 1.9.1
 
 -   Fixed an issue where desired pathname + search params were not retained when redirected to the login page and then back to the original page

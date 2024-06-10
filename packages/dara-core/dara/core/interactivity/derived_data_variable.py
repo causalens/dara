@@ -22,7 +22,13 @@ from uuid import uuid4
 
 from pandas import DataFrame
 
-from dara.core.base_definitions import BaseTask, Cache, CacheArgType, PendingTask
+from dara.core.base_definitions import (
+    BaseTask,
+    Cache,
+    CacheArgType,
+    PendingTask,
+    PendingValue,
+)
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
     DataVariableRegistryEntry,
@@ -185,6 +191,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         )
         value = await super().get_value(var_entry, store, task_mgr, args, force)
 
+        # Pin the value in the store until it's read by get data
+        await store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True)
+
         eng_logger.info(
             f'Derived Data Variable {_uid_short} received result from superclass',
             {'uid': var_entry.uid, 'result': value},
@@ -232,7 +241,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             return data_store_entry
 
         # First retrieve the cached data for underlying DV
-        data = await store.get(dv_entry, key=cache_key)
+        data = await store.get(dv_entry, key=cache_key, unpin=True)
+
+        # Value could have been made pending in the meantime
+        if isinstance(data, PendingValue):
+            data = await data.wait()
 
         eng_logger.info(
             f'Derived Data Variable {_uid_short} retrieved underlying DV value', {'uid': dv_entry.uid, 'value': data}
