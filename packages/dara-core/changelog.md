@@ -5,6 +5,16 @@ title: Changelog
 ## NEXT
 
 -   Fixed an issue where in some cases a `DerivedDataVariable` would be invoked with an internal `PendingValue`
+-   Implement `Variable.init_override` static method to allow overriding how variables are initialized within a given context.
+
+```python
+from dara.core import Variable
+
+with Variable.init_override(lambda kwargs: {**kwargs, 'default': 'foo'}):
+    var = Variable()
+
+assert var.default == 'foo'
+```
 
 ## 1.9.1
 
