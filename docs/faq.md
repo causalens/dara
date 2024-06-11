@@ -342,6 +342,47 @@ fig = go.Figure(layout=dict(template='plotly'))
 <details>
 <summary><h3 style={{margin: '0px 0px 0px 0px'}}>My `Card` is not fitting its content, what do I do?</h3></summary>
 
-In some specific scenarios where you have a horizontal `Stack` with `Card` children that overflow vertically it can happen that the `Card`'s content overflows out of its container. The easiest fix to this is to wrap this `Card` in a `Stack`.
+In some specific scenarios you could end up with the content of your card overflowing its container. For example in the image below you can see that the left card's plot goes beyond the card container, even though it has the same content as the card on the right.
+![Overflowing card example](assets/faq_overflowing_card.png)
+
+Your code might look something similar to the below:
+
+```python
+Stack(
+    Card(
+        card_content(),
+        title='Overflowing Card',
+        accent=True,
+    ),
+    Stack(
+        Card(
+            card_content(),
+            title='Another Card',
+        ),
+    ),
+    direction='horizontal',
+)
+```
+
+To fix this so that both cards wrap its contents you can just add a Stack surrounding the left hand side card, so the snippet above would become:
+```python
+Stack(  
+    # Add a Stack here
+    Stack(
+        Card(
+            card_content(),
+            title='Overflowing Card',
+            accent=True,
+        ),
+    ),
+    Stack(
+        Card(
+            card_content(),
+            title='Another Card',
+        ),
+    ),
+    direction='horizontal',
+)
+```
 
 </details>
