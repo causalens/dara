@@ -79,10 +79,10 @@
     "whatwg-fetch": "^3.6.2"
   },
   "dependencies": {
-    "@darajs/styled-components": "~1.9.6",
-    "@darajs/ui-components": "~1.9.6",
-    "@darajs/ui-notifications": "~1.9.6",
-    "@darajs/ui-utils": "~1.9.6",
+    "@darajs/styled-components": "~1.10.0",
+    "@darajs/ui-components": "~1.10.0",
+    "@darajs/ui-notifications": "~1.10.0",
+    "@darajs/ui-utils": "~1.10.0",
     "@fortawesome/fontawesome-free": "~6.4.0",
     "@recoiljs/refine": "^0.1.1",
     "@tanstack/query-core": "^4.0.0",

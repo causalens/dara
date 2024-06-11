@@ -137,6 +137,40 @@ class TieringLayout(BaseModel):
     orientation: Optional[DirectionType] = DirectionType.HORIZONTAL
 
 
+class GroupingLayout(BaseModel):
+    """
+    GroupingLayout provides a grouping or cluster layout for a graph. It can be used to represent nodes within groups or cluster which are collapsible.
+
+    You can set the group on the meta of a node and then define the path to this property on the layout:
+    ```
+    from dara.components import CausalGraphViewer, FcoseLayout
+    from cai_causal_graph import CausalGraph
+
+    cg = CausalGraph()
+    cg.add_node(identifier='A', meta={'group': 'group1'})
+    cg.add_node(identifier='B', meta={'group': 'group1'})
+    cg.add_node(identifier='C', meta={'group': 'group2'})
+    cg.add_node(identifier='D', meta={'group': 'group2'})
+    cg.add_node(identifier='E', meta={'group': 'group3'})
+    cg.add_edge('A', 'C')
+    cg.add_edge('B', 'D')
+    cg.add_edge('C', 'E')
+    cg.add_edge('D', 'E')
+
+    CausalGraphViewer(
+        causal_graph=cg,
+        graph_layout=FcoseLayout(
+            group='meta.group',
+            ),
+    )
+    ```
+
+    :param group: Path within node to group property which defines the group it belong to,
+    """
+
+    group: Optional[str] = None
+
+
 class CircularLayout(GraphLayout):
     """
     CircularLayout provides a circular layout where nodes are aligned on a circle. The circle's radius scales
@@ -175,9 +209,9 @@ class CustomLayout(GraphLayout):
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.CUSTOM, const=True)
 
 
-class FcoseLayout(GraphLayout, TieringLayout):
+class FcoseLayout(GraphLayout, TieringLayout, GroupingLayout):
     """
-    FcoseLayout utilises `fCoSE` (fast Compound Spring Embedder) algorithm to compute the layout.
+    FcoseLayout utilizes `fCoSE` (fast Compound Spring Embedder) algorithm to compute the layout.
     It works well in most circumstances and is highly configurable.
 
     See https://github.com/iVis-at-Bilkent/cytoscape.js-fcose for more details and interactive demos.
@@ -210,7 +244,7 @@ class FcoseLayout(GraphLayout, TieringLayout):
 
 class ForceAtlasLayout(GraphLayout):
     """
-    ForceAtlas utilises the `ForceAtlas2` algorithm to compute the layout. It is a force-directed layout
+    ForceAtlas utilizes the `ForceAtlas2` algorithm to compute the layout. It is a force-directed layout
     which integrates various optimizations and is highly configurable.
 
     See https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0098679 for more details and
@@ -224,7 +258,7 @@ class ForceAtlasLayout(GraphLayout):
         of the space. Its main purpose is to compensate repulsion for nodes that are far away from the center. (default value:0.2)
     :param iterations: Number of iterations to run the layout for, per computation (default value: 10_000)
     :param lin_log_mode: Whether to use LinLog energy model, using logarithmic attraction force. Enabling it makes clusters
-        tighter but coverges slower. (default value: `True`)
+        tighter but converges slower. (default value: `True`)
     :param outbound_attraction_distribution: Whether to scale the attraction force between nodes according to their degree. (default value: `True`)
     :param scaling_ratio: Parameter to adjust the size of the produced graph (default value: 8)
     :param strong_gravity_mode: Whether to use strong gravity mode, which sets a force that attracts the nodes that are distant
@@ -265,7 +299,7 @@ class PlanarLayout(GraphLayout, TieringLayout):
     uses d3-dag's sugiyama layout under the hood to minimize edge crossings.
 
     :param orientation: Orientation of target node relative to other nodes (horizontal or vertical). (default value: horizontal)
-    :param layering_algorithm: Algorithm to use for the layering step of sugyiama algorithm. Can choosen between simplex which
+    :param layering_algorithm: Algorithm to use for the layering step of sugyiama algorithm. Can chosen between simplex which
         optimizes for minimum edge length or long path which optimizes for minimum graph height.
         Do note that if tiers are passed in conjunction to this prop, its value will revert to simplex
         as tiers are only supported by it (defaults to: simplex)
@@ -276,9 +310,9 @@ class PlanarLayout(GraphLayout, TieringLayout):
     orientation: Optional[DirectionType] = None
 
 
-class SpringLayout(GraphLayout, TieringLayout):
+class SpringLayout(GraphLayout, TieringLayout, GroupingLayout):
     """
-    SpringLayout provides a simple force-directed graph layout which produces the "spring" behaviour of edges.
+    SpringLayout provides a simple force-directed graph layout which produces the "spring" behavior of edges.
     This is a 'live' layout, which means a simulation keeps running in the background to compute the layout.
 
     :param collision_force: Multiplier for collision force between nodes (default value: 2)
@@ -288,6 +322,7 @@ class SpringLayout(GraphLayout, TieringLayout):
         make the initial render of the graph more stable (i.e. nodes won't move by themselves) but it comes at a
         small performance cost. (default value: 100)
     :param tier_separation: Separation force between tiers (default value: 300)
+    :param group_repel_strength: Strength of repulsion force between groups (default value: 2000)
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, const=True)
@@ -297,3 +332,4 @@ class SpringLayout(GraphLayout, TieringLayout):
     link_force: Optional[Number] = 5
     warmup_ticks: Optional[Number] = 100
     tier_separation: Optional[Number] = 300
+    group_repel_strength: Optional[Number] = 2000

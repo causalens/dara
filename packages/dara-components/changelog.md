@@ -2,9 +2,13 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added support for grouping layout in `FcoseLayout` and `SpringLayout`. It allows for nodes to be placed on groups/clusters which can be collapsed/expanded in order to simplify large graphs to the user whilst still allowing them to see the full picture.
+
 ## 1.9.5
 
--   Increased performance of various `Select` and `Datepicker` components in large lists by upto 485x.
+-   Increased performance of various `Select` and `Datepicker` components in large lists by up to 485x.
 -   Fixed a crash when `selected_items=None` was passed to `Select(multiselect=True, ...)`.
 
 ## 1.9.4

@@ -4,6 +4,7 @@ import {
     FcoseLayout,
     ForceAtlasLayout,
     GraphLayout,
+    GroupingLayoutBuilder,
     MarketingLayout,
     PlanarLayout,
     SpringLayout,
@@ -35,7 +36,7 @@ interface CustomLayoutDefinition extends BaseGraphLayoutDefinition {
     layout_type: 'custom';
 }
 
-interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
+interface FcoseLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers, GroupingLayoutBuilder {
     edge_elasticity?: number;
     edge_length?: number;
     energy?: number;
@@ -71,12 +72,13 @@ interface PlanarLayoutDefinition extends BaseGraphLayoutDefinition, TieredGraphL
     orientation?: PlanarLayout['orientation'];
 }
 
-interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers {
+interface SpringLayoutDefinition extends BaseGraphLayoutDefinition, DefinitionWithTiers, GroupingLayoutBuilder {
     collision_force?: number;
     gravity?: number;
     layout_type: 'spring';
     link_force?: number;
     warmup_ticks: number;
+    group_repel_strength?: number;
 }
 
 export type GraphLayoutDefinition =
@@ -90,6 +92,10 @@ export type GraphLayoutDefinition =
 
 function isDefinitionWithTiers(obj: any): obj is DefinitionWithTiers {
     return obj && typeof obj === 'object' && 'tiers' in obj;
+}
+
+function isDefinitionWithGroup(obj: any): obj is GroupingLayoutBuilder {
+    return obj && typeof obj === 'object' && 'group' in obj;
 }
 
 /**
@@ -224,15 +230,31 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
         case 'spring': {
             builder = SpringLayout.Builder;
 
+            if (definition.collision_force) {
+                builder.collisionForce(definition.collision_force);
+            }
+
+            if (definition.gravity) {
+                builder.gravity(definition.gravity);
+            }
+
+            if (definition.link_force) {
+                builder.linkForce(definition.link_force);
+            }
+
             if (definition.warmup_ticks) {
                 builder.warmupTicks(definition.warmup_ticks);
+            }
+
+            if (definition.group_repel_strength) {
+                builder.groupRepelStrength(definition.group_repel_strength);
             }
 
             break;
         }
 
         default: {
-            throw new Error(`Unrecognised layout type: ${String((definition as any).layout_type)}`);
+            throw new Error(`Unrecognized layout type: ${String((definition as any).layout_type)}`);
         }
     }
 
@@ -248,6 +270,13 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
 
         if (definition.tier_separation) {
             builderWithTiers.tierSeparation(definition.tier_separation);
+        }
+    }
+
+    if (isDefinitionWithGroup(definition)) {
+        const builderWithGroup = builder as unknown as GroupingLayoutBuilder;
+        if (definition.group) {
+            builderWithGroup.group = definition.group;
         }
     }
 
