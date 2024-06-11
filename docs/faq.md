@@ -339,3 +339,9 @@ fig = go.Figure(layout=dict(template='plotly'))
 ```
 
 </details>
+<details>
+<summary><h3 style={{margin: '0px 0px 0px 0px'}}>My `Card` is not fitting its content, what do I do?</h3></summary>
+
+In some specific scenarios where you have a horizontal `Stack` with `Card` children that overflow vertically it can happen that the `Card`'s content overflows out of its container. The easiest fix to this is to wrap this `Card` in a `Stack`.
+
+</details>
