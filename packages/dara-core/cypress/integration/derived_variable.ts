@@ -34,8 +34,8 @@ describe('DerivedVariable', () => {
         cy.cardContent('Create from derived').within(() => {
             cy.contains('div', 'Formatted:').next().as('formatted').should('have.text', `${defaultText}%`);
             cy.contains('div', 'Input:').next().find('input').as('input').should('have.value', defaultText);
-            cy.contains('div', 'Mutable:').next().as('mutable').should('have.text', `${defaultText}%`);
-            cy.contains('div', 'Mutable Persist:').next().find('input').as('mutable_persist').should('have.value', `${defaultText}%`);
+            cy.contains('div', 'Mutable:').next().find('input').as('mutable').should('have.value', `${defaultText}%`);
+            cy.contains('div', 'Mutable Persist:').next().as('mutable_persist').should('have.text', `${defaultText}%`);
 
             type('@input', updatedText, checkLoading);
 
