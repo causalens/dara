@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.  
+
 ## 1.10.0
 
 -   Fixed an issue where in some cases a `DerivedDataVariable` would be invoked with an internal `PendingValue`
