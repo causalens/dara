@@ -7,3 +7,4 @@ export * from './derived-variable';
 export * from './nested';
 export * from './triggers';
 export * from './resolve-variable';
+export * from './persistence';

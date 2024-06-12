@@ -24,7 +24,7 @@ describe('DerivedVariable', () => {
          * - Click reset -> mutable should update to the initial value
          * - Modify initial input -> both formatted and mutable should update again
          */
-        const checkLoading = assertLoadingFinished(['@input', '@formatted', '@mutable']);
+        const checkLoading = assertLoadingFinished(['@input', '@formatted', '@mutable', '@mutable_persist']);
 
         const defaultText = 'Text';
         const updatedText = 'Updated';
@@ -35,12 +35,14 @@ describe('DerivedVariable', () => {
             cy.contains('div', 'Formatted:').next().as('formatted').should('have.text', `${defaultText}%`);
             cy.contains('div', 'Input:').next().find('input').as('input').should('have.value', defaultText);
             cy.contains('div', 'Mutable:').next().find('input').as('mutable').should('have.value', `${defaultText}%`);
+            cy.contains('div', 'Mutable Persist:').next().as('mutable_persist').should('have.text', `${defaultText}%`);
 
             type('@input', updatedText, checkLoading);
 
             // Modifying initial input should update formatted&mutable
             cy.get('@formatted').should('have.text', `${updatedText}%`);
             cy.get('@mutable').should('have.value', `${updatedText}%`);
+            cy.get('@mutable_persist').should('have.text', `${updatedText}%`);
 
             // Modify mutable
             type('@mutable', updatedMutable, checkLoading);
@@ -48,6 +50,7 @@ describe('DerivedVariable', () => {
             // Modifying initial input should no longer update mutable
             type('@input', finalUpdate, checkLoading);
             cy.get('@formatted').should('have.text', `${finalUpdate}%`);
+            cy.get('@mutable_persist').should('have.text', `${finalUpdate}%`);
             cy.get('@mutable').should('have.value', updatedMutable);
 
             // Click reset - mutable should be reset to the Input variable as it was created from it
