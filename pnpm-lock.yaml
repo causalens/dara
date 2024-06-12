@@ -19,11 +19,11 @@ importers:
     specifiers:
       '@babel/core': ^7.23.5
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.9.5
-      '@darajs/eslint-config': ~1.9.6
-      '@darajs/prettier-config': ~1.9.6
+      '@darajs/core': 1.10.0
+      '@darajs/eslint-config': ~1.10.0
+      '@darajs/prettier-config': ~1.10.0
       '@darajs/styled-components': ~1.10.0
-      '@darajs/stylelint-config': ~1.9.6
+      '@darajs/stylelint-config': ~1.10.0
       '@darajs/ui-causal-graph-editor': ~1.10.0
       '@darajs/ui-code-editor': ~1.10.0
       '@darajs/ui-components': ~1.10.0
@@ -89,9 +89,9 @@ importers:
       rehype-raw: 6.1.1
     devDependencies:
       '@babel/core': 7.23.7
-      '@darajs/eslint-config': 1.9.6
-      '@darajs/prettier-config': 1.9.6
-      '@darajs/stylelint-config': 1.9.6_typescript@5.3.3
+      '@darajs/eslint-config': 1.10.0
+      '@darajs/prettier-config': 1.10.0
+      '@darajs/stylelint-config': 1.10.0_typescript@5.3.3
       '@testing-library/react-hooks': 3.7.0_8b0a2153cb1667f46525dd6652e7924e
       '@types/lodash': 4.14.202
       '@types/react': 18.2.60
@@ -118,10 +118,10 @@ importers:
       '@babel/preset-env': ^7.23.0
       '@babel/preset-react': ^7.22.15
       '@babel/preset-typescript': ^7.23.0
-      '@darajs/eslint-config': ~1.9.6
-      '@darajs/prettier-config': ~1.9.6
+      '@darajs/eslint-config': ~1.10.0
+      '@darajs/prettier-config': ~1.10.0
       '@darajs/styled-components': ~1.10.0
-      '@darajs/stylelint-config': ~1.9.6
+      '@darajs/stylelint-config': ~1.10.0
       '@darajs/ui-components': ~1.10.0
       '@darajs/ui-notifications': ~1.10.0
       '@darajs/ui-utils': ~1.10.0
@@ -228,9 +228,9 @@ importers:
       '@babel/preset-env': 7.23.7_@babel+core@7.23.7
       '@babel/preset-react': 7.23.3_@babel+core@7.23.7
       '@babel/preset-typescript': 7.23.3_@babel+core@7.23.7
-      '@darajs/eslint-config': 1.9.6_jest@29.7.0
-      '@darajs/prettier-config': 1.9.6
-      '@darajs/stylelint-config': 1.9.6_typescript@5.3.3
+      '@darajs/eslint-config': 1.10.0_jest@29.7.0
+      '@darajs/prettier-config': 1.10.0
+      '@darajs/stylelint-config': 1.10.0_typescript@5.3.3
       '@rollup/plugin-inject': 4.0.4_rollup@2.79.1
       '@testing-library/dom': 9.3.3
       '@testing-library/jest-dom': 5.17.0
@@ -2174,10 +2174,10 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/eslint-config/1.9.6:
-    resolution: {integrity: sha512-DTgviP8D3KndyMH8jAr4b/l+w8Y+SD6PmDydZFhI48zSEGPuCmboiC4w4k+XPTZ60C0jP42lVrGqbROdVB/hJg==}
+  /@darajs/eslint-config/1.10.0:
+    resolution: {integrity: sha512-/OJKf/iNgRyYWIhPh3t1jRrlu/A+f/WRPDxMB6Xy4GyfkGNNliUhEtFBNR0H66csKGHfb9XcXhWHMLdX8wD18A==}
     dependencies:
-      '@darajs/prettier-config': 1.9.6
+      '@darajs/prettier-config': 1.10.0
       '@typescript-eslint/eslint-plugin': 6.21.0_600f1e48d30ed4bd1f92855871c852fd
       '@typescript-eslint/parser': 6.21.0_eslint@7.32.0+typescript@5.3.3
       eslint: 7.32.0
@@ -2199,10 +2199,10 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/eslint-config/1.9.6_jest@29.7.0:
-    resolution: {integrity: sha512-DTgviP8D3KndyMH8jAr4b/l+w8Y+SD6PmDydZFhI48zSEGPuCmboiC4w4k+XPTZ60C0jP42lVrGqbROdVB/hJg==}
+  /@darajs/eslint-config/1.10.0_jest@29.7.0:
+    resolution: {integrity: sha512-/OJKf/iNgRyYWIhPh3t1jRrlu/A+f/WRPDxMB6Xy4GyfkGNNliUhEtFBNR0H66csKGHfb9XcXhWHMLdX8wD18A==}
     dependencies:
-      '@darajs/prettier-config': 1.9.6
+      '@darajs/prettier-config': 1.10.0
       '@typescript-eslint/eslint-plugin': 6.21.0_600f1e48d30ed4bd1f92855871c852fd
       '@typescript-eslint/parser': 6.21.0_eslint@7.32.0+typescript@5.3.3
       eslint: 7.32.0
@@ -2224,8 +2224,8 @@ packages:
       - supports-color
     dev: true
 
-  /@darajs/prettier-config/1.9.6:
-    resolution: {integrity: sha512-BO5EQi3wQbftTLpYhGkgsJDgvnJytdd4/A1Qw087RHwO/H6y1T+iyTwlhWLg87zFs7vSgLHLOrpznVgQher0jg==}
+  /@darajs/prettier-config/1.10.0:
+    resolution: {integrity: sha512-6xw8KN2aWpLhXBVp9WU2fC1sb61JP8pXl27eAHhxruvHQFuu4UpDUW/g92InaAqZ74FT7W5+WeY7FIxxxTvWLQ==}
     dependencies:
       '@trivago/prettier-plugin-sort-imports': 4.3.0_prettier@3.2.5
       prettier: 3.2.5
@@ -2245,8 +2245,8 @@ packages:
       - react-dom
     dev: false
 
-  /@darajs/stylelint-config/1.9.6_typescript@5.3.3:
-    resolution: {integrity: sha512-k21+6mYzV8cJ6tWOrAwPgW++EInc0S/Vtis0IaEM879t91q/ewONaIUzKPCdbsA3O7Gv06fGFPfK577/g3C5cA==}
+  /@darajs/stylelint-config/1.10.0_typescript@5.3.3:
+    resolution: {integrity: sha512-9DE3mVla2EgUfRLCshrwCf8R4r1hzHng6m7avZFabeSiDlDWz/SDvcZySrJrwlWEnmr3klTdkLhcOHioVhR0LA==}
     dependencies:
       postcss: 8.4.38
       postcss-styled-syntax: 0.6.4_postcss@8.4.38
@@ -6749,6 +6749,16 @@ packages:
       d3-time-format: 2.3.0
     dev: false
 
+  /d3-scale/3.3.0:
+    resolution: {integrity: sha512-1JGp44NQCt5d1g+Yy+GeOnZP7xHo0ii8zsQp6PGzd+C1/dl0KGsp9A7Mxwp+1D1o4unbTTxVdU/ZOIEBoeZPbQ==}
+    dependencies:
+      d3-array: 2.12.1
+      d3-format: 2.0.0
+      d3-interpolate: 2.0.1
+      d3-time: 2.1.1
+      d3-time-format: 3.0.0
+    dev: false
+
   /d3-selection/2.0.0:
     resolution: {integrity: sha512-XoGGqhLUN/W14NmaqcO/bb1nqjDAw5WtSYb2X8wiuQWvSZUsUVYsOSkOybUrNvcBjaywBdYPy03eXHMXjk9nZA==}
     dev: false
@@ -6842,7 +6852,7 @@ packages:
       d3-polygon: 2.0.0
       d3-quadtree: 2.0.0
       d3-random: 2.2.2
-      d3-scale: 3.2.1
+      d3-scale: 3.3.0
       d3-scale-chromatic: 2.0.0
       d3-selection: 2.0.0
       d3-shape: 2.1.0
