@@ -5,13 +5,16 @@ import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'rec
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { handleAuthErrors } from '@/api';
+import { WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
-import { SingleVariable } from '@/types';
-import { BackendStore, PersistenceStore } from '@/types/core';
+import { GlobalTaskContext } from '@/shared/context/global-task-context';
+import { isEmbedded } from '@/shared/utils/embed';
+import { SingleVariable, isDerivedVariable } from '@/types';
+import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx, useRequestExtras } from '../context';
-import { isEmbedded } from '../utils/embed';
+// eslint-disable-next-line import/no-cycle
+import { getOrRegisterDerivedVariableValue } from './internal';
 
 /**
  * Global map to store the extras for each store uid
@@ -209,7 +212,12 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
  *
  * @param variable variable to create effect for
  */
-function localStorageEffect<T>(variable: SingleVariable<T, PersistenceStore>): AtomEffect<any> {
+function localStorageEffect<T>(
+    variable: SingleVariable<T, PersistenceStore>,
+    extrasSerializable: RequestExtrasSerializable,
+    wsClient: WebSocketClientInterface,
+    taskContext: GlobalTaskContext
+): AtomEffect<any> {
     let firstRun = false;
 
     return syncEffect({
@@ -221,9 +229,18 @@ function localStorageEffect<T>(variable: SingleVariable<T, PersistenceStore>): A
                 firstRun = true;
 
                 // during first run fall back to the default value if the read value is null
-                // as localstorage might not have been initialized yet
+                // as local storage might not have been initialized yet
                 if (!readValue) {
-                    return variable.default;
+                    const isDefaultDerived = isDerivedVariable(variable.default);
+
+                    return isDefaultDerived ?
+                            getOrRegisterDerivedVariableValue(
+                                variable.default as DerivedVariable,
+                                wsClient,
+                                taskContext,
+                                extrasSerializable.extras
+                            )
+                        :   variable.default;
                 }
             }
 
@@ -239,7 +256,12 @@ interface StoreSync {
 }
 
 interface Effect<T = any> {
-    (variable: SingleVariable<T>, requestExtras: RequestExtrasSerializable): AtomEffect<T>;
+    (
+        variable: SingleVariable<T>,
+        requestExtras: RequestExtrasSerializable,
+        wsClient: WebSocketClientInterface,
+        taskContext: GlobalTaskContext
+    ): AtomEffect<T>;
 }
 
 export const STORES: Record<
