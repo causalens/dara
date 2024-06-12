@@ -35,12 +35,14 @@ describe('DerivedVariable', () => {
             cy.contains('div', 'Formatted:').next().as('formatted').should('have.text', `${defaultText}%`);
             cy.contains('div', 'Input:').next().find('input').as('input').should('have.value', defaultText);
             cy.contains('div', 'Mutable:').next().find('input').as('mutable').should('have.value', `${defaultText}%`);
+            cy.contains('div', 'Mutable Persist:').next().find('input').as('mutable_persist').should('have.value', `${defaultText}%`);
 
             type('@input', updatedText, checkLoading);
 
             // Modifying initial input should update formatted&mutable
             cy.get('@formatted').should('have.text', `${updatedText}%`);
             cy.get('@mutable').should('have.value', `${updatedText}%`);
+            cy.get('@mutable_persist').should('have.value', `${updatedText}%`);
 
             // Modify mutable
             type('@mutable', updatedMutable, checkLoading);
@@ -49,6 +51,7 @@ describe('DerivedVariable', () => {
             type('@input', finalUpdate, checkLoading);
             cy.get('@formatted').should('have.text', `${finalUpdate}%`);
             cy.get('@mutable').should('have.value', updatedMutable);
+            cy.get('@mutable_persist').should('have.value', `${finalUpdate}%`);
 
             // Click reset - mutable should be reset to the Input variable as it was created from it
             cy.get('button').click();
