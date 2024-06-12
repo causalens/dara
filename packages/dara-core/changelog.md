@@ -15,6 +15,7 @@ with Variable.init_override(lambda kwargs: {**kwargs, 'default': 'foo'}):
 
 assert var.default == 'foo'
 ```
+-   Internal (JS): `EventBus` now also emits events for `UrlVariable` changes
 
 ## 1.9.1
 

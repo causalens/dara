@@ -242,7 +242,7 @@ export function getOrRegisterPlainVariable<T>(
                     get:
                         (currentExtras: RequestExtrasSerializable) =>
                         ({ get }) => {
-                            const variableValue = get(family ? family(currentExtras) : atomInstance);
+                            const variableValue = get(family(currentExtras));
 
                             return resolveNested(
                                 variableValue,
@@ -253,7 +253,7 @@ export function getOrRegisterPlainVariable<T>(
                     set:
                         (currentExtras: RequestExtrasSerializable) =>
                         ({ set }, newValue) => {
-                            set(family ? family(currentExtras) : atomInstance, (v) =>
+                            set(family(currentExtras), (v: Record<string, any>) =>
                                 setNested(
                                     v,
                                     variable.nested.map((n) => String(n)),

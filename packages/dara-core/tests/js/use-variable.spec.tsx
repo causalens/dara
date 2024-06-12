@@ -2155,5 +2155,66 @@ describe('useVariable', () => {
             );
             expect(result.current[0]).toBe('initial');
         });
+
+        it('should publish EventBus notification on change', async () => {
+            const history = createMemoryHistory();
+
+            act(() => {
+                history.push('/target');
+            });
+
+            const receivedData: Array<DaraEventMap['URL_VARIABLE_LOADED']> = [];
+
+            const variable = {
+                __typename: 'UrlVariable',
+                default: 'test',
+                query: 'q',
+                uid: 'uid',
+            } satisfies UrlVariable<string>;
+
+            const { result } = renderHook(() => useVariable<string>(variable), {
+                wrapper: ({ children }) => (
+                    <EventCapturer
+                        onEvent={(ev) => {
+                            if (ev.type === 'URL_VARIABLE_LOADED') {
+                                receivedData.push(ev.data);
+                            }
+                        }}
+                    >
+                        <Wrapper history={history}>{children}</Wrapper>
+                    </EventCapturer>
+                ),
+            });
+
+            await waitFor(() => {
+                expect(result.current[0]).toBe('test');
+            });
+
+            // Test updating via the hook updates the history
+            act(() => {
+                result.current[1]('test_update');
+            });
+
+            await waitFor(() => {
+                expect(result.current[0]).toBe('test_update');
+                expect(receivedData[0]).toEqual({
+                    variable,
+                    value: 'test_update',
+                });
+            });
+
+            // update via url
+            act(() => {
+                history.push('/target?q=test_push');
+            });
+
+            await waitFor(() => {
+                expect(result.current[0]).toBe('test_push');
+                expect(receivedData[1]).toEqual({
+                    variable,
+                    value: 'test_push',
+                });
+            });
+        });
     });
 });

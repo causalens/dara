@@ -71,7 +71,13 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     if (isUrlVariable(variable)) {
-        return useUrlVariable(variable);
+        const [urlValue, setUrlValue] = useUrlVariable(variable);
+
+        useEffect(() => {
+            bus.publish('URL_VARIABLE_LOADED', { variable, value: urlValue });
+        }, [urlValue]);
+
+        return [urlValue, setUrlValue];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
