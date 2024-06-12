@@ -24,7 +24,7 @@ describe('DerivedVariable', () => {
          * - Click reset -> mutable should update to the initial value
          * - Modify initial input -> both formatted and mutable should update again
          */
-        const checkLoading = assertLoadingFinished(['@input', '@formatted', '@mutable']);
+        const checkLoading = assertLoadingFinished(['@input', '@formatted', '@mutable', '@mutable_persist']);
 
         const defaultText = 'Text';
         const updatedText = 'Updated';
@@ -51,6 +51,7 @@ describe('DerivedVariable', () => {
             type('@input', finalUpdate, checkLoading);
             cy.get('@formatted').should('have.text', `${finalUpdate}%`);
             cy.get('@mutable').should('have.value', updatedMutable);
+            // mutavle
             cy.get('@mutable_persist').should('have.value', `${finalUpdate}%`);
 
             // Click reset - mutable should be reset to the Input variable as it was created from it
