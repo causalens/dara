@@ -42,7 +42,7 @@ describe('DerivedVariable', () => {
             // Modifying initial input should update formatted&mutable
             cy.get('@formatted').should('have.text', `${updatedText}%`);
             cy.get('@mutable').should('have.value', `${updatedText}%`);
-            cy.get('@mutable_persist').should('have.value', `${updatedText}%`);
+            cy.get('@mutable_persist').should('have.text', `${updatedText}%`);
 
             // Modify mutable
             type('@mutable', updatedMutable, checkLoading);
@@ -50,9 +50,8 @@ describe('DerivedVariable', () => {
             // Modifying initial input should no longer update mutable
             type('@input', finalUpdate, checkLoading);
             cy.get('@formatted').should('have.text', `${finalUpdate}%`);
+            cy.get('@mutable_persist').should('have.text', `${finalUpdate}%`);
             cy.get('@mutable').should('have.value', updatedMutable);
-            // mutavle
-            cy.get('@mutable_persist').should('have.value', `${finalUpdate}%`);
 
             // Click reset - mutable should be reset to the Input variable as it was created from it
             cy.get('button').click();
