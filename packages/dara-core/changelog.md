@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.10.0
 
 -   Fixed an issue where in some cases a `DerivedDataVariable` would be invoked with an internal `PendingValue`
 -   Implement `Variable.init_override` static method to allow overriding how variables are initialized within a given context.
@@ -15,6 +15,7 @@ with Variable.init_override(lambda kwargs: {**kwargs, 'default': 'foo'}):
 
 assert var.default == 'foo'
 ```
+-   Internal (JS): `EventBus` now also emits events for `UrlVariable` changes
 
 ## 1.9.1
 
