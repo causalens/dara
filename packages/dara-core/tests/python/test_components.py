@@ -18,6 +18,7 @@ def test_base_component_instance():
     instance = TestInstance(test_prop='test')
     assert instance.dict() == {'name': 'TestInstance', 'props': {'test_prop': 'test'}, 'uid': instance.uid}
 
+
 def test_children():
     class TestComponent(StyledComponentInstance):
         foo: str
@@ -40,11 +41,12 @@ def test_children():
                         'bold': False,
                         'underline': False,
                         'italic': False,
-                    }
+                    },
                 },
             ],
         },
     }
+
 
 def test_raw_css():
     """

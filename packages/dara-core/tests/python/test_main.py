@@ -2085,6 +2085,7 @@ async def test_add_custom_middlewares():
         await client.get('/api/core/config', headers=AUTH_HEADERS)
         assert side_effect == 2
 
+
 async def test_startup_function():
     """Check the components route returns the dict of components"""
 

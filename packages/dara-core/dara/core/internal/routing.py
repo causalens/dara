@@ -193,7 +193,15 @@ def create_router(config: Configuration):
     async def get_config():  # pylint: disable=unused-variable
         return {
             **config.dict(
-                include={'enable_devtools', 'live_reload', 'template', 'theme', 'title', 'context_components', 'powered_by_causalens'}
+                include={
+                    'enable_devtools',
+                    'live_reload',
+                    'template',
+                    'theme',
+                    'title',
+                    'context_components',
+                    'powered_by_causalens',
+                }
             ),
             'application_name': get_settings().project_name,
         }
