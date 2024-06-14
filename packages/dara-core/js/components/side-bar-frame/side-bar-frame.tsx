@@ -148,7 +148,11 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
                         Built with {daraLogo}
                     </BuiltWithLink>
                     {config?.powered_by_causalens && (
-                        <BuiltWithLink href="https://causalens.com" target="_blank" rel="noopener">
+                        <BuiltWithLink
+                            href="https://causalens.com/?utm_source=dara&utm_medium=direct&utm_campaign=dara_platform"
+                            target="_blank"
+                            rel="noopener"
+                        >
                             <span style={{ marginTop: '0.4375rem' }}>Powered by</span> {causalensLogo}
                         </BuiltWithLink>
                     )}
