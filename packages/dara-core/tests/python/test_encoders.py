@@ -15,13 +15,17 @@ from dara.core.internal.encoder_registry import deserialize, encoder_registry
 dates = pandas.date_range(start='2021-01-01', end='2021-01-02', freq='D')
 timestamp = pandas.Timestamp('2023-10-04')
 df_with_datetime_index = pandas.DataFrame({'col1': [1.0, numpy.nan], 'col2': [timestamp, timestamp]}, index=dates)
-df_with_multiple_index = pandas.DataFrame({('F','>50'): {('A', 'a'): 1, ('A', 'b'): 6, ('B', 'a'): 2, ('B', 'b'): 7},
- ('F','<50'): {('A', 'a'): 2, ('A', 'b'): 7, ('B', 'a'): 3, ('B', 'b'): 8},
- ('M','>50'): {('A', 'a'): 3, ('A', 'b'): 8, ('B', 'a'): 4, ('B', 'b'): 9},
- ('M','<50'): {('A', 'a'): 4, ('A', 'b'): 9, ('B', 'a'): 5, ('B', 'b'): 10},
-})
+df_with_multiple_index = pandas.DataFrame(
+    {
+        ('F', '>50'): {('A', 'a'): 1, ('A', 'b'): 6, ('B', 'a'): 2, ('B', 'b'): 7},
+        ('F', '<50'): {('A', 'a'): 2, ('A', 'b'): 7, ('B', 'a'): 3, ('B', 'b'): 8},
+        ('M', '>50'): {('A', 'a'): 3, ('A', 'b'): 8, ('B', 'a'): 4, ('B', 'b'): 9},
+        ('M', '<50'): {('A', 'a'): 4, ('A', 'b'): 9, ('B', 'a'): 5, ('B', 'b'): 10},
+    }
+)
 
 pytestmark = pytest.mark.anyio
+
 
 @pytest.mark.parametrize(
     'type_, value, raise_',
@@ -50,23 +54,23 @@ pytestmark = pytest.mark.anyio
         (numpy.void, numpy.void(b'test'), False),
         (numpy.bool_, numpy.bool_(True), False),
         (numpy.datetime64, numpy.datetime64('2023-10-04'), False),
-        (type(numpy.dtype('int8')),numpy.dtype(numpy.int8(1)),False),
-        (type(numpy.dtype('int16')),numpy.dtype(numpy.int16(1)),False),
-        (type(numpy.dtype('int32')),numpy.dtype(numpy.int32(1)),False),
-        (type(numpy.dtype('int64')),numpy.dtype(numpy.int64(1)),False),
-        (type(numpy.dtype('timedelta64')),numpy.dtype(numpy.timedelta64(1, 'D')),False),
-        (type(numpy.dtype('uint8')),numpy.dtype(numpy.uint8(1)),False),
-        (type(numpy.dtype('uint16')),numpy.dtype(numpy.uint16(1)),False),
-        (type(numpy.dtype('uint32')),numpy.dtype(numpy.uint32(1)),False),
-        (type(numpy.dtype('uint64')),numpy.dtype(numpy.uint64(1)),False),
-        (type(numpy.dtype('float16')),numpy.dtype(numpy.float16(1)),False),
-        (type(numpy.dtype('float32')),numpy.dtype(numpy.float16(1)),False),
-        (type(numpy.dtype('float64')),numpy.dtype(numpy.float16(1)),False),
-        (type(numpy.dtype('complex64')),numpy.dtype(numpy.complex64(1 + 2j)),False),
-        (type(numpy.dtype('complex128')),numpy.dtype(numpy.complex128(1 +2j)),False),
-        (type(numpy.dtype('bool_')),numpy.dtype(numpy.bool_(True)),False),
-        (type(numpy.dtype('O')),pandas.DataFrame({'a':[numpy.str_('test')]})['a'].dtype,False),
-        (type(numpy.dtype('datetime64')),numpy.dtype(numpy.datetime64('2023-10-04')),False),
+        (type(numpy.dtype('int8')), numpy.dtype(numpy.int8(1)), False),
+        (type(numpy.dtype('int16')), numpy.dtype(numpy.int16(1)), False),
+        (type(numpy.dtype('int32')), numpy.dtype(numpy.int32(1)), False),
+        (type(numpy.dtype('int64')), numpy.dtype(numpy.int64(1)), False),
+        (type(numpy.dtype('timedelta64')), numpy.dtype(numpy.timedelta64(1, 'D')), False),
+        (type(numpy.dtype('uint8')), numpy.dtype(numpy.uint8(1)), False),
+        (type(numpy.dtype('uint16')), numpy.dtype(numpy.uint16(1)), False),
+        (type(numpy.dtype('uint32')), numpy.dtype(numpy.uint32(1)), False),
+        (type(numpy.dtype('uint64')), numpy.dtype(numpy.uint64(1)), False),
+        (type(numpy.dtype('float16')), numpy.dtype(numpy.float16(1)), False),
+        (type(numpy.dtype('float32')), numpy.dtype(numpy.float16(1)), False),
+        (type(numpy.dtype('float64')), numpy.dtype(numpy.float16(1)), False),
+        (type(numpy.dtype('complex64')), numpy.dtype(numpy.complex64(1 + 2j)), False),
+        (type(numpy.dtype('complex128')), numpy.dtype(numpy.complex128(1 + 2j)), False),
+        (type(numpy.dtype('bool_')), numpy.dtype(numpy.bool_(True)), False),
+        (type(numpy.dtype('O')), pandas.DataFrame({'a': [numpy.str_('test')]})['a'].dtype, False),
+        (type(numpy.dtype('datetime64')), numpy.dtype(numpy.datetime64('2023-10-04')), False),
         (pandas.arrays.IntervalArray, pandas.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)]), True),
         (pandas.arrays.PeriodArray, pandas.period_range(start='2000Q1', end='2000Q2', freq='Q').array, True),
         (pandas.arrays.DatetimeArray, pandas.to_datetime(['2000-01-01', '2000-01-02']).array, False),
@@ -96,7 +100,7 @@ def test_serialization_deserialization(type_, value, raise_):
     if value is df_with_datetime_index:
         # DF with datetime index like 2023-10-04 will be encoded and decoded to 2023-10-04T00:00:00
         pass
-    elif isinstance(value, pandas.Series) or isinstance(value, pandas.Index) :
+    elif isinstance(value, pandas.Series) or isinstance(value, pandas.Index):
         assert value.equals(deserialized)
     # Handle pandas arrays
     elif isinstance(value, ExtensionArray):
@@ -104,16 +108,20 @@ def test_serialization_deserialization(type_, value, raise_):
     else:
         assert numpy.array_equal(value, deserialized) or value == deserialized
 
+
 def test_deserialize_empty_param():
     assert deserialize('foo', Parameter.empty) == 'foo'
+
 
 # Must be async so async runtime is initialized
 async def test_deserialize_task():
     task = PendingTask(None, None)
     assert deserialize(task, str) == task
 
+
 def test_deserialize_no_type():
     assert deserialize('foo', None) == 'foo'
+
 
 def test_deserialize_same_type():
     assert deserialize('foo', str) == 'foo'
@@ -134,6 +142,7 @@ def test_deserialize_same_type():
     bar = Bar(value='foo')
     assert deserialize(bar, Bar) == bar
 
+
 def test_deserialize_error_raises():
     # Test that if deserialize errors, an error is raised
     with pytest.raises(ValueError):
@@ -145,9 +154,9 @@ def test_deserialize_UNION_type():
     typ = Union[str, int]
     assert deserialize('foo', typ) == 'foo'
 
+
 def test_deserialize_optional():
     assert deserialize(None, Optional[int]) == None
     assert deserialize('123', Optional[int]) == 123
     assert deserialize('123', Union[int, None]) == 123
     assert deserialize('123', Union[None, int]) == 123
-

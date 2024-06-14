@@ -4,7 +4,9 @@ title: Changelog
 
 ## NEXT
 
--   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.  
+-   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.
+-   Added "Powered by causaLens" to the sidebar when `powered_by_causaLens` is set to `True` in the configuration.
+-   Added a github link to "Built with Dara" in the sidebar.
 
 ## 1.10.0
 
@@ -19,6 +21,7 @@ with Variable.init_override(lambda kwargs: {**kwargs, 'default': 'foo'}):
 
 assert var.default == 'foo'
 ```
+
 -   Internal (JS): `EventBus` now also emits events for `UrlVariable` changes
 
 ## 1.9.1
@@ -55,7 +58,7 @@ Button('Click Me', onclick=on_click_action, disabled=on_click_action.loading)
 ## 1.8.3
 
 -   Internal (JS): implement a global `EventBus`, Dara internals now fire events to the EventBus which can be subscribed to.
-Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.
+    Accompanying `EventCapturer` component can be wrapped around a part of the component tree to capture and handle these events.
 -   Fixed websocket reconnection logic so that it correctly retries for 10 seconds before bailing out and then retries the connection if the document becomes visible again.
 
 ## 1.8.1

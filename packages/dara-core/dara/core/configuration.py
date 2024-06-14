@@ -76,6 +76,7 @@ class Configuration(GenericModel):
     context_components: List[ComponentInstance]
     enable_devtools: bool
     live_reload: bool
+    powered_by_causalens: bool
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -168,6 +169,7 @@ class ConfigurationBuilder:
         self._errors = []
         self.enable_devtools = False
         self.live_reload = False
+        self.powered_by_causalens = False
         self._package_tags_processors = []
         self._template_extra_js = ''
         self._pages = {}
@@ -544,6 +546,7 @@ class ConfigurationBuilder:
             endpoint_configurations=self._endpoint_configurations,
             enable_devtools=self.enable_devtools,
             live_reload=self.live_reload,
+            powered_by_causalens=self.powered_by_causalens,
             package_tag_processors=self._package_tags_processors,
             pages=self._pages,
             routes=self.routes,

@@ -232,10 +232,12 @@ async def _get_py_component(
 
     return response
 
+
 class ActionRequestBody(TypedDict):
     values: Mapping[str, Any]
     input: Any
     ws_channel: str
+
 
 async def _call_action(client: AsyncClient, action: AnnotatedAction, data: ActionRequestBody):
     normalized_values, lookup = normalize_request(data['values'], action.dynamic_kwargs)
@@ -334,6 +336,7 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict
 
     return messages
 
+
 async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> List[dict]:
     """
     Wait for action results until timeout is passed.
@@ -357,6 +360,7 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
             break
 
     return actions
+
 
 def create_app(configuration: ConfigurationBuilder, use_tasks=False):
     """

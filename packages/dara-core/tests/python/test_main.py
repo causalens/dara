@@ -98,6 +98,7 @@ async def test_config_route():
         assert response.json() == {
             'live_reload': False,
             'enable_devtools': False,
+            'powered_by_causalens': False,
             'context_components': [],
             'template': 'default',
             'theme': {
@@ -2084,6 +2085,7 @@ async def test_add_custom_middlewares():
     async with AsyncClient(app) as client:
         await client.get('/api/core/config', headers=AUTH_HEADERS)
         assert side_effect == 2
+
 
 async def test_startup_function():
     """Check the components route returns the dict of components"""

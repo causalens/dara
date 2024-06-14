@@ -12,6 +12,8 @@ from tests.python.utils import _get_derived_variable, create_app
 from .tasks import root
 
 pytestmark = pytest.mark.anyio
+
+
 def test_resolver(*args):
     pass
 
@@ -78,6 +80,7 @@ class TestVariables(unittest.TestCase):
         with self.assertRaises(ValueError):
             DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),
 
+
 async def test_derived_variables_with_df_nan():
     """
     Test derived variable can return dataframe with nan and inf
@@ -91,7 +94,7 @@ async def test_derived_variables_with_df_nan():
 
     def func(dummy_var):
         # Test DerivedVariable can handle df with nan/inf correctly
-        return pandas.DataFrame({'a':[1,numpy.inf,numpy.nan],'b':[2,float('nan'),float('inf')]})
+        return pandas.DataFrame({'a': [1, numpy.inf, numpy.nan], 'b': [2, float('nan'), float('inf')]})
 
     derived = DerivedVariable(func, variables=[dummy_var])
     config = create_app(builder)
@@ -104,13 +107,18 @@ async def test_derived_variables_with_df_nan():
             client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
         )
         assert response.status_code == 200
-        assert response.json()['value'] == {'a': {'0': 1.0, '1': None, '2': None}, 'b': {'0': 2.0, '1': None, '2': None}}
+        assert response.json()['value'] == {
+            'a': {'0': 1.0, '1': None, '2': None},
+            'b': {'0': 2.0, '1': None, '2': None},
+        }
+
 
 async def test_variable_init_override():
     """
     Test that the variable init override works
     """
     counter = 0
+
     def override(kwargs):
         nonlocal counter
         kwargs['default'] = counter
@@ -127,5 +135,3 @@ async def test_variable_init_override():
     # check that the override is not active anymore
     new_variable = Variable(default='foo')
     assert new_variable.default == 'foo'
-
-

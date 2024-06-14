@@ -1274,6 +1274,7 @@ async def test_derived_data_variable_pending_value():
             resp_data = DataFrame(response3.json())
             assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
 
+
 async def test_derived_data_variable_cache_eviction():
     """
     Test that DerivedDataVariable value is not evicted before it's queried.

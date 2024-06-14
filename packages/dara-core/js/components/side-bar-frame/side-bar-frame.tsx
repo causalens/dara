@@ -4,6 +4,8 @@ import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import { useConfig } from '@/api';
+import CausalensDark from '@/assets/causalens-dark.svg';
+import CausalensLight from '@/assets/causalens-light.svg';
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
 import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
@@ -54,7 +56,7 @@ const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
 
 const LogoutButton = styled(Button)`
     width: 80%;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     padding: 1rem;
     border-radius: 1rem;
 
@@ -70,11 +72,17 @@ const LogoutButton = styled(Button)`
     }
 `;
 
-const BuiltWithSpan = styled.span`
+const BuiltWithLink = styled.a`
     display: flex;
     gap: 0.2rem;
     align-items: center;
     font-size: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+
+    :hover {
+        text-decoration: underline;
+    }
 `;
 
 interface LogoProps {
@@ -114,7 +122,9 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
         <LogoImage alt="Logo" src={prependBaseUrl(props.logo_path)} width={props.logo_width} />
     );
     const logoSrc = theme.themeType === 'dark' ? DaraDark : DaraLight;
-    const daraLogo = <img alt="Dara" src={logoSrc} />;
+    const causalensLogoSrc = theme.themeType === 'dark' ? CausalensDark : CausalensLight;
+    const daraLogo = <img alt="Dara Logo" src={logoSrc} />;
+    const causalensLogo = <img alt="causaLens Logo" src={causalensLogoSrc} />;
 
     return (
         <Wrapper backgroundColor={theme.colors.background}>
@@ -134,7 +144,18 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
                         <LogoutArrow style={{ marginRight: '0.5rem' }} />
                         Logout
                     </LogoutButton>
-                    <BuiltWithSpan>Built with {daraLogo}</BuiltWithSpan>
+                    <BuiltWithLink href="https://github.com/causalens/dara" target="_blank" rel="noopener noreferrer">
+                        Built with {daraLogo}
+                    </BuiltWithLink>
+                    {config?.powered_by_causalens && (
+                        <BuiltWithLink
+                            href="https://causalens.com/?utm_source=dara&utm_medium=direct&utm_campaign=dara_platform"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            <span style={{ marginTop: '0.4375rem' }}>Powered by</span> {causalensLogo}
+                        </BuiltWithLink>
+                    )}
                 </SideBar>
             </ThemeContext.Provider>
             {props.side_bar_position !== 'right' && (
