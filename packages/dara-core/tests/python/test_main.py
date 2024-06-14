@@ -98,6 +98,7 @@ async def test_config_route():
         assert response.json() == {
             'live_reload': False,
             'enable_devtools': False,
+            'powered_by_causalens': False,
             'context_components': [],
             'template': 'default',
             'theme': {
