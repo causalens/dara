@@ -7,7 +7,7 @@ title: Changelog
 -   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.
 -   Added "Powered by causaLens" to the sidebar when `powered_by_causaLens` is set to `True` in the configuration.
 -   Added a github link to "Built with Dara" in the sidebar.
--   Added a `for_` and `id_` property to the `StyledComponentInstance`
+-   Added a `for_` and `id_` property to the `ComponentInstance`
 
 ## 1.10.0
 
