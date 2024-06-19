@@ -82,7 +82,11 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
 
     const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
     if (!isDerivedVariable(variable.default)) {
-        return useRecoilState(recoilState);
+        const [value, setValue] = useRecoilState(recoilState);
+        useEffect(() => {
+            bus.publish('PLAIN_VARIABLE_LOADED', { variable, value });
+        }, [value]);
+        return [value, setValue];
     }
     const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
     useEffect(() => {
