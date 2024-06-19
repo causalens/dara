@@ -317,6 +317,8 @@ class StyledComponentInstance(ComponentInstance):
     :param shrink: the flex-shrink of the component, see css guidelines for flex-shrink for formats
     :param underline: whether to underline the font, defaults to False
     :param width: the width of the component, can be an number, which will be converted to pixels, or a string
+    :param id_: An optional unique identifier for the component, defaults to None
+    :param for_: An optional for attribute for the component, defaults to None
     """
 
     align: Optional[str] = None
@@ -345,6 +347,8 @@ class StyledComponentInstance(ComponentInstance):
     shrink: Optional[Union[int, str, float, bool]] = None
     underline: bool = False
     width: Optional[Union[float, int, str]] = None
+    id_: Optional[str] = None
+    for_: Optional[str] = None
 
     class Config:
         smart_union = True
