@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.10.2
 
 -   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.
 -   Added "Powered by causaLens" to the sidebar when `powered_by_causaLens` is set to `True` in the configuration.
