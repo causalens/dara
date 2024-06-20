@@ -215,7 +215,6 @@ class ComponentInstance(DaraBaseModel):
     An optional for attribute for the component, defaults to None
     """
 
-
     def __init__(self, *args, **kwargs):
         uid = kwargs.get('uid', None)
         if uid is None:
