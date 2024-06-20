@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react';
-import { useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
+import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { useDeferLoadable } from '@/shared/utils';
@@ -81,16 +81,22 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
+    if (!isDerivedVariable(variable.default)) {
+        const [value, setValue] = useRecoilState(recoilState);
+        useEffect(() => {
+            bus.publish('PLAIN_VARIABLE_LOADED', { variable, value });
+        }, [value]);
+        return [value, setValue];
+    }
     const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
-
-    const deferred = useDeferLoadable(loadable);
-
     useEffect(() => {
         // when loadable resolves to a value/error
         if (loadable.state !== 'loading') {
             bus.publish('PLAIN_VARIABLE_LOADED', { variable, value: loadable.contents });
         }
     }, [loadable]);
+
+    const deferred = useDeferLoadable(loadable);
 
     return [deferred, setLoadable];
 }

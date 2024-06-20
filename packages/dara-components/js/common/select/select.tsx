@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { isArray, isEmpty } from 'lodash';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isArray, isEmpty, isEqual } from 'lodash';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import {
     SingleVariable,
@@ -24,7 +24,7 @@ import {
 import { useFormContext } from '../context';
 import { FormComponentProps } from '../types';
 
-export function getMultiselectItems(values: Array<any>, items: Array<Item>): Array<Item> {
+export function getMultiselectItems(values: Array<unknown>, items: Array<Item>): Array<Item> {
     if (!values) {
         return;
     }
@@ -46,12 +46,12 @@ function hasListSection(items: Item[] | ListSection[]): items is ListSection[] {
     return items.length > 0 && 'items' in items[0];
 }
 
-function isStringArray(value: any): value is string[] {
+function isStringArray(value: unknown): value is string[] {
     return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
 /** Type guard to check if an object is an Item */
-function isItem(obj: any): obj is Item {
+function isItem(obj: unknown): obj is Item {
     return obj && Object.prototype.hasOwnProperty.call(obj, 'value');
 }
 interface SelectProps extends FormComponentProps {
@@ -88,6 +88,13 @@ function Select(props: SelectProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
 
+    // Some combination of recoil state changes and downshift can cause an infinite loop when selecting a new value
+    // This prevents infinite rerenders by always using the latest value
+    const valueRef = useRef(value);
+    useLayoutEffect(() => {
+        valueRef.current = value;
+    }, [value]);
+
     // In the case of a Variable or DerivedVariable we could end up with an array of strings instead of items, so we need to convert them if that happens
     const formattedItems = useMemo(() => {
         if (isStringArray(items)) {
@@ -100,7 +107,7 @@ function Select(props: SelectProps): JSX.Element {
      * Converts a value to an Item, or finds a matching Item in formattedItems based on value.
      * @param val - The value to be converted or matched.
      */
-    const toItem = (val: any): Item | undefined | null => {
+    const toItem = (val: unknown): Item | undefined | null => {
         // Tries to get matching item based on value from formattedItems
         const matchingItem = formattedItems.find((item) => isItem(item) && String(item.value) === String(val));
         // If a matching Item is found return it
@@ -108,7 +115,7 @@ function Select(props: SelectProps): JSX.Element {
             return matchingItem as Item;
         }
         // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
-        return typeof val === 'string' || typeof val === 'number' ? { label: String(val), val } : val;
+        return typeof val === 'string' || typeof val === 'number' ? { label: String(val), value } : (val as Item);
     };
 
     const onChangeAction = useAction(props.onchange);
@@ -128,22 +135,16 @@ function Select(props: SelectProps): JSX.Element {
     }, []);
 
     if (itemHasListSection.current) {
-        const [selectedItem, setSelectedItem] = useState<ListItem>({ label: value, value });
-
         const onSelect = useCallback(
             (item: ListItem) => {
-                setSelectedItem(item);
-                setValue(item.value);
+                if (item && item.value !== valueRef.current) {
+                    setValue(item.value);
+                }
             },
             [setValue]
         );
 
-        // Handle this way to prevent an infinite loop in the ui component due to referential comparison of selectedItem
-        useEffect(() => {
-            if (value !== selectedItem.value) {
-                setSelectedItem({ label: value, value });
-            }
-        }, [value]);
+        const selectedItem = useMemo(() => toItem(value), [value]);
         return (
             <StyledSectionedList
                 $rawCss={css}
@@ -159,26 +160,24 @@ function Select(props: SelectProps): JSX.Element {
     const itemArray = formattedItems as Array<Item>;
 
     if (props.multiselect) {
-        const explicitValues = useMemo(() => (isArray(value) ? value.map(toItem) : value), [value]);
-        const foundItems = getMultiselectItems(value, itemArray);
-        const [selectedItems, setSelectedItems] = useState(isEmpty(foundItems) ? explicitValues : foundItems);
         const onSelect = useCallback(
             (_items: Array<Item>) => {
                 const currentSelection = _items.map((item: Item) => item.value);
-                setSelectedItems(getMultiselectItems(currentSelection, itemArray));
-                setValue(currentSelection);
-                onChangeAction(currentSelection);
-                formCtx.updateForm(currentSelection);
+                if (!isEqual(currentSelection, isArray(valueRef.current) ? valueRef.current : [valueRef.current])) {
+                    setValue(currentSelection);
+                    onChangeAction(currentSelection);
+                    formCtx.updateForm(currentSelection);
+                }
             },
             [setValue]
         );
-        // The loop up to the value in recoil state is too slow for downshift and leads to a race condition that makes
-        // it fail to update the value sometimes. By keeping a local copy of the value and updating it like this we fix
-        // the race condition and respect the main value if it is updated elsewhere.
-        useEffect(() => {
+
+        const selectedItems = useMemo(() => {
             const found = getMultiselectItems(value, itemArray);
-            setSelectedItems(isEmpty(found) ? explicitValues ?? null : found);
+            const explicitValues = isArray(value) ? value.map(toItem) : value;
+            return isEmpty(found) ? explicitValues ?? null : found;
         }, [formattedItems, value]);
+
         return (
             <StyledMultiSelect
                 $rawCss={css}
@@ -192,15 +191,15 @@ function Select(props: SelectProps): JSX.Element {
             />
         );
     }
-    const explicitValue = toItem(value);
-    const [selectedItem, setSelectedItem] = useState(
-        itemArray.find((item) => String(item.value) === String(value)) ?? explicitValue
+
+    const selectedItem = useMemo(
+        () => itemArray.find((item) => String(item.value) === String(value)) ?? toItem(value) ?? null,
+        [value]
     );
 
     const onSelect = useCallback(
         (item: Item) => {
-            if (item) {
-                setSelectedItem(item);
+            if (item && item.value !== valueRef.current) {
                 setValue(item.value);
                 onChangeAction(item.value);
                 formCtx.updateForm(item.value);
@@ -208,11 +207,7 @@ function Select(props: SelectProps): JSX.Element {
         },
         [setValue, onChangeAction]
     );
-    // See explanation above
-    useEffect(() => {
-        const selected = itemArray.find((item) => item.value === value) ?? explicitValue;
-        setSelectedItem(selected !== undefined ? selected : null);
-    }, [formattedItems, value]);
+
     if (props.searchable) {
         return (
             <StyledComboBox
