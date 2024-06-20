@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.9.6
+
+-   Fixed an infinite loop in `useVariable` when using a nested selector inside a Select.
+
 ## 1.9.1
 
 -   Fixed an issue where desired pathname + search params were not retained when redirected to the login page and then back to the original page
