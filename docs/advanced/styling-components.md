@@ -228,3 +228,19 @@ Another useful resource to use when dealing with styling is [Visbug Chrome Exten
 :::tip
 Seeing how much you can customize and build your own components, it helps to define them as functions or classes so you can repeatedly call them with different inputs instead of having to redefine and customize the component again. Check out the section [**Best Practices: Reusing Components**](../best-practices/reusing-components) to learn more.
 :::
+
+### Id and For properties
+
+Any components which inherit the `ComponentInstance` class can have an `id_` and/or `for_` property. 
+These properties have no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
+
+```python
+from dara.core import Text, Input, Stack
+
+Stack(
+    Text('This is a label', for_='my_input'),
+    Input(placeholder='This is an input', id_='my_input')
+)
+```
+
+The serialized component tree will now have the `for_` and `id_` properties for the respective components

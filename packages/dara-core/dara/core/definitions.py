@@ -208,11 +208,15 @@ class ComponentInstance(DaraBaseModel):
     id_: Optional[str] = None
     """
     An optional unique identifier for the component, defaults to None
+
+    This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
     """
 
     for_: Optional[str] = None
     """
     An optional for attribute for the component, defaults to None
+
+    This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
     """
 
     def __init__(self, *args, **kwargs):
