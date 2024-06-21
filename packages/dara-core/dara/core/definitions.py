@@ -271,6 +271,14 @@ class ComponentInstance(DaraBaseModel):
         if 'fallback' in props and props.get('fallback') is None:
             props.pop('fallback')
 
+        # Exclude id_ if not set
+        if 'id_' in props and props.get('id_') is None:
+            props.pop('id_')
+
+        # Exclude for_ if not set
+        if 'for_' in props and props.get('for_') is None:
+            props.pop('for_')
+
         return {
             'name': self.py_component or type(self).__name__,
             'props': props,
