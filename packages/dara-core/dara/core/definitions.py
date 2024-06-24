@@ -205,6 +205,20 @@ class ComponentInstance(DaraBaseModel):
     Fallback component to render in place of the actual UI if it has not finished loading
     """
 
+    id_: Optional[str] = None
+    """
+    An optional unique identifier for the component, defaults to None
+
+    This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
+    """
+
+    for_: Optional[str] = None
+    """
+    An optional for attribute for the component, defaults to None
+
+    This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
+    """
+
     def __init__(self, *args, **kwargs):
         uid = kwargs.get('uid', None)
         if uid is None:
@@ -256,6 +270,14 @@ class ComponentInstance(DaraBaseModel):
         # Exclude fallback if not set
         if 'fallback' in props and props.get('fallback') is None:
             props.pop('fallback')
+
+        # Exclude id_ if not set
+        if 'id_' in props and props.get('id_') is None:
+            props.pop('id_')
+
+        # Exclude for_ if not set
+        if 'for_' in props and props.get('for_') is None:
+            props.pop('for_')
 
         return {
             'name': self.py_component or type(self).__name__,

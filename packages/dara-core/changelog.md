@@ -8,6 +8,7 @@ title: Changelog
 -   Added "Powered by causaLens" to the sidebar when `powered_by_causaLens` is set to `True` in the configuration.
 -   Added a github link to "Built with Dara" in the sidebar.
 -   Fixed an infinite loop in `useVariable` when using a nested selector inside a Select.
+-   Added a `for_` and `id_` property to the `ComponentInstance`
 
 ## 1.10.0
 
