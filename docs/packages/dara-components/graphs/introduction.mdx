@@ -409,11 +409,55 @@ CausalGraphViewer(
 
 :::warning
 
-For the `PlanarLayout` we utilise the sugyiama algorithm from [d3-dag](https://github.com/erikbrinkman/d3-dag/tree/main) library.
+For the `PlanarLayout` we utilize the sugyiama algorithm from [d3-dag](https://github.com/erikbrinkman/d3-dag/tree/main) library.
 This approach has currently some limitations and for some configurations it may be unable to resolve the tiers/layers.
 If that happens your graph will be automatically switched to use `FcoseLayout` and a warning will be displayed in your app.
 
 :::
+
+### Defining groups/clusters in graphs
+
+The following layouts support grouping: `FcoseLayout`, and `SpringLayout`.
+This allows one to set which nodes should appear in groups together, these groups can be collapsed or expanded. It is a good way to simplify large and complex graphs for an overall as well as detailed view.
+
+![CausalGraphViewer Grouping Example](./assets/grouping_expanded.png)
+![CausalGraphViewer Collapsed Grouping Example](./assets/grouping_collapsed.png)
+
+Similarly to tiers, the grouping is some property of the node, and can be defined as a path to where that property exists. Below is a code example showcasing this:
+
+```python
+from dara.components import CausalGraphViewer, FcoseLayout
+from cai_causal_graph import CausalGraph
+
+cg = CausalGraph()
+cg.add_node(identifier='A', meta={'group': 'group1'})
+cg.add_node(identifier='B', meta={'group': 'group1'})
+cg.add_node(identifier='C', meta={'group': 'group2'})
+cg.add_node(identifier='D', meta={'group': 'group2'})
+cg.add_node(identifier='E', meta={'group': 'group3'})
+cg.add_edge('A', 'C')
+cg.add_edge('B', 'D')
+cg.add_edge('C', 'E')
+cg.add_edge('D', 'E')
+
+CausalGraphViewer(
+    causal_graph=cg,
+    graph_layout=FcoseLayout(
+        group='meta.group',
+        ),
+)
+```
+
+When utilizing `SpringLayout`, there is also one more choice, which is to set `group_repel_strength`. 
+This defaults to 2000 and is the force that separates the groups/clusters. So if for example the graph groups appears too crammed 
+this can be increased. If on the other hand it is too spaced out, this value can be set to something lower.
+
+```
+CausalGraphViewer(
+    causal_graph=cg,
+    graph_layout=SpringLayout(group='meta.group', group_repel_strength=5000),
+),
+```
 
 ### Editing the graph
 
