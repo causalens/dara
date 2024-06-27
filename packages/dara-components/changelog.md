@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `onchange` would not fire for `Input` and `Textarea` components in some cases
+
 ## 1.10.0
 
 -   Added support for grouping layout in `FcoseLayout` and `SpringLayout`. It allows for nodes to be placed on groups/clusters which can be collapsed/expanded in order to simplify large graphs to the user whilst still allowing them to see the full picture.

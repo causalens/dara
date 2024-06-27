@@ -38,9 +38,9 @@ function Input(props: InputProps): JSX.Element {
     const [internalValue, setInternalValue] = useState(value);
     const onInputAction = useAction(props.onchange);
 
-    const debouncedAction = useMemo(() => _debounce(onInputAction, 500), [onInputAction]);
-    const debouncedSetValue = useMemo(() => _debounce(setValue, 500), [setValue]);
-    const debouncedUpdateForm = useMemo(() => _debounce(formCtx.updateForm, 500), [formCtx.updateForm]);
+    const debouncedAction = useMemo(() => _debounce(onInputAction, 300), [onInputAction]);
+    const debouncedSetValue = useMemo(() => _debounce(setValue, 300), [setValue]);
+    const debouncedUpdateForm = useMemo(() => _debounce(formCtx.updateForm, 300), [formCtx.updateForm]);
 
     function handleChange(val: string | number): void {
         let newValue = val;
@@ -56,8 +56,7 @@ function Input(props: InputProps): JSX.Element {
     }
 
     useEffect(() => {
-        // cancel in-progress debounced actions to make sure the variable value takes precedence
-        debouncedAction.cancel();
+        // cancel in-progress debounced updates to make sure the variable value takes precedence
         debouncedSetValue.cancel();
         debouncedUpdateForm.cancel();
 
