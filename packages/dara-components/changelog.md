@@ -5,6 +5,7 @@ title: Changelog
 ## 1.10.3
 
 -   Fixed an issue where `onchange` would not fire for `Input` and `Textarea` components in some cases
+-   Fixed and issue where the nodes could escape their containers in grouping layouts.
 
 ## 1.10.0
 
