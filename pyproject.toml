@@ -67,7 +67,7 @@ types-croniter = "^1.0.10"
 blue = "^0.9.1"
 pytest-timeout = "^2.1.0"
 pytest = "^7.0.0"
-pylint = "^3.0.0"
+pylint = "3.2.3"
 isort = "^5.10.1"
 
 [tool.poetry.dev-dependencies.create-dara-app]
