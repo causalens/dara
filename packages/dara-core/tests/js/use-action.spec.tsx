@@ -7,11 +7,12 @@ import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/utils/use-action';
 
-import { useAction, useVariable } from '../../js/shared';
+import { EventCapturer, useAction, useVariable } from '../../js/shared';
 import {
     Action,
     ActionImpl,
     AnnotatedAction,
+    DaraEventMap,
     DerivedDataVariable,
     DerivedVariable,
     NavigateToImpl,
@@ -41,6 +42,7 @@ describe('useAction', () => {
     });
     afterEach(() => {
         server.resetHandlers();
+        clearRegistries_TEST();
     });
     afterAll(() => server.close());
 
@@ -121,14 +123,149 @@ describe('useAction', () => {
 
         await waitFor(() => expect(getByTestId('result').innerHTML).toBe('value'));
 
-        act(() => {
-            const button = getByTestId('update');
-            fireEvent.click(button);
-        });
+        const button = getByTestId('update');
+        fireEvent.click(button);
 
         await waitFor(() => expect(getByTestId('result').innerHTML).not.toBe('value'));
 
         expect(getByTestId('result').innerHTML).toBe('updated');
+    });
+
+    it('UPDATE_VARIABLE should fire event for updating a variable not registered with useVariable', async () => {
+        const variable: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'value',
+            nested: [],
+            uid: 'uid',
+        };
+
+        const urlVariable: UrlVariable<string> = {
+            __typename: 'UrlVariable',
+            default: 'url_value',
+            query: 'q',
+            uid: 'url-uid',
+        };
+
+        const action1: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: 'updated',
+            variable,
+        };
+        const action2: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: 'updated',
+            variable: urlVariable,
+        };
+        const receivedData: Array<[keyof DaraEventMap, DaraEventMap[keyof DaraEventMap]]> = [];
+
+        const MockComponent = (props: { action: Action }): JSX.Element => {
+            const update = useAction(props.action);
+
+            return (
+                <>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = render(<MockComponent action={[action1, action2]} />, {
+            wrapper: ({ children }) => (
+                <EventCapturer
+                    onEvent={(e) => {
+                        receivedData.push([e.type, e.data]);
+                    }}
+                >
+                    <Wrapper>{children}</Wrapper>
+                </EventCapturer>
+            ),
+        });
+
+        fireEvent.click(getByTestId('update'));
+
+        await waitFor(() => expect(receivedData).toHaveLength(2));
+        expect(receivedData[0]).toEqual([
+            'PLAIN_VARIABLE_LOADED',
+            {
+                variable,
+                value: 'updated',
+            },
+        ]);
+        expect(receivedData[1]).toEqual([
+            'URL_VARIABLE_LOADED',
+            {
+                variable: urlVariable,
+                value: 'updated',
+            },
+        ]);
+    });
+
+    it('UPDATE_VARIABLE should fire event when toggling variable', async () => {
+        const variable: SingleVariable<boolean> = {
+            __typename: 'Variable',
+            default: false,
+            nested: [],
+            uid: 'uid',
+        };
+
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: TOGGLE,
+            variable,
+        };
+
+        const receivedData: Array<[keyof DaraEventMap, DaraEventMap[keyof DaraEventMap]]> = [];
+
+        const MockComponent = (props: { action: Action }): JSX.Element => {
+            const update = useAction(props.action);
+
+            return (
+                <>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = render(<MockComponent action={action} />, {
+            wrapper: ({ children }) => (
+                <EventCapturer
+                    onEvent={(e) => {
+                        receivedData.push([e.type, e.data]);
+                    }}
+                >
+                    <Wrapper>{children}</Wrapper>
+                </EventCapturer>
+            ),
+        });
+
+        fireEvent.click(getByTestId('update'));
+
+        await waitFor(() => expect(receivedData).toHaveLength(1));
+        expect(receivedData[0]).toEqual([
+            'PLAIN_VARIABLE_LOADED',
+            {
+                variable,
+                value: true,
+            },
+        ]);
+        fireEvent.click(getByTestId('update'));
+
+        await waitFor(() => expect(receivedData).toHaveLength(2));
+        expect(receivedData[1]).toEqual([
+            'PLAIN_VARIABLE_LOADED',
+            {
+                variable,
+                value: false,
+            },
+        ]);
     });
 
     it('should UPDATE_VARIABLE even when variable is not yet registered with useVariable', async () => {
@@ -205,7 +342,7 @@ describe('useAction', () => {
                 },
             },
             nested: [],
-            uid: 'uid',
+            uid: 'test-nested-111-uid',
         };
 
         const actionNested: UpdateVariableImpl = {
@@ -332,7 +469,7 @@ describe('useAction', () => {
                 },
             },
             nested: [],
-            uid: 'uid',
+            uid: 'update-var-toggle-nested-uid',
         };
 
         const actionNested: UpdateVariableImpl = {

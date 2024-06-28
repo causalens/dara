@@ -15,30 +15,39 @@ export const TOGGLE = '__dara_toggle__';
 /**
  * Front-end handler for UpdateVariable action.
  */
-const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
+const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl) => {
     let varAtom;
+    let eventName: 'PLAIN_VARIABLE_LOADED' | 'URL_VARIABLE_LOADED';
 
     // Make sure the variable is registered
     switch (actionImpl.variable.__typename) {
         case 'Variable':
             varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
+            eventName = 'PLAIN_VARIABLE_LOADED';
             break;
         case 'UrlVariable':
             varAtom = getOrRegisterUrlVariable(actionImpl.variable);
+            eventName = 'URL_VARIABLE_LOADED';
             break;
         case 'DataVariable':
             throw new Error('DataVariable is not supported in UpdateVariable action');
     }
 
+    let newValue;
+
     if (actionImpl.value === INPUT) {
-        return ctx.set(varAtom, ctx.input);
+        newValue = ctx.input;
+    } else if (actionImpl.value === TOGGLE) {
+        // normally we'd use the updater form here, but we need to know what value we're
+        // toggling to emit the correct event, and the updater must be pure
+        const value = await ctx.snapshot.getLoadable(varAtom).toPromise();
+        newValue = !value;
+    } else {
+        newValue = actionImpl.value;
     }
 
-    if (actionImpl.value === TOGGLE) {
-        return ctx.set(varAtom, (value) => !value);
-    }
-
-    return ctx.set(varAtom, actionImpl.value);
+    ctx.set(varAtom, newValue);
+    ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: newValue });
 };
 
 export default UpdateVariable;

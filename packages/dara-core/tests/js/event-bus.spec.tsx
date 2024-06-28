@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event';
 
 import { EventBus, useEventBus } from '@/shared';
 import { DEFAULT_BUS, EventCapturer } from '@/shared/event-bus/event-bus';
-import { DaraEventMap } from '@/types/event-types';
+import { DaraEventMap } from '@/types/core';
 
 describe('Event Bus', () => {
     it('should invoke provided callback when subscribed', () => {

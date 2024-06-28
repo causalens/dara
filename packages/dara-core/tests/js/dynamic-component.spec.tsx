@@ -6,11 +6,10 @@ import * as React from 'react';
 import { FallbackCtx } from '@/shared/context';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { DaraEventMap } from '@/types/event-types';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
 import { Action, DerivedVariable, SingleVariable, Variable } from '../../js/types';
-import { DerivedDataVariable, TriggerVariableImpl } from '../../js/types/core';
+import { DaraEventMap, DerivedDataVariable, TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
 
 describe('DynamicComponent', () => {

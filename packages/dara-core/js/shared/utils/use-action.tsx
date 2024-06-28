@@ -1,4 +1,4 @@
-import { useContext, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
@@ -15,6 +15,7 @@ import { Action, ActionHandler } from '@/types';
 import { ActionContext, ActionDef, ActionImpl, AnnotatedAction } from '@/types/core';
 import { isActionImpl } from '@/types/utils';
 
+import { useEventBus } from '../event-bus/event-bus';
 import { useVariable } from '../interactivity';
 import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { resolveVariable } from '../interactivity/resolve-variable';
@@ -305,20 +306,24 @@ export default function useAction(action: Action, options?: UseActionOptions): (
     const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
+    const eventBus = useEventBus();
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
-    actionCtx.current = {
-        extras,
-        history,
-        location,
-        notificationCtx,
-        taskCtx,
-        wsClient,
-    };
-
     const optionsRef = useRef(options);
-    optionsRef.current = options;
+
+    useLayoutEffect(() => {
+        actionCtx.current = {
+            extras,
+            history,
+            location,
+            notificationCtx,
+            taskCtx,
+            wsClient,
+            eventBus,
+        };
+        optionsRef.current = options;
+    });
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {
