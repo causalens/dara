@@ -14,6 +14,9 @@ import type {
     ComponentInstance,
     Condition,
     Config,
+    DaraEvent,
+    DaraEventMap,
+    DaraEventType,
     DataFrame,
     DataVariable,
     DerivedDataVariable,
@@ -42,7 +45,6 @@ import type {
     ValueQuery,
     Variable,
 } from './core';
-import type { DaraEvent, DaraEventMap, DaraEventType } from './event-types';
 
 export type {
     Action,

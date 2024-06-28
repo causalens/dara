@@ -17,28 +17,39 @@ export const TOGGLE = '__dara_toggle__';
  */
 const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
     let varAtom;
+    let eventName: 'PLAIN_VARIABLE_LOADED' | 'URL_VARIABLE_LOADED';
 
     // Make sure the variable is registered
     switch (actionImpl.variable.__typename) {
         case 'Variable':
             varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
+            eventName = 'PLAIN_VARIABLE_LOADED';
             break;
         case 'UrlVariable':
             varAtom = getOrRegisterUrlVariable(actionImpl.variable);
+            eventName = 'URL_VARIABLE_LOADED';
             break;
         case 'DataVariable':
             throw new Error('DataVariable is not supported in UpdateVariable action');
     }
 
     if (actionImpl.value === INPUT) {
-        return ctx.set(varAtom, ctx.input);
+        ctx.set(varAtom, ctx.input);
+        ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: ctx.input });
+        return;
     }
 
     if (actionImpl.value === TOGGLE) {
-        return ctx.set(varAtom, (value) => !value);
+        ctx.set(varAtom, (value: boolean) => {
+            ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: !value });
+            return !value;
+        });
+        return;
     }
 
-    return ctx.set(varAtom, actionImpl.value);
+    ctx.set(varAtom, actionImpl.value);
+    ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: actionImpl.value });
+    return;
 };
 
 export default UpdateVariable;

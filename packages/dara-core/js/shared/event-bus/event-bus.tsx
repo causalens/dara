@@ -1,17 +1,12 @@
 import * as React from 'react';
 import { Subject } from 'rxjs';
 
-import { DaraEvent, DaraEventMap } from '@/types/event-types';
-
-type EventMap = Record<string, any>;
-type UnionFromMap<M extends EventMap> = {
-    [K in keyof M]: { type: K; data: M[K] };
-}[keyof M];
+import { DaraEvent, DaraEventMap, EventMap, IEventBus, UnionFromMap } from '@/types/core';
 
 /**
  * Global event bus that allows to publish and subscribe to events.
  */
-export class EventBus<MapT extends EventMap> {
+export class EventBus<MapT extends EventMap> implements IEventBus<MapT> {
     #events$: Subject<{ type: keyof MapT; data: MapT[keyof MapT] }> = new Subject();
 
     #parentBus: EventBus<MapT> | null = null;

@@ -1,4 +1,4 @@
-import { useContext, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
@@ -20,6 +20,7 @@ import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { resolveVariable } from '../interactivity/resolve-variable';
 import { normalizeRequest } from './normalization';
 import useActionRegistry from './use-action-registry';
+import { useEventBus } from '../event-bus/event-bus';
 
 /**
  * Invoke a server-side action.
@@ -305,17 +306,21 @@ export default function useAction(action: Action, options?: UseActionOptions): (
     const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
+    const eventBus = useEventBus();
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
-    actionCtx.current = {
-        extras,
-        history,
-        location,
-        notificationCtx,
-        taskCtx,
-        wsClient,
-    };
+    useLayoutEffect(() => {
+        actionCtx.current = {
+            extras,
+            history,
+            location,
+            notificationCtx,
+            taskCtx,
+            wsClient,
+            eventBus,
+        };
+    }, []);
 
     const optionsRef = useRef(options);
     optionsRef.current = options;
