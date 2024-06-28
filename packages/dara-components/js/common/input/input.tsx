@@ -47,12 +47,12 @@ function Input(props: InputProps): JSX.Element {
         if (props.type === 'number') {
             newValue = getNumericValue(newValue);
         }
-        // Immmediately update internal state
+        // Immediately update internal state
         setInternalValue(newValue);
         // Debounce the update to the variable and the form to prevent multiple updates being fired at once
         debouncedSetValue(newValue);
-        debouncedAction(val);
-        debouncedUpdateForm(val);
+        debouncedAction(newValue);
+        debouncedUpdateForm(newValue);
     }
 
     useEffect(() => {
