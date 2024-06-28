@@ -203,6 +203,70 @@ describe('useAction', () => {
         ]);
     });
 
+    it('UPDATE_VARIABLE should fire event when toggling variable', async () => {
+        const variable: SingleVariable<boolean> = {
+            __typename: 'Variable',
+            default: false,
+            nested: [],
+            uid: 'uid',
+        };
+
+        const action: UpdateVariableImpl = {
+            __typename: 'ActionImpl',
+            name: 'UpdateVariable',
+            value: TOGGLE,
+            variable,
+        };
+
+        const receivedData: Array<[keyof DaraEventMap, DaraEventMap[keyof DaraEventMap]]> = [];
+
+        const MockComponent = (props: { action: Action }): JSX.Element => {
+            const update = useAction(props.action);
+
+            return (
+                <>
+                    {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                    <button data-testid="update" onClick={() => update('updated')} type="button">
+                        update
+                    </button>
+                </>
+            );
+        };
+
+        const { getByTestId } = render(<MockComponent action={action} />, {
+            wrapper: ({ children }) => (
+                <EventCapturer
+                    onEvent={(e) => {
+                        receivedData.push([e.type, e.data]);
+                    }}
+                >
+                    <Wrapper>{children}</Wrapper>
+                </EventCapturer>
+            ),
+        });
+
+        fireEvent.click(getByTestId('update'));
+
+        await waitFor(() => expect(receivedData).toHaveLength(1));
+        expect(receivedData[0]).toEqual([
+            'PLAIN_VARIABLE_LOADED',
+            {
+                variable,
+                value: true,
+            },
+        ]);
+        fireEvent.click(getByTestId('update'));
+
+        await waitFor(() => expect(receivedData).toHaveLength(2));
+        expect(receivedData[1]).toEqual([
+            'PLAIN_VARIABLE_LOADED',
+            {
+                variable,
+                value: false,
+            },
+        ]);
+    });
+
     it('should UPDATE_VARIABLE even when variable is not yet registered with useVariable', async () => {
         const variable: SingleVariable<string> = {
             __typename: 'Variable',
