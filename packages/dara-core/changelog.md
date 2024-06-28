@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.10.4
 
 -   Fixed an issue where `EventBus` were not fired for `Variable`s updated via actions but not subscribed to in the component tree
 
