@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `EventBus` were not fired for `Variable`s updated via actions but not subscribed to in the component tree
+
 ## 1.10.2
 
 -   Fixed an issue where if a `Variable` was created from a `DerivedVariable` and had `persist_value=True` that its value was not unwrapped.
