@@ -42,6 +42,7 @@ describe('useAction', () => {
     });
     afterEach(() => {
         server.resetHandlers();
+        clearRegistries_TEST();
     });
     afterAll(() => server.close());
 
@@ -341,7 +342,7 @@ describe('useAction', () => {
                 },
             },
             nested: [],
-            uid: 'uid',
+            uid: 'test-nested-111-uid',
         };
 
         const actionNested: UpdateVariableImpl = {
@@ -468,7 +469,7 @@ describe('useAction', () => {
                 },
             },
             nested: [],
-            uid: 'uid',
+            uid: 'update-var-toggle-nested-uid',
         };
 
         const actionNested: UpdateVariableImpl = {
