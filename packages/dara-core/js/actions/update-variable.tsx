@@ -49,7 +49,6 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = (ctx, actionImpl) => {
 
     ctx.set(varAtom, actionImpl.value);
     ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: actionImpl.value });
-    return;
 };
 
 export default UpdateVariable;

@@ -15,12 +15,12 @@ import { Action, ActionHandler } from '@/types';
 import { ActionContext, ActionDef, ActionImpl, AnnotatedAction } from '@/types/core';
 import { isActionImpl } from '@/types/utils';
 
+import { useEventBus } from '../event-bus/event-bus';
 import { useVariable } from '../interactivity';
 import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { resolveVariable } from '../interactivity/resolve-variable';
 import { normalizeRequest } from './normalization';
 import useActionRegistry from './use-action-registry';
-import { useEventBus } from '../event-bus/event-bus';
 
 /**
  * Invoke a server-side action.
@@ -310,6 +310,8 @@ export default function useAction(action: Action, options?: UseActionOptions): (
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
+    const optionsRef = useRef(options);
+
     useLayoutEffect(() => {
         actionCtx.current = {
             extras,
@@ -320,10 +322,8 @@ export default function useAction(action: Action, options?: UseActionOptions): (
             wsClient,
             eventBus,
         };
-    }, []);
-
-    const optionsRef = useRef(options);
-    optionsRef.current = options;
+        optionsRef.current = options;
+    });
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {

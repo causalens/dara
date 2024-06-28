@@ -6,7 +6,7 @@ import { useRecoilCallback } from 'recoil';
 
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
-import { DaraEventMap } from '@/types/event-types';
+import { DaraEventMap , DataVariable, TriggerVariableImpl } from '@/types/core';
 
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import {
@@ -16,7 +16,7 @@ import {
 } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Action, DerivedVariable, SingleVariable, UrlVariable, Variable } from '../../js/types';
-import { DataVariable, TriggerVariableImpl } from '../../js/types/core';
+
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 

@@ -76,9 +76,10 @@ const BuiltWithLink = styled.a`
     display: flex;
     gap: 0.2rem;
     align-items: center;
+
     font-size: 0.75rem;
-    text-decoration: none;
     color: inherit;
+    text-decoration: none;
 
     :hover {
         text-decoration: underline;
