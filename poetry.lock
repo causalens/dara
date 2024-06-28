@@ -735,24 +735,6 @@ type = "directory"
 url = "packages/dara-core"
 
 [[package]]
-name = "decision-app"
-version = "0.1.0"
-description = "Decision App"
-category = "dev"
-optional = false
-python-versions = ">=3.8.0, <3.12.0"
-files = []
-develop = true
-
-[package.dependencies]
-dara-components = "^1.9.3"
-dara-core = "^1.9.3"
-
-[package.source]
-type = "directory"
-url = "packages/decision-app"
-
-[[package]]
 name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
@@ -3008,4 +2990,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0, <3.12.0"
-content-hash = "b32d7fcb708b7662ebab8eb781dbb09eb4be276cfd00d834aa7e880c3a28fccb"
+content-hash = "1cd912062cf870dfb63c3aedff9ca16cbff93bfc4896a350bfdb32e80693b37c"
