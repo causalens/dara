@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.10.4
 
 -   Fixed an issue where `Input` of type number would return `NaN` instead of `None` within actions.
 
