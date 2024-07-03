@@ -68,7 +68,7 @@ jobs:
           restore-keys: |
             cypress-${{ runner.os }}-cypress-
       - name: Install system deps
-        run: apt update && apt install sudo wget
+        run: sudo apt update && sudo apt install wget -y
       - name: Install and cache APT Cypress deps
         uses: awalsh128/cache-apt-pkgs-action@v1.4.1
         with:
