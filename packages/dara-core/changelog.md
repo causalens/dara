@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.10.5
+
+-   Fixed an issue where an empty '.npmrc' would be written to the static files directory even when no custom registry is specified
+
 ## 1.10.4
 
 -   Fixed an issue where `EventBus` were not fired for `Variable`s updated via actions but not subscribed to in the component tree
