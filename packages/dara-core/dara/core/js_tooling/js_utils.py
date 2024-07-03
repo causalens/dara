@@ -491,12 +491,13 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     with open(os.path.join(build_cache.static_files_dir, 'package.json'), 'w+', encoding='utf-8') as f:
         f.write(json.dumps(package_json))
 
-    # Copy .npmrc
-    npmrc_location = os.path.join(build_cache.static_files_dir, '.npmrc')
-    shutil.copyfile(npmrc_template, npmrc_location)
 
     # If we need to pull from a custom registry in CI where the user is not npm logged in, then add to the npmrc file
     if build_cache.build_config.npm_token is not None and build_cache.build_config.npm_registry is not None:
+        # Copy .npmrc
+        npmrc_location = os.path.join(build_cache.static_files_dir, '.npmrc')
+        shutil.copyfile(npmrc_template, npmrc_location)
+
         with open(npmrc_location, 'a', encoding='utf-8') as npmrc_file:
             npmrc_file.write(f'@darajs:registry=https://{build_cache.build_config.npm_registry}\n')
             npmrc_file.write(
