@@ -9,16 +9,8 @@ on:
 jobs:
   lint-and-tests:
     runs-on: ubuntu-latest
-    container:
-      image: "causalens.jfrog.io/docker-open-source/causalens-base:latest"
-      credentials:
-        username: "${{ secrets.JF_USERNAME }}"
-        password: "${{ secrets.JF_PASSWORD }}"
-      env:
-        BORG_BASE_REF: "${{ github.base_ref }}"
-        NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Setup git config
@@ -28,18 +20,28 @@ jobs:
           git config user.email "<>"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
-          cache: "poetry"
-      - run: poetry install
-      - name: Detect if running on master
-        id: check_master
+          python-version: "3.8"  
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology 
+      - name: Setup cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+            path: .venv
+            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install Python venv if cache was not found
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
-          if [[ "${{github.base_ref}}" == "master" || "${{github.ref}}" == "refs/heads/master" ]]; then
-            echo "::set-output name=is_master::true"
-          else
-            echo "::set-output name=is_master::false"
-          fi
-      - name: Link packages
+            poetry anthology install
+        env:
+            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
+            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
+      - name: Link venvs if cache was hit
+        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -53,6 +55,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+      
       - name: Detect Cypress version used
         id: set-cypress
         run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"

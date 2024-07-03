@@ -8,15 +8,8 @@ on:
 jobs:
   package-and-publish:
     runs-on: ubuntu-latest
-    container:
-      image: "causalens.jfrog.io/docker-open-source/causalens-base:latest"
-      credentials:
-        username: "${{ secrets.JF_USERNAME }}"
-        password: "${{ secrets.JF_PASSWORD }}"
-      env:
-        NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Setup git config
@@ -26,10 +19,28 @@ jobs:
           git config user.email "<>"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
-          cache: "poetry"
-      - run: poetry install
-      - name: Link packages
+          python-version: "3.8"  
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology 
+      - name: Setup cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+            path: .venv
+            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install Python venv if cache was not found
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: |
+            poetry anthology install
+        env:
+            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
+            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
+      - name: Link venvs if cache was hit
+        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -45,13 +56,19 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install project dependencies
         run: make deps-project
-      - name: Get version
-        id: set-version
-        # Retrieves version from 'version = "<version>"' line in anthology.toml
-        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' anthology.toml)"
+      # Extract current and tag versions so that we can do version bump in the right places.
+      - name: Extract tags (versions)
+        id: extract_tag
+        shell: bash
+        run: |
+            echo "version=$(git describe --tags --exact-match $GITHUB_SHA)" >> $GITHUB_OUTPUT
+      - name: Set version in the toml file
+        id: set_version
+        shell: python
+        run: poetry anthology version ${{ steps.extract_tag.outputs.version }}
       - name: Parse and resolve changelog
         id: set-changelog
-        run: |
+        run: |i
           echo "::set-output name=changelog::$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})"
       - name: Update READMEs to work on PyPi before publishing
         run: |
@@ -79,6 +96,11 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
           ARTIFACTORY_REPOSITORY: documentation
+      - name: Commit version bump
+              run: |
+                    git config --global --add safe.directory .
+                    git add .
+                    git commit -m "Version bump to ${{ steps.extract_tag.outputs.new_version }}"
       - uses: 8398a7/action-slack@v3
         with:
           status: custom
