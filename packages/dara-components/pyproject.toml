@@ -3,7 +3,7 @@ build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
 [tool.blue]
 line-length = 120
-[tool.borg.scripts]
+[tool.anthology.scripts]
 format = "poetry run isort dara && poetry run blue dara"
 format-check = "poetry run isort --check dara && poetry run blue --check dara"
 lint = "poetry run mypy --ignore-missing-imports  -p dara.components && poetry run pylint dara"
@@ -54,3 +54,8 @@ pytest = "^7.0.0"
 [tool.poetry.dev-dependencies.dara-core]
 develop = true
 path = "../dara-core"
+
+[[tool.poetry.source]]
+name = "causalens"
+url = "https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple"
+priority = "supplemental"

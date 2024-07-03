@@ -34,8 +34,8 @@ jobs:
         run: make link
       - name: Get version
         id: set-version
-        # Retrieves version from 'version = "<version>"' line in borg.toml
-        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' borg.toml)"
+        # Retrieves version from 'version = "<version>"' line in anthology.toml
+        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' anthology.toml)"
       - name: Package and Publish Docs
         run: make publish-docs
         env:

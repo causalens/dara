@@ -1,10 +1,10 @@
 [build-system]
 requires = ["poetry"]
 [tool.poetry]
-name = "borg-meta-package"
+name = "anthology-meta-package"
 version = "1.10.4"
-description = "Borg Meta Package"
-authors = ["borg"]
+description = "Anthology Meta Package"
+authors = ["anthology"]
 
 [tool.poetry.dependencies]
 aiorwlock = "^1.4.0"
@@ -81,4 +81,10 @@ develop = true
 [tool.poetry.dev-dependencies.create-dara-app]
 path = "packages/create-dara-app"
 develop = true
-[tool.borg.scripts]
+
+[[tool.poetry.source]]
+name = "causalens"
+url = "https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple"
+priority = "supplemental"
+
+[tool.anthology.scripts]
