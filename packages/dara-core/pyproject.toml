@@ -61,18 +61,9 @@ tblib = "^1.7.0"
 toml = "^0.10.2"
 typing-extensions = ">=4.5.0"
 xlrd = "*"
-
-[tool.poetry.dependencies.create-dara-app]
-optional = true
-version = "=1.10.4"
-
-[tool.poetry.dependencies.dara-components]
-optional = true
-version = "=1.10.4"
-
-[tool.poetry.dependencies.uvicorn]
-extras = ["standard"]
-version = "^0.22.0"
+create-dara-app = "=1.10.4"
+dara-components = "=1.10.4"
+uvicorn = "^0.22.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
