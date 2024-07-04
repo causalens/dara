@@ -10,7 +10,7 @@ jobs:
   lint-and-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup git config
@@ -20,12 +20,12 @@ jobs:
           git config user.email "<>"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"  
+          python-version: "3.8"
       - uses: snok/install-poetry@v1
         with:
           version: 1.8.3
       - name: Install Anthology
-        run: poetry self add anthology 
+        run: poetry self add anthology
       - name: Setup cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v3
@@ -35,15 +35,17 @@ jobs:
 
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: |
-            poetry install
-            make link
+        run: poetry anthology install
         env:
             POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
             POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
       - name: Link venvs if cache was hit
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+            version: 6
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -56,7 +58,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      
+
       - name: Detect Cypress version used
         id: set-cypress
         run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"

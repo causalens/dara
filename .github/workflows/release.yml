@@ -3,15 +3,32 @@ name: package and publish
 on:
   push:
     tags:
-      - VERSION*
+      - v*
 
 jobs:
   package-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout current branch
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # Use a PAT with admin privileges, so we can push to main the changes to changelog, lock and toml.
+          # https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/34
+          token: ${{ secrets.GH_ACTIONS_KEY }}
+          fetch-depth: 0  # 0 fetches all history, apparently needed for push:
+      - name: Extract branch name
+        # This is required for pushing the changes to version, lock and changelog to the correct branch.
+        id: extract_branch
+        shell: bash
+        run: |
+          echo "ref" $REF
+          raw=$(git branch -r --contains $REF | grep -v '\->')
+          echo "raw" $raw
+          processed=$(echo $raw | awk '{print $1;}')
+          echo "processed" $processed
+          branch=${processed/origin\/}
+          echo "branch=$branch" >> $GITHUB_OUTPUT
+          echo "HEAD:$branch" | tr -d '[:space:]'
       - name: Setup git config
         run: |
           git config --global --add safe.directory /__w/dara/dara
@@ -19,12 +36,12 @@ jobs:
           git config user.email "<>"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"  
+          python-version: "3.8"
       - uses: snok/install-poetry@v1
         with:
           version: 1.8.3
       - name: Install Anthology
-        run: poetry self add anthology 
+        run: poetry self add anthology
       - name: Setup cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v3
@@ -42,6 +59,10 @@ jobs:
       - name: Link venvs if cache was hit
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+            version: 6
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -61,14 +82,25 @@ jobs:
         id: extract_tag
         shell: bash
         run: |
-            echo "version=$(git describe --tags --exact-match $GITHUB_SHA)" >> $GITHUB_OUTPUT
-      - name: Set version in the toml file
+            # Extract previous (current) tag from the lerna.json file
+            previous_tag=v$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)
+            echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
+            tag=$(git describe --tags --exact-match $GITHUB_SHA)
+            # Remove the v prefix
+            version=${tag#v}
+            echo "tag=$tag" >> $GITHUB_OUTPUT
+            echo "version=$version" >> $GITHUB_OUTPUT
+      - name: Set versions for JS and Python packages
         id: set_version
-        shell: python
-        run: poetry anthology version ${{ steps.extract_tag.outputs.version }}
+        shell: bash
+        run: |
+          poetry anthology version ${{ steps.extract_tag.outputs.version }}
+          poetry anthology install
+          pnpm lerna version ${{ steps.extract_tag.outputs.version }} --no-private --no-git-tag-version --force-publish --exact --yes
+          pnpm i --lockfile-only
       - name: Parse and resolve changelog
         id: set-changelog
-        run: |i
+        run: |
           echo "::set-output name=changelog::$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})"
       - name: Update READMEs to work on PyPi before publishing
         run: |
@@ -76,7 +108,7 @@ jobs:
       - name: Prepare resources required for packaging
         run: make prepare
       - name: Make packages
-        run: make run script=package
+        run: poetry anthology run package
       - name: Publish packages
         run: make publish
         env:
@@ -97,10 +129,54 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
           ARTIFACTORY_REPOSITORY: documentation
       - name: Commit version bump
-              run: |
-                    git config --global --add safe.directory .
-                    git add .
-                    git commit -m "Version bump to ${{ steps.extract_tag.outputs.new_version }}"
+        run: |
+              git add .
+              git commit -m "Version bump to ${{ steps.extract_tag.outputs.tag}}"
+              git push origin $(echo "HEAD:$BRANCH" | tr -d '[:space:]')
+        env:
+          GH_PAT: '${{ secrets.GH_ACTIONS_KEY }}'
+          GH_USERNAME: 'sam-causalens'
+          BRANCH: ${{ steps.extract_branch.outputs.branch }}
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            fromTag: ${{ steps.extract_tag.outputs.previous_tag }}
+            configurationJson: |
+                {
+                  "categories": [
+                      {
+                        "title": "## 🚀 Features",
+                        "labels": ["Feat", "Feature"]
+                      },
+                      {
+                        "title": "## 📈 Improvements",
+                        "labels": ["Improvement"]
+                      },
+                      {
+                        "title": "## 🐛 Fixes",
+                        "labels": ["Fix", "Bugfix"]
+                      },
+                      {
+                        "title": "## 📦 Other",
+                        "labels": []
+                      }
+                  ],
+                  "label_extractor": [
+                      {
+                          "on_property": "title",
+                          "pattern": "^([^:]*):.*$",
+                          "target": "$1"
+                      }
+                  ]
+                }
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{steps.build_changelog.outputs.changelog}}
+
       - uses: 8398a7/action-slack@v3
         with:
           status: custom
