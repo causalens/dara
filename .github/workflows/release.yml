@@ -91,7 +91,6 @@ jobs:
             echo "tag=$tag" >> $GITHUB_OUTPUT
             echo "version=$version" >> $GITHUB_OUTPUT
       - name: Set versions for JS and Python packages
-        id: set_version
         shell: bash
         run: |
           poetry anthology version ${{ steps.extract_tag.outputs.version }}
@@ -101,7 +100,7 @@ jobs:
       - name: Parse and resolve changelog
         id: set-changelog
         run: |
-          changelog=$(tooling/changelog-parser/main.js ${{ steps.set_version.outputs.version }})
+          changelog=$(tooling/changelog-parser/main.js ${{ steps.extract_tag.outputs.version }})
           echo "changelog=$changelog" >> $GITHUB_OUTPUT
       - name: Update READMEs to work on PyPi before publishing
         run: |
@@ -119,7 +118,7 @@ jobs:
       #   run: make publish-docs
       #   env:
       #     PACKAGE: dara
-      #     VERSION: ${{ steps.set_version.outputs.version }}
+      #     VERSION: ${{ steps.extract_tag.outputs.version }}
       #     PACKAGE_PATHS: |
       #       packages/create-dara-app/create_dara_app
       #       packages/dara-components/dara.components
@@ -195,7 +194,7 @@ jobs:
       #             "type": "header",
       #             "text": {
       #               "type": "plain_text",
-      #               "text": "Dara changelog for tag ${{ steps.set_version.outputs.version }}"
+      #               "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
       #             }
       #           },
       #           ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
