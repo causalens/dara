@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.10.6
+
+-   Increased performance for initial render of `CausalGraphViewer` by up to 2x
+-   Increased performance when updating large graphs in `CausalGraphViewer` by up to 50x
+
 ## 1.10.4
 
 -   Fixed an issue where `Input` of type number would return `NaN` instead of `None` within actions.
