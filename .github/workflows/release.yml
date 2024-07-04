@@ -101,7 +101,7 @@ jobs:
       - name: Parse and resolve changelog
         id: set-changelog
         run: |
-          changelog=$(tooling/changelog-parser/main.js ${{ steps.set-version.outputs.version }})
+          changelog=$(tooling/changelog-parser/main.js ${{ steps.set_version.outputs.version }})
           echo "changelog=$changelog" >> $GITHUB_OUTPUT
       - name: Update READMEs to work on PyPi before publishing
         run: |
@@ -119,7 +119,7 @@ jobs:
       #   run: make publish-docs
       #   env:
       #     PACKAGE: dara
-      #     VERSION: ${{ steps.set-version.outputs.version }}
+      #     VERSION: ${{ steps.set_version.outputs.version }}
       #     PACKAGE_PATHS: |
       #       packages/create-dara-app/create_dara_app
       #       packages/dara-components/dara.components
@@ -195,7 +195,7 @@ jobs:
       #             "type": "header",
       #             "text": {
       #               "type": "plain_text",
-      #               "text": "Dara changelog for tag ${{ steps.set-version.outputs.version }}"
+      #               "text": "Dara changelog for tag ${{ steps.set_version.outputs.version }}"
       #             }
       #           },
       #           ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
