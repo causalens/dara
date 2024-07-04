@@ -109,25 +109,25 @@ jobs:
         run: make prepare
       - name: Make packages
         run: poetry anthology run package
-      # - name: Publish packages
-      #   run: make publish
-      #   env:
-      #     PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      #     NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
-      # - name: Package and Publish Docs
-      #   run: make publish-docs
-      #   env:
-      #     PACKAGE: dara
-      #     VERSION: ${{ steps.extract_tag.outputs.version }}
-      #     PACKAGE_PATHS: |
-      #       packages/create-dara-app/create_dara_app
-      #       packages/dara-components/dara.components
-      #       packages/dara-core/dara.core
-      #     BUILD_REFERENCE: true
-      #     ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
-      #     ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
-      #     ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
-      #     ARTIFACTORY_REPOSITORY: documentation
+      - name: Publish packages
+        run: make publish
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+      - name: Package and Publish Docs
+        run: make publish-docs
+        env:
+          PACKAGE: dara
+          VERSION: ${{ steps.extract_tag.outputs.version }}
+          PACKAGE_PATHS: |
+            packages/create-dara-app/create_dara_app
+            packages/dara-components/dara.components
+            packages/dara-core/dara.core
+          BUILD_REFERENCE: true
+          ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
+          ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
+          ARTIFACTORY_REPOSITORY: documentation
       - name: Commit version bump
         run: |
               # Revert changes to readmes they are only for PyPi
@@ -184,28 +184,28 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{steps.build_changelog.outputs.changelog}}
 
-      # - uses: 8398a7/action-slack@v3
-      #   with:
-      #     status: custom
-      #     custom_payload: |
-      #       {
-      #         username: 'action-slack',
-      #         blocks: [
-      #           {
-      #             "type": "header",
-      #             "text": {
-      #               "type": "plain_text",
-      #               "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
-      #             }
-      #           },
-      #           ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
-      #             "type": "section",
-      #             "text": {
-      #               "type": "mrkdwn",
-      #               "text": section
-      #             }
-      #           })))
-      #         ]
-      #       }
-      #   env:
-      #     SLACK_WEBHOOK_URL: "${{ secrets.SLACK_TECH_TEAM_CHANNEL_WEBHOOK }}"
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              username: 'action-slack',
+              blocks: [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
+                  }
+                },
+                ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": section
+                  }
+                })))
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_TECH_TEAM_CHANNEL_WEBHOOK }}"
