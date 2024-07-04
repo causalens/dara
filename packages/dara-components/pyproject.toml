@@ -26,7 +26,8 @@ license = "Apache-2.0"
 name = "dara-components"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.10.4"
+version = "1.10.6"
+source = []
 
 [[tool.poetry.packages]]
 include = "dara"
@@ -34,7 +35,7 @@ include = "dara"
 [tool.poetry.dependencies]
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
-dara-core = "=1.10.4"
+dara-core = "=1.10.6"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -51,7 +52,3 @@ mypy = "^1.6.0"
 pylint = "3.2.3"
 pytest = "^7.0.0"
 
-[[tool.poetry.source]]
-name = "causalens"
-url = "https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple"
-priority = "supplemental"

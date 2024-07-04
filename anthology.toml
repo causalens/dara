@@ -1,4 +1,0 @@
-[[source]]
-name = "causalens"
-url = "https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple"
-priority = "supplemental"
