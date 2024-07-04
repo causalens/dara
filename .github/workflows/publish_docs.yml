@@ -34,8 +34,11 @@ jobs:
         run: make link
       - name: Get version
         id: set-version
-        # Retrieves version from 'version = "<version>"' line in anthology.toml
-        run: echo "::set-output name=version::$(sed -n 's/version = \"\(.*\)\"/\1/p' anthology.toml)"
+        # Retrieves version from 'version: "<version>"' line in lerna.json
+        run: |
+          # Extract current version from the lerna.json file
+          version=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)
+          echo "version=$version" >> $GITHUB_OUTPUT
       - name: Package and Publish Docs
         run: make publish-docs
         env:
