@@ -1,9 +1,6 @@
 # Dara Components
 
-<picture>
-    <source srcset="https://github.com/causalens/dara/blob/master/img/dara_dark.svg?raw=true" media="(prefers-color-scheme: dark)">
-    <img src="https://github.com/causalens/dara/blob/master/img/dara_light.svg?raw=true" alt="Dara Logo">
-</picture>
+<img src="https://github.com/causalens/dara/blob/v1.10.7-alpha.0/img/dara_light.svg?raw=true">
 
 ![Master tests](https://github.com/causalens/dara/actions/workflows/tests.yml/badge.svg?branch=master)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
