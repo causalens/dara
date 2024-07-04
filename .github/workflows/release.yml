@@ -132,13 +132,14 @@ jobs:
         run: |
               # Revert changes to readmes they are only for PyPi
               git checkout -- **/README.md
+              git checkout -- .npmrc
               git add .
               git commit -m "Version bump to ${{ steps.extract_tag.outputs.tag}} [skip ci]"
               git push origin $(echo "HEAD:$BRANCH" | tr -d '[:space:]')
               # Move the tag to the new commit
-              git push --delete origin ${{ steps.extract-tag.outputs.tag }}
-              git tag -fa ${{ steps.extract-tag.outputs.tag }} -m "Update tag"
-              git push origin ${{ steps.extract-tag.outputs.tag }}
+              git push --delete origin ${{ steps.extract_tag.outputs.tag }}
+              git tag -fa ${{ steps.extract_tag.outputs.tag }} -m "Update tag"
+              git push origin ${{ steps.extract_tag.outputs.tag }}
         env:
           GH_PAT: '${{ secrets.GH_ACTIONS_KEY }}'
           GH_USERNAME: 'sam-causalens'
