@@ -26,8 +26,6 @@ __pycache__/
 .pytest_cache/
 test_results
 .venv
-poetry.toml
-!/poetry.toml
 poetry.lock
 !/poetry.lock
 pyrightconfig.json
