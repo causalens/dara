@@ -22,7 +22,7 @@ import { HandlesProps, RailProps, TracksProps } from 'react-compound-slider';
 
 // Override the types for the react-compound-slider package, updating the render return type to match @types/react@18
 declare module 'react-compound-slider' {
-    export class Rail extends Component<RailProps> {
+    export class Rail extends React.Component<RailProps> {
         render():
             | string
             | number
@@ -43,7 +43,7 @@ declare module 'react-compound-slider' {
             | undefined;
     }
 
-    export class Handles extends Component<HandlesProps> {
+    export class Handles extends React.Component<HandlesProps> {
         render():
             | string
             | number
@@ -64,7 +64,7 @@ declare module 'react-compound-slider' {
             | undefined;
     }
 
-    export class Tracks extends Component<TracksProps> {
+    export class Tracks extends React.Component<TracksProps> {
         render():
             | string
             | number
