@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anthology-meta-package"
-version = "1.0.0"
+version = "1.10.6"
 description = "Anthology Meta Package"
 authors = ["anthology"]
 source = []
