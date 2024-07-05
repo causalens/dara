@@ -1,0 +1,5 @@
+[tool.poetry]
+source = []
+package-mode = false
+name = "ui-utils"
+version = "1.10.6"
