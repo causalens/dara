@@ -1,0 +1,10 @@
+{
+  "extends": [
+    "stylelint-config-standard",
+    "stylelint-config-clean-order"
+  ],
+  "customSyntax": "postcss-styled-syntax",
+  "rules": {
+    "declaration-property-value-no-unknown": true
+  }
+}

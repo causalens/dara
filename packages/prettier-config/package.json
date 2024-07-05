@@ -1,0 +1,18 @@
+{
+  "name": "@darajs/prettier-config",
+  "version": "1.10.3",
+  "description": "Dara Prettier configuration",
+  "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
+  "license": "Apache-2.0",
+  "main": "index.json",
+  "files": [
+    "index.json"
+  ],
+  "dependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "prettier": "3.2.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

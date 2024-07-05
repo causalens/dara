@@ -1,0 +1,31 @@
+{
+  "name": "@darajs/eslint-config",
+  "version": "1.10.3",
+  "description": "Dara ESLint configuration",
+  "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "prettier": "@darajs/prettier-config",
+  "dependencies": {
+    "@darajs/prettier-config": "^1.10.3",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^7.5.0",
+    "eslint-config-airbnb": "18.2.1",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^3.5",
+    "eslint-plugin-import": "2.22.1",
+    "eslint-plugin-jest": "^27.0.0",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-react": "^7.21.5",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

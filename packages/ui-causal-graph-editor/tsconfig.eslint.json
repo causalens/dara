@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./src/", "./tests/"],
+  "exclude": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@types": ["./src/types"]
+    }
+  }
+}
