@@ -144,7 +144,6 @@ const StyledDatepickerListItem = styled.span<DatepickerListItemStyleProps>`
     color: ${(props) => (props.isSelected ? '#FFF' : props.theme.colors.text)};
     text-overflow: ellipsis;
     white-space: nowrap;
-    border-radius: 0.25rem;
 
     background-color: ${(props) => {
         if (props.isSelected) {
@@ -155,6 +154,7 @@ const StyledDatepickerListItem = styled.span<DatepickerListItemStyleProps>`
         }
         return props.theme.colors.grey1;
     }};
+    border-radius: 0.25rem;
 
     :hover {
         background-color: ${(props) => (props.isSelected ? props.theme.colors.primary : props.theme.colors.grey2)};

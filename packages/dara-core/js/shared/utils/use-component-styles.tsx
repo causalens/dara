@@ -61,7 +61,9 @@ function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, us
  *
  * @param rawCss raw css property to parse
  */
-export function parseRawCss(rawCss: string | CustomCSSProperties | React.CSSProperties): [rawStyles: CustomCSSProperties, rawCss: string] {
+export function parseRawCss(
+    rawCss: string | CustomCSSProperties | React.CSSProperties
+): [rawStyles: CustomCSSProperties, rawCss: string] {
     const isRawObject = typeof rawCss === 'object' && rawCss !== null && rawCss !== undefined;
 
     const componentCss = !isRawObject && typeof rawCss === 'string' ? rawCss : '';
