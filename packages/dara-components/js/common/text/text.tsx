@@ -37,7 +37,7 @@ function Text(props: TextProps): JSX.Element {
                     fontStyle: props.italic ? 'italic' : 'normal',
                     fontWeight: props.bold ? 'bold' : 'normal',
                     marginRight: '0.1em',
-                    textAlign: props.align,
+                    textAlign: props.align as any,
                     textDecoration: props.underline ? 'underline' : '',
                     ...style,
                 }}
@@ -56,7 +56,7 @@ function Text(props: TextProps): JSX.Element {
             style={{
                 color,
                 margin: '0',
-                textAlign: props.align,
+                textAlign: props.align as any,
                 ...style,
             }}
         >

@@ -1,0 +1,69 @@
+{
+  "name": "@darajs/ui-widgets",
+  "version": "1.10.3",
+  "description": "The UI widgets built on top of UI components",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "jsnext:main": "dist/index.js",
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "lint": "eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
+    "format": "prettier src --write",
+    "format:check": "prettier src --check",
+    "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
+    "test-watch": "jest --watch",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
+  },
+  "prettier": "@darajs/prettier-config",
+  "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.6",
+    "@babel/preset-react": "^7.14.5",
+    "@babel/preset-typescript": "^7.15.0",
+    "@darajs/eslint-config": "^1.10.3",
+    "@darajs/prettier-config": "^1.10.3",
+    "@darajs/stylelint-config": "^1.10.3",
+    "@storybook/addon-a11y": "^6.5.16",
+    "@storybook/addon-actions": "^6.5.16",
+    "@storybook/addon-essentials": "^6.5.16",
+    "@storybook/addon-links": "^6.5.16",
+    "@storybook/addon-styling": "^0.3.2",
+    "@storybook/builder-webpack5": "^6.5.16",
+    "@storybook/manager-webpack5": "^6.5.16",
+    "@storybook/react": "^6.5.16",
+    "@storybook/theming": "^6.5.16",
+    "@testing-library/dom": "^9.3.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^13.2.1",
+    "@types/styled-components": "^5.1.26",
+    "babel-jest": "^29.5.0",
+    "babel-loader": "^8.2.2",
+    "babel-plugin-styled-components": "^1.13.2",
+    "eslint": "^7.2.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^3.0.2",
+    "storybook-dark-mode": "^1.0.8",
+    "stylelint": "^15.0.0",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@darajs/styled-components": "^1.10.3",
+    "@darajs/ui-components": "^1.10.3",
+    "@darajs/ui-icons": "^1.10.3",
+    "@darajs/ui-utils": "^1.10.3",
+    "lodash": "4.17.21",
+    "nanoid": "^3.3.0",
+    "react": "^18.0",
+    "react-dom": "^18.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  }
+}

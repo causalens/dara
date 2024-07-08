@@ -22,7 +22,7 @@ function Heading(props: HeadingProps): JSX.Element {
             as={tag}
             className={props.className}
             id={anchorName(heading)}
-            style={{ color: theme.colors.text, textAlign: props.align, ...style }}
+            style={{ color: theme.colors.text, textAlign: props.align as any, ...style }}
         >
             {heading}
         </StyledTag>

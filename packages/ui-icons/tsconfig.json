@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "outDir": "./dist/"
+  }
+}
