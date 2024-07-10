@@ -114,6 +114,7 @@ jobs:
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+          VERSION_TAG: ${{ steps.extract_tag.outputs.tag }}
       - name: Package and Publish Docs
         run: make publish-docs
         env:
@@ -128,13 +129,8 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
           ARTIFACTORY_REPOSITORY: documentation
-      - name: Commit version bump
+      - name: Push a committed version bump
         run: |
-              # Revert changes to readmes they are only for PyPi
-              git checkout -- **/README.md
-              git checkout -- .npmrc
-              git add .
-              git commit -m "Version bump to ${{ steps.extract_tag.outputs.tag}} [skip ci]"
               git push origin $(echo "HEAD:$BRANCH" | tr -d '[:space:]')
               # Move the tag to the new commit
               git push --delete origin ${{ steps.extract_tag.outputs.tag }}
