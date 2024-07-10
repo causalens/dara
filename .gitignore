@@ -30,6 +30,7 @@ poetry.lock
 !/poetry.lock
 pyrightconfig.json
 .ipynb_checkpoints
+**/*.egg-info/
 
 # JS
 **/node_modules
