@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.11.0
+
+-   Dropped support for Python 3.8.
+-   Added support for Python 3.12.
+
 ## 1.10.5
 
 -   Fixed an issue where an empty '.npmrc' would be written to the static files directory even when no custom registry is specified
