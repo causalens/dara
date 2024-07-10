@@ -3,8 +3,12 @@ name = "anthology-meta-package"
 version = "1.10.6"
 description = "Anthology Meta Package"
 authors = ["anthology"]
-source = []
 package-mode = false
+
+[[tool.poetry.source]]
+name = "causalens"
+url = "https://causalens.jfrog.io/artifactory/api/pypi/python-open-source/simple/"
+priority = "supplemental"
 
 [tool.poetry.dependencies]
 aiorwlock = ">=1.4.0,<2.0.0"
@@ -45,6 +49,7 @@ tblib = ">=1.7.0,<2.0.0"
 toml = ">=0.10.2,<0.11.0"
 typing-extensions = ">=4.5.0"
 xlrd = "*"
+docs-builder = {version = "~0.2.0", source = "causalens"}
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
