@@ -73,11 +73,17 @@ run:
 	poetry anthology run $(script)
 
 
-# Publish all the packages to the appropriate repositories
+# Publish all the packages to the appropriate repositories, creating a version bump commit
+# Before committing, revert changes to readmes they are only for PyPi
 publish:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
 	poetry anthology run publish
-	git reset --hard
+	
+	git checkout -- **/README.md
+	git checkout -- .npmrc
+	git add .
+	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
+	
 	echo "//registry.npmjs.org/:_authToken=$${NPMJS_TOKEN}" >> .npmrc
 	git update-index --assume-unchanged .npmrc
 	lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
