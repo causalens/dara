@@ -236,8 +236,8 @@ function graphToCausalGraph(graph: Graph): CausalGraph {
 
 export const RandomClusters = (args: CausalGraphEditorProps): JSX.Element => {
     const [numClusters, setNumClusters] = useState(2);
-    const [numEdges, setNumEdges] = useState(1600);
-    const [numNodes, setNumNodes] = useState(800);
+    const [numEdges, setNumEdges] = useState(1000);
+    const [numNodes, setNumNodes] = useState(400);
     const [parsedData, setParsedData] = useState<CausalGraph>();
     const [render, setRender] = useState(false);
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IPointData } from 'pixi.js';
+import { PointData } from 'pixi.js';
 import { Reducer } from 'react';
 
 import { EdgeType, EditorMode, GraphState, SimulationEdge, SimulationGraph, VariableType } from '../types';
@@ -49,7 +49,7 @@ interface AddEdgeAction {
 }
 
 interface AddLatentNodeAction {
-    position: IPointData;
+    position: PointData;
     type: GraphActionType.ADD_LATENT_NODE;
 }
 
@@ -255,7 +255,7 @@ export const GraphReducer: Reducer<GraphState, GraphAction> = (state, action) =>
     return draft;
 };
 
-const addLatentNode = (position: IPointData): AddLatentNodeAction => ({
+const addLatentNode = (position: PointData): AddLatentNodeAction => ({
     position,
     type: GraphActionType.ADD_LATENT_NODE,
 });

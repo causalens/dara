@@ -35,9 +35,9 @@ const globalSegmentCache = new Map<number, Map<number, SegmentData>>();
  * @param tension tension of the curve
  * @param numOfSegments number of segments to use per point
  */
-export function getCurvePoints(points: PIXI.IPointData[], tension = 0.5, numOfSegments = 16): PIXI.IPointData[] {
-    let _pts: PIXI.IPointData[] = [];
-    const res: PIXI.IPointData[] = [];
+export function getCurvePoints(points: PIXI.PointData[], tension = 0.5, numOfSegments = 16): PIXI.PointData[] {
+    let _pts: PIXI.PointData[] = [];
+    const res: PIXI.PointData[] = [];
 
     // cache data which doesn't change between points
     let segmentCache = globalSegmentCache.get(numOfSegments);
@@ -94,9 +94,9 @@ export function getCurvePoints(points: PIXI.IPointData[], tension = 0.5, numOfSe
  * @param curve curve points
  * @param distance distance between the curve and the polygon
  */
-export function getPolygonFromCurve(curve: PIXI.IPointData[], distance = 6): PIXI.IPointData[] {
-    const sideAPoints: PIXI.IPointData[] = [];
-    const sideBPoints: PIXI.IPointData[] = [];
+export function getPolygonFromCurve(curve: PIXI.PointData[], distance = 6): PIXI.PointData[] {
+    const sideAPoints: PIXI.PointData[] = [];
+    const sideBPoints: PIXI.PointData[] = [];
 
     for (let i = 0; i < curve.length - 1; i++) {
         const a = curve[i];
@@ -141,12 +141,12 @@ export function getPolygonFromCurve(curve: PIXI.IPointData[], distance = 6): PIX
  * @param offset offset of the first circle
  */
 export function getCirclesAlongCurve(
-    curvePoints: PIXI.IPointData[],
+    curvePoints: PIXI.PointData[],
     numCircles: number,
     distanceBetweenCircles: number,
     offset: number
-): PIXI.IPointData[] {
-    const circles: PIXI.IPointData[] = [];
+): PIXI.PointData[] {
+    const circles: PIXI.PointData[] = [];
     let currentSegmentIndex = 0;
     let currentDistance = -offset;
 

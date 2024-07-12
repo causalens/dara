@@ -31,7 +31,7 @@ const GROUP_BORDER = 'GROUP_BORDER';
 /**
  * Represents a drawn Group Container object
  */
-export class GroupContainerObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
+export class GroupContainerObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     groupContainerGfx: PIXI.Container;
 
     constructor() {
@@ -44,7 +44,7 @@ export class GroupContainerObject extends PIXI.utils.EventEmitter<(typeof MOUSE_
      * - rectangle
      * - border
      */
-    private createGroupContainer(): PIXI.Container<PIXI.DisplayObject> {
+    private createGroupContainer(): PIXI.Container<PIXI.Container> {
         const groupContainerGfx = new PIXI.Container();
         groupContainerGfx.interactive = true;
         groupContainerGfx.cursor = 'pointer';
@@ -53,18 +53,18 @@ export class GroupContainerObject extends PIXI.utils.EventEmitter<(typeof MOUSE_
 
         // send mouse events up
         MOUSE_EVENTS.forEach((eventName) => {
-            groupContainerGfx.addEventListener(eventName, (event) => this.emit(eventName, event));
+            groupContainerGfx.addListener(eventName, (event) => this.emit(eventName, event));
         });
 
         // rectangle
         const containerRectangle = new PIXI.Sprite();
-        containerRectangle.name = GROUP_RECTANGLE;
+        containerRectangle.label = GROUP_RECTANGLE;
         containerRectangle.anchor.set(0.5);
         groupContainerGfx.addChild(containerRectangle);
 
         // border
         const containerBorder = new PIXI.Sprite();
-        containerBorder.name = GROUP_BORDER;
+        containerBorder.label = GROUP_BORDER;
         containerBorder.anchor.set(0.5);
         groupContainerGfx.addChild(containerBorder);
 
@@ -111,15 +111,14 @@ export class GroupContainerObject extends PIXI.utils.EventEmitter<(typeof MOUSE_
         // Get/create rectangle texture
         const rectangleTexture = textureCache.get(createKey(GROUP_RECTANGLE, minX, maxX, minY, maxY), () => {
             const graphics = new PIXI.Graphics();
-            graphics.lineStyle(2, theme.colors.primary.replace('#', '0x'), 0.5); // Half-transparent border
-            graphics.beginFill(theme.colors.blue2.replace('#', '0x'), 1);
-            graphics.drawRoundedRect(minX, minY, width, height, 8);
-            graphics.endFill();
+            graphics.roundRect(minX, minY, width, height, 8).fill(theme.colors.blue2.replace('#', '0x')).stroke({
+                width: 2, color: theme.colors.primary.replace('#', '0x'), alpha: 0.5 // Half-transparent border
+            });
             return graphics;
         });
 
         // Set the node texture and adjust its styles
-        const rectangle = groupContainerGfx.getChildByName<PIXI.Sprite>(GROUP_RECTANGLE);
+        const rectangle = groupContainerGfx.getChildByName(GROUP_RECTANGLE) as PIXI.Sprite;
         rectangle.texture = rectangleTexture;
         [rectangle.tint, rectangle.alpha] = colorToPixi(theme.colors.blue2);
     }
@@ -129,7 +128,7 @@ export class GroupContainerObject extends PIXI.utils.EventEmitter<(typeof MOUSE_
      *
      * @param position position to move to
      */
-    updatePosition(position: PIXI.IPointData): void {
+    updatePosition(position: PIXI.PointData): void {
         this.groupContainerGfx.position.copyFrom(position);
     }
 

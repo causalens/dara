@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { SCALE_MODES } from '@pixi/constants';
-import { IRenderer, Texture } from '@pixi/core';
-import { Container } from '@pixi/display';
-import { Rectangle } from '@pixi/math';
+import { Renderer, Texture } from 'pixi.js';
+import { Container } from 'pixi.js';
+import { Rectangle } from 'pixi.js';
 
 /**
  * Utility cache to create and store textures
  */
 export class TextureCache {
-    renderer: IRenderer;
+    renderer: Renderer;
 
     private textures = new Map<string, Texture>();
 
-    constructor(renderer: IRenderer) {
+    constructor(renderer: Renderer) {
         this.renderer = renderer;
     }
 
@@ -41,17 +40,21 @@ export class TextureCache {
         let texture = this.textures.get(key);
         if (!texture) {
             const container = defaultCallback();
-            const region = container.getLocalBounds(undefined, true);
+            const region = container.getLocalBounds(undefined);
+            // console.log('region', region);
             const roundedRegion = new Rectangle(
                 Math.floor(region.x) - padding / 2,
                 Math.floor(region.y) - padding / 2,
                 Math.ceil(region.width) + padding,
                 Math.ceil(region.height) + padding
             );
-            texture = this.renderer.generateTexture(container, {
-                region: roundedRegion,
+            texture = this.renderer.generateTexture({
+                target: container,
+                frame: roundedRegion,
                 resolution: this.renderer.resolution * 2,
-                scaleMode: SCALE_MODES.LINEAR,
+                textureSourceOptions: {
+                    scaleMode: 'linear',
+                },
             });
             this.textures.set(key, texture);
         }
