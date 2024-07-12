@@ -517,7 +517,6 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
             // Keep curved edge visuals up-to-date
             this.renderCurvedEdge(edgeStyle, sourceBoundPosition, targetBoundPosition, viewport);
         } else {
-            // console.log('length:', length);
             this.edgeGfx.height = length;
 
             this.updateStyle(edgeStyle, textureCache);

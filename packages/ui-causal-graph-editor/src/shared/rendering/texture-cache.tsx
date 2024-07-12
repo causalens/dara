@@ -39,7 +39,6 @@ export class TextureCache {
         if (!texture) {
             const container = defaultCallback();
             const region = container.getLocalBounds(undefined);
-            // console.log('region', region);
             const roundedRegion = new Rectangle(
                 Math.floor(region.x) - padding / 2,
                 Math.floor(region.y) - padding / 2,
