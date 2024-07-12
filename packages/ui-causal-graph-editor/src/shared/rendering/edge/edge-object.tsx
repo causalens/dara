@@ -649,12 +649,7 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         }
 
         edgeLineGfx.moveTo(...transformPoint({ x: 8, y: 0 }));
-        edgeLineGfx.lineTo(...transformPoint({ x: 0, y: 8 })).stroke({
-            alpha: symbolAlpha,
-            cap: 'round',
-            color,
-            width: 2,
-        });
+        edgeLineGfx.lineTo(...transformPoint({ x: 0, y: 8 }));
         edgeLineGfx.moveTo(...transformPoint({ x: 8, y: 0 }));
         edgeLineGfx.lineTo(...transformPoint({ x: 0, y: -8 })).stroke({
             alpha: symbolAlpha,
