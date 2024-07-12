@@ -135,38 +135,43 @@ export function createCenterSymbol(style: PixiEdgeStyle): PIXI.Graphics {
     // In edge encoder, show prohibited/undirected in the center
     if (style.editorMode === EditorMode.EDGE_ENCODER && style.constraint) {
         if (style.constraint.type === EdgeConstraintType.FORBIDDEN) {
-                gfx.moveTo(-6, 6)
-                .lineTo(6, -6).stroke({
+            gfx.moveTo(-6, 6)
+                .lineTo(6, -6)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,
                 })
                 .moveTo(6, 6)
-                .lineTo(-6, -6).stroke({
+                .lineTo(-6, -6)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,
                 });
         } else if (style.constraint.type === EdgeConstraintType.UNDIRECTED) {
-            
-                gfx.moveTo(-8, 4)
-                .lineTo(0, 12).stroke({
+            gfx.moveTo(-8, 4)
+                .lineTo(0, 12)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,
                 })
-                .lineTo(8, 4).stroke({
+                .lineTo(8, 4)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,
                 })
                 .moveTo(-8, -4)
-                .lineTo(0, -12).stroke({
+                .lineTo(0, -12)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,
                 })
-                .lineTo(8, -4).stroke({
+                .lineTo(8, -4)
+                .stroke({
                     cap: 'round',
                     color: 0xffffff,
                     width: 2,

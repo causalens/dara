@@ -73,7 +73,14 @@ export class Background extends EventEmitter<'click'> {
 
         // then draw the dots
         const [color] = colorToPixi(theme.colors.grey2);
-        gfx.circle(0, distance, 1).fill(color).circle(distance, distance, 1).fill(color).circle(0, 0, 1).fill(color).circle(distance, 0, 1).fill(color);
+        gfx.circle(0, distance, 1)
+            .fill(color)
+            .circle(distance, distance, 1)
+            .fill(color)
+            .circle(0, 0, 1)
+            .fill(color)
+            .circle(distance, 0, 1)
+            .fill(color);
 
         return gfx;
     }

@@ -758,8 +758,9 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
         const [initialColor] = colorToPixi(this.theme.colors.blue1);
 
         this.app = new PIXI.Application();
+        const isWebGPU = localStorage.getItem('enable-webgpu') === 'true';
         await this.app.init({
-            preference: 'webgpu',
+            preference: isWebGPU ? 'webgpu' : 'webgl',
             antialias: true,
             autoDensity: true,
             autoStart: false,
@@ -773,8 +774,6 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
         // Add a canvas to the container
         container.appendChild(this.app.canvas);
         this.textureCache = new TextureCache(this.app.renderer);
-        // @eslint-disable-next-line no-console
-        console.info(`Using ${this.app.renderer.name} renderer.`);
 
         // Create viewport and add it to the app
         this.viewport = new Viewport({
@@ -995,7 +994,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // increase the resolution for better quality
             textureSourceOptions: {
                 scaleMode: 'linear',
-                sampleCount: PIXI.MSAA_QUALITY.HIGH,
+                sampleCount: this.app.renderer.type === PIXI.RendererType.WEBGPU ? 1 : PIXI.MSAA_QUALITY.HIGH,
             },
             resolution,
             frame: region,

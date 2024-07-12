@@ -382,10 +382,10 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
 
         // Hide edge sprite / graphics based on zoom
         if (edgeLine) {
-            // edgeLine.visible = zoomState.edge;
+            edgeLine.visible = zoomState.edge;
         }
         if (edgeLineGfx) {
-            // edgeLineGfx.visible = zoomState.edge;
+            edgeLineGfx.visible = zoomState.edge;
         }
 
         // Create filter the first time
@@ -398,7 +398,7 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
             isArray(edgeGfx.filters) ? (edgeGfx.filters[0] as DropShadowFilter) : (edgeGfx.filters as DropShadowFilter);
 
         // Only show at high zoom and when hovered
-        // dropShadow.enabled = state.hover && zoomState.shadow;
+        dropShadow.enabled = state.hover && zoomState.shadow;
     }
 
     /**

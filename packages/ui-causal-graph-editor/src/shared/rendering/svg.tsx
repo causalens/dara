@@ -66,5 +66,5 @@ export function drawPath(d: string, gfx: Graphics): void {
         cap: 'round',
         color: 0xffffff,
         width: 1,
-    }).fill(0xffffff)
+    }).fill(0xffffff);
 }

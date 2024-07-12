@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Renderer, Texture } from 'pixi.js';
-import { Container } from 'pixi.js';
-import { Rectangle } from 'pixi.js';
+import { Container, Rectangle, Renderer, Texture } from 'pixi.js';
 
 /**
  * Utility cache to create and store textures
