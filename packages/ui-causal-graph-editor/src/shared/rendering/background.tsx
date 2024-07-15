@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import { Viewport } from 'pixi-viewport';
-import { EventEmitter } from 'pixi.js';
 import * as PIXI from 'pixi.js';
 
 import { DefaultTheme } from '@darajs/styled-components';
@@ -26,7 +25,7 @@ import { colorToPixi, createKey } from './utils';
 const DOT_DISTANCE = 20;
 const SCALE = 0.5;
 
-export class Background extends EventEmitter<'click'> {
+export class Background extends PIXI.EventEmitter<'click'> {
     public sprite: PIXI.TilingSprite;
 
     constructor(theme: DefaultTheme, textureCache: TextureCache, viewport: Viewport) {
