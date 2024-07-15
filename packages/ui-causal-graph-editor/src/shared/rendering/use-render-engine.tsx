@@ -31,7 +31,7 @@ interface UseRenderEngineApi {
     /**
      * Get current center position of the viewport
      */
-    getCenterPosition: () => PIXI.IPointData;
+    getCenterPosition: () => PIXI.PointData;
     /**
      * Should be called whenever an edge selection should change
      *
@@ -182,7 +182,7 @@ export function useRenderEngine({
     }, []);
 
     return {
-        getCenterPosition: (): PIXI.IPointData => {
+        getCenterPosition: (): PIXI.PointData => {
             return engine.current.getCenterPosition();
         },
         onEdgeSelected: (path: [string, string]) => {

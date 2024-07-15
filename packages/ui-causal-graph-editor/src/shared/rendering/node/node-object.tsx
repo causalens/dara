@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DropShadowFilter } from '@pixi/filter-drop-shadow';
-import { SmoothGraphics } from '@pixi/graphics-smooth';
+import { isArray } from 'lodash';
+import { DropShadowFilter } from 'pixi-filters';
 import * as PIXI from 'pixi.js';
+import { EventEmitter } from 'pixi.js';
 
 import { ZoomState } from '@types';
 
@@ -36,7 +37,7 @@ const NODE_SQUARE_BORDER = 'NODE_SQUARE_BORDER';
 /**
  * Represents a drawn Node object
  */
-export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
+export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     nodeGfx: PIXI.Container;
 
     nodeLabelGfx: PIXI.Container;
@@ -62,10 +63,11 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * - circle
      * - border
      */
-    private createNode(): PIXI.Container<PIXI.DisplayObject> {
+    private createNode(): PIXI.Container<PIXI.Container> {
         const nodeGfx = new PIXI.Container();
         nodeGfx.interactive = true;
         nodeGfx.cursor = 'pointer';
+        nodeGfx.cullable = true;
 
         nodeGfx.hitArea = new PIXI.Circle(0, 0);
 
@@ -76,25 +78,25 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
 
         // circle
         const nodeCircle = new PIXI.Sprite();
-        nodeCircle.name = NODE_CIRCLE;
+        nodeCircle.label = NODE_CIRCLE;
         nodeCircle.anchor.set(0.5);
         nodeGfx.addChild(nodeCircle);
 
         // square
         const nodeSquare = new PIXI.Sprite();
-        nodeSquare.name = NODE_SQUARE;
+        nodeSquare.label = NODE_SQUARE;
         nodeSquare.anchor.set(0.5);
         nodeGfx.addChild(nodeSquare);
 
         // border
         const nodeBorder = new PIXI.Sprite();
-        nodeBorder.name = NODE_BORDER;
+        nodeBorder.label = NODE_BORDER;
         nodeBorder.anchor.set(0.5);
         nodeGfx.addChild(nodeBorder);
 
         // square border
         const nodeSquareBorder = new PIXI.Sprite();
-        nodeSquareBorder.name = NODE_SQUARE_BORDER;
+        nodeSquareBorder.label = NODE_SQUARE_BORDER;
         nodeSquareBorder.anchor.set(0.5);
         nodeGfx.addChild(nodeSquareBorder);
 
@@ -104,7 +106,7 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
     /**
      * Create a new node label, including a sprite for the text
      */
-    private createNodeLabel(): PIXI.Container<PIXI.DisplayObject> {
+    private createNodeLabel(): PIXI.Container<PIXI.Container> {
         const nodeLabelGfx = new PIXI.Container();
         nodeLabelGfx.interactive = true;
         nodeLabelGfx.cursor = 'pointer';
@@ -116,7 +118,7 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
 
         // nodeLabelGfx -> nodeLabelText
         const nodeLabelText = new PIXI.Sprite();
-        nodeLabelText.name = NODE_LABEL;
+        nodeLabelText.label = NODE_LABEL;
         nodeLabelText.anchor.set(0.5);
         nodeLabelGfx.addChild(nodeLabelText);
 
@@ -139,29 +141,29 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         (nodeGfx.hitArea as PIXI.Circle).radius = outerRadius;
 
         // Create filter the first time
-        if (!nodeGfx.filters || nodeGfx.filters.length === 0) {
+        if (!nodeGfx.filters || (isArray(nodeGfx.filters) && nodeGfx.filters.length === 0)) {
             nodeGfx.filters = [new DropShadowFilter({ offset: { x: 0, y: 0 } })];
         }
-        const dropShadow = nodeGfx.filters[0] as DropShadowFilter;
+        const dropShadow =
+            isArray(nodeGfx.filters) ? (nodeGfx.filters[0] as DropShadowFilter) : (nodeGfx.filters as DropShadowFilter);
 
         const nodeTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE : NODE_CIRCLE;
         const nodeBorderTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE_BORDER : NODE_BORDER;
 
         // Get/create circle texture
         const nodeTexture = textureCache.get(createKey(nodeTextureKey, nodeStyle.size), () => {
-            const graphics = new SmoothGraphics();
-            graphics.beginFill(0xffffff, 1, true);
+            const graphics = new PIXI.Graphics();
 
             if (nodeStyle.isGroupNode) {
-                graphics.drawRoundedRect(nodeStyle.size, nodeStyle.size, 2 * nodeStyle.size, 2 * nodeStyle.size, 8);
+                graphics.roundRect(nodeStyle.size, nodeStyle.size, 2 * nodeStyle.size, 2 * nodeStyle.size, 8);
             } else {
-                graphics.drawCircle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
+                graphics.circle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
             }
-            return graphics;
+            return graphics.fill(0xffffff);
         });
 
         // Set the node texture and adjust its styles
-        const nodeBody = nodeGfx.getChildByName<PIXI.Sprite>(nodeTextureKey);
+        const nodeBody = nodeGfx.getChildByName(nodeTextureKey) as PIXI.Sprite;
         nodeBody.texture = nodeTexture;
         [nodeBody.tint, nodeBody.alpha] = colorToPixi(nodeStyle.color);
 
@@ -169,20 +171,19 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         const borderTexture = textureCache.get(
             createKey(nodeBorderTextureKey, outerRadius, borderWidth, nodeStyle.size),
             () => {
-                const graphics = new SmoothGraphics();
-                graphics.lineStyle({ color: 0xffffff, width: borderWidth });
+                const graphics = new PIXI.Graphics();
                 if (nodeStyle.isGroupNode) {
-                    graphics.drawRoundedRect(outerRadius, outerRadius, 2 * nodeStyle.size, 2 * nodeStyle.size, 8);
+                    graphics.roundRect(outerRadius, outerRadius, 2 * nodeStyle.size, 2 * nodeStyle.size, 8);
                 } else {
-                    graphics.drawCircle(outerRadius, outerRadius, nodeStyle.size);
+                    graphics.circle(outerRadius, outerRadius, nodeStyle.size);
                 }
-                return graphics;
+                return graphics.stroke({ color: 0xffffff, width: borderWidth });
             },
             BORDER_PADDING
         );
 
         // Set the border texture and adjust its styles
-        const border = nodeGfx.getChildByName<PIXI.Sprite>(nodeBorderTextureKey);
+        const border = nodeGfx.getChildByName(nodeBorderTextureKey) as PIXI.Sprite;
         border.texture = borderTexture;
         [border.tint, border.alpha] = colorToPixi(nodeStyle.highlight_color);
 
@@ -239,14 +240,14 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
                 const textStyle = getTextStyle(nodeStyle.label_size);
                 const trimmedText = trimToFit(nodeStyle.label, maxSize, textStyle);
 
-                const txt = new PIXI.Text(trimmedText, textStyle);
-                txt.resolution *= 2;
+                const txt = new PIXI.Text({ text: trimmedText, style: textStyle });
+                txt.resolution = 2;
 
                 return txt;
             }
         );
 
-        const nodeLabel = nodeLabelGfx.getChildByName<PIXI.Sprite>(NODE_LABEL);
+        const nodeLabel = nodeLabelGfx.getChildByName(NODE_LABEL) as PIXI.Sprite;
         nodeLabel.texture = labelTexture;
         [nodeLabel.tint, nodeLabel.alpha] = colorToPixi(nodeStyle.label_color);
 
@@ -269,7 +270,8 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * @param zoomStep zoom step
      */
     static updateNodeVisibility(nodeGfx: PIXI.Container, zoomState: ZoomState, state: NodeState): void {
-        const shadow = nodeGfx.filters[0] as DropShadowFilter;
+        const shadow =
+            isArray(nodeGfx.filters) ? (nodeGfx.filters[0] as DropShadowFilter) : (nodeGfx.filters as DropShadowFilter);
 
         // keep shadow if node is selected
         shadow.enabled = zoomState.shadow || state.selected;
@@ -282,8 +284,8 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * @param zoomStep zoom step
      */
     static updateNodeLabelVisibility(nodeLabelGfx: PIXI.Container, zoomState: ZoomState): void {
-        const nodeLabel = nodeLabelGfx.getChildByName<PIXI.Sprite>(NODE_LABEL);
-        nodeLabel.visible = nodeLabel.visible && zoomState.label;
+        const nodeLabel = nodeLabelGfx.getChildByName(NODE_LABEL) as PIXI.Sprite;
+        nodeLabel.visible = zoomState.label;
     }
 
     /**
@@ -291,9 +293,9 @@ export class NodeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      *
      * @param position position to move to
      */
-    updatePosition(position: PIXI.IPointData): void {
-        this.nodeGfx.position.copyFrom(position);
-        this.nodeLabelGfx.position.copyFrom(position);
+    updatePosition(position: PIXI.PointData): void {
+        this.nodeGfx.position?.copyFrom(position);
+        this.nodeLabelGfx.position?.copyFrom(position);
     }
 
     /**

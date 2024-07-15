@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { SmoothGraphics } from '@pixi/graphics-smooth';
 import * as PIXI from 'pixi.js';
 
 import { EdgeConstraintType, EdgeType, EditorMode } from '../../../types';
@@ -34,8 +33,8 @@ export function createSideSymbol(
     position: 'top' | 'bottom',
     tint: number,
     bgTint: number
-): SmoothGraphics {
-    const gfx = new SmoothGraphics();
+): PIXI.Graphics {
+    const gfx = new PIXI.Graphics();
 
     const color = tint;
 
@@ -56,12 +55,11 @@ export function createSideSymbol(
         if (style.editorMode === EditorMode.EDGE_ENCODER) {
             // Edge encoder - shows semi-circle tip for soft directed constraint
             if (style.constraint?.type === EdgeConstraintType.SOFT_DIRECTED) {
-                gfx.lineStyle({
-                    cap: PIXI.LINE_CAP.ROUND,
+                gfx.arc(0, 0, 8, 0, Math.PI, false).stroke({
+                    cap: 'round',
                     color,
                     width: 2,
                 });
-                gfx.arc(0, 0, 8, 0, Math.PI, false);
                 return gfx;
             }
             // Encoder - only show arrow for directed constraint
@@ -70,11 +68,10 @@ export function createSideSymbol(
             }
         }
 
-        gfx.lineStyle({ cap: PIXI.LINE_CAP.ROUND, color, width: 2 });
         gfx.moveTo(0, 8);
         gfx.lineTo(-8, 0);
         gfx.moveTo(0, 8);
-        gfx.lineTo(8, 0);
+        gfx.lineTo(8, 0).stroke({ cap: 'round', color, width: 2 });
     }
 
     // Multiplier for Y values - flip bottom position graphics
@@ -86,21 +83,15 @@ export function createSideSymbol(
 
         // Fill for arrows
         if (['<', '>'].includes(symbol)) {
-            gfx.beginFill(color, 1, true);
-            gfx.drawPolygon([0, my * 10, -8, 0, 8, 0]);
-            gfx.endFill();
+            gfx.poly([0, my * 10, -8, 0, 8, 0]).fill(color);
         } else if (symbol === 'o') {
-            gfx.beginFill(bgTint, 1);
-            gfx.drawCircle(0, 0, 6);
-            gfx.endFill();
-
-            // stroke for circles
-            gfx.lineStyle({ color, width: 3 });
-            gfx.drawCircle(0, 0, 5);
+            gfx.circle(0, 0, 6).fill(bgTint).circle(0, 0, 5).stroke({ color, width: 3 });
         } else {
             // undirected - no symbol
             return gfx;
         }
+
+        return gfx;
     }
 
     return gfx;
@@ -111,21 +102,17 @@ export function createSideSymbol(
  *
  * @param dots number of dots to include in the symbol
  */
-export function createStrengthSymbol(dots: number): SmoothGraphics {
-    const gfx = new SmoothGraphics();
+export function createStrengthSymbol(dots: number): PIXI.Graphics {
+    const gfx = new PIXI.Graphics();
 
     if (!dots) {
         return gfx;
     }
 
-    gfx.beginFill(0xffffff, 1, true);
-
     // Draw a circle for each dot
     for (let i = 0; i < dots; i++) {
-        gfx.drawCircle(0, -10 * i, 4);
+        gfx.circle(0, -10 * i, 4).fill(0xffffff);
     }
-
-    gfx.endFill();
 
     return gfx;
 }
@@ -135,47 +122,30 @@ export function createStrengthSymbol(dots: number): SmoothGraphics {
  *
  * @param style edge style
  */
-export function createCenterSymbol(style: PixiEdgeStyle): SmoothGraphics {
-    const gfx = new SmoothGraphics();
+export function createCenterSymbol(style: PixiEdgeStyle): PIXI.Graphics {
+    const gfx = new PIXI.Graphics();
 
     // In resolver modes, draw a question mark for unresolved direction edges
     if (EditorMode.RESOLVER === style.editorMode) {
         if (style.type !== EdgeType.DIRECTED_EDGE) {
-            gfx.lineStyle({
-                cap: PIXI.LINE_CAP.ROUND,
-                color: 0xffffff,
-                width: 1,
-            });
-            gfx.beginFill(0xffffff, 1, true);
             drawPath(QUESTION_MARK, gfx);
-            gfx.endFill();
         }
     }
 
     // In edge encoder, show prohibited/undirected in the center
     if (style.editorMode === EditorMode.EDGE_ENCODER && style.constraint) {
         if (style.constraint.type === EdgeConstraintType.FORBIDDEN) {
-            gfx.lineStyle({
-                cap: PIXI.LINE_CAP.ROUND,
+            gfx.moveTo(-6, 6).lineTo(6, -6).moveTo(6, 6).lineTo(-6, -6).stroke({
+                cap: 'round',
                 color: 0xffffff,
                 width: 2,
             });
-            gfx.moveTo(-6, 6);
-            gfx.lineTo(6, -6);
-            gfx.moveTo(6, 6);
-            gfx.lineTo(-6, -6);
         } else if (style.constraint.type === EdgeConstraintType.UNDIRECTED) {
-            gfx.lineStyle({
-                cap: PIXI.LINE_CAP.ROUND,
+            gfx.moveTo(-8, 4).lineTo(0, 12).lineTo(8, 4).moveTo(-8, -4).lineTo(0, -12).lineTo(8, -4).stroke({
+                cap: 'round',
                 color: 0xffffff,
                 width: 2,
             });
-            gfx.moveTo(-8, 4);
-            gfx.lineTo(0, 12);
-            gfx.lineTo(8, 4);
-            gfx.moveTo(-8, -4);
-            gfx.lineTo(0, -12);
-            gfx.lineTo(8, -4);
         }
     }
 

@@ -34,7 +34,7 @@ export interface PixiEdgeStyle {
     /** Whether there is an edge currently selected */
     isEdgeSelected: boolean;
     /** Edge points; if provided, edge will be drawn as a curve along the points */
-    points?: Array<PIXI.IPointData>;
+    points?: Array<PIXI.PointData>;
     /** Current edge state */
     state: EdgeState;
     /** Strength definition to be used if provided */

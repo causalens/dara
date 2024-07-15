@@ -45,7 +45,7 @@ export function getTextStyle(size: number): PIXI.TextStyle {
  */
 export function trimToFit(text: string, maxSize: number, textStyle: PIXI.TextStyle): string {
     // Measure the size of the text
-    const { height, maxLineWidth, lines, lineWidths, lineHeight } = PIXI.TextMetrics.measureText(text, textStyle);
+    const { height, maxLineWidth, lines, lineWidths, lineHeight } = PIXI.CanvasTextMetrics.measureText(text, textStyle);
 
     // if either height or width of the text doesn't fit in the node, truncate it
     const overflows = height >= maxSize || maxLineWidth >= maxSize;
@@ -97,7 +97,7 @@ export function trimToFit(text: string, maxSize: number, textStyle: PIXI.TextSty
     textStyleWhiteSpace.whiteSpace = 'pre-line';
 
     // Calculate width of space, dots, and each letter
-    const [dotsLength, ...letterLengths] = PIXI.TextMetrics.measureText(
+    const [dotsLength, ...letterLengths] = PIXI.CanvasTextMetrics.measureText(
         textLetterPerLine,
         textStyleWhiteSpace
     ).lineWidths;

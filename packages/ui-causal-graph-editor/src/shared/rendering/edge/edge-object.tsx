@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DropShadowFilter } from '@pixi/filter-drop-shadow';
-import { SmoothGraphics } from '@pixi/graphics-smooth';
+import { isArray } from 'lodash';
 import clone from 'lodash/cloneDeep';
+import { DropShadowFilter } from 'pixi-filters';
 import { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
@@ -44,7 +44,7 @@ const EDGE_OFFSET = 10;
  */
 const LOCAL_MULTIPLIER = 1.5;
 
-export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
+export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     edgeGfx: PIXI.Container;
 
     edgeSymbolsGfx: PIXI.Container;
@@ -66,10 +66,11 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         this.edgeSymbolsGfx = this.createEdgeSymbols();
     }
 
-    private createEdge(): PIXI.Container<PIXI.DisplayObject> {
+    private createEdge(): PIXI.Container<PIXI.Container> {
         const edgeGfx = new PIXI.Container();
 
         edgeGfx.hitArea = new PIXI.Polygon();
+        edgeGfx.cullable = true;
 
         // Temporary edges don't need to fire events
         if (!this.temporary) {
@@ -83,7 +84,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
 
         // edge - is tiled to repeat its texture if it's too long
         const edgeLine = new PIXI.TilingSprite(PIXI.Texture.WHITE);
-        edgeLine.name = EDGE_LINE_SPRITE;
+        edgeLine.label = EDGE_LINE_SPRITE;
         edgeLine.anchor.set(0.5);
         edgeGfx.addChild(edgeLine);
 
@@ -97,7 +98,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * - bottom symbol - e.g. arrows
      * - strength symbol - strength marker circles
      */
-    private createEdgeSymbols(): PIXI.Container<PIXI.DisplayObject> {
+    private createEdgeSymbols(): PIXI.Container<PIXI.Container> {
         const edgeSymbolsGfx = new PIXI.Container();
 
         if (!this.temporary) {
@@ -110,27 +111,27 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         }
 
         const edgeTopSymbol = new PIXI.Sprite();
-        edgeTopSymbol.name = EDGE_TOP_SYMBOL;
+        edgeTopSymbol.label = EDGE_TOP_SYMBOL;
         edgeTopSymbol.anchor.set(0.5);
         edgeSymbolsGfx.addChild(edgeTopSymbol);
 
         const edgeCenterSymbol = new PIXI.Sprite();
-        edgeCenterSymbol.name = EDGE_CENTER_SYMBOL;
+        edgeCenterSymbol.label = EDGE_CENTER_SYMBOL;
         edgeCenterSymbol.anchor.set(0.5);
         edgeSymbolsGfx.addChild(edgeCenterSymbol);
 
         const edgeBottomSymbol = new PIXI.Sprite();
-        edgeBottomSymbol.name = EDGE_BOTTOM_SYMBOL;
+        edgeBottomSymbol.label = EDGE_BOTTOM_SYMBOL;
         edgeBottomSymbol.anchor.set(0.5);
         edgeSymbolsGfx.addChild(edgeBottomSymbol);
 
         const edgeStrengthSymbol = new PIXI.Sprite();
-        edgeStrengthSymbol.name = EDGE_STRENGTH_SYMBOL;
+        edgeStrengthSymbol.label = EDGE_STRENGTH_SYMBOL;
         edgeStrengthSymbol.anchor.set(0.5, 1);
         edgeSymbolsGfx.addChild(edgeStrengthSymbol);
 
         const edgeSourceNumberSymbol = new PIXI.Sprite();
-        edgeSourceNumberSymbol.name = EDGE_NUMBER_SYMBOL;
+        edgeSourceNumberSymbol.label = EDGE_NUMBER_SYMBOL;
         edgeSourceNumberSymbol.anchor.set(0.5);
         edgeSymbolsGfx.addChild(edgeSourceNumberSymbol);
 
@@ -149,15 +150,15 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
             return;
         }
 
-        let edgeLineSprite = edgeGfx.getChildByName<PIXI.TilingSprite>(EDGE_LINE_SPRITE);
-        const edgeLineGfx = edgeGfx.getChildByName<SmoothGraphics>(EDGE_LINE_GFX);
+        let edgeLineSprite = edgeGfx.getChildByName(EDGE_LINE_SPRITE) as PIXI.TilingSprite;
+        const edgeLineGfx = edgeGfx.getChildByName(EDGE_LINE_GFX) as PIXI.Graphics;
 
         // create line sprite if it doesn't exist yet (e.g. we were in curved line mode before)
         if (!edgeLineSprite) {
             edgeGfx.removeChild(edgeLineGfx);
 
             edgeLineSprite = new PIXI.TilingSprite(PIXI.Texture.WHITE);
-            edgeLineSprite.name = EDGE_LINE_SPRITE;
+            edgeLineSprite.label = EDGE_LINE_SPRITE;
             edgeLineSprite.anchor.set(0.5);
             edgeGfx.addChild(edgeLineSprite);
         }
@@ -189,37 +190,36 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         }
 
         // Get/create edge line texture
-        const edgeLineTexture = textureCache.get(createKey(EDGE_LINE_SPRITE, dash, gapScale), () => {
-            const gfx = new PIXI.Graphics();
+        const edgeLineTexture = textureCache.get(
+            createKey(EDGE_LINE_SPRITE, dash, gapScale),
+            () => {
+                const gfx = new PIXI.Graphics();
 
-            gfx.lineStyle({
-                color: 0xffffff,
-                width: 10,
-            });
+                // If dash is set, draw a dashed line
+                if (dash) {
+                    gfx.moveTo(0, 0)
+                        .lineTo(0, dash)
+                        .moveTo(0, dash + 2 * dash * gapScale)
+                        .lineTo(0, 4 * dash);
+                } else {
+                    // Otherwise just a straight line
+                    gfx.moveTo(0, 0).lineTo(0, 300);
+                }
 
-            // If dash is set, draw a dashed line
-            if (dash) {
-                gfx.beginFill();
-                gfx.moveTo(0, 0);
-                gfx.lineTo(0, dash);
-                gfx.moveTo(0, dash + 2 * dash * gapScale);
-                gfx.lineTo(0, 4 * dash);
-                gfx.endFill();
-            } else {
-                // Otherwise just a straight line
-                gfx.moveTo(0, 0);
-                gfx.lineTo(0, 300);
-            }
-
-            return gfx;
-        });
+                return gfx.stroke({
+                    color: 0xffffff,
+                    width: 10,
+                });
+            },
+            -10
+        );
 
         edgeLineSprite.texture = edgeLineTexture;
         edgeLineSprite.width = edgeStyle.strength?.thickness ?? 3;
 
         // Make sure to only update if edgeGfx already has a height set, it could be NaN at first renders
         // only if dash is set, we need to update the height - to prevent stretching dashes
-        if (edgeGfx.height && dash) {
+        if (edgeGfx.height) {
             edgeLineSprite.height = edgeGfx.height;
         }
 
@@ -269,7 +269,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         textureCache: TextureCache
     ): void {
         // Top
-        const edgeTopSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_TOP_SYMBOL);
+        const edgeTopSymbol = edgeSymbolsGfx.getChildByName(EDGE_TOP_SYMBOL) as PIXI.Sprite;
 
         const [tint] = colorToPixi(edgeStyle.color);
         const [bgTint] = colorToPixi(edgeStyle.theme.colors.blue1);
@@ -284,7 +284,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         edgeTopSymbol.alpha = 1;
 
         // Center
-        const edgeCenterSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_CENTER_SYMBOL);
+        const edgeCenterSymbol = edgeSymbolsGfx.getChildByName(EDGE_CENTER_SYMBOL) as PIXI.Sprite;
 
         const centerSymbolTexture = textureCache.get(
             createKey(EDGE_CENTER_SYMBOL, edgeStyle.editorMode, edgeStyle.type, edgeStyle.constraint?.type),
@@ -300,7 +300,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         }
 
         // Bottom
-        const edgeBottomSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_BOTTOM_SYMBOL);
+        const edgeBottomSymbol = edgeSymbolsGfx.getChildByName(EDGE_BOTTOM_SYMBOL) as PIXI.Sprite;
 
         const bottomSymbolTexture = textureCache.get(
             createKey(
@@ -319,7 +319,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         edgeBottomSymbol.alpha = 1;
 
         // Strength symbols
-        const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_STRENGTH_SYMBOL);
+        const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
         const strengthSymbolTexture = textureCache.get(createKey(EDGE_STRENGTH_SYMBOL, edgeStyle.strength?.dots), () =>
             createStrengthSymbol(edgeStyle.strength?.dots)
@@ -330,7 +330,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         edgeStrengthSymbol.alpha = 1;
 
         // Number symbols
-        const edgeNumberSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_NUMBER_SYMBOL);
+        const edgeNumberSymbol = edgeSymbolsGfx.getChildByName(EDGE_NUMBER_SYMBOL) as PIXI.Sprite;
         const numberSymbolTexture = textureCache.get(
             createKey(EDGE_NUMBER_SYMBOL, edgeStyle.collapsedEdgesCount),
             () => {
@@ -343,7 +343,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
                     fontSize: 18,
                     fill: colorToPixi(edgeStyle.color),
                 });
-                const text = new PIXI.Text(edgeStyle.collapsedEdgesCount, textStyle);
+                const text = new PIXI.Text({ text: edgeStyle.collapsedEdgesCount, style: textStyle });
                 return text;
             }
         );
@@ -377,8 +377,8 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * @param zoomStep zoom step
      */
     static updateEdgeVisibility(edgeGfx: PIXI.Container, zoomState: ZoomState, state: EdgeState): void {
-        const edgeLine = edgeGfx.getChildByName<PIXI.Sprite>(EDGE_LINE_SPRITE);
-        const edgeLineGfx = edgeGfx.getChildByName<PIXI.Graphics>(EDGE_LINE_GFX);
+        const edgeLine = edgeGfx.getChildByName(EDGE_LINE_SPRITE) as PIXI.Sprite;
+        const edgeLineGfx = edgeGfx.getChildByName(EDGE_LINE_GFX) as PIXI.Graphics;
 
         // Hide edge sprite / graphics based on zoom
         if (edgeLine) {
@@ -389,12 +389,13 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         }
 
         // Create filter the first time
-        if (!edgeGfx.filters || edgeGfx.filters.length === 0) {
+        if (!edgeGfx.filters || (isArray(edgeGfx.filters) && edgeGfx.filters.length === 0)) {
             const shadowFilter = new DropShadowFilter({ blur: 3, offset: { x: 0, y: 0 } });
             [shadowFilter.color, shadowFilter.alpha] = colorToPixi('rgba(0, 0, 0, 0.5)');
             edgeGfx.filters = [shadowFilter];
         }
-        const dropShadow = edgeGfx.filters[0] as DropShadowFilter;
+        const dropShadow =
+            isArray(edgeGfx.filters) ? (edgeGfx.filters[0] as DropShadowFilter) : (edgeGfx.filters as DropShadowFilter);
 
         // Only show at high zoom and when hovered
         dropShadow.enabled = state.hover && zoomState.shadow;
@@ -407,10 +408,10 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      * @param zoomStep zoom step
      */
     static updateEdgeSymbolVisibility(edgeSymbolsGfx: PIXI.Container, zoomState: ZoomState, hasPoints: boolean): void {
-        const edgeTopSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_TOP_SYMBOL);
-        const edgeCenterSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_CENTER_SYMBOL);
-        const edgeBottomSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_BOTTOM_SYMBOL);
-        const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName<PIXI.Sprite>(EDGE_STRENGTH_SYMBOL);
+        const edgeTopSymbol = edgeSymbolsGfx.getChildByName(EDGE_TOP_SYMBOL) as PIXI.Sprite;
+        const edgeCenterSymbol = edgeSymbolsGfx.getChildByName(EDGE_CENTER_SYMBOL) as PIXI.Sprite;
+        const edgeBottomSymbol = edgeSymbolsGfx.getChildByName(EDGE_BOTTOM_SYMBOL) as PIXI.Sprite;
+        const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
         edgeTopSymbol.visible = !hasPoints && edgeTopSymbol.visible && zoomState.symbol;
         edgeCenterSymbol.visible = !hasPoints && edgeCenterSymbol.visible && zoomState.symbol;
@@ -431,8 +432,8 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      */
     updatePosition(
         edgeStyle: PixiEdgeStyle,
-        sourceNodePosition: PIXI.IPointData,
-        targetNodePosition: PIXI.IPointData,
+        sourceNodePosition: PIXI.PointData,
+        targetNodePosition: PIXI.PointData,
         sourceSize: number,
         targetSize: number,
         viewport: Viewport,
@@ -534,8 +535,8 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
      */
     private renderCurvedEdge(
         edgeStyle: PixiEdgeStyle,
-        sourceBoundPosition: PIXI.IPointData,
-        targetBoundPosition: PIXI.IPointData,
+        sourceBoundPosition: PIXI.PointData,
+        targetBoundPosition: PIXI.PointData,
         viewport: Viewport
     ): void {
         if (!edgeStyle.points) {
@@ -545,14 +546,14 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         edgeStyle.color ??= edgeStyle.theme.colors.grey5;
 
         const { edgeGfx } = this;
-        const edgeLineSprite = edgeGfx.getChildByName<PIXI.TilingSprite>(EDGE_LINE_SPRITE);
-        let edgeLineGfx = edgeGfx.getChildByName<SmoothGraphics>(EDGE_LINE_GFX);
+        const edgeLineSprite = edgeGfx.getChildByName(EDGE_LINE_SPRITE) as PIXI.TilingSprite;
+        let edgeLineGfx = edgeGfx.getChildByName(EDGE_LINE_GFX) as PIXI.Graphics;
 
         if (!edgeLineGfx) {
             edgeGfx.removeChild(edgeLineSprite);
 
-            edgeLineGfx = new SmoothGraphics();
-            edgeLineGfx.name = EDGE_LINE_GFX;
+            edgeLineGfx = new PIXI.Graphics();
+            edgeLineGfx.label = EDGE_LINE_GFX;
             edgeGfx.addChild(edgeLineGfx);
         }
 
@@ -567,11 +568,6 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         } else {
             alpha = edgeStyle.strength?.opacity ?? 0.5;
         }
-        edgeLineGfx.lineStyle({
-            alpha,
-            color,
-            width: edgeStyle.strength?.thickness ?? 3,
-        });
 
         // Adjust first and last point to be on the edge of the node
         // This is done by moving the point in the direction of the next point by the radius of the node
@@ -598,6 +594,11 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         curvePoints.slice(1).forEach((p) => {
             edgeLineGfx.lineTo(p.x, p.y);
         });
+        edgeLineGfx.stroke({
+            alpha,
+            color,
+            width: edgeStyle.strength?.thickness ?? 3,
+        });
 
         // Now create a hitbox as a polygon around the edge
         const hitboxPoints = getPolygonFromCurve(curvePoints);
@@ -622,7 +623,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
         );
 
         // Create a helper to rotate the arrow
-        function transformPoint(point: PIXI.IPointData): [number, number] {
+        function transformPoint(point: PIXI.PointData): [number, number] {
             // Translate the point
             const translatedX = point.x + arrowCenter.x;
             const translatedY = point.y + arrowCenter.y;
@@ -646,16 +647,15 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
             symbolAlpha = 0.3;
         }
 
-        edgeLineGfx.lineStyle({
-            alpha: symbolAlpha,
-            cap: PIXI.LINE_CAP.ROUND,
-            color,
-            width: 2,
-        });
         edgeLineGfx.moveTo(...transformPoint({ x: 8, y: 0 }));
         edgeLineGfx.lineTo(...transformPoint({ x: 0, y: 8 }));
         edgeLineGfx.moveTo(...transformPoint({ x: 8, y: 0 }));
-        edgeLineGfx.lineTo(...transformPoint({ x: 0, y: -8 }));
+        edgeLineGfx.lineTo(...transformPoint({ x: 0, y: -8 })).stroke({
+            alpha: symbolAlpha,
+            cap: 'round',
+            color,
+            width: 2,
+        });
 
         // Draw strength circles
         if (edgeStyle.strength) {
@@ -666,9 +666,7 @@ export class EdgeObject extends PIXI.utils.EventEmitter<(typeof MOUSE_EVENTS)[nu
                 (EDGE_OFFSET + 5) * LOCAL_MULTIPLIER
             );
             for (const circle of circlePositions) {
-                edgeLineGfx.beginFill(color, symbolAlpha, true);
-                edgeLineGfx.drawCircle(circle.x, circle.y, 4);
-                edgeLineGfx.endFill();
+                edgeLineGfx.circle(circle.x, circle.y, 4).fill({ color, alpha: symbolAlpha });
             }
         }
     }

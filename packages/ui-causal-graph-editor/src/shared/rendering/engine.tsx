@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Cull } from '@pixi-essentials/cull';
 import FontFaceObserver from 'fontfaceobserver';
 import { LayoutMapping, XYPosition, assignLayout } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
@@ -89,7 +88,7 @@ export const ENGINE_EVENTS: Array<keyof EngineEvents> = [
     'groupMouseover',
 ];
 
-export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
+export class Engine extends PIXI.EventEmitter<EngineEvents> {
     /** App instance */
     private app: PIXI.Application;
 
@@ -277,13 +276,14 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
         this.errorHandler = errorHandler;
         this.processEdgeStyle = processEdgeStyle;
         this.isFocused = false;
-        PIXI.Filter.defaultResolution = 3;
+        PIXI.Filter.defaultOptions.resolution = 3;
+        PIXI.extensions.add(PIXI.CullerPlugin);
     }
 
     /**
      * Get the center position of the rendered viewport
      */
-    public getCenterPosition(): PIXI.IPointData {
+    public getCenterPosition(): PIXI.PointData {
         return { x: this.viewport.center.x, y: this.viewport.center.y };
     }
 
@@ -301,9 +301,9 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
         this.graph.off('nodeAttributesUpdated', this.onGraphNodeAttributesUpdatedBound);
 
         this.onCleanup?.();
-        this.textureCache.destroy();
-        this.resizeObserver.disconnect();
-        this.app.destroy(true, true);
+        this.textureCache?.destroy();
+        this.resizeObserver?.disconnect();
+        this.app?.destroy(true, true);
     }
 
     /**
@@ -545,6 +545,13 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
             });
 
             this.requestRender();
+
+            // Force a culling update all nodes and edges are created
+            // Without this the first time the nodes are collapsed the graph will
+            // be culled completely making it invisible
+            setTimeout(() => {
+                this.viewport.dirty = true;
+            }, 300);
         }
     }
 
@@ -757,7 +764,10 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
         this.container = container;
         const [initialColor] = colorToPixi(this.theme.colors.blue1);
 
-        this.app = new PIXI.Application({
+        this.app = new PIXI.Application();
+        const isWebGPU = localStorage.getItem('enable-webgpu') === 'true';
+        await this.app.init({
+            preference: isWebGPU ? 'webgpu' : 'webgl',
             antialias: true,
             autoDensity: true,
             autoStart: false,
@@ -769,7 +779,7 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
         });
 
         // Add a canvas to the container
-        container.appendChild(this.app.view as HTMLCanvasElement);
+        container.appendChild(this.app.canvas);
         this.textureCache = new TextureCache(this.app.renderer);
 
         // Create viewport and add it to the app
@@ -785,7 +795,7 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
             this.toggleWheelZoom(true);
         }
 
-        this.viewport.addEventListener('frame-end', () => {
+        this.viewport.addListener('frame-end', () => {
             if (this.viewport.dirty) {
                 this.requestRender();
                 this.viewport.dirty = false;
@@ -803,12 +813,17 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
 
         // create layers - containers to hold different rendered parts of the graph
         this.groupContainerLayer = new PIXI.Container();
+        this.groupContainerLayer.cullable = true;
 
         this.edgeLayer = new PIXI.Container();
+        this.edgeLayer.cullable = true;
         this.edgeSymbolsLayer = new PIXI.Container();
+        this.edgeSymbolsLayer.cullable = true;
 
         this.nodeLayer = new PIXI.Container();
+        this.nodeLayer.cullable = true;
         this.nodeLabelLayer = new PIXI.Container();
+        this.nodeLabelLayer.cullable = true;
 
         this.viewport.addChild(this.groupContainerLayer);
 
@@ -906,10 +921,10 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
     public toggleWheelZoom(isEnabled: boolean): void {
         if (isEnabled) {
             this.viewport.wheel();
-            this.app.view.addEventListener('wheel', Engine.wheelListener);
+            this.app.canvas.addEventListener('wheel', Engine.wheelListener);
         } else {
             this.viewport.plugins.remove('wheel');
-            this.app.view.removeEventListener('wheel', Engine.wheelListener);
+            this.app.canvas.removeEventListener('wheel', Engine.wheelListener);
         }
     }
 
@@ -928,12 +943,12 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
     public async extractImage(): Promise<string> {
         // create a new container to render
         const containerWithBackground = new PIXI.Container();
+        containerWithBackground.cullable = true;
 
         // Add a custom background since renderer background is not rendered, simply render a single-color rect
-        const bg = new PIXI.Graphics();
-        bg.beginFill(this.app.renderer.background.color, 1);
-        bg.drawRect(0, 0, this.app.renderer.width, this.app.renderer.height);
-        bg.endFill();
+        const bg = new PIXI.Graphics()
+            .rect(0, 0, this.app.renderer.width, this.app.renderer.height)
+            .fill(this.app.renderer.background.color);
         containerWithBackground.addChild(bg);
 
         // add the stage
@@ -957,16 +972,17 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
 
         let resolution = window.devicePixelRatio;
 
-        // make sure WEBGL renderer is available
-        if (this.app.renderer.type === PIXI.RENDERER_TYPE.WEBGL) {
+        // now calculate our ideal resolution to get to 4k resolution in the generated image
+        const area = region.width * region.height;
+        // WEBGL vs WebGPU renderer
+        if (this.app.renderer.type === PIXI.RendererType.WEBGL) {
             // compute what's the max safe WEBGL dimension size we can render without crashing
-            const { gl } = this.app.renderer as PIXI.Renderer;
+            const { gl } = this.app.renderer as PIXI.WebGLRenderer;
             const maxRenderBufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
             const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
             const maxSafeDimension = Math.min(maxRenderBufferSize, maxTextureSize);
 
             // now calculate our ideal resolution to get to 4k resolution in the generated image
-            const area = region.width * region.height;
             const desiredResolution = Math.sqrt(MAX_REASONABLE_PIXELS / area);
 
             // scale the dimensions, capping each on the max safe dimension
@@ -976,17 +992,23 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
             // pick the smaller scale factor
             resolution = Math.floor(Math.min(scaledWidth / region.width, scaledHeight / region.height));
         }
+        if (this.app.renderer.type === PIXI.RendererType.WEBGPU) {
+            resolution = Math.floor(Math.sqrt(MAX_REASONABLE_PIXELS / area));
+        }
 
-        const renderTexture = this.app.renderer.generateTexture(containerWithBackground, {
-            scaleMode: PIXI.SCALE_MODES.LINEAR,
+        const renderTexture = this.app.renderer.generateTexture({
+            target: containerWithBackground,
             // increase the resolution for better quality
+            textureSourceOptions: {
+                scaleMode: 'linear',
+                sampleCount: this.app.renderer.type === PIXI.RendererType.WEBGPU ? 1 : PIXI.MSAA_QUALITY.HIGH,
+            },
             resolution,
-            multisample: PIXI.MSAA_QUALITY.HIGH,
-            region,
+            frame: region,
         });
 
         // generate the data URL
-        return this.app.renderer.extract.base64(renderTexture, 'image/png');
+        return this.app.renderer.extract.base64({ target: renderTexture, format: 'png' });
     }
 
     /**
@@ -1387,7 +1409,7 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
      * @param nodeKey id of node to move
      * @param point target position
      */
-    private moveNode(nodeKey: string, point: PIXI.IPointData): void {
+    private moveNode(nodeKey: string, point: PIXI.PointData): void {
         // Update positions - this will trigger re-renders
         this.graph.setNodeAttribute(nodeKey, 'x', point.x);
         this.graph.setNodeAttribute(nodeKey, 'y', point.y);
@@ -1695,10 +1717,6 @@ export class Engine extends PIXI.utils.EventEmitter<EngineEvents> {
      * Applies culling to hide off-screen graphics, updates LOD based on zoom level
      */
     private updateGraphVisibility(): void {
-        const cull = new Cull();
-        cull.addAll((this.viewport.children as PIXI.Container[]).flatMap((layer) => layer.children));
-        cull.cull(this.app.renderer.screen);
-
         const zoomState = getZoomState(this.viewport.scale.x, this.zoomThresholds);
 
         this.graph.forEachNode((nodeKey) => {
