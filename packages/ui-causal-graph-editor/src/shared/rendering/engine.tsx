@@ -547,6 +547,8 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             this.requestRender();
 
             // Force a culling update all nodes and edges are created
+            // Without this the first time the nodes are collapsed the graph will
+            // be culled completely making it invisible
             setTimeout(() => {
                 this.viewport.dirty = true;
             }, 300);
