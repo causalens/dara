@@ -545,6 +545,11 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             });
 
             this.requestRender();
+
+            // Force a culling update all nodes and edges are created
+            setTimeout(() => {
+                this.viewport.dirty = true;
+            }, 300);
         }
     }
 
