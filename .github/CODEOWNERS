@@ -4,3 +4,5 @@
 
 # Package Owners overrides
 /packages/dara-components @krzysztof-causalens @patricia-causalens
+/packages/ui-components @krzysztof-causalens @patricia-causalens
+/packages/ui-causal-graph-editor @krzysztof-causalens @patricia-causalens

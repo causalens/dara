@@ -1,7 +1,7 @@
 <!--- The title format is expected to follow the pattern:-->
 <!--- CHANGE TYPE: Ticket Name -->
 <!--- Docs: DO-100 Update PR Template -->
-<!--- Where CHANGE TYPEs are: Docs, Breaking, Improvement, Fix, Refactor, Feat -->
+<!--- Where CHANGE TYPEs are: Docs, Breaking, Improvement, Fix, Refactor, Feat, Security -->
 
 ## Motivation and Context
 <!--- Why is this change required? What problem does it solve? -->
