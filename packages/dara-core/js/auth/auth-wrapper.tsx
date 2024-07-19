@@ -1,16 +1,16 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { ReactNode, useContext, useEffect, useState } from 'react';
+import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 
 import DefaultFallback from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
 import Center from '@/shared/center/center';
 import { ImportersCtx } from '@/shared/context';
+import globalStore from '@/shared/global-state-store';
 import PrivateRoute from '@/shared/private-route/private-route';
 import { getToken, getTokenKey } from '@/shared/utils';
 
 import { AuthComponent, useAuthComponents } from './auth';
-import AuthContext from './auth-context';
+import { useSessionToken } from './use-session-token';
 
 interface AuthWrapperProps {
     /** The children to wrap */
@@ -48,7 +48,7 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
             .catch((err) => {
                 throw new Error(`Failed to import module ${props.component.py_module}`, err);
             });
-    }, [props.component]);
+    }, [props.component, importers]);
 
     return component;
 }
@@ -60,25 +60,27 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
  * @param props - the component props
  */
 function AuthWrapper(props: AuthWrapperProps): JSX.Element {
-    const [token, setToken] = useState<string>(() => getToken());
     const { data: authComponents, isLoading } = useAuthComponents();
+    const isMounted = useRef(false);
 
-    /**
-     * Set token handler - updates the token in state and local storage
-     *
-     * @param newToken new token
-     */
-    function onSetToken(newToken: string): void {
-        const key = getTokenKey();
-
-        if (newToken) {
-            localStorage.setItem(key, newToken);
-        } else {
-            localStorage.removeItem(key);
-        }
-
-        setToken(newToken);
+    // set initial token from local storage as soon as we render
+    if (!isMounted.current) {
+        isMounted.current = true;
+        globalStore.setValue('sessionToken', getToken());
     }
+
+    useEffect(() => {
+        // sync the token with local storage
+        return globalStore.subscribe('sessionToken', (newToken: string) => {
+            const key = getTokenKey();
+
+            if (newToken) {
+                localStorage.setItem(key, newToken);
+            } else {
+                localStorage.removeItem(key);
+            }
+        });
+    }, []);
 
     if (isLoading) {
         return (
@@ -91,23 +93,21 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
     const { login, logout, ...extraRoutes } = authComponents;
 
     return (
-        <AuthContext.Provider value={{ setToken: onSetToken, token }}>
-            <Switch>
-                <Route path="/login">
-                    <DynamicAuthComponent component={login} />
+        <Switch>
+            <Route path="/login">
+                <DynamicAuthComponent component={login} />
+            </Route>
+            <Route path="/logout">
+                <DynamicAuthComponent component={logout} />
+            </Route>
+            {Object.entries(extraRoutes).map(([path, component]) => (
+                <Route key={path} path={`/${path}`}>
+                    <DynamicAuthComponent component={component} />
                 </Route>
-                <Route path="/logout">
-                    <DynamicAuthComponent component={logout} />
-                </Route>
-                {Object.entries(extraRoutes).map(([path, component]) => (
-                    <Route key={path} path={`/${path}`}>
-                        <DynamicAuthComponent component={component} />
-                    </Route>
-                ))}
-                <Route component={ErrorPage} path="/error" />
-                <Route path="/" render={() => <PrivateRoute>{props.children}</PrivateRoute>} />
-            </Switch>
-        </AuthContext.Provider>
+            ))}
+            <Route component={ErrorPage} path="/error" />
+            <Route path="/" render={() => <PrivateRoute>{props.children}</PrivateRoute>} />
+        </Switch>
     );
 }
 

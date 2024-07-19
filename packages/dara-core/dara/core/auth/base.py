@@ -18,7 +18,7 @@ limitations under the License.
 import abc
 from typing import Any, ClassVar, Dict, Union
 
-from fastapi import Response
+from fastapi import Request, Response
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 
@@ -90,6 +90,15 @@ class BaseAuthConfig(BaseModel, abc.ABC):
 
         :param token: encoded token
         """
+
+    async def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        """
+        Create a new session token and refresh token from a refresh token.
+
+        :param refresh_token: encoded refresh token
+        :return: new session token, new refresh token
+        """
+        raise HttpException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
 
     def revoke_token(self, token: str, response: Response) -> Union[SuccessResponse, RedirectResponse]:
         """

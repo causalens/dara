@@ -102,6 +102,57 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
         return auth_config.revoke_token(credentials.credentials, response)
     raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No auth credentials passed'))
 
+@auth_router.post('/refresh-token', authenticated=False)
+async def handle_refresh_token(
+    response: Response,
+    dara_refresh_token: Union[str, None] = Cookie(default=None),
+    settings: Settings = Depends(get_settings),
+):
+    """
+    Given a refresh token, issues a new session token and refresh token cookie.
+
+    :param response: FastAPI response object
+    :param dara_refresh_token: refresh token cookie
+    :param settings: env settings object
+    """
+    if dara_refresh_token is None:
+        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No refresh token provided'))
+
+    from dara.core.internal.registries import auth_registry
+
+    auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+
+    try:
+        # Refresh logic up to implementation
+        session_token, refresh_token = await auth_config.refresh_token(dara_refresh_token)
+
+        # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
+        response.set_cookie(
+            key='dara_refresh_token', value=refresh_token, secure=True, httponly=True, samesite='strict'
+        )
+        return {'token': session_token}
+    except BaseException as e:
+        # Regardless of exception type, clear the refresh token cookie
+        response.delete_cookie('dara_refresh_token')
+        headers = {'set-cookie': response.headers['set-cookie']}
+
+        # If an explicit HTTPException was raised, re-raise it with the cookie header
+        if isinstance(e, HTTPException):
+            dev_logger.error('Auth Error', error=e)
+            e.headers = headers
+            raise e
+
+        # Explicitly handle expired signature error
+        if isinstance(e, jwt.ExpiredSignatureError):
+            dev_logger.error('Expired Token Signature', error=e)
+            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR, headers=headers)
+
+        # Otherwise show a generic invalid token error
+        dev_logger.error('Invalid Token', error=cast(Exception, e))
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers)
+
+
+
 
 # Request to retrieve a session token from the backend. The app does this on startup.
 @auth_router.post('/session')

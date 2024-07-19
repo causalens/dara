@@ -3,7 +3,6 @@ import { createContext, useContext, useMemo } from 'react';
 import { useDeepCompare } from '@darajs/ui-utils';
 
 import { RequestExtras } from '@/api/http';
-import { useSessionToken } from '@/auth/auth-context';
 
 interface RequestExtrasCtx {
     options: RequestInit;
@@ -15,19 +14,14 @@ export default requestExtrasCtx;
 
 /**
  * Get request extras to be passed into request function.
- * Uses auth context for session token and merges with the options provided by the request extras provider.
  */
 export function useRequestExtras(): RequestExtras {
-    const sessionToken = useSessionToken();
     const { options } = useContext(requestExtrasCtx);
 
     const extras = useMemo(() => {
-        return {
-            options,
-            sessionToken,
-        };
+        return options;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [useDeepCompare(options), sessionToken]);
+    }, [useDeepCompare(options)]);
 
     return extras;
 }

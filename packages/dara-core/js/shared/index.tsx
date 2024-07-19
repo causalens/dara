@@ -2,7 +2,6 @@ import type { RawCssProp } from './utils';
 
 export { default as Center } from './center/center';
 export {
-    AuthCtx,
     DirectionCtx,
     ImportersCtx,
     WebSocketCtx,
