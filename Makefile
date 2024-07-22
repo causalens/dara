@@ -17,17 +17,17 @@ prepare-docs:
 
 # Run lint / static testing
 lint:
-	poetry run python ./tooling/scripts/run_borg_script.py lint && lerna run lint
+	poetry anthology run lint && lerna run lint
 
 format:
-	poetry run python ./tooling/scripts/run_borg_script.py format && lerna run format
+	poetry anthology run format && lerna run format
 
 format-check:
-	poetry run python ./tooling/scripts/run_borg_script.py format-check && lerna run format:check
+	poetry anthology run format-check && lerna run format:check
 
 # Run security scan
 security-scan:
-	poetry run python ./tooling/scripts/run_borg_script.py security-scan
+	poetry anthology run security-scan
 
 # Local bearer is expected in ./bin/bearer
 LOCAL_BEARER := ./bin/bearer
@@ -59,32 +59,38 @@ link:
 
 # Run tests
 test:
-	poetry run python ./tooling/scripts/run_borg_script.py test && lerna run test
+	poetry anthology run test && lerna run test
 
 # Version all the main packages in lockstep as a patch - run pnpm i and lock to update the lockfiles accordingly
 version-patch:
-	@pnpm lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version patch && borg lock
+	@pnpm lerna version patch --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && poetry anthology version patch && poetry anthology install
 version-minor:
-	@pnpm lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version minor && borg lock
+	@pnpm lerna version minor --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && poetry anthology version minor && poetry anthology install
 version-major:
-	@pnpm lerna version major --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && borg version major && borg lock
-# Run a borg script without using borg itself
+	@pnpm lerna version major --no-private --no-git-tag-version --force-publish --exact --yes && pnpm i --lockfile-only && poetry anthology version major && poetry anthology install
+# Run a anthology script without using anthology itself
 run:
-	poetry run python ./tooling/scripts/run_borg_script.py $(script)
+	poetry anthology run $(script)
 
 
-# Publish all the packages to the appropriate repositories
+# Publish all the packages to the appropriate repositories, creating a version bump commit
+# Before committing, revert changes to readmes they are only for PyPi
 publish:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
-	poetry run python ./tooling/scripts/run_borg_script.py publish
-	git reset --hard
+	poetry anthology run publish
+	
+	git checkout -- **/README.md
+	git checkout -- .npmrc
+	git add .
+	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
+	
 	echo "//registry.npmjs.org/:_authToken=$${NPMJS_TOKEN}" >> .npmrc
 	git update-index --assume-unchanged .npmrc
 	lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
 	sed -i '$$ d' .npmrc
 
 publish-docs:
-	poetry source add causalens https://causalens.jfrog.io/artifactory/api/pypi/python-open-source/simple/
+	poetry source add causalens https://causalens.jfrog.io/artifactory/api/pypi/python-open-source/simple/ --priority=supplemental
 	poetry config http-basic.causalens $${ARTIFACTORY_USERNAME} $${ARTIFACTORY_PASSWORD}
 	poetry add --source=causalens docs-builder@~0.2.0
 	poetry run python ./tooling/scripts/docs-upload.py
