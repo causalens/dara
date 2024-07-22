@@ -207,7 +207,7 @@ function Chat(props: ChatProps): JSX.Element {
                 <span>{props.chatTitle ?? 'Chat'}</span>
                 {props.isPopup && <CloseIcon onClick={props.onClose} aria-label={'Close chat'} />}
             </ChatTop>
-            <ChatBody ref={chatBodyRef}>
+            <ChatBody ref={chatBodyRef} role="log">
                 {localMessages.map((message) => (
                     <MessageComponent
                         key={message.id}

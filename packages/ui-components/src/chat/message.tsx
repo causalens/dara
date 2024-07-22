@@ -244,10 +244,10 @@ function MessageComponent(props: MessageProps): JSX.Element {
     };
 
     return (
-        <MessageWrapper className={props.className} style={props.style} $messageFromActiveUser={props.isEditable}>
+        <MessageWrapper role="listitem" className={props.className} style={props.style} $messageFromActiveUser={props.isEditable}>
             <MessageTop>
                 <UserInfoWrapper>
-                    <AvatarIcon style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}>
+                    <AvatarIcon aria-hidden="true" style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}>
                         {getInitials(localMessage.user.name)}
                     </AvatarIcon>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
