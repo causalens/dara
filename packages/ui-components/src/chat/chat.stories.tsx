@@ -89,6 +89,7 @@ export const Chat = (): JSX.Element => {
                 activeUser={Harry}
                 onUpdate={setValue}
                 value={value}
+                isWaiting
             />
         </div>
     );

@@ -26,6 +26,7 @@ import Button from '../button/button';
 import TextArea from '../textarea/textarea';
 import { InteractiveComponentProps, Message, UserData } from '../types';
 import { default as MessageComponent } from './message';
+import Spinner from '../spinner/spinner';
 
 const ChatWrapper = styled.div<{ $isPopup: boolean }>`
     overflow-y: auto;
@@ -104,6 +105,8 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     placeholder?: string;
     /** Whether the chat is in a popup and should be styled as such */
     isPopup?: boolean;
+    /** Whether the chat is awaiting a message*/
+    isWaiting?: boolean;
 }
 
 /**
@@ -217,6 +220,7 @@ function Chat(props: ChatProps): JSX.Element {
                         isEditable={didUserWriteMessage(message, props.activeUser)}
                     />
                 ))}
+                {props.isWaiting && <Spinner />}
             </ChatBody>
             <ReplyWrapper>
                 <TextArea
