@@ -205,7 +205,7 @@ function Chat(props: ChatProps): JSX.Element {
         <ChatWrapper className={props.className} style={props.style} $isPopup={props.isPopup}>
             <ChatTop>
                 <span>{props.chatTitle ?? 'Chat'}</span>
-                {props.isPopup && <CloseIcon onClick={props.onClose} />}
+                {props.isPopup && <CloseIcon onClick={props.onClose} aria-label={'Close chat'} />}
             </ChatTop>
             <ChatBody ref={chatBodyRef}>
                 {localMessages.map((message) => (
@@ -230,6 +230,7 @@ function Chat(props: ChatProps): JSX.Element {
                 />
                 <ReplyButtons>
                     <Button
+                        aria-label={'Send'}
                         style={{ height: '3.7rem' }}
                         disabled={!(reply.trim().length > 0)}
                         onClick={onSubmitMessage}

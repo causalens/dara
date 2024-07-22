@@ -262,8 +262,8 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 </UserInfoWrapper>
                 {!editMode && props.isEditable && (
                     <InteractiveIcons>
-                        <EditIcon data-testid="message-edit-button" onClick={() => setEditMode(true)} role="button" />
-                        <DeleteIcon data-testid="message-delete-button" onClick={onDelete} role="button" />
+                        <EditIcon aria-label={'Edit message'} data-testid="message-edit-button" onClick={() => setEditMode(true)} role="button" />
+                        <DeleteIcon aria-label={'Delete message'} data-testid="message-delete-button" onClick={onDelete} role="button" />
                     </InteractiveIcons>
                 )}
             </MessageTop>
