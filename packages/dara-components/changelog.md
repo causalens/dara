@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Updated `Code` component to support copy to clipboard functionality.
+-   Updated `Code` component default themes.
+
 ## 1.10.6
 
 -   Increased performance for initial render of `CausalGraphViewer` by up to 2x

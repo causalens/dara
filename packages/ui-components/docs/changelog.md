@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added new `CodeViewer` component.
+
 ## 1.10.1
 
 -   Fixed an issue where `Switch` appeared off centre when the base font size was changed.
