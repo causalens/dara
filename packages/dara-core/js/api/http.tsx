@@ -115,7 +115,7 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
                 }
 
                 // this will throw an error with the error content
-                validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
+                await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
             });
 
             // retry the request with the new token
@@ -126,7 +126,8 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
             });
         } catch (e) {
             // refresh failed - return the original request, the caller is supposed to handle the error
-            // how they wish
+            // however they wish
+            // eslint-disable-next-line no-console
             console.error('Failed to refresh token', e);
             return response;
         }
