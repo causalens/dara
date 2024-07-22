@@ -17,7 +17,7 @@
 import Highlight, { Language, PrismTheme, defaultProps } from 'prism-react-renderer';
 import nightOwlLight from 'prism-react-renderer/themes/nightOwlLight';
 import vsDark from 'prism-react-renderer/themes/vsDark';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import styled, { darkTheme, theme, useTheme } from '@darajs/styled-components';
 import { Check, Copy } from '@darajs/ui-icons';
@@ -100,7 +100,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         }
     }
 
-    function getTheme(): PrismTheme {
+    const theme = useMemo(() => {
         if (props.codeTheme) {
             if (props.codeTheme === CodeComponentThemes.LIGHT) {
                 return nightOwlLight;
@@ -111,7 +111,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
             return vsDark;
         }
         return nightOwlLight;
-    }
+    }, [props.codeTheme, themeCtx.themeType]);
 
     return (
         <CodeViewerContainer>
@@ -130,7 +130,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     </CopyToClipboardContainer>
                 }
             </TopBar>
-            <Highlight {...defaultProps} code={props.value} language={props.language} theme={getTheme()}>
+            <Highlight {...defaultProps} code={props.value} language={props.language} theme={theme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}
