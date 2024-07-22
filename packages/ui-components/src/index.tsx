@@ -35,6 +35,7 @@ export { default as Chat } from './chat/chat';
 export { default as CategoricalFilter } from './filter/categorical-filter';
 export { default as Checkbox } from './checkbox/checkbox';
 export { default as CheckboxGroup } from './checkbox/checkbox-group';
+export { default as CodeViewer, CodeComponentThemes } from './code-viewer/code-viewer';
 export { default as ComboBox } from './combo-box/combo-box';
 export { default as ContextMenu, MenuAction } from './context-menu/context-menu';
 export { default as DatePicker } from './datepicker/datepicker';
