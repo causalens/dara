@@ -24,22 +24,22 @@ export default {
     title: 'UI Components/CodeViewer',
 } as Meta;
 
-const codeString: string = `def greet(name):\\n
-    return f"Hello, {name}!"\\n\\n
+const codeString: string = `def greet(name):
+    return f"Hello, {name}!"
 
-def add(a, b):\\n
-    return a + b\\n\\n
+def add(a, b):
+    return a + b
 
-def factorial(n):\\n
-    if n == 0:\\n
-        return 1\\n
-    else:\\n
-        return n * factorial(n-1)\\n\\n
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
 
-if __name__ == "__main__":\\n
-    print(greet("Alice"))\\n
-    print(f"2 + 3 = {add(2, 3)}")\\n
-    print(f"Factorial of 5 is {factorial(5)}")\\n`;
+if __name__ == "__main__":
+    print(greet("Alice"))
+    print(f"2 + 3 = {add(2, 3)}")
+    print(f"Factorial of 5 is {factorial(5)}")`;
 
 export const CodeViewer = (props: CodeViewerProps): JSX.Element => <CodeViewerComponent {...props} />;
 CodeViewer.args = {
