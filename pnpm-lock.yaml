@@ -62,6 +62,7 @@ importers:
       rimraf: ^3.0.2
       stylelint: ^15.0.0
       typescript: ^5.0.4
+      vfile: 6.0.1
       vite: 3.1.8
     dependencies:
       '@bokeh/bokehjs': 3.1.1
@@ -87,6 +88,7 @@ importers:
       react-virtualized-auto-sizer: 1.0.6_react-dom@18.3.1+react@18.3.1
       recoil: 0.7.7_react-dom@18.3.1+react@18.3.1
       rehype-raw: 6.1.1
+      vfile: 6.0.1
     devDependencies:
       '@babel/core': 7.24.7
       '@darajs/eslint-config': 1.10.3
