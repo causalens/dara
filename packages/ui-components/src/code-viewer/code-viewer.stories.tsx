@@ -45,5 +45,5 @@ export const CodeViewer = (props: CodeViewerProps): JSX.Element => <CodeViewerCo
 CodeViewer.args = {
     value: codeString,
     language: 'python',
-    theme: 'dark',
+    codeTheme: 'dark',
 };

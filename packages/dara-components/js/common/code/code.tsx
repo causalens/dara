@@ -1,10 +1,9 @@
 import { Language } from 'prism-react-renderer';
 
 import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
-import styled from '@darajs/styled-components';
 import { CodeComponentThemes, CodeViewer as UiCodeViewer } from '@darajs/ui-components';
 
-const StyledCodeViewer = injectCss(styled(UiCodeViewer));
+const StyledCodeViewer = injectCss(UiCodeViewer);
 
 interface CodeProps extends StyledComponentProps {
     className: string;
@@ -21,7 +20,7 @@ function Code(props: CodeProps): JSX.Element {
         <StyledCodeViewer
             $rawCss={css}
             className={props.className}
-            code={code}
+            value={code}
             codeTheme={props.theme}
             language={props.language}
             style={{

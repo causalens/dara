@@ -25,13 +25,27 @@ import { copyToClipboard } from '@darajs/ui-utils';
 
 import { InteractiveComponentProps } from '../types';
 
-const IconLabel = styled.span`
-    position: absolute;
+const CodeViewerContainer = styled.div`
+    display: flex;
+    flex: 1 1 100%;
+    flex-direction: column;
     color: ${(props) => props.theme.colors.grey4};
+`;
 
-    top: 1rem;
-    right: 1rem;
+const TopBar = styled.div<{ $isLightTheme?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
+    padding: 0.5rem 1rem;
+
+    font-size: 0.875rem;
+
+    background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue2 : darkTheme.colors.blue2)} !important;
+    border-radius: 0.25rem 0.25rem 0 0;
+`;
+
+const IconLabel = styled.span`
     :hover {
         color: ${(props) => props.theme.colors.grey5};
     }
@@ -53,17 +67,13 @@ export interface CodeViewerProps extends InteractiveComponentProps<string> {
     codeTheme?: CodeComponentThemes;
 }
 
-interface StyledPreProps {
-    isLightTheme?: boolean;
-}
-
-const StyledPre = styled.pre<StyledPreProps>`
+const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
     min-width: fit-content;
     margin: 0;
     padding: 1rem;
 
-    background-color: ${(props) => (props.isLightTheme ? theme.colors.blue1 : darkTheme.colors.blue1)} !important;
-    border-radius: 0.25rem;
+    background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue1 : darkTheme.colors.blue1)} !important;
+    border-radius: 0 0 0.25rem 0.25rem;
 `;
 
 function CodeViewer(props: CodeViewerProps): JSX.Element {
@@ -80,7 +90,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         }
     }, [isCopied]);
 
-    async function copyCodeToClipboard(code: string) {
+    async function copyCodeToClipboard(code: string): Promise<void> {
         const success = await copyToClipboard(code);
 
         if (success) {
@@ -104,24 +114,27 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
     }
 
     return (
-        <Highlight {...defaultProps} code={props.value} language={props.language} theme={getTheme()}>
-            {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                <>
-                    {isCopied ?
-                        <IconLabel>
-                            <Check /> Copied!
-                        </IconLabel>
-                    :   <IconLabel
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => copyCodeToClipboard(props.value)}
-                            role="button"
-                        >
-                            <Copy /> Copy code
-                        </IconLabel>
-                    }
+        <CodeViewerContainer>
+            <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
+                <span>{props.language}</span>
+                {isCopied ?
+                    <IconLabel>
+                        <Check /> Copied!
+                    </IconLabel>
+                :   <IconLabel
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => copyCodeToClipboard(props.value)}
+                        role="button"
+                    >
+                        <Copy /> Copy code
+                    </IconLabel>
+                }
+            </TopBar>
+            <Highlight {...defaultProps} code={props.value} language={props.language} theme={getTheme()}>
+                {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}
-                        isLightTheme={props.codeTheme !== 'dark'}
+                        $isLightTheme={props.codeTheme !== 'dark'}
                         style={{
                             ...style,
                         }}
@@ -134,9 +147,9 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                             </div>
                         ))}
                     </StyledPre>
-                </>
-            )}
-        </Highlight>
+                )}
+            </Highlight>
+        </CodeViewerContainer>
     );
 }
 
