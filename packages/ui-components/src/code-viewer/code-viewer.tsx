@@ -45,7 +45,7 @@ const TopBar = styled.div<{ $isLightTheme?: boolean }>`
     border-radius: 0.25rem 0.25rem 0 0;
 `;
 
-const IconLabel = styled.span`
+const CopyToClipboardContainer = styled.span`
     :hover {
         color: ${(props) => props.theme.colors.grey5};
     }
@@ -118,16 +118,16 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
             <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
                 <span>{props.language}</span>
                 {isCopied ?
-                    <IconLabel>
+                    <CopyToClipboardContainer>
                         <Check /> Copied!
-                    </IconLabel>
-                :   <IconLabel
+                    </CopyToClipboardContainer>
+                :   <CopyToClipboardContainer
                         style={{ cursor: 'pointer' }}
                         onClick={() => copyCodeToClipboard(props.value)}
                         role="button"
                     >
                         <Copy /> Copy code
-                    </IconLabel>
+                    </CopyToClipboardContainer>
                 }
             </TopBar>
             <Highlight {...defaultProps} code={props.value} language={props.language} theme={getTheme()}>
