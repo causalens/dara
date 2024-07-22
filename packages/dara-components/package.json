@@ -75,7 +75,8 @@
     "react-plotly.js": "~2.6.0",
     "react-virtualized-auto-sizer": "1.0.6",
     "recoil": "^0.7.7",
-    "rehype-raw": "^6.1.1"
+    "rehype-raw": "^6.1.1",
+    "vfile": "6.0.1"
   },
   "files": [
     "dist"
