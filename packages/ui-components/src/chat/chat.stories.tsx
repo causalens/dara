@@ -84,8 +84,12 @@ export const Chat = (): JSX.Element => {
     const [value, setValue] = React.useState(messages);
 
     return (
-        <div style={{ backgroundColor: 'black', display: 'flex' }}>
-            <ChatComponent activeUser={Harry} onUpdate={setValue} value={value} />
+        <div style={{ backgroundColor: 'white', display: 'flex', height: '100%' }}>
+            <ChatComponent
+                activeUser={Harry}
+                onUpdate={setValue}
+                value={value}
+            />
         </div>
     );
 };

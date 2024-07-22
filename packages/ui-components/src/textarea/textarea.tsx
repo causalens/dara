@@ -92,6 +92,8 @@ export interface TextAreaProps extends InteractiveComponentProps<string> {
     placeholder?: string;
     /** An optional property which sets whether the textarea is resizable, and if so, in which directions */
     resize?: 'none' | 'both' | 'horizontal' | 'vertical' | 'block' | 'inline';
+    /** The maximum height the textarea will grow to, if not set it will not grow as more text is entered */
+    maxHeight?: number;
 }
 
 /**
@@ -106,6 +108,7 @@ function TextArea({
     errorMsg,
     initialValue,
     keydownFilter,
+    maxHeight,
     onBlur,
     onChange,
     onClick,
@@ -115,6 +118,24 @@ function TextArea({
     value,
     resize,
 }: TextAreaProps): JSX.Element {
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    React.useEffect(() => {
+        // This effect is used to resize the textarea based on the content
+        if (maxHeight && textareaRef.current) {
+            const minHeight = 3.7;
+            // Reset the height to the initial minimum height
+            textareaRef.current.style.height = '3.7rem';
+            // Calculate the height based on the scrollHeight
+            const newHeight =
+                textareaRef.current.scrollHeight / parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+            if (minHeight < newHeight) {
+                textareaRef.current.style.height = `${Math.min(newHeight, maxHeight)}rem`;
+            }
+        }
+    }, [value]);
+
     const onChangeText = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
         const target = e.target as HTMLInputElement;
         if (onChange) {
@@ -137,6 +158,7 @@ function TextArea({
     return (
         <div className={className} style={style}>
             <PrimaryTextArea
+                ref={textareaRef}
                 autoFocus={autoFocus}
                 defaultValue={initialValue}
                 disabled={disabled}
@@ -146,7 +168,7 @@ function TextArea({
                 onClick={onClick}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
-                style={{ resize }}
+                style={{ resize, maxHeight: maxHeight ? `${maxHeight}rem` : 'none' }}
                 value={value}
             />
             {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
