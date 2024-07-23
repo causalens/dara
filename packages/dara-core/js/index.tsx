@@ -1,4 +1,4 @@
-import type { RequestExtras, RequestOptions } from './api';
+import type { RequestExtras } from './api';
 import run from './run';
 import type { RawCssProp } from './shared';
 import type {
@@ -61,7 +61,6 @@ export type {
     StyledComponentProps,
     BaseComponentProps,
     RequestExtras,
-    RequestOptions,
     LayoutComponentProps,
     UserData,
     DaraEventMap,
@@ -71,7 +70,6 @@ export type {
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
 export {
-    useAuthCtx,
     useSessionToken,
     BasicAuthLogin,
     BasicAuthLogout,

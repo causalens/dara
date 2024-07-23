@@ -241,7 +241,7 @@ class UpdateVariable(AnnotatedAction):
     variable: Union[Variable, DataVariable, UrlVariable]
     extras: Optional[List[Union[AnyVariable, TemplateMarker]]]
 
-    def __init__(
+   def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
         variable: Union[Variable, DataVariable, UrlVariable],
