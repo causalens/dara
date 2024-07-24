@@ -9,6 +9,7 @@ title: Changelog
 -   Added two new props to `UserData` allowing to set bubble color and content in chat messages for a given user.
 -   `Textarea` component now supports `maxHeight` which when set it allows component to grow according to the size of its content.
 -   Added new `CodeViewer` component.
+-   Updated `Chat` component to use `CodeViewer` when rendering code blocks in messages.
 
 ## 1.10.1
 
