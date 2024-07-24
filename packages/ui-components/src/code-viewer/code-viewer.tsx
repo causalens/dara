@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Highlight, { Language, PrismTheme, defaultProps } from 'prism-react-renderer';
+import Highlight, { Language, defaultProps } from 'prism-react-renderer';
 import nightOwlLight from 'prism-react-renderer/themes/nightOwlLight';
 import vsDark from 'prism-react-renderer/themes/vsDark';
 import { useEffect, useMemo, useState } from 'react';
@@ -100,7 +100,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         }
     }
 
-    const theme = useMemo(() => {
+    const viewerTheme = useMemo(() => {
         if (props.codeTheme) {
             if (props.codeTheme === CodeComponentThemes.LIGHT) {
                 return nightOwlLight;
@@ -130,7 +130,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     </CopyToClipboardContainer>
                 }
             </TopBar>
-            <Highlight {...defaultProps} code={props.value} language={props.language} theme={theme}>
+            <Highlight {...defaultProps} code={props.value} language={props.language} theme={viewerTheme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}

@@ -17,6 +17,7 @@
 import { Meta } from '@storybook/react';
 import * as React from 'react';
 
+// import Spinner from '../spinner/spinner';
 import { UserData } from '../types';
 import { default as ChatComponent } from './chat';
 
@@ -89,7 +90,7 @@ export const Chat = (): JSX.Element => {
                 activeUser={Harry}
                 onUpdate={setValue}
                 value={value}
-                isWaiting
+                // loadingComponent={<Spinner size='1rem' text='typing' />}
             />
         </div>
     );

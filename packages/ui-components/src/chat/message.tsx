@@ -244,10 +244,18 @@ function MessageComponent(props: MessageProps): JSX.Element {
     };
 
     return (
-        <MessageWrapper role="listitem" className={props.className} style={props.style} $messageFromActiveUser={props.isEditable}>
+        <MessageWrapper
+            role="listitem"
+            className={props.className}
+            style={props.style}
+            $messageFromActiveUser={props.isEditable}
+        >
             <MessageTop>
                 <UserInfoWrapper>
-                    <AvatarIcon aria-hidden="true" style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}>
+                    <AvatarIcon
+                        aria-hidden="true"
+                        style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}
+                    >
                         {getInitials(localMessage.user.name)}
                     </AvatarIcon>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -262,8 +270,18 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 </UserInfoWrapper>
                 {!editMode && props.isEditable && (
                     <InteractiveIcons>
-                        <EditIcon aria-label={'Edit message'} data-testid="message-edit-button" onClick={() => setEditMode(true)} role="button" />
-                        <DeleteIcon aria-label={'Delete message'} data-testid="message-delete-button" onClick={onDelete} role="button" />
+                        <EditIcon
+                            aria-label="Edit message"
+                            data-testid="message-edit-button"
+                            onClick={() => setEditMode(true)}
+                            role="button"
+                        />
+                        <DeleteIcon
+                            aria-label="Delete message"
+                            data-testid="message-delete-button"
+                            onClick={onDelete}
+                            role="button"
+                        />
                     </InteractiveIcons>
                 )}
             </MessageTop>

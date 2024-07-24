@@ -134,7 +134,7 @@ function TextArea({
                 textareaRef.current.style.height = `${Math.min(newHeight, maxHeight)}rem`;
             }
         }
-    }, [value]);
+    }, [maxHeight, value]);
 
     const onChangeText = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
         const target = e.target as HTMLInputElement;
