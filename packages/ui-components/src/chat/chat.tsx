@@ -102,7 +102,7 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     placeholder?: string;
     /** Whether the chat is in a popup and should be styled as such */
     isPopup?: boolean;
-    /** A component showing the loading state of the chat, it appears above the input area */
+    /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
     loadingComponent?: React.ReactNode;
 }
 
