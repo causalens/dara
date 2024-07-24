@@ -352,9 +352,9 @@ function MessageComponent(props: MessageProps): JSX.Element {
             )}
             {!editMode && (
                 <MessageBody>
-                    {parseMarkdown(localMessage.message).map((component, index) =>
-                        React.cloneElement(component, { key: index })
-                    )}
+                    {parseMarkdown(localMessage.message).map((component, index) => (
+                        <React.Fragment key={index}>{component}</React.Fragment>
+                    ))}
                 </MessageBody>
             )}
         </MessageWrapper>
