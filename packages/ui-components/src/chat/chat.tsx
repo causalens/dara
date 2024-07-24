@@ -19,8 +19,7 @@ import { nanoid } from 'nanoid';
 import * as React from 'react';
 
 import styled from '@darajs/styled-components';
-import { Xmark } from '@darajs/ui-icons';
-import { PaperPlane } from '@darajs/ui-icons';
+import { PaperPlane, Xmark } from '@darajs/ui-icons';
 
 import Button from '../button/button';
 import TextArea from '../textarea/textarea';
@@ -37,7 +36,7 @@ const ChatWrapper = styled.div<{ $isPopup: boolean }>`
     height: ${(props) => (props.$isPopup ? 'calc(100vh - 2rem)' : '100%')};
     padding: 1.5rem;
 
-    background-color: ${(props) => (props.$isPopup ? '${props.theme.colors.background}e6' : 'inherit')};
+    background-color: ${(props) => (props.$isPopup ? `${props.theme.colors.background}e6` : 'inherit')};
     border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
@@ -46,7 +45,6 @@ const ReplyWrapper = styled.div`
     display: flex;
     gap: 0.5rem;
     align-items: end;
-
     margin-top: auto;
 `;
 
@@ -104,6 +102,8 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     placeholder?: string;
     /** Whether the chat is in a popup and should be styled as such */
     isPopup?: boolean;
+    /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
+    loadingComponent?: React.ReactNode;
 }
 
 /**
@@ -205,7 +205,7 @@ function Chat(props: ChatProps): JSX.Element {
         <ChatWrapper className={props.className} style={props.style} $isPopup={props.isPopup}>
             <ChatTop>
                 <span>{props.chatTitle ?? 'Chat'}</span>
-                {props.isPopup && <CloseIcon onClick={props.onClose} aria-label={'Close chat'} />}
+                {props.isPopup && <CloseIcon onClick={props.onClose} aria-label="Close chat" />}
             </ChatTop>
             <ChatBody ref={chatBodyRef} role="log">
                 {localMessages.map((message) => (
@@ -217,6 +217,7 @@ function Chat(props: ChatProps): JSX.Element {
                         isEditable={didUserWriteMessage(message, props.activeUser)}
                     />
                 ))}
+                {props.loadingComponent}
             </ChatBody>
             <ReplyWrapper>
                 <TextArea
@@ -230,9 +231,9 @@ function Chat(props: ChatProps): JSX.Element {
                 />
                 <ReplyButtons>
                     <Button
-                        aria-label={'Send'}
+                        aria-label="Send"
                         style={{ height: '3.7rem' }}
-                        disabled={!(reply.trim().length > 0)}
+                        disabled={!!props.loadingComponent || !(reply.trim().length > 0)}
                         onClick={onSubmitMessage}
                     >
                         <PaperPlane onClick={onSubmitMessage} />

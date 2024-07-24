@@ -17,6 +17,9 @@
 import { Meta } from '@storybook/react';
 import * as React from 'react';
 
+import { WandSparkles } from '@darajs/ui-icons';
+
+// import Spinner from '../spinner/spinner';
 import { UserData } from '../types';
 import { default as ChatComponent } from './chat';
 
@@ -33,6 +36,13 @@ const Hagrid: UserData = {
 const Harry: UserData = {
     name: 'Harry Potter',
     id: 'harry_id',
+};
+
+const Custom: UserData = {
+    name: 'Custom',
+    id: 'custom_id',
+    color: 'teal',
+    bubbleContent: <WandSparkles />,
 };
 
 const messages = [
@@ -78,6 +88,13 @@ const messages = [
         updated_at: '2024-04-03T15:57:26.944Z',
         user: Hagrid,
     },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'Magic!',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
 ];
 
 export const Chat = (): JSX.Element => {
@@ -85,7 +102,12 @@ export const Chat = (): JSX.Element => {
 
     return (
         <div style={{ backgroundColor: 'white', display: 'flex', height: '100%' }}>
-            <ChatComponent activeUser={Harry} onUpdate={setValue} value={value} />
+            <ChatComponent
+                activeUser={Harry}
+                onUpdate={setValue}
+                value={value}
+                // loadingComponent={<Spinner size='1rem' text='typing' />}
+            />
         </div>
     );
 };

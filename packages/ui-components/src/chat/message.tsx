@@ -254,9 +254,12 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 <UserInfoWrapper>
                     <AvatarIcon
                         aria-hidden="true"
-                        style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}
+                        style={{
+                            backgroundColor:
+                                localMessage.user.color ?? selectColor(localMessage.user.name, tokenColors),
+                        }}
                     >
-                        {getInitials(localMessage.user.name)}
+                        {localMessage.user.bubbleContent ?? getInitials(localMessage.user.name)}
                     </AvatarIcon>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {localMessage.user.name}
@@ -271,13 +274,13 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 {!editMode && props.isEditable && (
                     <InteractiveIcons>
                         <EditIcon
-                            aria-label={'Edit message'}
+                            aria-label="Edit message"
                             data-testid="message-edit-button"
                             onClick={() => setEditMode(true)}
                             role="button"
                         />
                         <DeleteIcon
-                            aria-label={'Delete message'}
+                            aria-label="Delete message"
                             data-testid="message-delete-button"
                             onClick={onDelete}
                             role="button"
