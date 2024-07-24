@@ -90,7 +90,7 @@ const messages = [
     },
     {
         id: 'ctDqA50c0b13FQKY0E1tf',
-        message: 'Magic!',
+        message: 'Magic! \n ```python \n def foo():\n  return \n ``` \n Some other stuff',
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,

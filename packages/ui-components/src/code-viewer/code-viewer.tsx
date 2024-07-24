@@ -114,7 +114,12 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
     }, [props.codeTheme, themeCtx.themeType]);
 
     return (
-        <CodeViewerContainer>
+        <CodeViewerContainer
+            style={{
+                ...props.style,
+            }}
+            className={props.className}
+        >
             <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
                 <span>{props.language}</span>
                 {isCopied ?
