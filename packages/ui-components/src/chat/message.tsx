@@ -30,7 +30,7 @@ import { InteractiveComponentProps, Message } from '../types';
 const InteractiveIcons = styled.div`
     position: absolute;
     top: 0.75rem;
-    left: 236px;
+    right: 0.75rem;
 
     display: none;
     gap: 0.5rem;
@@ -42,7 +42,7 @@ const InteractiveIcons = styled.div`
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
-const MessageWrapper = styled.div`
+const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
     position: relative;
 
     gap: 0.5rem;
@@ -50,7 +50,8 @@ const MessageWrapper = styled.div`
     width: 100%;
     padding: 1rem;
 
-    background-color: ${(props) => props.theme.colors.blue1};
+    background-color: ${(props) =>
+        props.$messageFromActiveUser ? props.theme.colors.blue2 : props.theme.colors.blue1};
     border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
@@ -243,10 +244,18 @@ function MessageComponent(props: MessageProps): JSX.Element {
     };
 
     return (
-        <MessageWrapper className={props.className} style={props.style}>
+        <MessageWrapper
+            role="listitem"
+            className={props.className}
+            style={props.style}
+            $messageFromActiveUser={props.isEditable}
+        >
             <MessageTop>
                 <UserInfoWrapper>
-                    <AvatarIcon style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}>
+                    <AvatarIcon
+                        aria-hidden="true"
+                        style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}
+                    >
                         {getInitials(localMessage.user.name)}
                     </AvatarIcon>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -261,8 +270,18 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 </UserInfoWrapper>
                 {!editMode && props.isEditable && (
                     <InteractiveIcons>
-                        <EditIcon data-testid="message-edit-button" onClick={() => setEditMode(true)} role="button" />
-                        <DeleteIcon data-testid="message-delete-button" onClick={onDelete} role="button" />
+                        <EditIcon
+                            aria-label={'Edit message'}
+                            data-testid="message-edit-button"
+                            onClick={() => setEditMode(true)}
+                            role="button"
+                        />
+                        <DeleteIcon
+                            aria-label={'Delete message'}
+                            data-testid="message-delete-button"
+                            onClick={onDelete}
+                            role="button"
+                        />
                     </InteractiveIcons>
                 )}
             </MessageTop>

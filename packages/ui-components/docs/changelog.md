@@ -4,6 +4,9 @@ title: Changelog
 
 ## NEXT
 
+-   Updated `Chat` component to support a non "popup" version. This can be set with the `isPopup` flag. It has also gained two other customization props `placeholder`, `chatTitle` 
+-   `Chat` component UI improvements according to latest design.
+-   `Textarea` component now supports `maxHeight` which when set it allows component to grow according to the size of its content.
 -   Added new `CodeViewer` component.
 
 ## 1.10.1

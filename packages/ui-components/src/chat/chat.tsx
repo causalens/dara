@@ -20,41 +20,40 @@ import * as React from 'react';
 
 import styled from '@darajs/styled-components';
 import { Xmark } from '@darajs/ui-icons';
+import { PaperPlane } from '@darajs/ui-icons';
 
 import Button from '../button/button';
 import TextArea from '../textarea/textarea';
 import { InteractiveComponentProps, Message, UserData } from '../types';
 import { default as MessageComponent } from './message';
 
-const ChatWrapper = styled.div`
+const ChatWrapper = styled.div<{ $isPopup: boolean }>`
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 
-    width: 350px;
-    height: calc(100vh - 2rem);
+    width: ${(props) => (props.$isPopup ? '350px' : '100%')};
+    height: ${(props) => (props.$isPopup ? 'calc(100vh - 2rem)' : '100%')};
     padding: 1.5rem;
 
-    background-color: ${(props) => props.theme.colors.background}e6;
-    border-radius: 0.4rem;
+    background-color: ${(props) => (props.$isPopup ? '${props.theme.colors.background}e6' : 'inherit')};
+    border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
 const ReplyWrapper = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    justify-self: flex-end;
+    gap: 0.5rem;
+    align-items: end;
 
-    height: 8.6rem;
     margin-top: auto;
 `;
 
 const ReplyButtons = styled.div`
     display: flex;
     gap: 1rem;
-    justify-content: flex-end;
+    align-items: end;
 `;
 
 const ChatBody = styled.div`
@@ -63,7 +62,7 @@ const ChatBody = styled.div`
     flex-direction: column;
     gap: 1rem;
 
-    max-height: calc(100% - 10.225rem);
+    max-height: calc(100% - 6.225rem);
     margin: -0.25rem;
     padding: 0.25rem;
 `;
@@ -99,6 +98,12 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     onUpdate?: (value: Message[]) => void | Promise<void>;
     /** The user who is currently active in the chat */
     activeUser: UserData;
+    /** The title to appear at the top of the chat */
+    chatTitle?: string;
+    /** The placeholder text for the reply field */
+    placeholder?: string;
+    /** Whether the chat is in a popup and should be styled as such */
+    isPopup?: boolean;
 }
 
 /**
@@ -197,12 +202,12 @@ function Chat(props: ChatProps): JSX.Element {
     }, []);
 
     return (
-        <ChatWrapper className={props.className} style={props.style}>
+        <ChatWrapper className={props.className} style={props.style} $isPopup={props.isPopup}>
             <ChatTop>
-                <span>Chat</span>
-                <CloseIcon onClick={props.onClose} />
+                <span>{props.chatTitle ?? 'Chat'}</span>
+                {props.isPopup && <CloseIcon onClick={props.onClose} aria-label={'Close chat'} />}
             </ChatTop>
-            <ChatBody ref={chatBodyRef}>
+            <ChatBody ref={chatBodyRef} role="log">
                 {localMessages.map((message) => (
                     <MessageComponent
                         key={message.id}
@@ -217,13 +222,20 @@ function Chat(props: ChatProps): JSX.Element {
                 <TextArea
                     onChange={onChangeReply}
                     onComplete={onSubmitMessage}
-                    placeholder="Add a comment"
+                    placeholder={props.placeholder ?? 'Add a comment'}
                     resize="none"
+                    maxHeight={6}
                     value={reply}
+                    style={{ width: '100%' }}
                 />
                 <ReplyButtons>
-                    <Button disabled={!(reply.trim().length > 0)} onClick={onSubmitMessage}>
-                        Send
+                    <Button
+                        aria-label={'Send'}
+                        style={{ height: '3.7rem' }}
+                        disabled={!(reply.trim().length > 0)}
+                        onClick={onSubmitMessage}
+                    >
+                        <PaperPlane onClick={onSubmitMessage} />
                     </Button>
                 </ReplyButtons>
             </ReplyWrapper>
