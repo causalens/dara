@@ -82,7 +82,14 @@ export interface Message {
 }
 
 export interface UserData {
+    /** user unique identifier */
     id?: string;
+    /** user name */
     name: string;
+    /** user email */
     email?: string;
+    /** Optional content of the user bubble to be shown */
+    bubbleContent?: React.ReactNode;
+    /** Optional color the user bubble should take */
+    color?: string;
 }

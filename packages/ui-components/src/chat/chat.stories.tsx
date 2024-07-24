@@ -17,6 +17,8 @@
 import { Meta } from '@storybook/react';
 import * as React from 'react';
 
+import { WandSparkles } from '@darajs/ui-icons';
+
 // import Spinner from '../spinner/spinner';
 import { UserData } from '../types';
 import { default as ChatComponent } from './chat';
@@ -34,6 +36,13 @@ const Hagrid: UserData = {
 const Harry: UserData = {
     name: 'Harry Potter',
     id: 'harry_id',
+};
+
+const Custom: UserData = {
+    name: 'Custom',
+    id: 'custom_id',
+    color: 'teal',
+    bubbleContent: <WandSparkles />,
 };
 
 const messages = [
@@ -78,6 +87,13 @@ const messages = [
         created_at: '2024-04-03T15:57:26.944Z',
         updated_at: '2024-04-03T15:57:26.944Z',
         user: Hagrid,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'Magic!',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
     },
 ];
 
