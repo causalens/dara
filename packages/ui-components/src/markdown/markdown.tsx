@@ -287,16 +287,20 @@ function CodeDisplay(
     const { children, ...rest } = props;
     const match = /language-(\w+)/.exec(props.className || '');
 
+    const parsed = React.useMemo(() => {
+        return String(children).trim().replace(/\n\n/, '\n').replace(/\n$/, '');
+    }, [children]);
+
     // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
     if (!match) {
-        return <code {...rest}>{children}</code>;
+        return <code {...rest}>{parsed}</code>;
     }
 
     // assume language is supported - we could check for grammar support but if unsupported
     // prism will just render without syntax highlighting which is fine
     return (
         <CodeViewer
-            value={String(children).replace(/\n$/, '')}
+            value={parsed}
             language={match[1] as Language}
             codeTheme={
                 // opposite theme

@@ -301,7 +301,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             )}
             {!editMode && (
                 <MessageBody>
-                    <Markdown markdown={localMessage.message} />
+                    <Markdown markdown={processText(localMessage.message)} />
                 </MessageBody>
             )}
         </MessageWrapper>
