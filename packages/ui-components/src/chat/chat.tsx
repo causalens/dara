@@ -104,6 +104,8 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     isPopup?: boolean;
     /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
     loadingComponent?: React.ReactNode;
+    /** Whether the user can edit/delete previous messages */
+    nonEditable?: boolean;
 }
 
 /**
@@ -218,7 +220,8 @@ function Chat(props: ChatProps): JSX.Element {
                         onChange={onEditMessage}
                         onDelete={onDeleteMessage}
                         value={message}
-                        isEditable={didUserWriteMessage(message, props.activeUser)}
+                        didUserWriteMessage={didUserWriteMessage(message, props.activeUser)}
+                        isEditable={!props.nonEditable}
                     />
                 ))}
                 {props.loadingComponent}

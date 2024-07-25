@@ -143,6 +143,8 @@ export interface MessageProps extends InteractiveComponentProps<Message> {
     onDelete?: (id: string) => void | Promise<void>;
     /** An optional flag to determine if the message is editable */
     isEditable?: boolean;
+    /** Flag to check if the user wrote the message */
+    didUserWriteMessage?: boolean;
 }
 
 /**
@@ -248,7 +250,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             role="listitem"
             className={props.className}
             style={props.style}
-            $messageFromActiveUser={props.isEditable}
+            $messageFromActiveUser={props.didUserWriteMessage}
         >
             <MessageTop>
                 <UserInfoWrapper>
@@ -271,7 +273,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
                         </Tooltip>
                     )}
                 </UserInfoWrapper>
-                {!editMode && props.isEditable && (
+                {!editMode && props.isEditable && props.didUserWriteMessage && (
                     <InteractiveIcons>
                         <EditIcon
                             aria-label="Edit message"
