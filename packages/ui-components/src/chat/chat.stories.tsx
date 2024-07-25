@@ -95,6 +95,27 @@ const messages = [
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,
     },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'Unsupported language \n ```custom \n fn foo():\n  return \n ``` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'No language specified \n ```\nfn foo():\n  return \n ``` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'Inline block! \n `foo = lambda x: x + 1` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
 ];
 
 export const Chat = (): JSX.Element => {

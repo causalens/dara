@@ -1,7 +1,11 @@
-import ReactMarkdown, { Options } from 'react-markdown';
+import { Language } from 'prism-react-renderer';
+import * as React from 'react';
+import ReactMarkdown, { ExtraProps, Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import styled from '@darajs/styled-components';
+import styled, { useTheme } from '@darajs/styled-components';
+
+import CodeViewer, { CodeComponentThemes } from '../code-viewer/code-viewer';
 
 interface MarkdownProps extends Options {
     /**
@@ -123,7 +127,17 @@ const CustomMarkdownWrapper = styled.div`
         font-size: 0.9rem;
     }
 
-    pre {
+    pre:first-child {
+        margin-top: 0;
+    }
+
+    pre:last-child {
+        margin-bottom: 0;
+    }
+
+    /* don't apply default styles if the pre block has the pretty code display */
+    /* stylelint-disable-next-line */
+    pre:not(.prism-code):not(:has(.prism-code)) {
         overflow-x: auto;
 
         margin-top: 1.7rem;
@@ -244,7 +258,6 @@ const CustomMarkdownWrapper = styled.div`
     img:first-child,
     figure:first-child,
     video:first-child,
-    pre:first-child,
     hr:first-child {
         margin-top: 0;
     }
@@ -262,11 +275,36 @@ const CustomMarkdownWrapper = styled.div`
     img:last-child,
     figure:last-child,
     video:last-child,
-    pre:last-child,
     hr:last-child {
         margin-bottom: 0;
     }
 `;
+
+function CodeDisplay(
+    props: React.ClassAttributes<HTMLElement> & React.HTMLAttributes<HTMLElement> & ExtraProps
+): React.ReactElement {
+    const theme = useTheme();
+    const { children, ...rest } = props;
+    const match = /language-(\w+)/.exec(props.className || '');
+
+    // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
+    if (!match) {
+        return <code {...rest}>{children}</code>;
+    }
+
+    // assume language is supported - we could check for grammar support but if unsupported
+    // prism will just render without syntax highlighting which is fine
+    return (
+        <CodeViewer
+            value={String(children).replace(/\n$/, '')}
+            language={match[1] as Language}
+            codeTheme={
+                // opposite theme
+                theme.themeType === 'dark' ? CodeComponentThemes.LIGHT : CodeComponentThemes.DARK
+            }
+        />
+    );
+}
 
 /**
  * A component for rendering markdown
@@ -276,7 +314,15 @@ function Markdown(props: MarkdownProps): JSX.Element {
 
     return (
         <CustomMarkdownWrapper className={className} style={style}>
-            <ReactMarkdown {...reactMarkdownProps} remarkPlugins={reactMarkdownProps.remarkPlugins ?? [remarkGfm]}>
+            <ReactMarkdown
+                {...reactMarkdownProps}
+                components={{
+                    code: CodeDisplay,
+                    // let caller override the default components
+                    ...reactMarkdownProps.components,
+                }}
+                remarkPlugins={reactMarkdownProps.remarkPlugins ?? [remarkGfm]}
+            >
                 {markdown}
             </ReactMarkdown>
         </CustomMarkdownWrapper>

@@ -16,14 +16,12 @@
  */
 import { format, parseISO } from 'date-fns';
 import { isEqual } from 'lodash';
-import { Language } from 'prism-react-renderer';
 import * as React from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
 import { PenToSquare, Trash } from '@darajs/ui-icons';
 
 import Button from '../button/button';
-import CodeViewer, { CodeComponentThemes } from '../code-viewer/code-viewer';
 import Markdown from '../markdown/markdown';
 import TextArea from '../textarea/textarea';
 import Tooltip from '../tooltip/tooltip';
@@ -195,55 +193,6 @@ export function processText(text: string): string {
 }
 
 /**
- * A function to parse markdown such that code blocks return CodeViewer component
- * @param message
- */
-function parseMarkdown(message: string): React.ReactNode[] {
-    if (!message.trim()) {
-        return [];
-    }
-
-    const codeBlockRegex = /```(\w+)\s*\n([\s\S]*?)\s*```/g;
-    const components: React.ReactNode[] = [];
-
-    // Find all code blocks and split the markdown string
-    const parts = message.split(codeBlockRegex);
-
-    parts.forEach((part, index) => {
-        // the split method captures the groups in the regex, this results in the following structure:
-        // parts[0]: Text before the first code block
-        // parts[1]: Language identifier of the first code block
-        // parts[2]: Content of the first code block
-        // parts[3]: Text after the first code block and before the second code block
-        // parts[4]: Language identifier of the second code block
-        // parts[5]: Content of the second code block
-        // ... and so on. With this we can apply the modulus operator to find out what component to use for each part
-        if (index % 3 === 0) {
-            // Regular markdown content
-            if (part.trim()) {
-                components.push(<Markdown markdown={processText(part)} />);
-            }
-        } else if (index % 3 === 1) {
-            // Language identifier for code block
-            const language = part;
-            const code = parts[index + 1]?.trim();
-            if (code !== undefined) {
-                components.push(
-                    <CodeViewer
-                        style={{ margin: '0.75rem 0' }}
-                        value={code}
-                        language={language as Language}
-                        codeTheme={CodeComponentThemes.DARK}
-                    />
-                );
-            }
-        }
-    });
-
-    return components;
-}
-
-/**
  * A Message component that displays a message with a timestamp and allows for editing and deleting
  *
  * @param {MessageProps} props - the component props
@@ -352,9 +301,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             )}
             {!editMode && (
                 <MessageBody>
-                    {parseMarkdown(localMessage.message).map((component, index) => (
-                        <React.Fragment key={index}>{component}</React.Fragment>
-                    ))}
+                    <Markdown markdown={localMessage.message} />
                 </MessageBody>
             )}
         </MessageWrapper>
