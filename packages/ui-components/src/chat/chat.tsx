@@ -104,6 +104,8 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     isPopup?: boolean;
     /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
     loadingComponent?: React.ReactNode;
+
+    /** Pass through of className property */
 }
 
 /**
@@ -215,6 +217,7 @@ function Chat(props: ChatProps): JSX.Element {
                         onDelete={onDeleteMessage}
                         value={message}
                         isEditable={didUserWriteMessage(message, props.activeUser)}
+                        messageActions={message.actions}
                     />
                 ))}
                 {props.loadingComponent}

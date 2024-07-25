@@ -72,7 +72,10 @@ const MessageTimestamp = styled.span`
     color: ${(props) => props.theme.colors.grey5};
 `;
 
-const MessageBody = styled.span`
+const MessageBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     width: 100%;
     color: ${(props) => props.theme.colors.text};
     overflow-wrap: break-word;
@@ -143,6 +146,8 @@ export interface MessageProps extends InteractiveComponentProps<Message> {
     onDelete?: (id: string) => void | Promise<void>;
     /** An optional flag to determine if the message is editable */
     isEditable?: boolean;
+    /** Actions to pass over to the message */
+    messageActions?: React.ReactNode[];
 }
 
 /**
@@ -302,6 +307,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             {!editMode && (
                 <MessageBody>
                     <Markdown markdown={processText(localMessage.message)} />
+                    {props.messageActions}
                 </MessageBody>
             )}
         </MessageWrapper>
