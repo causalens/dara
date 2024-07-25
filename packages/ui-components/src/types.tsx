@@ -81,7 +81,7 @@ export interface Message {
     updated_at: string;
     /** User data of the person who wrote the message */
     user: UserData;
-
+    /** Optional actions to be displayed with the message */
     actions?: React.ReactNode[];
 }
 

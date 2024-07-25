@@ -146,8 +146,6 @@ export interface MessageProps extends InteractiveComponentProps<Message> {
     onDelete?: (id: string) => void | Promise<void>;
     /** An optional flag to determine if the message is editable */
     isEditable?: boolean;
-    /** Actions to pass over to the message */
-    messageActions?: React.ReactNode[];
 }
 
 /**
@@ -307,7 +305,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             {!editMode && (
                 <MessageBody>
                     <Markdown markdown={processText(localMessage.message)} />
-                    {props.messageActions}
+                    {props.value.actions}
                 </MessageBody>
             )}
         </MessageWrapper>
