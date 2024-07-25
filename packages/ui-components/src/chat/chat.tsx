@@ -104,6 +104,10 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     isPopup?: boolean;
     /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
     loadingComponent?: React.ReactNode;
+    /** The event handler on advanced copy */
+    onAdvancedCopy?: (value: string) => void | Promise<void>;
+    /** The text to display on the advanced copy button */
+    advancedCopyText?: string;
 }
 
 /**
@@ -215,6 +219,8 @@ function Chat(props: ChatProps): JSX.Element {
                         onDelete={onDeleteMessage}
                         value={message}
                         isEditable={didUserWriteMessage(message, props.activeUser)}
+                        onAdvancedCopy={props.onAdvancedCopy}
+                        advancedCopyText={props.advancedCopyText}
                     />
                 ))}
                 {props.loadingComponent}

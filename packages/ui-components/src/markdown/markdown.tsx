@@ -16,6 +16,10 @@ interface MarkdownProps extends Options {
     className?: string;
     /** Native react style property, can be used to fine tune the element appearance */
     style?: React.CSSProperties;
+    /** The event handler on advanced cell copy*/
+    onAdvancedCopy?: (value: string) => void | Promise<void>;
+    /** The text to display on the advanced cell copy button */
+    advancedCopyText?: string;
 }
 
 const CustomMarkdownWrapper = styled.div`
@@ -280,51 +284,59 @@ const CustomMarkdownWrapper = styled.div`
     }
 `;
 
-function CodeDisplay(
-    props: React.ClassAttributes<HTMLElement> & React.HTMLAttributes<HTMLElement> & ExtraProps
-): React.ReactElement {
-    const theme = useTheme();
-    const { children, ...rest } = props;
-    const match = /language-(\w+)/.exec(props.className || '');
-
-    const parsed = React.useMemo(() => {
-        return String(children).trim().replace(/\n\n/, '\n').replace(/\n$/, '');
-    }, [children]);
-
-    // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
-    if (!match) {
-        return <code {...rest}>{parsed}</code>;
-    }
-
-    // assume language is supported - we could check for grammar support but if unsupported
-    // prism will just render without syntax highlighting which is fine
-    return (
-        <CodeViewer
-            value={parsed}
-            language={match[1] as Language}
-            codeTheme={
-                // opposite theme
-                theme.themeType === 'dark' ? CodeComponentThemes.LIGHT : CodeComponentThemes.DARK
-            }
-        />
-    );
-}
-
 /**
  * A component for rendering markdown
  */
 function Markdown(props: MarkdownProps): JSX.Element {
-    const { markdown, className, style, ...reactMarkdownProps } = props;
+    const { markdown, className, style, onAdvancedCopy, advancedCopyText, ...reactMarkdownProps } = props;
+
+    const codeDisplay = React.useCallback(
+        (
+            props: React.ClassAttributes<HTMLElement> &
+                React.HTMLAttributes<HTMLElement> &
+                ExtraProps & { onAdvancedCopy?: (value: string) => void | Promise<void>; advancedCopyText?: string }
+        ): React.ReactElement => {
+            const theme = useTheme();
+            const { children, ...rest } = props;
+            const match = /language-(\w+)/.exec(props.className || '');
+
+            const parsed = React.useMemo(() => {
+                return String(children).trim().replace(/\n\n/, '\n').replace(/\n$/, '');
+            }, [children]);
+
+            // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
+            if (!match) {
+                return <code {...rest}>{parsed}</code>;
+            }
+
+            // assume language is supported - we could check for grammar support but if unsupported
+            // prism will just render without syntax highlighting which is fine
+            return (
+                <CodeViewer
+                    value={parsed}
+                    language={match[1] as Language}
+                    onAdvancedCopy={onAdvancedCopy}
+                    advancedCodeCellCopyText={advancedCopyText}
+                    codeTheme={
+                        // opposite theme
+                        theme.themeType === 'dark' ? CodeComponentThemes.LIGHT : CodeComponentThemes.DARK
+                    }
+                />
+            );
+        },
+        [onAdvancedCopy, advancedCopyText]
+    );
 
     return (
         <CustomMarkdownWrapper className={className} style={style}>
             <ReactMarkdown
                 {...reactMarkdownProps}
                 components={{
-                    code: CodeDisplay,
+                    code: codeDisplay,
                     // let caller override the default components
                     ...reactMarkdownProps.components,
                 }}
+                extraProps
                 remarkPlugins={reactMarkdownProps.remarkPlugins ?? [remarkGfm]}
             >
                 {markdown}

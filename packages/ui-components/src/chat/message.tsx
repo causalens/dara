@@ -143,6 +143,10 @@ export interface MessageProps extends InteractiveComponentProps<Message> {
     onDelete?: (id: string) => void | Promise<void>;
     /** An optional flag to determine if the message is editable */
     isEditable?: boolean;
+    /** The advanced copy text to display */
+    advancedCopyText?: string;
+    /** The event handler on advanced copy */
+    onAdvancedCopy?: (value: string) => void | Promise<void>;
 }
 
 /**
@@ -301,7 +305,11 @@ function MessageComponent(props: MessageProps): JSX.Element {
             )}
             {!editMode && (
                 <MessageBody>
-                    <Markdown markdown={processText(localMessage.message)} />
+                    <Markdown
+                        markdown={processText(localMessage.message)}
+                        onAdvancedCopy={props.onAdvancedCopy}
+                        advancedCopyText={props.advancedCopyText}
+                    />
                 </MessageBody>
             )}
         </MessageWrapper>
