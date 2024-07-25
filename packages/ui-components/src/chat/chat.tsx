@@ -139,11 +139,15 @@ function Chat(props: ChatProps): JSX.Element {
     const [reply, setReply] = React.useState('');
 
     const [localMessages, setLocalMessages] = React.useState(props.value ?? []);
-    if (props.value && !isEqual(props.value, localMessages)) {
-        setLocalMessages(props.value);
-    }
 
     const chatBodyRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (!isEqual(props.value, localMessages)) {
+            setLocalMessages(props.value ?? []);
+            scrollToBottom(chatBodyRef?.current);
+        }
+    }, [props.value]);
 
     const onChangeReply = (text: string): void => {
         // Prevents the message starting with a newline
