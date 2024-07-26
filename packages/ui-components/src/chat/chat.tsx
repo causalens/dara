@@ -104,6 +104,8 @@ export interface ChatProps extends InteractiveComponentProps<Message[]> {
     isPopup?: boolean;
     /** A component showing the loading state of the chat, it appears above the input area, when not loading the caller can set it to null */
     loadingComponent?: React.ReactNode;
+    /** Whether the user can edit/delete previous messages */
+    isHistoryReadonly?: boolean;
 }
 
 /**
@@ -139,11 +141,15 @@ function Chat(props: ChatProps): JSX.Element {
     const [reply, setReply] = React.useState('');
 
     const [localMessages, setLocalMessages] = React.useState(props.value ?? []);
-    if (props.value && !isEqual(props.value, localMessages)) {
-        setLocalMessages(props.value);
-    }
 
     const chatBodyRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (!isEqual(props.value, localMessages)) {
+            setLocalMessages(props.value ?? []);
+            scrollToBottom(chatBodyRef?.current);
+        }
+    }, [props.value]);
 
     const onChangeReply = (text: string): void => {
         // Prevents the message starting with a newline
@@ -214,7 +220,8 @@ function Chat(props: ChatProps): JSX.Element {
                         onChange={onEditMessage}
                         onDelete={onDeleteMessage}
                         value={message}
-                        isEditable={didUserWriteMessage(message, props.activeUser)}
+                        didUserWriteMessage={didUserWriteMessage(message, props.activeUser)}
+                        isEditable={!props.isHistoryReadonly}
                     />
                 ))}
                 {props.loadingComponent}
