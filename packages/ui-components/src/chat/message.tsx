@@ -72,7 +72,10 @@ const MessageTimestamp = styled.span`
     color: ${(props) => props.theme.colors.grey5};
 `;
 
-const MessageBody = styled.span`
+const MessageBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     width: 100%;
     color: ${(props) => props.theme.colors.text};
     overflow-wrap: break-word;
@@ -304,6 +307,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             {!editMode && (
                 <MessageBody>
                     <Markdown markdown={processText(localMessage.message)} />
+                    {props.value.actions}
                 </MessageBody>
             )}
         </MessageWrapper>
