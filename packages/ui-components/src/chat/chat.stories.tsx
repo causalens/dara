@@ -94,6 +94,11 @@ const messages = [
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,
+        actions: [
+            <button type="button" key="test-key" onClick={() => console.log('this was indeed clicked')}>
+                Click me
+            </button>,
+        ] as React.ReactNode[],
     },
     {
         id: 'ctDqA50c0b13FQKY0E1tf',
