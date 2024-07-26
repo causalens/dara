@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.11.4
 
 -   Updated `Code` component to support copy to clipboard functionality.
 -   Updated `Code` component default themes.
