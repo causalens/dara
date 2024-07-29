@@ -90,6 +90,7 @@ const EditedText = styled.span`
 `;
 
 const DeleteIcon = styled(Trash)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 
@@ -103,6 +104,7 @@ const DeleteIcon = styled(Trash)`
 `;
 
 const EditIcon = styled(PenToSquare)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 

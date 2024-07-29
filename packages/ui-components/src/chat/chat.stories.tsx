@@ -129,7 +129,7 @@ const messages = [
         user: Hagrid,
     },
     {
-        id: 'ctDqA50c0b13FQKY0E1tf',
+        id: 'ctDqA50c0b13FQKY0E1et',
         message: 'Magic! \n ```python \n def foo():\n  return \n ``` \n Some other stuff',
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
@@ -141,14 +141,14 @@ const messages = [
         ] as React.ReactNode[],
     },
     {
-        id: 'ctDqA50c0b13FQKY0E1tf',
+        id: 'ctDqA50c0b13FQKY0E51tf',
         message: '```custom \n fn foo():\n  return \n ``` \n Unsupported language ^',
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,
     },
     {
-        id: 'ctDqA50c0b13FQKY0E1tf',
+        id: 'ctDqA50c0b13FQKY0E1ta',
         message: 'No language specified \n ```\nfn foo():\n  return \n ``` \n Some other stuff',
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
