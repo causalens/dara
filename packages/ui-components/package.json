@@ -9,6 +9,7 @@
     "build": "rimraf dist && tsc",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
+    "lint": "tsc --noemit && eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
     "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
     "test-watch": "jest --watch",
     "test": "jest",

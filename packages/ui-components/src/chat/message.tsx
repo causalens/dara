@@ -45,6 +45,8 @@ const InteractiveIcons = styled.div`
 const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
     position: relative;
 
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
 
     width: 100%;
@@ -76,7 +78,9 @@ const MessageBody = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+
     width: 100%;
+
     color: ${(props) => props.theme.colors.text};
     overflow-wrap: break-word;
 `;
@@ -88,6 +92,7 @@ const EditedText = styled.span`
 `;
 
 const DeleteIcon = styled(Trash)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 
@@ -101,6 +106,7 @@ const DeleteIcon = styled(Trash)`
 `;
 
 const EditIcon = styled(PenToSquare)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 

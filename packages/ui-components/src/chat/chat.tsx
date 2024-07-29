@@ -144,8 +144,13 @@ function Chat(props: ChatProps): JSX.Element {
 
     const chatBodyRef = React.useRef<HTMLDivElement>(null);
 
+    const localMessagesRef = React.useRef<Message[]>(localMessages);
+    React.useLayoutEffect(() => {
+        localMessagesRef.current = localMessages;
+    }, [localMessages]);
+
     React.useEffect(() => {
-        if (!isEqual(props.value, localMessages)) {
+        if (!isEqual(props.value, localMessagesRef.current)) {
             setLocalMessages(props.value ?? []);
             scrollToBottom(chatBodyRef?.current);
         }

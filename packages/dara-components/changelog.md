@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Visual tweaks to `Chat` component.
+
 ## 1.11.4
 
 -   Updated `Code` component to support copy to clipboard functionality.
