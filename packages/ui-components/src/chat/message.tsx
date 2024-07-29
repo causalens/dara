@@ -45,6 +45,8 @@ const InteractiveIcons = styled.div`
 const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
     position: relative;
 
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
 
     width: 100%;
