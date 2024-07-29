@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.11.5
 
 -   Visual tweaks to `Chat` component.
 
