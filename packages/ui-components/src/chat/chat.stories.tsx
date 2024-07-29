@@ -135,6 +135,7 @@ const messages = [
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,
         actions: [
+            // eslint-disable-next-line no-console
             <button type="button" key="test-key" onClick={() => console.log('this was indeed clicked')}>
                 Click me
             </button>,
@@ -163,7 +164,7 @@ const messages = [
     },
     {
         id: 'ctDqA50c0b13FQKY0E11f',
-        message: `Here's some code:\n\`\`\`python\n${  longSnippet  }\n\`\`\`\n Above snippet shows how to make a TypedDict wrapper.`,
+        message: `Here's some code:\n\`\`\`python\n${longSnippet}\n\`\`\`\n Above snippet shows how to make a TypedDict wrapper.`,
         created_at: '2024-07-03T15:57:26.944Z',
         updated_at: '2024-07-03T15:57:26.944Z',
         user: Custom,

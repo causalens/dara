@@ -78,7 +78,9 @@ const MessageBody = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+
     width: 100%;
+
     color: ${(props) => props.theme.colors.text};
     overflow-wrap: break-word;
 `;

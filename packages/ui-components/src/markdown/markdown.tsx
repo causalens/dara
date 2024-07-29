@@ -288,8 +288,7 @@ function CodeDisplay(
     const match = /language-(\w+)/.exec(props.className || '');
 
     const parsed = React.useMemo(() => {
-        return String(children).trim()
-            .replace(/\n\n/g, '\n');
+        return String(children).trim().replace(/\n\n/g, '\n');
     }, [children]);
 
     // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
@@ -303,7 +302,7 @@ function CodeDisplay(
         <CodeViewer
             value={parsed}
             language={match[1] as Language}
-            style={{ border: `1px solid ${theme.colors.grey2}`, borderRadius: '0.25rem'}}
+            style={{ border: `1px solid ${theme.colors.grey2}`, borderRadius: '0.25rem' }}
             codeTheme={
                 // opposite theme
                 theme.themeType === 'dark' ? CodeComponentThemes.DARK : CodeComponentThemes.LIGHT
