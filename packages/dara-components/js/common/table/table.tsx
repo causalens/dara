@@ -152,6 +152,9 @@ function getCellRenderer(formatter: { [k: string]: any }): any {
     if (formatter.type === 'badge') {
         return BadgeFormattedCell(formatter.badges);
     }
+    if (formatter.type === 'boolean') {
+        return ({ value }: any) => value?.toString();
+    }
 }
 
 function mapColumns(columns: Array<ColumnProps>): any {
@@ -364,10 +367,14 @@ function Table(props: TableProps): JSX.Element {
 
     // Resolve columns from data
     useEffect(() => {
-        getData(null, {
-            limit: 1,
-            offset: 0,
-        })
+        getData(
+            null,
+            {
+                limit: 1,
+                offset: 0,
+            },
+            { schema: true }
+        )
             .then((dataset) => {
                 const columns = Object.keys(dataset.data[0]);
                 const fieldTypes = Object.fromEntries(
@@ -376,7 +383,6 @@ function Table(props: TableProps): JSX.Element {
                         return [[key, { type: field.type }]];
                     })
                 );
-                console.log(fieldTypes);
 
                 const columnsWithoutGeneratedIndex = columns.filter((col) => col !== INDEX_COL);
                 let processsedColumns: ColumnProps[];
@@ -388,12 +394,15 @@ function Table(props: TableProps): JSX.Element {
                             extractColumnLabel(col, col.startsWith('__index__')),
                             col,
                         ])
-                    ); // __col__1__name -> name
-                    processsedColumns = getColumnProps(columnsProp).map((column) => ({
-                        type: fieldTypes[column.col_id]?.type as ColumnProps['type'], // Infer type from data, allow override
-                        ...column,
-                        col_id: reverseColumnIdMap[column.col_id] ?? column.col_id,
-                    }));
+                    ); // name -> __col__1__name
+                    processsedColumns = getColumnProps(columnsProp).map((column) => {
+                        const col_id = reverseColumnIdMap[column.col_id] ?? column.col_id;
+                        return {
+                            type: fieldTypes[col_id]?.type as ColumnProps['type'], // Infer type from data, allow override
+                            ...column,
+                            col_id,
+                        };
+                    });
                 } else {
                     // Prop not provided, create columns from data
                     processsedColumns = columnsWithoutGeneratedIndex.map((column) => {
@@ -403,6 +412,7 @@ function Table(props: TableProps): JSX.Element {
                             sticky: isIndex ? 'left' : undefined,
                             label: extractColumnLabel(column, isIndex),
                             type: fieldTypes[column]?.type as ColumnProps['type'],
+                            formatter: fieldTypes[column]?.type === 'boolean' ? { type: 'boolean' } : undefined,
                         };
                     });
                 }
@@ -412,8 +422,6 @@ function Table(props: TableProps): JSX.Element {
                 throw new Error(err);
             });
     }, [columnsProp, getData]);
-
-    console.log('col', resolvedColumns);
 
     const debouncedSetSearchQuery = useMemo(() => debounce(setSearchQuery, 500), [setSearchQuery]);
 

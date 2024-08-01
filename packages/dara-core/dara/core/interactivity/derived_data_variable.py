@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Coroutine, List, Optional, Union
+from typing import Any, Callable, Coroutine, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame
@@ -31,6 +31,7 @@ from dara.core.base_definitions import (
 )
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
+    DataFrameSchema,
     DataVariableRegistryEntry,
 )
 from dara.core.interactivity.any_variable import AnyVariable
@@ -130,6 +131,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 uid=str(self.uid),
                 get_data=DerivedDataVariable.get_data,
                 get_total_count=DerivedDataVariable.get_total_count,
+                get_schema=DerivedDataVariable.get_schema,
             ),
         )
 
@@ -290,6 +292,15 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
+    
+    @classmethod
+    async def get_schema(
+        cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str
+    ):
+        """
+        Get the schema of the derived data variable.
+        """
+        return cast(DataFrameSchema, await store.get(data_entry, key=cache_key, unpin=True))
 
     @classmethod
     async def resolve_value(

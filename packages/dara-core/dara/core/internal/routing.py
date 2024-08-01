@@ -16,12 +16,14 @@ limitations under the License.
 """
 
 import inspect
+import json
 import os
 from functools import wraps
 from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import anyio
+from fastapi.encoders import jsonable_encoder
 import pandas
 from fastapi import (
     APIRouter,
@@ -383,6 +385,35 @@ def create_router(config: Configuration):
             return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+    class DataVariableSchemaRequestBody(BaseModel):
+        cache_key: Optional[str]
+
+    @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
+    async def get_data_variable_schema(uid: str, body: Optional[DataVariableSchemaRequestBody] = None):
+        try:
+            store: CacheStore = utils_registry.get('Store')
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+            variable_def = await registry_mgr.get(data_variable_registry, uid)
+
+            if variable_def.type == 'plain':
+                return await variable_def.get_schema(
+                    variable_def, store
+                )
+
+            if body is None or body.cache_key is None:
+                raise HTTPException(
+                    status_code=400, detail="Cache key is required when requesting DerivedDataVariable's schema"
+                )
+
+            data = await variable_def.get_schema(variable_def, store, body.cache_key)
+            content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
+            return Response(
+                content=content, media_type='application/json'
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(

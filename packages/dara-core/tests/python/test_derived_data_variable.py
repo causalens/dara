@@ -3,7 +3,7 @@ import os
 import re
 from contextvars import ContextVar
 from multiprocessing import active_children
-from typing import Optional, Union
+from typing import Optional, Union, cast
 from unittest.mock import Mock
 
 import anyio
@@ -23,7 +23,7 @@ from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.filtering import ValueQuery
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.registries import derived_variable_registry, utils_registry
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
@@ -55,7 +55,7 @@ TEST_DATA = DataFrame(
         'col4': ['f', 'f', 'h', 'i', 'j'],
     }
 )
-FINAL_TEST_DATA = append_index(TEST_DATA)
+FINAL_TEST_DATA = cast(DataFrame, append_index(TEST_DATA))
 """
 ```
    col1  col2 col3 col4
@@ -259,7 +259,7 @@ async def test_derived_data_variable_no_filters():
             headers=AUTH_HEADERS,
         )
 
-        assert data_response.json() == func(1, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_response.json() == df_convert_to_internal(func(1, FINAL_TEST_DATA)).to_dict(orient='records')
         mock_func.assert_called_once()
 
         # Hit the data endpoint again to make sure cache is re-used
@@ -284,7 +284,7 @@ async def test_derived_data_variable_no_filters():
             json={'filters': None, 'cache_key': third_response.json()['cache_key'], 'ws_channel': 'test_channel'},
             headers=AUTH_HEADERS,
         )
-        assert data_third_response.json() == func(2, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_third_response.json() == df_convert_to_internal(func(2, FINAL_TEST_DATA)).to_dict(orient='records')
         assert mock_func.call_count == 2
 
         # Check count can be returned correctly
@@ -343,7 +343,7 @@ async def test_derived_data_variable_with_filters():
             json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
             headers=AUTH_HEADERS,
         )
-        assert data_second_response.json() == unfiltered[unfiltered['col1'] == 2].to_dict(orient='records')
+        assert data_second_response.json() == df_convert_to_internal(unfiltered[unfiltered['col1'] == 2]).to_dict(orient='records')
         assert mock_func.call_count == 1
 
         # Check count cannot be returned for different filters
@@ -411,7 +411,7 @@ async def test_derived_data_variable_cache_user():
             headers=AUTH_HEADERS,
         )
 
-        assert data_response.json() == func(1, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_response.json() == df_convert_to_internal(func(1, FINAL_TEST_DATA)).to_dict(orient='records')
         mock_func.assert_called_once()
 
         # Hit the data endpoint again to make sure cache is re-used
@@ -436,7 +436,7 @@ async def test_derived_data_variable_cache_user():
             json={'filters': None, 'cache_key': third_response.json()['cache_key'], 'ws_channel': 'test_channel'},
             headers=AUTH_HEADERS,
         )
-        assert data_third_response.json() == func(2, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_third_response.json() == df_convert_to_internal(func(2, FINAL_TEST_DATA)).to_dict(orient='records')
         assert mock_func.call_count == 2
 
         # Check count can be returned correctly
@@ -523,7 +523,7 @@ async def test_derived_data_variable_cache_session():
             headers=AUTH_HEADERS,
         )
 
-        assert data_response.json() == func(1, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_response.json() == df_convert_to_internal(func(1, FINAL_TEST_DATA)).to_dict(orient='records')
         mock_func.assert_called_once()
 
         # Hit the data endpoint again to make sure cache is re-used
@@ -548,7 +548,7 @@ async def test_derived_data_variable_cache_session():
             json={'filters': None, 'cache_key': third_response.json()['cache_key'], 'ws_channel': 'test_channel'},
             headers=AUTH_HEADERS,
         )
-        assert data_third_response.json() == func(2, FINAL_TEST_DATA).to_dict(orient='records')
+        assert data_third_response.json() == df_convert_to_internal(func(2, FINAL_TEST_DATA)).to_dict(orient='records')
         assert mock_func.call_count == 2
 
         # Check count can be returned correctly
@@ -681,13 +681,13 @@ async def test_derived_data_variable_filter_metatask(cache):
 
             # Check we can get the result of the underlying task
             underlying_data = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert underlying_data.json() == get_expected_data(1).to_dict(orient='records')
+            assert underlying_data.json() == df_convert_to_internal(get_expected_data(1)).to_dict(orient='records')
 
             # Check we can get the result of the filter metatask
             filter_data = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
             expected_data = get_expected_data(1, FINAL_TEST_DATA)
             expected_data = expected_data[expected_data['col1'] == 2]
-            assert filter_data.json() == expected_data.to_dict(orient='records')
+            assert filter_data.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
 
             # Check we can request the same filtered data again and receive the result directly
             response = await client.post(
@@ -699,7 +699,7 @@ async def test_derived_data_variable_filter_metatask(cache):
                 },
                 headers=AUTH_HEADERS,
             )
-            assert response.json() == expected_data.to_dict(orient='records')
+            assert response.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
 
             # Check we can get count correctly now that task is finished
             count_response = await client.post(
@@ -1176,7 +1176,7 @@ async def test_derived_data_variable_with_derived_variable():
         )
         assert response.status_code == 200
         resp_data = DataFrame(response.json())
-        assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
+        assert all(resp_data['__col__1__col1'] == (TEST_DATA['col1'] + 10))
 
 
 async def test_derived_data_variable_pending_value():
@@ -1272,7 +1272,7 @@ async def test_derived_data_variable_pending_value():
             # check response3 is the correct data
             assert response3.status_code == 200
             resp_data = DataFrame(response3.json())
-            assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
+            assert all(resp_data['__col__1__col1'] == (TEST_DATA['col1'] + 10))
 
 
 async def test_derived_data_variable_cache_eviction():
@@ -1351,4 +1351,4 @@ async def test_derived_data_variable_cache_eviction():
         # check response3 is the correct data, i.e. it wasn't evicted
         assert response3.status_code == 200
         resp_data = DataFrame(response3.json())
-        assert all(resp_data['col1'] == (TEST_DATA['col1'] + 10))
+        assert all(resp_data['__col__1__col1'] == (TEST_DATA['col1'] + 10))

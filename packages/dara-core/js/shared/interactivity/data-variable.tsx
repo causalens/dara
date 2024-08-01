@@ -86,7 +86,19 @@ interface TaskResponse {
 export interface DataResponse {
     data: DataFrame | null;
     totalCount: number;
+    schema: DataFrameSchema;
 }
+
+type FieldType = {
+    name: string | string[]; // Multiindex columns are represented as an array of strings
+    // See https://pandas.pydata.org/docs/user_guide/io.html#table-schema
+    type: 'integer' | 'number' | 'boolean' | 'datetime' | 'duration' | 'any' | 'str';
+};
+
+type DataFrameSchema = {
+    fields: FieldType[];
+    primaryKey: string[];
+};
 
 export function isDataResponse(response: any): response is DataResponse {
     return typeof response === 'object' && 'data' in response && 'totalCount' in response;
@@ -145,6 +157,28 @@ async function fetchDataVariableCount(
 }
 
 /**
+ * Get data variable schema
+ *
+ * @param uid uid of the variable
+ * @param extras request extras to be merged into the options
+ * @param cacheKey cache key of the underlying DV in the case of derived data variables
+ */
+async function fetchDataVariableSchema(
+    uid: string,
+    extras: RequestExtras,
+    cacheKey?: string
+): Promise<DataResponse['schema']> {
+    const response = await request(
+        `/api/core/data-variable/${uid}/schema`,
+        { body: JSON.stringify({ cache_key: cacheKey }), method: HTTP_METHOD.GET },
+        extras
+    );
+    await handleAuthErrors(response, true);
+    await validateResponse(response, 'Failed to fetch data variable schema');
+    return response.json();
+}
+
+/**
  * Get a callback to fetch data variable from the backend
  *
  * @param variable variable instance
@@ -158,12 +192,15 @@ export function useFetchDataVariable(
     const extras = useRequestExtras();
 
     const dataCallback = useCallback(
-        async (filters?: FilterQuery, pagination?: Pagination) => {
+        async (filters?: FilterQuery, pagination?: Pagination, withSchema = false) => {
             const mergedFilters = combineFilters('AND', [variable.filters, filters]);
 
             const data = await fetchDataVariable(variable.uid, extras, mergedFilters, pagination);
 
-            const totalCount = await fetchDataVariableCount(variable.uid, extras, mergedFilters);
+            const [totalCount, schema = null] = await Promise.all([
+                fetchDataVariableCount(variable.uid, extras, mergedFilters),
+                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
+            ] as const);
 
             // publish the event
             eventBus.publish('DATA_VARIABLE_LOADED', { variable, value: { data, totalCount } });
@@ -171,6 +208,7 @@ export function useFetchDataVariable(
             return {
                 data,
                 totalCount,
+                schema,
             };
         },
         [variable, extras, serverTriggerCounter, eventBus]
@@ -196,9 +234,9 @@ export function useFetchDerivedDataVariable(
 ): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
     const eventBus = useEventBus();
     const extras = useRequestExtras();
-    const previousResult = useRef<DataResponse>({ data: null, totalCount: 0 });
+    const previousResult = useRef<DataResponse>({ data: null, totalCount: 0, schema: { fields: [], primaryKey: [] } });
     const dataCallback = useCallback(
-        async (filters?: FilterQuery, pagination?: Pagination) => {
+        async (filters?: FilterQuery, pagination?: Pagination, withSchema = false) => {
             const mergedFilters = combineFilters('AND', [variable.filters, filters]);
             const dvValue = await dvValuePromise;
 
@@ -246,9 +284,12 @@ export function useFetchDerivedDataVariable(
 
             // For derived data variables count can only be fetched when task is not running so we have to make the request here
             // As the total count could have changed because of the underlying DV changing
-            const totalCount = await fetchDataVariableCount(variable.uid, extras, mergedFilters, dvValue.cache_key);
+            const [totalCount, schema = null] = await Promise.all([
+                fetchDataVariableCount(variable.uid, extras, mergedFilters),
+                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
+            ] as const);
 
-            previousResult.current = { data, totalCount };
+            previousResult.current = { data, totalCount, schema };
 
             // publish the event
             eventBus.publish('DERIVED_DATA_VARIABLE_LOADED', { variable, value: { data, totalCount } });
@@ -256,6 +297,7 @@ export function useFetchDerivedDataVariable(
             return {
                 data,
                 totalCount,
+                schema,
             };
         },
         [variable, extras, dvValuePromise, eventBus]

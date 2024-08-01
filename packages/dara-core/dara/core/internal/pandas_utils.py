@@ -51,10 +51,9 @@ def remove_index(value: value_type) -> value_type:
 
     return value
 
-
-def df_to_json(original_df: DataFrame) -> str:
+def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     """
-    Convert a DataFrame to a JSON string, with the following modifications:
+    Convert a DataFrame to an internal format, with the following modifications:
     - Flatten hierarchical columns to a single level
     - Append a numeric index suffix to all columns
     - Reset each index and append it as a special column
@@ -63,7 +62,7 @@ def df_to_json(original_df: DataFrame) -> str:
 
     # If the DataFrame is already in the correct format, return it as is
     if any(isinstance(c, str) and c.startswith('__col__') for c in df.columns):
-        return df.to_json(orient='records') or ''
+        return df
 
     # Handle hierarchical columns: [(A, B), (A, C)] -> ['A_B', 'A_C']
     if isinstance(df.columns, MultiIndex):
@@ -83,4 +82,7 @@ def df_to_json(original_df: DataFrame) -> str:
         df.index.name = f'__index__0__{df.index.name}' if df.index.name is not None else '__index__0__index'
         df = df.reset_index(names=[df.index.name])
 
-    return df.to_json(orient='records') or ''
+    return df
+
+def df_to_json(df: DataFrame) -> str:
+    return df_convert_to_internal(df).to_json(orient='records') or ''
