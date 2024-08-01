@@ -729,6 +729,7 @@ class Table(ContentComponent):
     page reloads, you must set `persist_value=True` on the variable.
     :param search_columns: Optional list defining the columns to be searched, only the columns passed are searchable
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
+    :param include_index: Boolean, if True the table will render the index column(s), defaults to True
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
@@ -740,6 +741,7 @@ class Table(ContentComponent):
     selected_indices: Optional[Union[List[int], UrlVariable, Variable]] = None
     search_columns: Optional[List[str]] = None
     searchable: bool = False
+    include_index: bool = True
     max_rows: Optional[int] = None
     children: List[ComponentInstance] = []
 

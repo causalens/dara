@@ -41,7 +41,6 @@ interface TableProps extends StyledComponentProps {
     /**
      * Column definitions
      */
-    // columns: ColumnProps[];
     columns?: ColumnProps[] | Variable<ColumnProps[]>;
     /**
      * Data
@@ -75,6 +74,10 @@ interface TableProps extends StyledComponentProps {
      * When set to true hides the checkboxes column of table
      */
     show_checkboxes?: boolean;
+    /**
+     * Whether to render the index column
+     */
+    include_index?: boolean;
 }
 
 interface ColumnProps {
@@ -415,6 +418,11 @@ function Table(props: TableProps): JSX.Element {
                             formatter: fieldTypes[column]?.type === 'boolean' ? { type: 'boolean' } : undefined,
                         };
                     });
+                    if (!props.include_index) {
+                        processsedColumns = processsedColumns.filter(
+                            (column) => !column.col_id.startsWith('__index__')
+                        );
+                    }
                 }
                 setResolvedColumns(processsedColumns);
             })
