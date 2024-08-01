@@ -51,6 +51,7 @@ def remove_index(value: value_type) -> value_type:
 
     return value
 
+
 def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     """
     Convert a DataFrame to an internal format, with the following modifications:
@@ -69,7 +70,10 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
         df.columns = ['_'.join(col).strip() if col[0] != INDEX else INDEX for col in df.columns.values]
 
     # Append a suffix to all columns
-    df.columns = [f'__col__{i}__{col}' if not (isinstance(col, str) and col.startswith(INDEX)) else col for i, col in enumerate(df.columns)]
+    df.columns = [
+        f'__col__{i}__{col}' if not (isinstance(col, str) and col.startswith(INDEX)) else col
+        for i, col in enumerate(df.columns)
+    ]
 
     # Handle multi-index
     if isinstance(df.index, MultiIndex):
@@ -83,6 +87,7 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
         df = df.reset_index(names=[df.index.name])
 
     return df
+
 
 def df_to_json(df: DataFrame) -> str:
     return df_convert_to_internal(df).to_json(orient='records') or ''

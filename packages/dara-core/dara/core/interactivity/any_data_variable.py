@@ -53,10 +53,10 @@ class FieldType(TypedDict):
     name: Union[str, tuple[str, ...]]
     type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
 
+
 class DataFrameSchema(TypedDict):
     fields: list[FieldType]
     primaryKey: list[str]
-
 
 
 class DataVariableRegistryEntry(CachedRegistryEntry):
@@ -73,7 +73,6 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
 
     get_schema: Callable[..., Awaitable[DataFrameSchema]]
     """Handler to get the schema for data variable. Defaults to DataVariable.get_schema for type=plain, and DerivedDataVariable.get_schema for type=derived"""
-
 
     class Config:
         extra = 'forbid'

@@ -292,11 +292,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
-    
+
     @classmethod
-    async def get_schema(
-        cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str
-    ):
+    async def get_schema(cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str):
         """
         Get the schema of the derived data variable.
         """

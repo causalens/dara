@@ -23,7 +23,6 @@ from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import anyio
-from fastapi.encoders import jsonable_encoder
 import pandas
 from fastapi import (
     APIRouter,
@@ -35,6 +34,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -397,9 +397,7 @@ def create_router(config: Configuration):
             variable_def = await registry_mgr.get(data_variable_registry, uid)
 
             if variable_def.type == 'plain':
-                return await variable_def.get_schema(
-                    variable_def, store
-                )
+                return await variable_def.get_schema(variable_def, store)
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
@@ -408,12 +406,9 @@ def create_router(config: Configuration):
 
             data = await variable_def.get_schema(variable_def, store, body.cache_key)
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
-            return Response(
-                content=content, media_type='application/json'
-            )
+            return Response(content=content, media_type='application/json')
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
-
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(

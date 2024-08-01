@@ -127,7 +127,7 @@ class DataVariable(AnyDataVariable):
         :param uid: uid of the DataVariable
         """
         return f'data-{uid}'
-    
+
     @staticmethod
     def _get_schema_cache_key(uid: str) -> str:
         """
@@ -202,7 +202,10 @@ class DataVariable(AnyDataVariable):
         )
 
         if entry is None:
-            await asyncio.gather(store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True), store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True))
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True),
+                store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True),
+            )
             return None
 
         data = None
@@ -211,9 +214,20 @@ class DataVariable(AnyDataVariable):
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
             data = filtered_data
             # Store count for given filters and schema
-            await asyncio.gather(store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True), store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=build_table_schema(df_convert_to_internal(entry.data)), pin=True))
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True),
+                store.set(
+                    var_entry,
+                    key=cls._get_schema_cache_key(var_entry.uid),
+                    value=build_table_schema(df_convert_to_internal(entry.data)),
+                    pin=True,
+                ),
+            )
         else:
-            await asyncio.gather(store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True), store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True))
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True),
+                store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True),
+            )
 
         # TODO: once path is supported, stream&filter from disk
         if entry.path:
@@ -244,11 +258,9 @@ class DataVariable(AnyDataVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
-    
+
     @classmethod
-    async def get_schema(
-        cls, var_entry: DataVariableRegistryEntry, store: CacheStore
-    ):
+    async def get_schema(cls, var_entry: DataVariableRegistryEntry, store: CacheStore):
         """
         Get the schema of the data variable.
 
