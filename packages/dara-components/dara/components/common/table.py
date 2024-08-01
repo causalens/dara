@@ -17,7 +17,7 @@ limitations under the License.
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional, Sequence, Union
 
 from pydantic import BaseModel, validator
 
@@ -732,7 +732,7 @@ class Table(ContentComponent):
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
-    columns: Optional[Union[List[Union[Column, dict, str]], NonDataVariable]]
+    columns: Optional[Union[Sequence[Union[Column, dict, str]], NonDataVariable]] = None
     data: AnyDataVariable
     multi_select: bool = False
     show_checkboxes: bool = True

@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { formatISO } from 'date-fns';
+import { isArray, mapKeys } from 'lodash';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import { ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -337,6 +338,17 @@ function getColumnProps(columns: Array<string> | ColumnProps[]): ColumnProps[] {
     });
 }
 
+/**
+ * Extracts the column label from the column name by removing the index or col prefix
+ *
+ * @param col column name
+ * @param isIndex whether the column is an index column
+ * @returns column label
+ */
+function extractColumnLabel(col: string, isIndex: boolean): string {
+    return isIndex ? col.replace(/__index__\d+__/, '') : col.replace(/__col__\d+__/, '');
+}
+
 const TableWrapper = injectCss('div');
 
 function Table(props: TableProps): JSX.Element {
@@ -346,28 +358,62 @@ function Table(props: TableProps): JSX.Element {
     const [selectedRowIndices, setSelectedRowIndices] = useVariable(props.selected_indices);
 
     const [columnsProp] = useVariable(props.columns);
-    const [resolvedColumns, setResolvedColumns] = useState<ColumnProps[]>(null);
+    const [resolvedColumns, setResolvedColumns] = useState<ColumnProps[]>(() =>
+        isArray(columnsProp) ? getColumnProps(columnsProp) : null
+    );
 
+    // Resolve columns from data
     useEffect(() => {
-        // prop provided, just parse the columns provided
-        if (columnsProp) {
-            setResolvedColumns(getColumnProps(columnsProp));
-            return;
-        }
-        // prop not provided, find columns from data
         getData(null, {
             limit: 1,
             offset: 0,
         })
             .then((dataset) => {
                 const columns = Object.keys(dataset.data[0]);
-                const columnsWithoutIndex = columns.filter((col) => col !== '__index__');
-                setResolvedColumns(getColumnProps(columnsWithoutIndex));
+                const fieldTypes = Object.fromEntries(
+                    dataset.schema.fields.flatMap((field) => {
+                        const key = Array.isArray(field.name) ? field.name.join('_') : field.name;
+                        return [[key, { type: field.type }]];
+                    })
+                );
+                console.log(fieldTypes);
+
+                const columnsWithoutGeneratedIndex = columns.filter((col) => col !== INDEX_COL);
+                let processsedColumns: ColumnProps[];
+                if (columnsProp) {
+                    // Prop provided, parse the columns provided and map them to the columns from data
+                    // Limitation: If there are columns with duplicate names, data from only one of them will be shown
+                    const reverseColumnIdMap = Object.fromEntries(
+                        columnsWithoutGeneratedIndex.map((col) => [
+                            extractColumnLabel(col, col.startsWith('__index__')),
+                            col,
+                        ])
+                    ); // __col__1__name -> name
+                    processsedColumns = getColumnProps(columnsProp).map((column) => ({
+                        type: fieldTypes[column.col_id]?.type as ColumnProps['type'], // Infer type from data, allow override
+                        ...column,
+                        col_id: reverseColumnIdMap[column.col_id] ?? column.col_id,
+                    }));
+                } else {
+                    // Prop not provided, create columns from data
+                    processsedColumns = columnsWithoutGeneratedIndex.map((column) => {
+                        const isIndex = column.startsWith('__index__');
+                        return {
+                            col_id: column,
+                            sticky: isIndex ? 'left' : undefined,
+                            label: extractColumnLabel(column, isIndex),
+                            type: fieldTypes[column]?.type as ColumnProps['type'],
+                        };
+                    });
+                }
+                setResolvedColumns(processsedColumns);
             })
             .catch((err) => {
                 throw new Error(err);
             });
     }, [columnsProp, getData]);
+
+    console.log('col', resolvedColumns);
 
     const debouncedSetSearchQuery = useMemo(() => debounce(setSearchQuery, 500), [setSearchQuery]);
 
@@ -427,7 +473,16 @@ function Table(props: TableProps): JSX.Element {
     }, [getData]);
 
     const [style, css] = useComponentStyles(props);
-    const onClickRow = useAction(props.onclick_row);
+    const onClickRowRaw = useAction(props.onclick_row);
+    const onClickRow = useCallback(
+        (rows: Omit<DataRow, '__index__'>[]) =>
+            onClickRowRaw(
+                // Preserve original data column names on click
+                // Limitation: If there are columns with duplicate names, data from only one of them will be returned
+                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith('__index__'))))
+            ),
+        [onClickRowRaw]
+    );
 
     const columns = useMemo(() => {
         const mappedCols = mapColumns(resolvedColumns);
