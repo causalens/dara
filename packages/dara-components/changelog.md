@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.1
 
 -   Fixed invisible boolean values in `Table` cells.
 -   `Table` now automatically renders all index columns from the DataFrame and expands hierarchical columns.

@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.1
 
 -   Added index columns to the response of `DataVariable`/`DerivedDataVariable`.
 -   Added a schema endpoint for `DataVariable`/`DerivedDataVariable`. The schema is returned when passing `{ schema: true }` as an options field when calling `useDataVariable`/`useDerivedDataVariable`.
