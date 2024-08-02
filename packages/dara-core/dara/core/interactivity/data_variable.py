@@ -17,15 +17,18 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Optional, Union
+import asyncio
+from typing import Optional, Union, cast
 
 from anyio.abc import TaskGroup
 from pandas import DataFrame
+from pandas.io.json._table_schema import build_table_schema
 from pydantic import BaseModel
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
+    DataFrameSchema,
     DataVariableRegistryEntry,
 )
 from dara.core.interactivity.filtering import (
@@ -36,7 +39,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
@@ -101,6 +104,7 @@ class DataVariable(AnyDataVariable):
             type='plain',
             get_data=DataVariable.get_value,
             get_total_count=DataVariable.get_total_count,
+            get_schema=DataVariable.get_schema,
         )
         data_variable_registry.register(
             str(self.uid),
@@ -123,6 +127,15 @@ class DataVariable(AnyDataVariable):
         :param uid: uid of the DataVariable
         """
         return f'data-{uid}'
+
+    @staticmethod
+    def _get_schema_cache_key(uid: str) -> str:
+        """
+        Get a unique cache key for the data variable's schema.
+
+        :param uid: uid of the DataVariable
+        """
+        return f'schema-{uid}'
 
     @classmethod
     def _get_count_cache_key(cls, uid: str, filters: Optional[Union[FilterQuery, dict]]) -> str:
@@ -189,7 +202,10 @@ class DataVariable(AnyDataVariable):
         )
 
         if entry is None:
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True),
+                store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True),
+            )
             return None
 
         data = None
@@ -197,10 +213,21 @@ class DataVariable(AnyDataVariable):
         if entry.data is not None:
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
             data = filtered_data
-            # Store count for given filters
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True)
+            # Store count for given filters and schema
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=count, pin=True),
+                store.set(
+                    var_entry,
+                    key=cls._get_schema_cache_key(var_entry.uid),
+                    value=build_table_schema(df_convert_to_internal(entry.data)),
+                    pin=True,
+                ),
+            )
         else:
-            await store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True)
+            await asyncio.gather(
+                store.set(var_entry, key=cls._get_count_cache_key(var_entry.uid, filters), value=0, pin=True),
+                store.set(var_entry, key=cls._get_schema_cache_key(var_entry.uid), value=None, pin=True),
+            )
 
         # TODO: once path is supported, stream&filter from disk
         if entry.path:
@@ -231,6 +258,19 @@ class DataVariable(AnyDataVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
+
+    @classmethod
+    async def get_schema(cls, var_entry: DataVariableRegistryEntry, store: CacheStore):
+        """
+        Get the schema of the data variable.
+
+        :param var_entry: variable entry
+        :param store: store
+        """
+        cache_key = cls._get_schema_cache_key(var_entry.uid)
+        entry = await store.get(var_entry, key=cache_key, unpin=True)
+
+        return cast(DataFrameSchema, entry)
 
     def reset(self):
         raise NotImplementedError('DataVariable cannot be reset')

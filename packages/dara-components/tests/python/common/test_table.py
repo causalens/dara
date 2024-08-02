@@ -40,6 +40,7 @@ class TestTableComponent(unittest.TestCase):
             'props': {
                 'children': [],
                 'bold': False,
+                'include_index': True,
                 'italic': False,
                 'underline': False,
                 'columns': [
@@ -79,6 +80,7 @@ class TestTableComponent(unittest.TestCase):
                 'children': [],
                 'bold': False,
                 'italic': False,
+                'include_index': True,
                 'underline': False,
                 'columns': [
                     {

@@ -18,7 +18,7 @@ limitations under the License.
 import abc
 import io
 import os
-from typing import Any, Awaitable, Callable, Literal, Optional, cast
+from typing import Any, Awaitable, Callable, Literal, Optional, TypedDict, Union, cast
 
 import pandas
 from fastapi import UploadFile
@@ -49,6 +49,16 @@ class AnyDataVariable(AnyVariable, abc.ABC):
         return self.copy(update={'filters': filters}, deep=True)
 
 
+class FieldType(TypedDict):
+    name: Union[str, tuple[str, ...]]
+    type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
+
+
+class DataFrameSchema(TypedDict):
+    fields: list[FieldType]
+    primaryKey: list[str]
+
+
 class DataVariableRegistryEntry(CachedRegistryEntry):
     """
     Registry entry for DataVariable.
@@ -60,6 +70,9 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
 
     get_total_count: Callable[..., Awaitable[int]]
     """Handler to get the total number of rows in the data variable. Defaults to DataVariable.get_total_count for type=plain, and DerivedDataVariable.get_total_count for type=derived"""
+
+    get_schema: Callable[..., Awaitable[DataFrameSchema]]
+    """Handler to get the schema for data variable. Defaults to DataVariable.get_schema for type=plain, and DerivedDataVariable.get_schema for type=derived"""
 
     class Config:
         extra = 'forbid'

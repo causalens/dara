@@ -1,7 +1,7 @@
 import datetime
 import os
 from contextvars import ContextVar
-from typing import Optional, Union
+from typing import Optional, Union, cast
 from unittest.mock import Mock, patch
 
 import jwt
@@ -30,7 +30,7 @@ from dara.core.interactivity.actions import UpdateVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
 
@@ -54,7 +54,7 @@ TEST_DATA = DataFrame(
 4     1     10   e    j
 ```
 """
-FINAL_TEST_DATA = append_index(TEST_DATA)
+FINAL_TEST_DATA = cast(DataFrame, append_index(TEST_DATA))
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
@@ -107,12 +107,23 @@ async def test_fetching_global_data_variable():
         response = await client.post('/api/core/data-variable/uid', json={'filters': None}, headers=AUTH_HEADERS)
 
         assert response.status_code == 200
-        assert response.json() == FINAL_TEST_DATA.to_dict(orient='records')
+        assert response.json() == df_convert_to_internal(FINAL_TEST_DATA).to_dict(orient='records')
 
         # Check count can be fetched
         response = await client.post('/api/core/data-variable/uid/count', json={}, headers=AUTH_HEADERS)
         assert response.status_code == 200
         assert response.json() == 5
+
+        # Check that schema can be fetched
+        response = await client.get('/api/core/data-variable/uid/schema', json={}, headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        data = response.json()
+        assert {'name': '__col__1__col1', 'type': 'integer'} in data['fields']
+        assert {'name': '__col__2__col2', 'type': 'integer'} in data['fields']
+        assert {'name': '__col__3__col3', 'type': 'string'} in data['fields']
+        assert {'name': '__col__4__col4', 'type': 'string'} in data['fields']
+        assert {'name': '__index__0__index', 'type': 'integer'} in data['fields']
+            
 
 
 async def test_fetching_global_data_variable_filters():
@@ -153,7 +164,7 @@ async def test_fetching_global_data_variable_filters():
         )
 
         assert response.status_code == 200
-        assert response.json() == FINAL_TEST_DATA.iloc[[1, 2]].to_dict(orient='records')
+        assert response.json() == df_convert_to_internal(FINAL_TEST_DATA).iloc[[1, 2]].to_dict(orient='records')
 
         # Check that requesting a count for a different filter configurations fails - no filters
         full_count_response = await client.post('/api/core/data-variable/uid/count', headers=AUTH_HEADERS)
@@ -293,7 +304,7 @@ async def test_update_variable_session_data_variable(_uid1, _uid2):
             json={'filters': None},
             headers=AUTH_HEADERS,
         )
-        assert response.json() == FINAL_TEST_DATA.to_dict(orient='records')
+        assert response.json() == df_convert_to_internal(FINAL_TEST_DATA).to_dict(orient='records')
 
         # Check count
         count_response = await client.post('/api/core/data-variable/data_uid/count', json={}, headers=AUTH_HEADERS)
@@ -390,7 +401,7 @@ async def test_update_variable_user_data_variable(_uid1, _uid2):
             json={'filters': None},
             headers=AUTH_HEADERS,
         )
-        assert response.json() == FINAL_TEST_DATA.to_dict(orient='records')
+        assert response.json() == df_convert_to_internal(FINAL_TEST_DATA).to_dict(orient='records')
 
         # Check count
         count_response = await client.post('/api/core/data-variable/data_uid/count', json={}, headers=AUTH_HEADERS)
