@@ -388,17 +388,17 @@ function Table(props: TableProps): JSX.Element {
                 );
 
                 const columnsWithoutGeneratedIndex = columns.filter((col) => col !== INDEX_COL);
-                let processsedColumns: ColumnProps[];
+                let processedColumns: ColumnProps[];
                 if (columnsProp) {
                     // Prop provided, parse the columns provided and map them to the columns from data
                     // Limitation: If there are columns with duplicate names, data from only one of them will be shown
                     const reverseColumnIdMap = Object.fromEntries(
                         columnsWithoutGeneratedIndex.map((col) => [
-                            extractColumnLabel(col, col.startsWith('__index__')),
+                            extractColumnLabel(col, col.startsWith(INDEX_COL)),
                             col,
                         ])
                     ); // name -> __col__1__name
-                    processsedColumns = getColumnProps(columnsProp).map((column) => {
+                    processedColumns = getColumnProps(columnsProp).map((column) => {
                         const col_id = reverseColumnIdMap[column.col_id] ?? column.col_id;
                         return {
                             type: fieldTypes[col_id]?.type as ColumnProps['type'], // Infer type from data, allow override
@@ -408,8 +408,8 @@ function Table(props: TableProps): JSX.Element {
                     });
                 } else {
                     // Prop not provided, create columns from data
-                    processsedColumns = columnsWithoutGeneratedIndex.map((column) => {
-                        const isIndex = column.startsWith('__index__');
+                    processedColumns = columnsWithoutGeneratedIndex.map((column) => {
+                        const isIndex = column.startsWith(INDEX_COL);
                         return {
                             col_id: column,
                             sticky: isIndex ? 'left' : undefined,
@@ -419,12 +419,10 @@ function Table(props: TableProps): JSX.Element {
                         };
                     });
                     if (!props.include_index) {
-                        processsedColumns = processsedColumns.filter(
-                            (column) => !column.col_id.startsWith('__index__')
-                        );
+                        processedColumns = processedColumns.filter((column) => !column.col_id.startsWith(INDEX_COL));
                     }
                 }
-                setResolvedColumns(processsedColumns);
+                setResolvedColumns(processedColumns);
             })
             .catch((err) => {
                 throw new Error(err);
@@ -495,7 +493,7 @@ function Table(props: TableProps): JSX.Element {
             onClickRowRaw(
                 // Preserve original data column names on click
                 // Limitation: If there are columns with duplicate names, data from only one of them will be returned
-                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith('__index__'))))
+                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))))
             ),
         [onClickRowRaw]
     );
