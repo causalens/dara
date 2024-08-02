@@ -208,7 +208,7 @@ export function useFetchDataVariable(
             return {
                 data,
                 totalCount,
-                schema,
+                ...(schema !== null && { schema }),
             };
         },
         [variable, extras, serverTriggerCounter, eventBus]
@@ -289,7 +289,11 @@ export function useFetchDerivedDataVariable(
                 ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
             ] as const);
 
-            previousResult.current = { data, totalCount, schema };
+            previousResult.current = {
+                data,
+                totalCount,
+                ...(schema !== null && { schema }),
+            };
 
             // publish the event
             eventBus.publish('DERIVED_DATA_VARIABLE_LOADED', { variable, value: { data, totalCount } });
@@ -297,7 +301,7 @@ export function useFetchDerivedDataVariable(
             return {
                 data,
                 totalCount,
-                schema,
+                ...(schema !== null && { schema }),
             };
         },
         [variable, extras, dvValuePromise, eventBus]
