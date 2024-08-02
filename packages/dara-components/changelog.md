@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed invisible boolean values in `Table` cells.
+-   `Table` now automatically renders all index columns from the DataFrame and expands hierarchical columns.
+
 ## 1.11.5
 
 -   Visual tweaks to `Chat` component.

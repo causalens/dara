@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added index columns to the response of `DataVariable`/`DerivedDataVariable`.
+-   Added a schema endpoint for `DataVariable`/`DerivedDataVariable`. The schema is returned when passing `{ schema: true }` as an options field when calling `useDataVariable`/`useDerivedDataVariable`.
+-   Fixed a crash when DataFrame with duplicate column names is passed into `DataVariable`/`DerivedDataVariable`.
+
 ## 1.11.0
 
 -   Dropped support for Python 3.8.
