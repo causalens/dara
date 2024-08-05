@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed `Table` not rendering due to `/schema` GET request failing.
+
 ## 1.12.1
 
 -   Fixed invisible boolean values in `Table` cells.

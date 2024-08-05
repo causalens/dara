@@ -17,10 +17,12 @@ limitations under the License.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Callable, Coroutine, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame
+from pandas.io.json._table_schema import build_table_schema
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -48,7 +50,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -136,6 +138,15 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         )
 
     @staticmethod
+    def _get_schema_cache_key(cache_key: str) -> str:
+        """
+        Get a unique cache key for the data variable's schema.
+
+        :param cache_key: cache_key of the DerivedDataVariable
+        """
+        return f'schema-{cache_key}'
+
+    @staticmethod
     async def _filter_data(
         data: Union[DataFrame, Any, None],
         count_cache_key: str,
@@ -164,7 +175,19 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         filtered_data, count = apply_filters(data, coerce_to_filter_query(filters), pagination)
 
         # Cache the count
-        await store.set(var_entry, key=count_cache_key, value=count, pin=True)
+        await asyncio.gather(
+            store.set(var_entry, key=count_cache_key, value=count, pin=True),
+            store.set(
+                registry_entry=var_entry,
+                key=DerivedDataVariable._get_schema_cache_key(
+                    count_cache_key.split('_')[0]  # remove the filter part from the key
+                ),
+                value=build_table_schema(df_convert_to_internal(cast(DataFrame, filtered_data)))
+                if isinstance(filtered_data, DataFrame)
+                else None,
+                pin=True,
+            ),
+        )
 
         return filtered_data
 
@@ -194,7 +217,19 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         value = await super().get_value(var_entry, store, task_mgr, args, force)
 
         # Pin the value in the store until it's read by get data
-        await store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True)
+        await asyncio.gather(
+            store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True),
+            store.set(
+                registry_entry=var_entry,
+                key=cls._get_schema_cache_key(value['cache_key']),
+                value=build_table_schema(
+                    df_convert_to_internal(cast(DataFrame, value['value'])),
+                )
+                if isinstance(value['value'], DataFrame)
+                else None,
+                pin=True,
+            ),
+        )
 
         eng_logger.info(
             f'Derived Data Variable {_uid_short} received result from superclass',
@@ -298,7 +333,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         """
         Get the schema of the derived data variable.
         """
-        return cast(DataFrameSchema, await store.get(data_entry, key=cache_key, unpin=True))
+        return cast(DataFrameSchema, await store.get(data_entry, key=cls._get_schema_cache_key(cache_key), unpin=True))
 
     @classmethod
     async def resolve_value(
