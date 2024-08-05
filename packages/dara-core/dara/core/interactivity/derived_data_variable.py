@@ -182,9 +182,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 key=DerivedDataVariable._get_schema_cache_key(
                     count_cache_key.split('_')[0]  # remove the filter part from the key
                 ),
-                value=build_table_schema(
-                    df_convert_to_internal(filtered_data if filtered_data is not None else DataFrame())
-                ),
+                value=build_table_schema(df_convert_to_internal(cast(DataFrame, filtered_data)))
+                if isinstance(filtered_data, DataFrame)
+                else None,
                 pin=True,
             ),
         )
@@ -223,10 +223,10 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 registry_entry=var_entry,
                 key=cls._get_schema_cache_key(value['cache_key']),
                 value=build_table_schema(
-                    df_convert_to_internal(
-                        cast(DataFrame, value['value'] if value['value'] is not None else DataFrame())
-                    )
-                ),
+                    df_convert_to_internal(cast(DataFrame, value['value'])),
+                )
+                if isinstance(value['value'], DataFrame)
+                else None,
                 pin=True,
             ),
         )
