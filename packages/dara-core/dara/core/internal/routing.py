@@ -389,7 +389,6 @@ def create_router(config: Configuration):
     @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
     async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
         try:
-
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable_def = await registry_mgr.get(data_variable_registry, uid)
