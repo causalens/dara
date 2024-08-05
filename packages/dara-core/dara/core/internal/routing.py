@@ -389,7 +389,7 @@ def create_router(config: Configuration):
     @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
     async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
         try:
-            
+
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             variable_def = await registry_mgr.get(data_variable_registry, uid)
@@ -398,7 +398,9 @@ def create_router(config: Configuration):
                 return await variable_def.get_schema(variable_def, store)
 
             if cache_key is None:
-                raise HTTPException(status_code=400, detail='Cache key is required when requesting data variable schema')
+                raise HTTPException(
+                    status_code=400, detail='Cache key is required when requesting DerivedDataVariable schema'
+                )
 
             data = await variable_def.get_schema(variable_def, store, cache_key)
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data

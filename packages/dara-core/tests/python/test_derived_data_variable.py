@@ -343,7 +343,9 @@ async def test_derived_data_variable_with_filters():
             json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
             headers=AUTH_HEADERS,
         )
-        assert data_second_response.json() == df_convert_to_internal(unfiltered[unfiltered['col1'] == 2]).to_dict(orient='records')
+        assert data_second_response.json() == df_convert_to_internal(unfiltered[unfiltered['col1'] == 2]).to_dict(
+            orient='records'
+        )
         assert mock_func.call_count == 1
 
         # Check count cannot be returned for different filters

@@ -123,7 +123,6 @@ async def test_fetching_global_data_variable():
         assert {'name': '__col__3__col3', 'type': 'string'} in data['fields']
         assert {'name': '__col__4__col4', 'type': 'string'} in data['fields']
         assert {'name': '__index__0__index', 'type': 'integer'} in data['fields']
-            
 
 
 async def test_fetching_global_data_variable_filters():
