@@ -168,7 +168,7 @@ async function fetchDataVariableSchema(
     extras: RequestExtras,
     cacheKey?: string
 ): Promise<DataResponse['schema']> {
-    const queryString = new URLSearchParams({ cache_key: cacheKey }).toString();
+    const queryString = cacheKey ? new URLSearchParams({ cache_key: cacheKey }).toString() : '';
     const response = await request(
         `/api/core/data-variable/${uid}/schema?${queryString}`,
         { method: HTTP_METHOD.GET },
