@@ -22,6 +22,7 @@ from typing import Any, Callable, Coroutine, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame
+from pandas.io.json._table_schema import build_table_schema
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -41,7 +42,6 @@ from dara.core.interactivity.derived_variable import (
     DerivedVariableRegistryEntry,
     DerivedVariableResult,
 )
-from pandas.io.json._table_schema import build_table_schema
 from dara.core.interactivity.filtering import (
     FilterQuery,
     Pagination,
