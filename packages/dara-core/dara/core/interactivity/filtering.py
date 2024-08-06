@@ -17,9 +17,9 @@ limitations under the License.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from enum import Enum
-import re
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy
