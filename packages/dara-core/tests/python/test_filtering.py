@@ -64,6 +64,35 @@ def test_pagination(test_input, expected):
 @pytest.mark.parametrize(
     'test_input,expected',
     [
+        ((None, None, None), TEST_DATA.index.tolist()),
+        ((None, None, 'col1'), TEST_DATA.sort_values('col1').index.tolist()),
+        ((None, None, '-col1'), TEST_DATA.sort_values('col1', ascending=False).index.tolist()),
+        ((0, 3, 'col2'), TEST_DATA.sort_values('col2').head(3).index.tolist()),
+        ((1, 2, '-col2'), TEST_DATA.sort_values('col2', ascending=False).iloc[1:3].index.tolist()),
+        ((None, 5, 'col3'), TEST_DATA.sort_values('col3').head(5).index.tolist()),
+        ((2, None, '-col3'), TEST_DATA.sort_values('col3', ascending=False).iloc[2:].index.tolist()),
+        # Internal column names should resolve to raw column names
+        ((None, None, '__col__1__col1'), TEST_DATA.sort_values('col1').index.tolist()),
+        ((None, None, '__index__1__col1'), TEST_DATA.sort_values('col1').index.tolist()),
+        ((1, 2, '-__col__2__col2'), TEST_DATA.sort_values('col2', ascending=False).iloc[1:3].index.tolist()),
+        ((None, 5, '__index__3__col3'), TEST_DATA.sort_values('col3').head(5).index.tolist()),
+    ],
+)
+def test_pagination_with_order_by(test_input, expected):
+    offset, limit, order_by = test_input
+
+    paginated, count = apply_filters(
+        data=TEST_DATA, pagination=Pagination(offset=offset, limit=limit, orderBy=order_by)
+    )
+
+    assert paginated is not None
+    assert paginated.index.tolist() == expected
+    assert count == len(TEST_DATA)  # count pre-pagination
+
+
+@pytest.mark.parametrize(
+    'test_input,expected',
+    [
         # Number col, number value
         (('col1', 1), [0, 4]),
         # Number col, string value -> infer number
@@ -78,6 +107,15 @@ def test_pagination(test_input, expected):
         (('col7', -4.5), [2]),
         # Negative and fraction, string
         (('col7', '-4.5'), [2]),
+        # Internal column names should resolve to raw column names
+        # Number col, number value, __col__
+        (('__col__1__col1', 1), [0, 4]),
+        # Number col, number value, __index__
+        (('__index__1__col1', 1), [0, 4]),
+        # Negative and fraction, string, __col__
+        (('__col__7__col7', '-4.5'), [2]),
+        # Negative and fraction, string, __index__
+        (('__index__7__col7', '-4.5'), [2]),
     ],
 )
 def test_value_equals_filter(test_input, expected):
