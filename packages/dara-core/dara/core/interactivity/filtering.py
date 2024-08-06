@@ -30,6 +30,7 @@ from dara.core.logging import dev_logger
 
 COLUMN_PREFIX_REGEX = re.compile(r'__(?:col|index)__\d+__')
 
+
 class Pagination(BaseModel):
     """
     Model representing pagination to be applied to a dataset.
@@ -273,7 +274,9 @@ def apply_filters(
                 order_by = order_by[1:]
                 ascending = False
 
-            new_data = new_data.sort_values(by=re.sub(COLUMN_PREFIX_REGEX, '', order_by), ascending=ascending, inplace=False)
+            new_data = new_data.sort_values(
+                by=re.sub(COLUMN_PREFIX_REGEX, '', order_by), ascending=ascending, inplace=False
+            )
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0
