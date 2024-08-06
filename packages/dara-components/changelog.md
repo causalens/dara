@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.2
 
 -   Fixed `Table` not rendering due to `/schema` GET request failing.
 
