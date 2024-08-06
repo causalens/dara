@@ -20,17 +20,17 @@ importers:
     specifiers:
       '@babel/core': ^7.23.5
       '@bokeh/bokehjs': ~3.1.1
-      '@darajs/core': 1.12.2
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-causal-graph-editor': 1.12.2
-      '@darajs/ui-code-editor': 1.12.2
-      '@darajs/ui-components': 1.12.2
-      '@darajs/ui-hierarchy-viewer': 1.12.2
-      '@darajs/ui-icons': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/core': 1.12.3
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-causal-graph-editor': 1.12.3
+      '@darajs/ui-code-editor': 1.12.3
+      '@darajs/ui-components': 1.12.3
+      '@darajs/ui-hierarchy-viewer': 1.12.3
+      '@darajs/ui-icons': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@popperjs/core': 2.4.0
       '@testing-library/react-hooks': ^3.4.2
       '@types/lodash': ^4.14.155
@@ -121,13 +121,13 @@ importers:
       '@babel/preset-env': ^7.23.0
       '@babel/preset-react': ^7.22.15
       '@babel/preset-typescript': ^7.23.0
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-components': 1.12.2
-      '@darajs/ui-notifications': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-components': 1.12.3
+      '@darajs/ui-notifications': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@fortawesome/fontawesome-free': ~6.4.0
       '@recoiljs/refine': ^0.1.1
       '@rollup/plugin-inject': ^4.0.4
@@ -274,7 +274,7 @@ importers:
 
   packages/eslint-config:
     specifiers:
-      '@darajs/prettier-config': 1.12.2
+      '@darajs/prettier-config': 1.12.3
       '@typescript-eslint/eslint-plugin': ^6.0.0
       '@typescript-eslint/parser': ^6.0.0
       eslint: ^7.5.0
@@ -314,9 +314,9 @@ importers:
 
   packages/styled-components:
     specifiers:
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
       '@types/styled-components': ^5.1.26
       eslint: ^7.32.0
       polished: ^4.1.1
@@ -361,15 +361,15 @@ importers:
       '@babel/preset-env': ^7.15.8
       '@babel/preset-react': ^7.14.5
       '@babel/preset-typescript': ^7.15.0
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-components': 1.12.2
-      '@darajs/ui-icons': 1.12.2
-      '@darajs/ui-notifications': 1.12.2
-      '@darajs/ui-utils': 1.12.2
-      '@darajs/ui-widgets': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-components': 1.12.3
+      '@darajs/ui-icons': 1.12.3
+      '@darajs/ui-notifications': 1.12.3
+      '@darajs/ui-utils': 1.12.3
+      '@darajs/ui-widgets': 1.12.3
       '@storybook/addon-a11y': ^6.5.16
       '@storybook/addon-actions': ^6.5.16
       '@storybook/addon-essentials': ^6.5.16
@@ -524,10 +524,10 @@ importers:
       '@codemirror/search': ^6.0.0
       '@codemirror/state': ^6.0.0
       '@codemirror/view': ^6.0.0
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
       '@storybook/addon-a11y': ^6.5.16
       '@storybook/addon-actions': ^6.5.16
       '@storybook/addon-essentials': ^6.5.16
@@ -593,12 +593,12 @@ importers:
       '@babel/preset-env': ^7.15.6
       '@babel/preset-react': ^7.14.5
       '@babel/preset-typescript': ^7.15.0
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-icons': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-icons': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@floating-ui/react': ^0.26.12
       '@fortawesome/fontawesome-svg-core': ~6.4.0
       '@fortawesome/free-regular-svg-icons': ~6.4.0
@@ -746,11 +746,11 @@ importers:
 
   packages/ui-hierarchy-viewer:
     specifiers:
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@types/d3': ^6.2.0
       '@types/jest': ^25.2.3
       '@types/react': ^18.0
@@ -789,10 +789,10 @@ importers:
 
   packages/ui-icons:
     specifiers:
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
       '@fortawesome/fontawesome-svg-core': ~6.4.0
       '@fortawesome/free-brands-svg-icons': ~6.4.0
       '@fortawesome/free-regular-svg-icons': ~6.4.0
@@ -840,12 +840,12 @@ importers:
 
   packages/ui-notifications:
     specifiers:
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-icons': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-icons': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@storybook/addon-a11y': ^6.5.16
       '@storybook/addon-actions': ^6.5.16
       '@storybook/addon-essentials': ^6.5.16
@@ -912,9 +912,9 @@ importers:
       '@babel/core': ^7.15.5
       '@babel/preset-env': ^7.15.6
       '@babel/preset-react': ^7.14.5
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
       '@types/jest': ^25.2.3
       '@types/lodash': ^4.14.155
       '@types/react': ^18.0
@@ -968,13 +968,13 @@ importers:
       '@babel/preset-env': ^7.15.6
       '@babel/preset-react': ^7.14.5
       '@babel/preset-typescript': ^7.15.0
-      '@darajs/eslint-config': 1.12.2
-      '@darajs/prettier-config': 1.12.2
-      '@darajs/styled-components': 1.12.2
-      '@darajs/stylelint-config': 1.12.2
-      '@darajs/ui-components': 1.12.2
-      '@darajs/ui-icons': 1.12.2
-      '@darajs/ui-utils': 1.12.2
+      '@darajs/eslint-config': 1.12.3
+      '@darajs/prettier-config': 1.12.3
+      '@darajs/styled-components': 1.12.3
+      '@darajs/stylelint-config': 1.12.3
+      '@darajs/ui-components': 1.12.3
+      '@darajs/ui-icons': 1.12.3
+      '@darajs/ui-utils': 1.12.3
       '@storybook/addon-a11y': ^6.5.16
       '@storybook/addon-actions': ^6.5.16
       '@storybook/addon-essentials': ^6.5.16

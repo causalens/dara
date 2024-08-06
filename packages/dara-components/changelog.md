@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.3
 
 -   Fixed an issue where `Table` filters and column sorting would not work correctly due to a prefix in column names.
 
