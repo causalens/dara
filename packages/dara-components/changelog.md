@@ -2,9 +2,13 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where `Table` filters and column sorting would not work correctly due to a prefix in column names.
+
 ## 1.12.2
 
--   Fixed `Table` not rendering due to `/schema` GET request failing.
+-   Fixed an issue where `Table` cells would not render due to `/schema` GET request failing.
 
 ## 1.12.1
 
