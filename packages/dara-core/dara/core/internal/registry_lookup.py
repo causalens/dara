@@ -55,6 +55,9 @@ class RegistryLookup:
             if registry.name in self.handlers:
                 func = self.handlers[registry.name]  # type: ignore
                 entry = await func(uid)
+                # If something else registered the entry while we were waiting, return that
+                if registry.has(uid):
+                    return registry.get(uid)
                 registry.register(uid, entry)
                 return entry
             raise ValueError(
