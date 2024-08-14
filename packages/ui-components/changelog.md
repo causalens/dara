@@ -2,14 +2,15 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.11.4
 
 -   Updated `Chat` component to support a non "popup" version. This can be set with the `isPopup` flag. It has also gained three other customization props `placeholder`, `chatTitle`, `loadingComponent`.
 -   `Chat` component UI improvements according to latest design.
 -   Added two new props to `UserData` allowing to set bubble color and content in chat messages for a given user.
 -   `Textarea` component now supports `maxHeight` which when set it allows component to grow according to the size of its content.
--   Added new `CodeViewer` component.
 -   Updated `Chat` component to use `CodeViewer` when rendering code blocks in messages. This is now also supported by default by the `Markdown` component.
+-   Added new `CodeViewer` component.
+
 
 ## 1.10.1
 
