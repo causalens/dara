@@ -240,6 +240,7 @@ class WebSocketHandler:
                             )
 
                     asyncio.create_task(wrapper())
+                    return None
                 else:
                     response = handler(self.channel_id, data)
                     if response is not None:
@@ -253,8 +254,11 @@ class WebSocketHandler:
                         )
             except KeyError as e:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
-
             return None
+
+        # unreachable but needed for pylint to be happy
+        return None
+
 
     async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
         """
