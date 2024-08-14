@@ -68,8 +68,9 @@ export interface CodeViewerProps extends InteractiveComponentProps<string> {
 }
 
 const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
-    margin: 0;
     overflow-x: auto;
+
+    margin: 0;
     padding: 1rem;
 
     background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue1 : darkTheme.colors.blue1)} !important;
@@ -126,7 +127,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     <CopyToClipboardContainer>
                         <Check /> Copied!
                     </CopyToClipboardContainer>
-                    : <CopyToClipboardContainer
+                :   <CopyToClipboardContainer
                         style={{ cursor: 'pointer' }}
                         onClick={() => copyCodeToClipboard(props.value)}
                         role="button"
