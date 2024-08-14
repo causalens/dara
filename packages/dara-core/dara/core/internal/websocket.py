@@ -259,7 +259,6 @@ class WebSocketHandler:
         # unreachable but needed for pylint to be happy
         return None
 
-
     async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
         """
         Send a message to the client and return the client's response
