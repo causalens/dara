@@ -160,7 +160,7 @@ export interface WebSocketClientInterface {
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
-    sendCustomMessage(kind: string, data: any, await_response: boolean): Promise<CustomMessage | null>;
+    sendCustomMessage(kind: string, data: any, await_response?: boolean): Promise<CustomMessage | null>;
     sendMessage(value: any, channel: string, chunkCount?: number): void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;

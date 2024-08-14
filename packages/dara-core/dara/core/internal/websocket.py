@@ -185,6 +185,8 @@ class WebSocketHandler:
         Process a message received from the client.
         Handles resolving pending responses.
 
+        Can return a coroutine to be awaited by the caller.
+
         :param message: The message to process
         """
         if message.type == 'message':
@@ -239,12 +241,11 @@ class WebSocketHandler:
                 else:
                     response = handler(self.channel_id, data)
                     if response is not None:
-                        asyncio.create_task(
-                            self.send_message(
-                                CustomServerMessage(
-                                    message=CustomServerMessagePayload(
-                                        kind=kind, data=response, response_for=message.message.rchan
-                                    )
+                        # Return a coroutine for the caller to await
+                        return self.send_message(
+                            CustomServerMessage(
+                                message=CustomServerMessagePayload(
+                                    kind=kind, data=response, response_for=message.message.rchan
                                 )
                             )
                         )
@@ -488,7 +489,10 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         else:
                             try:
                                 parsed_data = parse_obj_as(ClientMessage, data)
-                                handler.process_client_message(parsed_data)
+                                result = handler.process_client_message(parsed_data)
+                                # Process the resulting coroutine before moving on to next message
+                                if inspect.iscoroutine(result):
+                                    await result
                             except Exception as e:
                                 eng_logger.error('Error processing client WS message', error=e)
 
