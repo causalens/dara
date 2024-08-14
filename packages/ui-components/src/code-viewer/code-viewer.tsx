@@ -68,7 +68,8 @@ export interface CodeViewerProps extends InteractiveComponentProps<string> {
 }
 
 const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
-    min-width: fit-content;
+    overflow-x: auto;
+
     margin: 0;
     padding: 1rem;
 

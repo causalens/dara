@@ -39,7 +39,7 @@ function getSectionForHeading(heading: string, lines: string[]): [content: strin
 }
 
 /**
- * Parses changelog files in each ROOT_DIR/packages/PACKAGE_NAME/docs/changelog.md file.
+ * Parses changelog files in each ROOT_DIR/packages/PACKAGE_NAME/changelog.md file.
  * Returns the changelog as an array of changelog sections.
  *
  * @param tag tag to parse changelog for
