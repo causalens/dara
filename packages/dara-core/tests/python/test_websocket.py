@@ -52,6 +52,11 @@ config = create_app(builder)
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
+@pytest.fixture(autouse=True)
+async def cleanup_registry():
+    from dara.core.internal.registries import custom_ws_handlers_registry
+    yield
+    custom_ws_handlers_registry.replace({})
 
 async def _send_task(handler: WebSocketHandler, messages: list):
     """

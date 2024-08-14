@@ -80,6 +80,37 @@ describe('WebsocketClient', () => {
         );
     });
 
+    it('should allow the client to send custom messages to the server and receive responses', async () => {
+        const [server, client] = await initialize();
+
+        // Wait for the client to connect fully
+        await client.channel;
+
+        const result = client.sendCustomMessage('test_custom', { message: 'test' }, true);
+
+        // Check that the message was received with an __rchan
+        const receivedMessage = JSON.parse((await server.nextMessage) as string);
+        expect(receivedMessage).toEqual({
+            message: { data: { message: 'test' }, kind: 'test_custom', __rchan: expect.any(String) },
+            type: 'custom',
+        });
+
+        // Send a response to the client
+        server.send(
+            toMsg('custom', {
+                kind: 'test_custom',
+                __response_for: receivedMessage.message.__rchan,
+                data: { foo: 'bar' },
+            })
+        );
+
+        const response = await result;
+        expect(response).toEqual({
+            message: { data: { foo: 'bar' }, __response_for: receivedMessage.message.__rchan, kind: 'test_custom' },
+            type: 'custom',
+        });
+    });
+
     it('should attempt to reconnect to the websocket server if the connection is closed from the server side', async () => {
         const [server, client] = await initialize();
 
