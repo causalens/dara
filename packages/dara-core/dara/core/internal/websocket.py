@@ -213,6 +213,8 @@ class WebSocketHandler:
                         self.pending_responses[message_id] = (event, message.message)
                         event.set()
 
+            return None
+
         if message.type == 'custom':
             # import required internals
             from dara.core.internal.registries import custom_ws_handlers_registry
@@ -232,7 +234,7 @@ class WebSocketHandler:
                             await self.send_message(
                                 CustomServerMessage(
                                     message=CustomServerMessagePayload(
-                                        kind=kind, data=response, response_for=message.message.rchan
+                                        kind=kind, data=response, __response_for=message.message.rchan
                                     )
                                 )
                             )
@@ -245,14 +247,14 @@ class WebSocketHandler:
                         return self.send_message(
                             CustomServerMessage(
                                 message=CustomServerMessagePayload(
-                                    kind=kind, data=response, response_for=message.message.rchan
+                                    kind=kind, data=response, __response_for=message.message.rchan
                                 )
                             )
                         )
-
             except KeyError as e:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
-                return
+
+            return None
 
     async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
         """

@@ -160,7 +160,7 @@ export interface WebSocketClientInterface {
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
-    sendCustomMessage(kind: string, data: any, await_response?: boolean): Promise<CustomMessage | null>;
+    sendCustomMessage(kind: string, data: any, awaitResponse?: boolean): Promise<CustomMessage | null>;
     sendMessage(value: any, channel: string, chunkCount?: number): void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;
@@ -454,14 +454,14 @@ export class WebSocketClient implements WebSocketClientInterface {
      *
      * @param kind kind of custom message
      * @param data custom message data
-     * @param await_response whether to await a response for this message
+     * @param awaitResponse whether to await a response for this message
      */
-    sendCustomMessage(kind: string, data: any, await_response: boolean = false): Promise<CustomMessage | null> {
+    sendCustomMessage(kind: string, data: any, awaitResponse: boolean = false): Promise<CustomMessage | null> {
         if (this.socket.readyState === WebSocket.OPEN) {
 
             // if awaiting response, setup a subscription to the response channel
-            if (await_response) {
-                const rchan = await_response ? nanoid() : null;
+            if (awaitResponse) {
+                const rchan = nanoid();
 
                 return new Promise((resolve) => {
                     const subscription = this.customMessages$().pipe().subscribe({

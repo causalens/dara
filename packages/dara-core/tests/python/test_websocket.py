@@ -1,18 +1,11 @@
 import asyncio
+import inspect
 import os
 
 import anyio
 import pytest
 from async_asgi_testclient import TestClient as AsyncTestClient
-from tests.python.tasks import exception_task
-from tests.python.utils import (
-    AUTH_HEADERS,
-    _async_ws_connect,
-    _call_action,
-    create_app,
-    get_ws_messages,
-    wait_for,
-)
+from fastapi.encoders import jsonable_encoder
 
 from dara.core import DerivedVariable, UpdateVariable, Variable
 from dara.core.auth import BasicAuthConfig, MultiBasicAuthConfig
@@ -23,6 +16,8 @@ from dara.core.interactivity.any_variable import NOT_REGISTERED
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.websocket import (
     WS_CHANNEL,
+    CustomClientMessage,
+    CustomClientMessagePayload,
     DaraClientMessage,
     DaraServerMessage,
     ServerMessagePayload,
@@ -30,6 +25,16 @@ from dara.core.internal.websocket import (
     WebsocketManager,
 )
 from dara.core.main import _start_application
+
+from tests.python.tasks import exception_task
+from tests.python.utils import (
+    AUTH_HEADERS,
+    _async_ws_connect,
+    _call_action,
+    create_app,
+    get_ws_messages,
+    wait_for,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -69,6 +74,60 @@ async def _send_task(handler: WebSocketHandler, messages: list):
         )
         await handler.process_client_message(msg)
 
+
+async def test_websocket_receive_custom_sync_response():
+    """
+    Test a custom synchronous handler responding to a message.
+    """
+    from dara.core.internal.registries import custom_ws_handlers_registry
+
+    ws_mgr = WebsocketManager()
+    ws_handler = ws_mgr.create_handler('CHANNEL')
+
+    def custom_handler(channel: str, msg):
+        return msg
+
+    custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
+
+    result = ws_handler.process_client_message(
+        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+    )
+    assert inspect.iscoroutine(result)
+    await result
+
+    result_message = await ws_handler.receive_stream.receive()
+    result_message = jsonable_encoder(result_message)
+    assert result_message['message']['kind'] == 'CUSTOM_KIND'
+    assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
+    assert result_message['message']['data'] == 'INPUT'
+
+async def test_websocket_receive_custom_async_response():
+    """
+    Test a custom asynchronous handler responding to a message.
+    """
+    from dara.core.internal.registries import custom_ws_handlers_registry
+
+    ws_mgr = WebsocketManager()
+    ws_handler = ws_mgr.create_handler('CHANNEL')
+
+    async def custom_handler(channel: str, msg):
+        return msg
+
+    custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
+
+    result = ws_handler.process_client_message(
+        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+    )
+    assert result is None
+
+    # Result will be sent back in a task
+    await anyio.sleep(1)
+
+    result_message = await ws_handler.receive_stream.receive()
+    result_message = jsonable_encoder(result_message)
+    assert result_message['message']['kind'] == 'CUSTOM_KIND'
+    assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
+    assert result_message['message']['data'] == 'INPUT'
 
 async def test_websocket_send_and_wait():
     """
