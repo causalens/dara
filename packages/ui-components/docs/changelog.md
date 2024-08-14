@@ -17,7 +17,7 @@ title: Changelog
 
 ## 1.9.6
 
--   Increased performance of `Select`, `Multiselect`, `ComboBox`, `ContextMenu`, `DatepickerSelect`, `SectionedList` components in large lists by upto 485x.
+-   Increased performance of `Select`, `Multiselect`, `ComboBox`, `ContextMenu`, `DatepickerSelect`, `SectionedList` components in large lists by up to 485x.
 -   Fixed a crash when `null` was passed to `MultiSelect`'s `selectedItems` prop.
 
 ## 1.9.5
