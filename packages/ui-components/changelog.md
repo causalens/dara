@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix an issue where `CodeViewer` component component could overflow its container.
+
 ## 1.11.4
 
 -   Updated `Chat` component to support a non "popup" version. This can be set with the `isPopup` flag. It has also gained three other customization props `placeholder`, `chatTitle`, `loadingComponent`.
