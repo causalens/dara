@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.5
 
 -   Fix an issue where LRU cache could result in a `KeyError`
 
