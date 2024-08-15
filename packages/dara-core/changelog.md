@@ -4,6 +4,10 @@ title: Changelog
 
 ## NEXT
 
+-   Fix an issue where LRU cache could result in a `KeyError`
+
+## NEXT
+
 -   Internal (PY): improve support for synchronous custom WS handlers added with `config.add_ws_handler`, they are now guaranteed to be processed synchronously before the next WS message is handled.
 -   Internal (JS): extend `sendCustomMessage` WS client method to return the response as a promise if a new third argument `awaitResponse` is true.
 
