@@ -166,6 +166,7 @@ importers:
       jwt-decode: ^3.1.2
       lodash: ^4.17.21
       msw: 1.0.1
+      nanoid: ^3.3.0
       object-hash: ^3.0.0
       polished: ^4.1.1
       postcss: ^8.4.35
@@ -208,6 +209,7 @@ importers:
       history: 4.10.1
       jwt-decode: 3.1.2
       lodash: 4.17.21
+      nanoid: 3.3.7
       object-hash: 3.0.0
       polished: 4.3.1
       query-string: 7.1.3

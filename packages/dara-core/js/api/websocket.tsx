@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
@@ -95,6 +96,10 @@ export interface CustomMessage {
     message: {
         data: any;
         kind: string;
+        /** Optional ID, returned from server custom messages coming as a response for a custom client message */
+        __response_for?: string;
+        /** Optional ID, should be included as `__response_for` when the server responds to this message */
+        __rchan?: string;
     };
     type: 'custom';
 }
@@ -155,7 +160,7 @@ export interface WebSocketClientInterface {
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
     progressUpdates$: (...task_ids: string[]) => Observable<ProgressNotificationMessage>;
-    sendCustomMessage: (kind: string, data: any) => void;
+    sendCustomMessage(kind: string, data: any, awaitResponse?: boolean): Promise<CustomMessage | null>;
     sendMessage(value: any, channel: string, chunkCount?: number): void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;
@@ -449,9 +454,40 @@ export class WebSocketClient implements WebSocketClientInterface {
      *
      * @param kind kind of custom message
      * @param data custom message data
+     * @param awaitResponse whether to await a response for this message
      */
-    sendCustomMessage(kind: string, data: any): void {
+    sendCustomMessage(kind: string, data: any, awaitResponse: boolean = false): Promise<CustomMessage | null> {
         if (this.socket.readyState === WebSocket.OPEN) {
+            // if awaiting response, setup a subscription to the response channel
+            if (awaitResponse) {
+                const rchan = nanoid();
+
+                return new Promise((resolve) => {
+                    const subscription = this.customMessages$()
+                        .pipe()
+                        .subscribe({
+                            next: (msg) => {
+                                if (msg.message.__response_for === rchan) {
+                                    resolve(msg);
+                                    subscription.unsubscribe();
+                                }
+                            },
+                        });
+
+                    this.socket.send(
+                        JSON.stringify({
+                            message: {
+                                data,
+                                kind,
+                                __rchan: rchan,
+                            },
+                            type: 'custom',
+                        } as CustomMessage)
+                    );
+                });
+            }
+
+            // otherwise just fire and forget a message
             this.socket.send(
                 JSON.stringify({
                     message: {
@@ -461,6 +497,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                     type: 'custom',
                 } as CustomMessage)
             );
+            return Promise.resolve(null);
         }
     }
 }
