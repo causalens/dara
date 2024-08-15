@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.5
 
 -   Fix an issue where `CodeViewer` component component could overflow its container.
 
