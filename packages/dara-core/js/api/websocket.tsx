@@ -1,6 +1,6 @@
+import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
-import { nanoid} from 'nanoid';
 
 import type { ActionImpl, AnyVariable } from '@/types';
 
@@ -458,20 +458,21 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     sendCustomMessage(kind: string, data: any, awaitResponse: boolean = false): Promise<CustomMessage | null> {
         if (this.socket.readyState === WebSocket.OPEN) {
-
             // if awaiting response, setup a subscription to the response channel
             if (awaitResponse) {
                 const rchan = nanoid();
 
                 return new Promise((resolve) => {
-                    const subscription = this.customMessages$().pipe().subscribe({
-                        next: (msg) => {
-                            if (msg.message.__response_for === rchan) {
-                                resolve(msg);
-                                subscription.unsubscribe();
-                            }
-                        },
-                    });
+                    const subscription = this.customMessages$()
+                        .pipe()
+                        .subscribe({
+                            next: (msg) => {
+                                if (msg.message.__response_for === rchan) {
+                                    resolve(msg);
+                                    subscription.unsubscribe();
+                                }
+                            },
+                        });
 
                     this.socket.send(
                         JSON.stringify({
