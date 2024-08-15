@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.11.0
 
 -   Fixed an issue where `CausalGraphEditor` tooltips would appear above other elements on a page.
 
