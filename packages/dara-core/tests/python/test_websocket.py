@@ -77,7 +77,9 @@ async def _send_task(handler: WebSocketHandler, messages: list):
             message=message,
             chunk_count=None if len(messages) == 1 else len(messages),
         )
-        await handler.process_client_message(msg)
+        res = handler.process_client_message(msg)
+        if res:
+            await res
 
 
 async def test_websocket_receive_custom_sync_response():
