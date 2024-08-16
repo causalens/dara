@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix an issue where LRU cache could result in a `KeyError`
+
 ## 1.12.5
 
 -   Internal (PY): improve support for synchronous custom WS handlers added with `config.add_ws_handler`, they are now guaranteed to be processed synchronously before the next WS message is handled.
