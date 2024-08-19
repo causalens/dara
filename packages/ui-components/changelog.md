@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Improve default `Markdown` styling to show borders for tables
+
 ## 1.12.5
 
 -   Fix an issue where `CodeViewer` component component could overflow its container.
