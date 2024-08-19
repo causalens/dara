@@ -4,7 +4,9 @@ title: Changelog
 
 ## NEXT
 
--  Improve default `Markdown` styling to show borders for tables
+-   Improve default `Markdown` styling to show borders for tables
+-   `Input` and `NumericInput` components now accept all standard HTML element props
+-   Remove redundant props from `Input` and `NumericInputProps` interfaces
 
 ## 1.12.5
 
