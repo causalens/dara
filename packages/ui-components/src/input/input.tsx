@@ -72,32 +72,21 @@ export const ErrorMessage = styled.span`
     color: ${(props) => props.theme.colors.error};
 `;
 
-export interface InputProps extends InteractiveComponentProps<string> {
-    /** An optional prop to focus the input upon mounting it */
-    autoFocus?: boolean;
+export interface InputProps
+    extends InteractiveComponentProps<string>,
+        // `value` and `onChange` have a different signature compared to the standard input element
+        Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
     /** An optional keydown event filter, that can filter out invalid chars from an input. Should return true to let
      * the char through */
     keydownFilter?: (e: React.KeyboardEvent<HTMLInputElement>) => boolean;
-    /** An optional maximum length */
-    maxLength?: number;
     /** An optional value to put in the input to check for maximum value */
     maxValue?: any;
     /** An optional value to put in the input to check for minimum value */
     minValue?: any;
-    /** An optional onBlur handler for listening to input blur events */
-    onBlur?: (e: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
     /** An optional onChange handler for listening to changes in the input */
     onChange?: (value: string, e?: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
-    /** An optional onClick handler for listening to input click events */
-    onClick?: (e: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
     /** An optional event listener for complete events (enter presses) */
     onComplete?: () => void | Promise<void>;
-    /** An optional handler for listening to key down events */
-    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void | Promise<void>;
-    /** An optional placeholder that will be used when the input is empty, defaults to '' */
-    placeholder?: string;
-    /** Input type attribute */
-    type?: string;
 }
 
 /**
@@ -110,59 +99,57 @@ export interface InputProps extends InteractiveComponentProps<string> {
  * @param ref - forward ref that's attached to underlying input element
  */
 const Input = forwardRef<HTMLInputElement, InputProps>(
-    ({ type = 'text', ...props }: InputProps, ref: ForwardedRef<HTMLInputElement>) => {
-        const onChange = (e: React.SyntheticEvent<HTMLInputElement>): void => {
+    (
+        {
+            type = 'text',
+            onChange,
+            onKeyDown,
+            keydownFilter,
+            onComplete,
+            maxValue,
+            minValue,
+            errorMsg,
+            className,
+            style,
+            initialValue,
+            ...rest
+        }: InputProps,
+        ref: ForwardedRef<HTMLInputElement>
+    ) => {
+        const handleChange = (e: React.SyntheticEvent<HTMLInputElement>): void => {
             const target = e.target as HTMLInputElement;
-            if (props.onChange) {
-                props.onChange(target.value, e);
+            if (onChange) {
+                onChange(target.value, e);
             }
         };
 
-        const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-            if (props.onKeyDown) {
-                props.onKeyDown(e);
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+            if (onKeyDown) {
+                onKeyDown(e);
             }
 
-            if (props.keydownFilter && !props.keydownFilter(e)) {
+            if (keydownFilter && !keydownFilter(e)) {
                 e.preventDefault();
             }
-            if (e.key === Key.ENTER && props.onComplete) {
-                props.onComplete();
+            if (e.key === Key.ENTER && onComplete) {
+                onComplete();
             }
-        };
-
-        // Add all optional items here to be used by the primary input
-        const addOptionalItems = (): any => {
-            const result: any = {};
-            if (props.minValue) {
-                result.minValue = props.minValue;
-            }
-            if (props.maxValue) {
-                result.maxValue = props.minValue;
-            }
-
-            return result;
         };
 
         return (
-            <InputWrapper className={props.className} style={props.style}>
+            <InputWrapper className={className} style={style}>
                 <PrimaryInput
-                    autoFocus={props.autoFocus}
-                    defaultValue={props.initialValue}
-                    disabled={props.disabled}
-                    isErrored={!!props.errorMsg}
-                    maxLength={props.maxLength}
-                    onBlur={props.onBlur}
-                    onChange={onChange}
-                    onClick={props.onClick}
-                    onKeyDown={onKeyDown}
-                    placeholder={props.placeholder}
+                    {...rest}
+                    defaultValue={initialValue}
+                    isErrored={!!errorMsg}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     ref={ref}
                     type={type}
-                    value={props.value}
-                    {...addOptionalItems()}
+                    min={minValue}
+                    max={maxValue}
                 />
-                {props.errorMsg && <ErrorMessage>{props.errorMsg} </ErrorMessage>}
+                {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
             </InputWrapper>
         );
     }

@@ -141,25 +141,20 @@ const getInitialValue = (value: number, initialValue: number): string => {
     return '';
 };
 
-export interface NumericInputProps extends InteractiveComponentProps<number> {
-    /** An optional prop to focus the input upon mounting it */
-    autoFocus?: boolean;
+export interface NumericInputProps
+    extends InteractiveComponentProps<number>,
+        // `value`, `initialValue`, and `onChange` have a different signature compared to the standard input element
+        Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'initialValue'> {
     /** An optional parameter to restrict the field to just integers */
     integerOnly?: boolean;
     /** An optional property to set the maximum accepted value */
     maxValue?: number;
     /** An optional property to set the minimum accepted value */
     minValue?: number;
-    /** An optional onBlur handler for listening to input blur events */
-    onBlur?: (e: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
     /** An optional onChange handler for listening to changes in the input */
     onChange?: (value: number, e?: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
     /** An optional event listener for complete events (enter presses) */
     onComplete?: () => void | Promise<void>;
-    /** An optional event listener for keydown events */
-    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void | Promise<void>;
-    /** An optional placeholder that will be used when the input is empty, defaults to '' */
-    placeholder?: string;
     /** An optional property to set how many steps the stepper should take */
     stepSkip?: number;
     /** An optional property to show input stepper control */
@@ -172,11 +167,14 @@ export interface NumericInputProps extends InteractiveComponentProps<number> {
  * @param props the component props
  */
 const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
-    (props: NumericInputProps, ref: React.ForwardedRef<HTMLInputElement>): JSX.Element => {
+    (
+        { value, onChange, initialValue, ...props }: NumericInputProps,
+        ref: React.ForwardedRef<HTMLInputElement>
+    ): JSX.Element => {
         const keydownFilter = useMemo(() => numericFilter(props.integerOnly), [props.integerOnly]);
-        const [input, setInput] = useState(getInitialValue(props.value, props.initialValue));
+        const [input, setInput] = useState(getInitialValue(value, initialValue));
 
-        const step = (value: number): void => {
+        const step = (v: number): void => {
             if (!input || input === '-') {
                 return;
             }
@@ -184,19 +182,19 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
             const isFloat = input.includes('.');
             const parsedValue = isFloat ? parseFloat(input) : parseInt(input);
 
-            let nextValueNumber = parsedValue + value;
+            let nextValueNumber = parsedValue + v;
             let nextValueStr = String(nextValueNumber);
             if (isFloat) {
                 const decimals = input.split('.')[1];
                 if (decimals) {
-                    nextValueStr = (parsedValue + value / 10 ** decimals.length).toFixed(decimals.length);
+                    nextValueStr = (parsedValue + v / 10 ** decimals.length).toFixed(decimals.length);
                     nextValueNumber = parseFloat(nextValueStr);
                 }
             }
 
             // controlled
-            if (props.value !== undefined) {
-                props.onChange?.(nextValueNumber, {
+            if (value !== undefined) {
+                onChange?.(nextValueNumber, {
                     target: {
                         value: nextValueStr,
                     },
@@ -225,40 +223,40 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
             }
         };
 
-        const onChange = useCallback(
-            (value: string, e?: React.SyntheticEvent<HTMLInputElement>) => {
-                const parsed = props.integerOnly ? parseInt(value) : parseFloat(value);
+        const handleOnChange = useCallback(
+            (v: string, e?: React.SyntheticEvent<HTMLInputElement>) => {
+                const parsed = props.integerOnly ? parseInt(v) : parseFloat(v);
                 // uncontrolled component
-                if (props.value === undefined) {
-                    setInput(value);
-                    props.onChange?.(parsed, e);
+                if (value === undefined) {
+                    setInput(v);
+                    onChange?.(parsed, e);
                     return;
                 }
                 // if the value ends with a period, don't call onChange as it's not yet a valid number
-                if (value.endsWith('.')) {
-                    setInput(value);
+                if (v.endsWith('.')) {
+                    setInput(v);
                     return;
                 }
                 // if the value is decimal and ends in a zero the user has also not changed the number/finished typing
-                if (value.includes('.') && value.endsWith('0')) {
-                    setInput(value);
+                if (v.includes('.') && v.endsWith('0')) {
+                    setInput(v);
                     return;
                 }
                 // if the user is typing a negative number, don't call onChange until they have added the number
-                if (value === '-') {
-                    setInput(value);
+                if (v === '-') {
+                    setInput(v);
                     return;
                 }
-                props.onChange?.(parsed, e);
+                onChange?.(parsed, e);
             },
             // eslint-disable-next-line react-hooks/exhaustive-deps
-            [props.integerOnly, props.value, props.onChange]
+            [props.integerOnly, value, onChange]
         );
 
         useEffect(() => {
-            setInput(getInitialValue(props.value, props.initialValue));
+            setInput(getInitialValue(value, initialValue));
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [props.value]);
+        }, [value]);
 
         return (
             <div>
@@ -269,17 +267,10 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                     style={props.style}
                 >
                     <Input
-                        autoFocus={props.autoFocus}
-                        className={props.className}
-                        disabled={props.disabled}
+                        {...props}
                         keydownFilter={keydownFilter}
-                        maxValue={props.maxValue}
-                        minValue={props.minValue}
-                        onBlur={props.onBlur}
-                        onChange={onChange}
-                        onComplete={props.onComplete}
+                        onChange={handleOnChange}
                         onKeyDown={onKeyDown}
-                        placeholder={props.placeholder}
                         ref={ref}
                         value={input}
                     />
