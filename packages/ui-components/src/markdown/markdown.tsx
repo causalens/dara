@@ -60,8 +60,7 @@ const CustomMarkdownWrapper = styled.div`
     }
 
     blockquote {
-        /* stylelint-disable-next-line */
-        quotes: '"\\201C""\\201D""\\2018""\\2019"';
+        quotes: '\\201C' '\\201D' '\\2018' '\\2019';
 
         margin-top: 1.5rem;
         margin-bottom: 1.5rem;
@@ -72,6 +71,14 @@ const CustomMarkdownWrapper = styled.div`
         color: ${(props) => props.theme.colors.grey6};
 
         border-left: 0.25rem solid ${(props) => props.theme.colors.grey3};
+
+        p:first-of-type::before {
+            content: open-quote;
+        }
+
+        p:last-of-type::after {
+            content: close-quote;
+        }
     }
 
     h1 {
@@ -84,7 +91,7 @@ const CustomMarkdownWrapper = styled.div`
     }
 
     h2 {
-        margin-top: 1rem;
+        margin-top: 2rem;
         margin-bottom: 1rem;
 
         font-size: 2rem;
@@ -117,6 +124,13 @@ const CustomMarkdownWrapper = styled.div`
             margin-top: 0;
             margin-bottom: 0;
         }
+    }
+
+    figcaption {
+        margin-top: 0.875rem;
+        color: ${(props) => props.theme.colors.grey5};
+        font-size: 0.875rem;
+        line-height: 1.5rem;
     }
 
     h2 code {
@@ -186,10 +200,6 @@ const CustomMarkdownWrapper = styled.div`
                 border-radius: 0.25rem;
             }
 
-            strong {
-                font-style: italic;
-            }
-
             p {
                 margin-top: 0.75rem;
                 margin-bottom: 0.75rem;
@@ -205,6 +215,15 @@ const CustomMarkdownWrapper = styled.div`
         }
     }
 
+    ol > li::marker {
+        font-weight: 400;
+        color: ${(props) => props.theme.colors.text};
+    }
+
+    ul > li::marker {
+        color: ${(props) => props.theme.colors.grey4};
+    }
+
     hr {
         margin-top: 3rem;
         margin-bottom: 3rem;
@@ -213,12 +232,22 @@ const CustomMarkdownWrapper = styled.div`
     table {
         font-size: 0.875rem;
         line-height: 1.7;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        table-layout: auto;
+        width: 100%;
+        border-collapse: collapse;
 
         thead {
+            border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
+
             th {
                 padding-right: 0.5rem;
                 padding-bottom: 0.5rem;
                 padding-left: 0.5rem;
+                vertical-align: bottom;
+                font-weight: 600;
+                text-align: start;
             }
 
             th:first-child {
@@ -230,17 +259,36 @@ const CustomMarkdownWrapper = styled.div`
             }
         }
 
+        tfoot {
+            border-top: 1px solid ${(props) => props.theme.colors.grey2};
+
+            td {
+                vertical-align: top;
+                text-align: start;
+            }
+        }
+
         tbody {
+            tr {
+                border-bottom: 1px solid ${(props) => props.theme.colors.grey2};
+
+                &:last-child {
+                    border-bottom: 0;
+                }
+            }
+
             td {
                 padding: 0.5rem;
-            }
+                vertical-align: baseline;
+                text-align: start;
 
-            td:first-child {
-                padding-left: 0;
-            }
+                &:first-child {
+                    padding-left: 0;
+                }
 
-            td:last-child {
-                padding-right: 0;
+                &:last-child {
+                    padding-right: 0;
+                }
             }
         }
     }
