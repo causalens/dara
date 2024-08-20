@@ -244,7 +244,7 @@ function Chat(props: ChatProps): JSX.Element {
                 <ReplyButtons>
                     <Button
                         aria-label="Send"
-                        style={{ height: '3.7rem' }}
+                        style={{ height: '3.4rem' }}
                         disabled={!!props.loadingComponent || !(reply.trim().length > 0)}
                         onClick={onSubmitMessage}
                     >

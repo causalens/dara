@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix an issue where body's `line-height` was not consistent across packages.
+
 ## 1.11.0
 
 -   Fixed an issue where `CausalGraphEditor` tooltips would appear above other elements on a page.
