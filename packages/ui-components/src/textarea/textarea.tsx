@@ -42,7 +42,7 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
 
     width: 100%;
     height: 100%;
-    min-height: 3.6rem;
+    min-height: 3.4rem;
     padding: 1rem;
 
     font-size: 1rem;
@@ -53,12 +53,12 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
     border-radius: 0.25rem;
     outline: 0;
 
-    :focus:not(:disabled) {
-        border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey3)};
-    }
-
     :hover:not(:disabled) {
         border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey2)};
+    }
+
+    :focus:not(:disabled) {
+        border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey3)};
     }
 
     :active:not(:disabled) {
@@ -92,7 +92,7 @@ export interface TextAreaProps extends InteractiveComponentProps<string> {
     placeholder?: string;
     /** An optional property which sets whether the textarea is resizable, and if so, in which directions */
     resize?: 'none' | 'both' | 'horizontal' | 'vertical' | 'block' | 'inline';
-    /** The maximum height the textarea will grow to, if not set it will not grow as more text is entered */
+    /** The maximum height the textarea will grow to, if not set it will not grow as more text is entered, this expected as an rem value */
     maxHeight?: number;
 }
 
@@ -121,17 +121,30 @@ function TextArea({
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
     React.useEffect(() => {
-        // This effect is used to resize the textarea based on the content
         if (maxHeight && textareaRef.current) {
-            const minHeight = 3.7;
-            // Reset the height to the initial minimum height
-            textareaRef.current.style.height = '3.7rem';
-            // Calculate the height based on the scrollHeight
-            const newHeight =
-                textareaRef.current.scrollHeight / parseFloat(getComputedStyle(document.documentElement).fontSize);
+            const computedStyle = window.getComputedStyle(textareaRef.current);
+            const minHeight = parseFloat(computedStyle.minHeight);
+            const maxHeightInPx = parseFloat(computedStyle.maxHeight);
+
+            // Reset the height to the initial minimum height in px
+            textareaRef.current.style.height = `${minHeight}px`;
+
+            // Calculate the new height based on scrollHeight
+            const newHeight = textareaRef.current.scrollHeight;
 
             if (minHeight < newHeight) {
-                textareaRef.current.style.height = `${Math.min(newHeight, maxHeight)}rem`;
+                const adjustedHeight = Math.min(newHeight, maxHeightInPx);
+                // Set the textarea height to the new calculated height
+                textareaRef.current.style.height = `${adjustedHeight}px`;
+
+                // Toggle overflow-y based on whether maxHeight is reached, this is to guarantee overflow does not show before it is needed
+                if (adjustedHeight >= maxHeightInPx) {
+                    textareaRef.current.style.overflowY = 'auto';
+                } else {
+                    textareaRef.current.style.overflowY = 'hidden';
+                }
+            } else {
+                textareaRef.current.style.overflowY = 'hidden';
             }
         }
     }, [maxHeight, value]);
