@@ -120,7 +120,7 @@ function TextArea({
 }: TextAreaProps): JSX.Element {
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         if (maxHeight && textareaRef.current) {
             const computedStyle = window.getComputedStyle(textareaRef.current);
             const minHeight = parseFloat(computedStyle.minHeight);
