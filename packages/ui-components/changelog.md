@@ -4,9 +4,11 @@ title: Changelog
 
 ## NEXT
 
+-   Fix an issue where body's `line-height` was not consistent across packages.
 -   Improve default `Markdown` styling to show borders for tables
 -   `Input` and `NumericInput` components now accept all standard HTML element props
 -   Remove redundant props from `Input` and `NumericInputProps` interfaces
+-   Fix `Textarea` text not being initially aligned in `Chat` component.
 
 ## 1.12.5
 

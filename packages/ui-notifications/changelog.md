@@ -1,6 +1,9 @@
 ---
 title: Changelog
 ---
+## NEXT
+
+-   Fix an issue where body's `line-height` was not consistent across packages.
 
 ## 1.5.0
 
