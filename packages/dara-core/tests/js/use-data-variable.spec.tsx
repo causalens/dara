@@ -5,6 +5,65 @@ import { EventCapturer, combineFilters, useDataVariable } from '../../js/shared'
 import { DaraEventMap, DataVariable, DerivedDataVariable, FilterQuery, Pagination, SingleVariable } from '../../js/types';
 import { MockWebSocketClient, Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
+import { handlers, mockSchema } from './utils/test-server-handlers';
+import { omit } from 'lodash';
+
+// Handler specifically for Derived Data Variable tests
+const ddvHandler = rest.post('/api/core/data-variable/:uid*', async (req, res, ctx) => {
+    if (req.url.pathname.endsWith('/count')) {
+        const body = await req.json();
+        if (!body.cache_key) {
+            return res(ctx.status(400), ctx.json({ error: 'Missing cache_key in request body' }));
+        }
+        return res(ctx.json(10));
+    }
+
+    const body = await req.json();
+    return res(
+        ctx.json([
+            {
+                col1: 1,
+                col2: 6,
+                col3: 'a',
+                col4: 'f',
+            },
+            {
+                col1: 2,
+                col2: 5,
+                col3: 'b',
+                col4: 'e',
+            },
+            {
+                // fields required for DDV - so we can check they are sent
+                cache_key: body.cache_key,
+
+                // Append what filters were sent
+                filters: body.filters,
+
+                limit: req.url.searchParams.get('limit'),
+
+                offset: req.url.searchParams.get('offset'),
+                order_by: req.url.searchParams.get('order_by'),
+
+                // time of response to check for re-fetches
+                time: Date.now(),
+                ws_channel: body.ws_channel,
+            },
+        ])
+    );
+});
+
+
+const ddvSchemaHandler = rest.get('/api/core/data-variable/:uid/schema', async (req, res, ctx) => {
+    if (req.url.pathname.endsWith('/schema')) {
+        const body = await req.json();
+        if (!body.cache_key) {
+            return res(ctx.status(400), ctx.json({ error: 'Missing cache_key in request body' }));
+        }
+        return res(ctx.json(mockSchema));
+    }
+});
+
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
@@ -60,15 +119,16 @@ describe('useDataVariable', () => {
                 ),
             });
             expect(result.current).toBeInstanceOf(Function);
-            const dataResponse = await result.current();
+            const dataResponse = await result.current(undefined, undefined, { schema: true });
             expect(dataResponse.data).toBeInstanceOf(Array);
             // check filters were passed to the endpoint correctly (they are returned from the mock endpoint as-is)
             expect(dataResponse.data[2].filters).toEqual(dataVariable.filters);
             expect(dataResponse.totalCount).toEqual(10); // the mock endpoint always returns 10
+            expect(dataResponse.schema).toEqual(mockSchema);
 
             expect(receivedData).toHaveLength(1);
             expect(receivedData[0].variable).toEqual(dataVariable);
-            expect(receivedData[0].value).toEqual(dataResponse);
+            expect(receivedData[0].value).toEqual(omit(dataResponse, 'schema'));
         });
 
         it('merges filters and pagination with variable filters', async () => {
@@ -111,12 +171,13 @@ describe('useDataVariable', () => {
                     id: 'col1',
                 },
             };
-            const dataResponse = await result.current(extraFilters, pagination);
+            const dataResponse = await result.current(extraFilters, pagination, { schema: true });
             const responseMeta = dataResponse.data[2];
             expect(responseMeta.filters).toEqual(combineFilters('AND', [dataVariable.filters, extraFilters]));
             expect(responseMeta.limit).toEqual('10');
             expect(responseMeta.offset).toEqual('5');
             expect(responseMeta.order_by).toEqual('col1');
+            expect(dataResponse.schema).toEqual(mockSchema);
         });
 
         it('callback updates when server trigger is received', () => {
@@ -163,6 +224,17 @@ describe('useDataVariable', () => {
         });
     });
     describe('Derived Data Variable', () => {
+        beforeEach(() => {
+            // Override the handler for this specific test suite
+            server.use(
+                ...handlers.filter(handler =>
+                    !(handler.info.path === '/api/core/data-variable/:uid*' && handler.info.method === 'POST')
+                ),
+                ddvHandler,
+                ddvSchemaHandler,
+            );
+        });
+
         it('returns a callback which requests data', async () => {
             const variableA: SingleVariable<number> = {
                 __typename: 'Variable',
@@ -212,16 +284,17 @@ describe('useDataVariable', () => {
             expect(result.current).toBeInstanceOf(Function);
             let dataResponse;
             await act(async () => {
-                dataResponse = await result.current();
+                dataResponse = await result.current(undefined, undefined, { schema: true });
             });
             expect(dataResponse.totalCount).toEqual(10); // the mock endpoint always returns 10
             expect(dataResponse.data[2].cache_key).toEqual(
                 '{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":1}}'
             ); // cache key is the cache key returned by the derived variable endpoint
+            expect(dataResponse.schema).toEqual(mockSchema);
 
             expect(receivedData).toHaveLength(1);
             expect(receivedData[0].variable).toEqual(dataVariable);
-            expect(receivedData[0].value).toEqual(dataResponse);
+            expect(receivedData[0].value).toEqual(omit(dataResponse, 'schema'));
         });
 
         it('callback returns value correctly if task is returned', async () => {
@@ -229,9 +302,10 @@ describe('useDataVariable', () => {
             server.use(
                 rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
                     const { uid } = req.params;
+                    const body = await req.json();
                     return res(
                         ctx.json({
-                            cache_key: JSON.stringify(req.body.values),
+                            cache_key: JSON.stringify(body.values),
                             task_id: `t_${String(uid)}_MetaTask`,
                         })
                     );
@@ -241,6 +315,7 @@ describe('useDataVariable', () => {
             // Mock task result
             server.use(
                 rest.get('/api/core/tasks/:taskId', async (req, res, ctx) => {
+                    const body = await req.json();
                     return res(
                         ctx.json([
                             {
@@ -256,7 +331,7 @@ describe('useDataVariable', () => {
                                 col4: 'e',
                             },
                             {
-                                cache_key: req.body.cache_key,
+                                cache_key: body.cache_key,
                             },
                         ])
                     );
@@ -302,7 +377,7 @@ describe('useDataVariable', () => {
             expect(result.current).toBeInstanceOf(Function);
             let dataResponse;
             await act(async () => {
-                const dataResponsePromise = result.current();
+                const dataResponsePromise = result.current(undefined, undefined, { schema: true });
                 client.receiveMessage({
                     message: {
                         data_id: 'dep2',
@@ -315,6 +390,7 @@ describe('useDataVariable', () => {
                 '{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":1}}'
             );
             expect(dataResponse.totalCount).toEqual(10); // the mock endpoint always returns 10
+            expect(dataResponse.schema).toEqual(mockSchema);
         });
     });
 });
