@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed a crash in `Table` pagination where rows containing non-unique index values would cause a slicing error.
+-   Fixed an issue in `Table` where sorting by an unnamed index would not work.
+
 ## 1.12.6
 
 -   Fix an issue where LRU cache could result in a `KeyError`
