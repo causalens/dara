@@ -274,14 +274,16 @@ def apply_filters(
                 order_by = order_by[1:]
                 ascending = False
 
-            new_data = new_data.sort_values(
-                by=re.sub(COLUMN_PREFIX_REGEX, '', order_by), ascending=ascending, inplace=False
-            )
+            col = re.sub(COLUMN_PREFIX_REGEX, '', order_by)
+            if col == 'index':
+                new_data = new_data.sort_index(ascending=ascending, inplace=False)
+            else:
+                new_data = new_data.sort_values(by=col, ascending=ascending, inplace=False)
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0
         stop_index = start_index + pagination.limit if pagination.limit is not None else total_count
 
-        new_data = new_data[start_index:stop_index]
+        new_data = new_data.iloc[start_index:stop_index]
 
     return new_data, total_count
