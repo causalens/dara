@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.7
 
 -   Fix an issue where body's `line-height` was not consistent across packages.
 -   Improve default `Markdown` styling to show borders for tables

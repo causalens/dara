@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.12.7
 
 -   Fixed a crash in `Table` pagination where rows containing non-unique index values would cause a slicing error.
 -   Fixed an issue in `Table` where sorting by an unnamed index would not work.

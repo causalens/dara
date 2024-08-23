@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "ui-utils"
-version = "1.12.6"
+version = "1.12.7"
