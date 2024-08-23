@@ -188,19 +188,19 @@ async function fetchDataVariableSchema(
 export function useFetchDataVariable(
     variable: DataVariable,
     serverTriggerCounter: number
-): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
+): (filters?: FilterQuery, pagination?: Pagination, options?: { schema: boolean }) => Promise<DataResponse> {
     const eventBus = useEventBus();
     const extras = useRequestExtras();
 
     const dataCallback = useCallback(
-        async (filters?: FilterQuery, pagination?: Pagination, withSchema = false) => {
+        async (filters?: FilterQuery, pagination?: Pagination, options?: { schema: boolean }) => {
             const mergedFilters = combineFilters('AND', [variable.filters, filters]);
 
             const data = await fetchDataVariable(variable.uid, extras, mergedFilters, pagination);
 
             const [totalCount, schema = null] = await Promise.all([
                 fetchDataVariableCount(variable.uid, extras, mergedFilters),
-                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
+                ...(options?.schema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
             ] as const);
 
             // publish the event
@@ -232,12 +232,12 @@ export function useFetchDerivedDataVariable(
     taskContext: GlobalTaskContext,
     wsClient: WebSocketClientInterface,
     dvValuePromise: Promise<DerivedVariableValueResponse<any>>
-): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
+): (filters?: FilterQuery, pagination?: Pagination, options?: { schema: boolean }) => Promise<DataResponse> {
     const eventBus = useEventBus();
     const extras = useRequestExtras();
     const previousResult = useRef<DataResponse>({ data: null, totalCount: 0, schema: { fields: [], primaryKey: [] } });
     const dataCallback = useCallback(
-        async (filters?: FilterQuery, pagination?: Pagination, withSchema = false) => {
+        async (filters?: FilterQuery, pagination?: Pagination, options?: { schema: boolean }) => {
             const mergedFilters = combineFilters('AND', [variable.filters, filters]);
             const dvValue = await dvValuePromise;
 
@@ -287,7 +287,7 @@ export function useFetchDerivedDataVariable(
             // As the total count could have changed because of the underlying DV changing
             const [totalCount, schema = null] = await Promise.all([
                 fetchDataVariableCount(variable.uid, extras, mergedFilters, dvValue.cache_key),
-                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras, dvValue.cache_key)] : []),
+                ...(options?.schema ? [fetchDataVariableSchema(variable.uid, extras, dvValue.cache_key)] : []),
             ] as const);
 
             previousResult.current = {

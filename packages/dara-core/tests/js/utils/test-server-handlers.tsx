@@ -65,6 +65,17 @@ const mockActions: Record<string, ActionDef> = {
     },
 };
 
+const mockSchema = {
+    fields: [
+        { name: '__col__1__col1', type: 'integer' },
+        { name: '__col__2__col2', type: 'integer' },
+        { name: '__col__3__col3', type: 'string' },
+        { name: '__col__4__col4', type: 'string' },
+        { name: '__index__0__index', type: 'integer' }
+    ],
+};
+
+
 // These handlers return mock responses for all the requests made by the application
 const handlers = [
     rest.get('/api/core/config', async (req, res, ctx) => {
@@ -122,12 +133,18 @@ const handlers = [
         );
     }),
     rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
+        const body = await req.json();
         return res(
             ctx.json({
-                cache_key: JSON.stringify(req.body.values),
-                value: req.body,
+                cache_key: JSON.stringify(body.values),
+                value: body,
             })
         );
+    }),
+    rest.get('/api/core/data-variable/:uid/schema', async (req, res, ctx) => {
+        if (req.url.pathname.endsWith('/schema')) {
+            return res(ctx.json(mockSchema));
+        }
     }),
     // for some reason MSW does not understand nested path so we need to work around it
     rest.post('/api/core/data-variable/:uid*', async (req, res, ctx) => {
@@ -135,6 +152,7 @@ const handlers = [
             return res(ctx.json(10));
         }
 
+        const body = await req.json();
         return res(
             ctx.json([
                 {
@@ -151,10 +169,10 @@ const handlers = [
                 },
                 {
                     // fields required for DDV - so we can check they are sent
-                    cache_key: req.body.cache_key,
+                    cache_key: body.cache_key,
 
                     // Append what filters were sent
-                    filters: req.body.filters,
+                    filters: body.filters,
 
                     limit: req.url.searchParams.get('limit'),
 
@@ -163,7 +181,7 @@ const handlers = [
 
                     // time of response to check for re-fetches
                     time: Date.now(),
-                    ws_channel: req.body.ws_channel,
+                    ws_channel: body.ws_channel,
                 },
             ])
         );
@@ -182,4 +200,4 @@ const handlers = [
     }),
 ];
 
-export { handlers, mockActions, mockComponents };
+export { handlers, mockActions, mockComponents, mockSchema };
