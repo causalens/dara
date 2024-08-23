@@ -286,8 +286,8 @@ export function useFetchDerivedDataVariable(
             // For derived data variables count can only be fetched when task is not running so we have to make the request here
             // As the total count could have changed because of the underlying DV changing
             const [totalCount, schema = null] = await Promise.all([
-                fetchDataVariableCount(variable.uid, extras, mergedFilters),
-                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras)] : []),
+                fetchDataVariableCount(variable.uid, extras, mergedFilters, dvValue.cache_key),
+                ...(withSchema ? [fetchDataVariableSchema(variable.uid, extras, dvValue.cache_key)] : []),
             ] as const);
 
             previousResult.current = {
