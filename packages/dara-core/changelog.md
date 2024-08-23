@@ -6,6 +6,7 @@ title: Changelog
 
 -   Fixed a crash in `Table` pagination where rows containing non-unique index values would cause a slicing error.
 -   Fixed an issue in `Table` where sorting by an unnamed index would not work.
+-   Fixed a crash in `Table` when rendering the result of a `DerivedDataVariable` due to a missing `cache_key`.
 
 ## 1.12.6
 
