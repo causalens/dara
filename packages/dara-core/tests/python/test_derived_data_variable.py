@@ -252,6 +252,12 @@ async def test_derived_data_variable_no_filters():
             headers=AUTH_HEADERS,
         )
         assert schema_response.status_code == 200, schema_response.text
+        schema = schema_response.json()
+        assert {'name': '__col__0__col1', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__1__col2', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__2__col3', 'type': 'string'} in schema['fields']
+        assert {'name': '__col__3__col4', 'type': 'string'} in schema['fields']
+        assert {'name': '__index__0__index', 'type': 'integer'} in schema['fields']
 
         # Hit the endpoint again to make sure the cache is re-used
         second_response = await _get_derived_variable(
