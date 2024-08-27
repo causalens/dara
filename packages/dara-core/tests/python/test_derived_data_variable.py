@@ -246,6 +246,19 @@ async def test_derived_data_variable_no_filters():
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
 
+        # Check schema can be returned correctly
+        schema_response = await client.get(
+            '/api/core/data-variable/uid/schema?cache_key=' + cache_key,
+            headers=AUTH_HEADERS,
+        )
+        assert schema_response.status_code == 200, schema_response.text
+        schema = schema_response.json()
+        assert {'name': '__col__0__col1', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__1__col2', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__2__col3', 'type': 'string'} in schema['fields']
+        assert {'name': '__col__3__col4', 'type': 'string'} in schema['fields']
+        assert {'name': '__index__0__index', 'type': 'integer'} in schema['fields']
+
         # Hit the endpoint again to make sure the cache is re-used
         second_response = await _get_derived_variable(
             client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
@@ -298,16 +311,16 @@ async def test_derived_data_variable_no_filters():
         assert mock_func.call_count == 2   # not called again
 
         # Check schema can be returned correctly
-        scshema_response = await client.get(
+        schema_response = await client.get(
             '/api/core/data-variable/uid/schema?cache_key=' + third_response.json()['cache_key'],
             headers=AUTH_HEADERS,
         )
-        assert scshema_response.status_code == 200, scshema_response.text
-        schema = scshema_response.json()
-        assert {'name': '__col__1__col1', 'type': 'integer'} in schema['fields']
-        assert {'name': '__col__2__col2', 'type': 'integer'} in schema['fields']
-        assert {'name': '__col__3__col3', 'type': 'string'} in schema['fields']
-        assert {'name': '__col__4__col4', 'type': 'string'} in schema['fields']
+        assert schema_response.status_code == 200, schema_response.text
+        schema = schema_response.json()
+        assert {'name': '__col__0__col1', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__1__col2', 'type': 'integer'} in schema['fields']
+        assert {'name': '__col__2__col3', 'type': 'string'} in schema['fields']
+        assert {'name': '__col__3__col4', 'type': 'string'} in schema['fields']
         assert {'name': '__index__0__index', 'type': 'integer'} in schema['fields']
 
 

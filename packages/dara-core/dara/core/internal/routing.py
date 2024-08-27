@@ -391,17 +391,19 @@ def create_router(config: Configuration):
         try:
             store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable_def = await registry_mgr.get(data_variable_registry, uid)
+            data_def = await registry_mgr.get(data_variable_registry, uid)
 
-            if variable_def.type == 'plain':
-                return await variable_def.get_schema(variable_def, store)
+            if data_def.type == 'plain':
+                return await data_def.get_schema(data_def, store)
 
             if cache_key is None:
                 raise HTTPException(
                     status_code=400, detail='Cache key is required when requesting DerivedDataVariable schema'
                 )
 
-            data = await variable_def.get_schema(variable_def, store, cache_key)
+            # Use the other registry for derived variables
+            derived_ref = await registry_mgr.get(derived_variable_registry, uid)
+            data = await data_def.get_schema(derived_ref, store, cache_key)
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
             return Response(content=content, media_type='application/json')
         except ValueError as e:

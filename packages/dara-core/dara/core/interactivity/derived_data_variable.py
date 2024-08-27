@@ -175,19 +175,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         filtered_data, count = apply_filters(data, coerce_to_filter_query(filters), pagination)
 
         # Cache the count
-        await asyncio.gather(
-            store.set(var_entry, key=count_cache_key, value=count, pin=True),
-            store.set(
-                registry_entry=var_entry,
-                key=DerivedDataVariable._get_schema_cache_key(
-                    count_cache_key.split('_')[0]  # remove the filter part from the key
-                ),
-                value=build_table_schema(df_convert_to_internal(cast(DataFrame, filtered_data)))
-                if isinstance(filtered_data, DataFrame)
-                else None,
-                pin=True,
-            ),
-        )
+        await store.set(var_entry, key=count_cache_key, value=count, pin=True)
 
         return filtered_data
 
@@ -329,11 +317,13 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         return entry
 
     @classmethod
-    async def get_schema(cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str):
+    async def get_schema(cls, derived_entry: DerivedVariableRegistryEntry, store: CacheStore, cache_key: str):
         """
         Get the schema of the derived data variable.
         """
-        return cast(DataFrameSchema, await store.get(data_entry, key=cls._get_schema_cache_key(cache_key), unpin=True))
+        return cast(
+            DataFrameSchema, await store.get(derived_entry, key=cls._get_schema_cache_key(cache_key), unpin=True)
+        )
 
     @classmethod
     async def resolve_value(
