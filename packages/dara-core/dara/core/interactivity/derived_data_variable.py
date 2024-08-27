@@ -329,11 +329,13 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         return entry
 
     @classmethod
-    async def get_schema(cls, data_entry: DataVariableRegistryEntry, store: CacheStore, cache_key: str):
+    async def get_schema(cls, derived_entry: DerivedVariableRegistryEntry, store: CacheStore, cache_key: str):
         """
         Get the schema of the derived data variable.
         """
-        return cast(DataFrameSchema, await store.get(data_entry, key=cls._get_schema_cache_key(cache_key), unpin=True))
+        return cast(
+            DataFrameSchema, await store.get(derived_entry, key=cls._get_schema_cache_key(cache_key), unpin=True)
+        )
 
     @classmethod
     async def resolve_value(

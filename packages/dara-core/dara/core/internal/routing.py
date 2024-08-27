@@ -401,6 +401,8 @@ def create_router(config: Configuration):
                     status_code=400, detail='Cache key is required when requesting DerivedDataVariable schema'
                 )
 
+            # Use the other registry for derived variables
+            variable_def = await registry_mgr.get(derived_variable_registry, uid)
             data = await variable_def.get_schema(variable_def, store, cache_key)
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
             return Response(content=content, media_type='application/json')
