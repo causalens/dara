@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed `DerivedDataVariable` cache retrieving schema from the wrong registry type.
+
 ## 1.12.7
 
 -   Fixed a crash in `Table` pagination where rows containing non-unique index values would cause a slicing error.
