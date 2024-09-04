@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--   Added a `min-with` to `CausalGraphEditor`.
+-   Added a `min-width` to `CausalGraphEditor`.
 
 ## 1.12.7
 
