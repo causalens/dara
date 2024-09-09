@@ -17,6 +17,7 @@
 import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
 
 class CircularLayoutBuilder extends GraphLayoutBuilder<CircularLayout> {
+
     build(): CircularLayout {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new CircularLayout(this);
@@ -30,6 +31,11 @@ export type CircularLayoutParams = BaseLayoutParams;
  * The circle's radius scales with the size and number of nodes so that they don't collide.
  */
 export default class CircularLayout extends GraphLayout<CircularLayoutParams> {
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'CircularLayout';
+    }
+
     static get Builder(): CircularLayoutBuilder {
         return new CircularLayoutBuilder();
     }

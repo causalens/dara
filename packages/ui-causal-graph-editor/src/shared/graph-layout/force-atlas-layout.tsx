@@ -159,6 +159,11 @@ export default class ForceAtlasLayout extends GraphLayout<ForceAtlasLayoutParams
         this.strongGravityMode = builder._strongGravityMode;
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'ForceAtlasLayout';
+    }
+
     static get Builder(): ForceAtlasLayoutBuilder {
         return new ForceAtlasLayoutBuilder();
     }

@@ -218,6 +218,11 @@ export default class FcoseLayout extends GraphLayout<FcoseLayoutParams> {
         return false;
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'FcoseLayout';
+    }
+
     static get Builder(): FcoseLayoutBuilder {
         return new FcoseLayoutBuilder();
     }

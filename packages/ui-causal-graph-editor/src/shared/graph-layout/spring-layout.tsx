@@ -161,6 +161,11 @@ export default class SpringLayout extends GraphLayout<SpringLayoutParams> {
         this.group = builder.group;
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'SpringLayout';
+    }
+
     static get Builder(): SpringLayoutBuilder {
         return new SpringLayoutBuilder();
     }

@@ -119,6 +119,11 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
         };
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'PlanarLayout';
+    }
+
     static get Builder(): PlanarLayoutBuilder {
         return new PlanarLayoutBuilder();
     }

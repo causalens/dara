@@ -89,6 +89,11 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
     }
 
     // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'GraphLayout';
+    }
+
+    // eslint-disable-next-line class-methods-use-this
     get supportsDrag(): boolean {
         return true;
     }
@@ -126,7 +131,7 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
         return {
             nodeSize: this.nodeSize,
             nodeFontSize: this.nodeFontSize,
-            layoutName: this.constructor.name,
+            layoutName: this.name,
         } as TLayoutParams;
     }
 }

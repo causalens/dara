@@ -9,6 +9,8 @@
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@types": ["./src/types"]
-    }
+    },
+    // enables support for e.g. worker API
+    "types": ["vite/client"]
   }
 }

@@ -84,6 +84,11 @@ export default class MarketingLayout extends GraphLayout<MarketingLayoutParams> 
         this.tiers = builder.tiers;
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'MarketingLayout';
+    }
+
     static get Builder(): MarketingLayoutBuilder {
         return new MarketingLayoutBuilder();
     }

@@ -50,6 +50,11 @@ export default class CustomLayout extends GraphLayout {
         return Promise.resolve({ layout });
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'CustomLayout';
+    }
+
     static get Builder(): CustomLayoutBuilder {
         return new CustomLayoutBuilder();
     }
