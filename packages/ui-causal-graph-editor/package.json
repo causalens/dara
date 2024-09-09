@@ -72,6 +72,7 @@
     "@darajs/ui-notifications": "1.12.7",
     "@darajs/ui-utils": "1.12.7",
     "@darajs/ui-widgets": "1.12.7",
+    "comlink": "^4.4.1",
     "cytoscape": "^3.23.0",
     "cytoscape-fcose": "^2.2.0",
     "d3": "6.2.0",
