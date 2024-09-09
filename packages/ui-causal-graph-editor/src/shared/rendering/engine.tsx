@@ -1852,6 +1852,10 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             }
 
             this.updateLayout(true);
+        } finally {
+            // ensure the callback is invoked - the layout might be custom/not go through the worker
+            // which fires events so just in case fire one here
+            this.onLayoutComputationDoneBound();
         }
     }
 

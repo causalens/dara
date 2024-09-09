@@ -110,7 +110,7 @@ function generateRandomDAG(parentsPerNode: number, levels: number): CausalGraph 
         const childNodes = generateLevel(currentLevel - 1);
 
         for (const childNode of childNodes) {
-            for (let i = 0; i < parentsPerNode - currentLevel; i++) {
+            for (let i = 0; i < Math.max(1, parentsPerNode - currentLevel); i++) {
                 const parentNode = addNode();
                 currentLevelNodes.push(parentNode);
                 graph.edges[parentNode][childNode] = {
