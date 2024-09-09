@@ -19,6 +19,8 @@ const PromptWrapper = styled.div`
     gap: 0.25rem;
     align-items: center;
 
+    height: 40px;
+
     min-width: 0;
     padding: 0.25rem 0.5rem;
 

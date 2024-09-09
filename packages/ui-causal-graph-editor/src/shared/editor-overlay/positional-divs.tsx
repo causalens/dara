@@ -30,18 +30,20 @@ const OverlayDiv = styled.div`
     flex-direction: row;
     gap: 0.6rem;
     justify-content: space-between;
+    align-items: flex-start;
+`;
 
-    opacity: 0;
+const DisappearingOverlayDiv = styled(OverlayDiv)<{$show: boolean}>`
+    opacity: ${(props) => (props.$show ? 1 : 0)};
 
     transition: opacity 0.2s ease-in-out;
 
-    :focus-within,
-    &.show {
+    &:focus-within {
         opacity: 1;
     }
 `;
 
-export const BottomDiv = styled(OverlayDiv)<{ padding: string }>`
+export const BottomDiv = styled(DisappearingOverlayDiv)<{ padding: string }>`
     pointer-events: none;
     right: ${applyPadding};
     bottom: ${applyPadding};
@@ -64,7 +66,17 @@ const CornerDiv = styled.div`
     gap: 0.6rem;
 `;
 
-export const TopRightDiv = styled(CornerDiv)`
+const DisappearingCornerDiv = styled(CornerDiv)<{ $show: boolean}>`
+    opacity: ${(props) => (props.$show ? 1 : 0)};
+
+    transition: opacity 0.2s ease-in-out;
+
+    &:focus-within {
+        opacity: 1;
+    }
+`;
+
+export const TopRightDiv = styled(DisappearingCornerDiv)`
     z-index: 5;
 
     overflow-x: hidden;
@@ -73,12 +85,19 @@ export const TopRightDiv = styled(CornerDiv)`
 
     padding-bottom: 0.5rem;
 `;
+
 export const TopLeftDiv = styled(CornerDiv)`
     z-index: 5;
     align-items: flex-start;
-    justify-content: end;
+    justify-content: start;
+    gap: 1rem;
 `;
-export const TopCenterDiv = styled(CornerDiv)`
+
+export const TopLeftDivContent = styled(DisappearingCornerDiv)`
+    justify-content: space-between;
+`;
+
+export const TopCenterDiv = styled(DisappearingCornerDiv)`
     z-index: 5;
 
     flex-shrink: 1;

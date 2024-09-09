@@ -21,7 +21,7 @@ import * as React from 'react';
 import { GetReferenceClientRect } from 'tippy.js';
 
 import styled, { useTheme } from '@darajs/styled-components';
-import { Tooltip } from '@darajs/ui-components';
+import { Spinner, Tooltip } from '@darajs/ui-components';
 import { Notification, NotificationPayload } from '@darajs/ui-notifications';
 import { Status, useOnClickOutside, useUpdateEffect } from '@darajs/ui-utils';
 import { ConfirmationModal } from '@darajs/ui-widgets';
@@ -98,6 +98,15 @@ const NotificationWrapper = styled.div`
     }
 `;
 
+const LayoutSpinner = styled(Spinner)`
+    height: 40px;
+    opacity: 1 !important;
+
+    span {
+        font-size: 1rem;
+    }
+`;
+
 const GraphPane = styled.div<{ $hasFocus: boolean }>`
     position: relative;
     z-index: 1;
@@ -114,6 +123,15 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
     border-color: ${(props) => (props.$hasFocus ? props.theme.colors.grey3 : 'transparent')};
     border-radius: 6px;
     box-shadow: ${(props) => (props.$hasFocus ? props.theme.shadow.light : 'none')};
+`;
+
+const GraphParent = styled.div<{ $isLayoutComputing: boolean }>`
+    height: 100%;
+    width: 100%;
+
+    canvas {
+        opacity: ${(props) => (props.$isLayoutComputing ? 0.7 : 1)};
+    }
 `;
 
 export interface CausalGraphEditorProps extends Settings {
@@ -581,6 +599,16 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
         onAddEdge([source, target]);
     });
 
+    const [isLayoutComputing, setIsLayoutComputing] = useState(true);
+
+    useEngineEvent('layoutComputationStart', () => {
+        setIsLayoutComputing(true);
+    });
+
+    useEngineEvent('layoutComputationEnd', () => {
+        setIsLayoutComputing(false);
+    });
+
     // Sync state up
     useUpdateEffect(() => {
         onUpdateConstraints(constraints);
@@ -760,6 +788,9 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                 </>
                             }
                             topLeft={<RecalculateLayoutButton onResetLayout={resetLayout} />}
+                            loadingIndicator={
+                                isLayoutComputing && <LayoutSpinner text="Calculating layout..." size="24px" />
+                            }
                             topRight={
                                 <>
                                     <SearchBar
@@ -838,7 +869,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                 <Notification notification={error} onDismiss={() => setError(null)} />
                             </NotificationWrapper>
                         )}
-                        <div ref={canvasParentRef} style={{ height: '100%', width: '100%' }} />
+                        <GraphParent ref={canvasParentRef} $isLayoutComputing={isLayoutComputing} />
                         <Tooltip
                             appendTo={canvasParentRef.current}
                             content={tooltipContent}

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { MutGraph, graphStratify } from 'd3-dag';
 import { DirectedGraph } from 'graphology';
 import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import isEqual from 'lodash/isEqual';
@@ -27,78 +26,13 @@ import {
     D3SimulationEdge,
     FlatEdgeRenderingMeta,
     FlatNodeRenderingMeta,
-    GraphTiers,
     SimulationAttributes,
     SimulationEdge,
     SimulationGraph,
     SimulationNode,
     SimulationNodeWithCategory,
 } from '../types';
-import { getNodeCategory, getNodeOrder, getTiersArray } from './utils';
-
-interface NodeOrder {
-    group: string;
-    order: string;
-    rank: number;
-}
-
-export type DagNodeData = SimulationNode &
-    Partial<NodeOrder> & {
-        parentIds: string[];
-    };
-
-/**
- * This parses the graph structure into a Dag structure that the d3-dag library can understand
- *
- * @param graph The SimulationGraph
- * @param tiers Any tiers passed to the layout
- */
-export function dagGraphParser(graph: SimulationGraph, tiers?: GraphTiers): MutGraph<DagNodeData, any> {
-    const nodeTiersMap = new Map<string, NodeOrder>();
-    let nodesOrder: Record<string, string> = {};
-
-    // If there are tiers we need to add group and ord properties to the node for PlanarLayout algo to consider them
-    if (tiers) {
-        const nodeTiersArray = getTiersArray(tiers, graph);
-        if (!Array.isArray(tiers)) {
-            const { order_nodes_by } = tiers;
-            nodesOrder = order_nodes_by ? getNodeOrder(graph.nodes(), order_nodes_by, graph) : {};
-        }
-
-        nodeTiersArray.forEach((innerArray, index) => {
-            innerArray.forEach((node) => {
-                nodeTiersMap.set(node, { group: String(index), order: nodesOrder[node], rank: index });
-            });
-        });
-    }
-
-    const nodes: DagNodeData[] = graph.mapNodes((id: string, attributes: SimulationNode) => {
-        const parentIds = graph.inboundNeighbors(id);
-        let nodeType = 'latent';
-        let nodeOrder;
-        let nodeRank;
-
-        if (tiers) {
-            const nodeData = nodeTiersMap.get(id);
-            // in the case of e.g. a new node group etc may be undefined
-            nodeType = nodeData?.group;
-            nodeOrder = nodeData?.order;
-            nodeRank = nodeData?.rank;
-        }
-
-        return {
-            ...attributes,
-            group: nodeType,
-            ord: nodeOrder,
-            parentIds,
-            rank: nodeRank,
-        };
-    });
-
-    const stratify = graphStratify();
-
-    return stratify<DagNodeData>(nodes);
-}
+import { getNodeCategory } from './utils';
 
 /**
  * Get graph edges in d3 expected format

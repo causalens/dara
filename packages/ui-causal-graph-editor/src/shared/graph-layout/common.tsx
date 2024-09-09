@@ -18,6 +18,7 @@ import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import { DirectionType, GraphTiers, SimulationGraph } from '../../types';
 import { DEFAULT_NODE_SIZE } from '../utils';
+import type { LayoutWorker } from './worker/client';
 
 export abstract class GraphLayoutBuilder<T> {
     _nodeSize = DEFAULT_NODE_SIZE;
@@ -47,17 +48,50 @@ export abstract class GraphLayoutBuilder<T> {
     abstract build(): T;
 }
 
+export interface BaseLayoutParams {
+    layoutName: string;
+    nodeSize: number;
+    nodeFontSize: number;
+}
+
+export interface LayoutComputationResult {
+    layout: LayoutMapping<XYPosition>;
+    edgePoints?: LayoutMapping<XYPosition[]>;
+    onAddEdge?: () => void | Promise<void>;
+    onAddNode?: () => void | Promise<void>;
+    onCleanup?: () => void | Promise<void>;
+    onEndDrag?: () => void | Promise<void>;
+    onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
+    onStartDrag?: () => void | Promise<void>;
+}
+
 /**
  * Defines necessary properties that need to be implemented by graph layouts
  */
-export abstract class GraphLayout {
+export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseLayoutParams> {
     nodeSize: number;
 
     nodeFontSize: number;
 
+    /**
+     * Worker function that can be be called to compute a layout
+     */
+    worker: LayoutWorker;
+
     constructor(builder: GraphLayoutBuilder<unknown>) {
         this.nodeSize = builder._nodeSize;
         this.nodeFontSize = builder._nodeFontSize;
+    }
+
+    runWorker(
+        graph: SimulationGraph,
+        forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
+    ): Promise<LayoutComputationResult> {
+        return this.worker.applyLayout(this, graph, forceUpdate);
+    }
+
+    runWorkerCallback(cbName: string, ...args: unknown[]): Promise<void> {
+        return this.worker.invokeCallback(cbName, ...args);
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -78,7 +112,7 @@ export abstract class GraphLayout {
      * @param graphData graph data to apply the layout to
      * @param forceUpdate callback to call to update the layout
      */
-    abstract applyLayout(
+    applyLayout(
         graph: SimulationGraph,
         forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
     ): Promise<{
@@ -90,7 +124,17 @@ export abstract class GraphLayout {
         onEndDrag?: () => void | Promise<void>;
         onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
         onStartDrag?: () => void | Promise<void>;
-    }>;
+    }> {
+        return this.runWorker(graph, forceUpdate);
+    }
+
+    toLayoutParams(): TLayoutParams {
+        return {
+            nodeSize: this.nodeSize,
+            nodeFontSize: this.nodeFontSize,
+            layoutName: this.constructor.name,
+        } as TLayoutParams;
+    }
 }
 
 export interface GraphLayoutWithTiers extends GraphLayout {
