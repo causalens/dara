@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import { Meta } from '@storybook/react';
-import { DirectedGraph } from 'graphology';
 import * as React from 'react';
 
 import { SHIPPED_UNITS } from '../../../tests/mocks/graphs';
@@ -137,6 +136,7 @@ export const PlanarGenerated = (props: CausalGraphEditorProps): JSX.Element => {
 
     const graph = React.useMemo(() => generateRandomDAG(parentCount, levelCount), [parentCount, levelCount]);
 
+    /* eslint-disable jsx-a11y/label-has-associated-control  */
     return (
         <>
             <label>

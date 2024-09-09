@@ -16,8 +16,8 @@ import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import { type GraphTiers, LayeringAlgorithm, type SimulationGraph, type SimulationNode } from '../../../types';
 import { getNodeOrder, getTiersArray } from '../../utils';
-import { PlanarLayoutParams } from '../planar-layout';
 import { LayoutComputationResult } from '../common';
+import { PlanarLayoutParams } from '../planar-layout';
 
 interface NodeOrder {
     group: string;

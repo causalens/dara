@@ -4,17 +4,9 @@ import * as PIXI from 'pixi.js';
 
 import { SimulationGraph } from '@types';
 
-import type { GraphLayout } from '../common';
+import type { GraphLayout, LayoutComputationCallbacks, SerializableLayoutComputationResult } from '../common';
 
 type RemoteWorker = typeof import('./worker').workerApi;
-
-type ApplyLayout = (
-    layoutInstance: GraphLayout,
-    graph: SimulationGraph
-) => Promise<{
-    layout: LayoutMapping<XYPosition>;
-    edgePoints?: LayoutMapping<XYPosition[]>;
-}>;
 
 interface LayoutEvents {
     computationStart: () => void;
@@ -40,7 +32,7 @@ export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
         layoutInstance: GraphLayout,
         graph: SimulationGraph,
         forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
-    ): ReturnType<ApplyLayout> {
+    ): Promise<SerializableLayoutComputationResult> {
         const params = layoutInstance.toLayoutParams();
         const serializedGraph = graph.export();
 
@@ -50,13 +42,15 @@ export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
             serializedGraph,
             forceUpdate ? Comlink.proxy(forceUpdate) : undefined
         );
-        // FAKE computation time
-        //await new Promise((resolve) => setTimeout(resolve, 2000));
         this.emit('computationEnd');
         return result;
     }
 
-    async invokeCallback(cbName: string, ...args: unknown[]): Promise<void> {
+    async invokeCallback<CbName extends keyof LayoutComputationCallbacks>(
+        cbName: CbName,
+        ...args: Parameters<LayoutComputationCallbacks[CbName]>
+    ): Promise<void> {
+        // @ts-expect-error The type might not be quite correct
         return this.remoteApi.invokeCallback(cbName, ...args);
     }
 

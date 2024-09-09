@@ -54,9 +54,12 @@ export interface BaseLayoutParams {
     nodeFontSize: number;
 }
 
-export interface LayoutComputationResult {
+export interface SerializableLayoutComputationResult {
     layout: LayoutMapping<XYPosition>;
     edgePoints?: LayoutMapping<XYPosition[]>;
+}
+
+export interface LayoutComputationCallbacks {
     onAddEdge?: () => void | Promise<void>;
     onAddNode?: () => void | Promise<void>;
     onCleanup?: () => void | Promise<void>;
@@ -64,6 +67,8 @@ export interface LayoutComputationResult {
     onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
     onStartDrag?: () => void | Promise<void>;
 }
+
+export type LayoutComputationResult = SerializableLayoutComputationResult & LayoutComputationCallbacks;
 
 /**
  * Defines necessary properties that need to be implemented by graph layouts
@@ -81,17 +86,6 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
     constructor(builder: GraphLayoutBuilder<unknown>) {
         this.nodeSize = builder._nodeSize;
         this.nodeFontSize = builder._nodeFontSize;
-    }
-
-    runWorker(
-        graph: SimulationGraph,
-        forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
-    ): Promise<LayoutComputationResult> {
-        return this.worker.applyLayout(this, graph, forceUpdate);
-    }
-
-    runWorkerCallback(cbName: string, ...args: unknown[]): Promise<void> {
-        return this.worker.invokeCallback(cbName, ...args);
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -125,7 +119,7 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
         onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
         onStartDrag?: () => void | Promise<void>;
     }> {
-        return this.runWorker(graph, forceUpdate);
+        return this.worker.applyLayout(this, graph, forceUpdate);
     }
 
     toLayoutParams(): TLayoutParams {

@@ -5,7 +5,12 @@ import { SerializedGraph } from 'graphology-types';
 
 import { SimulationAttributes, SimulationEdge, SimulationNode } from '@types';
 
-import type { BaseLayoutParams, LayoutComputationResult } from '../common';
+import type {
+    BaseLayoutParams,
+    LayoutComputationCallbacks,
+    LayoutComputationResult,
+    SerializableLayoutComputationResult,
+} from '../common';
 import computeCircularLayout from './circular';
 import computeFcoseLayout from './fcose';
 import computeForceAtlasLayout from './force-atlas';
@@ -30,26 +35,10 @@ const IMPL_MAP: Record<string, LayoutImpl> = {
     SpringLayout: computeSpringLayout,
 };
 
-type FunctionProperties<T> = {
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    [K in keyof T]: T[K] extends Function ? T[K] : never;
-};
-type FilterNever<T> = {
-    [K in keyof T as T[K] extends never ? never : K]: T[K];
-};
-
-type Prettify<T> = {
-  [K in keyof T]: T[K];
-// eslint-disable-next-line @typescript-eslint/ban-types
-} & {};
-
-
-type LayoutCallbackMap = Prettify<FilterNever<FunctionProperties<LayoutComputationResult>>>;
-
 /**
  * Callbacks returned by the layout computation to be invoked by requests
  */
-const LAYOUT_CALLBACKS: LayoutCallbackMap = {} as const;
+const LAYOUT_CALLBACKS: LayoutComputationCallbacks = {} as const;
 
 /**
  * Compute the layout for the given graph using the provided layout parameters.
@@ -62,7 +51,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
     layoutParams: TParams,
     serializedGraph: SerializedGraph<SimulationNode, SimulationEdge, SimulationAttributes>,
     forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
-): Promise<LayoutComputationResult> {
+): Promise<SerializableLayoutComputationResult> {
     // reconstruct the graph from the serialized form
     const graph = new DirectedGraph<SimulationNode, SimulationEdge, SimulationAttributes>();
     graph.import(serializedGraph);
@@ -83,7 +72,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
     // since they can't be serialized back to the browser
     for (const [key, value] of Object.entries(result)) {
         if (typeof value === 'function') {
-            LAYOUT_CALLBACKS[key as keyof LayoutCallbackMap] = value;
+            LAYOUT_CALLBACKS[key as keyof LayoutComputationCallbacks] = value;
         }
     }
 
@@ -99,9 +88,9 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
  * @param cbName name of the callback to invoke
  * @param args arguments to pass to the callback
  */
-export async function invokeCallback<CbName extends keyof LayoutCallbackMap>(
+export async function invokeCallback<CbName extends keyof LayoutComputationCallbacks>(
     cbName: CbName,
-    ...args: Parameters<LayoutCallbackMap[CbName]>
+    ...args: Parameters<LayoutComputationCallbacks[CbName]>
 ): Promise<void> {
     const cb = LAYOUT_CALLBACKS[cbName];
 
@@ -111,6 +100,7 @@ export async function invokeCallback<CbName extends keyof LayoutCallbackMap>(
         return;
     }
 
+    // @ts-expect-error The type might not be quite correct
     return cb(...args);
 }
 

@@ -8,16 +8,13 @@ import {
     DirectionType,
     EdgeType,
     GraphTiers,
-    GroupingLayoutBuilder,
     SimulationGraph,
     SimulationNode,
     SimulationNodeWithCategory,
-    TieredGraphLayoutBuilder,
 } from '../../../types';
 import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
 import { LayoutComputationResult } from '../common';
-import { MarketingLayoutParams } from '../marketing-layout';
 import { SpringLayoutParams } from '../spring-layout';
 
 /**
@@ -176,6 +173,11 @@ export default function compute(
     const [edges, nodes] = getD3Data(graph);
 
     const { group, groupRepelStrength } = layoutParams;
+
+    // it there was a previous simulation, stop it
+    if (simulation) {
+        simulation.stop();
+    }
 
     if (group) {
         const groupsToNodes = getGroupToNodesMap(graph.nodes(), group, graph);

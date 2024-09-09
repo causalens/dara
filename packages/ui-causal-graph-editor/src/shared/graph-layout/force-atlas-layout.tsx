@@ -14,9 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-
-import { SimulationGraph } from '../../types';
 import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
 
 class ForceAtlasLayoutBuilder extends GraphLayoutBuilder<ForceAtlasLayout> {

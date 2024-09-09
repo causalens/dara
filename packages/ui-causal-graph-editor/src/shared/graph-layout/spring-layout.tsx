@@ -14,25 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as d3 from 'd3';
-import { Simulation, SimulationLinkDatum } from 'd3';
 import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-import debounce from 'lodash/debounce';
 
 import {
-    D3SimulationEdge,
     DirectionType,
-    EdgeType,
     GraphTiers,
     GroupingLayoutBuilder,
     SimulationGraph,
-    SimulationNode,
-    SimulationNodeWithCategory,
     TieredGraphLayoutBuilder,
 } from '../../types';
-import { getD3Data, nodesToLayout } from '../parsers';
-import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../utils';
-import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
+import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder, LayoutComputationResult } from './common';
 
 class SpringLayoutBuilder
     extends GraphLayoutBuilder<SpringLayout>
@@ -124,21 +115,13 @@ class SpringLayoutBuilder
 
 export interface SpringLayoutParams extends BaseLayoutParams {
     collisionForce: number;
-
     gravity: number;
-
     linkForce: number;
-
     warmupTicks: number;
-
     tierSeparation: number;
-
     groupRepelStrength: number;
-
     orientation: DirectionType;
-
     tiers: GraphTiers;
-
     group: string;
 }
 
@@ -182,17 +165,21 @@ export default class SpringLayout extends GraphLayout<SpringLayoutParams> {
         return new SpringLayoutBuilder();
     }
 
-    async applyLayout(graph: SimulationGraph, forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void): Promise<{ edgePoints?: LayoutMapping<XYPosition[]>; layout: LayoutMapping<XYPosition>; onAddEdge?: () => void | Promise<void>; onAddNode?: () => void | Promise<void>; onCleanup?: () => void | Promise<void>; onEndDrag?: () => void | Promise<void>; onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>; onStartDrag?: () => void | Promise<void>; }> {
-        const result = await super.applyLayout(graph, forceUpdate);
+    async applyLayout(
+        graph: SimulationGraph,
+        forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
+    ): Promise<LayoutComputationResult> {
+        const result = await this.worker.applyLayout(this, graph, forceUpdate);
 
         return {
             layout: result.layout,
             edgePoints: result.edgePoints,
-            // callbacks are not serializable so we go to the worker again explicitly
-            onCleanup: () => this.runWorkerCallback('onCleanup'),
-            onEndDrag: () => this.runWorkerCallback('onEndDrag'),
-            onStartDrag: () => this.runWorkerCallback('onStartDrag'),
-            onMove: (nodeId: string, x: number, y: number) => this.runWorkerCallback('onMove', nodeId, x, y),
+            // callbacks are not returned directly from the worker as they aren't serializable,
+            // instead they are registered in the worker where we can call them
+            onCleanup: () => this.worker.invokeCallback('onCleanup'),
+            onEndDrag: () => this.worker.invokeCallback('onEndDrag'),
+            onStartDrag: () => this.worker.invokeCallback('onStartDrag'),
+            onMove: (nodeId: string, x: number, y: number) => this.worker.invokeCallback('onMove', nodeId, x, y),
         };
     }
 

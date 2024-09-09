@@ -115,9 +115,10 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
     flex: 1 1 auto;
     flex-direction: column;
 
+    min-width: 100px;
+
     /* We set a minHeight/minWidth so that at least some of the graph will always appear within the container */
     min-height: 100px;
-    min-width: 100px;
 
     border: 2px solid transparent;
     border-color: ${(props) => (props.$hasFocus ? props.theme.colors.grey3 : 'transparent')};
@@ -126,8 +127,8 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
 `;
 
 const GraphParent = styled.div<{ $isLayoutComputing: boolean }>`
-    height: 100%;
     width: 100%;
+    height: 100%;
 
     canvas {
         opacity: ${(props) => (props.$isLayoutComputing ? 0.7 : 1)};

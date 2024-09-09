@@ -100,10 +100,14 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
         onAddEdge?: () => void | Promise<void>;
         onAddNode?: () => void | Promise<void>;
     }> {
-        const { layout, edgePoints } = await this.runWorker(graph);
+        const { layout, edgePoints } = await this.worker.applyLayout(this, graph, forceUpdate);
 
         const recomputeLayout = async (): Promise<void> => {
-            const { layout: recomputedLayout, edgePoints: recomputedPoints } = await this.runWorker(graph);
+            const { layout: recomputedLayout, edgePoints: recomputedPoints } = await this.worker.applyLayout(
+                this,
+                graph,
+                forceUpdate
+            );
             forceUpdate(recomputedLayout, recomputedPoints);
         };
 

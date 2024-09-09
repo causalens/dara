@@ -29,13 +29,12 @@ const OverlayDiv = styled.div`
     display: flex;
     flex-direction: row;
     gap: 0.6rem;
-    justify-content: space-between;
     align-items: flex-start;
+    justify-content: space-between;
 `;
 
-const DisappearingOverlayDiv = styled(OverlayDiv)<{$show: boolean}>`
+const DisappearingOverlayDiv = styled(OverlayDiv)<{ $show: boolean }>`
     opacity: ${(props) => (props.$show ? 1 : 0)};
-
     transition: opacity 0.2s ease-in-out;
 
     &:focus-within {
@@ -66,9 +65,8 @@ const CornerDiv = styled.div`
     gap: 0.6rem;
 `;
 
-const DisappearingCornerDiv = styled(CornerDiv)<{ $show: boolean}>`
+const DisappearingCornerDiv = styled(CornerDiv)<{ $show: boolean }>`
     opacity: ${(props) => (props.$show ? 1 : 0)};
-
     transition: opacity 0.2s ease-in-out;
 
     &:focus-within {
@@ -88,9 +86,9 @@ export const TopRightDiv = styled(DisappearingCornerDiv)`
 
 export const TopLeftDiv = styled(CornerDiv)`
     z-index: 5;
+    gap: 1rem;
     align-items: flex-start;
     justify-content: start;
-    gap: 1rem;
 `;
 
 export const TopLeftDivContent = styled(DisappearingCornerDiv)`

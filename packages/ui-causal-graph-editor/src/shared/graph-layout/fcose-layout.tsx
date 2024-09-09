@@ -14,15 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-
-import {
-    DirectionType,
-    GraphTiers,
-    GroupingLayoutBuilder,
-    SimulationGraph,
-    TieredGraphLayoutBuilder,
-} from '../../types';
+import { DirectionType, GraphTiers, GroupingLayoutBuilder, TieredGraphLayoutBuilder } from '../../types';
 import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
 
 export interface FcoseLayoutParams extends BaseLayoutParams {
