@@ -16,9 +16,9 @@
  */
 
 /* eslint-disable class-methods-use-this */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import { SimulationGraph } from '../../types';
+import type { SimulationGraph } from '../../types';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class CustomLayoutBuilder extends GraphLayoutBuilder<CustomLayout> {

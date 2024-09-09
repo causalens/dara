@@ -19,13 +19,14 @@ import { DropShadowFilter } from 'pixi-filters';
 import * as PIXI from 'pixi.js';
 import { EventEmitter } from 'pixi.js';
 
-import { ZoomState } from '@types';
+import type { ZoomState } from '@types';
 
 import { SHADOWS } from '../colors';
 import { getTextStyle, trimToFit } from '../text';
-import { TextureCache } from '../texture-cache';
+import type { TextureCache } from '../texture-cache';
 import { MOUSE_EVENTS, colorToPixi, createKey } from '../utils';
-import { BORDER_PADDING, NodeState, PixiNodeStyle } from './definitions';
+import type { NodeState, PixiNodeStyle } from './definitions';
+import { BORDER_PADDING } from './definitions';
 import { getNodeColor, getNodeSize } from './utils';
 
 const NODE_CIRCLE = 'NODE_CIRCLE';

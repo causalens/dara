@@ -24,7 +24,8 @@ import { useOnClickOutside } from '@darajs/ui-utils';
 import PointerContext from '@shared/pointer-context';
 
 import { FloatingButton } from '../floating-elements';
-import { LegendList, LegendListProps } from './legend-list';
+import type { LegendListProps } from './legend-list';
+import { LegendList } from './legend-list';
 
 const LegendWrapper = styled.div`
     position: relative;

@@ -18,21 +18,23 @@ import debounce from 'lodash/debounce';
 import noop from 'lodash/noop';
 import { useEffect, useMemo, useState } from 'react';
 import * as React from 'react';
-import { GetReferenceClientRect } from 'tippy.js';
+import type { GetReferenceClientRect } from 'tippy.js';
 
 import styled, { useTheme } from '@darajs/styled-components';
 import { Spinner, Tooltip } from '@darajs/ui-components';
-import { Notification, NotificationPayload } from '@darajs/ui-notifications';
+import type { NotificationPayload } from '@darajs/ui-notifications';
+import { Notification } from '@darajs/ui-notifications';
 import { Status, useOnClickOutside, useUpdateEffect } from '@darajs/ui-utils';
 import { ConfirmationModal } from '@darajs/ui-widgets';
 
+import type {
+    GraphLegendDefinition} from '@shared/editor-overlay';
 import {
     AddNodeButton,
     CenterGraphButton,
     CollapseExpandButton,
     DragModeButton,
     EdgeInfoContent,
-    GraphLegendDefinition,
     Legend,
     NodeInfoContent,
     Overlay,
@@ -43,28 +45,30 @@ import {
 } from '@shared/editor-overlay';
 import { SaveImageButton } from '@shared/editor-overlay/buttons';
 import ZoomPrompt from '@shared/editor-overlay/zoom-prompt';
-import { GraphLayoutWithGrouping } from '@shared/graph-layout/common';
+import type { GraphLayoutWithGrouping } from '@shared/graph-layout/common';
 import useGraphTooltip from '@shared/use-graph-tooltip';
 import { getGroupToNodesMap, getNodeToGroupMap, getTooltipContent, willCreateCycle } from '@shared/utils';
 
-import {
+import type {
     CausalGraph,
     CausalGraphEdge,
     CausalGraphNode,
     EdgeConstraint,
-    EdgeType,
-    EditorMode,
     SimulationEdge,
-    ZoomThresholds,
+    ZoomThresholds} from '@types';
+import {
+    EdgeType,
+    EditorMode
 } from '@types';
 
 import GraphContext from '../shared/graph-context';
-import { GraphLayout } from '../shared/graph-layout';
+import type { GraphLayout } from '../shared/graph-layout';
 import PointerContext from '../shared/pointer-context';
-import { PixiEdgeStyle } from '../shared/rendering/edge';
+import type { PixiEdgeStyle } from '../shared/rendering/edge';
 import { useRenderEngine } from '../shared/rendering/use-render-engine';
 import { causalGraphSerializer, serializeGraphEdge, serializeGraphNode } from '../shared/serializer';
-import { Settings, SettingsProvider } from '../shared/settings-context';
+import type { Settings} from '../shared/settings-context';
+import { SettingsProvider } from '../shared/settings-context';
 import { Center, Graph, Wrapper } from '../shared/styles';
 import useCausalGraphEditor from '../shared/use-causal-graph-editor';
 import useDragMode from '../shared/use-drag-mode';

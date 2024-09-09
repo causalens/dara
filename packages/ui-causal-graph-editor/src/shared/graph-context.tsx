@@ -16,9 +16,9 @@
  */
 import { createContext } from 'react';
 
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 
-import { EdgeConstraintItem, GraphState } from '@types';
+import type { EdgeConstraintItem, GraphState } from '@types';
 
 interface GraphContext {
     /** Graph API */

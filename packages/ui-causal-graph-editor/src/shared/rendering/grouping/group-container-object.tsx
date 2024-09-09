@@ -16,13 +16,13 @@
  */
 import * as PIXI from 'pixi.js';
 
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
 import { DEFAULT_NODE_SIZE, TARGET_NODE_MULTIPLIER } from '@shared/utils';
 
-import { SimulationNode } from '@types';
+import type { SimulationNode } from '@types';
 
-import { TextureCache } from '../texture-cache';
+import type { TextureCache } from '../texture-cache';
 import { MOUSE_EVENTS, colorToPixi, createKey } from '../utils';
 
 const GROUP_RECTANGLE = 'GROUP_RECTANGLE';

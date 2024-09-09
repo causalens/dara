@@ -11,6 +11,9 @@
       "@types": ["./src/types"]
     },
     // enables support for e.g. worker API
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+          "isolatedModules": true,
+      "verbatimModuleSyntax": true,
+
   }
 }

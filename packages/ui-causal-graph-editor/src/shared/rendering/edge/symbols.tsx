@@ -18,7 +18,7 @@ import * as PIXI from 'pixi.js';
 
 import { EdgeConstraintType, EdgeType, EditorMode } from '../../../types';
 import { QUESTION_MARK, drawPath } from '../svg';
-import { PixiEdgeStyle } from './definitions';
+import type { PixiEdgeStyle } from './definitions';
 
 /**
  * Create a graphics object for a side (top or bottom) edge symbol

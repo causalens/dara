@@ -28,11 +28,12 @@ import { Input } from '@darajs/ui-components';
 import { useUpdateEffect } from '@darajs/ui-utils';
 
 import Layer from './layer';
-import {
+import type {
     DragItem,
     LayerItem,
+    Node} from './shared';
+import {
     NewLayerPosition,
-    Node,
     isInView,
     matchesQuery,
     parseLayerItems,

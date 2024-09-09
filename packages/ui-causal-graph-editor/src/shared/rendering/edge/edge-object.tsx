@@ -17,16 +17,17 @@
 import { isArray } from 'lodash';
 import clone from 'lodash/cloneDeep';
 import { DropShadowFilter } from 'pixi-filters';
-import { Viewport } from 'pixi-viewport';
+import type { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
-import { EdgeType, EditorMode, ZoomState } from '@types';
+import type { ZoomState } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
 import { BORDER_PADDING } from '../node/definitions';
-import { TextureCache } from '../texture-cache';
+import type { TextureCache } from '../texture-cache';
 import { MOUSE_EVENTS, colorToPixi, createKey } from '../utils';
 import { getCirclesAlongCurve, getCurvePoints, getPolygonFromCurve } from './curve';
-import { EdgeState, PixiEdgeStyle } from './definitions';
+import type { EdgeState, PixiEdgeStyle } from './definitions';
 import { createCenterSymbol, createSideSymbol, createStrengthSymbol } from './symbols';
 import { calculateSourceBoundPosition, calculateTargetBoundPosition } from './utils';
 

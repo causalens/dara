@@ -15,36 +15,41 @@
  * limitations under the License.
  */
 import FontFaceObserver from 'fontfaceobserver';
-import { LayoutMapping, XYPosition, assignLayout } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition} from 'graphology-layout/utils';
+import { assignLayout } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
 import { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
-import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload } from '@darajs/ui-notifications';
+import type { DefaultTheme } from '@darajs/styled-components';
+import type { NotificationPayload } from '@darajs/ui-notifications';
 import { Status } from '@darajs/ui-utils';
 
-import { CustomLayout, FcoseLayout, GraphLayout } from '@shared/graph-layout';
+import type { GraphLayout } from '@shared/graph-layout';
+import { CustomLayout, FcoseLayout } from '@shared/graph-layout';
 import { LayoutWorker } from '@shared/graph-layout/worker/client';
-import { DragMode } from '@shared/use-drag-mode';
+import type { DragMode } from '@shared/use-drag-mode';
 import { getGroupToNodesMap, getNodeCategory, getNodeToGroupMap } from '@shared/utils';
 
-import {
+import type {
     EdgeConstraint,
-    EdgeType,
-    EditorMode,
     GroupNode,
     SimulationEdge,
     SimulationGraph,
     SimulationNode,
-    ZoomThresholds,
+    ZoomThresholds} from '@types';
+import {
+    EdgeType,
+    EditorMode
 } from '@types';
 
-import { GraphLayoutWithTiers } from '../graph-layout/common';
+import type { GraphLayoutWithTiers } from '../graph-layout/common';
 import { Background } from './background';
-import { EDGE_STRENGTHS, EdgeObject, EdgeStrengthDefinition, PixiEdgeStyle } from './edge';
+import type { EdgeStrengthDefinition, PixiEdgeStyle } from './edge';
+import { EDGE_STRENGTHS, type EdgeObject } from './edge';
 import { GroupContainerObject } from './grouping/group-container-object';
-import { NodeObject, PixiNodeStyle, getNodeSize } from './node';
+import type { PixiNodeStyle} from './node';
+import { NodeObject, getNodeSize } from './node';
 import { FONT_FAMILY } from './text';
 import { TextureCache } from './texture-cache';
 import { colorToPixi, getZoomState, isGraphLayoutWithGroups, isGraphLayoutWithTiers } from './utils';

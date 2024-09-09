@@ -17,9 +17,11 @@
 import isEqual from 'lodash/isEqual';
 import { useEffect, useMemo, useReducer, useRef } from 'react';
 
-import { CausalGraph, EditorMode, GraphState } from '../types';
+import type { CausalGraph, GraphState } from '../types';
+import { EditorMode } from '../types';
 import { GraphActionCreators, GraphActionType, GraphReducer } from './causal-graph-store';
-import { GraphLayout, PlanarLayout } from './graph-layout';
+import type { GraphLayout} from './graph-layout';
+import { PlanarLayout } from './graph-layout';
 import { causalGraphParser } from './parsers';
 import { isDag } from './utils';
 

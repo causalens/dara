@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { XYPosition } from 'graphology-layout/utils';
-import AbstractGraph from 'graphology-types';
+import type { XYPosition } from 'graphology-layout/utils';
+import type AbstractGraph from 'graphology-types';
 
 /**
  * Defines 'modes' that the viewer can run in

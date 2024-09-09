@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { PointData } from 'pixi.js';
-import { Reducer } from 'react';
+import type { PointData } from 'pixi.js';
+import type { Reducer } from 'react';
 
-import { EdgeType, EditorMode, GraphState, SimulationEdge, SimulationGraph, VariableType } from '../types';
+import type { GraphState, SimulationEdge, SimulationGraph} from '../types';
+import { EdgeType, EditorMode, VariableType } from '../types';
 
 export enum GraphActionType {
     ACCEPT_EDGE = 'ACCEPT_EDGE',

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react';
 
 import { MarketingLayout } from '../../shared/graph-layout';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';

@@ -22,7 +22,7 @@ import { Input } from '@darajs/ui-components';
 
 import { useSettings } from '@shared/settings-context';
 
-import { SimulationNode } from '@types';
+import type { SimulationNode } from '@types';
 
 const StyledInput = styled(Input)`
     width: 100%;

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import { DirectionType, GraphTiers, SimulationGraph } from '../../types';
+import type { DirectionType, GraphTiers, SimulationGraph } from '../../types';
 import { DEFAULT_NODE_SIZE } from '../utils';
 import type { LayoutWorker } from './worker/client';
 

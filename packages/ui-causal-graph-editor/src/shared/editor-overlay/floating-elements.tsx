@@ -17,7 +17,8 @@
 import type { ComponentProps, ForwardRefExoticComponent, RefAttributes } from 'react';
 import type { StyledComponent } from 'styled-components';
 
-import styled, { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
+import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 type ButtonProps = ComponentProps<typeof Button> & RefAttributes<HTMLButtonElement>;

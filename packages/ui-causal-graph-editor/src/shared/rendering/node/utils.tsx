@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
 import { TARGET_NODE_MULTIPLIER } from '@shared/utils';
 
-import { PixiNodeStyle } from './definitions';
+import type { PixiNodeStyle } from './definitions';
 
 /**
  * Get node color based on its category

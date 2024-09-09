@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import { DirectionType, GraphTiers, LayeringAlgorithm, SimulationGraph, TieredGraphLayoutBuilder } from '../../types';
-import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
+import type { DirectionType, GraphTiers, SimulationGraph, TieredGraphLayoutBuilder } from '../../types';
+import { LayeringAlgorithm } from '../../types';
+import type { BaseLayoutParams} from './common';
+import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
     _orientation: DirectionType = 'horizontal';

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 import { DirectedGraph } from 'graphology';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import isEqual from 'lodash/isEqual';
 import { generate } from 'shortid';
 
-import {
+import type {
     CausalGraph,
     CausalGraphEdge,
     CausalGraphNode,

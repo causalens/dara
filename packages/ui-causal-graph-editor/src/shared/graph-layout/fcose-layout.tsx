@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DirectionType, GraphTiers, GroupingLayoutBuilder, TieredGraphLayoutBuilder } from '../../types';
-import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder } from './common';
+import type { DirectionType, GraphTiers, GroupingLayoutBuilder, TieredGraphLayoutBuilder } from '../../types';
+import type { BaseLayoutParams} from './common';
+import { GraphLayout, GraphLayoutBuilder } from './common';
 
 export interface FcoseLayoutParams extends BaseLayoutParams {
     edgeElasticity: number;

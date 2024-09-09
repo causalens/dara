@@ -16,9 +16,10 @@
  */
 import { hasCycle } from 'graphology-dag';
 
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
-import { EdgeType, GraphTiers, NodeCategory, SimulationGraph } from '../types';
+import type { GraphTiers, NodeCategory, SimulationGraph } from '../types';
+import { EdgeType } from '../types';
 
 export const DEFAULT_NODE_SIZE = 64;
 export const TARGET_NODE_MULTIPLIER = 1.25;

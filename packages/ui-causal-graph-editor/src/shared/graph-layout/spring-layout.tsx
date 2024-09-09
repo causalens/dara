@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import {
+import type {
     DirectionType,
     GraphTiers,
     GroupingLayoutBuilder,
     SimulationGraph,
     TieredGraphLayoutBuilder,
 } from '../../types';
-import { BaseLayoutParams, GraphLayout, GraphLayoutBuilder, LayoutComputationResult } from './common';
+import type { BaseLayoutParams, LayoutComputationResult } from './common';
+import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class SpringLayoutBuilder
     extends GraphLayoutBuilder<SpringLayout>

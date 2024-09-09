@@ -18,10 +18,11 @@ import { ButtonBar } from '@darajs/ui-components';
 import { Status } from '@darajs/ui-utils';
 
 import { useSettings } from '@shared/settings-context';
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 import { willCreateCycle } from '@shared/utils';
 
-import { EdgeType, GraphState, PagSymbol, SimulationEdge, stringToSymbol, symbolToString } from '@types';
+import type { GraphState, SimulationEdge} from '@types';
+import { EdgeType, PagSymbol, stringToSymbol, symbolToString } from '@types';
 
 import { ColumnWrapper, SectionTitle } from '../../styled';
 
