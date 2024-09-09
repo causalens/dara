@@ -52,6 +52,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
     serializedGraph: SerializedGraph<SimulationNode, SimulationEdge, SimulationAttributes>,
     forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
 ): Promise<SerializableLayoutComputationResult> {
+    console.log('Applying layout', layoutParams);
     // reconstruct the graph from the serialized form
     const graph = new DirectedGraph<SimulationNode, SimulationEdge, SimulationAttributes>();
     graph.import(serializedGraph);

@@ -14,6 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export { type NodeObject } from './node-object';
+export { NodeObject } from './node-object';
 export { type PixiNodeStyle } from './definitions';
 export { getNodeSize } from './utils';

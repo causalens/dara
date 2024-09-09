@@ -1,8 +1,8 @@
 import * as Comlink from 'comlink';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import * as PIXI from 'pixi.js';
 
-import { SimulationGraph } from '@types';
+import { type SimulationGraph } from '@types';
 
 import type { GraphLayout, LayoutComputationCallbacks, SerializableLayoutComputationResult } from '../common';
 // Vite-specific import for worker - inline JS for prod, URL for dev; the incorrect one will be treeshaken when bundling
@@ -30,24 +30,25 @@ export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
     constructor() {
         super();
         // Storybook
-        if (import.meta.env?.MODE === undefined) {
-            this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-        }
-        // in VITE dev mode, workaround for cross-origin issue
-        else if (import.meta.env.DEV) {
-            // this inlines worker code which in turn imports the code from the Vite origin
-            const js = `import ${JSON.stringify(new URL(LayoutWorkerUrl, import.meta.url))}`;
-            const blob = new Blob([js], { type: 'application/javascript' });
-            const objURL = URL.createObjectURL(blob);
-            this.worker = new Worker(objURL, { type: 'module' });
-
-            this.worker.addEventListener('error', () => {
-                URL.revokeObjectURL(objURL);
-            });
-        } else {
-            // Vite production
+        //if (!import.meta.env.STORYBOOK) {
+        //    this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+        //}
+        //// in VITE dev mode, workaround for cross-origin issue
+        //else if (import.meta.env.DEV) {
+        //    // this inlines worker code which in turn imports the code from the Vite origin
+        //    const js = `import ${JSON.stringify(new URL(LayoutWorkerUrl, import.meta.url))}`;
+        //    const blob = new Blob([js], { type: 'application/javascript' });
+        //    const objURL = URL.createObjectURL(blob);
+        //    this.worker = new Worker(objURL, { type: 'module' });
+        //
+        //    this.worker.addEventListener('error', () => {
+        //        URL.revokeObjectURL(objURL);
+        //    });
+        //} else {
+        //    // Vite production
+        //    this.worker = new LayoutWorkerImpl();
+        //}
             this.worker = new LayoutWorkerImpl();
-        }
         // for storybook
         this.remoteApi = Comlink.wrap(this.worker);
     }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import FontFaceObserver from 'fontfaceobserver';
-import type { LayoutMapping, XYPosition} from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import { assignLayout } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
 import { Viewport } from 'pixi-viewport';
@@ -37,18 +37,16 @@ import type {
     SimulationEdge,
     SimulationGraph,
     SimulationNode,
-    ZoomThresholds} from '@types';
-import {
-    EdgeType,
-    EditorMode
+    ZoomThresholds,
 } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
 import type { GraphLayoutWithTiers } from '../graph-layout/common';
 import { Background } from './background';
 import type { EdgeStrengthDefinition, PixiEdgeStyle } from './edge';
-import { EDGE_STRENGTHS, type EdgeObject } from './edge';
+import { EDGE_STRENGTHS, EdgeObject } from './edge';
 import { GroupContainerObject } from './grouping/group-container-object';
-import type { PixiNodeStyle} from './node';
+import type { PixiNodeStyle } from './node';
 import { NodeObject, getNodeSize } from './node';
 import { FONT_FAMILY } from './text';
 import { TextureCache } from './texture-cache';

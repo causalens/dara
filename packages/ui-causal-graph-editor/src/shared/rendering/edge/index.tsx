@@ -14,5 +14,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export { type EdgeObject } from './edge-object';
+export { EdgeObject } from './edge-object';
 export { type EdgeStrengthDefinition, EDGE_STRENGTHS, type PixiEdgeStyle } from './definitions';
