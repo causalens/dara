@@ -29,27 +29,25 @@ export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
 
     constructor() {
         super();
-        // Storybook
-        //if (!import.meta.env.STORYBOOK) {
-        //    this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-        //}
-        //// in VITE dev mode, workaround for cross-origin issue
-        //else if (import.meta.env.DEV) {
-        //    // this inlines worker code which in turn imports the code from the Vite origin
-        //    const js = `import ${JSON.stringify(new URL(LayoutWorkerUrl, import.meta.url))}`;
-        //    const blob = new Blob([js], { type: 'application/javascript' });
-        //    const objURL = URL.createObjectURL(blob);
-        //    this.worker = new Worker(objURL, { type: 'module' });
-        //
-        //    this.worker.addEventListener('error', () => {
-        //        URL.revokeObjectURL(objURL);
-        //    });
-        //} else {
-        //    // Vite production
-        //    this.worker = new LayoutWorkerImpl();
-        //}
+        // Note: Uncomment this for Webpack-based Storybook instead of the block below
+        // this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+
+        // in VITE dev mode, workaround for cross-origin issue
+        if (import.meta.env.DEV) {
+            // this inlines worker code which in turn imports the code from the Vite origin
+            const js = `import ${JSON.stringify(new URL(LayoutWorkerUrl, import.meta.url))}`;
+            const blob = new Blob([js], { type: 'application/javascript' });
+            const objURL = URL.createObjectURL(blob);
+            this.worker = new Worker(objURL, { type: 'module' });
+
+            this.worker.addEventListener('error', () => {
+                URL.revokeObjectURL(objURL);
+            });
+        } else {
+            // Vite production
             this.worker = new LayoutWorkerImpl();
-        // for storybook
+        }
+
         this.remoteApi = Comlink.wrap(this.worker);
     }
 
