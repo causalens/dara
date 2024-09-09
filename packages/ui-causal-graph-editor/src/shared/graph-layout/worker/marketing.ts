@@ -1,10 +1,10 @@
 import * as d3 from 'd3';
-import { SimulationLinkDatum } from 'd3';
+import type { SimulationLinkDatum } from 'd3';
 
-import { SimulationGraph, SimulationNodeWithCategory } from '../../../types';
+import type { SimulationGraph, SimulationNodeWithCategory } from '../../../types';
 import { getD3Data, nodesToLayout } from '../../parsers';
-import { LayoutComputationResult } from '../common';
-import { MarketingLayoutParams } from '../marketing-layout';
+import type { LayoutComputationResult } from '../common';
+import type { MarketingLayoutParams } from '../marketing-layout';
 import { applyTierForces } from './spring';
 
 export default function compute(layoutParams: MarketingLayoutParams, graph: SimulationGraph): LayoutComputationResult {

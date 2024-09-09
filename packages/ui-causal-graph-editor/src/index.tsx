@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export {
-    default as CausalGraphViewer,
-    CausalGraphEditorProps as CausalGraphViewerProps,
-} from './graph-viewer/causal-graph-editor';
-export { NodeHierarchyBuilder, Node } from './node-hierarchy-builder';
+export { default as CausalGraphViewer } from './graph-viewer/causal-graph-editor';
+export type { CausalGraphEditorProps as CausalGraphViewerProps } from './graph-viewer/causal-graph-editor';
+export { NodeHierarchyBuilder } from './node-hierarchy-builder';
+export type { Node } from './node-hierarchy-builder';
 export * from './types';
-export { Settings, useSettings } from './shared/settings-context';
+export { useSettings } from './shared/settings-context';
+export type { Settings } from './shared/settings-context';
 export {
     CustomLayout,
     GraphLayout,
@@ -35,6 +35,6 @@ export { default as GraphContext } from './shared/graph-context';
 export { causalGraphParser } from './shared/parsers';
 export { causalGraphSerializer, serializeGraphEdge, serializeGraphNode } from './shared/serializer';
 export { GraphActionCreators, GraphReducer } from './shared/causal-graph-store';
-export { GraphLegendDefinition } from './shared/editor-overlay';
+export type { GraphLegendDefinition } from './shared/editor-overlay';
 export { FloatingButton } from './shared/editor-overlay/floating-elements';
-export { PixiEdgeStyle } from './shared/rendering/edge';
+export type { PixiEdgeStyle } from './shared/rendering/edge';

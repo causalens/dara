@@ -1,10 +1,12 @@
-import cytoscape, { ElementDefinition, NodeSingular } from 'cytoscape';
-import fcose, { FcoseLayoutOptions, FcoseRelativePlacementConstraint } from 'cytoscape-fcose';
+import type { ElementDefinition, NodeSingular } from 'cytoscape';
+import cytoscape from 'cytoscape';
+import type { FcoseLayoutOptions, FcoseRelativePlacementConstraint } from 'cytoscape-fcose';
+import fcose from 'cytoscape-fcose';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import { type DirectionType, type GraphTiers, type SimulationGraph } from '../../../types';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
-import { LayoutComputationResult } from '../common';
+import type { LayoutComputationResult } from '../common';
 import type { FcoseLayoutParams } from '../fcose-layout';
 
 cytoscape.use(fcose);

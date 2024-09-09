@@ -1,21 +1,22 @@
 import * as d3 from 'd3';
-import { Simulation, SimulationLinkDatum } from 'd3';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { Simulation, SimulationLinkDatum } from 'd3';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
 
-import {
+import type {
     D3SimulationEdge,
     DirectionType,
-    EdgeType,
     GraphTiers,
     SimulationGraph,
     SimulationNode,
-    SimulationNodeWithCategory,
+    SimulationNodeWithCategory} from '../../../types';
+import {
+    EdgeType
 } from '../../../types';
 import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
-import { LayoutComputationResult } from '../common';
-import { SpringLayoutParams } from '../spring-layout';
+import type { LayoutComputationResult } from '../common';
+import type { SpringLayoutParams } from '../spring-layout';
 
 /**
  * Apply force that orders nodes based on the tier order_nodes_by values

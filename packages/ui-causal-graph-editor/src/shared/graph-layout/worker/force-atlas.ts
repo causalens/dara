@@ -3,7 +3,7 @@ import forceAtlas from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 
 import { type SimulationGraph } from '../../../types';
-import { LayoutComputationResult } from '../common';
+import type { LayoutComputationResult } from '../common';
 import type { ForceAtlasLayoutParams } from '../force-atlas-layout';
 
 export default function compute(layoutParams: ForceAtlasLayoutParams, graph: SimulationGraph): LayoutComputationResult {

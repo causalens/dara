@@ -1,9 +1,9 @@
 import * as Comlink from 'comlink';
 import { DirectedGraph } from 'graphology';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-import { SerializedGraph } from 'graphology-types';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { SerializedGraph } from 'graphology-types';
 
-import { SimulationAttributes, SimulationEdge, SimulationNode } from '@types';
+import type { SimulationAttributes, SimulationEdge, SimulationNode } from '@types';
 
 import type {
     BaseLayoutParams,

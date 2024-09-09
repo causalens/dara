@@ -1,10 +1,11 @@
-import {
+import type {
     GraphNode,
     Layering,
     MutGraph,
     SugiLinkDatum,
     SugiNode,
-    SugiNodeDatum,
+    SugiNodeDatum} from 'd3-dag';
+import {
     coordQuad,
     decrossTwoLayer,
     graphStratify,
@@ -16,8 +17,8 @@ import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import { type GraphTiers, LayeringAlgorithm, type SimulationGraph, type SimulationNode } from '../../../types';
 import { getNodeOrder, getTiersArray } from '../../utils';
-import { LayoutComputationResult } from '../common';
-import { PlanarLayoutParams } from '../planar-layout';
+import type { LayoutComputationResult } from '../common';
+import type { PlanarLayoutParams } from '../planar-layout';
 
 interface NodeOrder {
     group: string;
