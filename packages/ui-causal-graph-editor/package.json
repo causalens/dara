@@ -2,11 +2,20 @@
   "name": "@darajs/ui-causal-graph-editor",
   "version": "1.12.7",
   "description": "CausalGraph editor for the Dara UI framework",
-  "main": "dist/index.js",
+  "main": "dist/index.umd.cjs",
   "module": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "type": "module",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc && tsc-alias",
+    "build": "rimraf dist && vite build && tsc && tsc-alias",
     "lint": "tsc --noemit && eslint src --ext .ts,.tsx --max-warnings 0 && stylelint './src/**/*.{ts,tsx}'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
