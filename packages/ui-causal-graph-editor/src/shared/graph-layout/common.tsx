@@ -88,6 +88,11 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
         this.nodeFontSize = builder._nodeFontSize;
     }
 
+    /**
+     * Get the name of the layout.
+     * This must be defined for each rather than using something like this.constructor.name
+     * because the class name is mangled by minifiers.
+     */
     // eslint-disable-next-line class-methods-use-this
     get name(): string {
         return 'GraphLayout';
@@ -127,6 +132,10 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
         return this.worker.applyLayout(this, graph, forceUpdate);
     }
 
+    /**
+    * Convert the layout object to a serializable params object.
+    * This representation is used to send the layout to the worker.
+    */
     toLayoutParams(): TLayoutParams {
         return {
             nodeSize: this.nodeSize,

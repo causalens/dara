@@ -104,6 +104,9 @@ export async function invokeCallback<CbName extends keyof LayoutComputationCallb
     return cb(...args);
 }
 
+/**
+ * Public API exposed from the worker
+ */
 export const workerApi = {
     applyLayout,
     invokeCallback,
