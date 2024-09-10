@@ -38,6 +38,8 @@ interface EditorOverlayProps {
     bottomRight?: React.ReactNode;
     /** Children */
     children?: React.ReactNode;
+    /** Whether to disable the panel */
+    disabled?: boolean;
     /** Whether to hide the frame and show just the graph */
     hideFrame?: boolean;
     /** Function to delete currently selected content */
@@ -108,6 +110,7 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element {
 
             {showPanel && props.validContentSelected && (
                 <PanelContent
+                    disabled={props.disabled}
                     onDelete={props.onDelete}
                     onMouseEnter={onPanelEnter}
                     onMouseLeave={onPanelExit}

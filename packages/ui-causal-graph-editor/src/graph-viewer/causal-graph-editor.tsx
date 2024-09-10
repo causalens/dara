@@ -773,6 +773,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                     )}
                                 />
                             }
+                            disabled={isLayoutComputing}
                             onDelete={onDelete}
                             onNext={onNext}
                             onPrev={onPrev}

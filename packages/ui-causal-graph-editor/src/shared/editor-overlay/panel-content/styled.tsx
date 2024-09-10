@@ -17,7 +17,11 @@
 import styled from '@darajs/styled-components';
 import { ComboBox } from '@darajs/ui-components';
 
-export const ColumnWrapper = styled.div<{ $fillHeight?: boolean; $gap?: number; $scrollable?: boolean }>`
+export const ColumnWrapper = styled.div<{
+    $fillHeight?: boolean;
+    $gap?: number;
+    $scrollable?: boolean;
+}>`
     display: flex;
     flex-direction: column;
     gap: ${(props) => props.$gap ?? 0.75}rem;

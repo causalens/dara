@@ -116,7 +116,7 @@ export const BottomLeftDiv = styled(CornerDiv)`
     justify-content: end;
 `;
 
-export const PanelDiv = styled.div<{ $hide?: boolean }>`
+export const PanelDiv = styled.div<{ $hide?: boolean; $disabled?: boolean }>`
     pointer-events: ${(props) => (props.$hide ? 'none' : 'auto')};
     cursor: default;
 
@@ -149,4 +149,13 @@ export const PanelDiv = styled.div<{ $hide?: boolean }>`
         width: 100%;
         max-height: calc(100% - 20px);
     }
+
+    ${(props) =>
+        props.$disabled &&
+        !props.$hide &&
+        `
+    pointer-events: none;
+    opacity: 0.75;
+    cursor: not-allowed;
+`}
 `;
