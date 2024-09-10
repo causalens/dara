@@ -44,6 +44,7 @@ export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
         const serializedGraph = graph.export();
 
         this.emit('computationStart');
+        console.log('Calling worker...');
         const result = await this.remoteApi.applyLayout(
             params,
             serializedGraph,

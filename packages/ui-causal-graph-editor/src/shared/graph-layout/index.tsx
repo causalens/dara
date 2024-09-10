@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export { GraphLayout } from './common';
+export { GraphLayout, type GraphLayoutBuilder } from './common';
 export { default as CustomLayout } from './custom-layout';
 export { default as MarketingLayout } from './marketing-layout';
 export { default as PlanarLayout } from './planar-layout';
