@@ -133,9 +133,9 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
     }
 
     /**
-    * Convert the layout object to a serializable params object.
-    * This representation is used to send the layout to the worker.
-    */
+     * Convert the layout object to a serializable params object.
+     * This representation is used to send the layout to the worker.
+     */
     toLayoutParams(): TLayoutParams {
         return {
             nodeSize: this.nodeSize,

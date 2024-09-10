@@ -40,7 +40,12 @@ function PanelContent(props: PanelContentProps): JSX.Element {
     const { disablePointerEvents } = useContext(PointerContext);
 
     return (
-        <PanelDiv $disabled={props.disabled} $hide={disablePointerEvents} onMouseEnter={props.onMouseEnter} onMouseLeave={props.onMouseLeave}>
+        <PanelDiv
+            $disabled={props.disabled}
+            $hide={disablePointerEvents}
+            onMouseEnter={props.onMouseEnter}
+            onMouseLeave={props.onMouseLeave}
+        >
             <PanelTitle onDelete={props.onDelete} onNext={props.onNext} onPrev={props.onPrev} title={props.title} />
             {props.children}
         </PanelDiv>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { SetStateAction} from 'react';
+import type { SetStateAction } from 'react';
 import { useEffect, useState } from 'react';
 
 import type { SimulationGraph } from '../../../types';

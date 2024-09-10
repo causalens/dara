@@ -16,9 +16,9 @@
  */
 import { NotificationWrapper, useNotifications } from '@darajs/ui-notifications';
 
-import type { CausalGraph} from '../../types';
+import type { CausalGraph } from '../../types';
 import { EdgeType, VariableType } from '../../types';
-import type { CausalGraphEditorProps} from '../causal-graph-editor';
+import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 
 export const Template = (args: CausalGraphEditorProps): JSX.Element => {

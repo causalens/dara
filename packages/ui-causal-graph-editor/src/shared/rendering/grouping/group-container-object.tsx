@@ -111,9 +111,7 @@ export class GroupContainerObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS
         // Get/create rectangle texture
         const rectangleTexture = textureCache.get(createKey(GROUP_RECTANGLE), () => {
             const graphics = new PIXI.Graphics();
-            graphics
-                .roundRect(0, 0, 256, 256, 8)
-                .fill(theme.colors.blue2.replace('#', '0x'));
+            graphics.roundRect(0, 0, 256, 256, 8).fill(theme.colors.blue2.replace('#', '0x'));
             return graphics;
         });
 

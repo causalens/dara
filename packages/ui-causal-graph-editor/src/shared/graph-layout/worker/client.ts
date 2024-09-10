@@ -5,7 +5,6 @@ import * as PIXI from 'pixi.js';
 import { type SimulationGraph } from '@types';
 
 import type { GraphLayout, LayoutComputationCallbacks, SerializableLayoutComputationResult } from '../common';
-
 // Vite-specific import for worker - inline JS; the incorrect one will be treeshaken when bundling
 import LayoutWorkerImpl from './worker?worker&inline';
 

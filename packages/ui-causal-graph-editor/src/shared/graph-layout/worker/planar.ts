@@ -1,18 +1,5 @@
-import type {
-    GraphNode,
-    Layering,
-    MutGraph,
-    SugiLinkDatum,
-    SugiNode,
-    SugiNodeDatum} from 'd3-dag';
-import {
-    coordQuad,
-    decrossTwoLayer,
-    graphStratify,
-    layeringLongestPath,
-    layeringSimplex,
-    sugiyama,
-} from 'd3-dag';
+import type { GraphNode, Layering, MutGraph, SugiLinkDatum, SugiNode, SugiNodeDatum } from 'd3-dag';
+import { coordQuad, decrossTwoLayer, graphStratify, layeringLongestPath, layeringSimplex, sugiyama } from 'd3-dag';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import { type GraphTiers, LayeringAlgorithm, type SimulationGraph, type SimulationNode } from '../../../types';

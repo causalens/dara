@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import type { DirectionType, GraphTiers, GroupingLayoutBuilder, TieredGraphLayoutBuilder } from '../../types';
-import type { BaseLayoutParams} from './common';
+import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 export interface FcoseLayoutParams extends BaseLayoutParams {

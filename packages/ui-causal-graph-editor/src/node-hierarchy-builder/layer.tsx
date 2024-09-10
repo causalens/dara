@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { ForwardedRef} from 'react';
+import type { ForwardedRef } from 'react';
 import { forwardRef, useCallback, useState } from 'react';
 import { useDrop } from 'react-dnd';
 

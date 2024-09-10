@@ -17,7 +17,7 @@
 import type { PointData } from 'pixi.js';
 import type { Reducer } from 'react';
 
-import type { GraphState, SimulationEdge, SimulationGraph} from '../types';
+import type { GraphState, SimulationEdge, SimulationGraph } from '../types';
 import { EdgeType, EditorMode, VariableType } from '../types';
 
 export enum GraphActionType {

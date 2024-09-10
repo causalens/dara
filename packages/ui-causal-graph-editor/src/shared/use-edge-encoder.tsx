@@ -19,7 +19,7 @@ import { useImmer } from 'use-immer';
 
 import { useUpdateEffect } from '@darajs/ui-utils';
 
-import type { EdgeConstraint, EdgeConstraintItem} from '../types';
+import type { EdgeConstraint, EdgeConstraintItem } from '../types';
 import { EdgeConstraintType } from '../types';
 
 /**

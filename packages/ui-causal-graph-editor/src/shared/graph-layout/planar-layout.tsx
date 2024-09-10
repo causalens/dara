@@ -18,7 +18,7 @@ import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import type { DirectionType, GraphTiers, SimulationGraph, TieredGraphLayoutBuilder } from '../../types';
 import { LayeringAlgorithm } from '../../types';
-import type { BaseLayoutParams} from './common';
+import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {

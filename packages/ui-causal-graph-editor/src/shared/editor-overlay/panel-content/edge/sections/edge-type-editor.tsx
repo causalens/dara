@@ -21,7 +21,7 @@ import { useSettings } from '@shared/settings-context';
 import type { GraphApi } from '@shared/use-causal-graph-editor';
 import { willCreateCycle } from '@shared/utils';
 
-import type { GraphState, SimulationEdge} from '@types';
+import type { GraphState, SimulationEdge } from '@types';
 import { EdgeType, PagSymbol, stringToSymbol, symbolToString } from '@types';
 
 import { ColumnWrapper, SectionTitle } from '../../styled';

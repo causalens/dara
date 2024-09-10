@@ -17,7 +17,7 @@
 import type { Meta } from '@storybook/react';
 
 import { FcoseLayout } from '../../shared/graph-layout';
-import type { CausalGraph} from '../../types';
+import type { CausalGraph } from '../../types';
 import { EdgeType, EditorMode, VariableType } from '../../types';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, pagCausalGraph } from './stories-utils';

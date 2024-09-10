@@ -9,10 +9,9 @@ import type {
     GraphTiers,
     SimulationGraph,
     SimulationNode,
-    SimulationNodeWithCategory} from '../../../types';
-import {
-    EdgeType
+    SimulationNodeWithCategory,
 } from '../../../types';
+import { EdgeType } from '../../../types';
 import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
 import type { LayoutComputationResult } from '../common';

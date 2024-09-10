@@ -24,10 +24,9 @@ import type {
     GraphState,
     NodeRenderingMeta,
     SimulationEdge,
-    SimulationNode} from '../types';
-import {
-    EdgeType
+    SimulationNode,
 } from '../types';
+import { EdgeType } from '../types';
 
 const RENDERING_META_PREFIX = 'meta.rendering_properties.';
 

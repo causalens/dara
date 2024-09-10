@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { BaseLayoutParams} from './common';
+import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class ForceAtlasLayoutBuilder extends GraphLayoutBuilder<ForceAtlasLayout> {

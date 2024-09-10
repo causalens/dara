@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import debounce from 'lodash/debounce';
-import type { SyntheticEvent} from 'react';
+import type { SyntheticEvent } from 'react';
 import { useContext, useRef, useState } from 'react';
 
 import styled from '@darajs/styled-components';

@@ -19,9 +19,9 @@ import * as React from 'react';
 
 import { SHIPPED_UNITS } from '../../../tests/mocks/graphs';
 import { PlanarLayout } from '../../shared/graph-layout';
-import type { CausalGraph} from '../../types';
+import type { CausalGraph } from '../../types';
 import { EdgeType, LayeringAlgorithm } from '../../types';
-import type { CausalGraphEditorProps} from '../causal-graph-editor';
+import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, causalGraph, nodeTiersCausalGraph, planarLayoutCausalGraph } from './stories-utils';
 
