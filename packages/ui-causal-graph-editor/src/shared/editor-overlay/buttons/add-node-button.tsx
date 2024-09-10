@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useContext } from 'react';
+import { type ComponentProps, useContext } from 'react';
 
 import { Tooltip } from '@darajs/ui-components';
 import { Plus } from '@darajs/ui-icons';
@@ -25,7 +25,7 @@ import { EditorMode } from '../../../types';
 import { useSettings } from '../../settings-context';
 import { FloatingButton } from '../floating-elements';
 
-interface EditControlsProps {
+interface EditControlsProps extends ComponentProps<typeof FloatingButton> {
     /** Handler for adding a new node */
     onAddNode: () => void;
 }
@@ -33,6 +33,7 @@ interface EditControlsProps {
 function EditControls(props: EditControlsProps): JSX.Element {
     const { disableLatentNodeAdd, editorMode, editable } = useSettings();
     const { disablePointerEvents } = useContext(PointerContext);
+    const { onAddNode, ...rest } = props;
 
     return (
         <>
@@ -43,6 +44,7 @@ function EditControls(props: EditControlsProps): JSX.Element {
                         disableEvents={disablePointerEvents}
                         fixedSize
                         onClick={props.onAddNode}
+                        {...rest}
                     >
                         <Plus />
                     </FloatingButton>

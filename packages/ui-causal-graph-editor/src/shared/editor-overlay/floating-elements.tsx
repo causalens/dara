@@ -46,4 +46,11 @@ export const FloatingButton: StyledComponent<
 
     ${(props) => (props.styling === 'ghost' ? `background-color: ${props.theme.colors.blue1}` : '')};
     ${(props) => (props.disableBoxShadow ? '' : `box-shadow: ${props.theme.shadow.light};`)}
+
+    ${(props) =>
+        props.disabled &&
+        `
+        opacity: 0.7;
+        background-color: ${props.theme.colors.grey1};
+`}
 `;

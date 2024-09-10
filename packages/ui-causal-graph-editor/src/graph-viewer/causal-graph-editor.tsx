@@ -27,8 +27,7 @@ import { Notification } from '@darajs/ui-notifications';
 import { Status, useOnClickOutside, useUpdateEffect } from '@darajs/ui-utils';
 import { ConfirmationModal } from '@darajs/ui-widgets';
 
-import type {
-    GraphLegendDefinition} from '@shared/editor-overlay';
+import type { GraphLegendDefinition } from '@shared/editor-overlay';
 import {
     AddNodeButton,
     CenterGraphButton,
@@ -55,11 +54,9 @@ import type {
     CausalGraphNode,
     EdgeConstraint,
     SimulationEdge,
-    ZoomThresholds} from '@types';
-import {
-    EdgeType,
-    EditorMode
+    ZoomThresholds,
 } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
 import GraphContext from '../shared/graph-context';
 import type { GraphLayout } from '../shared/graph-layout';
@@ -67,7 +64,7 @@ import PointerContext from '../shared/pointer-context';
 import type { PixiEdgeStyle } from '../shared/rendering/edge';
 import { useRenderEngine } from '../shared/rendering/use-render-engine';
 import { causalGraphSerializer, serializeGraphEdge, serializeGraphNode } from '../shared/serializer';
-import type { Settings} from '../shared/settings-context';
+import type { Settings } from '../shared/settings-context';
 import { SettingsProvider } from '../shared/settings-context';
 import { Center, Graph, Wrapper } from '../shared/styles';
 import useCausalGraphEditor from '../shared/use-causal-graph-editor';
@@ -824,10 +821,11 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                                 setShowCollapseAll(true);
                                             }}
                                             showExpandAll={showCollapseAll}
+                                            disabled={isLayoutComputing}
                                         />
                                     )}
                                     <CenterGraphButton onResetZoom={resetViewport} />
-                                    <AddNodeButton onAddNode={onAddNode} />
+                                    <AddNodeButton disabled={isLayoutComputing} onAddNode={onAddNode} />
                                     <DragModeButton dragMode={dragMode} setDragMode={setDragMode} />
                                     <SaveImageButton onSave={saveImage} />
                                 </>
