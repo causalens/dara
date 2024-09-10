@@ -128,9 +128,9 @@ const CustomMarkdownWrapper = styled.div`
 
     figcaption {
         margin-top: 0.875rem;
-        color: ${(props) => props.theme.colors.grey5};
         font-size: 0.875rem;
         line-height: 1.5rem;
+        color: ${(props) => props.theme.colors.grey5};
     }
 
     h2 code {
@@ -230,13 +230,15 @@ const CustomMarkdownWrapper = styled.div`
     }
 
     table {
-        font-size: 0.875rem;
-        line-height: 1.7;
+        table-layout: auto;
+        border-collapse: collapse;
+
+        width: 100%;
         margin-top: 2rem;
         margin-bottom: 2rem;
-        table-layout: auto;
-        width: 100%;
-        border-collapse: collapse;
+
+        font-size: 0.875rem;
+        line-height: 1.7;
 
         thead {
             border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
@@ -245,9 +247,10 @@ const CustomMarkdownWrapper = styled.div`
                 padding-right: 0.5rem;
                 padding-bottom: 0.5rem;
                 padding-left: 0.5rem;
-                vertical-align: bottom;
+
                 font-weight: 600;
                 text-align: start;
+                vertical-align: bottom;
             }
 
             th:first-child {
@@ -263,8 +266,8 @@ const CustomMarkdownWrapper = styled.div`
             border-top: 1px solid ${(props) => props.theme.colors.grey2};
 
             td {
-                vertical-align: top;
                 text-align: start;
+                vertical-align: top;
             }
         }
 
@@ -279,8 +282,8 @@ const CustomMarkdownWrapper = styled.div`
 
             td {
                 padding: 0.5rem;
-                vertical-align: baseline;
                 text-align: start;
+                vertical-align: baseline;
 
                 &:first-child {
                     padding-left: 0;
