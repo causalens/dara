@@ -1,4 +1,5 @@
-import { CausalGraph, EdgeType, VariableType } from '../src/types';
+import type { CausalGraph} from '../src/types';
+import { EdgeType, VariableType } from '../src/types';
 
 export const MockCausalGraph: CausalGraph = {
     edges: {

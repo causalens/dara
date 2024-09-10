@@ -1,7 +1,8 @@
 import { GraphActionCreators, GraphReducer } from '../src/shared/causal-graph-store';
 import { causalGraphParser } from '../src/shared/parsers';
 import { causalGraphSerializer } from '../src/shared/serializer';
-import { CausalGraph, CausalGraphEdge, EdgeType, EditorMode } from '../src/types';
+import type { CausalGraph, CausalGraphEdge} from '../src/types';
+import { EdgeType, EditorMode } from '../src/types';
 import { MockCausalGraphWithExtras } from './mocks/extras-graph';
 import { MockCausalGraph } from './utils';
 

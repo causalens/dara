@@ -2,7 +2,8 @@ import { fireEvent, render } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import NodeHierarchyBuilder, { NodeHierarchyBuilderProps } from '../src/node-hierarchy-builder/node-hierarchy-builder';
+import type { NodeHierarchyBuilderProps } from '../src/node-hierarchy-builder/node-hierarchy-builder';
+import NodeHierarchyBuilder from '../src/node-hierarchy-builder/node-hierarchy-builder';
 
 function RenderHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
     return (
