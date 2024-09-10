@@ -18,7 +18,6 @@
     "moduleDetection": "force",
     // output only types since we are using Vite for building
     "declaration": true,
-    "noEmit": false,
     "emitDeclarationOnly": true,
     "outDir": "./dist/types"
   }

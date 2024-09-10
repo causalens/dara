@@ -16,10 +16,10 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && vite build && tsc && tsc-alias",
-    "lint": "tsc --noemit && eslint src --ext .ts,.tsx --max-warnings 0 && stylelint './src/**/*.{ts,tsx}'",
+    "lint": "tsc && eslint src --ext .ts,.tsx --max-warnings 0 && stylelint './src/**/*.{ts,tsx}'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
-    "lint:fix": "eslint src --ext .ts,.tsx --max-warnings 0 --fix && stylelint './src/**/*.{ts,tsx}' --fix",
+    "lint:fix": "tsc && eslint src --ext .ts,.tsx --max-warnings 0 --fix && stylelint './src/**/*.{ts,tsx}' --fix",
     "test-watch": "jest --watch",
     "test": "jest",
     "storybook": "start-storybook -p 6006",
