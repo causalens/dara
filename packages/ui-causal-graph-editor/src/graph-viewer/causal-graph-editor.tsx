@@ -135,7 +135,7 @@ const GraphParent = styled.div<{ $isLayoutComputing: boolean }>`
     height: 100%;
 
     canvas {
-        opacity: ${(props) => (props.$isLayoutComputing ? 0.7 : 1)};
+        opacity: ${(props) => (props.$isLayoutComputing ? 0.5 : 1)};
     }
 `;
 

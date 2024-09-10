@@ -109,22 +109,19 @@ export class GroupContainerObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS
         (groupContainerGfx.hitArea as PIXI.Rectangle).height = height;
 
         // Get/create rectangle texture
-        const rectangleTexture = textureCache.get(createKey(GROUP_RECTANGLE, minX, maxX, minY, maxY), () => {
+        const rectangleTexture = textureCache.get(createKey(GROUP_RECTANGLE), () => {
             const graphics = new PIXI.Graphics();
             graphics
-                .roundRect(minX, minY, width, height, 8)
-                .fill(theme.colors.blue2.replace('#', '0x'))
-                .stroke({
-                    width: 2,
-                    color: theme.colors.primary.replace('#', '0x'),
-                    alpha: 0.5, // Half-transparent border
-                });
+                .roundRect(0, 0, 256, 256, 8)
+                .fill(theme.colors.blue2.replace('#', '0x'));
             return graphics;
         });
 
         // Set the node texture and adjust its styles
         const rectangle = groupContainerGfx.getChildByName(GROUP_RECTANGLE) as PIXI.Sprite;
         rectangle.texture = rectangleTexture;
+        rectangle.width = width;
+        rectangle.height = height;
         [rectangle.tint, rectangle.alpha] = colorToPixi(theme.colors.blue2);
     }
 
