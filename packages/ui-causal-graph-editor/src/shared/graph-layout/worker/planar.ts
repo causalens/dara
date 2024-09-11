@@ -2,7 +2,7 @@ import type { GraphNode, Layering, MutGraph, SugiLinkDatum, SugiNode, SugiNodeDa
 import { coordQuad, decrossTwoLayer, graphStratify, layeringLongestPath, layeringSimplex, sugiyama } from 'd3-dag';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import { type GraphTiers, LayeringAlgorithm, type SimulationGraph, type SimulationNode } from '../../../types';
+import { type GraphTiers, PlanarLayeringAlgorithm, type SimulationGraph, type SimulationNode } from '../../../types';
 import { getNodeOrder, getTiersArray } from '../../utils';
 import type { LayoutComputationResult } from '../common';
 import type { PlanarLayoutParams } from '../planar-layout';
@@ -111,8 +111,8 @@ function customDecross(layers: SugiNode<{ ord?: number }, unknown>[][]): void {
  *
  * @param algorithm the layering algorithm to use
  */
-function getLayeringAlgorithm(algorithm: LayeringAlgorithm): Layering<DagNodeData, any> {
-    if (algorithm === LayeringAlgorithm.LONGEST_PATH) {
+function getLayeringAlgorithm(algorithm: PlanarLayeringAlgorithm): Layering<DagNodeData, any> {
+    if (algorithm === PlanarLayeringAlgorithm.LONGEST_PATH) {
         return layeringLongestPath();
     }
     return layeringSimplex();

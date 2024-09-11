@@ -182,6 +182,7 @@ export default class SpringLayout extends GraphLayout<SpringLayoutParams> {
             edgePoints: result.edgePoints,
             // callbacks are not returned directly from the worker as they aren't serializable,
             // instead they are registered in the worker where we can call them
+            onAddNode: () => this.worker.invokeCallback('onAddNode'),
             onCleanup: () => this.worker.invokeCallback('onCleanup'),
             onEndDrag: () => this.worker.invokeCallback('onEndDrag'),
             onStartDrag: () => this.worker.invokeCallback('onStartDrag'),

@@ -206,7 +206,7 @@ export interface SimulationAttributes {
 export type SimulationGraph = AbstractGraph<SimulationNode, SimulationEdge, SimulationAttributes>;
 
 // Defines the Layering algorithms supported by PlanarLayout
-export enum LayeringAlgorithm {
+export enum PlanarLayeringAlgorithm {
     /** is optimized to minimize the total height of the graph, height being the direction in which the layers are placed */
     LONGEST_PATH = 'longest_path',
     /** is optimized to minimize the overall length of edges */

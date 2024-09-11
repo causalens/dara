@@ -104,7 +104,7 @@ const LayoutSpinner = styled(Spinner)`
     opacity: 1 !important;
 
     span {
-        font-size: 1rem;
+        font-size: 16px !important;
     }
 `;
 
@@ -116,9 +116,9 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
     flex: 1 1 auto;
     flex-direction: column;
 
+    /* We set a minHeight/minWidth so that at least some of the graph will always appear within the container */
     min-width: 100px;
 
-    /* We set a minHeight/minWidth so that at least some of the graph will always appear within the container */
     min-height: 100px;
 
     border: 2px solid transparent;

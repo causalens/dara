@@ -17,7 +17,7 @@
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import type { DirectionType, GraphTiers, SimulationGraph, TieredGraphLayoutBuilder } from '../../types';
-import { LayeringAlgorithm } from '../../types';
+import { PlanarLayeringAlgorithm } from '../../types';
 import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
@@ -26,7 +26,7 @@ class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
 
     _tiers: GraphTiers;
 
-    _layeringAlgorithm: LayeringAlgorithm = LayeringAlgorithm.SIMPLEX;
+    _layeringAlgorithm: PlanarLayeringAlgorithm = PlanarLayeringAlgorithm.SIMPLEX;
 
     /**
      * Sets the nodes orientation
@@ -53,7 +53,7 @@ class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
      *
      * @param algorithm the layering algorithm to use
      */
-    layeringAlgorithm(algorithm: LayeringAlgorithm): this {
+    layeringAlgorithm(algorithm: PlanarLayeringAlgorithm): this {
         this._layeringAlgorithm = algorithm;
         return this;
     }
@@ -67,7 +67,7 @@ class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
 export interface PlanarLayoutParams extends BaseLayoutParams {
     orientation: DirectionType;
     tiers: GraphTiers;
-    layeringAlgorithm: LayeringAlgorithm;
+    layeringAlgorithm: PlanarLayeringAlgorithm;
 }
 
 /**
@@ -79,7 +79,7 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
 
     public tiers: GraphTiers;
 
-    public layeringAlgorithm: LayeringAlgorithm = LayeringAlgorithm.SIMPLEX;
+    public layeringAlgorithm: PlanarLayeringAlgorithm = PlanarLayeringAlgorithm.SIMPLEX;
 
     constructor(builder: PlanarLayoutBuilder) {
         super(builder);

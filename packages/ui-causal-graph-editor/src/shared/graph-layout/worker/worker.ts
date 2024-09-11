@@ -44,7 +44,7 @@ const LAYOUT_CALLBACKS: LayoutComputationCallbacks = {} as const;
  * Compute the layout for the given graph using the provided layout parameters.
  *
  * @param layoutParams layout parameters
- * @param graph the graph to apply the layout to
+ * @param serializedGraph the graph to apply the layout to, in its serialized form created by graphology
  * @param forceUpdate callback to update the layout, is a proxy to the main thread
  */
 export async function applyLayout<TParams extends BaseLayoutParams>(
@@ -52,6 +52,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
     serializedGraph: SerializedGraph<SimulationNode, SimulationEdge, SimulationAttributes>,
     forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
 ): Promise<SerializableLayoutComputationResult> {
+
     // reconstruct the graph from the serialized form
     const graph = new DirectedGraph<SimulationNode, SimulationEdge, SimulationAttributes>();
     graph.import(serializedGraph);
