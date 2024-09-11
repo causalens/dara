@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import type { XYPosition } from 'graphology-layout/utils';
+import type { SerializedGraph } from 'graphology-types';
 import type AbstractGraph from 'graphology-types';
 
 /**
@@ -204,6 +205,8 @@ export interface SimulationAttributes {
     version: string;
 }
 export type SimulationGraph = AbstractGraph<SimulationNode, SimulationEdge, SimulationAttributes>;
+
+export type SerializedSimulationGraph = SerializedGraph<SimulationNode, SimulationEdge, SimulationAttributes>;
 
 // Defines the Layering algorithms supported by PlanarLayout
 export enum PlanarLayeringAlgorithm {

@@ -15,8 +15,17 @@
  * limitations under the License.
  */
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { SerializedGraph } from 'graphology-types';
 
-import type { DirectionType, GraphTiers, SimulationGraph } from '../../types';
+import type {
+    DirectionType,
+    GraphTiers,
+    SerializedSimulationGraph,
+    SimulationAttributes,
+    SimulationEdge,
+    SimulationGraph,
+    SimulationNode,
+} from '../../types';
 import { DEFAULT_NODE_SIZE } from '../utils';
 import type { LayoutWorker } from './worker/client';
 
@@ -61,7 +70,9 @@ export interface SerializableLayoutComputationResult {
 
 export interface LayoutComputationCallbacks {
     onAddEdge?: () => void | Promise<void>;
-    onAddNode?: () => void | Promise<void>;
+    onAddNode?: (
+        graphData: SerializedSimulationGraph
+    ) => void | Promise<void>;
     onCleanup?: () => void | Promise<void>;
     onEndDrag?: () => void | Promise<void>;
     onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
@@ -119,16 +130,7 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
     applyLayout(
         graph: SimulationGraph,
         forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
-    ): Promise<{
-        edgePoints?: LayoutMapping<XYPosition[]>;
-        layout: LayoutMapping<XYPosition>;
-        onAddEdge?: () => void | Promise<void>;
-        onAddNode?: () => void | Promise<void>;
-        onCleanup?: () => void | Promise<void>;
-        onEndDrag?: () => void | Promise<void>;
-        onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
-        onStartDrag?: () => void | Promise<void>;
-    }> {
+    ): Promise<LayoutComputationResult> {
         return this.worker.applyLayout(this, graph, forceUpdate);
     }
 

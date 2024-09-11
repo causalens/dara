@@ -414,10 +414,11 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         const edgeBottomSymbol = edgeSymbolsGfx.getChildByName(EDGE_BOTTOM_SYMBOL) as PIXI.Sprite;
         const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
-        edgeTopSymbol.visible = !hasPoints && edgeTopSymbol.visible && zoomState.symbol;
-        edgeCenterSymbol.visible = !hasPoints && edgeCenterSymbol.visible && zoomState.symbol;
-        edgeBottomSymbol.visible = !hasPoints && edgeBottomSymbol.visible && zoomState.symbol;
-        edgeStrengthSymbol.visible = !hasPoints && edgeStrengthSymbol.visible && zoomState.symbol;
+        const show = !hasPoints && zoomState.symbol;
+        edgeTopSymbol.visible = show;
+        edgeCenterSymbol.visible = show;
+        edgeBottomSymbol.visible = show;
+        edgeStrengthSymbol.visible = show;
     }
 
     /**

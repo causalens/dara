@@ -405,7 +405,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
         }
         // Skip if a cycle would be created
         // The check needs to happen before we commit an action
-        if (willCreateCycle(state.graph, edge)) {
+        if (props.editorMode === EditorMode.DEFAULT && willCreateCycle(state.graph, edge)) {
             props.onNotify?.({
                 key: 'create-edge-cycle',
                 message: 'Could not create an edge as it would create a cycle',
@@ -433,18 +433,20 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
     function onReverseEdge(): void {
         const [source, target] = selectedEdge;
 
-        // Skip if a cycle would be created
-        // This creates a clone of the graph without the reversed edge so we can properly check if the reverse would create a cycle
-        const graphCopy = state.graph.copy();
-        graphCopy.dropEdge(source, target);
-        if (willCreateCycle(graphCopy, selectedEdge)) {
-            props.onNotify?.({
-                key: 'reverse-edge-cycle',
-                message: 'Could not reverse the edge as it would create a cycle',
-                status: Status.WARNING,
-                title: 'Cycle detected',
-            });
-            return;
+        // Skip if a cycle would be created in default mode
+        if (props.editorMode === EditorMode.DEFAULT) {
+            // This creates a clone of the graph without the reversed edge so we can properly check if the reverse would create a cycle
+            const graphCopy = state.graph.copy();
+            graphCopy.dropEdge(source, target);
+            if (willCreateCycle(graphCopy, selectedEdge)) {
+                props.onNotify?.({
+                    key: 'reverse-edge-cycle',
+                    message: 'Could not reverse the edge as it would create a cycle',
+                    status: Status.WARNING,
+                    title: 'Cycle detected',
+                });
+                return;
+            }
         }
 
         // Reverse the edge

@@ -34,6 +34,7 @@ import { getGroupToNodesMap, getNodeCategory, getNodeToGroupMap } from '@shared/
 import type {
     EdgeConstraint,
     GroupNode,
+    SerializedSimulationGraph,
     SimulationEdge,
     SimulationGraph,
     SimulationNode,
@@ -170,7 +171,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
     private nodeMousedownPosition: PIXI.Point = null;
 
     /** Callback executed when a node is added */
-    private onAddNode?: () => void = null;
+    private onAddNode?: (graphData: SerializedSimulationGraph) => void = null;
 
     /** Callback executed when an edge is added */
     private onAddEdge?: () => void = null;
@@ -1562,7 +1563,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
 
         this.markStylesDirty();
         this.requestRender();
-        this.onAddNode?.();
+        this.onAddNode?.(this.graph.export());
     }
 
     private onGraphEdgeAdded({

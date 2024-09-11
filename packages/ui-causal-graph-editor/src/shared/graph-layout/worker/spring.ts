@@ -7,6 +7,9 @@ import type {
     D3SimulationEdge,
     DirectionType,
     GraphTiers,
+    SerializedSimulationGraph,
+    SimulationAttributes,
+    SimulationEdge,
     SimulationGraph,
     SimulationNode,
     SimulationNodeWithCategory,
@@ -16,6 +19,8 @@ import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
 import type { LayoutComputationResult } from '../common';
 import type { SpringLayoutParams } from '../spring-layout';
+import type { SerializedGraph } from 'graphology-types';
+import { DirectedGraph } from 'graphology';
 
 /**
  * Apply force that orders nodes based on the tier order_nodes_by values
@@ -170,7 +175,7 @@ export default function compute(
     forceUpdate: (layout: LayoutMapping<XYPosition>) => void
 ): LayoutComputationResult {
     // We're modifying edges/nodes
-    const [edges, nodes] = getD3Data(graph);
+    let [edges, nodes] = getD3Data(graph);
 
     const { group, groupRepelStrength } = layoutParams;
 
@@ -290,7 +295,12 @@ export default function compute(
         })
         .restart();
 
-    const onAddNode = debounce(() => {
+    const onAddNode = debounce((graphData: SerializedSimulationGraph) => {
+        // reparse the updated graph
+        const newGraph = new DirectedGraph<SimulationNode, SimulationEdge, SimulationAttributes>();
+        newGraph.import(graphData);
+        [edges, nodes] = getD3Data(newGraph);
+
         // replace nodes, re-add link force
         simulation
             .nodes(nodes)
@@ -317,7 +327,9 @@ export default function compute(
             simulation.alpha(0.1).alphaTarget(0);
         },
         onMove: (nodeId: string, x: number, y: number) => {
+            console.log('move', nodeId);
             const nodeIdx = nodes.findIndex((n) => n.id === nodeId);
+            console.log('found node', nodes[nodeIdx]);
             nodes[nodeIdx].x = x;
             nodes[nodeIdx].y = y;
         },

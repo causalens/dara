@@ -18,7 +18,7 @@ import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
 import type { DirectionType, GraphTiers, SimulationGraph, TieredGraphLayoutBuilder } from '../../types';
 import { PlanarLayeringAlgorithm } from '../../types';
-import type { BaseLayoutParams } from './common';
+import type { BaseLayoutParams, LayoutComputationResult } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
@@ -96,12 +96,7 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
     async applyLayout(
         graph: SimulationGraph,
         forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints: LayoutMapping<XYPosition[]>) => void
-    ): Promise<{
-        edgePoints?: LayoutMapping<XYPosition[]>;
-        layout: LayoutMapping<XYPosition>;
-        onAddEdge?: () => void | Promise<void>;
-        onAddNode?: () => void | Promise<void>;
-    }> {
+    ): Promise<LayoutComputationResult> {
         const { layout, edgePoints } = await this.worker.applyLayout(this, graph, forceUpdate);
 
         const recomputeLayout = async (): Promise<void> => {
