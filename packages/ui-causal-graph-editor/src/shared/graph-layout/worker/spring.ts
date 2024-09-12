@@ -19,7 +19,6 @@ import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
 import type { LayoutComputationResult } from '../common';
 import type { SpringLayoutParams } from '../spring-layout';
-import type { SerializedGraph } from 'graphology-types';
 import { DirectedGraph } from 'graphology';
 
 /**
@@ -327,9 +326,7 @@ export default function compute(
             simulation.alpha(0.1).alphaTarget(0);
         },
         onMove: (nodeId: string, x: number, y: number) => {
-            console.log('move', nodeId);
             const nodeIdx = nodes.findIndex((n) => n.id === nodeId);
-            console.log('found node', nodes[nodeIdx]);
             nodes[nodeIdx].x = x;
             nodes[nodeIdx].y = y;
         },

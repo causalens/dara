@@ -34,7 +34,6 @@ export function createSideSymbol(
     tint: number,
     bgTint: number
 ): PIXI.Graphics {
-    console.log('creating symbol', style);
     const gfx = new PIXI.Graphics();
 
     const color = tint;

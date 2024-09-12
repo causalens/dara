@@ -15,17 +15,8 @@
  * limitations under the License.
  */
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-import type { SerializedGraph } from 'graphology-types';
 
-import type {
-    DirectionType,
-    GraphTiers,
-    SerializedSimulationGraph,
-    SimulationAttributes,
-    SimulationEdge,
-    SimulationGraph,
-    SimulationNode,
-} from '../../types';
+import type { DirectionType, GraphTiers, SerializedSimulationGraph, SimulationGraph } from '../../types';
 import { DEFAULT_NODE_SIZE } from '../utils';
 import type { LayoutWorker } from './worker/client';
 
@@ -70,9 +61,7 @@ export interface SerializableLayoutComputationResult {
 
 export interface LayoutComputationCallbacks {
     onAddEdge?: () => void | Promise<void>;
-    onAddNode?: (
-        graphData: SerializedSimulationGraph
-    ) => void | Promise<void>;
+    onAddNode?: (graphData: SerializedSimulationGraph) => void | Promise<void>;
     onCleanup?: () => void | Promise<void>;
     onEndDrag?: () => void | Promise<void>;
     onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;

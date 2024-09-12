@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 import type { XYPosition } from 'graphology-layout/utils';
-import type { SerializedGraph } from 'graphology-types';
-import type AbstractGraph from 'graphology-types';
+import type { AbstractGraph, SerializedGraph } from 'graphology-types';
 
 /**
  * Defines 'modes' that the viewer can run in

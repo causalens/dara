@@ -118,7 +118,6 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
 
     /* We set a minHeight/minWidth so that at least some of the graph will always appear within the container */
     min-width: 100px;
-
     min-height: 100px;
 
     border: 2px solid transparent;
