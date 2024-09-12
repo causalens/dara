@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import type { Simulation, SimulationLinkDatum } from 'd3';
+import { DirectedGraph } from 'graphology';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
 
@@ -19,7 +20,6 @@ import { getD3Data, nodesToLayout } from '../../parsers';
 import { getGroupToNodesMap, getNodeOrder, getTiersArray } from '../../utils';
 import type { LayoutComputationResult } from '../common';
 import type { SpringLayoutParams } from '../spring-layout';
-import { DirectedGraph } from 'graphology';
 
 /**
  * Apply force that orders nodes based on the tier order_nodes_by values
