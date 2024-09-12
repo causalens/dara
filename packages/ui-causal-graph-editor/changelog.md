@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.0
 
 -   Added a `min-width` to `CausalGraphEditor`.
 -   Offloaded layout computations to a web worker, which improves performance by unblocking the main thread while the layout is being computed

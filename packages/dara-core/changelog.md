@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.0
 
 -   Fixed `DerivedDataVariable` cache retrieving schema from the wrong registry type.
 
