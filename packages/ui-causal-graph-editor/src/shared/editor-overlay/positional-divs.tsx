@@ -29,19 +29,20 @@ const OverlayDiv = styled.div`
     display: flex;
     flex-direction: row;
     gap: 0.6rem;
+    align-items: flex-start;
     justify-content: space-between;
+`;
 
-    opacity: 0;
-
+const DisappearingOverlayDiv = styled(OverlayDiv)<{ $show: boolean }>`
+    opacity: ${(props) => (props.$show ? 1 : 0)};
     transition: opacity 0.2s ease-in-out;
 
-    :focus-within,
-    &.show {
+    &:focus-within {
         opacity: 1;
     }
 `;
 
-export const BottomDiv = styled(OverlayDiv)<{ padding: string }>`
+export const BottomDiv = styled(DisappearingOverlayDiv)<{ padding: string }>`
     pointer-events: none;
     right: ${applyPadding};
     bottom: ${applyPadding};
@@ -64,7 +65,16 @@ const CornerDiv = styled.div`
     gap: 0.6rem;
 `;
 
-export const TopRightDiv = styled(CornerDiv)`
+const DisappearingCornerDiv = styled(CornerDiv)<{ $show: boolean }>`
+    opacity: ${(props) => (props.$show ? 1 : 0)};
+    transition: opacity 0.2s ease-in-out;
+
+    &:focus-within {
+        opacity: 1;
+    }
+`;
+
+export const TopRightDiv = styled(DisappearingCornerDiv)`
     z-index: 5;
 
     overflow-x: hidden;
@@ -73,12 +83,19 @@ export const TopRightDiv = styled(CornerDiv)`
 
     padding-bottom: 0.5rem;
 `;
+
 export const TopLeftDiv = styled(CornerDiv)`
     z-index: 5;
+    gap: 1rem;
     align-items: flex-start;
-    justify-content: end;
+    justify-content: start;
 `;
-export const TopCenterDiv = styled(CornerDiv)`
+
+export const TopLeftDivContent = styled(DisappearingCornerDiv)`
+    justify-content: space-between;
+`;
+
+export const TopCenterDiv = styled(DisappearingCornerDiv)`
     z-index: 5;
 
     flex-shrink: 1;
@@ -99,7 +116,7 @@ export const BottomLeftDiv = styled(CornerDiv)`
     justify-content: end;
 `;
 
-export const PanelDiv = styled.div<{ $hide?: boolean }>`
+export const PanelDiv = styled.div<{ $hide?: boolean; $disabled?: boolean }>`
     pointer-events: ${(props) => (props.$hide ? 'none' : 'auto')};
     cursor: default;
 
@@ -132,4 +149,13 @@ export const PanelDiv = styled.div<{ $hide?: boolean }>`
         width: 100%;
         max-height: calc(100% - 20px);
     }
+
+    ${(props) =>
+        props.$disabled &&
+        !props.$hide &&
+        `
+    pointer-events: none;
+    opacity: 0.75;
+    cursor: not-allowed;
+`}
 `;

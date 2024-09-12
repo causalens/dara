@@ -19,7 +19,8 @@ import { useImmer } from 'use-immer';
 
 import { useUpdateEffect } from '@darajs/ui-utils';
 
-import { EdgeConstraint, EdgeConstraintItem, EdgeConstraintType } from '../types';
+import type { EdgeConstraint, EdgeConstraintItem } from '../types';
+import { EdgeConstraintType } from '../types';
 
 /**
  * Parse edge constraints into internal representation

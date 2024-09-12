@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react';
 import * as React from 'react';
 
 import { SHIPPED_UNITS } from '../../../tests/mocks/graphs';
 import { PlanarLayout } from '../../shared/graph-layout';
-import { LayeringAlgorithm } from '../../shared/graph-layout/planar-layout';
+import type { CausalGraph } from '../../types';
+import { EdgeType, LayeringAlgorithm } from '../../types';
+import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, causalGraph, nodeTiersCausalGraph, planarLayoutCausalGraph } from './stories-utils';
 
@@ -78,4 +80,81 @@ PlanarTiers.args = {
     graphData: nodeTiersCausalGraph,
     // graphData: FRAUD,
     graphLayout: planarLayout,
+};
+
+function generateRandomDAG(parentsPerNode: number, levels: number): CausalGraph {
+    const graph: CausalGraph = {
+        nodes: {},
+        edges: {},
+        version: '0.5.3',
+    };
+
+    let nodeCounter = 0;
+
+    function addNode(): string {
+        const nodeName = `node${nodeCounter++}`;
+        graph.nodes[nodeName] = {
+            identifier: nodeName,
+            meta: {},
+            variable_type: 'unspecified',
+        };
+        graph.edges[nodeName] = {};
+        return nodeName;
+    }
+
+    function generateLevel(currentLevel: number): string[] {
+        if (currentLevel === 0) {
+            // Base case: create and return the sink node
+            return [addNode()];
+        }
+
+        const currentLevelNodes: string[] = [];
+        const childNodes = generateLevel(currentLevel - 1);
+
+        for (const childNode of childNodes) {
+            for (let i = 0; i < Math.max(1, parentsPerNode - currentLevel); i++) {
+                const parentNode = addNode();
+                currentLevelNodes.push(parentNode);
+                graph.edges[parentNode][childNode] = {
+                    source: graph.nodes[parentNode],
+                    destination: graph.nodes[childNode],
+                    edge_type: EdgeType.DIRECTED_EDGE,
+                    meta: {},
+                };
+            }
+        }
+
+        return currentLevelNodes;
+    }
+
+    generateLevel(levels);
+
+    return graph;
+}
+
+export const PlanarGenerated = (props: CausalGraphEditorProps): JSX.Element => {
+    const [parentCount, setParentCount] = React.useState(4);
+    const [levelCount, setLevelCount] = React.useState(6);
+
+    const graph = React.useMemo(() => generateRandomDAG(parentCount, levelCount), [parentCount, levelCount]);
+
+    /* eslint-disable jsx-a11y/label-has-associated-control  */
+    return (
+        <>
+            <label>
+                Parent count:
+                <input type="number" value={parentCount} onChange={(e) => setParentCount(parseInt(e.target.value))} />
+            </label>
+            <label>
+                Level count:
+                <input type="number" value={levelCount} onChange={(e) => setLevelCount(parseInt(e.target.value))} />
+            </label>
+            <CausalGraphViewerComponent {...props} graphData={graph} />
+        </>
+    );
+};
+
+PlanarGenerated.args = {
+    editable: true,
+    graphLayout: PlanarLayout.Builder.build(),
 };

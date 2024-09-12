@@ -28,16 +28,8 @@ import { Input } from '@darajs/ui-components';
 import { useUpdateEffect } from '@darajs/ui-utils';
 
 import Layer from './layer';
-import {
-    DragItem,
-    LayerItem,
-    NewLayerPosition,
-    Node,
-    isInView,
-    matchesQuery,
-    parseLayerItems,
-    parseNodes,
-} from './shared';
+import type { DragItem, LayerItem, Node } from './shared';
+import { NewLayerPosition, isInView, matchesQuery, parseLayerItems, parseNodes } from './shared';
 
 const BuilderBox = styled.div`
     overflow: hidden;

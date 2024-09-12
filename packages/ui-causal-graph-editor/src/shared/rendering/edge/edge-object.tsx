@@ -17,16 +17,17 @@
 import { isArray } from 'lodash';
 import clone from 'lodash/cloneDeep';
 import { DropShadowFilter } from 'pixi-filters';
-import { Viewport } from 'pixi-viewport';
+import type { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
-import { EdgeType, EditorMode, ZoomState } from '@types';
+import type { ZoomState } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
 import { BORDER_PADDING } from '../node/definitions';
-import { TextureCache } from '../texture-cache';
+import type { TextureCache } from '../texture-cache';
 import { MOUSE_EVENTS, colorToPixi, createKey } from '../utils';
 import { getCirclesAlongCurve, getCurvePoints, getPolygonFromCurve } from './curve';
-import { EdgeState, PixiEdgeStyle } from './definitions';
+import type { EdgeState, PixiEdgeStyle } from './definitions';
 import { createCenterSymbol, createSideSymbol, createStrengthSymbol } from './symbols';
 import { calculateSourceBoundPosition, calculateTargetBoundPosition } from './utils';
 
@@ -413,10 +414,11 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         const edgeBottomSymbol = edgeSymbolsGfx.getChildByName(EDGE_BOTTOM_SYMBOL) as PIXI.Sprite;
         const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
-        edgeTopSymbol.visible = !hasPoints && edgeTopSymbol.visible && zoomState.symbol;
-        edgeCenterSymbol.visible = !hasPoints && edgeCenterSymbol.visible && zoomState.symbol;
-        edgeBottomSymbol.visible = !hasPoints && edgeBottomSymbol.visible && zoomState.symbol;
-        edgeStrengthSymbol.visible = !hasPoints && edgeStrengthSymbol.visible && zoomState.symbol;
+        const show = !hasPoints && zoomState.symbol;
+        edgeTopSymbol.visible = show;
+        edgeCenterSymbol.visible = show;
+        edgeBottomSymbol.visible = show;
+        edgeStrengthSymbol.visible = show;
     }
 
     /**

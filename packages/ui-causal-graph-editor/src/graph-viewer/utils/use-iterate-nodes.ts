@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import type React from 'react';
 
-import { GraphState } from '../../types';
+import type { GraphState } from '@types';
 
 type UseIterateNodes = {
     nextNode: () => void;

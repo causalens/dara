@@ -15,35 +15,40 @@
  * limitations under the License.
  */
 import FontFaceObserver from 'fontfaceobserver';
-import { LayoutMapping, XYPosition, assignLayout } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import { assignLayout } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
 import { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
-import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload } from '@darajs/ui-notifications';
+import type { DefaultTheme } from '@darajs/styled-components';
+import type { NotificationPayload } from '@darajs/ui-notifications';
 import { Status } from '@darajs/ui-utils';
 
-import { CustomLayout, FcoseLayout, GraphLayout } from '@shared/graph-layout';
-import { DragMode } from '@shared/use-drag-mode';
+import type { GraphLayout } from '@shared/graph-layout';
+import { CustomLayout, FcoseLayout } from '@shared/graph-layout';
+import { LayoutWorker } from '@shared/graph-layout/worker/client';
+import type { DragMode } from '@shared/use-drag-mode';
 import { getGroupToNodesMap, getNodeCategory, getNodeToGroupMap } from '@shared/utils';
 
-import {
+import type {
     EdgeConstraint,
-    EdgeType,
-    EditorMode,
     GroupNode,
+    SerializedSimulationGraph,
     SimulationEdge,
     SimulationGraph,
     SimulationNode,
     ZoomThresholds,
 } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
-import { GraphLayoutWithTiers } from '../graph-layout/common';
+import type { GraphLayoutWithTiers } from '../graph-layout/common';
 import { Background } from './background';
-import { EDGE_STRENGTHS, EdgeObject, EdgeStrengthDefinition, PixiEdgeStyle } from './edge';
+import type { EdgeStrengthDefinition, PixiEdgeStyle } from './edge';
+import { EDGE_STRENGTHS, EdgeObject } from './edge';
 import { GroupContainerObject } from './grouping/group-container-object';
-import { NodeObject, PixiNodeStyle, getNodeSize } from './node';
+import type { PixiNodeStyle } from './node';
+import { NodeObject, getNodeSize } from './node';
 import { FONT_FAMILY } from './text';
 import { TextureCache } from './texture-cache';
 import { colorToPixi, getZoomState, isGraphLayoutWithGroups, isGraphLayoutWithTiers } from './utils';
@@ -72,6 +77,8 @@ export interface EngineEvents {
     nodeMouseover: (event: PIXI.FederatedMouseEvent, nodeKey: string) => void;
     groupMouseout: (event: PIXI.FederatedMouseEvent, groupKey: string) => void;
     groupMouseover: (event: PIXI.FederatedMouseEvent, groupKey: string) => void;
+    layoutComputationStart: () => void;
+    layoutComputationEnd: () => void;
 }
 export const ENGINE_EVENTS: Array<keyof EngineEvents> = [
     'createEdge',
@@ -86,6 +93,8 @@ export const ENGINE_EVENTS: Array<keyof EngineEvents> = [
     'edgeMouseover',
     'groupMouseout',
     'groupMouseover',
+    'layoutComputationStart',
+    'layoutComputationEnd',
 ];
 
 export class Engine extends PIXI.EventEmitter<EngineEvents> {
@@ -100,6 +109,9 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
 
     /** Parent container where canvas is rendered in */
     private container: HTMLElement;
+
+    /** Running layout worker instance */
+    private layoutWorker: LayoutWorker;
 
     /** Debounced version of `this.updateLayout` in case multiple changes come in at the same time */
     public debouncedUpdateLayout = debounce(this.updateLayout, 150, { trailing: true });
@@ -159,7 +171,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
     private nodeMousedownPosition: PIXI.Point = null;
 
     /** Callback executed when a node is added */
-    private onAddNode?: () => void = null;
+    private onAddNode?: (graphData: SerializedSimulationGraph) => void = null;
 
     /** Callback executed when an edge is added */
     private onAddEdge?: () => void = null;
@@ -194,6 +206,10 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
     private onDocumentMouseMoveBound = this.onDocumentMouseMove.bind(this);
 
     private onDocumentMouseUpBound = this.onDocumentMouseUp.bind(this);
+
+    private onLayoutComputationStartedBound = this.onLayoutComputationStart.bind(this);
+
+    private onLayoutComputationDoneBound = this.onLayoutComputationDone.bind(this);
 
     /** Callback executed when a drag motion is done */
     private onEndDrag?: () => void = null;
@@ -278,6 +294,13 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
         this.isFocused = false;
         PIXI.Filter.defaultOptions.resolution = 3;
         PIXI.extensions.add(PIXI.CullerPlugin);
+
+        // Create a dedicated layout worker for this specific engine
+        const worker = new LayoutWorker();
+        worker.on('computationStart', this.onLayoutComputationStartedBound);
+        worker.on('computationEnd', this.onLayoutComputationDoneBound);
+        this.layout.worker = worker;
+        this.layoutWorker = worker;
     }
 
     /**
@@ -299,6 +322,10 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
         this.graph.off('nodeDropped', this.onGraphNodeDroppedBound);
         this.graph.off('edgeAttributesUpdated', this.onGraphEdgeAttributesUpdatedBound);
         this.graph.off('nodeAttributesUpdated', this.onGraphNodeAttributesUpdatedBound);
+
+        this.layoutWorker.off('computationStart', this.onLayoutComputationStartedBound);
+        this.layoutWorker.off('computationEnd', this.onLayoutComputationDoneBound);
+        this.layoutWorker.destroy();
 
         this.onCleanup?.();
         this.textureCache?.destroy();
@@ -886,6 +913,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
                 this.layout = FcoseLayout.Builder.nodeSize(this.layout.nodeSize)
                     .nodeFontSize(this.layout.nodeFontSize)
                     .build();
+                this.layout.worker = this.layoutWorker;
             }
             this.updateLayout();
         }
@@ -1418,6 +1446,32 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
     }
 
     /**
+     * Callback invoked when layout worker has finished computing layout
+     */
+    private onLayoutComputationDone(): void {
+        // reenable events
+        this.nodeLayer.eventMode = 'passive';
+        this.nodeLabelLayer.eventMode = 'passive';
+        this.edgeLayer.eventMode = 'passive';
+        this.edgeSymbolsLayer.eventMode = 'passive';
+
+        this.emit('layoutComputationEnd');
+    }
+
+    /**
+     * Callback invoked when a request is sent to the layout worker
+     */
+    private onLayoutComputationStart(): void {
+        // disable events on all the nodes/edges, this keeps panning/zooming possible
+        this.nodeLayer.eventMode = 'none';
+        this.nodeLabelLayer.eventMode = 'none';
+        this.edgeLayer.eventMode = 'none';
+        this.edgeSymbolsLayer.eventMode = 'none';
+
+        this.emit('layoutComputationStart');
+    }
+
+    /**
      * Move handler - drag behaviour
      *
      * @param event mouse event
@@ -1509,7 +1563,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
 
         this.markStylesDirty();
         this.requestRender();
-        this.onAddNode?.();
+        this.onAddNode?.(this.graph.export());
     }
 
     private onGraphEdgeAdded({
@@ -1793,6 +1847,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             this.layout = FcoseLayout.Builder.nodeSize(this.layout.nodeSize)
                 .nodeFontSize(this.layout.nodeFontSize)
                 .build();
+            this.layout.worker = this.layoutWorker;
 
             // Reassign tiers and orientation to the new layout if they were present in the old layout
             if (tiers !== undefined) {
@@ -1801,6 +1856,10 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             }
 
             this.updateLayout(true);
+        } finally {
+            // ensure the callback is invoked - the layout might be custom/not go through the worker
+            // which fires events so just in case fire one here
+            this.onLayoutComputationDoneBound();
         }
     }
 

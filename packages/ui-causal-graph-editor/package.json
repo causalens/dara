@@ -2,15 +2,24 @@
   "name": "@darajs/ui-causal-graph-editor",
   "version": "1.12.7",
   "description": "CausalGraph editor for the Dara UI framework",
-  "main": "dist/index.js",
+  "main": "dist/index.umd.cjs",
   "module": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "type": "module",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc && tsc-alias",
-    "lint": "tsc --noemit && eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
+    "build": "rimraf dist && vite build && tsc && tsc-alias",
+    "lint": "tsc && eslint src --ext .ts,.tsx --max-warnings 0 && stylelint './src/**/*.{ts,tsx}'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
-    "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
+    "lint:fix": "tsc && eslint src --ext .ts,.tsx --max-warnings 0 --fix && stylelint './src/**/*.{ts,tsx}' --fix",
     "test-watch": "jest --watch",
     "test": "jest",
     "storybook": "start-storybook -p 6006",
@@ -72,6 +81,7 @@
     "@darajs/ui-notifications": "1.12.7",
     "@darajs/ui-utils": "1.12.7",
     "@darajs/ui-widgets": "1.12.7",
+    "comlink": "^4.4.1",
     "cytoscape": "^3.23.0",
     "cytoscape-fcose": "^2.2.0",
     "d3": "6.2.0",

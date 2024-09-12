@@ -16,7 +16,7 @@
  */
 import styled, { useTheme } from '@darajs/styled-components';
 
-import { GraphLegendDefinition } from './legend-data';
+import type { GraphLegendDefinition } from './legend-data';
 
 const LegendText = styled.span`
     color: ${(props) => props.theme.colors.text};

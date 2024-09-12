@@ -14,12 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { random } from 'graphology-layout';
-import forceAtlas from 'graphology-layout-forceatlas2';
-import noverlap from 'graphology-layout-noverlap';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-
-import { SimulationGraph } from '../../types';
+import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class ForceAtlasLayoutBuilder extends GraphLayoutBuilder<ForceAtlasLayout> {
@@ -125,7 +120,18 @@ class ForceAtlasLayoutBuilder extends GraphLayoutBuilder<ForceAtlasLayout> {
     }
 }
 
-export default class ForceAtlasLayout extends GraphLayout {
+export interface ForceAtlasLayoutParams extends BaseLayoutParams {
+    barnesHutOptimize: boolean;
+    edgeWeightInfluence: number;
+    gravity: number;
+    iterations: number;
+    linLogMode: boolean;
+    outboundAttractionDistribution: boolean;
+    scalingRatio: number;
+    strongGravityMode: boolean;
+}
+
+export default class ForceAtlasLayout extends GraphLayout<ForceAtlasLayoutParams> {
     public barnesHutOptimize: boolean;
 
     public edgeWeightInfluence: number;
@@ -154,65 +160,26 @@ export default class ForceAtlasLayout extends GraphLayout {
         this.strongGravityMode = builder._strongGravityMode;
     }
 
-    applyLayout(graph: SimulationGraph): Promise<{
-        layout: LayoutMapping<XYPosition>;
-    }> {
-        if (graph.nodes().length === 0) {
-            return Promise.resolve({ layout: {} });
-        }
-
-        const firstNodeAttrs = graph.getNodeAttributes(graph.nodes()[0]);
-        const graphClone = graph.copy();
-        const size = graphClone.getAttribute('size');
-
-        // If x is not set yet on nodes
-        if (!firstNodeAttrs.x) {
-            // Create a random layout
-            const randomMapping = random(graph, { center: 1000, scale: 2000 });
-            graphClone.updateEachNodeAttributes((n, attrs) => ({
-                ...attrs,
-                ...randomMapping[n],
-            }));
-
-            // Fix overlaps with noverlap so the force simulation has to do less iterations
-            const noverlapMapping = noverlap(graphClone, {
-                maxIterations: 100,
-                settings: {
-                    margin: size,
-                },
-            });
-            graphClone.updateEachNodeAttributes((n, attrs) => ({
-                ...attrs,
-                ...noverlapMapping[n],
-            }));
-        }
-
-        // add size attribute
-        graphClone.updateEachNodeAttributes((n, attrs) => ({
-            ...attrs,
-            size,
-        }));
-
-        const newLayout = forceAtlas(graphClone, {
-            getEdgeWeight: 1,
-            iterations: this.iterations,
-            settings: {
-                adjustSizes: true,
-                barnesHutOptimize: this.barnesHutOptimize,
-                edgeWeightInfluence: this.edgeWeightInfluence,
-                gravity: this.gravity,
-                linLogMode: this.linLogMode,
-                outboundAttractionDistribution: this.outboundAttractionDistribution,
-                scalingRatio: this.scalingRatio,
-                slowDown: 5,
-                strongGravityMode: this.strongGravityMode,
-            },
-        });
-
-        return Promise.resolve({ layout: newLayout });
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'ForceAtlasLayout';
     }
 
     static get Builder(): ForceAtlasLayoutBuilder {
         return new ForceAtlasLayoutBuilder();
+    }
+
+    toLayoutParams(): ForceAtlasLayoutParams {
+        return {
+            ...super.toLayoutParams(),
+            barnesHutOptimize: this.barnesHutOptimize,
+            edgeWeightInfluence: this.edgeWeightInfluence,
+            gravity: this.gravity,
+            iterations: this.iterations,
+            linLogMode: this.linLogMode,
+            outboundAttractionDistribution: this.outboundAttractionDistribution,
+            scalingRatio: this.scalingRatio,
+            strongGravityMode: this.strongGravityMode,
+        };
     }
 }

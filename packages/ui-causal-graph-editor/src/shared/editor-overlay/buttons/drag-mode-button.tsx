@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Dispatch, SetStateAction, useContext } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import { useContext } from 'react';
 
 import { useTheme } from '@darajs/styled-components';
 import { Tooltip } from '@darajs/ui-components';
@@ -22,7 +23,7 @@ import { Arrows } from '@darajs/ui-icons';
 
 import PointerContext from '@shared/pointer-context';
 import { useSettings } from '@shared/settings-context';
-import { DragMode } from '@shared/use-drag-mode';
+import type { DragMode } from '@shared/use-drag-mode';
 
 import { FloatingButton } from '../floating-elements';
 

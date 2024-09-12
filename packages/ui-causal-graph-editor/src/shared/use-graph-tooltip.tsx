@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GetReferenceClientRect } from 'tippy.js';
+import type { GetReferenceClientRect } from 'tippy.js';
 
 import usePaneVisibility from './use-pane-visibility';
 

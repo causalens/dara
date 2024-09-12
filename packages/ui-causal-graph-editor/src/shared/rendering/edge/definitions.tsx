@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as PIXI from 'pixi.js';
+import type * as PIXI from 'pixi.js';
 
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
-import { EdgeConstraint, EdgeType, EditorMode } from '../../../types';
+import type { EdgeConstraint, EdgeType, EditorMode } from '../../../types';
 
 export interface PixiEdgeStyle {
     /** Whether edge is accepted by domain expert */

@@ -1,4 +1,4 @@
-import { getTieredLayoutProperties } from '../src/shared/graph-layout/fcose-layout';
+import { getTieredLayoutProperties } from '../src/shared/graph-layout/worker/fcose';
 import { causalGraphParser } from '../src/shared/parsers';
 import { FRAUD, SIMPLE } from './mocks/graphs';
 

@@ -21,7 +21,7 @@ import { useSettings } from '@shared/settings-context';
 import { EdgeType, EditorMode } from '@types';
 
 import { ColumnWrapper } from '../styled';
-import { EdgeEditorProps } from './editor-props';
+import type { EdgeEditorProps } from './editor-props';
 
 /**
  * EdgeEditor for RESOLVER_BASIC and RESOLVER_ADVANCED EditorMode

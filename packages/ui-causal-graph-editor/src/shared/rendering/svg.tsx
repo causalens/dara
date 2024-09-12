@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Graphics } from 'pixi.js';
+import type { Graphics } from 'pixi.js';
 import { makeAbsolute, parseSVG } from 'svg-path-parser';
 
 export const QUESTION_MARK =

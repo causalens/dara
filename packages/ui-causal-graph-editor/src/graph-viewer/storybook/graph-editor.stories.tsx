@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 
 import { Accordion } from '@darajs/ui-components';
 
 import { CircularLayout, FcoseLayout, PlanarLayout, SpringLayout } from '../../shared/graph-layout';
-import { CausalGraph, EdgeType, VariableType } from '../../types';
-import { CausalGraphEditorProps, default as CausalGraphViewerComponent } from '../causal-graph-editor';
+import type { CausalGraph } from '../../types';
+import { EdgeType, VariableType } from '../../types';
+import type { CausalGraphEditorProps } from '../causal-graph-editor';
+import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, causalGraph, timeSeriesCausalGraph } from './stories-utils';
 
 export default {

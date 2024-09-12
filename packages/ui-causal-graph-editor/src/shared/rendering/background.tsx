@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Viewport } from 'pixi-viewport';
+import type { Viewport } from 'pixi-viewport';
 import * as PIXI from 'pixi.js';
 
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
-import { TextureCache } from './texture-cache';
+import type { TextureCache } from './texture-cache';
 import { colorToPixi, createKey } from './utils';
 
 const DOT_DISTANCE = 20;

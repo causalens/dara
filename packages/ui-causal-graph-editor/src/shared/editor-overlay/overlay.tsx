@@ -27,6 +27,7 @@ import {
     TopCenterDiv,
     TopDiv,
     TopLeftDiv,
+    TopLeftDivContent,
     TopRightDiv,
 } from './positional-divs';
 
@@ -37,6 +38,8 @@ interface EditorOverlayProps {
     bottomRight?: React.ReactNode;
     /** Children */
     children?: React.ReactNode;
+    /** Whether to disable the panel */
+    disabled?: boolean;
     /** Whether to hide the frame and show just the graph */
     hideFrame?: boolean;
     /** Function to delete currently selected content */
@@ -55,6 +58,10 @@ interface EditorOverlayProps {
     topLeft?: React.ReactNode;
     /** Render prop for content to place in the top right of the overlay */
     topRight?: React.ReactNode;
+    /**
+     * Loading indicator to show
+     */
+    loadingIndicator?: React.ReactNode;
     /** Whether there is valid content selected */
     validContentSelected: boolean;
 }
@@ -75,23 +82,24 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element {
     const controlPadding = '10px';
 
     const showPanel = editable || allowSelectionWhenNotEditable;
-    const showClass = props.showFrameButtons ? 'show' : undefined;
 
     return (
         <>
-            <TopDiv className={showClass} padding={controlPadding}>
+            <TopDiv padding={controlPadding}>
+                {/*  We only apply the show flag to content, as we want the indicator to always appear */}
                 <TopLeftDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
-                    {props.topLeft}
+                    <TopLeftDivContent $show={props.showFrameButtons}>{props.topLeft}</TopLeftDivContent>
+                    {props.loadingIndicator}
                 </TopLeftDiv>
-                <TopCenterDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
+                <TopCenterDiv $show={props.showFrameButtons} onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
                     {props.topCenter}
                 </TopCenterDiv>
-                <TopRightDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
+                <TopRightDiv $show={props.showFrameButtons} onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
                     {props.topRight}
                 </TopRightDiv>
             </TopDiv>
 
-            <BottomDiv className={showClass} padding={controlPadding}>
+            <BottomDiv $show={props.showFrameButtons} padding={controlPadding}>
                 <BottomLeftDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
                     {props.bottomLeft}
                 </BottomLeftDiv>
@@ -102,6 +110,7 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element {
 
             {showPanel && props.validContentSelected && (
                 <PanelContent
+                    disabled={props.disabled}
                     onDelete={props.onDelete}
                     onMouseEnter={onPanelEnter}
                     onMouseLeave={onPanelExit}

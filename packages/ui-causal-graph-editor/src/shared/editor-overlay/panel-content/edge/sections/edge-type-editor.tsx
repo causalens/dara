@@ -18,10 +18,11 @@ import { ButtonBar } from '@darajs/ui-components';
 import { Status } from '@darajs/ui-utils';
 
 import { useSettings } from '@shared/settings-context';
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 import { willCreateCycle } from '@shared/utils';
 
-import { EdgeType, GraphState, PagSymbol, SimulationEdge, stringToSymbol, symbolToString } from '@types';
+import type { GraphState, SimulationEdge } from '@types';
+import { EdgeType, EditorMode, PagSymbol, stringToSymbol, symbolToString } from '@types';
 
 import { ColumnWrapper, SectionTitle } from '../../styled';
 
@@ -47,7 +48,7 @@ interface EdgeTypeEditorProps {
 }
 
 function EdgeTypeEditor(props: EdgeTypeEditorProps): JSX.Element {
-    const { onNotify } = useSettings();
+    const { onNotify, editorMode } = useSettings();
     const [tailString, headString] = props.edge.edge_type;
 
     const head = stringToSymbol(headString, 'head');
@@ -57,27 +58,29 @@ function EdgeTypeEditor(props: EdgeTypeEditorProps): JSX.Element {
         const newHead = position === 'head' ? symbolToString(symbol, 'head') : props.edge.edge_type[1];
         const newTail = position === 'tail' ? symbolToString(symbol, 'tail') : props.edge.edge_type[0];
 
-        // Check if replacing the edge with a new one would cause a cycle
-        const newSymbol = newTail + newHead;
-        if (DIRECTED_SYMBOLS.includes(newSymbol)) {
-            const graphClone = props.state.graph.copy();
-            graphClone.dropEdge(props.source, props.target);
+        // Check if replacing the edge with a new one would cause a cycle - in default mode
+        if (editorMode === EditorMode.DEFAULT) {
+            const newSymbol = newTail + newHead;
+            if (DIRECTED_SYMBOLS.includes(newSymbol)) {
+                const graphClone = props.state.graph.copy();
+                graphClone.dropEdge(props.source, props.target);
 
-            const invalidForward =
-                newSymbol === EdgeType.DIRECTED_EDGE && willCreateCycle(graphClone, [props.source, props.target]);
-            const invalidBackward =
-                newSymbol === EdgeType.BACKWARDS_DIRECTED_EDGE &&
-                willCreateCycle(graphClone, [props.target, props.source]);
+                const invalidForward =
+                    newSymbol === EdgeType.DIRECTED_EDGE && willCreateCycle(graphClone, [props.source, props.target]);
+                const invalidBackward =
+                    newSymbol === EdgeType.BACKWARDS_DIRECTED_EDGE &&
+                    willCreateCycle(graphClone, [props.target, props.source]);
 
-            if (invalidForward || invalidBackward) {
-                onNotify?.({
-                    key: 'edge-type-change-cycle',
-                    message: `Edge type "${newTail}${newHead}" not allowed as it would create a cycle`,
-                    status: Status.WARNING,
-                    title: 'Cycle detected',
-                });
+                if (invalidForward || invalidBackward) {
+                    onNotify?.({
+                        key: 'edge-type-change-cycle',
+                        message: `Edge type "${newTail}${newHead}" not allowed as it would create a cycle`,
+                        status: Status.WARNING,
+                        title: 'Cycle detected',
+                    });
 
-                return;
+                    return;
+                }
             }
         }
 

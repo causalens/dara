@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
-import { GraphState } from '../../types';
+import { type GraphState } from '@types';
 
 type UseIterateEdges = {
     nextEdge: () => void;
@@ -32,7 +32,7 @@ type UseIterateEdges = {
  */
 const useIterateEdges = (
     selectedEdge: [string, string],
-    setSelectedEdge: React.Dispatch<React.SetStateAction<[string, string]>>,
+    setSelectedEdge: Dispatch<SetStateAction<[string, string]>>,
     state: GraphState
 ): UseIterateEdges => {
     const nextEdge = (): void => {

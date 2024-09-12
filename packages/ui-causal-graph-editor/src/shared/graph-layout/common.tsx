@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
+import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 
-import { DirectionType, GraphTiers, SimulationGraph } from '../../types';
+import type { DirectionType, GraphTiers, SerializedSimulationGraph, SimulationGraph } from '../../types';
 import { DEFAULT_NODE_SIZE } from '../utils';
+import type { LayoutWorker } from './worker/client';
 
 export abstract class GraphLayoutBuilder<T> {
     _nodeSize = DEFAULT_NODE_SIZE;
@@ -47,17 +48,54 @@ export abstract class GraphLayoutBuilder<T> {
     abstract build(): T;
 }
 
+export interface BaseLayoutParams {
+    layoutName: string;
+    nodeSize: number;
+    nodeFontSize: number;
+}
+
+export interface SerializableLayoutComputationResult {
+    layout: LayoutMapping<XYPosition>;
+    edgePoints?: LayoutMapping<XYPosition[]>;
+}
+
+export interface LayoutComputationCallbacks {
+    onAddEdge?: () => void | Promise<void>;
+    onAddNode?: (graphData: SerializedSimulationGraph) => void | Promise<void>;
+    onCleanup?: () => void | Promise<void>;
+    onEndDrag?: () => void | Promise<void>;
+    onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
+    onStartDrag?: () => void | Promise<void>;
+}
+
+export type LayoutComputationResult = SerializableLayoutComputationResult & LayoutComputationCallbacks;
+
 /**
  * Defines necessary properties that need to be implemented by graph layouts
  */
-export abstract class GraphLayout {
+export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseLayoutParams> {
     nodeSize: number;
 
     nodeFontSize: number;
 
+    /**
+     * Worker function that can be be called to compute a layout
+     */
+    worker: LayoutWorker;
+
     constructor(builder: GraphLayoutBuilder<unknown>) {
         this.nodeSize = builder._nodeSize;
         this.nodeFontSize = builder._nodeFontSize;
+    }
+
+    /**
+     * Get the name of the layout.
+     * This must be defined for each rather than using something like this.constructor.name
+     * because the class name is mangled by minifiers.
+     */
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'GraphLayout';
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -78,19 +116,24 @@ export abstract class GraphLayout {
      * @param graphData graph data to apply the layout to
      * @param forceUpdate callback to call to update the layout
      */
-    abstract applyLayout(
+    applyLayout(
         graph: SimulationGraph,
         forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
-    ): Promise<{
-        edgePoints?: LayoutMapping<XYPosition[]>;
-        layout: LayoutMapping<XYPosition>;
-        onAddEdge?: () => void | Promise<void>;
-        onAddNode?: () => void | Promise<void>;
-        onCleanup?: () => void | Promise<void>;
-        onEndDrag?: () => void | Promise<void>;
-        onMove?: (nodeId: string, x: number, y: number) => void | Promise<void>;
-        onStartDrag?: () => void | Promise<void>;
-    }>;
+    ): Promise<LayoutComputationResult> {
+        return this.worker.applyLayout(this, graph, forceUpdate);
+    }
+
+    /**
+     * Convert the layout object to a serializable params object.
+     * This representation is used to send the layout to the worker.
+     */
+    toLayoutParams(): TLayoutParams {
+        return {
+            nodeSize: this.nodeSize,
+            nodeFontSize: this.nodeFontSize,
+            layoutName: this.name,
+        } as TLayoutParams;
+    }
 }
 
 export interface GraphLayoutWithTiers extends GraphLayout {

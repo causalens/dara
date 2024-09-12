@@ -5,6 +5,10 @@ title: Changelog
 ## NEXT
 
 -   Added a `min-width` to `CausalGraphEditor`.
+-   Offloaded layout computations to a web worker, which improves performance by unblocking the main thread while the layout is being computed
+-   Fix an issue where graph symbols hidden by zooming out would not reappear when zooming back in
+-   Fix an issue where cycle detection logic would run in non-default mode and disallow cycles when they should be allowed
+-   Fix an issue with Spring layout not handling new nodes in its simulation
 
 ## 1.12.7
 

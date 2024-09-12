@@ -18,21 +18,22 @@ import debounce from 'lodash/debounce';
 import noop from 'lodash/noop';
 import { useEffect, useMemo, useState } from 'react';
 import * as React from 'react';
-import { GetReferenceClientRect } from 'tippy.js';
+import type { GetReferenceClientRect } from 'tippy.js';
 
 import styled, { useTheme } from '@darajs/styled-components';
-import { Tooltip } from '@darajs/ui-components';
-import { Notification, NotificationPayload } from '@darajs/ui-notifications';
+import { Spinner, Tooltip } from '@darajs/ui-components';
+import type { NotificationPayload } from '@darajs/ui-notifications';
+import { Notification } from '@darajs/ui-notifications';
 import { Status, useOnClickOutside, useUpdateEffect } from '@darajs/ui-utils';
 import { ConfirmationModal } from '@darajs/ui-widgets';
 
+import type { GraphLegendDefinition } from '@shared/editor-overlay';
 import {
     AddNodeButton,
     CenterGraphButton,
     CollapseExpandButton,
     DragModeButton,
     EdgeInfoContent,
-    GraphLegendDefinition,
     Legend,
     NodeInfoContent,
     Overlay,
@@ -43,28 +44,28 @@ import {
 } from '@shared/editor-overlay';
 import { SaveImageButton } from '@shared/editor-overlay/buttons';
 import ZoomPrompt from '@shared/editor-overlay/zoom-prompt';
-import { GraphLayoutWithGrouping } from '@shared/graph-layout/common';
+import type { GraphLayoutWithGrouping } from '@shared/graph-layout/common';
 import useGraphTooltip from '@shared/use-graph-tooltip';
 import { getGroupToNodesMap, getNodeToGroupMap, getTooltipContent, willCreateCycle } from '@shared/utils';
 
-import {
+import type {
     CausalGraph,
     CausalGraphEdge,
     CausalGraphNode,
     EdgeConstraint,
-    EdgeType,
-    EditorMode,
     SimulationEdge,
     ZoomThresholds,
 } from '@types';
+import { EdgeType, EditorMode } from '@types';
 
 import GraphContext from '../shared/graph-context';
-import { GraphLayout } from '../shared/graph-layout';
+import type { GraphLayout } from '../shared/graph-layout';
 import PointerContext from '../shared/pointer-context';
-import { PixiEdgeStyle } from '../shared/rendering/edge';
+import type { PixiEdgeStyle } from '../shared/rendering/edge';
 import { useRenderEngine } from '../shared/rendering/use-render-engine';
 import { causalGraphSerializer, serializeGraphEdge, serializeGraphNode } from '../shared/serializer';
-import { Settings, SettingsProvider } from '../shared/settings-context';
+import type { Settings } from '../shared/settings-context';
+import { SettingsProvider } from '../shared/settings-context';
 import { Center, Graph, Wrapper } from '../shared/styles';
 import useCausalGraphEditor from '../shared/use-causal-graph-editor';
 import useDragMode from '../shared/use-drag-mode';
@@ -98,6 +99,15 @@ const NotificationWrapper = styled.div`
     }
 `;
 
+const LayoutSpinner = styled(Spinner)`
+    height: 40px;
+    opacity: 1 !important;
+
+    span {
+        font-size: 16px !important;
+    }
+`;
+
 const GraphPane = styled.div<{ $hasFocus: boolean }>`
     position: relative;
     z-index: 1;
@@ -107,13 +117,22 @@ const GraphPane = styled.div<{ $hasFocus: boolean }>`
     flex-direction: column;
 
     /* We set a minHeight/minWidth so that at least some of the graph will always appear within the container */
-    min-height: 100px;
     min-width: 100px;
+    min-height: 100px;
 
     border: 2px solid transparent;
     border-color: ${(props) => (props.$hasFocus ? props.theme.colors.grey3 : 'transparent')};
     border-radius: 6px;
     box-shadow: ${(props) => (props.$hasFocus ? props.theme.shadow.light : 'none')};
+`;
+
+const GraphParent = styled.div<{ $isLayoutComputing: boolean }>`
+    width: 100%;
+    height: 100%;
+
+    canvas {
+        opacity: ${(props) => (props.$isLayoutComputing ? 0.5 : 1)};
+    }
 `;
 
 export interface CausalGraphEditorProps extends Settings {
@@ -385,7 +404,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
         }
         // Skip if a cycle would be created
         // The check needs to happen before we commit an action
-        if (willCreateCycle(state.graph, edge)) {
+        if (props.editorMode === EditorMode.DEFAULT && willCreateCycle(state.graph, edge)) {
             props.onNotify?.({
                 key: 'create-edge-cycle',
                 message: 'Could not create an edge as it would create a cycle',
@@ -413,18 +432,20 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
     function onReverseEdge(): void {
         const [source, target] = selectedEdge;
 
-        // Skip if a cycle would be created
-        // This creates a clone of the graph without the reversed edge so we can properly check if the reverse would create a cycle
-        const graphCopy = state.graph.copy();
-        graphCopy.dropEdge(source, target);
-        if (willCreateCycle(graphCopy, selectedEdge)) {
-            props.onNotify?.({
-                key: 'reverse-edge-cycle',
-                message: 'Could not reverse the edge as it would create a cycle',
-                status: Status.WARNING,
-                title: 'Cycle detected',
-            });
-            return;
+        // Skip if a cycle would be created in default mode
+        if (props.editorMode === EditorMode.DEFAULT) {
+            // This creates a clone of the graph without the reversed edge so we can properly check if the reverse would create a cycle
+            const graphCopy = state.graph.copy();
+            graphCopy.dropEdge(source, target);
+            if (willCreateCycle(graphCopy, selectedEdge)) {
+                props.onNotify?.({
+                    key: 'reverse-edge-cycle',
+                    message: 'Could not reverse the edge as it would create a cycle',
+                    status: Status.WARNING,
+                    title: 'Cycle detected',
+                });
+                return;
+            }
         }
 
         // Reverse the edge
@@ -579,6 +600,16 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
 
     useEngineEvent('createEdge', (_event, source, target) => {
         onAddEdge([source, target]);
+    });
+
+    const [isLayoutComputing, setIsLayoutComputing] = useState(true);
+
+    useEngineEvent('layoutComputationStart', () => {
+        setIsLayoutComputing(true);
+    });
+
+    useEngineEvent('layoutComputationEnd', () => {
+        setIsLayoutComputing(false);
     });
 
     // Sync state up
@@ -743,6 +774,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                     )}
                                 />
                             }
+                            disabled={isLayoutComputing}
                             onDelete={onDelete}
                             onNext={onNext}
                             onPrev={onPrev}
@@ -760,6 +792,9 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                 </>
                             }
                             topLeft={<RecalculateLayoutButton onResetLayout={resetLayout} />}
+                            loadingIndicator={
+                                isLayoutComputing && <LayoutSpinner text="Calculating layout..." size="24px" />
+                            }
                             topRight={
                                 <>
                                     <SearchBar
@@ -788,10 +823,11 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                                 setShowCollapseAll(true);
                                             }}
                                             showExpandAll={showCollapseAll}
+                                            disabled={isLayoutComputing}
                                         />
                                     )}
                                     <CenterGraphButton onResetZoom={resetViewport} />
-                                    <AddNodeButton onAddNode={onAddNode} />
+                                    <AddNodeButton disabled={isLayoutComputing} onAddNode={onAddNode} />
                                     <DragModeButton dragMode={dragMode} setDragMode={setDragMode} />
                                     <SaveImageButton onSave={saveImage} />
                                 </>
@@ -838,7 +874,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
                                 <Notification notification={error} onDismiss={() => setError(null)} />
                             </NotificationWrapper>
                         )}
-                        <div ref={canvasParentRef} style={{ height: '100%', width: '100%' }} />
+                        <GraphParent ref={canvasParentRef} $isLayoutComputing={isLayoutComputing} />
                         <Tooltip
                             appendTo={canvasParentRef.current}
                             content={tooltipContent}

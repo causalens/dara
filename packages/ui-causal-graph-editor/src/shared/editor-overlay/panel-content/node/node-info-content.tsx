@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 
-import { GraphState } from '@types';
+import type { GraphState } from '@types';
 
 import { ColumnWrapper } from '../styled';
 import LabelEditor from './label-editor';

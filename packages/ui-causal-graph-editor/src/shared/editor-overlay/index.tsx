@@ -23,5 +23,5 @@ export {
     CollapseExpandButton,
 } from './buttons';
 export { SearchBar, useSearch } from './search-bar';
-export { Legend, GraphLegendDefinition, getLegendData } from './legend';
+export { Legend, type GraphLegendDefinition, getLegendData } from './legend';
 export { PanelContent, NodeInfoContent, EdgeInfoContent } from './panel-content';

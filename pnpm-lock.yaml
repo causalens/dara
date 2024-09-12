@@ -396,6 +396,7 @@ importers:
       '@vitejs/plugin-react': ^3.1.0
       babel-jest: ^29.5.0
       babel-loader: ^8.2.2
+      comlink: ^4.4.1
       cytoscape: ^3.23.0
       cytoscape-fcose: ^2.2.0
       d3: 6.2.0
@@ -443,6 +444,7 @@ importers:
       '@darajs/ui-notifications': link:../ui-notifications
       '@darajs/ui-utils': link:../ui-utils
       '@darajs/ui-widgets': link:../ui-widgets
+      comlink: 4.4.1
       cytoscape: 3.30.0
       cytoscape-fcose: 2.2.0_cytoscape@3.30.0
       d3: 6.2.0
@@ -11173,6 +11175,10 @@ packages:
     engines: {node: '>= 0.8'}
     dependencies:
       delayed-stream: 1.0.0
+
+  /comlink/4.4.1:
+    resolution: {integrity: sha512-+1dlx0aY5Jo1vHy/tSsIGpSkN4tS9rZSW8FIhG0JH/crs9wwweswIo/POr451r7bZww3hFbPAKnTpimzL/mm4Q==}
+    dev: false
 
   /comma-separated-tokens/1.0.8:
     resolution: {integrity: sha512-GHuDRO12Sypu2cV70d1dkA2EUmXHgntrzbpvOB+Qy+49ypNfGgFQIC2fhhXbnyrJRynDCAARsT7Ou0M6hirpfw==}
