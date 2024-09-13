@@ -212,6 +212,11 @@ class DataVariable(AnyDataVariable):
 
         if entry.data is not None:
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
+            if filtered_data is not None:
+                for col in filtered_data.columns:
+                    if filtered_data[col].dtype == 'object':
+                        # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
+                        filtered_data[col] = filtered_data[col].apply(str)
             data = filtered_data
             # Store count for given filters and schema
             await asyncio.gather(
