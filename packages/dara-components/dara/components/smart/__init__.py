@@ -17,13 +17,14 @@ limitations under the License.
 
 from dara.components.smart.chat import Chat
 from dara.components.smart.code_editor import CodeEditor, run_script
-from dara.components.smart.data_slicer import DataSlicer, DataSlicerModal
+from dara.components.smart.data_slicer import DataSlicer, DataSlicerModal, FilterStatusButton
 from dara.components.smart.hierarchy import HierarchySelector, HierarchyViewer
 from dara.components.smart.hierarchy import Node as HierarchyNode
 
 __all__ = [
     'DataSlicer',
     'DataSlicerModal',
+    'FilterStatusButton',
     'HierarchySelector',
     'HierarchyViewer',
     'HierarchyNode',
