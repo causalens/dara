@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where data passed to `Table` component within a column of `dtype` `object` did not display correctly for datetime values.
+
 ## 1.13.0
 
 -   Fixed `DerivedDataVariable` cache retrieving schema from the wrong registry type.
