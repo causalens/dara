@@ -299,10 +299,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         # Run the filtering
         data = await cls._filter_data(data, count_cache_key, data_entry, store, filters, pagination)
         if format_for_display and data is not None:
+            data = data.copy()
             for col in data.columns:
                 if data[col].dtype == 'object':
                     # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
-                    data[col] = data[col].apply(str)
+                    data.loc[:, col] = data[col].apply(str)
 
         return data
 

@@ -332,7 +332,7 @@ def create_router(config: Configuration):
                     store,
                     body.filters,
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
-                    True,
+                    format_for_display=True,
                 )
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)
@@ -343,7 +343,7 @@ def create_router(config: Configuration):
                     store,
                     body.filters,
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
-                    True,
+                    format_for_display=True,
                 )
 
             dev_logger.debug(
