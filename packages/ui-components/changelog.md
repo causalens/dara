@@ -9,6 +9,7 @@ title: Changelog
 -   `Input` and `NumericInput` components now accept all standard HTML element props
 -   Remove redundant props from `Input` and `NumericInputProps` interfaces
 -   Fix `Textarea` text not being initially aligned in `Chat` component.
+-   Fixed an issue where `FilterStatusButton` was not registered as expected.
 
 ## 1.12.5
 
