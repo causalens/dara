@@ -182,6 +182,7 @@ class DataVariable(AnyDataVariable):
         store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
         pagination: Optional[Pagination] = None,
+        format_for_display: bool = False,
     ) -> Optional[DataFrame]:
         """
         Get the value of this DataVariable.
@@ -212,7 +213,7 @@ class DataVariable(AnyDataVariable):
 
         if entry.data is not None:
             filtered_data, count = apply_filters(entry.data, coerce_to_filter_query(filters), pagination)
-            if filtered_data is not None:
+            if format_for_display and filtered_data is not None:
                 for col in filtered_data.columns:
                     if filtered_data[col].dtype == 'object':
                         # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
