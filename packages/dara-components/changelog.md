@@ -2,6 +2,9 @@
 title: Changelog
 ---
 
+## NEXT
+-   Fixes an issue where `Table` would sometimes convert timestamps in seconds as if they were in milliseconds.
+
 ## 1.12.3
 
 -   Fixed an issue where `Table` filters and column sorting would not work correctly due to a prefix in column names.
