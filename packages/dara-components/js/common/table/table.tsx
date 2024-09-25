@@ -452,11 +452,11 @@ function Table(props: TableProps): JSX.Element {
                         if (typeof row[val] === 'number') {
                             let timestamp = row[val];
                             if (timestamp < 1e12) {
-                                // Likely in seconds 
-                                timestamp = timestamp * 1_000;  // Convert to milliseconds
+                                // Likely in seconds
+                                timestamp *= 1_000; // Convert to milliseconds
                             } else if (timestamp > 1e15) {
                                 // Likely in nanoseconds
-                                timestamp = timestamp / 1_000_000;  // Convert to milliseconds
+                                timestamp /= 1_000_000; // Convert to milliseconds
                             }
                             row[val] = formatISO(new Date(timestamp));
                         }
@@ -578,7 +578,7 @@ function Table(props: TableProps): JSX.Element {
                     })),
                     combinator: 'OR',
                 }
-                : null;
+            :   null;
 
         debouncedSetSearchQuery(newSearchQuery);
     };
