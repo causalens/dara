@@ -32,6 +32,16 @@ function RenderNumericInput(props: NumericInputProps): JSX.Element {
     );
 }
 
+const MockControlledNumericInput = (): JSX.Element => {
+    const [value, setValue] = React.useState();
+
+    const handleChange = (newValue): void => {
+        setValue(newValue);
+    };
+
+    return <RenderNumericInput value={value} onChange={handleChange} />;
+};
+
 describe('Numeric Input', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -93,6 +103,17 @@ describe('Numeric Input', () => {
 
         userEvent.click(stepUpButton);
         expect(input).toHaveValue('5');
+    });
+
+    it('should erase . if decimal value was not fully entered', async () => {
+        const { getByRole } = render(<MockControlledNumericInput />);
+        const input = getByRole('textbox', { hidden: true });
+
+        await userEvent.type(input, '10.', { delay: 1 });
+        expect(input).toHaveValue('10.');
+
+        userEvent.keyboard('{backspace}');
+        expect(input).toHaveValue('10');
     });
 
     it('should listen to changes to input', async () => {
