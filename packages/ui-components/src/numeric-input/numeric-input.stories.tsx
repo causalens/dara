@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import { Meta } from '@storybook/react';
+import * as React from 'react';
 
 import { default as NumericInputComponent, NumericInputProps } from './numeric-input';
 
@@ -26,5 +27,17 @@ export default {
 export const NumericInput = (args: NumericInputProps): JSX.Element => <NumericInputComponent {...args} />;
 
 NumericInput.args = {
+    stepper: true,
+} as NumericInputProps;
+
+export const ControlledNumericInput = (args: NumericInputProps): JSX.Element => {
+    const [value, setValue] = React.useState<number | undefined>(undefined);
+    args.onChange = setValue;
+    args.value = value;
+
+    return <NumericInputComponent {...args} />;
+};
+
+ControlledNumericInput.args = {
     stepper: true,
 } as NumericInputProps;

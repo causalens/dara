@@ -232,6 +232,9 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                     onChange?.(parsed, e);
                     return;
                 }
+                // In controlled mode, we need to take over the input updates whenever the value is not a valid number
+                // This way onchange is only called with valid number updates and not when user is still entering a valid number
+
                 // if the value ends with a period, don't call onChange as it's not yet a valid number
                 if (v.endsWith('.')) {
                     setInput(v);
@@ -247,10 +250,13 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                     setInput(v);
                     return;
                 }
+                // When the input ends with . and the user backspaces, we should update the input as the value won't have changed
+                if (input.endsWith('.')) {
+                    setInput(v);
+                }
                 onChange?.(parsed, e);
             },
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            [props.integerOnly, value, onChange]
+            [props.integerOnly, value, onChange, input]
         );
 
         useEffect(() => {

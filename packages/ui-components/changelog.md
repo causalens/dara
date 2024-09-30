@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue with `NumericInput` where in controlled mode if number ended in `.` this could not be erased.
+
 ## 1.12.7
 
 -   Fix an issue where body's `line-height` was not consistent across packages.
