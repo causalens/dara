@@ -79,6 +79,21 @@ This repository covers the Dara Application Framework first-party packages.
 - `dara-components`: Components for the Dara Framework.
 - `create-dara-app`: A CLI tool for creating new Dara applications.
 
+And the supporting UI packages and tools.
+
+- `eslint-config` - base ESLint configuration
+- `prettier-config` - base Prettier configuration
+- `stylelint-config` - base Stylelint configuration
+- `styled-components` - styled-components theme
+- `ui-causal-graph-editor` - causal graph editor component
+- `ui-code-editor` - code editor component
+- `ui-components` - base UI components
+- `ui-hierarchy-viewer` - hierarchy viewer component
+- `ui-icons` - icon components for Dara packages
+- `ui-notifications` - notification components
+- `ui-utils` - miscellaneous utility functions
+- `ui-widgets` - widget components
+
 More information on the repository structure can be found in the [CONTRIBUTING.md](https://github.com/causalens/dara/blob/master/CONTRIBUTING.md) file.
 
 ## License
