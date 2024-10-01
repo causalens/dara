@@ -64,7 +64,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
             selectMax={props.select_max}
             selectMin={props.select_min}
             style={style}
-            values={items.filter((item: Item) => value.includes(item.value))}
+            values={items.filter((item: Item) => value?.includes(item.value))}
         />
     );
 }
