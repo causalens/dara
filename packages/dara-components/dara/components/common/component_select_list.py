@@ -31,7 +31,6 @@ class ComponentItem(BaseModel):
     component: ComponentInstanceType
 
 
-# TODO: update docs with examples once component is fixed
 class ComponentSelectList(LayoutComponent):
     """
     ![ComponentSelectList](../../../../docs/packages/dara-components/common/assets/ComponentSelectList.png)
@@ -41,11 +40,11 @@ class ComponentSelectList(LayoutComponent):
      A ComponentSelectList can be created via:
      ```python
      from dara.core import Variable
-     from dara.components.common import (
+     from dara.components import (
          ComponentSelectList,
+         ComponentItem,
          Text,
      )
-     from dara.components.common.component_select_list.component_select_list import ComponentItem
 
     ComponentSelectList(
          items=[

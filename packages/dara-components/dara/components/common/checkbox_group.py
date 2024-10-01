@@ -37,7 +37,7 @@ class CheckboxGroup(FormComponent):
 
     ```python
     from dara.core import Variable
-    from dara.components.common import CheckboxGroup
+    from dara.components import CheckboxGroup
 
 
     CheckboxGroup(
@@ -50,11 +50,11 @@ class CheckboxGroup(FormComponent):
 
     ```python
     from dara.core import Variable
-    from dara.components.common import CheckboxGroup, Item
+    from dara.components import CheckboxGroup, Item
 
     CheckboxGroup(
         items=[Item(label='first',value=1), Item(label='second',value=2)],
-        value=Variable(1),
+        value=Variable([1]),
     )
     ```
 
@@ -62,13 +62,10 @@ class CheckboxGroup(FormComponent):
 
     ```python
     from dara.core import Variable
-    from dara.components.common import CheckboxGroup
-
-    var_to_update = Variable()
+    from dara.components import CheckboxGroup
 
     CheckboxGroup(
         items=['first', 'second', 'third', 'fourth', 'fifth'],
-        onchange=var_to_update.sync(),
         value=Variable(),
         select_max=2,
     )
@@ -81,11 +78,9 @@ class CheckboxGroup(FormComponent):
     from dara.components.common import CheckboxGroup
 
     var = Variable()
-    var_to_update = Variable()
 
     CheckboxGroup(
         items=['first', 'second', 'third', 'fourth', 'fifth'],
-        onchange=var_to_update.sync(),
         value=var,
         select_min=2,
         list_styling=True,

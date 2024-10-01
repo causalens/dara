@@ -35,6 +35,27 @@ class UploadDropzone(StyledComponentInstance):
     A component that exposes a dropzone for uploading files. Takes a DataVariable instance
     that will store the dataset uploaded and an on_drop action that is triggered when
     a file is successfully uploaded after being dropped or pasted.
+
+    ```python
+    from dara.components import UploadDropzone
+
+    def resolve_file_uploaded(file:bytes, file_name: str):
+        print(file_name)
+
+    UploadDropzone(
+        accept="image/png, image/jpeg",
+        resolver=resolve_file_uploaded
+    )
+    ```
+
+    :param accept: optional comma-separated list of MIME-types or filename extensions accepted by the frontend; see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#unique_file_type_specifiers for detail.
+        When not specified, defaults to accepting csv/xlsx; more specifically: `.csv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/csv, text/x-csv, application/x-csv, text/comma-separated-values, text/x-comma-separated-values`
+    :param target: data variable storing the data
+    :param resolver: optional resolver accepting `bytes` and filename as a string
+        - if a target is specified, can be used to customise how the `bytes` received are turned into a `DataFrame`
+        - if a target is not specified, can be treated as a side effect function to run on the `bytes` received (to i.e. store on disk)
+    :param on_drop: optional action triggered when a file is successfully uploaded
+    :param enable_paste: determines if the component should listen for and handle paste events (e.g., CTRL+V or right-click and paste). When set to True, the component allows text to be pasted directly, creating a file from the pasted content. This feature is disabled by default to accommodate scenarios where pasting text is not intended or could interfere with the component's primary functionality.
     """
 
     js_module = '@darajs/components'
@@ -57,20 +78,6 @@ class UploadDropzone(StyledComponentInstance):
         enable_paste: Optional[bool] = False,
         **kwargs
     ):
-        """
-        A component that exposes a dropzone for uploading files. Takes a DataVariable instance
-        that will store the dataset uploaded and an on_drop action that is triggered when
-        a file is successfully uploaded after being dropped or pasted.
-
-        :param accept: optional comma-separated list of MIME-types or filename extensions accepted by the frontend; see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#unique_file_type_specifiers for detail.
-            When not specified, defaults to accepting csv/xlsx; more specifically: `.csv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/csv, text/x-csv, application/x-csv, text/comma-separated-values, text/x-comma-separated-values`
-        :param target: data variable storing the data
-        :param resolver: optional resolver accepting `bytes` and filename as a string
-            - if a target is specified, can be used to customise how the `bytes` received are turned into a `DataFrame`
-            - if a target is not specified, can be treated as a side effect function to run on the `bytes` received (to i.e. store on disk)
-        :param on_drop: optional action triggered when a file is successfully uploaded
-        :param enable_paste: determines if the component should listen for and handle paste events (e.g., CTRL+V or right-click and paste). When set to True, the component allows text to be pasted directly, creating a file from the pasted content. This feature is disabled by default to accommodate scenarios where pasting text is not intended or could interfere with the component's primary functionality.
-        """
         from dara.core.interactivity.any_data_variable import upload
         from dara.core.internal.registries import upload_resolver_registry
 
