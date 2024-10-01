@@ -39,14 +39,17 @@ class UploadDropzone(StyledComponentInstance):
     a file is successfully uploaded after being dropped or pasted.
 
     ```python
+    import os
     from dara.components import UploadDropzone
 
-    def resolve_file_uploaded(file:bytes, file_name: str):
-        print(file_name)
+    def handle_file_uploaded(file_data: bytes, file_name: str):
+        os.makedirs('data', exist_ok=True)
+        with open(os.path.join('data', file_name), 'wb') as f:
+            f.write(file_data)
 
     UploadDropzone(
         accept="image/png, image/jpeg",
-        resolver=resolve_file_uploaded
+        resolver=handle_file_uploaded
     )
     ```
 
