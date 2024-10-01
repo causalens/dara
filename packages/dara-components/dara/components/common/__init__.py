@@ -33,7 +33,10 @@ from dara.components.common.card import Card
 from dara.components.common.carousel import Carousel
 from dara.components.common.checkbox_group import CheckboxGroup
 from dara.components.common.code import Code
-from dara.components.common.component_select_list import ComponentSelectList, ComponentItem
+from dara.components.common.component_select_list import (
+    ComponentItem,
+    ComponentSelectList,
+)
 from dara.components.common.datepicker import Datepicker
 from dara.components.common.dropzone import UploadDropzone
 from dara.components.common.form import Form
