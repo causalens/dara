@@ -32,6 +32,8 @@ DropzoneResolver = Union[
 
 class UploadDropzone(StyledComponentInstance):
     """
+    ![UploadDropzone](../../../../docs/packages/dara-components/common/assets/UploadDropzone.png)
+
     A component that exposes a dropzone for uploading files. Takes a DataVariable instance
     that will store the dataset uploaded and an on_drop action that is triggered when
     a file is successfully uploaded after being dropped or pasted.
