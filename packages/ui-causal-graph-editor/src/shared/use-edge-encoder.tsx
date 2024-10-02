@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { useImmer } from 'use-immer';
 
 import { useUpdateEffect } from '@darajs/ui-utils';
@@ -47,7 +47,7 @@ export function parseConstraints(constraints: EdgeConstraint[]): EdgeConstraintI
         }
 
         return {
-            id: shortid.generate(),
+            id: nanoid(),
             source: c.source,
             target: c.target,
             type: constraintType,
@@ -119,7 +119,7 @@ export function useEdgeConstraintEncoder(
     function addConstraint(source?: string, target?: string): void {
         setConstraints((draft) => {
             draft.push({
-                id: shortid.generate(),
+                id: nanoid(),
                 source: source ?? null,
                 target: target ?? null,
                 type: EdgeConstraintType.UNDIRECTED,

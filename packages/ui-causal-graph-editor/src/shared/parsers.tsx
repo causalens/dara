@@ -17,7 +17,6 @@
 import { DirectedGraph } from 'graphology';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import isEqual from 'lodash/isEqual';
-import { generate } from 'shortid';
 
 import type {
     CausalGraph,

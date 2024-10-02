@@ -57,7 +57,6 @@
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
     "@types/recoil": "^0.0.9",
-    "@types/shortid": "0.0.29",
     "@types/styled-components": "^5.1.23",
     "@vitejs/plugin-react": "2.1.0",
     "babel-jest": "^29.5.0",
@@ -108,7 +107,6 @@
     "recoil": "^0.7.7",
     "recoil-sync": "^0.2.0",
     "rxjs": "^7.0.0",
-    "shortid": "2.2.15",
     "styled-components": "^5.3.10",
     "typescript": "^5.0.4",
     "use-async-resource": "^2.2.2"

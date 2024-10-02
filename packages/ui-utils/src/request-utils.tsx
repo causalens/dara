@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { BehaviorSubject } from 'rxjs';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 
 import { HTTP_METHOD } from './constants';
 
@@ -161,7 +161,7 @@ export async function chunkedFileUpload(
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     let currentPointer = 0;
     let currentChunk = 0;
-    const uploadId = shortid.generate();
+    const uploadId = nanoid();
 
     /* eslint-disable no-await-in-loop */
     // We need to process sequentially thus await in a loop

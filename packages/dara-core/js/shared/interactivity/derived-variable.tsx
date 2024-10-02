@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { GetRecoilValue, RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
-import shortid from 'shortid';
+import { nanoid} from 'nanoid';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -553,7 +553,7 @@ export function getOrRegisterDerivedVariable(
                             value: variableValue,
                         };
                     },
-                key: shortid.generate(),
+                key: nanoid(),
             })
         );
     }
@@ -611,7 +611,7 @@ export function getOrRegisterDerivedVariableValue(
                         const dvResponse = get(dvSelector);
                         return dvResponse.value;
                     },
-                key: shortid.generate(),
+                key: nanoid(),
             })
         );
     }
