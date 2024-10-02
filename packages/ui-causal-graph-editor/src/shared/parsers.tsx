@@ -17,6 +17,7 @@
 import { DirectedGraph } from 'graphology';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import isEqual from 'lodash/isEqual';
+import { nanoid } from 'nanoid';
 
 import type {
     CausalGraph,
@@ -32,7 +33,6 @@ import type {
     SimulationNodeWithCategory,
 } from '../types';
 import { getNodeCategory } from './utils';
-import { nanoid } from 'nanoid';
 
 /**
  * Get graph edges in d3 expected format

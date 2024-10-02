@@ -16,11 +16,11 @@
  */
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import { nanoid } from 'nanoid';
 import * as React from 'react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { nanoid } from 'nanoid';
 import { useImmer } from 'use-immer';
 
 import styled from '@darajs/styled-components';

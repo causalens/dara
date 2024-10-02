@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { BehaviorSubject } from 'rxjs';
 import { nanoid } from 'nanoid';
+import { BehaviorSubject } from 'rxjs';
 
 import { HTTP_METHOD } from './constants';
 
