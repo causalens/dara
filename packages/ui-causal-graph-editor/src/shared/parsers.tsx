@@ -32,6 +32,7 @@ import type {
     SimulationNodeWithCategory,
 } from '../types';
 import { getNodeCategory } from './utils';
+import { nanoid } from 'nanoid';
 
 /**
  * Get graph edges in d3 expected format
@@ -299,7 +300,7 @@ export function causalGraphParser(
     });
 
     resultGraph.updateAttribute('version', () => data.version);
-    resultGraph.updateAttribute('uid', () => generate());
+    resultGraph.updateAttribute('uid', () => nanoid());
 
     // TODO: check if this can be simplified
     try {
