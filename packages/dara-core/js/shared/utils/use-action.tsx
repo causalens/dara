@@ -1,9 +1,9 @@
+import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
-import shortid from 'shortid';
 
 import { useNotifications } from '@darajs/ui-notifications';
 import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
@@ -188,7 +188,7 @@ async function executeAction(
 
     // otherwise call back to the server to execute the annotated action
     // subscribe to action messages before even calling the action to avoid races
-    const executionId = shortid.generate();
+    const executionId = nanoid();
     const observable = actionCtx.wsClient.actionMessages$(executionId);
 
     return new Promise((resolve, reject) => {

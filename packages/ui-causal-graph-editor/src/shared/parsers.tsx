@@ -17,7 +17,7 @@
 import { DirectedGraph } from 'graphology';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import isEqual from 'lodash/isEqual';
-import { generate } from 'shortid';
+import { nanoid } from 'nanoid';
 
 import type {
     CausalGraph,
@@ -300,7 +300,7 @@ export function causalGraphParser(
     });
 
     resultGraph.updateAttribute('version', () => data.version);
-    resultGraph.updateAttribute('uid', () => generate());
+    resultGraph.updateAttribute('uid', () => nanoid());
 
     // TODO: check if this can be simplified
     try {

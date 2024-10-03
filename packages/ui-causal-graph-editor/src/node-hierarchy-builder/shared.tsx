@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 
 export const NODE = 'node';
 export const DEFAULT_NODE_SIZE = 75;
@@ -96,11 +96,11 @@ export interface LayerItem {
  */
 export function parseNodes(nodes: Array<Array<string | Node>>): LayerItem[] {
     return nodes.map((layer) => ({
-        id: shortid.generate(),
+        id: nanoid(),
         nodes: layer.map((node) => {
             return {
                 ...(typeof node === 'object' ? node : { name: node }),
-                id: shortid.generate(),
+                id: nanoid(),
                 selected: false,
             };
         }),
