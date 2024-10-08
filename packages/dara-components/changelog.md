@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 -   Fixed an issue where `Table` would sometimes convert timestamps in seconds as if they were in milliseconds.
 -   Fixed an issue where `CheckboxGroup` could not have an `undefined` value.
+-   Fixed an issue where `Plotly` in some cases would not pick up colors from dara theme by default.
 
 ## 1.12.3
 
