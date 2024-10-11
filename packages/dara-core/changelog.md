@@ -5,7 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fixed an issue where data passed to `Table` component within a column of `dtype` `object` did not display correctly for datetime values.
--   Fixed an issue where when checking for whether something was a `Variable` could result in errors for large `Plotly` figures. 
+-   Fixed an issue where `Variable`s with many properties could result in components crashing.
 
 ## 1.13.0
 
