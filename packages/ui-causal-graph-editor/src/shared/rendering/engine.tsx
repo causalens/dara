@@ -1861,7 +1861,9 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // which fires events so just in case fire one here
             this.onLayoutComputationDoneBound();
 
-            // Without this in some instances when the graph resizes or nodes are added they can be culled making them invisible
+            // Force re-render to ensure nodes are positioned correctly within the frame
+            // after a new node is added or the graph is resized. This prevents nodes
+            // from being culled prematurely by ensuring the latest frame is used for culling.
             setTimeout(() => {
                 this.viewport.dirty = true;
             }, 300);
