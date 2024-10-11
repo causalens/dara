@@ -111,6 +111,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         const nodeLabelGfx = new PIXI.Container();
         nodeLabelGfx.interactive = true;
         nodeLabelGfx.cursor = 'pointer';
+        nodeLabelGfx.cullable = true;
 
         // send mouse events up
         MOUSE_EVENTS.forEach((eventName) => {
