@@ -1860,6 +1860,11 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // ensure the callback is invoked - the layout might be custom/not go through the worker
             // which fires events so just in case fire one here
             this.onLayoutComputationDoneBound();
+
+            // Without this in some instances when the graph resizes or nodes are added they can be culled making them invisible
+            setTimeout(() => {
+                this.viewport.dirty = true;
+            }, 300);
         }
     }
 
