@@ -5,9 +5,6 @@
     "glob": "*",
     "lerna": "^7.0.0"
   },
-  "workspaces": [
-    "packages/**"
-  ],
   "pnpm": {
     "packageExtensions": {
       "@cl/styled-components": {
