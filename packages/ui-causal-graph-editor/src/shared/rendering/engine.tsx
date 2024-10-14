@@ -578,7 +578,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // be culled completely making it invisible
             setTimeout(() => {
                 this.viewport.dirty = true;
-            }, 300);
+            }, 100);
         }
     }
 
@@ -1866,7 +1866,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // from being culled prematurely by ensuring the latest frame is used for culling.
             setTimeout(() => {
                 this.viewport.dirty = true;
-            }, 300);
+            }, 100);
         }
     }
 
