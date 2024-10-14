@@ -18,6 +18,7 @@ import {
 export function isVariable<T>(variable: AnyVariable<T> | T): variable is AnyVariable<T> {
     return (
         variable &&
+        typeof variable == 'object' &&
         variable.hasOwnProperty('uid') &&
         variable.hasOwnProperty('__typename') &&
         (variable as { __typename: string }).__typename.includes('Variable')
