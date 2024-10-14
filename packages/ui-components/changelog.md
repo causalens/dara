@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.1
 
 -   Fixed an issue with `NumericInput` where in controlled mode if number ended in `.` this could not be erased.
 

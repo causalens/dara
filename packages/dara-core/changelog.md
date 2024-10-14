@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.1
 
 -   Fixed an issue where data passed to `Table` component within a column of `dtype` `object` did not display correctly for datetime values.
 -   Fixed an issue where `Variable`s with many properties could result in components crashing.

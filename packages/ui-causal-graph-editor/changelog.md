@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.1
 
 -   Fixed an issue where nodes and edges would sometimes not show in `CausalGraphEditor`
 
