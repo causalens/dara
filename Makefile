@@ -2,7 +2,6 @@
 deps-project:
 	@echo "******************************************************************************"
 	@echo "Installing Lerna to npm global"
-	npm install --global --force pnpm@6.32.11
 	pnpm install --frozen-lockfile
 	sed -i '$$ d' .npmrc
 
@@ -78,12 +77,12 @@ run:
 publish:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
 	poetry anthology run publish
-	
+
 	git checkout -- **/README.md
 	git checkout -- .npmrc
 	git add .
 	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
-	
+
 	echo "//registry.npmjs.org/:_authToken=$${NPMJS_TOKEN}" >> .npmrc
 	git update-index --assume-unchanged .npmrc
 	lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
