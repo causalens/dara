@@ -2,7 +2,12 @@
 title: Changelog
 ---
 
+# NEXT
+
+-   Fixed an issue where `Plotly`'s figure native `height` and `width` were not obeyed by component.
+
 ## 1.13.1
+
 -   Fixed an issue where `Table` would sometimes convert timestamps in seconds as if they were in milliseconds.
 -   Fixed an issue where `CheckboxGroup` could not have an `undefined` value.
 -   Fixed an issue where `Plotly` in some cases would not pick up colors from dara theme by default.
