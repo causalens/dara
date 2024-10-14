@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fixed an issue where nodes and edges would sometimes not show in `CausalGraphEditor`
+
 ## 1.13.0
 
 -   Added a `min-width` to `CausalGraphEditor`.

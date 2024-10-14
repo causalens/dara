@@ -578,7 +578,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // be culled completely making it invisible
             setTimeout(() => {
                 this.viewport.dirty = true;
-            }, 300);
+            }, 100);
         }
     }
 
@@ -1860,6 +1860,13 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
             // ensure the callback is invoked - the layout might be custom/not go through the worker
             // which fires events so just in case fire one here
             this.onLayoutComputationDoneBound();
+
+            // Force re-render to ensure nodes are positioned correctly within the frame
+            // after a new node is added or the graph is resized. This prevents nodes
+            // from being culled prematurely by ensuring the latest frame is used for culling.
+            setTimeout(() => {
+                this.viewport.dirty = true;
+            }, 100);
         }
     }
 

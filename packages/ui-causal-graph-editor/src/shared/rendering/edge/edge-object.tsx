@@ -101,6 +101,7 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
      */
     private createEdgeSymbols(): PIXI.Container<PIXI.Container> {
         const edgeSymbolsGfx = new PIXI.Container();
+        edgeSymbolsGfx.cullable = true;
 
         if (!this.temporary) {
             edgeSymbolsGfx.interactive = true;
