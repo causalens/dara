@@ -644,7 +644,7 @@ importers:
         version: 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/addon-styling':
         specifier: ^0.3.2
-        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/builder-webpack5':
         specifier: ^6.5.16
         version: 6.5.16(eslint@7.32.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
@@ -798,7 +798,7 @@ importers:
         version: 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/addon-styling':
         specifier: ^0.3.2
-        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/builder-webpack5':
         specifier: ^6.5.16
         version: 6.5.16(eslint@7.32.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
@@ -973,7 +973,7 @@ importers:
         version: 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/addon-styling':
         specifier: ^0.3.2
-        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/builder-webpack5':
         specifier: ^6.5.16
         version: 6.5.16(eslint@7.32.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
@@ -1255,7 +1255,7 @@ importers:
         version: 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/addon-styling':
         specifier: ^0.3.2
-        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/builder-webpack5':
         specifier: ^6.5.16
         version: 6.5.16(eslint@8.57.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
@@ -1449,7 +1449,7 @@ importers:
         version: 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/addon-styling':
         specifier: ^0.3.2
-        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/builder-webpack5':
         specifier: ^6.5.16
         version: 6.5.16(eslint@7.32.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)
@@ -14441,12 +14441,12 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@storybook/addon-styling@0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@6.5.16)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@storybook/addon-styling@0.3.2(@storybook/addons@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/api@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/components@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/core-events@7.6.20)(@storybook/manager-api@7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@storybook/theming@6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@storybook/addons': 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/api': 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/components': 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@storybook/core-events': 6.5.16
+      '@storybook/core-events': 7.6.20
       '@storybook/manager-api': 7.6.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/theming': 6.5.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     optionalDependencies:
