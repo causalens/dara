@@ -25,7 +25,7 @@ from dara.core.persistence import BackendStore
 
 class Chat(StyledComponentInstance):
     """
-    ![Chat](../../../../docs/packages/dara-components/common/assets/Chat.png)
+    ![Chat](../../../../../docs/packages/dara-components/common/assets/Chat.png)
 
     A Chat component which can be added anywhere in your page. When added a chat button will appear in the bottom right
     of your page and when clicked a chat sidebar will appear. This can be added on a page by page basis, with the chat
