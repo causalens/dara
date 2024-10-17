@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ForwardedRef, forwardRef, useCallback, useState } from 'react';
+import type { ForwardedRef } from 'react';
+import { forwardRef, useCallback, useState } from 'react';
 import { useDrop } from 'react-dnd';
 
 import styled, { useTheme } from '@darajs/styled-components';
@@ -24,7 +25,8 @@ import { TrashAlt } from '@darajs/ui-icons';
 import LayerDivider from './layer-divider';
 import LayerLabelEditor from './layer-label-editor';
 import Node from './node';
-import { DEFAULT_NODE_SIZE, DragItem, NODE, NewLayerPosition, NodeItem, NodeSizeProp } from './shared';
+import type { DragItem, NodeItem, NodeSizeProp } from './shared';
+import { DEFAULT_NODE_SIZE, NODE, NewLayerPosition } from './shared';
 
 const LayerWrapper = styled.div<NodeSizeProp & { $isCollapsed?: boolean; $isOver?: boolean }>`
     position: relative;

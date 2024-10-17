@@ -20,7 +20,8 @@ import styled, { useTheme } from '@darajs/styled-components';
 import { Tooltip } from '@darajs/ui-components';
 
 import { getTooltipContent } from '../shared/utils';
-import { DEFAULT_NODE_SIZE, DragItem, NODE, NodeItem, NodeSizeProp } from './shared';
+import type { DragItem, NodeItem, NodeSizeProp } from './shared';
+import { DEFAULT_NODE_SIZE, NODE } from './shared';
 
 const NodeCircle = styled.div<NodeSizeProp & { $isDragging?: boolean; $isMatch: boolean; $viewOnly?: boolean }>`
     cursor: ${(props) => {

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 
-import { EdgeConstraintItem, GraphState, SimulationEdge } from '@types';
+import type { EdgeConstraintItem, GraphState, SimulationEdge } from '@types';
 
 export interface EdgeEditorProps {
     /** Graph API */

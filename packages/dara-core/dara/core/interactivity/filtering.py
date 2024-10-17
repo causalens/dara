@@ -17,6 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, List, Optional, Tuple, Union
@@ -26,6 +27,8 @@ from pandas import DataFrame, Series  # pylint: disable=unused-import
 from pydantic import BaseModel
 
 from dara.core.logging import dev_logger
+
+COLUMN_PREFIX_REGEX = re.compile(r'__(?:col|index)__\d+__')
 
 
 class Pagination(BaseModel):
@@ -207,10 +210,10 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
 
 def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> 'Optional[Series[bool]]':
     """
-    Resolve a FilterQuery to a Series[bool] for filtering
+    Resolve a FilterQuery to a Series[bool] for filtering. Strips the internal column index from the query.
     """
     if isinstance(query, ValueQuery):
-        return _filter_to_series(data, query.column, query.operator, query.value)
+        return _filter_to_series(data, re.sub(COLUMN_PREFIX_REGEX, '', query.column, 1), query.operator, query.value)
     elif isinstance(query, ClauseQuery):
         filters = None
 
@@ -271,12 +274,16 @@ def apply_filters(
                 order_by = order_by[1:]
                 ascending = False
 
-            new_data = new_data.sort_values(by=order_by, ascending=ascending, inplace=False)
+            col = re.sub(COLUMN_PREFIX_REGEX, '', order_by)
+            if col == 'index':
+                new_data = new_data.sort_index(ascending=ascending, inplace=False)
+            else:
+                new_data = new_data.sort_values(by=col, ascending=ascending, inplace=False)
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0
         stop_index = start_index + pagination.limit if pagination.limit is not None else total_count
 
-        new_data = new_data[start_index:stop_index]
+        new_data = new_data.iloc[start_index:stop_index]
 
     return new_data, total_count

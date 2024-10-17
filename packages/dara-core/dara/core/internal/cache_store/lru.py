@@ -85,7 +85,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                 self.tail = node.prev
 
             # Delete from the dictionary
-            del self.cache[key]
+            self.cache.pop(key, None)
             return node.value
 
     async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
@@ -142,7 +142,8 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                         self.tail = evict_node.prev
                         if self.tail:
                             self.tail.next = None
-                        del self.cache[evict_node.key]
+                        # Use pop instead of delete just in case
+                        self.cache.pop(evict_node.key, None)
                     else:
                         # all nodes are pinned, can't evict
                         break

@@ -16,9 +16,9 @@
  */
 import * as PIXI from 'pixi.js';
 
-import { ZoomState, ZoomThresholds } from '@types';
+import type { ZoomState, ZoomThresholds } from '@types';
 
-import { GraphLayout, GraphLayoutWithGrouping, GraphLayoutWithTiers } from '../graph-layout/common';
+import type { GraphLayout, GraphLayoutWithGrouping, GraphLayoutWithTiers } from '../graph-layout/common';
 
 export const MOUSE_EVENTS = ['mousemove', 'mouseover', 'mouseout', 'mousedown', 'mouseup'] as const;
 

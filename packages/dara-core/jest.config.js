@@ -41,7 +41,6 @@ var ignoredModules = [
     'longest-streak',
     'jest-runtime',
     'mdast-util-phrasing',
-    'shortid',
     '@darajs',
 ];
 

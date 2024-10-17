@@ -45,7 +45,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-            version: 6
+            version: 9
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -103,10 +103,11 @@ jobs:
       - name: Upload Cypress screenshots
         # Uploads screenshots if Cypress tests failed
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: packages/dara-core/cypress/screenshots
+          retention-days: 30
       - uses: 8398a7/action-slack@v3
         with:
           status: custom

@@ -4,13 +4,13 @@ import {
     FcoseLayout,
     ForceAtlasLayout,
     GraphLayout,
+    type GraphLayoutBuilder,
     GroupingLayoutBuilder,
     MarketingLayout,
     PlanarLayout,
     SpringLayout,
     TieredGraphLayoutBuilder,
 } from '@darajs/ui-causal-graph-editor';
-import { GraphLayoutBuilder } from '@darajs/ui-causal-graph-editor/dist/shared/graph-layout/common';
 
 // Types mirror backend types defined in dara.components.graphs.graph_layout
 type GraphLayoutType = 'marketing' | 'planar' | 'spring' | 'circular' | 'fcose' | 'force_atlas' | 'custom';

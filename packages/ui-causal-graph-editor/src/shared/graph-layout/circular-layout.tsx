@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { circular } from 'graphology-layout';
-import { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-
-import { SimulationGraph } from '../../types';
+import type { BaseLayoutParams } from './common';
 import { GraphLayout, GraphLayoutBuilder } from './common';
 
 class CircularLayoutBuilder extends GraphLayoutBuilder<CircularLayout> {
@@ -27,17 +24,16 @@ class CircularLayoutBuilder extends GraphLayoutBuilder<CircularLayout> {
     }
 }
 
+export type CircularLayoutParams = BaseLayoutParams;
+
 /**
  * Circular layout positions nodes on a circle.
  * The circle's radius scales with the size and number of nodes so that they don't collide.
  */
-export default class CircularLayout extends GraphLayout {
-    applyLayout(graph: SimulationGraph): Promise<{
-        layout: LayoutMapping<XYPosition>;
-    }> {
-        const layout = circular(graph, { scale: graph.order * this.nodeSize }) as LayoutMapping<XYPosition>;
-
-        return Promise.resolve({ layout });
+export default class CircularLayout extends GraphLayout<CircularLayoutParams> {
+    // eslint-disable-next-line class-methods-use-this
+    get name(): string {
+        return 'CircularLayout';
     }
 
     static get Builder(): CircularLayoutBuilder {

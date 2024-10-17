@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { SetStateAction, useEffect, useState } from 'react';
+import type { SetStateAction } from 'react';
+import { useEffect, useState } from 'react';
 
-import { SimulationGraph } from '../../../types';
+import type { SimulationGraph } from '../../../types';
 
 interface UseSearchInput {
     graph: SimulationGraph;

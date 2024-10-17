@@ -214,8 +214,8 @@ function Chat(props: ChatProps): JSX.Element {
                         className={props.className}
                         onClose={() => setShowChat(false)}
                         onUpdate={onUpdate}
-                        // TODO: remove margin 0 when dara-ui is updated to not set it
-                        style={{ margin: 0, ...style }}
+                        isPopup
+                        style={{ ...style }}
                         value={value}
                         activeUser={parseUserData(userData)}
                     />

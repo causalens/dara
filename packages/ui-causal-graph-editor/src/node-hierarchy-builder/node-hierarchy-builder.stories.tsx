@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react';
 import { useState } from 'react';
 
-import { default as NodeHierarchyBuilderComponent, NodeHierarchyBuilderProps } from './node-hierarchy-builder';
+import type { NodeHierarchyBuilderProps } from './node-hierarchy-builder';
+import { default as NodeHierarchyBuilderComponent } from './node-hierarchy-builder';
 
 export default {
     component: NodeHierarchyBuilderComponent,

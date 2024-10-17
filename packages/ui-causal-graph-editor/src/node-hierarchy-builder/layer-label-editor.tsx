@@ -55,6 +55,7 @@ const LabelStaticDisplay = styled.div<{ $viewOnly: boolean }>`
 
     overflow: hidden;
     display: box; /* stylelint-disable-line declaration-property-value-no-unknown */
+    box-orient: vertical; /* stylelint-disable-line property-no-unknown */
 
     width: 20ch;
     max-width: 100%;
@@ -67,8 +68,6 @@ const LabelStaticDisplay = styled.div<{ $viewOnly: boolean }>`
     border-radius: 4px;
 
     box-align: center; /* stylelint-disable-line property-no-unknown */
-
-    box-orient: vertical; /* stylelint-disable-line property-no-unknown */
 
     box-pack: center; /* stylelint-disable-line property-no-unknown */
 

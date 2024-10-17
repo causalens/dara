@@ -1,7 +1,11 @@
-import ReactMarkdown, { Options } from 'react-markdown';
+import { Language } from 'prism-react-renderer';
+import * as React from 'react';
+import ReactMarkdown, { ExtraProps, Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import styled from '@darajs/styled-components';
+import styled, { useTheme } from '@darajs/styled-components';
+
+import CodeViewer, { CodeComponentThemes } from '../code-viewer/code-viewer';
 
 interface MarkdownProps extends Options {
     /**
@@ -56,8 +60,7 @@ const CustomMarkdownWrapper = styled.div`
     }
 
     blockquote {
-        /* stylelint-disable-next-line */
-        quotes: '"\\201C""\\201D""\\2018""\\2019"';
+        quotes: '\\201C' '\\201D' '\\2018' '\\2019';
 
         margin-top: 1.5rem;
         margin-bottom: 1.5rem;
@@ -68,6 +71,14 @@ const CustomMarkdownWrapper = styled.div`
         color: ${(props) => props.theme.colors.grey6};
 
         border-left: 0.25rem solid ${(props) => props.theme.colors.grey3};
+
+        p:first-of-type::before {
+            content: open-quote;
+        }
+
+        p:last-of-type::after {
+            content: close-quote;
+        }
     }
 
     h1 {
@@ -80,7 +91,7 @@ const CustomMarkdownWrapper = styled.div`
     }
 
     h2 {
-        margin-top: 1rem;
+        margin-top: 2rem;
         margin-bottom: 1rem;
 
         font-size: 2rem;
@@ -115,6 +126,13 @@ const CustomMarkdownWrapper = styled.div`
         }
     }
 
+    figcaption {
+        margin-top: 0.875rem;
+        font-size: 0.875rem;
+        line-height: 1.5rem;
+        color: ${(props) => props.theme.colors.grey5};
+    }
+
     h2 code {
         font-size: 0.875rem;
     }
@@ -123,7 +141,17 @@ const CustomMarkdownWrapper = styled.div`
         font-size: 0.9rem;
     }
 
-    pre {
+    pre:first-child {
+        margin-top: 0;
+    }
+
+    pre:last-child {
+        margin-bottom: 0;
+    }
+
+    /* don't apply default styles if the pre block has the pretty code display */
+    /* stylelint-disable-next-line */
+    pre:not(.prism-code):not(:has(.prism-code)) {
         overflow-x: auto;
 
         margin-top: 1.7rem;
@@ -172,10 +200,6 @@ const CustomMarkdownWrapper = styled.div`
                 border-radius: 0.25rem;
             }
 
-            strong {
-                font-style: italic;
-            }
-
             p {
                 margin-top: 0.75rem;
                 margin-bottom: 0.75rem;
@@ -191,20 +215,42 @@ const CustomMarkdownWrapper = styled.div`
         }
     }
 
+    ol > li::marker {
+        font-weight: 400;
+        color: ${(props) => props.theme.colors.text};
+    }
+
+    ul > li::marker {
+        color: ${(props) => props.theme.colors.grey4};
+    }
+
     hr {
         margin-top: 3rem;
         margin-bottom: 3rem;
     }
 
     table {
+        table-layout: auto;
+        border-collapse: collapse;
+
+        width: 100%;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+
         font-size: 0.875rem;
         line-height: 1.7;
 
         thead {
+            border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
+
             th {
                 padding-right: 0.5rem;
                 padding-bottom: 0.5rem;
                 padding-left: 0.5rem;
+
+                font-weight: 600;
+                text-align: start;
+                vertical-align: bottom;
             }
 
             th:first-child {
@@ -216,17 +262,36 @@ const CustomMarkdownWrapper = styled.div`
             }
         }
 
+        tfoot {
+            border-top: 1px solid ${(props) => props.theme.colors.grey2};
+
+            td {
+                text-align: start;
+                vertical-align: top;
+            }
+        }
+
         tbody {
+            tr {
+                border-bottom: 1px solid ${(props) => props.theme.colors.grey2};
+
+                &:last-child {
+                    border-bottom: 0;
+                }
+            }
+
             td {
                 padding: 0.5rem;
-            }
+                text-align: start;
+                vertical-align: baseline;
 
-            td:first-child {
-                padding-left: 0;
-            }
+                &:first-child {
+                    padding-left: 0;
+                }
 
-            td:last-child {
-                padding-right: 0;
+                &:last-child {
+                    padding-right: 0;
+                }
             }
         }
     }
@@ -244,7 +309,6 @@ const CustomMarkdownWrapper = styled.div`
     img:first-child,
     figure:first-child,
     video:first-child,
-    pre:first-child,
     hr:first-child {
         margin-top: 0;
     }
@@ -262,11 +326,41 @@ const CustomMarkdownWrapper = styled.div`
     img:last-child,
     figure:last-child,
     video:last-child,
-    pre:last-child,
     hr:last-child {
         margin-bottom: 0;
     }
 `;
+
+function CodeDisplay(
+    props: React.ClassAttributes<HTMLElement> & React.HTMLAttributes<HTMLElement> & ExtraProps
+): React.ReactElement {
+    const theme = useTheme();
+    const { children, ...rest } = props;
+    const match = /language-(\w+)/.exec(props.className || '');
+
+    const parsed = React.useMemo(() => {
+        return String(children).trim().replace(/\n\n/g, '\n');
+    }, [children]);
+
+    // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block
+    if (!match) {
+        return <code {...rest}>{parsed}</code>;
+    }
+
+    // assume language is supported - we could check for grammar support but if unsupported
+    // prism will just render without syntax highlighting which is fine
+    return (
+        <CodeViewer
+            value={parsed}
+            language={match[1] as Language}
+            style={{ border: `1px solid ${theme.colors.grey2}`, borderRadius: '0.25rem' }}
+            codeTheme={
+                // opposite theme
+                theme.themeType === 'dark' ? CodeComponentThemes.DARK : CodeComponentThemes.LIGHT
+            }
+        />
+    );
+}
 
 /**
  * A component for rendering markdown
@@ -276,7 +370,15 @@ function Markdown(props: MarkdownProps): JSX.Element {
 
     return (
         <CustomMarkdownWrapper className={className} style={style}>
-            <ReactMarkdown {...reactMarkdownProps} remarkPlugins={reactMarkdownProps.remarkPlugins ?? [remarkGfm]}>
+            <ReactMarkdown
+                {...reactMarkdownProps}
+                components={{
+                    code: CodeDisplay,
+                    // let caller override the default components
+                    ...reactMarkdownProps.components,
+                }}
+                remarkPlugins={reactMarkdownProps.remarkPlugins ?? [remarkGfm]}
+            >
                 {markdown}
             </ReactMarkdown>
         </CustomMarkdownWrapper>

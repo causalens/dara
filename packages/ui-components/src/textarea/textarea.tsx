@@ -42,7 +42,7 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
 
     width: 100%;
     height: 100%;
-    min-height: 3.6rem;
+    min-height: 3.4rem;
     padding: 1rem;
 
     font-size: 1rem;
@@ -53,12 +53,12 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
     border-radius: 0.25rem;
     outline: 0;
 
-    :focus:not(:disabled) {
-        border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey3)};
-    }
-
     :hover:not(:disabled) {
         border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey2)};
+    }
+
+    :focus:not(:disabled) {
+        border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey3)};
     }
 
     :active:not(:disabled) {
@@ -92,6 +92,8 @@ export interface TextAreaProps extends InteractiveComponentProps<string> {
     placeholder?: string;
     /** An optional property which sets whether the textarea is resizable, and if so, in which directions */
     resize?: 'none' | 'both' | 'horizontal' | 'vertical' | 'block' | 'inline';
+    /** The maximum height the textarea will grow to, if not set it will not grow as more text is entered, this expected as an rem value */
+    maxHeight?: number;
 }
 
 /**
@@ -106,6 +108,7 @@ function TextArea({
     errorMsg,
     initialValue,
     keydownFilter,
+    maxHeight,
     onBlur,
     onChange,
     onClick,
@@ -115,6 +118,37 @@ function TextArea({
     value,
     resize,
 }: TextAreaProps): JSX.Element {
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    React.useLayoutEffect(() => {
+        if (maxHeight && textareaRef.current) {
+            const computedStyle = window.getComputedStyle(textareaRef.current);
+            const minHeight = parseFloat(computedStyle.minHeight);
+            const maxHeightInPx = parseFloat(computedStyle.maxHeight);
+
+            // Reset the height to the initial minimum height in px
+            textareaRef.current.style.height = `${minHeight}px`;
+
+            // Calculate the new height based on scrollHeight
+            const newHeight = textareaRef.current.scrollHeight;
+
+            if (minHeight < newHeight) {
+                const adjustedHeight = Math.min(newHeight, maxHeightInPx);
+                // Set the textarea height to the new calculated height
+                textareaRef.current.style.height = `${adjustedHeight}px`;
+
+                // Toggle overflow-y based on whether maxHeight is reached, this is to guarantee overflow does not show before it is needed
+                if (adjustedHeight >= maxHeightInPx) {
+                    textareaRef.current.style.overflowY = 'auto';
+                } else {
+                    textareaRef.current.style.overflowY = 'hidden';
+                }
+            } else {
+                textareaRef.current.style.overflowY = 'hidden';
+            }
+        }
+    }, [maxHeight, value]);
+
     const onChangeText = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
         const target = e.target as HTMLInputElement;
         if (onChange) {
@@ -137,6 +171,7 @@ function TextArea({
     return (
         <div className={className} style={style}>
             <PrimaryTextArea
+                ref={textareaRef}
                 autoFocus={autoFocus}
                 defaultValue={initialValue}
                 disabled={disabled}
@@ -146,7 +181,7 @@ function TextArea({
                 onClick={onClick}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
-                style={{ resize }}
+                style={{ resize, maxHeight: maxHeight ? `${maxHeight}rem` : 'none' }}
                 value={value}
             />
             {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}

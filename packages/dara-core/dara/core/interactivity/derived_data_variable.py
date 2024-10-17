@@ -17,10 +17,12 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Coroutine, List, Optional, Union
+import asyncio
+from typing import Any, Callable, Coroutine, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame
+from pandas.io.json._table_schema import build_table_schema
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -31,6 +33,7 @@ from dara.core.base_definitions import (
 )
 from dara.core.interactivity.any_data_variable import (
     AnyDataVariable,
+    DataFrameSchema,
     DataVariableRegistryEntry,
 )
 from dara.core.interactivity.any_variable import AnyVariable
@@ -47,7 +50,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import append_index
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -130,8 +133,18 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                 uid=str(self.uid),
                 get_data=DerivedDataVariable.get_data,
                 get_total_count=DerivedDataVariable.get_total_count,
+                get_schema=DerivedDataVariable.get_schema,
             ),
         )
+
+    @staticmethod
+    def _get_schema_cache_key(cache_key: str) -> str:
+        """
+        Get a unique cache key for the data variable's schema.
+
+        :param cache_key: cache_key of the DerivedDataVariable
+        """
+        return f'schema-{cache_key}'
 
     @staticmethod
     async def _filter_data(
@@ -192,7 +205,19 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         value = await super().get_value(var_entry, store, task_mgr, args, force)
 
         # Pin the value in the store until it's read by get data
-        await store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True)
+        await asyncio.gather(
+            store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True),
+            store.set(
+                registry_entry=var_entry,
+                key=cls._get_schema_cache_key(value['cache_key']),
+                value=build_table_schema(
+                    df_convert_to_internal(cast(DataFrame, value['value'])),
+                )
+                if isinstance(value['value'], DataFrame)
+                else None,
+                pin=True,
+            ),
+        )
 
         eng_logger.info(
             f'Derived Data Variable {_uid_short} received result from superclass',
@@ -214,6 +239,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         store: CacheStore,
         filters: Optional[Union[FilterQuery, dict]] = None,
         pagination: Optional[Pagination] = None,
+        format_for_display: bool = False,
     ) -> Union[BaseTask, DataFrame, None]:
         """
         Get the filtered data from the underlying derived variable stored under the specified cache_key.
@@ -272,6 +298,12 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         # Run the filtering
         data = await cls._filter_data(data, count_cache_key, data_entry, store, filters, pagination)
+        if format_for_display and data is not None:
+            data = data.copy()
+            for col in data.columns:
+                if data[col].dtype == 'object':
+                    # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
+                    data.loc[:, col] = data[col].apply(str)
 
         return data
 
@@ -290,6 +322,15 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
             raise ValueError('Requested count for filter setup which has not been performed yet')
 
         return entry
+
+    @classmethod
+    async def get_schema(cls, derived_entry: DerivedVariableRegistryEntry, store: CacheStore, cache_key: str):
+        """
+        Get the schema of the derived data variable.
+        """
+        return cast(
+            DataFrameSchema, await store.get(derived_entry, key=cls._get_schema_cache_key(cache_key), unpin=True)
+        )
 
     @classmethod
     async def resolve_value(

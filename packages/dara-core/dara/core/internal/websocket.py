@@ -14,7 +14,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import asyncio
+import inspect
 import math
 import uuid
 from contextvars import ContextVar
@@ -51,8 +52,21 @@ class DaraClientMessage(BaseModel):
 
 
 class CustomClientMessagePayload(BaseModel):
+    rchan: Optional[str] = Field(default=None, alias='__rchan')
+    """Return channel if the message is expected to have a response for"""
+
     kind: str
     data: Any
+
+    def dict(self, *args, **kwargs):
+        # Force by_alias to True to use __rchan name
+        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+
+        # remove rchan if None
+        if '__rchan' in result and result.get('__rchan') is None:
+            result.pop('__rchan')
+
+        return result
 
 
 class CustomClientMessage(BaseModel):
@@ -71,6 +85,9 @@ class ServerMessagePayload(BaseModel):
     rchan: Optional[str] = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
+    response_for: Optional[str] = Field(default=None, alias='__response_for')
+    """ID of the __rchan included in the original client message if this message is a response to a client message"""
+
     class Config:
         extra = 'allow'
 
@@ -81,6 +98,10 @@ class ServerMessagePayload(BaseModel):
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
             result.pop('__rchan')
+
+        # remove response_for if None
+        if '__response_for' in result and result.get('__response_for') is None:
+            result.pop('__response_for')
 
         return result
 
@@ -159,10 +180,12 @@ class WebSocketHandler:
         """
         await self.send_stream.send(message)
 
-    async def process_client_message(self, message: ClientMessage):
+    def process_client_message(self, message: ClientMessage):
         """
         Process a message received from the client.
         Handles resolving pending responses.
+
+        Can return a coroutine to be awaited by the caller.
 
         :param message: The message to process
         """
@@ -190,26 +213,51 @@ class WebSocketHandler:
                         self.pending_responses[message_id] = (event, message.message)
                         event.set()
 
+            return None
+
         if message.type == 'custom':
             # import required internals
             from dara.core.internal.registries import custom_ws_handlers_registry
-            from dara.core.internal.utils import run_user_handler
 
             data = message.message.data
             kind = message.message.kind
 
             try:
                 handler = custom_ws_handlers_registry.get(kind)
-                response = await run_user_handler(handler, args=(self.channel_id, data))
 
-                # If the handler returns a response, send it to the client
-                if response is not None:
-                    await self.send_message(
-                        CustomServerMessage(message=CustomServerMessagePayload(kind=kind, data=response))
-                    )
+                # Sync handler are processed directly, async ones scheduled as a task
+                if inspect.iscoroutinefunction(handler):
+
+                    async def wrapper():
+                        response = await handler(self.channel_id, data)
+                        if response is not None:
+                            await self.send_message(
+                                CustomServerMessage(
+                                    message=CustomServerMessagePayload(
+                                        kind=kind, data=response, __response_for=message.message.rchan
+                                    )
+                                )
+                            )
+
+                    asyncio.create_task(wrapper())
+                    return None
+                else:
+                    response = handler(self.channel_id, data)
+                    if response is not None:
+                        # Return a coroutine for the caller to await
+                        return self.send_message(
+                            CustomServerMessage(
+                                message=CustomServerMessagePayload(
+                                    kind=kind, data=response, __response_for=message.message.rchan
+                                )
+                            )
+                        )
             except KeyError as e:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
-                return
+            return None
+
+        # unreachable but needed for pylint to be happy
+        return None
 
     async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
         """
@@ -446,8 +494,10 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         else:
                             try:
                                 parsed_data = parse_obj_as(ClientMessage, data)
-                                # Process the message in a separate task group to avoid blocking the receive task
-                                tg.start_soon(handler.process_client_message, parsed_data)
+                                result = handler.process_client_message(parsed_data)
+                                # Process the resulting coroutine before moving on to next message
+                                if inspect.iscoroutine(result):
+                                    await result
                             except Exception as e:
                                 eng_logger.error('Error processing client WS message', error=e)
 

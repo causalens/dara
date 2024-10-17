@@ -32,4 +32,7 @@ export default defineConfig({
         },
         outDir: 'dist/umd',
     },
+    worker: {
+        format: 'es'
+    }
 });

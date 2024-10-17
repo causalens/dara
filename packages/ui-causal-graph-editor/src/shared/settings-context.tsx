@@ -16,9 +16,9 @@
  */
 import * as React from 'react';
 
-import { NotificationPayload } from '@darajs/ui-notifications';
+import type { NotificationPayload } from '@darajs/ui-notifications';
 
-import { EditorMode } from '../types';
+import type { EditorMode } from '../types';
 
 /**
  * Common graph settings used inside graph sub-components

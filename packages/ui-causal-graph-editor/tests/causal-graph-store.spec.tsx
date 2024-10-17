@@ -1,7 +1,8 @@
 import Graph from 'graphology';
 
 import { GraphActionCreators, GraphReducer } from '../src/shared/causal-graph-store';
-import { EdgeType, EditorMode, GraphState, SimulationEdge, SimulationNode, VariableType } from '../src/types';
+import type { GraphState, SimulationEdge, SimulationNode} from '../src/types';
+import { EdgeType, EditorMode, VariableType } from '../src/types';
 
 const DEFAULT_EDGE: SimulationEdge = { edge_type: EdgeType.DIRECTED_EDGE, originalMeta: {} };
 const DEFAULT_NODE = (id: string): SimulationNode => ({

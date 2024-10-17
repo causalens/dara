@@ -30,7 +30,7 @@ import { InteractiveComponentProps, Message } from '../types';
 const InteractiveIcons = styled.div`
     position: absolute;
     top: 0.75rem;
-    left: 236px;
+    right: 0.75rem;
 
     display: none;
     gap: 0.5rem;
@@ -42,15 +42,18 @@ const InteractiveIcons = styled.div`
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
-const MessageWrapper = styled.div`
+const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
     position: relative;
 
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
 
     width: 100%;
     padding: 1rem;
 
-    background-color: ${(props) => props.theme.colors.blue1};
+    background-color: ${(props) =>
+        props.$messageFromActiveUser ? props.theme.colors.blue2 : props.theme.colors.blue1};
     border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
@@ -71,8 +74,13 @@ const MessageTimestamp = styled.span`
     color: ${(props) => props.theme.colors.grey5};
 `;
 
-const MessageBody = styled.span`
+const MessageBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
     width: 100%;
+
     color: ${(props) => props.theme.colors.text};
     overflow-wrap: break-word;
 `;
@@ -84,6 +92,7 @@ const EditedText = styled.span`
 `;
 
 const DeleteIcon = styled(Trash)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 
@@ -97,6 +106,7 @@ const DeleteIcon = styled(Trash)`
 `;
 
 const EditIcon = styled(PenToSquare)`
+    cursor: pointer;
     height: 0.8rem;
     color: ${(props) => props.theme.colors.secondary};
 
@@ -142,6 +152,8 @@ export interface MessageProps extends InteractiveComponentProps<Message> {
     onDelete?: (id: string) => void | Promise<void>;
     /** An optional flag to determine if the message is editable */
     isEditable?: boolean;
+    /** Flag to check if the user wrote the message */
+    didUserWriteMessage?: boolean;
 }
 
 /**
@@ -243,11 +255,22 @@ function MessageComponent(props: MessageProps): JSX.Element {
     };
 
     return (
-        <MessageWrapper className={props.className} style={props.style}>
+        <MessageWrapper
+            role="listitem"
+            className={props.className}
+            style={props.style}
+            $messageFromActiveUser={props.didUserWriteMessage}
+        >
             <MessageTop>
                 <UserInfoWrapper>
-                    <AvatarIcon style={{ backgroundColor: selectColor(localMessage.user.name, tokenColors) }}>
-                        {getInitials(localMessage.user.name)}
+                    <AvatarIcon
+                        aria-hidden="true"
+                        style={{
+                            backgroundColor:
+                                localMessage.user.color ?? selectColor(localMessage.user.name, tokenColors),
+                        }}
+                    >
+                        {localMessage.user.bubbleContent ?? getInitials(localMessage.user.name)}
                     </AvatarIcon>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {localMessage.user.name}
@@ -259,10 +282,20 @@ function MessageComponent(props: MessageProps): JSX.Element {
                         </Tooltip>
                     )}
                 </UserInfoWrapper>
-                {!editMode && props.isEditable && (
+                {!editMode && props.isEditable && props.didUserWriteMessage && (
                     <InteractiveIcons>
-                        <EditIcon data-testid="message-edit-button" onClick={() => setEditMode(true)} role="button" />
-                        <DeleteIcon data-testid="message-delete-button" onClick={onDelete} role="button" />
+                        <EditIcon
+                            aria-label="Edit message"
+                            data-testid="message-edit-button"
+                            onClick={() => setEditMode(true)}
+                            role="button"
+                        />
+                        <DeleteIcon
+                            aria-label="Delete message"
+                            data-testid="message-delete-button"
+                            onClick={onDelete}
+                            role="button"
+                        />
                     </InteractiveIcons>
                 )}
             </MessageTop>
@@ -280,6 +313,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             {!editMode && (
                 <MessageBody>
                     <Markdown markdown={processText(localMessage.message)} />
+                    {props.value.actions}
                 </MessageBody>
             )}
         </MessageWrapper>

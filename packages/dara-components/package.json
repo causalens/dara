@@ -1,6 +1,6 @@
 {
   "name": "@darajs/components",
-  "version": "1.11.2",
+  "version": "1.13.1",
   "description": "Components for the Dara framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -29,9 +29,9 @@
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
     "@babel/core": "^7.23.5",
-    "@darajs/eslint-config": "1.11.2",
-    "@darajs/prettier-config": "1.11.2",
-    "@darajs/stylelint-config": "1.11.2",
+    "@darajs/eslint-config": "1.13.1",
+    "@darajs/prettier-config": "1.13.1",
+    "@darajs/stylelint-config": "1.13.1",
     "@testing-library/react-hooks": "^3.4.2",
     "@types/lodash": "^4.14.155",
     "@types/react": "18.2.60",
@@ -42,7 +42,6 @@
     "@types/react-virtualized-auto-sizer": "^1.0.0",
     "@types/react-window": "^1.8.2",
     "@types/react-window-infinite-loader": "^1.0.3",
-    "@types/shortid": "0.0.29",
     "@types/styled-components": "^5.1.0",
     "@vitejs/plugin-react": "2.1.0",
     "prettier": "^3.0.0",
@@ -54,14 +53,14 @@
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",
-    "@darajs/core": "1.11.2",
-    "@darajs/styled-components": "1.11.2",
-    "@darajs/ui-causal-graph-editor": "1.11.2",
-    "@darajs/ui-code-editor": "1.11.2",
-    "@darajs/ui-components": "1.11.2",
-    "@darajs/ui-hierarchy-viewer": "1.11.2",
-    "@darajs/ui-icons": "1.11.2",
-    "@darajs/ui-utils": "1.11.2",
+    "@darajs/core": "1.13.1",
+    "@darajs/styled-components": "1.13.1",
+    "@darajs/ui-causal-graph-editor": "1.13.1",
+    "@darajs/ui-code-editor": "1.13.1",
+    "@darajs/ui-components": "1.13.1",
+    "@darajs/ui-hierarchy-viewer": "1.13.1",
+    "@darajs/ui-icons": "1.13.1",
+    "@darajs/ui-utils": "1.13.1",
     "@popperjs/core": "2.4.0",
     "date-fns": "2.9.0",
     "immer": "^10.0.0",
@@ -75,7 +74,8 @@
     "react-plotly.js": "~2.6.0",
     "react-virtualized-auto-sizer": "1.0.6",
     "recoil": "^0.7.7",
-    "rehype-raw": "^6.1.1"
+    "rehype-raw": "^6.1.1",
+    "vfile": "6.0.1"
   },
   "files": [
     "dist"

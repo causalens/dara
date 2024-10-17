@@ -5,13 +5,8 @@ on: workflow_dispatch
 jobs:
   package-and-publish:
     runs-on: ubuntu-latest
-    container:
-      image: "causalens.jfrog.io/docker-open-source/causalens-base:latest"
-      credentials:
-        username: "${{ secrets.JF_USERNAME }}"
-        password: "${{ secrets.JF_PASSWORD }}"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup git config
@@ -22,9 +17,25 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
-          cache: "poetry"
-      - run: poetry install
-      - name: Link packages
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology
+      - name: Setup cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+            path: .venv
+            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install Python venv if cache was not found
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry anthology install
+        env:
+            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
+            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
+      - name: Link venvs if cache was hit
+        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Get version
         id: get-version

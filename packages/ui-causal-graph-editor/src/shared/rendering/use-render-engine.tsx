@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as PIXI from 'pixi.js';
+import type * as PIXI from 'pixi.js';
 import * as React from 'react';
 
 import { useTheme } from '@darajs/styled-components';
-import { NotificationPayload } from '@darajs/ui-notifications';
+import type { NotificationPayload } from '@darajs/ui-notifications';
 
-import { EdgeConstraint, EditorMode, SimulationEdge, SimulationGraph, ZoomThresholds } from '@types';
+import type { EdgeConstraint, EditorMode, SimulationEdge, SimulationGraph, ZoomThresholds } from '@types';
 
-import { GraphLayout } from '../graph-layout';
-import { DragMode } from '../use-drag-mode';
-import { PixiEdgeStyle } from './edge';
-import { ENGINE_EVENTS, Engine, EngineEvents } from './engine';
+import type { GraphLayout } from '../graph-layout';
+import type { DragMode } from '../use-drag-mode';
+import type { PixiEdgeStyle } from './edge';
+import type { EngineEvents } from './engine';
+import { ENGINE_EVENTS, Engine } from './engine';
 
 interface UseRenderEngineApi {
     /**

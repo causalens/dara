@@ -17,6 +17,9 @@
 import { Meta } from '@storybook/react';
 import * as React from 'react';
 
+import { WandSparkles } from '@darajs/ui-icons';
+
+// import Spinner from '../spinner/spinner';
 import { UserData } from '../types';
 import { default as ChatComponent } from './chat';
 
@@ -34,6 +37,53 @@ const Harry: UserData = {
     name: 'Harry Potter',
     id: 'harry_id',
 };
+
+const Custom: UserData = {
+    name: 'Custom',
+    id: 'custom_id',
+    color: 'teal',
+    bubbleContent: <WandSparkles />,
+};
+
+// example long snippet of code
+const longSnippet = `
+from typing import TypedDict, TypeVar, Generic, Literal
+
+# Define a TypedDict
+class MyDict(TypedDict):
+    key1: int
+    key2: str
+
+# Define a generic type for the dictionary values
+TValue = TypeVar('TValue', bound=int | str)
+
+class TypedDictWrapper(Generic[TValue]):
+    def __init__(self, data: MyDict):
+        self._data = data
+
+    def __getitem__(self, key: Literal['key1', 'key2']) -> TValue:
+        return self._data[key]  # Type-safe access
+
+    def __setitem__(self, key: Literal['key1', 'key2'], value: TValue) -> None:
+        self._data[key] = value  # Type-safe setting
+
+# Usage example
+data = MyDict(key1=42, key2="hello")
+wrapper = TypedDictWrapper(data)
+
+value1: int = wrapper['key1']  # Type-safe access
+value2: str = wrapper['key2']  # Type-safe access
+
+print(value1)  # Output: 42
+print(value2)  # Output: hello
+
+# Type-safe setting
+wrapper['key1'] = 100
+wrapper['key2'] = "world"
+
+print(wrapper['key1'])  # Output: 100
+print(wrapper['key2'])  # Output: world
+`;
 
 const messages = [
     {
@@ -78,14 +128,60 @@ const messages = [
         updated_at: '2024-04-03T15:57:26.944Z',
         user: Hagrid,
     },
+    {
+        id: 'ctDqA50c0b13FQKY0E1et',
+        message: 'Magic! \n ```python \n def foo():\n  return \n ``` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+        actions: [
+            // eslint-disable-next-line no-console
+            <button type="button" key="test-key" onClick={() => console.log('this was indeed clicked')}>
+                Click me
+            </button>,
+        ] as React.ReactNode[],
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E51tf',
+        message: '```custom \n fn foo():\n  return \n ``` \n Unsupported language ^',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E1ta',
+        message: 'No language specified \n ```\nfn foo():\n  return \n ``` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E1tf',
+        message: 'Inline block! \n `foo = lambda x: x + 1` \n Some other stuff',
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
+    {
+        id: 'ctDqA50c0b13FQKY0E11f',
+        message: `Here's some code:\n\`\`\`python\n${longSnippet}\n\`\`\`\n Above snippet shows how to make a TypedDict wrapper.`,
+        created_at: '2024-07-03T15:57:26.944Z',
+        updated_at: '2024-07-03T15:57:26.944Z',
+        user: Custom,
+    },
 ];
 
 export const Chat = (): JSX.Element => {
     const [value, setValue] = React.useState(messages);
 
     return (
-        <div style={{ backgroundColor: 'black', display: 'flex' }}>
-            <ChatComponent activeUser={Harry} onUpdate={setValue} value={value} />
+        <div style={{ backgroundColor: 'white', display: 'flex', height: '100%' }}>
+            <ChatComponent
+                activeUser={Harry}
+                onUpdate={setValue}
+                value={value}
+                // loadingComponent={<Spinner size='1rem' text='typing' />}
+            />
         </div>
     );
 };

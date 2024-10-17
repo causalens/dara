@@ -19,7 +19,7 @@ import { useSettings } from '@shared/settings-context';
 import { EditorMode } from '@types';
 
 import { ColumnWrapper } from '../styled';
-import { EdgeEditorProps } from './editor-props';
+import type { EdgeEditorProps } from './editor-props';
 import EncoderEditor from './encoder-editor';
 import PagEditor from './pag-editor';
 import ResolverEditor from './resolver-editor';

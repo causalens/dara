@@ -23,6 +23,7 @@ import { PanelTitle } from './panel-title';
 
 interface PanelContentProps {
     children: React.ReactNode;
+    disabled?: boolean;
     /** Handler to remove currently selected edge; if not provided delete button should not be shown */
     onDelete?: () => void | Promise<void>;
     onMouseEnter?: () => void | Promise<void>;
@@ -39,7 +40,12 @@ function PanelContent(props: PanelContentProps): JSX.Element {
     const { disablePointerEvents } = useContext(PointerContext);
 
     return (
-        <PanelDiv $hide={disablePointerEvents} onMouseEnter={props.onMouseEnter} onMouseLeave={props.onMouseLeave}>
+        <PanelDiv
+            $disabled={props.disabled}
+            $hide={disablePointerEvents}
+            onMouseEnter={props.onMouseEnter}
+            onMouseLeave={props.onMouseLeave}
+        >
             <PanelTitle onDelete={props.onDelete} onNext={props.onNext} onPrev={props.onPrev} title={props.title} />
             {props.children}
         </PanelDiv>

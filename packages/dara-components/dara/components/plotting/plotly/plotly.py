@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Any, List, Optional
 
 import plotly.graph_objects as go
+import plotly.io as pio
 from pydantic import BaseModel
 
 from dara.components.plotting.plotly.themes import light_theme
@@ -26,6 +27,14 @@ from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
 
 SETTINGS = {'THEME': light_theme}
+
+# We need to set the default theme for plotly so that plotly express when setting traces is able to pick up dara theme colors
+base_template = pio.templates['plotly']
+dara_theme = base_template.layout.update(SETTINGS['THEME']['layout'])   # type: ignore
+dara_template = go.layout.Template(layout=dara_theme)
+# Set the default theme for plotly
+pio.templates['dara_theme'] = dara_template
+pio.templates.default = 'dara_theme'
 
 
 class PlotlyEventName(str, Enum):

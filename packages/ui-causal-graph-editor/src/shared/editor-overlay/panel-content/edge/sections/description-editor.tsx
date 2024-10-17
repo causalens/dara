@@ -21,9 +21,9 @@ import styled from '@darajs/styled-components';
 import { Textarea } from '@darajs/ui-components';
 
 import { useSettings } from '@shared/settings-context';
-import { GraphApi } from '@shared/use-causal-graph-editor';
+import type { GraphApi } from '@shared/use-causal-graph-editor';
 
-import { SimulationEdge } from '@types';
+import type { SimulationEdge } from '@types';
 
 import { ColumnWrapper, SectionTitle } from '../../styled';
 

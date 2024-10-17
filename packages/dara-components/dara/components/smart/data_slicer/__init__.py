@@ -17,8 +17,12 @@ limitations under the License.
 
 from dara.components.smart.data_slicer.data_slicer import DataSlicer
 from dara.components.smart.data_slicer.data_slicer_modal import DataSlicerModal
+from dara.components.smart.data_slicer.extension.filter_status_button import (
+    FilterStatusButton,
+)
 
 __all__ = [
     'DataSlicer',
     'DataSlicerModal',
+    'FilterStatusButton',
 ]

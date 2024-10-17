@@ -16,11 +16,11 @@
  */
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import { nanoid } from 'nanoid';
 import * as React from 'react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import shortid from 'shortid';
 import { useImmer } from 'use-immer';
 
 import styled from '@darajs/styled-components';
@@ -28,16 +28,8 @@ import { Input } from '@darajs/ui-components';
 import { useUpdateEffect } from '@darajs/ui-utils';
 
 import Layer from './layer';
-import {
-    DragItem,
-    LayerItem,
-    NewLayerPosition,
-    Node,
-    isInView,
-    matchesQuery,
-    parseLayerItems,
-    parseNodes,
-} from './shared';
+import type { DragItem, LayerItem, Node } from './shared';
+import { NewLayerPosition, isInView, matchesQuery, parseLayerItems, parseNodes } from './shared';
 
 const BuilderBox = styled.div`
     overflow: hidden;
@@ -198,7 +190,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
         setHierarchy((draft) => {
             const index = draft.findIndex((layer) => layer.id === reference);
             const targetIndex = position === NewLayerPosition.TOP ? index : index + 1;
-            draft.splice(targetIndex, 0, { id: shortid.generate(), nodes: [] });
+            draft.splice(targetIndex, 0, { id: nanoid(), nodes: [] });
         });
     };
 

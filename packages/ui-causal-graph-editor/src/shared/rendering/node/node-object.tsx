@@ -19,13 +19,14 @@ import { DropShadowFilter } from 'pixi-filters';
 import * as PIXI from 'pixi.js';
 import { EventEmitter } from 'pixi.js';
 
-import { ZoomState } from '@types';
+import type { ZoomState } from '@types';
 
 import { SHADOWS } from '../colors';
 import { getTextStyle, trimToFit } from '../text';
-import { TextureCache } from '../texture-cache';
+import type { TextureCache } from '../texture-cache';
 import { MOUSE_EVENTS, colorToPixi, createKey } from '../utils';
-import { BORDER_PADDING, NodeState, PixiNodeStyle } from './definitions';
+import type { NodeState, PixiNodeStyle } from './definitions';
+import { BORDER_PADDING } from './definitions';
 import { getNodeColor, getNodeSize } from './utils';
 
 const NODE_CIRCLE = 'NODE_CIRCLE';
@@ -110,6 +111,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         const nodeLabelGfx = new PIXI.Container();
         nodeLabelGfx.interactive = true;
         nodeLabelGfx.cursor = 'pointer';
+        nodeLabelGfx.cullable = true;
 
         // send mouse events up
         MOUSE_EVENTS.forEach((eventName) => {

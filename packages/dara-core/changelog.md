@@ -2,6 +2,36 @@
 title: Changelog
 ---
 
+## 1.13.1
+
+-   Fixed an issue where data passed to `Table` component within a column of `dtype` `object` did not display correctly for datetime values.
+-   Fixed an issue where `Variable`s with many properties could result in components crashing.
+
+## 1.13.0
+
+-   Fixed `DerivedDataVariable` cache retrieving schema from the wrong registry type.
+
+## 1.12.7
+
+-   Fixed a crash in `Table` pagination where rows containing non-unique index values would cause a slicing error.
+-   Fixed an issue in `Table` where sorting by an unnamed index would not work.
+-   Fixed a crash in `Table` when rendering the result of a `DerivedDataVariable` due to a missing `cache_key`.
+
+## 1.12.6
+
+-   Fix an issue where LRU cache could result in a `KeyError`
+
+## 1.12.5
+
+-   Internal (PY): improve support for synchronous custom WS handlers added with `config.add_ws_handler`, they are now guaranteed to be processed synchronously before the next WS message is handled.
+-   Internal (JS): extend `sendCustomMessage` WS client method to return the response as a promise if a new third argument `awaitResponse` is true.
+
+## 1.12.1
+
+-   Added index columns to the response of `DataVariable`/`DerivedDataVariable`.
+-   Added a schema endpoint for `DataVariable`/`DerivedDataVariable`. The schema is returned when passing `{ schema: true }` as an options field when calling `useDataVariable`/`useDerivedDataVariable`.
+-   Fixed a crash when DataFrame with duplicate column names is passed into `DataVariable`/`DerivedDataVariable`.
+
 ## 1.11.0
 
 -   Dropped support for Python 3.8.

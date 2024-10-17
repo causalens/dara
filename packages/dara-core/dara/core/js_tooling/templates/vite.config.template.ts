@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [
         react({
             jsxRuntime: 'classic',
-        }),
+        })
     ],
     publicDir: false,
     build: {
@@ -25,4 +25,7 @@ export default defineConfig({
             strict: false,
         },
     },
+    worker: {
+        format: 'es',
+    }
 });

@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
+import type {
     CausalGraph,
     CausalGraphEdge,
     CausalGraphNode,
     EdgeRenderingMeta,
-    EdgeType,
     FlatEdgeRenderingMeta,
     FlatNodeRenderingMeta,
     GraphState,
@@ -27,6 +26,7 @@ import {
     SimulationEdge,
     SimulationNode,
 } from '../types';
+import { EdgeType } from '../types';
 
 const RENDERING_META_PREFIX = 'meta.rendering_properties.';
 

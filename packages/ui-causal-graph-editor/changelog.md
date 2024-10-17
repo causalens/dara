@@ -2,7 +2,23 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.13.1
+
+-   Fixed an issue where nodes and edges would sometimes not show in `CausalGraphEditor`
+
+## 1.13.0
+
+-   Added a `min-width` to `CausalGraphEditor`.
+-   Offloaded layout computations to a web worker, which improves performance by unblocking the main thread while the layout is being computed
+-   Fix an issue where graph symbols hidden by zooming out would not reappear when zooming back in
+-   Fix an issue where cycle detection logic would run in non-default mode and disallow cycles when they should be allowed
+-   Fix an issue with Spring layout not handling new nodes in its simulation
+
+## 1.12.7
+
+-   Fix an issue where body's `line-height` was not consistent across packages.
+
+## 1.11.0
 
 -   Fixed an issue where `CausalGraphEditor` tooltips would appear above other elements on a page.
 

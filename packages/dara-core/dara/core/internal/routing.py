@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import inspect
+import json
 import os
 from functools import wraps
 from importlib.metadata import version
@@ -33,6 +34,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -330,6 +332,7 @@ def create_router(config: Configuration):
                     store,
                     body.filters,
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
+                    format_for_display=True,
                 )
                 if isinstance(data, BaseTask):
                     await task_mgr.run_task(data, body.ws_channel)
@@ -340,6 +343,7 @@ def create_router(config: Configuration):
                     store,
                     body.filters,
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
+                    format_for_display=True,
                 )
 
             dev_logger.debug(
@@ -381,6 +385,29 @@ def create_router(config: Configuration):
                 )
 
             return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
+    async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
+        try:
+            store: CacheStore = utils_registry.get('Store')
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+            data_def = await registry_mgr.get(data_variable_registry, uid)
+
+            if data_def.type == 'plain':
+                return await data_def.get_schema(data_def, store)
+
+            if cache_key is None:
+                raise HTTPException(
+                    status_code=400, detail='Cache key is required when requesting DerivedDataVariable schema'
+                )
+
+            # Use the other registry for derived variables
+            derived_ref = await registry_mgr.get(derived_variable_registry, uid)
+            data = await data_def.get_schema(derived_ref, store, cache_key)
+            content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
+            return Response(content=content, media_type='application/json')
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 

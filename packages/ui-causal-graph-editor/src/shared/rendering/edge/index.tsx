@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 export { EdgeObject } from './edge-object';
-export { EdgeStrengthDefinition, EDGE_STRENGTHS, PixiEdgeStyle } from './definitions';
+export { type EdgeStrengthDefinition, EDGE_STRENGTHS, type PixiEdgeStyle } from './definitions';

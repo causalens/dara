@@ -1,4 +1,4 @@
-import { CausalGraph, EdgeType, VariableType } from '../../src/types';
+import { type CausalGraph, EdgeType, VariableType } from '../../src/types';
 
 export const SIMPLE: CausalGraph = {
     edges: {

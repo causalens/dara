@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react';
 
 import { FcoseLayout } from '../../shared/graph-layout';
-import { CausalGraph, EdgeType, EditorMode, VariableType } from '../../types';
+import type { CausalGraph } from '../../types';
+import { EdgeType, EditorMode, VariableType } from '../../types';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, pagCausalGraph } from './stories-utils';
 

@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 export { default as NodeHierarchyBuilder } from './node-hierarchy-builder';
-export { Node } from './shared';
+export type { Node } from './shared';

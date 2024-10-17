@@ -2,7 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { causalGraphParser } from '../src/shared/parsers';
 import { serializeGraphEdge, serializeGraphNode } from '../src/shared/serializer';
-import { CausalGraph, CausalGraphNode, EdgeType } from '../src/types';
+import { type CausalGraph, type CausalGraphNode, EdgeType } from '../src/types';
 import { MockCausalGraphWithExtras, MockTimeSeriesCausalGraph } from './mocks/extras-graph';
 import { MockCausalGraph } from './utils';
 

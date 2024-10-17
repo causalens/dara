@@ -1,6 +1,6 @@
 title:
   patterns:
-    - '(Docs|Breaking|Improvement|Fix|Refactor|Feat):\s[A-Z]*-\d+.*'
+    - '(Docs|Breaking|Improvement|Fix|Refactor|Feat|Security):\s[A-Z]*-\d+.*'
     - 'Build:\d+\.\d+\.\d'
   error: >-
     You have to include [<change-type>:<ticket number>] or Build:X.X.X> into

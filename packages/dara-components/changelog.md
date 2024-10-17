@@ -2,6 +2,39 @@
 title: Changelog
 ---
 
+# NEXT
+
+-   Fixed an issue where `Plotly`'s figure native `height` and `width` were not obeyed by component.
+
+## 1.13.1
+
+-   Fixed an issue where `Table` would sometimes convert timestamps in seconds as if they were in milliseconds.
+-   Fixed an issue where `CheckboxGroup` could not have an `undefined` value.
+-   Fixed an issue where `Plotly` in some cases would not pick up colors from dara theme by default.
+
+## 1.12.3
+
+-   Fixed an issue where `Table` filters and column sorting would not work correctly due to a prefix in column names.
+
+## 1.12.2
+
+-   Fixed an issue where `Table` cells would not render due to `/schema` GET request failing.
+
+## 1.12.1
+
+-   Fixed invisible boolean values in `Table` cells.
+-   `Table` now automatically renders all index columns from the DataFrame and expands hierarchical columns.
+
+## 1.11.5
+
+-   Visual tweaks to `Chat` component.
+
+## 1.11.4
+
+-   Updated `Code` component to support copy to clipboard functionality.
+-   Updated `Code` component default themes.
+-   Updated `Code` component to display current language.
+
 ## 1.10.6
 
 -   Increased performance for initial render of `CausalGraphViewer` by up to 2x

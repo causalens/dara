@@ -21,13 +21,17 @@ import {
  * Helper hook which turns a (Derived)DataVariable into a callback to return DataFrame.
  * Can be used in components that only work with data variables.
  *
+ * Optionally pass in filters, pagination, and other options to fetch data.
+ * Other options include:
+ * -     schema: boolean - whether to include schema in the response. Default = false.
+ *
  * The callback identity changes whenever a refetch should be triggered.
  *
  * @param variable data variable
  */
 export function useDataVariable(
     variable: AnyDataVariable
-): (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse> {
+): (filters?: FilterQuery, pagination?: Pagination, options?: { schema: boolean }) => Promise<DataResponse> {
     const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
 

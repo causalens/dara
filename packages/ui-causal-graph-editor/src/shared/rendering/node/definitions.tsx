@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DefaultTheme } from '@darajs/styled-components';
+import type { DefaultTheme } from '@darajs/styled-components';
 
-import { NodeCategory } from '../../../types';
+import type { NodeCategory } from '../../../types';
 
 export const BORDER_PADDING = 2;
 

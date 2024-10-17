@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useContext } from 'react';
+import { type ComponentProps, useContext } from 'react';
 
 import { Tooltip } from '@darajs/ui-components';
 import { DownLeftAndUpRightToCenter, UpRightAndDownLeftFromCenter } from '@darajs/ui-icons';
@@ -22,7 +22,7 @@ import { DownLeftAndUpRightToCenter, UpRightAndDownLeftFromCenter } from '@daraj
 import PointerContext from '../../pointer-context';
 import { FloatingButton } from '../floating-elements';
 
-interface CollapseExpandGroupButtonProps {
+interface CollapseExpandGroupButtonProps extends ComponentProps<typeof FloatingButton> {
     onCollapseAll: () => void | Promise<void>;
     onExpandAll: () => void | Promise<void>;
     showExpandAll: boolean;
@@ -31,6 +31,7 @@ interface CollapseExpandGroupButtonProps {
 function CollapseExpandGroupButton(props: CollapseExpandGroupButtonProps): JSX.Element {
     const { disablePointerEvents } = useContext(PointerContext);
     const buttonText = props.showExpandAll ? 'Collapse All' : 'Expand All';
+    const { onCollapseAll, onExpandAll, showExpandAll, ...rest } = props;
 
     return (
         <Tooltip content={buttonText} placement="bottom">
@@ -40,6 +41,7 @@ function CollapseExpandGroupButton(props: CollapseExpandGroupButtonProps): JSX.E
                 fixedSize
                 onClick={props.showExpandAll ? props.onCollapseAll : props.onExpandAll}
                 style={{ padding: '0 0.75rem' }}
+                {...rest}
             >
                 {props.showExpandAll ?
                     <DownLeftAndUpRightToCenter />

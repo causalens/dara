@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { XYPosition } from 'graphology-layout/utils';
-import AbstractGraph from 'graphology-types';
+import type { XYPosition } from 'graphology-layout/utils';
+import type { AbstractGraph, SerializedGraph } from 'graphology-types';
 
 /**
  * Defines 'modes' that the viewer can run in
@@ -204,6 +204,16 @@ export interface SimulationAttributes {
     version: string;
 }
 export type SimulationGraph = AbstractGraph<SimulationNode, SimulationEdge, SimulationAttributes>;
+
+export type SerializedSimulationGraph = SerializedGraph<SimulationNode, SimulationEdge, SimulationAttributes>;
+
+// Defines the Layering algorithms supported by PlanarLayout
+export enum PlanarLayeringAlgorithm {
+    /** is optimized to minimize the total height of the graph, height being the direction in which the layers are placed */
+    LONGEST_PATH = 'longest_path',
+    /** is optimized to minimize the overall length of edges */
+    SIMPLEX = 'simplex',
+}
 
 /**
  * Type of an edge constraint that can be encoded
