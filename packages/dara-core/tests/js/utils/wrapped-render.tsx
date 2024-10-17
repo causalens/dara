@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
 /* eslint-disable react/no-unused-prop-types */
+
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RenderOptions, RenderResult, render } from '@testing-library/react';
@@ -15,19 +17,11 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 import { StoreProviders } from '@/shared/interactivity/persistence';
 import { useUrlSync } from '@/shared/utils';
 
-import {
-    DownloadContent,
-    NavigateTo,
-    ResetVariables,
-    SideEffect,
-    Track,
-    TriggerVariable,
-    UpdateVariable,
-} from '../../../js/actions';
+import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
 import { WebSocketClientInterface } from '../../../js/api/websocket';
-import { AuthCtx, ImportersCtx } from '../../../js/shared';
+import { ImportersCtx } from '../../../js/shared';
 import { FallbackCtx, GlobalTaskProvider, RegistriesCtx, VariableCtx, WebSocketCtx } from '../../../js/shared/context';
-import { AuthType, ComponentInstance } from '../../../js/types';
+import { ComponentInstance } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
 
@@ -52,12 +46,9 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
 const importers = {
     dara_core: () =>
         Promise.resolve({
-            DownloadContent,
             NavigateTo,
             ResetVariables,
-            SideEffect,
             TemplateRoot,
-            Track,
             TriggerVariable,
             UpdateVariable,
         }),
@@ -107,29 +98,27 @@ export const Wrapper = ({
         <ThemeProvider theme={theme}>
             <ImportersCtx.Provider value={importers}>
                 <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
-                    <AuthCtx.Provider value={{ setToken: noop, token: 'TEST_TOKEN' }}>
-                        <RecoilRoot>
-                            <RecoilURLSync {...syncOptions}>
-                                <React.Suspense fallback={<div>Loading...</div>}>
-                                    <QueryClientProvider client={queryClient}>
-                                        <RegistriesCtx.Provider
-                                            value={{
-                                                actionRegistry: mockActions,
-                                                componentRegistry: mockComponents,
-                                                refetchComponents: noop as any,
-                                            }}
-                                        >
-                                            <StoreProviders>
-                                                <FallbackCtx.Provider value={{ suspend: true }}>
-                                                    {child}
-                                                </FallbackCtx.Provider>
-                                            </StoreProviders>
-                                        </RegistriesCtx.Provider>
-                                    </QueryClientProvider>
-                                </React.Suspense>
-                            </RecoilURLSync>
-                        </RecoilRoot>
-                    </AuthCtx.Provider>
+                    <RecoilRoot>
+                        <RecoilURLSync {...syncOptions}>
+                            <React.Suspense fallback={<div>Loading...</div>}>
+                                <QueryClientProvider client={queryClient}>
+                                    <RegistriesCtx.Provider
+                                        value={{
+                                            actionRegistry: mockActions,
+                                            componentRegistry: mockComponents,
+                                            refetchComponents: noop as any,
+                                        }}
+                                    >
+                                        <StoreProviders>
+                                            <FallbackCtx.Provider value={{ suspend: true }}>
+                                                {child}
+                                            </FallbackCtx.Provider>
+                                        </StoreProviders>
+                                    </RegistriesCtx.Provider>
+                                </QueryClientProvider>
+                            </React.Suspense>
+                        </RecoilURLSync>
+                    </RecoilRoot>
                 </WebSocketCtx.Provider>
             </ImportersCtx.Provider>
         </ThemeProvider>
