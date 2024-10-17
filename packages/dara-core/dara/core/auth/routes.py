@@ -109,7 +109,6 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 async def handle_refresh_token(
     response: Response,
     dara_refresh_token: Union[str, None] = Cookie(default=None),
-    settings: Settings = Depends(get_settings),
 ):
     """
     Given a refresh token, issues a new session token and refresh token cookie.
@@ -127,7 +126,7 @@ async def handle_refresh_token(
 
     try:
         # Refresh logic up to implementation
-        session_token, refresh_token = await auth_config.refresh_token(dara_refresh_token)
+        session_token, refresh_token = auth_config.refresh_token(dara_refresh_token)
 
         # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
         response.set_cookie(

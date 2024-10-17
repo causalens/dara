@@ -132,7 +132,7 @@ async def test_refresh_token_success():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        async def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
             return 'session_token', 'new_refresh_token'
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -149,7 +149,7 @@ async def test_refresh_token_expired():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        async def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
             raise jwt.ExpiredSignatureError()
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -166,7 +166,7 @@ async def test_refresh_token_error():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        async def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
             raise Exception('some error')
 
     config.add_auth(TestAuthConfig('test', 'test'))

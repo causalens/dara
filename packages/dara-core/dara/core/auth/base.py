@@ -91,7 +91,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         :param token: encoded token
         """
 
-    async def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+    def refresh_token(self, refresh_token: str) -> tuple[str, str]:
         """
         Create a new session token and refresh token from a refresh token.
 
