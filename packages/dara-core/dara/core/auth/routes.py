@@ -16,9 +16,10 @@ limitations under the License.
 """
 
 from inspect import iscoroutinefunction
+from typing import Union, cast
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from dara.core.auth.base import BaseAuthConfig
@@ -31,6 +32,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
+from dara.core.internal.settings import Settings, get_settings
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -102,7 +104,8 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
         return auth_config.revoke_token(credentials.credentials, response)
     raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No auth credentials passed'))
 
-@auth_router.post('/refresh-token', authenticated=False)
+
+@auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
     dara_refresh_token: Union[str, None] = Cookie(default=None),
@@ -150,8 +153,6 @@ async def handle_refresh_token(
         # Otherwise show a generic invalid token error
         dev_logger.error('Invalid Token', error=cast(Exception, e))
         raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers)
-
-
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.
