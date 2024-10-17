@@ -10,7 +10,6 @@ import PrivateRoute from '@/shared/private-route/private-route';
 import { getToken, getTokenKey } from '@/shared/utils';
 
 import { AuthComponent, useAuthComponents } from './auth';
-import { useSessionToken } from './use-session-token';
 
 interface AuthWrapperProps {
     /** The children to wrap */

@@ -32,7 +32,6 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
-from dara.core.internal.settings import Settings, get_settings
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()

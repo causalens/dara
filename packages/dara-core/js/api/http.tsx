@@ -1,8 +1,9 @@
 /* eslint-disable import/prefer-default-export */
 import cloneDeep from 'lodash/cloneDeep';
 
-import globalStore from '@/shared/global-state-store';
 import { validateResponse } from '@darajs/ui-utils';
+
+import globalStore from '@/shared/global-state-store';
 
 /**
  * Extra options to pass to the request function.

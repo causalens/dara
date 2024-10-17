@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import globalStore from '@/shared/global-state-store';
 
 function tokenSubscribe(cb: () => void): () => void {
@@ -19,4 +20,3 @@ export function setSessionToken(token: string): void {
 export function useSessionToken(): string {
     return React.useSyncExternalStore(tokenSubscribe, getSessionToken);
 }
-

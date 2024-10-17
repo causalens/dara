@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 
 import { revokeSession } from '@/auth/auth';
+
 import { setSessionToken } from '../use-session-token';
 
 /**

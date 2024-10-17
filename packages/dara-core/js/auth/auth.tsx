@@ -102,12 +102,9 @@ interface SuccessResponse {
  */
 export async function revokeSession(): Promise<RedirectResponse | SuccessResponse> {
     try {
-        const response = await request(
-            '/api/auth/revoke-session',
-            {
-                method: HTTP_METHOD.POST,
-            },
-        );
+        const response = await request('/api/auth/revoke-session', {
+            method: HTTP_METHOD.POST,
+        });
 
         if (response.ok) {
             const responseData = await response.json();
@@ -206,11 +203,8 @@ export function useSession(body: User = {}): UseQueryResult<string, RequestError
 
 /** Api call to verify the session token from the backend */
 export async function verifySessionToken(): Promise<boolean> {
-    const res = await request(
-        '/api/auth/verify-session',
-        {
-            method: HTTP_METHOD.POST,
-        },
-    );
+    const res = await request('/api/auth/verify-session', {
+        method: HTTP_METHOD.POST,
+    });
     return res.ok;
 }
