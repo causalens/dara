@@ -32,6 +32,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
+from dara.core.auth.utils import decode_token
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -108,6 +109,7 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 async def handle_refresh_token(
     response: Response,
     dara_refresh_token: Union[str, None] = Cookie(default=None),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ):
     """
     Given a refresh token, issues a new session token and refresh token cookie.
@@ -119,13 +121,25 @@ async def handle_refresh_token(
     if dara_refresh_token is None:
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No refresh token provided'))
 
+    # Check scheme is correct
+    if credentials.scheme != 'Bearer':
+        raise HTTPException(
+            status_code=400,
+            detail=BAD_REQUEST_ERROR(
+                'Invalid authentication scheme, previous Bearer token must be included in the refresh request'
+            ),
+        )
+
     from dara.core.internal.registries import auth_registry
 
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
     try:
-        # Refresh logic up to implementation
-        session_token, refresh_token = auth_config.refresh_token(dara_refresh_token)
+        # decode the old token ignoring expiry date
+        old_token_data = decode_token(credentials.credentials, options={'verify_exp': False})
+
+        # Refresh logic up to implementation - passing in old token data so session_id can be preserved
+        session_token, refresh_token = auth_config.refresh_token(old_token_data, dara_refresh_token)
 
         # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
         response.set_cookie(

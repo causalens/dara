@@ -10,7 +10,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
 from dara.core.main import _start_application
 
-from tests.python.utils import TEST_JWT_SECRET
+from tests.python.utils import TEST_JWT_SECRET, TEST_TOKEN
 
 pytestmark = pytest.mark.anyio
 
@@ -111,7 +111,10 @@ async def test_refresh_token_missing():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/refresh-token')
+        response = await client.post(
+            '/api/auth/refresh-token',
+            headers={'Authorization': f'Bearer {TEST_TOKEN}'},
+        )
         assert response.status_code == 400
         assert response.json()['detail']['message'] == 'No refresh token provided'
 
@@ -123,7 +126,11 @@ async def test_refresh_token_unsupported():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/refresh-token', cookies={'dara_refresh_token': 'foobar'})
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'foobar'},
+            headers={'Authorization': f'Bearer {TEST_TOKEN}'},
+        )
         assert response.status_code == 400
         assert response.json() == {'detail': 'Auth config BasicAuthConfig does not support token refresh'}
 
@@ -131,25 +138,38 @@ async def test_refresh_token_unsupported():
 async def test_refresh_token_success():
     config = ConfigurationBuilder()
 
+    old_token_data = TokenData(
+        session_id='session',
+        # expired but should be ignored
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
-            return 'session_token', 'new_refresh_token'
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            return f'session_token_{old_token.session_id}', 'new_refresh_token'
 
     config.add_auth(TestAuthConfig('test', 'test'))
 
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/refresh-token', cookies={'dara_refresh_token': 'refresh_token'})
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
         assert response.status_code == 200
-        assert response.json() == {'token': 'session_token' }
+        assert response.json() == {'token': f'session_token_{old_token_data.session_id}'}
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
+
 
 async def test_refresh_token_expired():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             raise jwt.ExpiredSignatureError()
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -157,16 +177,21 @@ async def test_refresh_token_expired():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/refresh-token', cookies={'dara_refresh_token': 'refresh_token'})
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'refresh_token'},
+            headers={'Authorization': f'Bearer {TEST_TOKEN}'},
+        )
         assert response.status_code == 401
         assert 'Session has expired' in response.json()['detail']['message']
         assert response.headers.get('Set-Cookie').startswith('dara_refresh_token="";')
+
 
 async def test_refresh_token_error():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             raise Exception('some error')
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -174,7 +199,11 @@ async def test_refresh_token_error():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/refresh-token', cookies={'dara_refresh_token': 'refresh_token'})
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'refresh_token'},
+            headers={'Authorization': f'Bearer {TEST_TOKEN}'},
+        )
         assert response.status_code == 401
         # generic error shown
         assert 'Token is invalid' in response.json()['detail']['message']

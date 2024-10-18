@@ -1,6 +1,8 @@
+import jwtDecode from 'jwt-decode';
 import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 
+import { request } from '@/api/http';
 import DefaultFallback from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
 import Center from '@/shared/center/center';
@@ -9,7 +11,44 @@ import globalStore from '@/shared/global-state-store';
 import PrivateRoute from '@/shared/private-route/private-route';
 import { getToken, getTokenKey } from '@/shared/utils';
 
-import { AuthComponent, useAuthComponents } from './auth';
+import { AuthComponent, useAuthConfig } from './auth';
+
+/**
+ * Refreshes the token if it's about to expire
+ *
+ * @param token token to refresh if expired
+ */
+async function checkTokenExpiry(token: string): Promise<string | null> {
+    // check if token is expired
+    if (token) {
+        try {
+            const decoded = jwtDecode<{
+                exp: number;
+            }>(token);
+
+            // If it's about to expire within 5 minutes
+            if (decoded.exp * 1000 - Date.now() < 5 * 60 * 1000) {
+                // token is expired, refresh it
+                const res = await request('/api/auth/refresh-token', {
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    method: 'POST',
+                });
+
+                // if refreshing token succeeded, update the token
+                if (res.ok) {
+                    const { token: newToken } = await res.json();
+                    return newToken;
+                }
+            }
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to refresh token', e);
+        }
+    }
+}
 
 interface AuthWrapperProps {
     /** The children to wrap */
@@ -53,13 +92,14 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
 }
 
 /**
- * Simple Auth Wrapper component that makes the session request to the backend and then provides the session token down
- * to the rest of the app via context
+ * Simple Auth Wrapper component that initializes the token from localStorage,
+ * synchronizes token with localStorage and refreshes the token if it's about to expire.
+ * Renders the login/logout components and the children wrapped in PrivateRoute.
  *
  * @param props - the component props
  */
 function AuthWrapper(props: AuthWrapperProps): JSX.Element {
-    const { data: authComponents, isLoading } = useAuthComponents();
+    const { data: authConfig, isLoading } = useAuthConfig();
     const isMounted = useRef(false);
 
     // set initial token from local storage as soon as we render
@@ -67,6 +107,26 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
         isMounted.current = true;
         globalStore.setValue('sessionToken', getToken());
     }
+
+    // check token expiry every minute
+    useEffect(() => {
+        if (!authConfig?.supports_token_refresh) {
+            return;
+        }
+
+        const interval = setInterval(async () => {
+            // use async to handle in-progress refresh
+            const token = await globalStore.getValue('sessionToken');
+            const newToken = await checkTokenExpiry(token);
+
+            // update the token if it's refreshed
+            if (newToken) {
+                globalStore.setValue('sessionToken', newToken);
+            }
+        }, 60 * 1000);
+
+        return () => clearInterval(interval);
+    }, [authConfig]);
 
     useEffect(() => {
         // sync the token with local storage
@@ -89,7 +149,7 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
         );
     }
 
-    const { login, logout, ...extraRoutes } = authComponents;
+    const { login, logout, ...extraRoutes } = authConfig.auth_components;
 
     return (
         <Switch>

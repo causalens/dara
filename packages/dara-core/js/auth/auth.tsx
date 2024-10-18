@@ -72,14 +72,19 @@ interface AuthComponents {
     logout: AuthComponent;
 }
 
+interface AuthConfig {
+    auth_components: AuthComponents;
+    supports_token_refresh: boolean;
+}
+
 /**
  * Fetch components to use for authentication
  */
-export function useAuthComponents(): UseQueryResult<AuthComponents> {
+export function useAuthConfig(): UseQueryResult<AuthConfig> {
     return useQuery(
-        ['auth-components'],
+        ['auth-config'],
         async () => {
-            const response = await request('/api/core/auth-components', {
+            const response = await request('/api/core/auth-config', {
                 method: HTTP_METHOD.GET,
             });
 

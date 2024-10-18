@@ -70,6 +70,8 @@ export type {
 
 export { UpdateVariable, TriggerVariable, NavigateTo, ResetVariables, DownloadVariable, Notify } from './actions';
 export {
+    getSessionToken,
+    setSessionToken,
     useSessionToken,
     BasicAuthLogin,
     BasicAuthLogout,

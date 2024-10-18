@@ -69,6 +69,14 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     Defines components to use for auth routes
     """
 
+    supports_token_refresh: ClassVar[bool] = False
+    """
+    Whether this auth config supports token refresh.
+
+    If an auth config supports token refresh, it should override the refresh_token method
+    and set this to True.
+    """
+
     @abc.abstractmethod
     def get_token(self, body: SessionRequestBody) -> Union[TokenResponse, RedirectResponse]:
         """
@@ -91,10 +99,13 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         :param token: encoded token
         """
 
-    def refresh_token(self, refresh_token: str) -> tuple[str, str]:
+    def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
         """
         Create a new session token and refresh token from a refresh token.
 
+        Note: the new issued session token should include the same session_id as the old token
+
+        :param old_token: old session token data
         :param refresh_token: encoded refresh token
         :return: new session token, new refresh token
         """

@@ -1,4 +1,4 @@
-export { getSessionToken, useSessionToken } from './use-session-token';
+export { getSessionToken, useSessionToken, setSessionToken } from './use-session-token';
 export { verifySessionToken, useUser, useSession, handleAuthErrors, requestSessionToken, revokeSession } from './auth';
 export { default as AuthWrapper } from './auth-wrapper';
 export { default as BasicAuthLogin } from './basic/basic-auth-login';
