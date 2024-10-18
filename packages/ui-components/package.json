@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-components",
-  "version": "1.14.0-alpha.0",
+  "version": "1.14.0-alpha.1",
   "description": "The core React UI kit for Dara",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -24,9 +24,9 @@
     "@babel/preset-env": "^7.15.6",
     "@babel/preset-react": "^7.14.5",
     "@babel/preset-typescript": "^7.15.0",
-    "@darajs/eslint-config": "1.14.0-alpha.0",
-    "@darajs/prettier-config": "1.14.0-alpha.0",
-    "@darajs/stylelint-config": "1.14.0-alpha.0",
+    "@darajs/eslint-config": "1.14.0-alpha.1",
+    "@darajs/prettier-config": "1.14.0-alpha.1",
+    "@darajs/stylelint-config": "1.14.0-alpha.1",
     "@storybook/addon-a11y": "^6.5.16",
     "@storybook/addon-actions": "^6.5.16",
     "@storybook/addon-essentials": "^6.5.16",
@@ -67,9 +67,9 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.14.0-alpha.0",
-    "@darajs/ui-icons": "1.14.0-alpha.0",
-    "@darajs/ui-utils": "1.14.0-alpha.0",
+    "@darajs/styled-components": "1.14.0-alpha.1",
+    "@darajs/ui-icons": "1.14.0-alpha.1",
+    "@darajs/ui-utils": "1.14.0-alpha.1",
     "@floating-ui/react": "^0.26.12",
     "@fortawesome/free-regular-svg-icons": "~6.4.0",
     "@fortawesome/free-solid-svg-icons": "~6.4.0",
