@@ -4,9 +4,10 @@ import { rest } from 'msw';
 import hash from 'object-hash';
 import { useRecoilCallback } from 'recoil';
 
+import { setSessionToken } from '@/auth/use-session-token';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
-import { DaraEventMap , DataVariable, TriggerVariableImpl } from '@/types/core';
+import { DaraEventMap, DataVariable, TriggerVariableImpl } from '@/types/core';
 
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import {
@@ -16,7 +17,6 @@ import {
 } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Action, DerivedVariable, SingleVariable, UrlVariable, Variable } from '../../js/types';
-
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
@@ -105,11 +105,14 @@ describe('useVariable', () => {
         jest.useFakeTimers();
         jest.restoreAllMocks();
 
+        setSessionToken(SESSION_TOKEN);
+
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
     });
     afterEach(() => {
+        setSessionToken(null);
         jest.clearAllTimers();
         jest.useRealTimers();
         server.resetHandlers();
@@ -218,10 +221,7 @@ describe('useVariable', () => {
                 result.current[1](newValue);
             });
 
-            expect(setItemSpy).toHaveBeenCalledWith(
-                getSessionKey(SESSION_TOKEN, 'session-test-1'),
-                JSON.stringify(newValue)
-            );
+            expect(setItemSpy).toHaveBeenCalledWith(getSessionKey('session-test-1'), JSON.stringify(newValue));
             expect(result.current[0]).toEqual(newValue);
         });
 
@@ -253,10 +253,7 @@ describe('useVariable', () => {
             });
 
             // The whole object should be stored in localStorage
-            expect(setItemSpy).toHaveBeenCalledWith(
-                getSessionKey(SESSION_TOKEN, 'session-test-2'),
-                JSON.stringify(newValue)
-            );
+            expect(setItemSpy).toHaveBeenCalledWith(getSessionKey('session-test-2'), JSON.stringify(newValue));
             expect(result.current[0]).toEqual(newValue.val);
         });
 
@@ -267,7 +264,7 @@ describe('useVariable', () => {
             const defaultValue = { val: 0 };
             const storedValue = { val: 1 };
 
-            localStorage.setItem(getSessionKey(SESSION_TOKEN, 'session-test-3'), JSON.stringify(storedValue));
+            localStorage.setItem(getSessionKey('session-test-3'), JSON.stringify(storedValue));
 
             const { result } = renderHook(
                 () =>
@@ -285,7 +282,7 @@ describe('useVariable', () => {
 
             // Stored value should be used instead of default
             expect(result.current[0]).toEqual(storedValue);
-            expect(getItemSpy).toHaveBeenCalledWith(getSessionKey(SESSION_TOKEN, 'session-test-3'));
+            expect(getItemSpy).toHaveBeenCalledWith(getSessionKey('session-test-3'));
         });
 
         it('should restore values from localStorage for a Variable with nested', () => {
@@ -295,7 +292,7 @@ describe('useVariable', () => {
             const defaultValue = { val: 0 };
             const storedValue = { val: 1 };
 
-            localStorage.setItem(getSessionKey(SESSION_TOKEN, 'session-test-4'), JSON.stringify(storedValue));
+            localStorage.setItem(getSessionKey('session-test-4'), JSON.stringify(storedValue));
 
             const { result } = renderHook(
                 () =>
@@ -313,7 +310,7 @@ describe('useVariable', () => {
 
             // Stored value should be used instead of default
             expect(result.current[0]).toEqual(storedValue.val);
-            expect(getItemSpy).toHaveBeenCalledWith(getSessionKey(SESSION_TOKEN, 'session-test-4'));
+            expect(getItemSpy).toHaveBeenCalledWith(getSessionKey('session-test-4'));
         });
 
         it('should handle DerivedVariable as the default', async () => {

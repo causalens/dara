@@ -1,10 +1,11 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 import { request } from '@/api';
-import { AuthCtx, PartialRequestExtrasProvider, RequestExtrasProvider, useRequestExtras } from '@/shared';
+import { setSessionToken } from '@/auth/use-session-token';
+import { PartialRequestExtrasProvider, RequestExtrasProvider, useRequestExtras } from '@/shared';
 
 /**
  * Testbed component that makes a request and displays the result.
@@ -37,24 +38,22 @@ const server = setupServer(
     })
 );
 
-function authRender({ children }: { children: ReactNode }): JSX.Element {
-    return <AuthCtx.Provider value={{ setToken: () => {}, token: 'TEST_TOKEN' }}>{children}</AuthCtx.Provider>;
-}
-
 describe('Request Extras', () => {
     beforeEach(() => {
         server.listen();
+        setSessionToken('TEST_TOKEN');
     });
 
-    afterEach(() => server.resetHandlers());
+    afterEach(() => {
+        server.resetHandlers();
+        setSessionToken(null);
+    });
     afterAll(() => server.close());
 
     it('should send session token', async () => {
-        const { getByTestId } = render(<TestComponent />, { wrapper: authRender });
+        const { getByTestId } = render(<TestComponent />);
 
-        act(() => {
-            fireEvent.click(getByTestId('request'));
-        });
+        fireEvent.click(getByTestId('request'));
 
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
@@ -73,13 +72,10 @@ describe('Request Extras', () => {
                 }}
             >
                 <TestComponent />
-            </RequestExtrasProvider>,
-            { wrapper: authRender }
+            </RequestExtrasProvider>
         );
 
-        act(() => {
-            fireEvent.click(getByTestId('request'));
-        });
+        fireEvent.click(getByTestId('request'));
 
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
@@ -107,13 +103,10 @@ describe('Request Extras', () => {
                 >
                     <TestComponent />
                 </RequestExtrasProvider>
-            </RequestExtrasProvider>,
-            { wrapper: authRender }
+            </RequestExtrasProvider>
         );
 
-        act(() => {
-            fireEvent.click(getByTestId('request'));
-        });
+        fireEvent.click(getByTestId('request'));
 
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
@@ -142,13 +135,10 @@ describe('Request Extras', () => {
                 >
                     <TestComponent />
                 </PartialRequestExtrasProvider>
-            </RequestExtrasProvider>,
-            { wrapper: authRender }
+            </RequestExtrasProvider>
         );
 
-        act(() => {
-            fireEvent.click(getByTestId('request'));
-        });
+        fireEvent.click(getByTestId('request'));
 
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);

@@ -33,12 +33,15 @@ from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
 
-def decode_token(token: str) -> TokenData:
+def decode_token(token: str, **kwargs) -> TokenData:
     """
     Decode a JWT token
+
+    :param token: the JWT token to decode
+    :param kwargs: additional arguments to pass to the jwt.decode function
     """
     try:
-        return TokenData.parse_obj(jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGO]))
+        return TokenData.parse_obj(jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGO], **kwargs))
     except jwt.ExpiredSignatureError:
         raise AuthError(code=401, detail=EXPIRED_TOKEN_ERROR)
     except jwt.DecodeError:
@@ -52,11 +55,13 @@ def sign_jwt(
     groups: List[str],
     id_token: Optional[str] = None,
     exp: Optional[Union[datetime, int]] = None,
+    session_id: Optional[str] = None,
 ):
     """
     Create a new Dara JWT token
     """
-    session_id = str(uuid.uuid4())
+    if session_id is None:
+        session_id = str(uuid.uuid4())
 
     # Default expiry is 1 day unless specified
     if exp is None:
