@@ -19,7 +19,15 @@ from inspect import iscoroutinefunction
 from typing import Union, cast
 
 import jwt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from dara.core.auth.base import BaseAuthConfig
@@ -108,6 +116,7 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 @auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
+    background_tasks: BackgroundTasks,
     dara_refresh_token: Union[str, None] = Cookie(default=None),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ):
@@ -130,9 +139,15 @@ async def handle_refresh_token(
             ),
         )
 
-    from dara.core.internal.registries import auth_registry
+    from dara.core.internal.registries import (
+        auth_registry,
+        utils_registry,
+        websocket_registry,
+    )
+    from dara.core.internal.websocket import WebsocketManager
 
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+    ws_manager: WebsocketManager = utils_registry.get('WebsocketManager')
 
     try:
         # decode the old token ignoring expiry date
@@ -140,6 +155,17 @@ async def handle_refresh_token(
 
         # Refresh logic up to implementation - passing in old token data so session_id can be preserved
         session_token, refresh_token = auth_config.refresh_token(old_token_data, dara_refresh_token)
+
+        # Notify the active websocket handlers (i.e. active connections, per each tab open)
+        # so they can update the data in ContextVars
+        async def notify_ws_connections():
+            session_token_data = decode_token(session_token)
+            channels = websocket_registry.get(old_token_data.session_id)
+            for channel in channels:
+                if handler := ws_manager.handlers.get(channel):
+                    await handler.update_token(session_token_data)
+
+        background_tasks.add_task(notify_ws_connections)
 
         # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
         response.set_cookie(
