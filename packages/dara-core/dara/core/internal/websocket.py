@@ -180,7 +180,7 @@ class WebSocketHandler:
         self.receive_stream = receive_stream
         self.send_stream = send_stream
 
-        token_send_stream, token_receive_stream = anyio.create_memory_object_stream(math.inf)
+        token_send_stream, token_receive_stream = anyio.create_memory_object_stream[TokenData](math.inf)
         self.token_send_stream = token_send_stream
         self.token_receive_stream = token_receive_stream
 
@@ -206,7 +206,7 @@ class WebSocketHandler:
         """
         try:
             return self.token_receive_stream.receive_nowait()
-        except:
+        except Exception:
             return None
 
     async def send_message(self, message: ServerMessage):
