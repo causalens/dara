@@ -87,7 +87,6 @@ class GlobalStore<TState extends Record<string, any>> {
             this.#state[key] = result;
 
             // success - notify subscribers, unlock pending promises and set the value
-            this.#notify(key, result);
             unlock(result);
             this.setValue(key, result);
         } catch (e) {
