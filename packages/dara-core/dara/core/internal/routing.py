@@ -212,7 +212,6 @@ def create_router(config: Configuration):
     async def get_auth_config():  # pylint: disable=unused-variable
         return {
             'auth_components': config.auth_config.component_config.dict(),
-            'supports_token_refresh': config.auth_config.supports_token_refresh,
         }
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])

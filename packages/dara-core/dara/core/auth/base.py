@@ -69,14 +69,6 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     Defines components to use for auth routes
     """
 
-    supports_token_refresh: ClassVar[bool] = False
-    """
-    Whether this auth config supports token refresh.
-
-    If an auth config supports token refresh, it should override the refresh_token method
-    and set this to True.
-    """
-
     @abc.abstractmethod
     def get_token(self, body: SessionRequestBody) -> Union[TokenResponse, RedirectResponse]:
         """

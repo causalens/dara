@@ -5,7 +5,6 @@ title: Changelog
 ## NEXT
 
 -   Added support for seamless token refresh mechanism. A provided auth config can be configured to support token refresh by:
-    -   setting the `supports_token_refresh` flag on the config to enable the periodic refresh
     -   implement the `refresh_token` method to sign a new token, reusing the previous session_id for continuity
     -   adding some mechanism to set a `dara_refresh_token` cookie, e.g. via custom `components_config` and endpoints such as `/sso-callback` for SSO auth
 
