@@ -1,8 +1,23 @@
+/**
+ * Global state store, intended to be used as a singleton or in a context.
+ * Supports a simple key-value store with subscriptions and async value replacement,
+ * while ensuring that only one replacement is in progress at a time.
+ */
 class GlobalStore<TState extends Record<string, any>> {
+    /**
+     * Internal key-value state
+     */
     #state: TState;
 
+    /**
+     * Locks for each key to ensure only one replacement is in progress at a time.
+     * Each promise represents an ongoing replacement which will resolve to the new value or reject if replacement fails.
+     */
     #locks: Record<keyof TState, Promise<TState[keyof TState]>>;
 
+    /**
+     * Subscribers for each key.
+     */
     #subscribers: Record<keyof TState, ((val: TState[keyof TState]) => void)[]>;
 
     constructor() {
@@ -12,8 +27,8 @@ class GlobalStore<TState extends Record<string, any>> {
     }
 
     /**
-     * Clear the store
-     * Removes all values and subscribers
+     * Clear the store.
+     * Removes all values and subscribers.
      */
     public clear(): void {
         this.#state = {} as TState;
@@ -52,8 +67,8 @@ class GlobalStore<TState extends Record<string, any>> {
      * @param value - value to set
      */
     public setValue(key: keyof TState, value: TState[keyof TState]): void {
-        this.#notify(key, value);
         this.#state[key] = value;
+        this.#notify(key, value);
     }
 
     /**
@@ -67,10 +82,13 @@ class GlobalStore<TState extends Record<string, any>> {
         key: TKey,
         fn: () => Promise<TState[TKey]>
     ): Promise<TState[TKey]> {
+        // If there's already a replacement in progress, return the promise of the ongoing replacement
         if (this.#locks[key]) {
             return this.#locks[key] as Promise<TState[TKey]>;
         }
 
+        // Create a new Promise to resolve to the replaced value
+        // TODO: this can be Promise.withResolvers once it's more widely supported
         let unlock: (res: TState[TKey]) => void;
         let unlockError: (err: Error) => void;
         const lockPromise = new Promise<TState[TKey]>((resolve, reject) => {
@@ -78,21 +96,25 @@ class GlobalStore<TState extends Record<string, any>> {
             unlockError = reject;
         });
 
+        // Store it for the given key so we can resolve other replacements/retrievals to the same promise
         this.#locks[key] = lockPromise;
 
         let result: TState[TKey];
 
         try {
+            // Run the provided function to get the new value
             result = await fn();
-            this.#state[key] = result;
 
-            // success - notify subscribers, unlock pending promises and set the value
-            unlock(result);
+            // On success - set the value (notifying subscribers) and resolve the 'lock' promise.
+            // This resolves both the caller and other ongoing requests blocking on the lock to the new value.
             this.setValue(key, result);
+            unlock(result);
         } catch (e) {
-            // error - error out pending promises
+            // On error - error out the 'lock' promise.
+            // This errors both the caller and other ongoing requests blocking on the lock.
             unlockError(e);
         } finally {
+            // Clear the lock for the key so future replaceValue calls call the `fn` again
             delete this.#locks[key];
         }
 
@@ -117,6 +139,12 @@ class GlobalStore<TState extends Record<string, any>> {
         };
     }
 
+    /**
+     * Notify all subscribers of a key that the value has changed.
+     *
+     * @param key - key to notify subscribers of
+     * @param value - new value
+     */
     #notify<TKey extends keyof TState>(key: TKey, value: TState[TKey]): void {
         if (this.#subscribers[key]) {
             this.#subscribers[key].forEach((cb) => cb(value));
