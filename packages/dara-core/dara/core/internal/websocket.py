@@ -495,7 +495,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})
-                        if data['type'] == 'token_update':
+                        elif data['type'] == 'token_update':
                             try:
                                 # update Auth context vars for the WS connection
                                 update_context(decode_token(data['message']))

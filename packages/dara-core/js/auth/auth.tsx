@@ -74,7 +74,6 @@ interface AuthComponents {
 
 interface AuthConfig {
     auth_components: AuthComponents;
-    supports_token_refresh: boolean;
 }
 
 /**
