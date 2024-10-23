@@ -8,6 +8,9 @@ on:
 
 jobs:
   lint-and-tests:
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
