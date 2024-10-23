@@ -492,7 +492,6 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         # as the latter does not properly handle disconnections e.g. when relaoading the server
                         data = await websocket.receive_json()
 
-
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})

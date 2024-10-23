@@ -1,4 +1,6 @@
+import asyncio
 import datetime
+import time
 
 import jwt
 import pytest
@@ -6,18 +8,20 @@ from async_asgi_testclient import TestClient as AsyncClient
 
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
 from dara.core.auth.definitions import ID_TOKEN, JWT_ALGO, SESSION_ID, TokenData
+from dara.core.auth.utils import token_refresh_cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
 from dara.core.main import _start_application
 
-from tests.python.utils import (
-    TEST_JWT_SECRET,
-    TEST_TOKEN,
-    _async_ws_connect,
-    get_ws_messages,
-)
+from tests.python.utils import TEST_JWT_SECRET, TEST_TOKEN, _async_ws_connect
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    yield
+    token_refresh_cache.clear()
 
 
 async def test_verify_session():
@@ -286,3 +290,200 @@ async def test_refresh_token_live_ws_connection():
             await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
             ws1_updated_message = await ws1.receive_json()
             assert ws1_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}
+
+
+async def test_refresh_token_concurrent_requests():
+    """Test that concurrent requests with the same refresh token return the same result"""
+    config = ConfigurationBuilder()
+    refresh_count = 0
+
+    class ConcurrentTestAuthConfig(BasicAuthConfig):
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            nonlocal refresh_count
+            # Add a small delay to simulate work and increase chance of concurrent access
+            time.sleep(0.1)
+            refresh_count += 1
+            return f'session_token_{refresh_count}', f'refresh_token_{refresh_count}'
+
+    config.add_auth(ConcurrentTestAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    old_token_data = TokenData(
+        session_id='session',
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+
+    async def make_request(client):
+        return await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'same_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+
+    async with AsyncClient(app) as client:
+        # Make 3 concurrent requests
+        responses = await asyncio.gather(make_request(client), make_request(client), make_request(client))
+
+        # All responses should be successful
+        assert all(r.status_code == 200 for r in responses)
+
+        # All responses should have the same token (from cache)
+        tokens = [r.json()['token'] for r in responses]
+        assert all(token == tokens[0] for token in tokens)
+
+        # All responses should have the same refresh token
+        refresh_tokens = [r.cookies['dara_refresh_token'] for r in responses]
+        assert all(rt == refresh_tokens[0] for rt in refresh_tokens)
+
+        # Only one actual refresh should have occurred
+        assert refresh_count == 1
+
+
+async def test_refresh_token_cache_expiration():
+    """Test that cache expires after TTL and new tokens are generated"""
+    config = ConfigurationBuilder()
+    refresh_count = 0
+
+    class ExpirationTestAuthConfig(BasicAuthConfig):
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            nonlocal refresh_count
+            refresh_count += 1
+            return f'session_token_{refresh_count}', f'refresh_token_{refresh_count}'
+
+    config.add_auth(ExpirationTestAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    old_token_data = TokenData(
+        session_id='session',
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+
+    async with AsyncClient(app) as client:
+        # First request
+        response1 = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'test_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        token1 = response1.json()['token']
+
+        # Immediate second request should use cache
+        response2 = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'test_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        token2 = response2.json()['token']
+
+        assert token1 == token2
+        assert refresh_count == 1
+
+        # Wait for cache to expire (6 seconds to be safe)
+        await asyncio.sleep(6)
+
+        # Third request should get new tokens
+        response3 = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'test_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        token3 = response3.json()['token']
+
+        assert token3 != token1
+        assert refresh_count == 2
+
+
+async def test_refresh_token_different_tokens_not_cached():
+    """Test that requests with different refresh tokens don't share cache"""
+    config = ConfigurationBuilder()
+    refresh_count = 0
+
+    class DifferentTokenTestAuthConfig(BasicAuthConfig):
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            nonlocal refresh_count
+            refresh_count += 1
+            return f'session_token_{refresh_token}_{refresh_count}', f'refresh_token_{refresh_count}'
+
+    config.add_auth(DifferentTokenTestAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    old_token_data = TokenData(
+        session_id='session',
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+
+    async with AsyncClient(app) as client:
+        # Make concurrent requests with different refresh tokens
+        responses = await asyncio.gather(
+            client.post(
+                '/api/auth/refresh-token',
+                cookies={'dara_refresh_token': 'refresh_token_1'},
+                headers={'Authorization': f'Bearer {old_token}'},
+            ),
+            client.post(
+                '/api/auth/refresh-token',
+                cookies={'dara_refresh_token': 'refresh_token_2'},
+                headers={'Authorization': f'Bearer {old_token}'},
+            ),
+        )
+
+        # Both requests should succeed
+        assert all(r.status_code == 200 for r in responses)
+
+        # Should get different tokens for different refresh tokens
+        tokens = [r.json()['token'] for r in responses]
+        assert tokens[0] != tokens[1]
+
+        # Should have made two refreshes
+        assert refresh_count == 2
+
+
+async def test_refresh_token_error_not_cached():
+    """Test that failed refresh attempts are not cached"""
+    config = ConfigurationBuilder()
+    error_count = 0
+    success_count = 0
+
+    class ErrorTestAuthConfig(BasicAuthConfig):
+        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            nonlocal error_count, success_count
+            if error_count < 1:  # First call fails
+                error_count += 1
+                raise Exception('some error')
+            success_count += 1
+            return f'session_token_{success_count}', f'refresh_token_{success_count}'
+
+    config.add_auth(ErrorTestAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    old_token_data = TokenData(
+        session_id='session',
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+
+    async with AsyncClient(app) as client:
+        # First request should fail
+        response1 = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'test_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        assert response1.status_code == 401
+        assert 'Token is invalid' in response1.json()['detail']['message']
+
+        # Immediate second request should succeed (not using error cache)
+        response2 = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'test_refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        assert response2.status_code == 200
+        assert success_count == 1

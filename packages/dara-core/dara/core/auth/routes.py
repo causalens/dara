@@ -40,7 +40,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
-from dara.core.auth.utils import decode_token
+from dara.core.auth.utils import cached_refresh_token, decode_token
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -148,7 +148,9 @@ async def handle_refresh_token(
         old_token_data = decode_token(credentials.credentials, options={'verify_exp': False})
 
         # Refresh logic up to implementation - passing in old token data so session_id can be preserved
-        session_token, refresh_token = auth_config.refresh_token(old_token_data, dara_refresh_token)
+        session_token, refresh_token = await cached_refresh_token(
+            auth_config.refresh_token, old_token_data, dara_refresh_token
+        )
 
         # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
         response.set_cookie(
