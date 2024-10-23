@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import styled, { ThemeProvider } from '@darajs/styled-components';
 
 import { WebSocketClient, setupWebsocket, useActions, useComponents, useConfig, useTemplate } from '@/api';
-import { useSessionToken } from '@/auth/use-session-token';
+import { onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
 import { GlobalTaskProvider, RegistriesCtx, WebSocketCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
@@ -56,7 +56,6 @@ const RootWrapper = styled.div`
  */
 function TemplateRoot(): JSX.Element {
     const token = useSessionToken();
-    const [previousToken, setPreviousToken] = useState(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
 
@@ -66,13 +65,18 @@ function TemplateRoot(): JSX.Element {
 
     useEffect(() => {
         cleanSessionCache(token);
+    }, [token]);
 
-        // once token changes, notify the WS connection
-        if (wsClient && token !== previousToken) {
-            wsClient.updateToken(token);
-            setPreviousToken(token);
+    useEffect(() => {
+        if (!wsClient) {
+            return;
         }
-    }, [token, previousToken, wsClient]);
+
+        // subscribe to token changes and notify the live WS connection
+        return onTokenChange((newToken) => {
+            wsClient.updateToken(newToken);
+        });
+    }, [wsClient]);
 
     useEffect(() => {
         if (config?.title) {
