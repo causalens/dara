@@ -156,16 +156,6 @@ class WebSocketHandler:
     Stream containing messages to send to the client.
     """
 
-    token_send_stream: MemoryObjectSendStream[TokenData]
-    """
-    Stream for sending token updates to the WS connection.
-    """
-
-    token_receive_stream: MemoryObjectReceiveStream[TokenData]
-    """
-    Stream for receiving token updates in the WS connection.
-    """
-
     pending_responses: Dict[str, Tuple[Event, Optional[Any]]]
     """
     A map of pending responses from the client. The key is the message ID and the value is a tuple of the event to
@@ -180,34 +170,8 @@ class WebSocketHandler:
         self.receive_stream = receive_stream
         self.send_stream = send_stream
 
-        token_send_stream, token_receive_stream = anyio.create_memory_object_stream[TokenData](math.inf)
-        self.token_send_stream = token_send_stream
-        self.token_receive_stream = token_receive_stream
-
         self.channel_id = channel_id
         self.pending_responses = {}
-
-    async def update_token(self, token_data: TokenData):
-        """
-        Update the token for the client.
-        Should be used if the token is refreshed or changed in some way
-        so the live WS connection can update it's ContextVars accordingly
-        and they're up to date in custom message handlers.
-
-        :param token_data: The new token data
-        """
-        await self.token_send_stream.send(token_data)
-
-    def get_token_update(self) -> Optional[TokenData]:
-        """
-        Get the latest token update for the client.
-
-        :return: The latest token update
-        """
-        try:
-            return self.token_receive_stream.receive_nowait()
-        except Exception:
-            return None
 
     async def send_message(self, message: ServerMessage):
         """
@@ -528,13 +492,16 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         # as the latter does not properly handle disconnections e.g. when relaoading the server
                         data = await websocket.receive_json()
 
-                        # update Auth context vars for the WS connection
-                        while new_token_data := handler.get_token_update():
-                            update_context(new_token_data)
 
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})
+                        if data['type'] == 'token_update':
+                            try:
+                                # update Auth context vars for the WS connection
+                                update_context(decode_token(data['message']))
+                            except Exception as e:
+                                eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
                                 parsed_data = parse_obj_as(ClientMessage, data)

@@ -4,6 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { validateResponse } from '@darajs/ui-utils';
 
 import globalStore from '@/shared/global-state-store';
+import { getTokenKey } from '@/shared/utils/embed';
 
 /**
  * Extra options to pass to the request function.
@@ -68,7 +69,7 @@ export class RequestExtrasSerializable {
  */
 export async function request(url: string | URL, options: RequestInit, extras?: RequestExtras): Promise<Response> {
     // block on the token in case it's locked, i.e. being refreshed by another concurrent request
-    const sessionToken = await globalStore.getValue('sessionToken');
+    const sessionToken = await globalStore.getValue(getTokenKey());
     const mergedOptions = extras ? { ...options, ...extras } : options;
 
     const { headers, ...other } = mergedOptions;
@@ -85,7 +86,7 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
         headersInterface.set('Content-Type', 'application/json');
     }
 
-    // default auth header if token is passed
+    // default auth header if token is present
     if (sessionToken && !headersInterface.has('Authorization')) {
         headersInterface.set('Authorization', `Bearer ${sessionToken}`);
     }
@@ -104,7 +105,7 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
             // Lock the token value while it's being replaced.
             // If it's already being replaced, this will instead wait for the replacement to complete
             // rather than invoking the refresh again.
-            const refreshedToken = await globalStore.replaceValue('sessionToken', async () => {
+            const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
                     headers: headersInterface,
                     ...other,

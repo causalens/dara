@@ -1,9 +1,10 @@
+import { waitFor } from '@testing-library/dom';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
 import globalStore from '@/shared/global-state-store';
-import { waitFor } from '@testing-library/dom';
+import { getTokenKey } from '@/shared/utils/embed';
 
 const VALID_TOKEN = 'VALID';
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
@@ -60,6 +61,7 @@ describe('HTTP Utils', () => {
         // force delete the cookie by making it expire
         document.cookie = `${REFRESH_TOKEN_NAME}=; Expires=1 Jan 1970 00:00:00 GMT`;
         globalStore.clear();
+        globalStore.setValue(getTokenKey(), null);
         jest.clearAllTimers();
         jest.useRealTimers();
         server.resetHandlers();
@@ -95,9 +97,7 @@ describe('HTTP Utils', () => {
         const requestCount = 30;
 
         const responses = await Promise.all(
-            Array.from({ length: requestCount }, () =>
-                request('/error-401', { method: 'GET', credentials: 'include' })
-            )
+            Array.from({ length: requestCount }, () => request('/error-401', { method: 'GET', credentials: 'include' }))
         );
 
         for (const res of responses) {
@@ -114,9 +114,7 @@ describe('HTTP Utils', () => {
         const requestCount = 30;
 
         const responses = await Promise.all(
-            Array.from({ length: requestCount }, () =>
-                request('/error-401', { method: 'GET' })
-            )
+            Array.from({ length: requestCount }, () => request('/error-401', { method: 'GET' }))
         );
 
         responses.forEach((res) => {
@@ -133,18 +131,22 @@ describe('HTTP Utils', () => {
 
         // set a delay on the refresh to simulate a slow response
         let resolve;
-        delay = new Promise((r) => { resolve = r; });
+        delay = new Promise((r) => {
+            resolve = r;
+        });
 
         // make one request to trigger the refresh
         const resPromise = request('/error-401', { method: 'GET', credentials: 'include' });
 
         // wait for first request to start refreshing
         await waitFor(() => expect(refreshAttempted).toHaveBeenCalledTimes(1));
+        expect(requested401).toHaveBeenCalledTimes(1);
 
         // make another request while the refresh is still in progress
         const res2Promise = request('/error-403', { method: 'GET', credentials: 'include' });
 
         resolve();
+        delay = null;
 
         // both requests should resolve successfully
         const res = await resPromise;

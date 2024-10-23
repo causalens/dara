@@ -5,11 +5,11 @@ import DefaultFallback from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
 import Center from '@/shared/center/center';
 import { ImportersCtx } from '@/shared/context';
-import globalStore from '@/shared/global-state-store';
 import PrivateRoute from '@/shared/private-route/private-route';
-import { getToken, getTokenKey } from '@/shared/utils';
+import { getToken } from '@/shared/utils';
 
 import { AuthComponent, useAuthConfig } from './auth';
+import { setSessionToken } from './use-session-token';
 
 interface AuthWrapperProps {
     /** The children to wrap */
@@ -66,21 +66,8 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
     // set initial token from local storage as soon as we render
     if (!isMounted.current) {
         isMounted.current = true;
-        globalStore.setValue('sessionToken', getToken());
+        setSessionToken(getToken());
     }
-
-    useEffect(() => {
-        // sync the token with local storage
-        return globalStore.subscribe('sessionToken', (newToken: string) => {
-            const key = getTokenKey();
-
-            if (newToken) {
-                localStorage.setItem(key, newToken);
-            } else {
-                localStorage.removeItem(key);
-            }
-        });
-    }, []);
 
     if (isLoading) {
         return (

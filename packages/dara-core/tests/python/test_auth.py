@@ -265,31 +265,24 @@ async def test_refresh_token_live_ws_connection():
             ws1_message = await ws1.receive_json()
             assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-            async with _async_ws_connect(client, token=old_token) as ws2:
-                # check initial ws2 context
-                chan2 = await ws2.receive_json()
-                await ws2.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-                ws2_message = await ws2.receive_json()
-                assert ws2_message['message']['data'] == {
-                    'id_token': 'OLD_TOKEN',
-                    'session_id': 'session_1',
-                }
+            # Refresh token for ws1
+            response = await client.post(
+                '/api/auth/refresh-token',
+                cookies={'dara_refresh_token': 'refresh_token'},
+                headers={'Authorization': f'Bearer {old_token}'},
+            )
+            assert response.status_code == 200
+            assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
-                # Refresh token for ws1
-                response = await client.post(
-                    '/api/auth/refresh-token',
-                    cookies={'dara_refresh_token': 'refresh_token'},
-                    headers={'Authorization': f'Bearer {old_token}'},
-                )
-                assert response.status_code == 200
-                assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
+            # token in the WS connection should still be old
+            await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
+            ws1_message = await ws1.receive_json()
+            assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-                # Check that the ID token has been updated for both ws but session stays the same
-                await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-                ws1_updated_message = await ws1.receive_json()
-                assert ws1_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}
+            # Now imitate client notifying the backend that the token has been updated
+            await ws1.send_json({'type': 'token_update', 'message': response.json()['token']})
 
-                # ws2 should be unchanged
-                await ws2.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-                ws2_updated_message = await ws2.receive_json()
-                assert ws2_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}
+            # Check that the ID token has been updated but session stays the same
+            await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
+            ws1_updated_message = await ws1.receive_json()
+            assert ws1_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}

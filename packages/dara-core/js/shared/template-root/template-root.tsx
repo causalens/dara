@@ -56,6 +56,7 @@ const RootWrapper = styled.div`
  */
 function TemplateRoot(): JSX.Element {
     const token = useSessionToken();
+    const [previousToken, setPreviousToken] = useState(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
 
@@ -65,7 +66,13 @@ function TemplateRoot(): JSX.Element {
 
     useEffect(() => {
         cleanSessionCache(token);
-    }, [token]);
+
+        // once token changes, notify the WS connection
+        if (token !== previousToken) {
+            wsClient.updateToken(token);
+            setPreviousToken(token);
+        }
+    }, [token, previousToken]);
 
     useEffect(() => {
         if (config?.title) {
