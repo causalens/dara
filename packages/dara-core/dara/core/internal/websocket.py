@@ -167,9 +167,10 @@ class WebSocketHandler:
 
     def __init__(self, channel_id: str):
         send_stream, receive_stream = create_memory_object_stream[ServerMessage](math.inf)
-        self.channel_id = channel_id
-        self.send_stream = send_stream
         self.receive_stream = receive_stream
+        self.send_stream = send_stream
+
+        self.channel_id = channel_id
         self.pending_responses = {}
 
     async def send_message(self, message: ServerMessage):
@@ -446,17 +447,20 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     else:
         sessions_registry.set(user_identifier, {token_content.session_id})
 
-    # Set Auth context vars for the WS connection
-    USER.set(
-        UserData(
-            identity_id=token_content.identity_id,
-            identity_name=token_content.identity_name,
-            identity_email=token_content.identity_email,
-            groups=token_content.groups,
+    def update_context(token_data: TokenData):
+        USER.set(
+            UserData(
+                identity_id=token_data.identity_id,
+                identity_name=token_data.identity_name,
+                identity_email=token_data.identity_email,
+                groups=token_data.groups,
+            )
         )
-    )
-    SESSION_ID.set(token_content.session_id)
-    ID_TOKEN.set(token_content.id_token)
+        SESSION_ID.set(token_data.session_id)
+        ID_TOKEN.set(token_data.id_token)
+
+    # Set initial Auth context vars for the WS connection
+    update_context(token_content)
 
     # Change protocol from http to ws - from this point exceptions can't be raised
     await websocket.accept()
@@ -491,6 +495,12 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})
+                        elif data['type'] == 'token_update':
+                            try:
+                                # update Auth context vars for the WS connection
+                                update_context(decode_token(data['message']))
+                            except Exception as e:
+                                eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
                                 parsed_data = parse_obj_as(ClientMessage, data)

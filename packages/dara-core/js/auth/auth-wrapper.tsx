@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { ReactNode, useContext, useEffect, useState } from 'react';
+import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 
 import DefaultFallback from '@/components/fallback/default';
@@ -7,10 +6,10 @@ import ErrorPage from '@/pages/error-page';
 import Center from '@/shared/center/center';
 import { ImportersCtx } from '@/shared/context';
 import PrivateRoute from '@/shared/private-route/private-route';
-import { getToken, getTokenKey } from '@/shared/utils';
+import { getToken } from '@/shared/utils';
 
-import { AuthComponent, useAuthComponents } from './auth';
-import AuthContext from './auth-context';
+import { AuthComponent, useAuthConfig } from './auth';
+import { setSessionToken } from './use-session-token';
 
 interface AuthWrapperProps {
     /** The children to wrap */
@@ -48,36 +47,26 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
             .catch((err) => {
                 throw new Error(`Failed to import module ${props.component.py_module}`, err);
             });
-    }, [props.component]);
+    }, [props.component, importers]);
 
     return component;
 }
 
 /**
- * Simple Auth Wrapper component that makes the session request to the backend and then provides the session token down
- * to the rest of the app via context
+ * Simple Auth Wrapper component that initializes the token from localStorage,
+ * synchronizes token with localStorage and refreshes the token if it's about to expire.
+ * Renders the login/logout components and the children wrapped in PrivateRoute.
  *
  * @param props - the component props
  */
 function AuthWrapper(props: AuthWrapperProps): JSX.Element {
-    const [token, setToken] = useState<string>(() => getToken());
-    const { data: authComponents, isLoading } = useAuthComponents();
+    const { data: authConfig, isLoading } = useAuthConfig();
+    const isMounted = useRef(false);
 
-    /**
-     * Set token handler - updates the token in state and local storage
-     *
-     * @param newToken new token
-     */
-    function onSetToken(newToken: string): void {
-        const key = getTokenKey();
-
-        if (newToken) {
-            localStorage.setItem(key, newToken);
-        } else {
-            localStorage.removeItem(key);
-        }
-
-        setToken(newToken);
+    // set initial token from local storage as soon as we render
+    if (!isMounted.current) {
+        isMounted.current = true;
+        setSessionToken(getToken());
     }
 
     if (isLoading) {
@@ -88,26 +77,24 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
         );
     }
 
-    const { login, logout, ...extraRoutes } = authComponents;
+    const { login, logout, ...extraRoutes } = authConfig.auth_components;
 
     return (
-        <AuthContext.Provider value={{ setToken: onSetToken, token }}>
-            <Switch>
-                <Route path="/login">
-                    <DynamicAuthComponent component={login} />
+        <Switch>
+            <Route path="/login">
+                <DynamicAuthComponent component={login} />
+            </Route>
+            <Route path="/logout">
+                <DynamicAuthComponent component={logout} />
+            </Route>
+            {Object.entries(extraRoutes).map(([path, component]) => (
+                <Route key={path} path={`/${path}`}>
+                    <DynamicAuthComponent component={component} />
                 </Route>
-                <Route path="/logout">
-                    <DynamicAuthComponent component={logout} />
-                </Route>
-                {Object.entries(extraRoutes).map(([path, component]) => (
-                    <Route key={path} path={`/${path}`}>
-                        <DynamicAuthComponent component={component} />
-                    </Route>
-                ))}
-                <Route component={ErrorPage} path="/error" />
-                <Route path="/" render={() => <PrivateRoute>{props.children}</PrivateRoute>} />
-            </Switch>
-        </AuthContext.Provider>
+            ))}
+            <Route component={ErrorPage} path="/error" />
+            <Route path="/" render={() => <PrivateRoute>{props.children}</PrivateRoute>} />
+        </Switch>
     );
 }
 

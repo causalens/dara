@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import styled, { ThemeProvider } from '@darajs/styled-components';
 
 import { WebSocketClient, setupWebsocket, useActions, useComponents, useConfig, useTemplate } from '@/api';
-import { useSessionToken } from '@/auth/auth-context';
+import { onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
 import { GlobalTaskProvider, RegistriesCtx, WebSocketCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
@@ -66,6 +66,17 @@ function TemplateRoot(): JSX.Element {
     useEffect(() => {
         cleanSessionCache(token);
     }, [token]);
+
+    useEffect(() => {
+        if (!wsClient) {
+            return;
+        }
+
+        // subscribe to token changes and notify the live WS connection
+        return onTokenChange((newToken) => {
+            wsClient.updateToken(newToken);
+        });
+    }, [wsClient]);
 
     useEffect(() => {
         if (config?.title) {

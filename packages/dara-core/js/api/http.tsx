@@ -1,20 +1,15 @@
 /* eslint-disable import/prefer-default-export */
 import cloneDeep from 'lodash/cloneDeep';
 
-/**
- * Request options to merge into the provided options.
- */
-export interface RequestOptions {
-    options?: RequestInit;
-    sessionToken?: string;
-}
+import { validateResponse } from '@darajs/ui-utils';
+
+import globalStore from '@/shared/global-state-store';
+import { getTokenKey } from '@/shared/utils/embed';
 
 /**
  * Extra options to pass to the request function.
- * If a string is passed, it is assumed to be the session token.
- * If an object is passed, it is assumed to be a RequestOptions object with the token and additional options.
  */
-export type RequestExtras = string | RequestOptions;
+export type RequestExtras = RequestInit;
 
 /**
  * Serializable form of RequestExtras.
@@ -43,9 +38,9 @@ export class RequestExtrasSerializable {
         const serializable = cloneDeep(this.extras);
 
         // Make headers serializable
-        if (serializable.options?.headers) {
-            const headers = new Headers(serializable.options.headers);
-            serializable.options.headers = Object.fromEntries(headers.entries());
+        if (serializable?.headers) {
+            const headers = new Headers(serializable.headers);
+            serializable.headers = Object.fromEntries(headers.entries());
         }
 
         return serializable;
@@ -73,8 +68,9 @@ export class RequestExtrasSerializable {
  * @param extras request extras to be merged into the options
  */
 export async function request(url: string | URL, options: RequestInit, extras?: RequestExtras): Promise<Response> {
-    const sessionToken = typeof extras === 'string' ? extras : extras?.sessionToken;
-    const mergedOptions = extras && typeof extras === 'object' ? { ...options, ...extras.options } : options;
+    // block on the token in case it's locked, i.e. being refreshed by another concurrent request
+    const sessionToken = await globalStore.getValue(getTokenKey());
+    const mergedOptions = extras ? { ...options, ...extras } : options;
 
     const { headers, ...other } = mergedOptions;
 
@@ -90,7 +86,7 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
         headersInterface.set('Content-Type', 'application/json');
     }
 
-    // default auth header if token is passed
+    // default auth header if token is present
     if (sessionToken && !headersInterface.has('Authorization')) {
         headersInterface.set('Authorization', `Bearer ${sessionToken}`);
     }
@@ -98,8 +94,46 @@ export async function request(url: string | URL, options: RequestInit, extras?: 
     const baseUrl: string = window.dara?.base_url ?? '';
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
-    return fetch(baseUrl + urlString, {
+    const response = await fetch(baseUrl + urlString, {
         headers: headersInterface,
         ...other,
     });
+
+    // in case of an auth error, attempt to refresh the token and retry the request
+    if (response.status === 401 || response.status === 403) {
+        try {
+            // Lock the token value while it's being replaced.
+            // If it's already being replaced, this will instead wait for the replacement to complete
+            // rather than invoking the refresh again.
+            const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
+                const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
+                    headers: headersInterface,
+                    ...other,
+                    method: 'POST',
+                });
+                if (refreshResponse.ok) {
+                    const { token } = await refreshResponse.json();
+                    return token;
+                }
+
+                // this will throw an error with the error content
+                await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
+            });
+
+            // retry the request with the new token
+            headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
+            return fetch(baseUrl + urlString, {
+                headers: headersInterface,
+                ...other,
+            });
+        } catch (e) {
+            // refresh failed - return the original request, the caller is supposed to handle the error
+            // however they wish
+            // eslint-disable-next-line no-console
+            console.error('Failed to refresh token', e);
+            return response;
+        }
+    }
+
+    return response;
 }
