@@ -68,11 +68,11 @@ function TemplateRoot(): JSX.Element {
         cleanSessionCache(token);
 
         // once token changes, notify the WS connection
-        if (token !== previousToken) {
+        if (wsClient && token !== previousToken) {
             wsClient.updateToken(token);
             setPreviousToken(token);
         }
-    }, [token, previousToken]);
+    }, [token, previousToken, wsClient]);
 
     useEffect(() => {
         if (config?.title) {
