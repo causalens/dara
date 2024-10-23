@@ -186,13 +186,13 @@ Shared token refresh cache instance
 
 
 async def cached_refresh_token(
-    func: Callable[[TokenData, str], Tuple[str, str]], old_token_data: TokenData, refresh_token: str
+    do_refresh_token: Callable[[TokenData, str], Tuple[str, str]], old_token_data: TokenData, refresh_token: str
 ):
     """
     A utility to run a token refresh method with caching to prevent multiple concurrent refreshes
     and short-term caching to reduce unnecessary refreshes from multiple tabs/windows.
 
-    :param func: The function to run to refresh the token
+    :param do_refresh_token: The function to perform the token refresh
     :param old_token_data: The old token data
     :param refresh_token: The refresh token to use
     """
@@ -213,7 +213,7 @@ async def cached_refresh_token(
             return cached_result
 
         # Run the refresh function
-        result = await to_thread.run_sync(func, old_token_data, refresh_token)
+        result = await to_thread.run_sync(do_refresh_token, old_token_data, refresh_token)
 
         # update cache
         token_refresh_cache.set_cached_value(cache_key, result)
