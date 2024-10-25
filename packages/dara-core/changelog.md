@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal (JS): make request() helper options default to empty object
+
 ## 1.14.0
 
 -   Added support for seamless token refresh mechanism. A provided auth config can be configured to support token refresh by:
