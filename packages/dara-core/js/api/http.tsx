@@ -70,7 +70,7 @@ export class RequestExtrasSerializable {
 export async function request(
     url: string | URL,
     options: RequestInit = {},
-    extras: RequestExtras = {}
+    extras?: RequestExtras
 ): Promise<Response> {
     // block on the token in case it's locked, i.e. being refreshed by another concurrent request
     const sessionToken = await globalStore.getValue(getTokenKey());
