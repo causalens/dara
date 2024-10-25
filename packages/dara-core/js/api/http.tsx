@@ -64,10 +64,14 @@ export class RequestExtrasSerializable {
  * Light wrapper around fetch.
  *
  * @param url URL
- * @param options  fetch options
+ * @param options optional fetch options
  * @param extras request extras to be merged into the options
  */
-export async function request(url: string | URL, options: RequestInit, extras?: RequestExtras): Promise<Response> {
+export async function request(
+    url: string | URL,
+    options: RequestInit = {},
+    extras: RequestExtras = {}
+): Promise<Response> {
     // block on the token in case it's locked, i.e. being refreshed by another concurrent request
     const sessionToken = await globalStore.getValue(getTokenKey());
     const mergedOptions = extras ? { ...options, ...extras } : options;
