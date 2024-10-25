@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.0
 
 -   Added support for seamless token refresh mechanism. A provided auth config can be configured to support token refresh by:
     -   implement the `refresh_token` method to sign a new token, reusing the previous session_id for continuity
