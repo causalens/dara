@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.1
 
 -   Internal (JS): make request() helper options default to empty object
 
