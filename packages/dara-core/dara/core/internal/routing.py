@@ -208,9 +208,11 @@ def create_router(config: Configuration):
             'application_name': get_settings().project_name,
         }
 
-    @core_api_router.get('/auth-components')
-    async def get_auth_components():  # pylint: disable=unused-variable
-        return config.auth_config.component_config
+    @core_api_router.get('/auth-config')
+    async def get_auth_config():  # pylint: disable=unused-variable
+        return {
+            'auth_components': config.auth_config.component_config.dict(),
+        }
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
     async def get_components(name: Optional[str] = None):  # pylint: disable=unused-variable

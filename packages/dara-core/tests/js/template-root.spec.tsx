@@ -1,6 +1,7 @@
 import { waitFor } from '@testing-library/dom';
 import React from 'react';
 
+import { setSessionToken } from '@/auth/use-session-token';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
 import { TemplateRoot } from '../../js/shared';
@@ -14,8 +15,12 @@ describe('TemplateRoot', () => {
         server.listen();
         localStorage.clear();
         jest.restoreAllMocks();
+        setSessionToken('TEST_TOKEN');
     });
-    afterEach(() => server.resetHandlers());
+    afterEach(() => {
+        server.resetHandlers();
+        setSessionToken(null);
+    });
     afterAll(() => server.close());
 
     it('should render nothing until the component has loaded', async () => {
@@ -33,8 +38,12 @@ describe('TemplateRoot', () => {
     });
 
     it('should clean up cache on startup', async () => {
-        const invalidKey = getSessionKey('SOME_OTHER_SESSION_KEY', 'test-uid-1');
-        const validKey = getSessionKey('TEST_TOKEN', 'test-uid-2');
+        // get session key while an invalid token is active
+        setSessionToken('SOME_OTHER_SESSION_KEY');
+        const invalidKey = getSessionKey('test-uid-1');
+        // reset it back
+        setSessionToken('TEST_TOKEN');
+        const validKey = getSessionKey('test-uid-2');
 
         localStorage.setItem(invalidKey, 'val1');
         localStorage.setItem(validKey, 'val2');

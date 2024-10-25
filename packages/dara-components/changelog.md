@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-# NEXT
+## NEXT
 
 -   Fixed an issue where `Plotly`'s figure native `height` and `width` were not obeyed by component.
 

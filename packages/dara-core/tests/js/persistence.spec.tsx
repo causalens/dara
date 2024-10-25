@@ -9,6 +9,7 @@ import { useVariable } from '@/shared/interactivity/use-variable';
 import { BackendStore, SingleVariable } from '@/types/core';
 
 import { MockWebSocketClient, Wrapper, server } from './utils';
+import { setSessionToken } from '@/auth/use-session-token';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
@@ -21,6 +22,7 @@ describe('Variable Persistence', () => {
         window.localStorage.clear();
         jest.useFakeTimers();
         jest.restoreAllMocks();
+        setSessionToken(SESSION_TOKEN);
 
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
@@ -30,6 +32,7 @@ describe('Variable Persistence', () => {
         jest.clearAllTimers();
         jest.useRealTimers();
         server.resetHandlers();
+        setSessionToken(null);
     });
     afterAll(() => server.close());
 
@@ -69,7 +72,7 @@ describe('Variable Persistence', () => {
             fireEvent(
                 window,
                 new StorageEvent('storage', {
-                    key: getSessionKey(SESSION_TOKEN, 'session-test-1'),
+                    key: getSessionKey('session-test-1'),
                     newValue: JSON.stringify(newValue),
                     storageArea: localStorage,
                 })

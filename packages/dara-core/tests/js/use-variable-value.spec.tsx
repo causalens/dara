@@ -3,8 +3,7 @@ import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilCallback } from 'recoil';
 
-import { useSessionToken } from '@/auth/auth-context';
-import { WebSocketCtx } from '@/shared/context';
+import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
 
 import { getVariableValue } from '../../js/shared/interactivity';
@@ -28,7 +27,7 @@ function useVariableValue<VV, B extends boolean = false>(
     const taskContext = useTaskContext();
     const { client } = useContext(WebSocketCtx);
     const { search } = useLocation();
-    const token = useSessionToken();
+    const extras = useRequestExtras();
 
     if (!isVariable<VV>(variable)) {
         return () => variable;
@@ -43,11 +42,11 @@ function useVariableValue<VV, B extends boolean = false>(
                     search,
                     snapshot,
                     taskContext,
-                    token,
+                    extras
                 });
             };
         },
-        [variable.uid, taskContext, client, search, token]
+        [variable.uid, taskContext, client, search, extras]
     );
 }
 

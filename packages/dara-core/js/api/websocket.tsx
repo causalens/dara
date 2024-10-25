@@ -21,6 +21,11 @@ interface PingPongMessage {
     type: 'ping' | 'pong';
 }
 
+interface TokenUpdateMessage {
+    message: string;
+    type: 'token_update';
+}
+
 export enum TaskStatus {
     CANCELED = 'CANCELED',
     COMPLETE = 'COMPLETE',
@@ -107,6 +112,7 @@ export interface CustomMessage {
 export type WebSocketMessage =
     | InitMessage
     | PingPongMessage
+    | TokenUpdateMessage
     | TaskNotificationMessage
     | ProgressNotificationMessage
     | ServerTriggerMessage
@@ -444,6 +450,23 @@ export class WebSocketClient implements WebSocketClientInterface {
                     chunk_count: chunkCount ?? null,
                     message: value,
                     type: 'message',
+                })
+            );
+        }
+    }
+
+    /**
+     * Send a 'token_update' message to the backend to notify the live connection
+     * that a token for the current session has been updated (refreshed).
+     *
+     * @param newToken new session token
+     */
+    updateToken(newToken: string): void {
+        if (this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(
+                JSON.stringify({
+                    message: newToken,
+                    type: 'token_update',
                 })
             );
         }

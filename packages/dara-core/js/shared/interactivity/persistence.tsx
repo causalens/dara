@@ -6,13 +6,14 @@ import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'rec
 import { validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, handleAuthErrors } from '@/api';
-import { RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
+import { RequestExtrasSerializable, request } from '@/api/http';
+import { getSessionToken } from '@/auth/use-session-token';
 import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { isEmbedded } from '@/shared/utils/embed';
 import { SingleVariable, isDerivedVariable } from '@/types';
 import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
-import { WebSocketCtx, useRequestExtras } from '../context';
+import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue } from './internal';
 
@@ -122,18 +123,15 @@ function backendStoreEffect<T>(
 /**
  * Get the session key used to persist a variable value
  *
- * @param extras request extras to be merged into the options
  * @param uid uid of the variable to persist
  */
-export function getSessionKey(extras: RequestExtras, uid: string): string {
-    const sessionToken = typeof extras === 'string' ? extras : extras.sessionToken;
-
+export function getSessionKey(uid: string): string {
     // If we're within an IFrame (Jupyter)
     if (isEmbedded()) {
         return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset.daraPageId}-var-${uid}`;
     }
 
-    return `dara-session-${sessionToken}-var-${uid}`;
+    return `dara-session-${getSessionToken()}-var-${uid}`;
 }
 
 /**
@@ -146,59 +144,45 @@ export function getSessionKey(extras: RequestExtras, uid: string): string {
  * - listen: subscribe to 'storage' event for cross-tab or cross-window syncing
  */
 function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Element {
-    const extras = useRequestExtras();
+    const getStoreValue = React.useCallback<ReadItem>((itemKey) => {
+        const key = getSessionKey(itemKey);
+        return JSON.parse(localStorage.getItem(key) ?? 'null');
+    }, []);
 
-    const getStoreValue = React.useCallback<ReadItem>(
-        (itemKey) => {
-            const key = getSessionKey(extras, itemKey);
-            return JSON.parse(localStorage.getItem(key) ?? 'null');
-        },
-        [extras]
-    );
-
-    const syncStoreValues = React.useCallback<WriteItems>(
-        ({ diff }) => {
-            for (const [itemKey, value] of diff.entries()) {
-                const key = getSessionKey(extras, itemKey);
-                localStorage.setItem(key, JSON.stringify(value));
-            }
-        },
-        [extras]
-    );
+    const syncStoreValues = React.useCallback<WriteItems>(({ diff }) => {
+        for (const [itemKey, value] of diff.entries()) {
+            const key = getSessionKey(itemKey);
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+    }, []);
 
     /**
      * Listen to storage events and update the store when a change is detected.
      *
      * This is useful to keep the store in sync across tabs.
      */
-    const listenToStoreChanges = React.useCallback<ListenToItems>(
-        ({ updateItem }) => {
-            const listener = (e: StorageEvent): void => {
-                if (e.storageArea === localStorage) {
-                    if (e.key) {
-                        // check if the key matches our dara-session key
-                        const match = e.key.match(/^dara-session-(.*)-var-(.*)$/);
-                        if (match) {
-                            const [, sessionToken, uid] = match;
-                            if (
-                                (typeof extras === 'string' && sessionToken === extras) ||
-                                (typeof extras === 'object' && extras.sessionToken === sessionToken)
-                            ) {
-                                updateItem(uid, JSON.parse(e.newValue ?? 'null'));
-                            }
+    const listenToStoreChanges = React.useCallback<ListenToItems>(({ updateItem }) => {
+        const listener = (e: StorageEvent): void => {
+            if (e.storageArea === localStorage) {
+                if (e.key) {
+                    // check if the key matches our dara-session key
+                    const match = e.key.match(/^dara-session-(.*)-var-(.*)$/);
+                    if (match) {
+                        const [, sessionToken, uid] = match;
+                        if (sessionToken === getSessionToken()) {
+                            updateItem(uid, JSON.parse(e.newValue ?? 'null'));
                         }
                     }
                 }
-            };
+            }
+        };
 
-            window.addEventListener('storage', listener);
+        window.addEventListener('storage', listener);
 
-            return () => {
-                window.removeEventListener('storage', listener);
-            };
-        },
-        [extras]
-    );
+        return () => {
+            window.removeEventListener('storage', listener);
+        };
+    }, []);
 
     return (
         <RecoilSync listen={listenToStoreChanges} read={getStoreValue} storeKey="BrowserStore" write={syncStoreValues}>

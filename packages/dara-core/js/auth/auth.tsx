@@ -72,14 +72,18 @@ interface AuthComponents {
     logout: AuthComponent;
 }
 
+interface AuthConfig {
+    auth_components: AuthComponents;
+}
+
 /**
  * Fetch components to use for authentication
  */
-export function useAuthComponents(): UseQueryResult<AuthComponents> {
+export function useAuthConfig(): UseQueryResult<AuthConfig> {
     return useQuery(
-        ['auth-components'],
+        ['auth-config'],
         async () => {
-            const response = await request('/api/core/auth-components', {
+            const response = await request('/api/core/auth-config', {
                 method: HTTP_METHOD.GET,
             });
 
@@ -99,28 +103,20 @@ interface SuccessResponse {
 
 /**
  * Revoke the current session
- *
- * @param token current token
  */
-export async function revokeSession(token?: string): Promise<RedirectResponse | SuccessResponse> {
-    if (token) {
-        try {
-            const response = await request(
-                '/api/auth/revoke-session',
-                {
-                    method: HTTP_METHOD.POST,
-                },
-                token
-            );
+export async function revokeSession(): Promise<RedirectResponse | SuccessResponse> {
+    try {
+        const response = await request('/api/auth/revoke-session', {
+            method: HTTP_METHOD.POST,
+        });
 
-            if (response.ok) {
-                const responseData = await response.json();
-                return responseData;
-            }
-        } catch (e) {
-            // eslint-disable-next-line no-console
-            console.error('Failed to revoke session', e);
+        if (response.ok) {
+            const responseData = await response.json();
+            return responseData;
         }
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to revoke session', e);
     }
 }
 
@@ -176,7 +172,7 @@ export function useUser(): UseQueryResult<UserData, RequestError> {
 }
 
 /** Api call to fetch the session token from the backend */
-export async function getSessionToken(body: User = {}): Promise<string> {
+export async function requestSessionToken(body: User = {}): Promise<string> {
     const res = await request('/api/auth/session', {
         body: JSON.stringify(body),
         method: HTTP_METHOD.POST,
@@ -202,7 +198,7 @@ export async function getSessionToken(body: User = {}): Promise<string> {
 export function useSession(body: User = {}): UseQueryResult<string, RequestError> {
     return useQuery({
         queryFn: async () => {
-            return getSessionToken(body);
+            return requestSessionToken(body);
         },
         queryKey: ['session'],
         refetchOnMount: false,
@@ -210,13 +206,9 @@ export function useSession(body: User = {}): UseQueryResult<string, RequestError
 }
 
 /** Api call to verify the session token from the backend */
-export async function verifySessionToken(token: string): Promise<boolean> {
-    const res = await request(
-        '/api/auth/verify-session',
-        {
-            method: HTTP_METHOD.POST,
-        },
-        token
-    );
+export async function verifySessionToken(): Promise<boolean> {
+    const res = await request('/api/auth/verify-session', {
+        method: HTTP_METHOD.POST,
+    });
     return res.ok;
 }

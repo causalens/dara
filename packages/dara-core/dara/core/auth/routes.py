@@ -16,9 +16,18 @@ limitations under the License.
 """
 
 from inspect import iscoroutinefunction
+from typing import Union, cast
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from dara.core.auth.base import BaseAuthConfig
@@ -31,6 +40,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
+from dara.core.auth.utils import cached_refresh_token, decode_token
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -101,6 +111,71 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 
         return auth_config.revoke_token(credentials.credentials, response)
     raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No auth credentials passed'))
+
+
+@auth_router.post('/refresh-token')
+async def handle_refresh_token(
+    response: Response,
+    background_tasks: BackgroundTasks,
+    dara_refresh_token: Union[str, None] = Cookie(default=None),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+):
+    """
+    Given a refresh token, issues a new session token and refresh token cookie.
+
+    :param response: FastAPI response object
+    :param dara_refresh_token: refresh token cookie
+    :param settings: env settings object
+    """
+    if dara_refresh_token is None:
+        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No refresh token provided'))
+
+    # Check scheme is correct
+    if credentials.scheme != 'Bearer':
+        raise HTTPException(
+            status_code=400,
+            detail=BAD_REQUEST_ERROR(
+                'Invalid authentication scheme, previous Bearer token must be included in the refresh request'
+            ),
+        )
+
+    from dara.core.internal.registries import auth_registry
+
+    auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+
+    try:
+        # decode the old token ignoring expiry date
+        old_token_data = decode_token(credentials.credentials, options={'verify_exp': False})
+
+        # Refresh logic up to implementation - passing in old token data so session_id can be preserved
+        session_token, refresh_token = await cached_refresh_token(
+            auth_config.refresh_token, old_token_data, dara_refresh_token
+        )
+
+        # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
+        response.set_cookie(
+            key='dara_refresh_token', value=refresh_token, secure=True, httponly=True, samesite='strict'
+        )
+        return {'token': session_token}
+    except BaseException as e:
+        # Regardless of exception type, clear the refresh token cookie
+        response.delete_cookie('dara_refresh_token')
+        headers = {'set-cookie': response.headers['set-cookie']}
+
+        # If an explicit HTTPException was raised, re-raise it with the cookie header
+        if isinstance(e, HTTPException):
+            dev_logger.error('Auth Error', error=e)
+            e.headers = headers
+            raise e
+
+        # Explicitly handle expired signature error
+        if isinstance(e, jwt.ExpiredSignatureError):
+            dev_logger.error('Expired Token Signature', error=e)
+            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR, headers=headers)
+
+        # Otherwise show a generic invalid token error
+        dev_logger.error('Invalid Token', error=cast(Exception, e))
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers)
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.

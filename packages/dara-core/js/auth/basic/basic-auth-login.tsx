@@ -1,18 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { transparentize } from 'polished';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { getSessionToken } from '@/api';
+import { requestSessionToken } from '@/api';
 import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
-import { AuthCtx } from '@/shared/context';
-import { getTokenKey } from '@/shared/utils';
 
 import { verifySessionToken } from '../auth';
+import { getSessionToken, setSessionToken } from '../use-session-token';
 
 const Wrapper = styled.div`
     display: flex;
@@ -135,7 +134,6 @@ function BasicAuthLogin(): JSX.Element {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [isError, setIsError] = useState(false);
-    const { token, setToken } = useContext(AuthCtx);
 
     const history = useHistory();
     const location = useLocation();
@@ -148,10 +146,10 @@ function BasicAuthLogin(): JSX.Element {
         setIsError(false);
 
         try {
-            const sessionToken: string = await getSessionToken({ password, username });
+            const sessionToken: string = await requestSessionToken({ password, username });
 
             if (sessionToken) {
-                setToken(sessionToken);
+                setSessionToken(sessionToken);
                 history.replace(decodeURIComponent(previousLocation));
             }
         } catch {
@@ -162,11 +160,9 @@ function BasicAuthLogin(): JSX.Element {
     };
 
     useEffect(() => {
-        const key = getTokenKey();
         // If we landed on this page with a token already, verify it
-        if (token) {
-            // Grab the token from local storage again as it may have changed
-            verifySessionToken(localStorage.getItem(key)).then((verified) => {
+        if (getSessionToken()) {
+            verifySessionToken().then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
                     history.replace(decodeURIComponent(previousLocation));

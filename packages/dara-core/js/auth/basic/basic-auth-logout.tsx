@@ -2,17 +2,16 @@
 import { useEffect } from 'react';
 
 import { revokeSession } from '@/auth/auth';
-import { useAuthCtx } from '@/auth/auth-context';
+
+import { setSessionToken } from '../use-session-token';
 
 /**
  * Auth component that wipes user token in AuthContext on mount and redirects to /login
  */
 function BasicAuthLogout(): JSX.Element {
-    const { setToken, token } = useAuthCtx();
-
     useEffect(() => {
-        revokeSession(token).then(() => {
-            setToken(null);
+        revokeSession().then(() => {
+            setSessionToken(null);
             window.location.href = `${window.dara.base_url}/login`;
         });
     }, []);
