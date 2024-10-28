@@ -19,15 +19,7 @@ from inspect import iscoroutinefunction
 from typing import Union, cast
 
 import jwt
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Cookie,
-    Depends,
-    HTTPException,
-    Request,
-    Response,
-)
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from dara.core.auth.base import BaseAuthConfig
@@ -116,7 +108,6 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 @auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
-    background_tasks: BackgroundTasks,
     dara_refresh_token: Union[str, None] = Cookie(default=None),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ):
