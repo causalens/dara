@@ -1,6 +1,8 @@
+/* eslint-disable import/no-extraneous-dependencies */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
 import { RecoilEnv } from 'recoil';
+// @ts-expect-error typescript is not happy but this works
 import { fetch as fetchImpl } from 'whatwg-fetch';
 
 // disable duplicate atom key checking in tests, as we clear the registries between tests
