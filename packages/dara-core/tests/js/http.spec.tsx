@@ -83,8 +83,7 @@ describe('HTTP Utils', () => {
         // set a cookie, in reality it would be http-only etc
         document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
 
-        // in reality requests are same-origin so credentials are passed automatically
-        const res = await request('/error-401', { method: 'GET', credentials: 'include' });
+        const res = await request('/error-401');
         expect(res.status).toBe(200);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
         expect(await res.json()).toEqual({ success: true });
@@ -96,9 +95,7 @@ describe('HTTP Utils', () => {
 
         const requestCount = 30;
 
-        const responses = await Promise.all(
-            Array.from({ length: requestCount }, () => request('/error-401', { method: 'GET', credentials: 'include' }))
-        );
+        const responses = await Promise.all(Array.from({ length: requestCount }, () => request('/error-401')));
 
         for (const res of responses) {
             expect(res.status).toBe(200);
@@ -136,14 +133,14 @@ describe('HTTP Utils', () => {
         });
 
         // make one request to trigger the refresh
-        const resPromise = request('/error-401', { method: 'GET', credentials: 'include' });
+        const resPromise = request('/error-401');
 
         // wait for first request to start refreshing
         await waitFor(() => expect(refreshAttempted).toHaveBeenCalledTimes(1));
         expect(requested401).toHaveBeenCalledTimes(1);
 
         // make another request while the refresh is still in progress
-        const res2Promise = request('/error-403', { method: 'GET', credentials: 'include' });
+        const res2Promise = request('/error-403');
 
         resolve();
         delay = null;

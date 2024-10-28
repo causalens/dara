@@ -334,6 +334,9 @@ importers:
       '@types/styled-components':
         specifier: ^5.1.23
         version: 5.1.34
+      '@types/whatwg-fetch':
+        specifier: ^0.0.33
+        version: 0.0.33
       '@vitejs/plugin-react':
         specifier: 2.1.0
         version: 2.1.0(vite@3.1.8(terser@5.34.1))
@@ -731,7 +734,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       tsc-alias:
         specifier: ^1.8.5
         version: 1.8.10
@@ -840,7 +843,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       typescript:
         specifier: ^5.0.4
         version: 5.6.3
@@ -1127,7 +1130,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       typescript:
         specifier: ^5.0.4
         version: 5.6.3
@@ -1200,7 +1203,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       typescript:
         specifier: ^5.0.4
         version: 5.6.3
@@ -1300,7 +1303,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       typescript:
         specifier: ^5.0.4
         version: 5.6.3
@@ -1379,7 +1382,7 @@ importers:
         version: 15.11.0(typescript@5.6.3)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3)
       typescript:
         specifier: ^5.0.4
         version: 5.6.3
@@ -3982,6 +3985,14 @@ packages:
   '@types/webpack@4.41.39':
     resolution: {integrity: sha512-otxUJvoi6FbBq/64gGH34eblpKLgdi+gf08GaAh8Bx6So0ZZic028Ev/SUxD22gbthMKCkeeiXEat1kHLDJfYg==}
 
+  '@types/whatwg-fetch@0.0.33':
+    resolution: {integrity: sha512-XSWTlUwpjUyLiDu50HhtpUyhvt7QND1ANfyFfiw/TH63GC1ngZMl2rgxuH5SQKfPjMoKRXv94r7crWnJ3mg5tA==}
+    deprecated: fetch types are now provided by '--lib dom'
+
+  '@types/whatwg-streams@3.2.1':
+    resolution: {integrity: sha512-Syv05sRL25b8cC8tqgXSQgLZZmqGq2GO+NafrtHbjPJccP6gWBXmHvo2Trw3AWXQ4QLIkVuOB7uStCuhzswyiw==}
+    deprecated: This is a stub types definition. whatwg-streams provides its own type definitions, so you do not need this installed.
+
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
 
@@ -4694,6 +4705,9 @@ packages:
 
   blob-util@2.0.2:
     resolution: {integrity: sha512-T7JQa+zsXXEa6/8ZhHcQEW1UFfVM49Ts65uBkFL6fz2QmrElqmbajIDJvuA0tEhRe5eIjpV9ZF+0RfZR9voJFQ==}
+
+  bluebird@1.0.8:
+    resolution: {integrity: sha512-e8rlJcByuxPdMiiwU3lGtENflMtUncAblzSlN7rBAZ9ygb75D/rng3Xt5FbZpYqVCzK+sFHVIMht4G6fbfUfbA==}
 
   bluebird@3.4.7:
     resolution: {integrity: sha512-iD3898SR7sWVRHbiQv+sHUtHnMvC1o3nW5rAcqnq3uOn07DSAppZYUkIGslDz6gXC7HfunPe7YVBgoEJASPcHA==}
@@ -5669,6 +5683,9 @@ packages:
       babel-plugin-macros:
         optional: true
 
+  deep-equal@0.1.2:
+    resolution: {integrity: sha512-rUCt39nKM7s6qUyYgp/reJmtXjgkOS/JbLO24DioMZaBNkD3b7C7cD3zJjSyjclEElNTpetAIRD6fMIbBIbX1Q==}
+
   deep-equal@2.2.3:
     resolution: {integrity: sha512-ZIwpnevOurS8bpT4192sqAowWM76JDKSHYzMLty3BZGSswgq6pBaH3DhCSW5xVAZICZyKdOBPjwww5wfgT/6PA==}
     engines: {node: '>= 0.4'}
@@ -5711,6 +5728,9 @@ packages:
   define-property@2.0.2:
     resolution: {integrity: sha512-jwK2UV4cnPpbcG7+VRARKTZPUWowwXA8bzH5NP6ud0oeAxyYPuGZUAC7hMugpCdz4BeSZl2Dl9k66CHJ/46ZYQ==}
     engines: {node: '>=0.10.0'}
+
+  defined@0.0.0:
+    resolution: {integrity: sha512-zpqiCT8bODLu3QSmLLic8xJnYWBFjOSu/fBCm189oAiTtPq/PSanNACKZDS7kgSyCJY7P+IcODzlIogBK/9RBg==}
 
   defined@1.0.1:
     resolution: {integrity: sha512-hsBd2qSVCRE+5PmNdHt1uzyrFu5d3RwmFDKzyNZMFq/EwDNJF7Ee5+D5oEKF0hU6LhtoUF1macFvOe4AskQC1Q==}
@@ -8170,6 +8190,9 @@ packages:
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
 
+  jsonify@0.0.1:
+    resolution: {integrity: sha512-2/Ki0GcmuqSrgFyelQq9M05y7PS0mEwuIzrf3f1fPqkVDVRvZrPZtVSMHxdgo8Aq0sxAOb/cr2aqqA3LeWHVPg==}
+
   jsonparse@1.3.1:
     resolution: {integrity: sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==}
     engines: {'0': node >= 0.2.0}
@@ -10320,6 +10343,9 @@ packages:
     resolution: {integrity: sha512-l+sSefzHpj5qimhFSE5a8nufZYAM3sBSVMAPtYkmC+4EH2anSGaEMXSD0izRQbu9nfyQ9y5JrVmp7E8oZrUjvA==}
     engines: {node: '>=8'}
 
+  resumer@0.0.0:
+    resolution: {integrity: sha512-Fn9X8rX8yYF4m81rZCK/5VmrmsSbqS/i3rDLl6ZZHAXgC2nTAx3dhwG8q8odP/RmdLa2YrybDJaAMg+X1ajY3w==}
+
   ret@0.1.15:
     resolution: {integrity: sha512-TTlYpa+OL+vMMNG24xSlQGEJ3B/RzEfUlLct7b5G/ytav+wPrplCpVMFuwzXbkecJrb6IYo1iFb0S9v37754mg==}
     engines: {node: '>=0.12'}
@@ -11013,6 +11039,10 @@ packages:
   tapable@2.2.1:
     resolution: {integrity: sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==}
     engines: {node: '>=6'}
+
+  tape@2.3.3:
+    resolution: {integrity: sha512-V3tQqlti/JJm577hhDdoCOw1xl4aPcDjTY6PesnFjWDcUYzB6fz39ETXFQuPr9piaoHPfc65sjAehTgbfXOvxQ==}
+    hasBin: true
 
   tar-stream@2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
@@ -11807,6 +11837,9 @@ packages:
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
     engines: {node: '>=12'}
+
+  whatwg-streams@0.1.1:
+    resolution: {integrity: sha512-+UIxdkkbcbhhmcDJIdgVtGTJ7sxV81MY1K++LIWufM8BnIXek3andXURjVs8rV8h2MEFLQbH6YPPZOZATIkZiw==}
 
   whatwg-url@11.0.0:
     resolution: {integrity: sha512-RKT8HExMpoYx4igMiVMY83lN6UeITKJlBQ+vR/8ZJ8OCdSiN3RwCq+9gH0+Xzj0+5IrM6i4j/6LuvzbZIQgEcQ==}
@@ -16379,6 +16412,14 @@ snapshots:
       anymatch: 3.1.3
       source-map: 0.6.1
 
+  '@types/whatwg-fetch@0.0.33':
+    dependencies:
+      '@types/whatwg-streams': 3.2.1
+
+  '@types/whatwg-streams@3.2.1':
+    dependencies:
+      whatwg-streams: 0.1.1
+
   '@types/yargs-parser@21.0.3': {}
 
   '@types/yargs@15.0.19':
@@ -17259,6 +17300,8 @@ snapshots:
       readable-stream: 3.6.2
 
   blob-util@2.0.2: {}
+
+  bluebird@1.0.8: {}
 
   bluebird@3.4.7: {}
 
@@ -18461,6 +18504,8 @@ snapshots:
     optionalDependencies:
       babel-plugin-macros: 3.1.0
 
+  deep-equal@0.1.2: {}
+
   deep-equal@2.2.3:
     dependencies:
       array-buffer-byte-length: 1.0.1
@@ -18523,6 +18568,8 @@ snapshots:
     dependencies:
       is-descriptor: 1.0.3
       isobject: 3.0.1
+
+  defined@0.0.0: {}
 
   defined@1.0.1: {}
 
@@ -21651,6 +21698,8 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
+  jsonify@0.0.1: {}
+
   jsonparse@1.3.1: {}
 
   jsprim@2.0.2:
@@ -24519,6 +24568,10 @@ snapshots:
       onetime: 5.1.2
       signal-exit: 3.0.7
 
+  resumer@0.0.0:
+    dependencies:
+      through: 2.3.8
+
   ret@0.1.15: {}
 
   retry@0.12.0: {}
@@ -25345,6 +25398,15 @@ snapshots:
 
   tapable@2.2.1: {}
 
+  tape@2.3.3:
+    dependencies:
+      deep-equal: 0.1.2
+      defined: 0.0.0
+      inherits: 2.0.4
+      jsonify: 0.0.1
+      resumer: 0.0.0
+      through: 2.3.8
+
   tar-stream@2.2.0:
     dependencies:
       bl: 4.1.0
@@ -25548,7 +25610,7 @@ snapshots:
 
   ts-dedent@2.2.0: {}
 
-  ts-jest@29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.6.3):
+  ts-jest@29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55)(babel-plugin-macros@3.1.0))(typescript@5.6.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
@@ -26215,6 +26277,11 @@ snapshots:
   whatwg-fetch@3.6.20: {}
 
   whatwg-mimetype@3.0.0: {}
+
+  whatwg-streams@0.1.1:
+    dependencies:
+      bluebird: 1.0.8
+      tape: 2.3.3
 
   whatwg-url@11.0.0:
     dependencies:
