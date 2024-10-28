@@ -107,7 +107,6 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
             const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
                     headers: headersInterface,
-                    ...other,
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
