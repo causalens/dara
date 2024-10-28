@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Internal (JS): remove redundant body from the token refresh request
+
 ## 1.14.1
 
 -   Internal (JS): make request() helper options default to empty object
