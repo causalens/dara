@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.2
 
 -   Internal (JS): remove redundant body from the token refresh request
 
