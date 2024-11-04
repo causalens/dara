@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Literal
+
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 
@@ -26,9 +28,18 @@ class CodeEditor(StyledComponentInstance):
     :param script: The script to render
     """
 
-    js_module = '@darajs/components'
+    js_module = "@darajs/components"
 
     script: NonDataVariable
 
+    language: (
+        Literal["json"]
+        | Literal["python"]
+        | Literal["markdown"]
+        | Literal["sql"]
+        | None
+    ) = None
+
     class Config:
-        extra = 'forbid'
+        extra = "forbid"
+        extra = "forbid"

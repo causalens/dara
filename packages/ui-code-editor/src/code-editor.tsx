@@ -80,7 +80,7 @@ export interface CodeEditorProps {
 
 /**
  * The CodeEditor component.
- * Currently has JSON and Python langauge support.
+ * Currently has JSON, Python, Markdown and SQL langauge support.
  */
 function CodeEditor({ initialScript, disabled, onChange, style, className, language }: CodeEditorProps): JSX.Element {
     const editorRef = useRef();
