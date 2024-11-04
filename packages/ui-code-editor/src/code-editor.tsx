@@ -22,9 +22,14 @@ import { bracketMatching, defaultHighlightStyle, syntaxHighlighting } from '@cod
 import { searchKeymap } from '@codemirror/search';
 import { EditorState, StateField } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 
 import styled from '@darajs/styled-components';
+
+import { getJSONExtensions } from './extensions/json';
+import { getMarkdownExtensions } from './extensions/markdown';
+import { getPythonExtensions } from './extensions/python';
+import { getSQLExtensions } from './extensions/sql';
 
 const EditorRoot = styled.div`
     overflow-y: scroll;
@@ -67,14 +72,33 @@ export interface CodeEditorProps {
      * Standard style prop
      */
     style?: React.CSSProperties;
+    /**
+     * The language to use for the code editor
+     */
+    language?: 'json' | 'python' | 'markdown' | 'sql';
 }
 
 /**
  * The CodeEditor component.
  * Currently has JSON and Python langauge support.
  */
-function CodeEditor({ initialScript, disabled, onChange, style, className }: CodeEditorProps): JSX.Element {
+function CodeEditor({ initialScript, disabled, onChange, style, className, language }: CodeEditorProps): JSX.Element {
     const editorRef = useRef();
+
+    const extensions = useMemo(() => {
+        switch (language) {
+            case 'json':
+                return getJSONExtensions();
+            case 'python':
+                return getPythonExtensions();
+            case 'markdown':
+                return getMarkdownExtensions();
+            case 'sql':
+                return getSQLExtensions();
+            default:
+                return [lineNumbers(), python(), json(), bracketMatching(), closeBrackets()];
+        }
+    }, [language]);
 
     useEffect(() => {
         if (editorRef.current) {
@@ -98,13 +122,9 @@ function CodeEditor({ initialScript, disabled, onChange, style, className }: Cod
             const startState = EditorState.create({
                 doc: initialScript ?? '',
                 extensions: [
-                    lineNumbers(),
+                    ...extensions,
                     dispatchChanges,
                     history(),
-                    python(),
-                    json(),
-                    bracketMatching(),
-                    closeBrackets(),
                     syntaxHighlighting(defaultHighlightStyle),
                     EditorState.tabSize.of(4),
                     EditorView.editable.of(!disabled),
