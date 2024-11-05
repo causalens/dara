@@ -86,6 +86,10 @@ function CodeEditor({ initialScript, disabled, onChange, style, className, langu
     const editorRef = useRef();
 
     const extensions = useMemo(() => {
+        if (!language) {
+            return [lineNumbers(), python(), json(), bracketMatching(), closeBrackets()];
+        }
+
         switch (language) {
             case 'json':
                 return getJSONExtensions();
@@ -96,7 +100,7 @@ function CodeEditor({ initialScript, disabled, onChange, style, className, langu
             case 'sql':
                 return getSQLExtensions();
             default:
-                return [lineNumbers(), python(), json(), bracketMatching(), closeBrackets()];
+                return [];
         }
     }, [language]);
 
