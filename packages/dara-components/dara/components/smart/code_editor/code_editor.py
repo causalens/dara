@@ -28,20 +28,20 @@ class CodeEditor(StyledComponentInstance):
     :param script: The script to render
     """
 
-    js_module = "@darajs/components"
+    js_module = '@darajs/components'
 
     script: NonDataVariable
 
     language: Optional[
         Union[
-            Literal["json"],
-            Literal["python"],
-            Literal["markdown"],
-            Literal["sql"],
+            Literal['json'],
+            Literal['python'],
+            Literal['markdown'],
+            Literal['sql'],
             None,
         ]
     ] = None
 
     class Config:
-        extra = "forbid"
-        extra = "forbid"
+        extra = 'forbid'
+        extra = 'forbid'
