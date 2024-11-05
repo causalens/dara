@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## 1.14.3
+## NEXT
 
 -   Added the `language` prop to the `CodeEditor` component to allow for setting the language of the code editor.
 
