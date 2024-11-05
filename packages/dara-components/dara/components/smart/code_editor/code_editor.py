@@ -25,6 +25,19 @@ class CodeEditor(StyledComponentInstance):
     """
     A code editor component.
 
+    Example usage:
+
+    ```python
+    from dara.components.smart.code_editor import CodeEditor
+
+    script = Variable('print("Hello, World!")')
+
+    code_editor = CodeEditor(
+        script=script,
+        language='python'
+    )
+    ```
+
     :param script: The script to render
     """
 
@@ -32,16 +45,7 @@ class CodeEditor(StyledComponentInstance):
 
     script: NonDataVariable
 
-    language: Optional[
-        Union[
-            Literal['json'],
-            Literal['python'],
-            Literal['markdown'],
-            Literal['sql'],
-            None,
-        ]
-    ] = None
+    language: Optional[Union[Literal['json'], Literal['python'], Literal['markdown'], Literal['sql']]] = None
 
     class Config:
-        extra = 'forbid'
         extra = 'forbid'

@@ -22,7 +22,8 @@ import { bracketMatching, defaultHighlightStyle, syntaxHighlighting } from '@cod
 import { searchKeymap } from '@codemirror/search';
 import { EditorState, StateField } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import React, { useEffect, useMemo, useRef } from 'react';
+import * as React from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import styled from '@darajs/styled-components';
 
