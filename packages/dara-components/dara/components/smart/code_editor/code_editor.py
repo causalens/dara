@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Literal, Optional, Union
+
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 
@@ -23,12 +25,27 @@ class CodeEditor(StyledComponentInstance):
     """
     A code editor component.
 
+    Example usage:
+
+    ```python
+    from dara.components.smart.code_editor import CodeEditor
+
+    script = Variable('print("Hello, World!")')
+
+    code_editor = CodeEditor(
+        script=script,
+        language='python'
+    )
+    ```
+
     :param script: The script to render
     """
 
     js_module = '@darajs/components'
 
     script: NonDataVariable
+
+    language: Optional[Union[Literal['json'], Literal['python'], Literal['markdown'], Literal['sql']]] = None
 
     class Config:
         extra = 'forbid'

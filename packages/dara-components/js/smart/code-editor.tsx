@@ -3,6 +3,7 @@ import { CodeEditor as UICodeEditor } from '@darajs/ui-code-editor';
 
 interface CodeEditorProps extends StyledComponentProps {
     script: Variable<string>;
+    language?: 'json' | 'python' | 'markdown' | 'sql';
 }
 
 const StyledCodeEditor = injectCss(UICodeEditor);
@@ -15,7 +16,15 @@ function CodeEditor(props: CodeEditorProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [script, setScript] = useVariable(props.script);
 
-    return <StyledCodeEditor $rawCss={css} initialScript={script} onChange={setScript} style={style} />;
+    return (
+        <StyledCodeEditor
+            $rawCss={css}
+            initialScript={script}
+            onChange={setScript}
+            style={style}
+            language={props.language}
+        />
+    );
 }
 
 export default CodeEditor;

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Added the `language` prop to the `CodeEditor` component to allow for setting the language of the code editor.
+
 ## 1.14.0
 
 -   Fixed an issue where `Plotly`'s figure native `height` and `width` were not obeyed by component.
