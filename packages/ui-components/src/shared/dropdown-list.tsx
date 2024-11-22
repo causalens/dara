@@ -14,6 +14,13 @@ const StyledDropdownList = styled(List)`
     box-shadow: ${(props) => props.theme.shadow.light};
 `;
 
+const InnerItem = styled.span`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
 type Props = {
     /** Array of items to display in the dropdown */
     items: Item[];
@@ -97,7 +104,7 @@ const DropdownList = React.forwardRef<any, Props>(
                                 isHighlighted={isOpen && kbdHighlightIdx !== undefined && kbdHighlightIdx === index}
                                 isSelected={isSelected}
                             >
-                                {item.label}
+                                <InnerItem>{item.label}</InnerItem>
                                 {item.icon}
                             </ListItem>;
                 })

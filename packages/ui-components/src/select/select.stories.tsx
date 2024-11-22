@@ -50,7 +50,8 @@ const simpleItems: Item[] = [
         value: 5,
     },
     {
-        label: 'Sixth',
+        icon: <AddressBook />,
+        label: 'Sixth with Icon and too long message',
         value: 6,
     },
     {
