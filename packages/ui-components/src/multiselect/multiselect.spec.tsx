@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
@@ -175,7 +175,8 @@ describe('MultiSelect', () => {
 
         userEvent.clear(input);
 
-        userEvent.selectOptions(options, sampleItems[0].label);
+        // Using fireEvent here as selectOption doesn't work
+        fireEvent.click(options.children[0]);
         expect(multiselect.parentElement).toHaveTextContent(sampleItems[0].label);
     });
 

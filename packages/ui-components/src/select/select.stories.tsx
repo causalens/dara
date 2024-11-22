@@ -17,6 +17,8 @@
 import { Meta } from '@storybook/react';
 import * as React from 'react';
 
+import { AddressBook } from '@darajs/ui-icons';
+
 import { Item } from '../types';
 import { default as SelectComponent, SelectProps } from './select';
 
@@ -43,11 +45,13 @@ const simpleItems: Item[] = [
         value: 4,
     },
     {
-        label: 'Fifth',
+        icon: <AddressBook />,
+        label: 'Fifth with Icon',
         value: 5,
     },
     {
-        label: 'Sixth',
+        icon: <AddressBook />,
+        label: 'Sixth with Icon and too long message',
         value: 6,
     },
     {
