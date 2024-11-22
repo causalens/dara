@@ -98,6 +98,7 @@ const DropdownList = React.forwardRef<any, Props>(
                                 isSelected={isSelected}
                             >
                                 {item.label}
+                                {item.icon}
                             </ListItem>;
                 })
             :   <NoItemsLabel>No Items</NoItemsLabel>}

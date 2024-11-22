@@ -17,6 +17,9 @@ export const StyledListItem = styled.span<ListItemProps>`
 
     overflow: hidden;
 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
     min-height: 2rem;
     padding: 0.25rem 1rem;

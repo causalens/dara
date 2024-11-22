@@ -27,6 +27,7 @@ export interface ItemBadge {
 export interface Item {
     badge?: ItemBadge;
     image?: string;
+    icon?: JSX.Element;
     label: string;
     onClick?: () => void | Promise<void>;
     value: any;
