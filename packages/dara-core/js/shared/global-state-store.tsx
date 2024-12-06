@@ -67,6 +67,11 @@ class GlobalStore {
         } else {
             localStorage.setItem(key, value);
         }
+
+        // Notify any local subscribers of a change in the value
+        if (this.#subscribers[key]) {
+            this.#subscribers[key].forEach((cb) => cb(value));
+        }
     }
 
     /**
@@ -134,10 +139,21 @@ class GlobalStore {
             }
         };
 
+        // Add the callback to the local subscribers list
+        // The storage event only fires when localStorage is changed from another document so we need to track changes
+        // locally as well.
+        this.#subscribers[key].push(callback);
+
+        // Add a listener to the storage event for changes coming from other tabs
         window.addEventListener('storage', subFunc);
 
+        // Cleanup the subscriptions
         return () => {
             window.removeEventListener('storage', subFunc);
+            this.#subscribers[key].splice(
+                this.#subscribers[key].findIndex((val) => val === callback),
+                1
+            );
         };
     }
 }
