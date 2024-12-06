@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled, { ThemeProvider } from '@darajs/styled-components';
 
@@ -56,6 +56,7 @@ const RootWrapper = styled.div`
  */
 function TemplateRoot(): JSX.Element {
     const token = useSessionToken();
+    const tokenRef = useRef(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
 
@@ -74,6 +75,7 @@ function TemplateRoot(): JSX.Element {
 
         // subscribe to token changes and notify the live WS connection
         return onTokenChange((newToken) => {
+            tokenRef.current = newToken;
             wsClient.updateToken(newToken);
         });
     }, [wsClient]);
@@ -86,13 +88,13 @@ function TemplateRoot(): JSX.Element {
 
     useEffect(() => {
         if (config) {
-            setWsClient(setupWebsocket(token, config.live_reload));
+            setWsClient(setupWebsocket(tokenRef.current, config.live_reload));
         }
 
         return () => {
             wsClient?.close();
         };
-    }, [token, config?.live_reload]);
+    }, [tokenRef, config?.live_reload]);
 
     if (templateLoading || actionsLoading || componentsLoading) {
         return null;

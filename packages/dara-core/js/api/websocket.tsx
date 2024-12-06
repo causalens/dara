@@ -469,6 +469,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                     type: 'token_update',
                 })
             );
+            this.token = newToken;
         }
     }
 
