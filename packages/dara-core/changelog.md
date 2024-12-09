@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.6
 
 -  Fixed an issue with websocket token updates during an SSO driven token refresh. Tokens are now correctly updated in the websocket handler and in the UI.
 
