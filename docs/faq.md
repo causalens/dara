@@ -46,7 +46,7 @@ The appearance of components can be changed directly through its properties or b
 
 <h4> App Themes </h4>
 
-To set a specific theme you can follow the guide in the [**Themes**](.getting-started/app-building/#themes) section where you can find an example of how to change the theme of your app to dark mode.
+To set a specific theme you can follow the guide in the [**Themes**](./getting-started/app-building/#themes) section where you can find an example of how to change the theme of your app to dark mode.
 
 You can also give a specific color-way to your entire application. The [** Custom Themes**](./advanced/custom-themes#writing-your-own-theme) section shows examples of how to configure your app with a pre-built theme, along with directing you to a resource on how to make your own themes.
 
