@@ -1,4 +1,4 @@
-import { fireEvent, waitFor } from '@testing-library/dom';
+import { waitFor } from '@testing-library/dom';
 import { act } from '@testing-library/react';
 import React from 'react';
 
@@ -6,7 +6,7 @@ import { setSessionToken } from '@/auth/use-session-token';
 import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
-import { DARA_JWT_TOKEN, TemplateRoot, WebSocketCtx } from '../../js/shared';
+import { DARA_JWT_TOKEN, TemplateRoot } from '../../js/shared';
 import { MockWebSocketClient, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
