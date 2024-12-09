@@ -49,12 +49,17 @@ const RootWrapper = styled.div`
     }
 `;
 
+interface TemplateRootProps {
+    // An initialWebsocketClient, only used for testing
+    initialWebsocketClient?: WebSocketClient;
+}
+
 /**
  * The TemplateRoot component is rendered at the root of every application and is responsible for loading the config and
  * template for the application. It provides the Template context down to it's children and also renders the root
  * component of the template
  */
-function TemplateRoot(): JSX.Element {
+function TemplateRoot(props: TemplateRootProps): JSX.Element {
     const token = useSessionToken();
     const tokenRef = useRef(token);
     const { data: config } = useConfig();
@@ -62,7 +67,7 @@ function TemplateRoot(): JSX.Element {
 
     const { data: actions, isLoading: actionsLoading } = useActions();
     const { data: components, isLoading: componentsLoading, refetch: refetchComponents } = useComponents();
-    const [wsClient, setWsClient] = useState<WebSocketClient>();
+    const [wsClient, setWsClient] = useState<WebSocketClient>(props.initialWebsocketClient);
 
     useEffect(() => {
         cleanSessionCache(token);

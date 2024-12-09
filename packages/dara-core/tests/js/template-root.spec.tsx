@@ -1,11 +1,13 @@
-import { waitFor } from '@testing-library/dom';
+import { fireEvent, waitFor } from '@testing-library/dom';
+import { act } from '@testing-library/react';
 import React from 'react';
 
 import { setSessionToken } from '@/auth/use-session-token';
+import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
-import { TemplateRoot } from '../../js/shared';
-import { server, wrappedRender } from './utils';
+import { DARA_JWT_TOKEN, TemplateRoot, WebSocketCtx } from '../../js/shared';
+import { MockWebSocketClient, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
 mockLocalStorage();
@@ -64,5 +66,21 @@ describe('TemplateRoot', () => {
             expect(sessionStorage.getItem(invalidKey)).toEqual(undefined);
             expect(sessionStorage.getItem(validKey)).toEqual('val4');
         });
+    });
+
+    it('should subscribe to changes in the websocket token and trigger an update in the client', async () => {
+        const wsClient = new MockWebSocketClient('uid');
+        const updateTokenSpy = jest.spyOn(wsClient, 'updateToken');
+
+        const { getByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient} />);
+        // Wait for the page to be rendered
+        await waitFor(() => expect(getByText('Frame, Menu')).not.toBe(null));
+
+        // Update the token in the global store
+        act(() => {
+            globalStore.setValue(DARA_JWT_TOKEN, 'new_token');
+        });
+
+        expect(updateTokenSpy).toHaveBeenCalledWith('new_token');
     });
 });

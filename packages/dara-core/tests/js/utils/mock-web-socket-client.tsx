@@ -108,4 +108,14 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     sendVariable(value: any, channel: string): void {
         // Do nothing
     }
+
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    updateToken(newToken: string): void {
+        // Do Nothing
+    }
+
+    // eslint-disable-next-line
+    close(): void {
+        // Do Nothing
+    }
 }
