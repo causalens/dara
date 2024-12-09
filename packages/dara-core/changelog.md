@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue with websocket token updates during an SSO driven token refresh. Tokens are now correctly updated in the websocket handler and in the UI.
+
 ## 1.14.2
 
 -   Internal (JS): remove redundant body from the token refresh request

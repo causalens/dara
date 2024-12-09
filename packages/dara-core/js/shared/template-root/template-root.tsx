@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled, { ThemeProvider } from '@darajs/styled-components';
 
@@ -49,19 +49,25 @@ const RootWrapper = styled.div`
     }
 `;
 
+interface TemplateRootProps {
+    // An initialWebsocketClient, only used for testing
+    initialWebsocketClient?: WebSocketClient;
+}
+
 /**
  * The TemplateRoot component is rendered at the root of every application and is responsible for loading the config and
  * template for the application. It provides the Template context down to it's children and also renders the root
  * component of the template
  */
-function TemplateRoot(): JSX.Element {
+function TemplateRoot(props: TemplateRootProps): JSX.Element {
     const token = useSessionToken();
+    const tokenRef = useRef(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
 
     const { data: actions, isLoading: actionsLoading } = useActions();
     const { data: components, isLoading: componentsLoading, refetch: refetchComponents } = useComponents();
-    const [wsClient, setWsClient] = useState<WebSocketClient>();
+    const [wsClient, setWsClient] = useState<WebSocketClient>(props.initialWebsocketClient);
 
     useEffect(() => {
         cleanSessionCache(token);
@@ -74,6 +80,7 @@ function TemplateRoot(): JSX.Element {
 
         // subscribe to token changes and notify the live WS connection
         return onTokenChange((newToken) => {
+            tokenRef.current = newToken;
             wsClient.updateToken(newToken);
         });
     }, [wsClient]);
@@ -86,13 +93,13 @@ function TemplateRoot(): JSX.Element {
 
     useEffect(() => {
         if (config) {
-            setWsClient(setupWebsocket(token, config.live_reload));
+            setWsClient(setupWebsocket(tokenRef.current, config.live_reload));
         }
 
         return () => {
             wsClient?.close();
         };
-    }, [token, config?.live_reload]);
+    }, [tokenRef, config?.live_reload]);
 
     if (templateLoading || actionsLoading || componentsLoading) {
         return null;

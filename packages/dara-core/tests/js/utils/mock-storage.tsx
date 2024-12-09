@@ -1,5 +1,7 @@
-export class MockStorage {
+export class MockStorage implements Storage {
     storage = new Map<string, string>();
+
+    length = 0;
 
     getItem(key: string): string {
         return this.storage.get(key);
