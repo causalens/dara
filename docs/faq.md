@@ -36,7 +36,9 @@ The same process applies to plugins, however plugins are just plain functions so
 <details>
 <summary><h3 style={{margin: '0px 0px 0px 0px'}}>How do I customize the appearance of my app?</h3></summary>
 
-Like any web app, your app can be customized with CSS.
+You can customize the appearance of your app by setting a specific theme or by changing the appearance of components by adding custom CSS.
+
+
 
 <h4> Components </h4>
 
@@ -44,7 +46,9 @@ The appearance of components can be changed directly through its properties or b
 
 <h4> App Themes </h4>
 
-You can also give a specific color-way to your entire application. The [**Themes**](./advanced/custom-themes) section shows examples of how to configure your app with a pre-built theme, along with directing you to a resource on how to make your own themes.
+To set a specific theme you can follow the guide in the [**Themes**](./getting-started/app-building/#themes) section where you can find an example of how to change the theme of your app to dark mode.
+
+You can also give a specific color-way to your entire application. The [** Custom Themes**](./advanced/custom-themes#writing-your-own-theme) section shows examples of how to configure your app with a pre-built theme, along with directing you to a resource on how to make your own themes.
 
 </details>
 
@@ -310,7 +314,7 @@ The problem arises when the Graph component is unable to accurately determine th
 
 **Debugging Steps**
 1. **Simplify Surrounding Structure:** Start by reducing the complexity of the components surrounding the Graph. Attempt to remove any nested Stacks or unnecessary elements around the graph. This can help isolate the issue and make it easier to identify the root cause.
-2. **Forcing a re render:** If you have a dynamic page that changes the size of the graph, you may want to force it to recalculate its size on the click of a button, in this case you can wrap your graph in a `py_component` and force it to recalculate on the button click. 
+2. **Forcing a re render:** If you have a dynamic page that changes the size of the graph, you may want to force it to recalculate its size on the click of a button, in this case you can wrap your graph in a `py_component` and force it to recalculate on the button click.
 3. **Provide Feedback if Needed:** If you encounter this issue, we would greatly appreciate your feedback on [GitHub](https://github.com/causalens/dara). Sharing your examples and experiences may shed light on the underlying problem, allowing us to diagnose it more accurately.
 
 </details>
@@ -366,7 +370,7 @@ Stack(
 
 To fix this so that both cards wrap its contents you can just add a Stack surrounding the left hand side card, so the snippet above would become:
 ```python
-Stack(  
+Stack(
     # Add a Stack here
     Stack(
         Card(
