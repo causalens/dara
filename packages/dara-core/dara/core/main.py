@@ -34,31 +34,43 @@ from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
 from dara.core.configuration import Configuration, ConfigurationBuilder
-from dara.core.defaults import (blank_template, default_template,
-                                top_menu_template, top_template)
+from dara.core.defaults import (
+    blank_template,
+    default_template,
+    top_menu_template,
+    top_template,
+)
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.registries import (action_def_registry, auth_registry,
-                                           component_registry, config_registry,
-                                           custom_ws_handlers_registry,
-                                           latest_value_registry,
-                                           sessions_registry,
-                                           template_registry, utils_registry,
-                                           websocket_registry)
+from dara.core.internal.registries import (
+    action_def_registry,
+    auth_registry,
+    component_registry,
+    config_registry,
+    custom_ws_handlers_registry,
+    latest_value_registry,
+    sessions_registry,
+    template_registry,
+    utils_registry,
+    websocket_registry,
+)
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.js_tooling.js_utils import (BuildCache, BuildMode,
-                                           build_autojs_template, rebuild_js)
-from dara.core.logging import (LoggingMiddleware, dev_logger, eng_logger,
-                               http_logger)
+from dara.core.js_tooling.js_utils import (
+    BuildCache,
+    BuildMode,
+    build_autojs_template,
+    rebuild_js,
+)
+from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 
 
 def _start_application(config: Configuration):
