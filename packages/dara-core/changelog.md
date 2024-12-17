@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.7
 
 -   Loosen dependency requirement on Jinja2 to allow 3.1.x versions
 

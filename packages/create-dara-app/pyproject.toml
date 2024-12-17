@@ -30,7 +30,7 @@ license = "Apache-2.0"
 name = "create-dara-app"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.14.6"
+version = "1.14.7"
 source = []
 
 [tool.poetry.dependencies]
