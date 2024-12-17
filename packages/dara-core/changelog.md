@@ -2,9 +2,13 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Loosen dependency requirement on Jinja2 to allow 3.1.x versions
+
 ## 1.14.6
 
--  Fixed an issue with websocket token updates during an SSO driven token refresh. Tokens are now correctly updated in the websocket handler and in the UI.
+-   Fixed an issue with websocket token updates during an SSO driven token refresh. Tokens are now correctly updated in the websocket handler and in the UI.
 
 ## 1.14.2
 

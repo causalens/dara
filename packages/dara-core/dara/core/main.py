@@ -89,13 +89,13 @@ def _start_application(config: Configuration):
 
     # Setup the main template to work with Vite
     os.environ['VITE_MANIFEST_PATH'] = f'{config.static_files_dir}/manifest.json'
-    import fastapi_vite
+    import fastapi_vite_dara
 
     if len(config.pages) > 0:
         BASE_DIR = Path(__file__).parent
         jinja_templates = Jinja2Templates(directory=str((Path(BASE_DIR, 'jinja'))))
-        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite.vite_hmr_client
-        jinja_templates.env.globals['vite_asset'] = fastapi_vite.vite_asset
+        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
+        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
         jinja_templates.env.globals['entry'] = '_entry.tsx'
 
         # If --enable-hmr or --reload enabled, set live reload to true
