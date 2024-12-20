@@ -48,18 +48,20 @@ class Button(LayoutComponent):
     A button component with an icon and styling:
 
     ```python
-
-    from dara.core import NavigateTo
+    from dara.core import action
     from dara.components import Button, ButtonStyle
+
+    @action
+    async def navigate_to(ctx: action.Ctx, url: str):
+        await ctx.navigate(url)
 
     Button(
         'Click',
-        onclick=NavigateTo('/test'),
+        onclick=navigate_to('/test'),
         icon='Pen',
         styling=ButtonStyle.SECONDARY,
         outline=True,
     )
-
     ```
 
     The different button styles supported are: 'error', 'ghost', 'plain', 'primary' and 'secondary'. Other styling option
@@ -69,17 +71,20 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core import Variable, NavigateTo
+    from dara.core import Variable, action
     from dara.components import Button
 
     disabled = Variable(True)
 
+    @action
+    async def navigate_to(ctx: action.Ctx, url: str):
+        await ctx.navigate(url)
+
     Button(
         'Click',
         disabled=disabled,
-        onclick=NavigateTo('/test),
+        onclick=navigate_to('/test'),
     )
-
     ```
 
     A button component can also take any component inside of it to make it into some clickable component.
@@ -87,8 +92,12 @@ class Button(LayoutComponent):
 
     ```python
 
-    from dara.core import NavigateTo
+    from dara.core import action
     from dara.components import Button, Stack, Text
+
+    @action
+    async def navigate_to(ctx: action.Ctx, url: str):
+        await ctx.navigate(url)
 
     Button(
         Stack(
@@ -96,9 +105,8 @@ class Button(LayoutComponent):
                 'Stack passed to button, when clicked I navigate to test page',
             ),
         ),
-        onclick=NavigateTo('/test'),
+        onclick=navigate_to('/test'),
     )
-
     ```
 
     :param disabled: A variable, condition, or bool to disabled the button when true

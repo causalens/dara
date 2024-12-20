@@ -44,16 +44,17 @@ class If(ModifierComponent):
     An If component is created like so, in this example it is comparing the values of two variables:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import If, Text
 
+    var_1 = Variable(True)
+    var_2 = Variable(False)
+
     If(
-        condition= Variable(True) == Variable(False),
+        condition=var_1 == var_2,
         true_children=Text('Equal'),
         false_children=Text('Different')
     )
-
     ```
 
     :param condition: a condition object

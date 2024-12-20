@@ -31,12 +31,12 @@ class Switch(FormComponent):
     A Switch component is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Switch
 
-    Switch(value=Variable(default=True))
+    value_var = Variable(default=True)
 
+    Switch(value=value_var)
     ```
 
     :param value: Boolean Variable instance recording the component's state

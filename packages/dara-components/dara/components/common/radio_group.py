@@ -36,19 +36,23 @@ class RadioGroup(FormComponent):
     Simple RadioGroup component:
 
     ```python
-
+    from dara.core import Variable
     from dara.components.common import RadioGroup, Item
+
+    value_var_str = Variable('first')
 
     # you can pass items as a list of values
     RadioGroup(
         items=['first', 'second'],
-        value=Variable('first'),
+        value=value_var_str,
     )
+
+    value_var_num = Variable(1)
 
     # or as an `Item` list
     RadioGroup(
         items=[Item(label='first',value=1), Item(label='second',value=2)],
-        value=Variable(1),
+        value=value_var_num,
     )
     ```
 
@@ -59,7 +63,7 @@ class RadioGroup(FormComponent):
 
     RadioGroup(
         items=['first', 'second'],
-        value=Variable('first'),
+        value=value_var_str,
         direction='horizontal'
     )
     ```

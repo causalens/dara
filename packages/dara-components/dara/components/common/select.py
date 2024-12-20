@@ -58,55 +58,59 @@ class Select(FormComponent):
     A Select component is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Select
 
+    selection_var = Variable('first')
+
     Select(
-        value=Variable('first'),
+        value=selection_var,
         items=['first', 'second', 'third'],
     )
-
     ```
 
     A searchable Select component is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Select
 
+    selection_var = Variable('first')
+
     Select(
-        value=Variable('first'),
+        value=selection_var,
         items=['first', 'second', 'third'],
         searchable=True,
     )
-
     ```
 
     A more complicated example with explicit item labels/values that allows multiple items to be selected at the same time:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Select, Item
 
+    selection_var = Variable([1, 2])
+
     Select(
         items=[Item(label='first',value=1), Item(label='second',value=2)],
-        value=Variable([1, 2]),
+        value=selection_var,
         multiselect=True
     )
-
     ```
 
-    Example of using a seclect component to allow selections in a sectioned list:
+    Example of using a select component to allow selections in a sectioned list:
 
     ```python
+    from dara.core import Variable
     from dara.components.common import Select, ListSection
+
+    selection_var = Variable()
 
     Select(
         items=[ListSection(label='Section 1', items=['1 item 1', '1 item 2', '1 item 3']), ListSection(label='Section 2', items=['2 item 1', '2 item 2'])],
         searchable=True,
+        value=selection_var,
     )
     ```
 
