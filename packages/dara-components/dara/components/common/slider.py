@@ -36,24 +36,25 @@ class Slider(FormComponent):
     A simple Slider component with a single handle that tracks the selected value over a given range is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Slider
 
+    value_var = Variable(0.5)
+
     Slider(
         domain=[0.0, 1.0],
-        value=Variable(0.5),
+        value=value_var,
     )
-
     ```
 
     A more complex example with multiple handles, a set step size, specified ticks, a right hand rail and a track label
     is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Slider
+
+    value_var = Variable([-3, 6, 8])
 
     Slider(
         domain=[-10, 10],
@@ -62,24 +63,23 @@ class Slider(FormComponent):
         rail_labels=['My Slider'],
         rail_to_end=True,
         ticks=[-9, -5, -1, 1, 5, 9],
-        value=Variable([-3, 6, 8]),
+        value=value_var,
     )
-
     ```
 
     Setting the disable_input_alternative to True removes the switch for changing the slider to a numerical input box:
 
     ```python
-
     from dara.core.definitions import Variable
     from dara.components.common import Slider
 
+    value_var = Variable(0.5)
+
     Slider(
         domain=[0.0, 1.0],
-        value=Variable(0.5),
+        value=value_var,
         disable_input_alternative=True,
     )
-
     ```
 
     :param domain: The range of the slider

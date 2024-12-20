@@ -32,23 +32,23 @@ class Input(FormComponent):
     An Input component is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Input
 
-    Input(value=Variable('initial input value'))
+    value_var = Variable('initial input value')
 
+    Input(value=value_var)
     ```
 
     You could define a numerical input with the following:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Input
 
-    Input(value=Variable(0), type='number')
+    value_var = Variable(0)
 
+    Input(value=value_var, type='number')
     ```
 
     :param value: A Variable instance recording the component's state

@@ -37,48 +37,48 @@ class Datepicker(FormComponent):
     A single Datepicker component that tracks the chosen value is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Datepicker
 
-    Datepicker(
-        value=Variable()
-    )
+    date_var = Variable()
 
+    Datepicker(
+        value=date_var
+    )
     ```
 
     A Datepicker component that allows to choose between a date range is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Datepicker
 
+    date_var = Variable()
+
     Datepicker(
-        value=Variable()
+        value=date_var,
         range=True,
     )
-
     ```
 
     A more complicated example with an initial date, has a custom
     format, and does not close on selection is created via:
 
     ```python
-
     from datetime import datetime
     from dara.core import Variable
     from dara.components.common import Datepicker
 
+    date_var = Variable(datetime(2021, 9, 18))
+
     Datepicker(
-        value=Variable(datetime(2021, 9, 18)),
+        value=date_var,
         date_format='MM/dd/yyyy',
         enable_time=True,
         max_date=datetime(2023, 12, 21),
         min_date=datetime(2020, 3, 20),
         select_close=False,
     ),
-
     ```
 
     :param value: A Variable with the initial date value

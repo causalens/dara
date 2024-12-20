@@ -33,29 +33,31 @@ class Label(ContentComponent):
     Example of a simple Label component:
 
     ```python
-
+    from dara.core import Variable
     from dara.components.common import Label, Input
 
+    value_var = Variable()
+
     Label(
-        Input(),
+        Input(value=value_var),
         value='My Input:',
         direction='horizontal',
     )
-
     ```
 
     For further customization you can also pass a ComponentInstance to the value param:
 
     ```python
+    from dara.core import Variable
+    from dara.components.common import Label, Input, Heading
 
-    from dara.components.common import Label, Input, Text
+    value_var = Variable()
 
     Label(
-        Input(),
+        Input(value=value_var),
         value=Heading('My Input:', level=2),
         direction='horizontal',
     )
-
     ```
 
     :param value: A label to be presented with the child component, accepts a string or ComponentInstance

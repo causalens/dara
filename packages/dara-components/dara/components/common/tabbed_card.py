@@ -29,8 +29,7 @@ class TabbedCard(LayoutComponent):
 
     A tabbed card component can be created via:
 
-     ```python
-
+    ```python
     from dara.components.common import Tab, TabbedCard, Text
 
     TabbedCard(
@@ -43,8 +42,7 @@ class TabbedCard(LayoutComponent):
             title='Tab 2'
         )
     )
-
-     ```
+    ```
 
     A tabbed card component where the tab is controlled by a Variable:
 
@@ -52,12 +50,13 @@ class TabbedCard(LayoutComponent):
     from dara.core import Variable
     from dara.components.common import Tab, TabbedCard, Text
 
+    tab_var = Variable('Tab 2')
+
     TabbedCard(
         Tab(Text('Some Text'), title='Tab 1'),
         Tab(Text('Some Text'), title='Tab 2'),
-        selected_tab=Variable('Tab 2'),
+        selected_tab=tab_var,
     )
-
     ```
 
     :param initial_tab: Optional title of the tab to initially render, defaults to the first

@@ -33,12 +33,12 @@ class Textarea(FormComponent):
     A Textarea component is created via:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import Textarea
 
-    Textarea(value=Variable('initial textarea content'))
+    value_var = Variable('initial textarea content')
 
+    Textarea(value=value_var)
     ```
 
     :param autofocus: Boolean, if True then then initially render with the cursor in the component

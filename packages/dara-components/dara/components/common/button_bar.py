@@ -41,9 +41,10 @@ class ButtonBar(FormComponent):
     A simple button bar component:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import ButtonBar, Item
+
+    bar_var = Variable('val2')
 
     ButtonBar(
         items=[
@@ -51,17 +52,22 @@ class ButtonBar(FormComponent):
             Item(label='Value 2', value='val2'),
             Item(label='Value 3', value='val3'),
         ],
-        value=Variable('val2')
+        value=bar_var,
     )
-
     ```
 
     A ButtonBar component with onchange:
 
     ```python
-
-    from dara.core import Variable, Notify
+    from dara.core import Variable, action
     from dara.components.common import ButtonBar, Item
+
+    bar_var = Variable('val2')
+
+    @action
+    async def notify_change(ctx: action.Ctx):
+        bar = ctx.input
+        await ctx.notify(title='Alert', message=f'ButtonBar value changed to {bar}', status='SUCCESS')
 
     ButtonBar(
         items=[
@@ -69,18 +75,18 @@ class ButtonBar(FormComponent):
             Item(label='Value 2', value='val2'),
             Item(label='Value 3', value='val3'),
         ],
-        value=Variable('val2')
-        onchange=Notify(message='ButtonBar value changed'),
+        value=bar_var,
+        onchange=notify_change(),
     )
-
     ```
 
     A button bar component with styling:
 
     ```python
-
     from dara.core import Variable
     from dara.components.common import ButtonBar, ButtonBarStyle, Item
+
+    bar_var = Variable('val2')
 
     ButtonBar(
         items=[
@@ -88,10 +94,9 @@ class ButtonBar(FormComponent):
             Item(label='Value 2', value='val2'),
             Item(label='Value 3', value='val3'),
         ],
-        value=Variable('val2'),
+        value=bar_var,
         styling=ButtonBarStyle.SECONDARY
     )
-
     ```
 
     :param items: An Item list that defines the button labels
