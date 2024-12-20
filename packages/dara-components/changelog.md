@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Clarified `Variable` usage in the docs of some components.
+
 ## 1.14.3
 
 -   Added the `language` prop to the `CodeEditor` component to allow for setting the language of the code editor.
