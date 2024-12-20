@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix a bug in the fastapi_vite_dara dependency that broke HMR mode for local development of custom JS packages
+
 ## 1.14.7
 
 -   Loosen dependency requirement on Jinja2 to allow 3.1.x versions
