@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.8
 
 -   Fix a bug in the fastapi_vite_dara dependency that broke HMR mode for local development of custom JS packages
 

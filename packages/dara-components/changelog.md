@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.8
 
 -  Clarified `Variable` usage in the docs of some components.
 
