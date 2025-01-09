@@ -118,17 +118,19 @@ jobs:
       - name: Package and Publish Docs
         run: make publish-docs
         env:
+          PROJECT: causalens-internal
+          LOCATION: us-central1
+          REPOSITORY: documentation
           PACKAGE: dara
+          GAR_KEY: '${{ secrets.GAR_KEY }}'
           VERSION: ${{ steps.extract_tag.outputs.version }}
           PACKAGE_PATHS: |
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
           BUILD_REFERENCE: true
-          ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
-          ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
-          ARTIFACTORY_REPOSITORY: documentation
+          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
+          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
       - name: Push a committed version bump
         run: |
               git push origin $(echo "HEAD:$BRANCH" | tr -d '[:space:]')
