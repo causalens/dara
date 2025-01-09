@@ -41,19 +41,13 @@ jobs:
           version=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)
           echo "version=$version" >> $GITHUB_OUTPUT
       - name: Package and Publish Docs
-        run: make publish-docs
-        env:
-          PROJECT: causalens-internal
-          LOCATION: us-central1
-          REPOSITORY: documentation
-          PACKAGE: dara
-          GAR_USERNAME: _json_key
-          GAR_KEY_JSON: '${{ secrets.GAR_KEY_JSON }}'
-          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
-          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
-          VERSION: ${{ steps.extract_tag.outputs.version }}
-          PACKAGE_PATHS: |
+        uses: causalens/docs-upload-action@v0.2.6
+        with:
+          gar-key: ${{ secrets.GAR_KEY_JSON }}
+          package-name: dara
+          package-paths: >
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
-          BUILD_REFERENCE: true
+          version: ${{ steps.extract_tag.outputs.version }}
+
