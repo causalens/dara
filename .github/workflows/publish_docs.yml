@@ -50,6 +50,8 @@ jobs:
           LOCATION: us-central1
           REPOSITORY: documentation
           PACKAGE: dara
+          GAR_JSON_KEY: '${{ secrets.GAR_JSON_KEY }}'
+          GAR_USERNAME: '${{ secrets.GAR_USERNAME }}'
           GAR_KEY: '${{ secrets.GAR_KEY }}'
           VERSION: ${{ steps.extract_tag.outputs.version }}
           PACKAGE_PATHS: |
@@ -57,5 +59,3 @@ jobs:
             packages/dara-components/dara.components
             packages/dara-core/dara.core
           BUILD_REFERENCE: true
-          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
-          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
