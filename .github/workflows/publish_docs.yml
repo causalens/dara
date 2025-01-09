@@ -47,8 +47,8 @@ jobs:
           LOCATION: us-central1
           REPOSITORY: documentation
           PACKAGE: dara
-          GAR_USERNAME: '_json_key'
-          GAR_KEY_JSON: '${{ secrets.GAR_KEY_JSON }}'
+          GAR_USERNAME: _json_key
+          GAR_KEY_JSON: ${{ secrets.GAR_KEY_JSON }}
           VERSION: ${{ steps.extract_tag.outputs.version }}
           PACKAGE_PATHS: |
             packages/create-dara-app/create_dara_app
