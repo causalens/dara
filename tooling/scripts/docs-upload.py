@@ -60,7 +60,7 @@ version = os.environ['VERSION']
 location = os.environ['LOCATION']
 repository = os.environ['REPOSITORY']
 package = os.environ['PACKAGE']
-gar_key = os.environ['GAR_KEY']
+gar_key = os.environ['GAR_KEY_JSON']
 
 
 with open('docs.zip', 'rb') as f:

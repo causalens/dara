@@ -90,7 +90,7 @@ publish:
 
 publish-docs:
 	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple
-	poetry config http-basic.causalens $${GAR_USERNAME} $${GAR_KEY}
+	poetry config http-basic.causalens $${GAR_USERNAME} $${GAR_KEY_JSON}
 	poetry add --source=causalens docs-builder@~0.2.6
 	poetry run python ./tooling/scripts/docs-upload.py
 
