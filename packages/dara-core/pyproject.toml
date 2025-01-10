@@ -88,17 +88,16 @@ pytest-timeout = "^2.1.0"
 requests = ">=2.25.1, <3.0.0"
 types-croniter = "^1.0.10"
 types-requests = "^2.27.29"
+google-auth = "2.37.0"
 
 [tool.poetry.extras]
 all = ["dara-components"]
+
 [tool.poetry.plugins."pydoc_markdown.interfaces.Renderer"]
 docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 
 [tool.poetry.scripts]
 dara = "dara.core.cli:cli"
-
-[tool.poetry.group.dev.dependencies]
-google-auth = "2.37.0"
 
 [tool.pytest.ini_options]
 timeout = 300
