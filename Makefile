@@ -88,6 +88,11 @@ publish:
 	lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
 	sed -i '$$ d' .npmrc
 
+publish-docs:
+	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple
+	poetry add --source=causalens docs-builder@~0.2.7
+	poetry run python ./tooling/scripts/docs-upload.py
+
 # Clean development artifacts from the repository
 clean:
 	git clean -xfd .
