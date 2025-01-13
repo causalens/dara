@@ -31,9 +31,6 @@ jobs:
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry anthology install
-        env:
-            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
-            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
       - name: Link venvs if cache was hit
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
@@ -46,14 +43,17 @@ jobs:
       - name: Package and Publish Docs
         run: make publish-docs
         env:
+          PROJECT: causalens-internal
+          LOCATION: us-central1
+          REPOSITORY: documentation
           PACKAGE: dara
+          GAR_USERNAME: _json_key
+          GAR_KEY_JSON: '${{ secrets.GAR_KEY_JSON }}'
+          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
+          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
           VERSION: ${{ steps.get-version.outputs.version }}
           PACKAGE_PATHS: |
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
           BUILD_REFERENCE: true
-          ARTIFACTORY_URL: https://causalens.jfrog.io/artifactory
-          ARTIFACTORY_USERNAME: ${{ secrets.JF_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.JF_PASSWORD }}
-          ARTIFACTORY_REPOSITORY: documentation
