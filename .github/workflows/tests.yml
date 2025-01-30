@@ -31,30 +31,30 @@ jobs:
         run: poetry self add anthology
       - name: Setup cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-            path: .venv
-            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry anthology install
         env:
-            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
-            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
+          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: "${{ secrets.GAR_USERNAME }}"
+          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: "${{ secrets.GAR_KEY }}"
       - name: Link venvs if cache was hit
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-            version: 9
+          version: 9
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -66,7 +66,7 @@ jobs:
         id: set-cypress
         run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"
       - name: Cache Cypress binary
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         # This attempts to restore cached Cypress; if not found and job is successful, creates new cache
         with:
           path: ~/.cache/Cypress
@@ -76,7 +76,7 @@ jobs:
       - name: Install system deps
         run: sudo apt update && sudo apt install wget -y
       - name: Install and cache APT Cypress deps
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.1
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
         with:
           packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
           version: cypress-${{ runner.os }}-${{ steps.set-cypress.outputs.cypress }}

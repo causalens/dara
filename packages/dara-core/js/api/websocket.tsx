@@ -2,6 +2,8 @@ import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
+import globalStore from '@/shared/global-state-store';
+import { getTokenKey } from '@/shared/utils/embed';
 import type { ActionImpl, AnyVariable } from '@/types';
 
 const interAttemptTimeout = 500;
@@ -218,6 +220,11 @@ export class WebSocketClient implements WebSocketClientInterface {
     initialize(isReconnect = false): WebSocket {
         // Create the underlying socket instance from the url and token
         const url = new URL(this.#socketUrl);
+
+        // Get the latest token from the global store to ensure it's always up to date
+        this.token = globalStore.getValueSync(getTokenKey());
+
+        // Set the token on the params of the request
         url.searchParams.set('token', this.token);
         const socket = new WebSocket(url);
 
@@ -462,6 +469,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      * @param newToken new session token
      */
     updateToken(newToken: string): void {
+        this.token = newToken;
         if (this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(
                 JSON.stringify({
@@ -469,7 +477,6 @@ export class WebSocketClient implements WebSocketClientInterface {
                     type: 'token_update',
                 })
             );
-            this.token = newToken;
         }
     }
 

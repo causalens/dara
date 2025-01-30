@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import asyncio
 import inspect
 import math
@@ -26,7 +27,7 @@ import anyio
 from anyio import Event, create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from exceptiongroup import catch
-from fastapi import HTTPException, Query
+from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
 from pydantic import BaseModel, Field, parse_obj_as
@@ -80,6 +81,7 @@ class CustomClientMessage(BaseModel):
 
 ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 
+
 # Server message types
 class ServerMessagePayload(BaseModel):
     rchan: Optional[str] = Field(default=None, alias='__rchan')
@@ -117,7 +119,7 @@ class DaraServerMessage(BaseModel):
     """
 
     type: Literal['message'] = Field(default='message', const=True)
-    message: ServerMessagePayload   # exact messages expected by frontend are defined in js/api/websocket.tsx
+    message: ServerMessagePayload  # exact messages expected by frontend are defined in js/api/websocket.tsx
 
 
 class CustomServerMessage(BaseModel):
@@ -204,7 +206,10 @@ class WebSocketHandler:
                             existing_messages.append(message.message)
                         else:
                             existing_messages = [message.message]
-                            self.pending_responses[message_id] = (event, existing_messages)
+                            self.pending_responses[message_id] = (
+                                event,
+                                existing_messages,
+                            )
 
                         # If all chunks have been received, set the event to notify the waiting coroutine
                         if len(existing_messages) == message.chunk_count:
@@ -235,7 +240,9 @@ class WebSocketHandler:
                             await self.send_message(
                                 CustomServerMessage(
                                     message=CustomServerMessagePayload(
-                                        kind=kind, data=response, __response_for=message.message.rchan
+                                        kind=kind,
+                                        data=response,
+                                        __response_for=message.message.rchan,
                                     )
                                 )
                             )
@@ -249,7 +256,9 @@ class WebSocketHandler:
                         return self.send_message(
                             CustomServerMessage(
                                 message=CustomServerMessagePayload(
-                                    kind=kind, data=response, __response_for=message.message.rchan
+                                    kind=kind,
+                                    data=response,
+                                    __response_for=message.message.rchan,
                                 )
                             )
                         )
@@ -405,7 +414,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     :param token: The authentication token
     """
     if token is None:
-        raise HTTPException(403, 'Token missing from websocket connection query parameter')
+        raise WebSocketException(code=403, reason='Token missing from websocket connection query parameter')
 
     from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, UserData
     from dara.core.internal.registries import (
@@ -420,10 +429,10 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
 
     try:
         token_content: TokenData = decode_token(token)
-    except DecodeError:
-        raise HTTPException(status_code=403, detail='Invalid or expired token')
+    except DecodeError as err:
+        raise WebSocketException(code=403, reason='Invalid or expired token') from err
     except AuthError as err:
-        raise HTTPException(status_code=403, detail=err.detail)
+        raise WebSocketException(code=403, reason=str(err.detail)) from err
 
     # Register once accepted - map session id to the channel so subsequent requests can identify the client
     if websocket_registry.has(token_content.session_id):
