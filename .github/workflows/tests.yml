@@ -33,22 +33,22 @@ jobs:
         id: cached-poetry-dependencies
         uses: actions/cache@v4
         with:
-            path: .venv
-            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry anthology install
         env:
-            POETRY_HTTP_BASIC_CAUSALENS_USERNAME: '${{ secrets.GAR_USERNAME }}'
-            POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY }}'
+          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: "${{ secrets.GAR_USERNAME }}"
+          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: "${{ secrets.GAR_KEY }}"
       - name: Link venvs if cache was hit
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-            version: 9
+          version: 9
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -111,18 +111,18 @@ jobs:
           name: screenshots
           path: packages/dara-core/cypress/screenshots
           retention-days: 30
-      - uses: 8398a7/action-slack@v3
-        with:
-          status: custom
-          fields: workflow,job,commit,repo,ref,author,took
-          custom_payload: |
-            {
-              username: 'action-slack',
-              attachments: [{
-                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-                text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} ${{ job.status }} in ${process.env.AS_TOOK}`,
-              }]
-            }
-        env:
-          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_BUILD_CHANNEL_WEBHOOK }}"
-        if: ${{ github.actor != 'dependabot[bot]' }}
+      # - uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: custom
+      #     fields: workflow,job,commit,repo,ref,author,took
+      #     custom_payload: |
+      #       {
+      #         username: 'action-slack',
+      #         attachments: [{
+      #           color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+      #           text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} ${{ job.status }} in ${process.env.AS_TOOK}`,
+      #         }]
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: "${{ secrets.SLACK_BUILD_CHANNEL_WEBHOOK }}"
+      #   if: ${{ github.actor != 'dependabot[bot]' }}
