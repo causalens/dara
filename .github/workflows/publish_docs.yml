@@ -24,7 +24,7 @@ jobs:
         run: poetry self add anthology
       - name: Setup cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
             path: .venv
             key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
