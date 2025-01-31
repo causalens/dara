@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.14.9
 
 -  Fix a bug in the websocket token refresh logic that caused it to get stuck in a repeating failure state.
 

@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "ui-code-editor"
-version = "1.14.8"
+version = "1.14.9"
