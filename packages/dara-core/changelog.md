@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fix a bug where when using `store=BackendStore(...)` kwarg with a `Variable`, the originating session would also be notified of the change causing rare desyncs and race conditions.
+
 ## 1.14.9
 
 -  Fix a bug in the websocket token refresh logic that caused it to get stuck in a repeating failure state.
