@@ -196,6 +196,8 @@ async def test_websocket_broadcast():
     async with AsyncTestClient(app) as client:
         async with _async_ws_connect(client, token1) as ws1:
             init1 = await ws1.receive_json()
+            channel_1 = init1['message']['channel']
+
             async with _async_ws_connect(client, token1_2) as ws1_2:
                 init1_2 = await ws1_2.receive_json()
                 async with _async_ws_connect(client, token2) as ws2:
@@ -218,6 +220,20 @@ async def test_websocket_broadcast():
                     assert messages1_2[0].get('message') == {'message': 'broadcast message'}
                     assert messages2[0].get('message') == {'message': 'broadcast message'}
 
+                    # Broadcast a message while setting ignore_channel to one of the channel_ids
+                    await ws_mgr.broadcast({'message': 'broadcast message new'}, ignore_channel=channel_1)
+
+                    messages1 = await get_ws_messages(ws1, timeout=1)
+                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                    messages2 = await get_ws_messages(ws2, timeout=1)
+
+                    # Check that the message was sent only to the OTHER test user channel and the test2 user channel
+                    assert len(messages1) == 0
+                    assert len(messages1_2) == 1
+                    assert len(messages2) == 1
+                    assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
+                    assert messages2[0].get('message') == {'message': 'broadcast message new'}
+
 
 async def test_websocket_send_to_user():
     builder = ConfigurationBuilder()
@@ -236,6 +252,8 @@ async def test_websocket_send_to_user():
     async with AsyncTestClient(app) as client:
         async with _async_ws_connect(client, token1) as ws1:
             init1 = await ws1.receive_json()
+            channel_1 = init1['message']['channel']
+
             async with _async_ws_connect(client, token1_2) as ws1_2:
                 init1_2 = await ws1_2.receive_json()
                 async with _async_ws_connect(client, token2) as ws2:
@@ -256,6 +274,20 @@ async def test_websocket_send_to_user():
 
                     assert messages1[0].get('message') == {'message': 'broadcast message'}
                     assert messages1_2[0].get('message') == {'message': 'broadcast message'}
+
+                    # Send a message to user 'test' while setting ignore_channel to one of the channel_ids
+                    await ws_mgr.send_message_to_user('test', {'message': 'broadcast message new'}, ignore_channel=channel_1)
+
+                    messages1 = await get_ws_messages(ws1, timeout=1)
+                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                    messages2 = await get_ws_messages(ws2, timeout=1)
+
+                    # Check that the message was sent only to the OTHER test user channel
+                    assert len(messages1) == 0
+                    assert len(messages1_2) == 1
+                    assert len(messages2) == 0
+                    assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
+
 
 
 async def test_websocket_token_required():

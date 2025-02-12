@@ -321,6 +321,9 @@ class WebsocketManager:
 
     def __init__(self):
         self.handlers: Dict[str, WebSocketHandler] = {}
+        """
+        A mapping of channel IDs to WebSocketHandler instances.
+        """
 
     def _construct_message(self, payload: LoosePayload, custom: bool) -> ServerMessage:
         """
@@ -344,24 +347,30 @@ class WebsocketManager:
         self.handlers[channel_id] = handler
         return handler
 
-    async def broadcast(self, message: LoosePayload, custom=False):
+    async def broadcast(self, message: LoosePayload, custom=False, ignore_channel: Optional[str] = None):
         """
         Send a message to all connected clients.
 
         :param message: The message to send
         :param custom: Whether the message is a custom message
+        :param ignore_channel: A channel ID to ignore when broadcasting
         """
         async with anyio.create_task_group() as tg:
             for handler in self.handlers.values():
+                if ignore_channel is not None and handler.channel_id == ignore_channel:
+                    continue
                 tg.start_soon(handler.send_message, self._construct_message(message, custom))
 
-    async def send_message_to_user(self, user_id: str, message: LoosePayload, custom=False):
+    async def send_message_to_user(
+        self, user_id: str, message: LoosePayload, custom=False, ignore_channel: Optional[str] = None
+    ):
         """
         Send a message to all connected channels associated with the given user.
 
         :param user_id: The user ID to send the message to
         :param message: The message payload to send
         :param custom: Whether the message is a custom message
+        :param ignore_channel: A channel ID to ignore when sending
         """
         channels = get_user_channels(user_id)
 
@@ -370,6 +379,8 @@ class WebsocketManager:
 
         async with anyio.create_task_group() as tg:
             for channel in channels:
+                if ignore_channel is not None and channel == ignore_channel:
+                    continue
                 tg.start_soon(self.send_message, channel, message, custom)
 
     async def send_message(self, channel_id: str, message: LoosePayload, custom=False):

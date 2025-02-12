@@ -42,41 +42,50 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         return val;
     }, []);
 
-    const syncStoreValues = React.useCallback<WriteItems>(async ({ diff }) => {
-        // keep track of extras -> diff to send each set of extras as a separate request
-        const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
+    const syncStoreValues = React.useCallback<WriteItems>(
+        async ({ diff }) => {
+            // keep track of extras -> diff to send each set of extras as a separate request
+            const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
 
-        for (const [itemKey, value] of diff.entries()) {
-            const extras = STORE_EXTRAS_MAP.get(itemKey);
+            for (const [itemKey, value] of diff.entries()) {
+                const extras = STORE_EXTRAS_MAP.get(itemKey);
 
-            if (!extrasMap.has(extras)) {
-                extrasMap.set(extras, {});
+                if (!extrasMap.has(extras)) {
+                    extrasMap.set(extras, {});
+                }
+
+                // store the value in the extras map
+                extrasMap.get(extras)[itemKey] = value;
             }
 
-            // store the value in the extras map
-            extrasMap.get(extras)[itemKey] = value;
-        }
+            async function sendRequest(
+                serializableExtras: RequestExtrasSerializable,
+                storeDiff: Record<string, any>
+            ): Promise<void> {
+                const response = await request(
+                    `/api/core/store`,
+                    {
+                        body: JSON.stringify({
+                            values: storeDiff,
+                            ws_channel: await client.getChannel(),
+                        }),
+                        method: 'POST',
+                    },
+                    serializableExtras.extras
+                );
+                await handleAuthErrors(response, true);
+                await validateResponse(response, `Failed to sync the store values`);
+            }
 
-        async function sendRequest(
-            serializableExtras: RequestExtrasSerializable,
-            storeDiff: Record<string, any>
-        ): Promise<void> {
-            const response = await request(
-                `/api/core/store`,
-                { body: JSON.stringify(storeDiff), method: 'POST' },
-                serializableExtras.extras
+            // Send a request with each different set of extras
+            await Promise.allSettled(
+                Array.from(extrasMap.entries()).map(([serializableExtras, storeDiff]) =>
+                    sendRequest(serializableExtras, storeDiff)
+                )
             );
-            await handleAuthErrors(response, true);
-            await validateResponse(response, `Failed to sync the store values`);
-        }
-
-        // Send a request with each different set of extras
-        await Promise.allSettled(
-            Array.from(extrasMap.entries()).map(([serializableExtras, storeDiff]) =>
-                sendRequest(serializableExtras, storeDiff)
-            )
-        );
-    }, []);
+        },
+        [client]
+    );
 
     const listenToStoreChanges = React.useCallback<ListenToItems>(
         ({ updateItem }) => {

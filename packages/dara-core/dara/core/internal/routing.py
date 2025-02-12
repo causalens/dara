@@ -490,10 +490,11 @@ def create_router(config: Configuration):
         return result
 
     @core_api_router.post('/store', dependencies=[Depends(verify_session)])
-    async def sync_backend_store(values: Dict[str, Any] = Body()):
+    async def sync_backend_store(ws_channel: str = Body(), values: Dict[str, Any] = Body()):
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
         async def _write(store_uid: str, value: Any):
+            WS_CHANNEL.set(ws_channel)
             store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
             result = store_entry.store.write(value)
 

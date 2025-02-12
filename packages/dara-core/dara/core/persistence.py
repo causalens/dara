@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, PrivateAttr, validator
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
+from dara.core.internal.websocket import WS_CHANNEL
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -257,7 +258,7 @@ class BackendStore(PersistenceStore):
         msg = {'store_uid': self.uid, 'value': value}
 
         if self.scope == 'global':
-            return await ws_mgr.broadcast(msg)
+            return await ws_mgr.broadcast(msg, ignore_channel=WS_CHANNEL.get())
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -266,7 +267,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await ws_mgr.send_message_to_user(user_identifier, msg)
+        return await ws_mgr.send_message_to_user(user_identifier, msg, ignore_channel=WS_CHANNEL.get())
 
     async def init(self, variable: 'Variable'):
         """
