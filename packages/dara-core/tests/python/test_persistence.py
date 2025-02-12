@@ -1,7 +1,6 @@
 import inspect
 import json
 import tempfile
-from multiprocessing import Value
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -11,6 +10,7 @@ from pydantic import ValidationError
 
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.internal.websocket import WS_CHANNEL
 from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
 
 pytestmark = pytest.mark.anyio
@@ -203,7 +203,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user1 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 1
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value'})]
+        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value'}, ignore_channel=None)]
     )
 
     USER.set(USER_2)
@@ -214,7 +214,23 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user2 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 2
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2'})], any_order=True
+        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}, ignore_channel=None)],
+        any_order=True,
+    )
+
+    # test that if we're under a WS_CHANNEL scope, we don't notify the same originating channel
+    WS_CHANNEL.set('channel3')
+    await user_backend_store.write('test_value_3', notify=True)
+    assert mock_ws_mgr.send_message_to_user.call_count == 3
+    mock_ws_mgr.send_message_to_user.assert_has_calls(
+        [
+            call(
+                USER_2.identity_id,
+                {'store_uid': user_backend_store.uid, 'value': 'test_value_3'},
+                ignore_channel='channel3',
+            )
+        ],
+        any_order=True,
     )
 
 
@@ -255,7 +271,7 @@ async def test_notify_on_write(backend_store, mock_ws_mgr):
     # Write a value and check if _notify was called
     await backend_store.write('test_value')
 
-    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'test_value'})
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'test_value'}, ignore_channel=None)
 
 
 async def test_notify_on_delete(backend_store, mock_ws_mgr):
@@ -264,7 +280,7 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
     await backend_store.delete()
 
     # Need to await to yield to the loop to process the task
-    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None})
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None}, ignore_channel=None)
 
 
 @pytest.mark.parametrize('backend_name', [('in_memory_backend'), ('file_backend')])

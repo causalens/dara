@@ -2,6 +2,7 @@ import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 
 import { BackendStoreMessage } from '@/api/websocket';
+import { setSessionToken } from '@/auth/use-session-token';
 import { RequestExtrasProvider } from '@/shared';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
@@ -9,7 +10,6 @@ import { useVariable } from '@/shared/interactivity/use-variable';
 import { BackendStore, SingleVariable } from '@/types/core';
 
 import { MockWebSocketClient, Wrapper, server } from './utils';
-import { setSessionToken } from '@/auth/use-session-token';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
@@ -166,7 +166,10 @@ describe('Variable Persistence', () => {
         });
 
         await waitFor(() => {
-            expect(onSave).toHaveBeenCalledWith({ 'store-uid': { foo: 'baz' } });
+            expect(onSave).toHaveBeenCalledWith({
+                values: { 'store-uid': { foo: 'baz' } },
+                ws_channel: expect.any(String),
+            });
         });
 
         // Check that the value is updated
@@ -265,8 +268,14 @@ describe('Variable Persistence', () => {
 
         await waitFor(() => {
             // check each request has the correct extras depending on the context
-            expect(onSave).toHaveBeenCalledWith('foo', { 'store-uid': { foo: 'new1' } });
-            expect(onSave).toHaveBeenCalledWith('bar', { 'store-uid-2': { foo: 'new2' } });
+            expect(onSave).toHaveBeenCalledWith('foo', {
+                values: { 'store-uid': { foo: 'new1' } },
+                ws_channel: expect.any(String),
+            });
+            expect(onSave).toHaveBeenCalledWith('bar', {
+                values: { 'store-uid-2': { foo: 'new2' } },
+                ws_channel: expect.any(String),
+            });
         });
 
         // Check that the value is updated
