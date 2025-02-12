@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.0
 
 -  Fix a bug where when using `store=BackendStore(...)` kwarg with a `Variable`, the originating session would also be notified of the change causing rare desyncs and race conditions.
 
