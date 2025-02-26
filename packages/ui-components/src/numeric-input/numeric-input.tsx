@@ -20,7 +20,7 @@ import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import styled from '@darajs/styled-components';
 
 import { CONTROL_KEYS, Key } from '../constants';
-import Input, { ErrorMessage } from '../input/input';
+import Input from '../input/input';
 import { InteractiveComponentProps } from '../types';
 import InputStepper from './input-stepper';
 
