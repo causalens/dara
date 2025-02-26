@@ -313,7 +313,12 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             style={props.style}
         >
             <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
-                <InputWrapper isDisabled={props.disabled} isOpen={isOpen} ref={refs.setReference} isErrored={!!props.errorMsg}>
+                <InputWrapper
+                    isDisabled={props.disabled}
+                    isOpen={isOpen}
+                    ref={refs.setReference}
+                    isErrored={!!props.errorMsg}
+                >
                     <TagWrapper maxRows={maxRows}>
                         {selectedItems.map((selectedItem, index) => (
                             <Tag
