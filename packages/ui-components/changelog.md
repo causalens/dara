@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.1
 
 - Fixed an issue where `NumericInput` would display a duplicate error message
 - Fixed an issue where `Multiselect` would not display error borders
