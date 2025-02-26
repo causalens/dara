@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where `NumericInput` would display a duplicate error message
+- Fixed an issue where `Multiselect` would not display error borders
+
 ## 1.13.1
 
 -   Fixed an issue with `NumericInput` where in controlled mode if number ended in `.` this could not be erased.
