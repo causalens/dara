@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fix an issue where the internal `eng_logger` would be enabled even when `DARA_DEV_LOG_LEVEL` was set to `NONE` (which is the default).
+
 ## 1.15.0
 
 -  Fix a bug where when using `store=BackendStore(...)` kwarg with a `Variable`, the originating session would also be notified of the change causing rare desyncs and race conditions.
