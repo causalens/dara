@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.2
 
 -  Fix an issue where the internal `eng_logger` would be enabled even when `DARA_DEV_LOG_LEVEL` was set to `NONE` (which is the default).
 
