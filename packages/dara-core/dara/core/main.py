@@ -402,7 +402,9 @@ def start(extra=None):
         if debug_level == 'DEBUG':
             http_logger._logger.setLevel('DEBUG')
     else:
+        # To propertly disable we need to both disable the logger and ensure it doesn't propagate it's log messages
         eng_logger._logger.disabled = True
+        eng_logger._logger.propagate = False
 
     # Set dev logging level based on the environment variable set by CLI
     dev_level = os.environ.get('DARA_DEV_LOG_LEVEL', 'NONE')
