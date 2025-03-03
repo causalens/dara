@@ -329,6 +329,7 @@ function Plotly(props: PlotlyProps): JSX.Element {
             style={{
                 flex: '1 1 auto',
                 minHeight: '350px',
+                minWidth: '350px',
                 height: figure.layout?.height,
                 width: figure.layout?.width,
                 ...style,
