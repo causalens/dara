@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `Plotly` component would shrink to zero width in a vertical flex container with `align-items` set to any value other than `stretch`
+
 ## 1.14.8
 
 -  Clarified `Variable` usage in the docs of some components.
