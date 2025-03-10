@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `Slider` component would not raise on invalid domain values where step was inferred.
+
 ## 1.15.3
 
 -  Fixed an issue where `Plotly` component would shrink to zero width in a vertical flex container with `align-items` set to any value other than `stretch`
