@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import validator
@@ -23,6 +23,41 @@ from pydantic import validator
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
 from dara.core.interactivity import UrlVariable, Variable
+
+
+def compute_step(difference: Decimal) -> Decimal:
+    """
+    Compute what step should be used for the given domain difference.
+
+    The step is computed as:
+      step = 10^(floor(log10(difference))) / 10
+
+    For cases where the step is a decimal (i.e. when the log10 is negative),
+    the result is quantized to a fixed number of decimal places to avoid
+    floating point imprecision.
+
+    :param difference: The domain difference (must be positive).
+    :return: The computed step.
+    """
+    if difference <= 0:
+        raise ValueError('difference must be a positive Decimal.')
+
+    # Compute the base-10 logarithm of the difference
+    log_value = difference.log10()
+    # Get the integer part via floor
+    log_int = int(log_value.to_integral_value(rounding=ROUND_FLOOR))
+
+    # Compute 10^(floor(log10(difference))) / 10
+    step = (Decimal(10) ** log_int) / Decimal(10)
+
+    # If the logarithm is negative, quantize the step to prevent
+    # precision errors. The precision is set to abs(log_int) + 1 decimal places.
+    if log_int < 0:
+        num_decimals = abs(log_int) + 1
+        quantizer = Decimal(f'1e-{num_decimals}')
+        step = step.quantize(quantizer)
+
+    return step
 
 
 class Slider(FormComponent):
@@ -116,22 +151,29 @@ class Slider(FormComponent):
 
         return v
 
-    @validator('step')
+    @validator('step', always=True)
     @classmethod
     def step_valid(cls, v: Optional[float], values: Dict[str, Any]) -> Optional[float]:
-        if v is None:
-            return v
-
-        # both step and domain are set, make sure they are compatible
+        # make sure step and domain are compatible
         # using Decimal to avoid floating point errors
         domain = values['domain']
         domain_range = Decimal(str(domain[1])) - Decimal(str(domain[0]))
-        step = Decimal(str(v))
+
+        # If step is not provided, run inference to check if the
+        # client-side computed step is compatible with the domain range.
+        # The actual step is computed in the client-side but we check it here to fail early.
+        if v is None:
+            step = compute_step(domain_range)
+        else:
+            step = Decimal(str(v))
 
         # Not divisible
         if domain_range % step != 0:
+            step_string = f'Step {step}'
+            if v is None:
+                step_string += ' (inferred from domain range)'
             raise ValueError(
-                f'Step {v} is not compatible with domain {domain}. The domain range must be divisible by the step provided.'
+                f'{step_string} is not compatible with domain {domain}. The domain range must be divisible by the step.'
             )
 
         return v
