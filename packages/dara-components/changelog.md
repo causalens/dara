@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.4
 
 -  Fixed an issue where `Slider` component would not raise on invalid domain values where step was inferred.
 
