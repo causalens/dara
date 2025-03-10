@@ -154,6 +154,10 @@ class Slider(FormComponent):
     @validator('step', always=True)
     @classmethod
     def step_valid(cls, v: Optional[float], values: Dict[str, Any]) -> Optional[float]:
+        # domain validation must have failed, skip
+        if 'domain' not in values:
+            return v
+
         # make sure step and domain are compatible
         # using Decimal to avoid floating point errors
         domain = values['domain']
