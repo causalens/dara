@@ -16,7 +16,7 @@
  */
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Handles, Slider as RCSlider, Rail, Ticks, Tracks } from 'react-compound-slider';
 
 import styled from '@darajs/styled-components';
@@ -249,15 +249,13 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
         return computeStep(domain[1] - domain[0]);
     }, [domain, step]);
+
     const [sliderValues, setSliderValues] = useState(
         values?.map((v) => mapToClosestStep(v, adjustedStep)) ||
             initialValue?.map((v) => mapToClosestStep(v, adjustedStep)) || [domain[0]]
     );
-
     const currSliderValues = useRef(sliderValues);
-    useLayoutEffect(() => {
-        currSliderValues.current = sliderValues;
-    }, [sliderValues]);
+    currSliderValues.current = sliderValues;
 
     const isFirstRender = useRef(true);
 
@@ -265,9 +263,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
         if (values !== undefined) {
             const mappedValues = values.map((v) => mapToClosestStep(v, adjustedStep));
 
-            // Only update if there's a significant difference and not just due to step mapping
-            // This prevents an infinite update loop
-            if (!isEqual(mappedValues, currSliderValues.current) && !isEqual(values, currSliderValues.current)) {
+            if (!isEqual(mappedValues, currSliderValues.current)) {
                 setSliderValues(mappedValues);
             }
         }
@@ -319,18 +315,9 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                 isFirstRender.current = false;
                 return;
             }
-
             if (validateValues(sliderValues)) {
-                // Only call onChange if values actually changed from what was passed in
-                if (
-                    !isEqual(
-                        sliderValues,
-                        values.map((v) => mapToClosestStep(v, adjustedStep))
-                    )
-                ) {
-                    const formattedValues = sliderValues.map(getValueLabel);
-                    onChange?.(formattedValues);
-                }
+                const formattedValues = sliderValues.map(getValueLabel);
+                onChange?.(formattedValues);
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
