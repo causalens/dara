@@ -1,6 +1,6 @@
 import hash from 'object-hash';
 
-import { AnyVariable } from '@/types';
+import { AnyVariable } from '@/types/core';
 
 /**
  * Generate a unique hash for an object

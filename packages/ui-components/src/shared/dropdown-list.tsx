@@ -15,8 +15,8 @@ const StyledDropdownList = styled(List)`
 `;
 
 const InnerItem = styled.span`
-    min-width: 0;
     overflow: hidden;
+    min-width: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
 `;

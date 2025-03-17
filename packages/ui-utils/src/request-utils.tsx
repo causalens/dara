@@ -126,7 +126,7 @@ export async function validateResponse(
         try {
             const json = await res.json();
             message = json?.message || json?.detail || fallbackMessage;
-        } catch (e) {
+        } catch {
             if (fallbackMessage) {
                 try {
                     message = (await res.text()) || fallbackMessage;

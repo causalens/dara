@@ -16,7 +16,7 @@
  */
 import type { EditorMode } from '@types';
 
-export interface LegendNodeDefinition {}
+export type LegendNodeDefinition = Record<string, unknown>;
 
 export type GraphLegendDefinition =
     | {

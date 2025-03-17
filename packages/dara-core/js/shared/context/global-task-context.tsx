@@ -2,7 +2,8 @@
 import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
-import { RequestExtras, cancelTask } from '@/api';
+import { cancelTask } from '@/api/core';
+import { RequestExtras } from '@/api/http';
 import { TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
 
 import { useRequestExtras } from './request-extras-context';

@@ -70,6 +70,21 @@ const Arrow = styled.span<ArrowProps>`
                 return 'right: 3px;';
             case 'right':
                 return 'left: -5px;';
+            case 'top-start':
+            case 'top-end':
+                return 'bottom: 3px;';
+            case 'bottom-start':
+            case 'bottom-end':
+                return 'top: -5px;';
+            case 'left-start':
+            case 'left-end':
+                return 'right: 3px;';
+            case 'right-start':
+            case 'right-end':
+                return 'left: -5px;';
+            case 'auto':
+            case 'auto-start':
+            case 'auto-end':
             default:
                 // Unsupported placement, hide the arrow
                 return 'display: none;';
@@ -90,12 +105,24 @@ const Arrow = styled.span<ArrowProps>`
         ${(props) => {
             switch (props.placement) {
                 case 'top':
+                case 'top-start':
+                case 'top-end':
+                    return 'transform: rotate(45deg);';
                 case 'bottom':
+                case 'bottom-start':
+                case 'bottom-end':
                     return 'transform: rotate(45deg);';
                 case 'left':
+                case 'left-start':
+                case 'left-end':
                     return 'transform: rotate(135deg);';
                 case 'right':
+                case 'right-start':
+                case 'right-end':
                     return 'transform: rotate(-45deg);';
+                case 'auto':
+                case 'auto-start':
+                case 'auto-end':
                 default:
                     return 'display: none;';
             }

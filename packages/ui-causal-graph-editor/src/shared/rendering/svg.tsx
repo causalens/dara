@@ -42,6 +42,21 @@ export function drawPath(d: string, gfx: Graphics): void {
                 gfx.lineTo(command.x, command.y);
                 break;
             }
+            case 'A': {
+                // Arc command - simplified as a line for now
+                gfx.lineTo(command.x, command.y);
+                break;
+            }
+            case 'S': {
+                // Smooth curve command - simplified as a line for now
+                gfx.lineTo(command.x, command.y);
+                break;
+            }
+            case 'T': {
+                // Smooth quadratic curve command - simplified as a line for now
+                gfx.lineTo(command.x, command.y);
+                break;
+            }
             case 'Z': {
                 gfx.closePath();
                 break;
@@ -56,7 +71,7 @@ export function drawPath(d: string, gfx: Graphics): void {
             }
             default: {
                 // eslint-disable-next-line no-console
-                console.info('SVG Draw command not supported:', command.code, command);
+                console.info('SVG Draw command not supported:', (command as { code: string }).code, command);
                 break;
             }
         }

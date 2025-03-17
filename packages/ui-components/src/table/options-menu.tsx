@@ -72,6 +72,13 @@ interface OptionsMenuProps {
     style: React.CSSProperties;
 }
 
+const columnHeaderToString = (header: unknown): string => {
+    if (typeof header === 'string') {
+        return header;
+    }
+    return '';
+};
+
 /**
  * The OptionsMenu component adds a sectioned list menu to the Table component.
  * It inherits the ability to reset column widths and filters from react-table's useTable hook
@@ -149,11 +156,11 @@ const OptionsMenu: FunctionComponent<OptionsMenuProps> = ({
             items: allColumns
                 .filter((column) => typeof column.Header === 'string')
                 .map((column) => ({
-                    label: `${column.isVisible ? 'Hide' : 'Show'} ${String(column.Header)}`,
+                    label: `${column.isVisible ? 'Hide' : 'Show'} ${columnHeaderToString(column.Header)}`,
                     onClick: () =>
                         /* Don't allow last visible column to be hidden */
                         !(column.isVisible && numVisibleColumns === 1) ? column.toggleHidden() : null,
-                    value: `${column.isVisible ? 'hide' : 'show'}${String(column.Header)}`,
+                    value: `${column.isVisible ? 'hide' : 'show'}${columnHeaderToString(column.Header)}`,
                 })),
             label: 'Columns',
         };
