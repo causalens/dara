@@ -177,7 +177,7 @@ function mapColumns(columns: Array<ColumnProps>): any {
     }
 }
 
-const INDEX_COL = '__index__' as const;
+const INDEX_COL = '__index__';
 
 interface DataRow {
     [col: string]: any;
