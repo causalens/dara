@@ -9,7 +9,7 @@ import { WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
-import { SingleVariable, isDerivedVariable, GlobalTaskContext } from '@/types';
+import { GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
 import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
