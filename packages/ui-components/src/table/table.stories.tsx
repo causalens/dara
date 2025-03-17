@@ -308,16 +308,7 @@ export const TableInfinite = (args: Props<any>): JSX.Element => {
 };
 TableInfinite.args = {
     columns,
-    getItem: () => ({
-        age: 4,
-        dob: '1990-02-11T11:30:30',
-        firstName:
-            'hands lorem ipsum content that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
-        lastName: 'box',
-        progress: 40,
-        status: 'single',
-        visits: 36,
-    }),
-    itemCount: 300000,
+    getItem: (idx: number) => sampleData[idx],
+    itemCount: sampleData.length,
     onItemsRendered: () => Promise.resolve(),
 } as Props<any>;
