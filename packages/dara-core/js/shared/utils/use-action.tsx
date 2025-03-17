@@ -8,11 +8,11 @@ import { concatMap, takeWhile } from 'rxjs/operators';
 import { useNotifications } from '@darajs/ui-notifications';
 import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 
-import { fetchTaskResult, handleAuthErrors } from '@/api';
+import { fetchTaskResult } from '@/api/core';
 import { request } from '@/api/http';
+import { handleAuthErrors } from '@/auth/auth';
 import { ImportersCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import { Action, ActionHandler } from '@/types';
-import { ActionContext, ActionDef, ActionImpl, AnnotatedAction } from '@/types/core';
+import { Action, ActionContext, ActionDef, ActionHandler, ActionImpl, AnnotatedAction } from '@/types/core';
 import { isActionImpl } from '@/types/utils';
 
 import { useEventBus } from '../event-bus/event-bus';
