@@ -8,9 +8,8 @@ import { validateResponse } from '@darajs/ui-utils';
 import { WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { isEmbedded } from '@/shared/utils/embed';
-import { SingleVariable, isDerivedVariable } from '@/types';
+import { SingleVariable, isDerivedVariable, GlobalTaskContext } from '@/types';
 import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';

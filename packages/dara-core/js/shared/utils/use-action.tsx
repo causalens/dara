@@ -16,9 +16,9 @@ import { Action, ActionContext, ActionDef, ActionHandler, ActionImpl, AnnotatedA
 import { isActionImpl } from '@/types/utils';
 
 import { useEventBus } from '../event-bus/event-bus';
-import { useVariable } from '../interactivity';
 import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { resolveVariable } from '../interactivity/resolve-variable';
+import { useVariable } from '../interactivity/use-variable';
 import { normalizeRequest } from './normalization';
 import useActionRegistry from './use-action-registry';
 

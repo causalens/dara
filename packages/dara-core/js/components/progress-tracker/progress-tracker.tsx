@@ -6,8 +6,9 @@ import styled from '@darajs/styled-components';
 import { ProgressBar } from '@darajs/ui-components';
 
 import { ProgressNotificationMessage } from '@/api/websocket';
-import { GlobalTaskContext, useTaskContext } from '@/shared/context/global-task-context';
+import { useTaskContext } from '@/shared/context/global-task-context';
 import websocketCtx from '@/shared/context/websocket-context';
+import { GlobalTaskContext } from '@/types/core';
 
 const POLLING_INTERVAL = 100;
 const FAKE_PROGRESS_INTERVAL = 100;

@@ -7,7 +7,6 @@ import { SortingRule } from '@darajs/ui-utils';
 
 import { RequestExtras } from '@/api/http';
 import { WebSocketClientInterface } from '@/api/websocket';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -406,6 +405,33 @@ export interface DownloadVariableImpl extends ActionImpl {
 }
 
 export type NotifyImpl = ActionImpl & NotificationPayload;
+
+export interface GlobalTaskContext {
+    /**
+     * Cleanup tasks related to the given variables
+     */
+    cleanupRunningTasks: (...variableIds: string[]) => void;
+
+    /**
+     * Remove a task from registered running tasks
+     */
+    endTask: (taskId: string) => void;
+
+    /**
+     * Get tasks related to given variables
+     */
+    getVariableTasks: (...variableIds: string[]) => string[];
+
+    /**
+     * Check if there are any tasks currently running
+     */
+    hasRunningTasks: () => boolean;
+
+    /**
+     * Register a task being started
+     */
+    startTask: (taskId: string, variableId?: string, triggerKey?: string) => void;
+}
 
 /**
  * Object injected into actions

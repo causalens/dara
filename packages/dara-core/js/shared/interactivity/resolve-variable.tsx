@@ -2,9 +2,9 @@ import { RecoilState } from 'recoil';
 
 import { WebSocketClientInterface } from '@/api';
 import { RequestExtras } from '@/api/http';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import {
     AnyVariable,
+    GlobalTaskContext,
     ResolvedDataVariable,
     ResolvedDerivedDataVariable,
     ResolvedDerivedVariable,

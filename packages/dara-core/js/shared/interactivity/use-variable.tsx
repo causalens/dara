@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import { useDeferLoadable } from '@/shared/utils';
+import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import { Variable, isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
