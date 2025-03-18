@@ -18,8 +18,7 @@ import { ColumnInterface, Renderer } from 'react-table';
 
 import { ActionCol } from './cells/action-cell';
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export interface TableColumn extends ColumnInterface<object> {
+export interface TableColumn extends ColumnInterface<Record<string, unknown>> {
     // These are vague as the type we use doesn't exactly match the react-table type, we inject a few
     // global properties into the options; should be fixed once we upgrade to v8
     Cell?: Renderer<any>;

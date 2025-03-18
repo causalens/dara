@@ -331,6 +331,16 @@ const CustomMarkdownWrapper = styled.div`
     }
 `;
 
+function childrenToString(children: React.ReactNode): string {
+    if (typeof children === 'string') {
+        return children;
+    }
+    if (Array.isArray(children)) {
+        return children.join('');
+    }
+    return '';
+}
+
 function CodeDisplay(
     props: React.ClassAttributes<HTMLElement> & React.HTMLAttributes<HTMLElement> & ExtraProps
 ): React.ReactElement {
@@ -339,7 +349,7 @@ function CodeDisplay(
     const match = /language-(\w+)/.exec(props.className || '');
 
     const parsed = React.useMemo(() => {
-        return String(children).trim().replace(/\n\n/g, '\n');
+        return childrenToString(children).trim().replace(/\n\n/g, '\n');
     }, [children]);
 
     // if the code block doesn't specify the language, e.g. ``` without lang or inline `code` block

@@ -11,6 +11,7 @@ import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
     AnyVariable,
     ComponentInstance,
+    GlobalTaskContext,
     NormalizedPayload,
     TaskResponse,
     isResolvedDerivedDataVariable,
@@ -18,7 +19,7 @@ import {
 } from '@/types';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
-import { GlobalTaskContext, useTaskContext } from '../context/global-task-context';
+import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';

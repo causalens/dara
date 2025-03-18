@@ -3,7 +3,7 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
-import { useRequestExtras } from '@/shared/context';
+import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { getTokenKey } from '@/shared/utils/embed';
 import { User, UserData } from '@/types';
 

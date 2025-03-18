@@ -47,7 +47,7 @@ export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncO
 
         try {
             return JSON.parse(val);
-        } catch (e) {
+        } catch {
             return val;
         }
     }, []);

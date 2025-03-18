@@ -32,6 +32,8 @@ export function getNodeColor(category: PixiNodeStyle['category'], theme: Default
             return [theme.colors.secondary, theme.colors.blue1];
         case 'latent':
             return [theme.colors.blue1, theme.colors.text];
+        case 'other':
+            return [theme.colors.blue4, theme.colors.text];
         default:
             return [theme.colors.blue4, theme.colors.text];
     }

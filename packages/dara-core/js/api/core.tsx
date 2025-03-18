@@ -3,7 +3,7 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { handleAuthErrors } from '@/auth/auth';
-import { useRequestExtras } from '@/shared/context';
+import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { denormalize } from '@/shared/utils/normalization';
 import { ActionDef, Component, Config, NormalizedPayload, Template } from '@/types';
 

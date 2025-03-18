@@ -149,7 +149,7 @@ export default function compute(
             .decross(layoutParams.tiers ? customDecross : decrossTwoLayer());
 
         newDagLayout(dag);
-    } catch (e) {
+    } catch {
         throw new Error('d3-dag failed to resolve the layering of graph nodes for PlanarLayout.');
     }
 

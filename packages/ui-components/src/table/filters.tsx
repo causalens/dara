@@ -159,8 +159,13 @@ function applyDatetimeOperator(operator: DateOperator, value: string, filterValu
             return isAfter(parsedValue, filterValue);
         case DateOperator.LT:
             return isBefore(parsedValue, filterValue);
+        case DateOperator.BT:
+            if (Array.isArray(filterValue)) {
+                return isWithinInterval(parsedValue, { start: filterValue[0], end: filterValue[1] });
+            }
+            return false;
         default:
-            return true;
+            return false;
     }
 }
 

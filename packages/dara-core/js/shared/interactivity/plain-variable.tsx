@@ -3,9 +3,8 @@ import { BehaviorSubject } from 'rxjs';
 
 import { WebSocketClientInterface } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { isEmbedded } from '@/shared/utils/embed';
-import { DerivedVariable, SingleVariable, isDerivedVariable } from '@/types';
+import { DerivedVariable, GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { STORES, getEffect, getOrRegisterDerivedVariableValue, resolveNested, setNested } from './internal';

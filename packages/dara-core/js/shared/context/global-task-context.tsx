@@ -2,37 +2,12 @@
 import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
-import { RequestExtras, cancelTask } from '@/api';
+import { cancelTask } from '@/api/core';
+import { RequestExtras } from '@/api/http';
 import { TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
+import { GlobalTaskContext } from '@/types/core';
 
 import { useRequestExtras } from './request-extras-context';
-
-export interface GlobalTaskContext {
-    /**
-     * Cleanup tasks related to the given variables
-     */
-    cleanupRunningTasks: (...variableIds: string[]) => void;
-
-    /**
-     * Remove a task from registered running tasks
-     */
-    endTask: (taskId: string) => void;
-
-    /**
-     * Get tasks related to given variables
-     */
-    getVariableTasks: (...variableIds: string[]) => string[];
-
-    /**
-     * Check if there are any tasks currently running
-     */
-    hasRunningTasks: () => boolean;
-
-    /**
-     * Register a task being started
-     */
-    startTask: (taskId: string, variableId?: string, triggerKey?: string) => void;
-}
 
 const GlobalTaskCtx = React.createContext<GlobalTaskContext>(null);
 

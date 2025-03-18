@@ -49,21 +49,23 @@ function getSpanForBreakpoint(span: number | Breakpoints, breakpoint: number, br
         return span;
     }
 
-    switch (true) {
-        case span?.xl && breakpoints.xl <= breakpoint:
-            return span.xl;
-        case span?.lg && breakpoints.lg <= breakpoint:
-            return span.lg;
-        case span?.md && breakpoints.md <= breakpoint:
-            return span.md;
-        case span?.sm && breakpoints.sm <= breakpoint:
-            return span.sm;
-        case span?.xs && breakpoint < breakpoints.sm:
-            return span.xs;
-        default:
-            // no span can be defined return null, so it can be calculated on available space
-            return null;
+    if (span?.xl && breakpoints.xl <= breakpoint) {
+        return span.xl;
     }
+    if (span?.lg && breakpoints.lg <= breakpoint) {
+        return span.lg;
+    }
+    if (span?.md && breakpoints.md <= breakpoint) {
+        return span.md;
+    }
+    if (span?.sm && breakpoints.sm <= breakpoint) {
+        return span.sm;
+    }
+    if (span?.xs && breakpoint < breakpoints.sm) {
+        return span.xs;
+    }
+    // no span can be defined return null, so it can be calculated on available space
+    return null;
 }
 
 /**

@@ -16,10 +16,10 @@ export const StyledListItem = styled.span<ListItemProps>`
     user-select: none;
 
     overflow: hidden;
-
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+
     width: 100%;
     min-height: 2rem;
     padding: 0.25rem 1rem;

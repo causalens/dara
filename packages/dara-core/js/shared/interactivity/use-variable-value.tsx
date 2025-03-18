@@ -16,6 +16,7 @@ import {
     DataVariable,
     DerivedDataVariable,
     DerivedVariable,
+    GlobalTaskContext,
     ResolvedDataVariable,
     ResolvedDerivedDataVariable,
     ResolvedDerivedVariable,
@@ -29,7 +30,6 @@ import {
     isVariable,
 } from '@/types';
 
-import { GlobalTaskContext } from '../context/global-task-context';
 import {
     fetchDataVariable,
     fetchDerivedDataVariable,

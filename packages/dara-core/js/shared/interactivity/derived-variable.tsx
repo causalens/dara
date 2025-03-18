@@ -10,7 +10,6 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
 import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
@@ -18,6 +17,7 @@ import {
     AnyVariable,
     DerivedDataVariable,
     DerivedVariable,
+    GlobalTaskContext,
     ResolvedDataVariable,
     ResolvedDerivedDataVariable,
     ResolvedDerivedVariable,

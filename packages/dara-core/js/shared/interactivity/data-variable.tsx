@@ -6,8 +6,15 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors } from '@/api';
 import { RequestExtras, request } from '@/api/http';
-import { GlobalTaskContext } from '@/shared/context/global-task-context';
-import { DataFrame, DataVariable, DerivedDataVariable, FilterQuery, Pagination, ResolvedDataVariable } from '@/types';
+import {
+    DataFrame,
+    DataVariable,
+    DerivedDataVariable,
+    FilterQuery,
+    GlobalTaskContext,
+    Pagination,
+    ResolvedDataVariable,
+} from '@/types';
 
 import { useRequestExtras } from '../context';
 import { useEventBus } from '../event-bus/event-bus';

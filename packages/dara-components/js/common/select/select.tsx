@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { isArray, isEmpty, isEqual } from 'lodash';
+import { isArray, isEmpty, isEqual, isNil, isObject } from 'lodash';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import {
@@ -24,15 +24,23 @@ import {
 import { useFormContext } from '../context';
 import { FormComponentProps } from '../types';
 
+// Type guard for primitive values to avoid "[object Object]" string conversion
+const isPrimitive = (val: unknown): val is string | number | boolean | null | undefined => isNil(val) || !isObject(val);
+
 export function getMultiselectItems(values: Array<unknown>, items: Array<Item>): Array<Item> {
     if (!values) {
-        return;
+        return [];
     }
+
     return items.reduce((acc: Array<Item>, item: Item) => {
-        const stringOfValues = values.map((value) => String(value));
-        if (stringOfValues.includes(String(item.value))) {
+        // Filter out non-primitives before stringification
+        const stringOfValues = values.filter(isPrimitive).map(String);
+
+        // Only compare if item.value is a primitive
+        if (isPrimitive(item.value) && stringOfValues.includes(String(item.value))) {
             return [...acc, item];
         }
+
         return acc;
     }, []);
 }
@@ -98,7 +106,15 @@ function Select(props: SelectProps): JSX.Element {
     // In the case of a Variable or DerivedVariable we could end up with an array of strings instead of items, so we need to convert them if that happens
     const formattedItems = useMemo(() => {
         if (isStringArray(items)) {
-            return items.map((item) => ({ badge: null, image: null, label: item, value: item }));
+            return items.map(
+                (item) =>
+                    ({
+                        badge: null,
+                        image: null,
+                        label: item,
+                        value: item,
+                    }) as Item
+            );
         }
         return items;
     }, [items]);
@@ -109,13 +125,23 @@ function Select(props: SelectProps): JSX.Element {
      */
     const toItem = (val: unknown): Item | undefined | null => {
         // Tries to get matching item based on value from formattedItems
-        const matchingItem = formattedItems.find((item) => isItem(item) && String(item.value) === String(val));
+        const matchingItem = formattedItems.find((item) => {
+            if (isItem(item)) {
+                // For primitives, compare string values
+                if (isPrimitive(item.value) && isPrimitive(val)) {
+                    return String(item.value) === String(val);
+                }
+                // For objects, check equality directly
+                return isEqual(item.value, val);
+            }
+            return false;
+        });
         // If a matching Item is found return it
         if (matchingItem) {
             return matchingItem as Item;
         }
         // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
-        return typeof val === 'string' || typeof val === 'number' ? { label: String(val), value } : (val as Item);
+        return isPrimitive(val) ? { label: String(val), value: val } : (val as Item);
     };
 
     const onChangeAction = useAction(props.onchange);
