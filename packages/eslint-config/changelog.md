@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.5
 
 -   Update to ESLint ^8.0, TypeScript ^5.8
 
