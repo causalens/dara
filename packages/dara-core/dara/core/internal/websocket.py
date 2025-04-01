@@ -33,7 +33,6 @@ from jwt import DecodeError
 from pydantic import BaseModel, Field, parse_obj_as
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
@@ -431,11 +430,11 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
 
     from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, UserData
     from dara.core.internal.registries import (
+        auth_registry,
         pending_tokens_registry,
         sessions_registry,
         utils_registry,
         websocket_registry,
-        auth_registry,
     )
 
     # Create a unique channel for this client connection
@@ -451,7 +450,6 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
             token_content = await verifier(token)
         else:
             token_content = verifier(token)
-
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err
