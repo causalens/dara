@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.15.6
  - Changed the verification process of websockets to be the same as the http endpoints
 
 ## 1.15.2
