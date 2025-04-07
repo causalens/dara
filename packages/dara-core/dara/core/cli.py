@@ -60,6 +60,11 @@ def cli():
 @click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
 @click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
 @click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
+@click.option(
+    '--root-path',
+    default=lambda: os.getenv('DARA_ROOT_PATH'),
+    help='An optional root_path for running a Dara app behind a proxy',
+)
 def start(
     reload: bool,
     enable_hmr: bool,
@@ -76,6 +81,7 @@ def start(
     log: Optional[str],
     reload_dir: Optional[List[str]],
     skip_jsbuild: bool,
+    root_path: Optional[str],
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')
@@ -176,6 +182,7 @@ def start(
         log_config=logging_config,
         limit_max_requests=limit_max_requests,
         lifespan='on',
+        root_path=root_path,
     )
 
 

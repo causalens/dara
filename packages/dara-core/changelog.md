@@ -2,20 +2,25 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Add support for setting a root_path in `dara start` so it can run behind a path prefixed proxy. e.g. `dara start --root-path https://my.app.com/proxy/`
+
 ## 1.15.6
- - Changed the verification process of websockets to be the same as the http endpoints
+
+-   Changed the verification process of websockets to be the same as the http endpoints
 
 ## 1.15.2
 
--  Fix an issue where the internal `eng_logger` would be enabled even when `DARA_DEV_LOG_LEVEL` was set to `NONE` (which is the default).
+-   Fix an issue where the internal `eng_logger` would be enabled even when `DARA_DEV_LOG_LEVEL` was set to `NONE` (which is the default).
 
 ## 1.15.0
 
--  Fix a bug where when using `store=BackendStore(...)` kwarg with a `Variable`, the originating session would also be notified of the change causing rare desyncs and race conditions.
+-   Fix a bug where when using `store=BackendStore(...)` kwarg with a `Variable`, the originating session would also be notified of the change causing rare desyncs and race conditions.
 
 ## 1.14.9
 
--  Fix a bug in the websocket token refresh logic that caused it to get stuck in a repeating failure state.
+-   Fix a bug in the websocket token refresh logic that caused it to get stuck in a repeating failure state.
 
 ## 1.14.8
 
