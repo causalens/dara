@@ -32,7 +32,7 @@ from typing import (
     Union,
 )
 
-from pydantic import validator
+from pydantic.v1 import validator
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (

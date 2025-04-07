@@ -33,7 +33,7 @@ from typing import (
 )
 
 from fastapi.middleware import Middleware
-from pydantic.generics import GenericModel
+from pydantic.v1.generics import GenericModel
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth.base import BaseAuthConfig

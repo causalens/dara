@@ -19,7 +19,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional, Sequence, Union
 
-from pydantic import BaseModel, validator
+from pydantic.v1 import BaseModel, validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.components.common.time_utils import coerce_to_timemilli

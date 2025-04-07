@@ -23,7 +23,7 @@ from typing import Optional, Union, cast
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (

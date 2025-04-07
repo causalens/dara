@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional, Union
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import NonDataVariable

@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, List, Optional, Union
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item

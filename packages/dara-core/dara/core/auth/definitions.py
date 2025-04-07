@@ -19,7 +19,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing_extensions import TypedDict
 
 

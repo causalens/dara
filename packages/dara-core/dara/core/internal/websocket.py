@@ -30,7 +30,7 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic import BaseModel, Field, parse_obj_as
+from pydantic.v1 import BaseModel, Field, parse_obj_as
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig

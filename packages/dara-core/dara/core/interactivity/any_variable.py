@@ -27,7 +27,7 @@ from typing import Any, Callable, Dict, Optional, Set
 
 import anyio
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
 from dara.core.base_definitions import BaseTask, PendingTask

@@ -18,7 +18,7 @@ limitations under the License.
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action

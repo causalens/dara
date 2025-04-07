@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import aiorwlock
 import anyio
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic.v1 import BaseModel, Field, PrivateAttr, validator
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler

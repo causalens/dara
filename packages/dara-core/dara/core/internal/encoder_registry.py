@@ -31,7 +31,7 @@ import numpy
 import pandas
 from fastapi.encoders import jsonable_encoder
 from pandas.core.arrays.base import ExtensionArray
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask

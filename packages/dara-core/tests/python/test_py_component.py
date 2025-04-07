@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import anyio
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
-from pydantic.main import BaseModel
+from pydantic.v1.main import BaseModel
 
 from dara.core import DerivedVariable, Variable, py_component
 from dara.core.base_definitions import Cache

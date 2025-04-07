@@ -36,7 +36,7 @@ from typing import (
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx

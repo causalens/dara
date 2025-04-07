@@ -2,7 +2,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from dara.components.common import FormPage, Switch
 
@@ -43,3 +43,4 @@ class TestFormPageComponent(unittest.TestCase):
         error = cm.exception.errors()[0]
         self.assertEqual('type_error', error['type'])
         self.assertEqual(('children',), error['loc'])
+

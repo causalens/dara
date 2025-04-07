@@ -37,7 +37,7 @@ from fastapi import (
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session

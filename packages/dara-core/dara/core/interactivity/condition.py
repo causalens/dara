@@ -20,7 +20,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, Union
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.base_definitions import TemplateMarker
 

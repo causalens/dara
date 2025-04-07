@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
 from dara.core.interactivity import AnyVariable

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Unlock `pydantic` version to support both `v1` and `v2`. Migrated all imports to use `pydantic.v1` namespace
+
 ## 1.15.7
 
 -   Add support for setting a base_url in `dara start` so it can run behind a path prefixed proxy. e.g. `dara start --base-url https://my.app.com/proxy/`

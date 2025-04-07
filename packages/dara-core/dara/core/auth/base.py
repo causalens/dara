@@ -19,7 +19,7 @@ import abc
 from typing import Any, ClassVar, Dict, Union
 
 from fastapi import HTTPException, Response
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import (

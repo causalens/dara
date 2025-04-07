@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from fastapi.encoders import jsonable_encoder
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.core import CSSProperties
 from dara.core.base_definitions import TemplateMarker

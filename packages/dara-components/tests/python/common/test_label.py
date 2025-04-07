@@ -2,7 +2,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from dara.components.common import Label, Input
 from dara.core.visual.components.types import Direction

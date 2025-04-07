@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance

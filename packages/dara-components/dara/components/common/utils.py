@@ -19,7 +19,7 @@ import os
 from enum import Enum
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.base_definitions import DaraBaseModel
 from dara.core.definitions import ComponentInstanceType

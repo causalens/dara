@@ -2,7 +2,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from dara.core.interactivity import Variable
 from dara.components.common import Form, FormPage, Switch

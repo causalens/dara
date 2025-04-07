@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
-from pydantic import Field
+from pydantic.v1 import Field
 
 from dara.core.base_definitions import DaraBaseModel
 

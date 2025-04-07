@@ -24,7 +24,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy
 from pandas import DataFrame, Series  # pylint: disable=unused-import
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.core.logging import dev_logger
 

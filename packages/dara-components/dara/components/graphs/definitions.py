@@ -18,7 +18,7 @@ limitations under the License.
 from enum import Enum
 from typing import ClassVar, Dict, List, Literal, Optional, Type, Union
 
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
 
 class EditorMode(str, Enum):

@@ -6,7 +6,7 @@ from dara.core.internal.tasks import Task
 
 import numpy
 import pandas
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 import pytest
 from pandas.core.arrays.base import ExtensionArray
 

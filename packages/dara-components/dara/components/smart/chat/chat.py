@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from dara.components.smart.chat.endpoints import on_new_message
 from dara.core.definitions import StyledComponentInstance

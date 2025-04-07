@@ -20,7 +20,7 @@ from typing import Any, List, Optional
 
 import plotly.graph_objects as go
 import plotly.io as pio
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from dara.components.plotting.plotly.themes import light_theme
 from dara.core.base_definitions import Action

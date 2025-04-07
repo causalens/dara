@@ -23,7 +23,7 @@ from pickle import PicklingError
 from typing import Any, List, Optional, Union
 
 from croniter import croniter
-from pydantic import BaseModel, validator
+from pydantic.v1 import BaseModel, validator
 
 
 class ScheduledJob(BaseModel):

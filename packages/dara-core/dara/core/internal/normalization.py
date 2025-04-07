@@ -28,7 +28,7 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.internal.hashing import hash_object
