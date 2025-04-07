@@ -38,8 +38,6 @@ from typing import (
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-
-
 from pydantic.v1 import BaseModel, Field, validator
 from pydantic.v1.generics import GenericModel
 
