@@ -63,7 +63,7 @@ def cli():
 @click.option(
     '--base-url',
     default=lambda: os.environ.get('DARA_BASE_URL', None),
-    help='An optional root_path for running a Dara app behind a proxy',
+    help='An optional base_url for running a Dara app behind a proxy',
 )
 def start(
     reload: bool,
@@ -133,9 +133,12 @@ def start(
     if skip_jsbuild:
         os.environ['SKIP_JSBUILD'] = 'TRUE'
 
+    uvicorn_extras = {}
+
     # Ensure the base_url is set as an env var as well
     if base_url:
         os.environ['DARA_BASE_URL'] = base_url
+        uvicorn_extras['root_path'] = base_url
 
     # Check that if production/dev mode is set, node is installed - unless we're in docker mode, or explicitly skipping jsbuild
     if not docker and not skip_jsbuild and (production or enable_hmr):
@@ -186,7 +189,7 @@ def start(
         log_config=logging_config,
         limit_max_requests=limit_max_requests,
         lifespan='on',
-        root_path=base_url,
+        **uvicorn_extras
     )
 
 
