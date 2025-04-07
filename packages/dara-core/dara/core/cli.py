@@ -61,8 +61,8 @@ def cli():
 @click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
 @click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
 @click.option(
-    '--root-path',
-    default=lambda: os.getenv('DARA_ROOT_PATH'),
+    '--base-url',
+    default=lambda: os.environ.get('DARA_BASE_URL', None),
     help='An optional root_path for running a Dara app behind a proxy',
 )
 def start(
@@ -81,7 +81,7 @@ def start(
     log: Optional[str],
     reload_dir: Optional[List[str]],
     skip_jsbuild: bool,
-    root_path: Optional[str],
+    base_url: Optional[str],
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')
@@ -133,6 +133,10 @@ def start(
     if skip_jsbuild:
         os.environ['SKIP_JSBUILD'] = 'TRUE'
 
+    # Ensure the base_url is set as an env var as well
+    if base_url:
+        os.environ['DARA_BASE_URL'] = base_url
+
     # Check that if production/dev mode is set, node is installed - unless we're in docker mode, or explicitly skipping jsbuild
     if not docker and not skip_jsbuild and (production or enable_hmr):
         exit_code = os.system('node -v')
@@ -182,7 +186,7 @@ def start(
         log_config=logging_config,
         limit_max_requests=limit_max_requests,
         lifespan='on',
-        root_path=root_path,
+        root_path=base_url,
     )
 
 

@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--   Add support for setting a root_path in `dara start` so it can run behind a path prefixed proxy. e.g. `dara start --root-path https://my.app.com/proxy/`
+-   Add support for setting a base_url in `dara start` so it can run behind a path prefixed proxy. e.g. `dara start --base-url https://my.app.com/proxy/`
 
 ## 1.15.6
 
