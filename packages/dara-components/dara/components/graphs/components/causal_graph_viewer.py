@@ -268,10 +268,7 @@ class CausalGraphViewer(BaseGraphComponent):
 
     @model_validator(mode='after')
     def validate_layout(self):
-        if (
-            isinstance(self.graph_layout, PlanarLayout)
-            and self.editor_mode != EditorMode.DEFAULT
-        ):
+        if isinstance(self.graph_layout, PlanarLayout) and self.editor_mode != EditorMode.DEFAULT:
             dev_logger.warning(
                 'Planar Layout is currently only supported with EditorMode.DEFAULT. Setting editor_mode to EditorMode.DEFAULT.'
             )

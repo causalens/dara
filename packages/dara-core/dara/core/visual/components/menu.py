@@ -17,8 +17,9 @@ limitations under the License.
 
 from typing import List
 
-from dara.core.definitions import ComponentInstance, JsComponentDef, TemplateRouterLink
 from pydantic import ConfigDict
+
+from dara.core.definitions import ComponentInstance, JsComponentDef, TemplateRouterLink
 
 MenuDef = JsComponentDef(name='Menu', js_module='@darajs/core', py_module='dara.core')
 

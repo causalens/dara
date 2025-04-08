@@ -94,7 +94,7 @@ class ComponentActionContext(ActionContext):
     ActionContext for actions that only require component value
     """
 
-    inputs: ComponentActionInputs # type: ignore
+    inputs: ComponentActionInputs   # type: ignore
 
 
 class UpdateVariableImpl(ActionImpl):
@@ -1335,7 +1335,7 @@ class action:
         ...
 
     @overload
-    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction: # type: ignore
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:   # type: ignore
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:

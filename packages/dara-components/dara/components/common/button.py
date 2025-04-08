@@ -124,9 +124,6 @@ class Button(LayoutComponent):
     styling: Optional[ButtonStyle] = None
     outline: bool = False
 
-    class Config:
-        smart_union = True
-
     def __init__(
         self, children: Union[str, ComponentInstance, NonDataVariable], styling: Optional[ButtonStyle] = None, **kwargs
     ):

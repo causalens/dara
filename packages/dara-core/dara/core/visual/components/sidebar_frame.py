@@ -17,8 +17,9 @@ limitations under the License.
 
 from typing import Optional
 
-from dara.core.definitions import ComponentInstance, JsComponentDef
 from pydantic import ConfigDict
+
+from dara.core.definitions import ComponentInstance, JsComponentDef
 
 SideBarFrameDef = JsComponentDef(name='SideBarFrame', js_module='@darajs/core', py_module='dara.core')
 

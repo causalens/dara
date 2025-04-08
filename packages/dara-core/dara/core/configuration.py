@@ -114,7 +114,7 @@ class Configuration(BaseModel):
                 packages[act_def.py_module] = act_def.js_module
 
         # Handle auth components
-        for comp in self.auth_config.component_config.dict().values():
+        for comp in self.auth_config.component_config.model_dump().values():
             packages[comp['py_module']] = comp['js_module']
 
         return packages

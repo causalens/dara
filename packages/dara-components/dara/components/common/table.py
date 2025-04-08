@@ -381,8 +381,7 @@ class Column(BaseModel):
     width: Optional[Union[int, str]] = None
     type: Optional[Union[Literal['number'], Literal['string'], Literal['datetime']]] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
     @field_validator('label')
     @classmethod

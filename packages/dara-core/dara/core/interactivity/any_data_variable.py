@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable, Literal, Optional, TypedDict, Union
 
 import pandas
 from fastapi import UploadFile
+from pydantic import ConfigDict
 
 from dara.core.base_definitions import CachedRegistryEntry, UploadResolverDef
 from dara.core.interactivity.any_variable import AnyVariable
@@ -29,7 +30,6 @@ from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
-from pydantic import ConfigDict
 
 
 class AnyDataVariable(AnyVariable, abc.ABC):

@@ -19,8 +19,9 @@ from __future__ import annotations
 
 from typing import Any, Generic, Optional, TypeVar
 
-from dara.core.interactivity.non_data_variable import NonDataVariable
 from pydantic import ConfigDict
+
+from dara.core.interactivity.non_data_variable import NonDataVariable
 
 VariableType = TypeVar('VariableType')
 
@@ -129,6 +130,6 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        parent_dict = super().model_dump(*args, **kwargs)
         return {**parent_dict, '__typename': 'UrlVariable', 'uid': str(parent_dict['uid'])}

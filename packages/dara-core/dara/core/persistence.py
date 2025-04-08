@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WS_CHANNEL
-from pydantic import field_validator
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -152,8 +151,8 @@ class PersistenceStore(BaseModel, abc.ABC):
         Initialize the store when connecting to a variable
         """
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        parent_dict = super().model_dump(*args, **kwargs)
         parent_dict['__typename'] = self.__class__.__name__
         return parent_dict
 

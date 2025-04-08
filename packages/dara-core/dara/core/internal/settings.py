@@ -21,10 +21,9 @@ from secrets import token_hex
 from typing import List, Optional
 
 from dotenv import dotenv_values
-from pydantic.v1 import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dara.core.logging import dev_logger
-from pydantic_settings import SettingsConfigDict
 
 
 class Settings(BaseSettings):

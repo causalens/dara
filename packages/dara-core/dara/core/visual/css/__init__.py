@@ -24,10 +24,11 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
+from pydantic import ConfigDict, Field
+
 from dara.core.base_definitions import DaraBaseModel
 
 from . import Property
-from pydantic import Field, ConfigDict
 
 # Has to be rebound due to mypy issues https://mypy.readthedocs.io/en/stable/common_issues.html#dealing-with-conflicting-names
 float_ = float

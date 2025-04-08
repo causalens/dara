@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Union
 
 from cai_causal_graph.graph_components import Node
 from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
-from pydantic import model_validator
+from pydantic import ConfigDict, model_validator
 from typing_extensions import TypedDict
 
 from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
@@ -136,8 +136,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     require_focus_to_zoom: Optional[bool] = True
     tooltip_size: Optional[str] = None
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode='after')
     def validate_layout(self):

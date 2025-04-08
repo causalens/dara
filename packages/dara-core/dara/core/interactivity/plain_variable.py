@@ -21,12 +21,13 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
+from pydantic import ConfigDict
+
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.persistence import PersistenceStore
-from pydantic import ConfigDict
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -228,7 +229,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         return cls(default=other)   # type: ignore
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        parent_dict = super().model_dump(*args, **kwargs)
 
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

@@ -20,7 +20,7 @@ from typing import Any, List, Optional
 
 import plotly.graph_objects as go
 import plotly.io as pio
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dara.components.plotting.plotly.themes import light_theme
 from dara.core.base_definitions import Action
@@ -120,10 +120,10 @@ class Plotly(StyledComponentInstance):
     EventName = PlotlyEventName
     Event = PlotlyEvent
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {go.Figure: lambda v: v.to_json()}
-        use_enum_values = True
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        use_enum_values=True,
+    )
 
     def __init__(
         self,

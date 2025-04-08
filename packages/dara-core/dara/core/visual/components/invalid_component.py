@@ -15,8 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from dara.core.definitions import ComponentInstance
 from pydantic import ConfigDict
+
+from dara.core.definitions import ComponentInstance
 
 
 class InvalidComponent(ComponentInstance):

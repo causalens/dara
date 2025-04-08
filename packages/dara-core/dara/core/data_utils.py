@@ -21,7 +21,7 @@ from typing import List, Optional, Union
 
 import pandas
 from pandas import DataFrame
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.base_definitions import CacheType
 from dara.core.interactivity import (

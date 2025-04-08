@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
+from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -53,7 +54,6 @@ from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
-from pydantic import ConfigDict
 
 
 class DerivedDataVariable(AnyDataVariable, DerivedVariable):
@@ -364,8 +364,8 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         return await cls.get_data(dv_entry, data_entry, dv_result['cache_key'], store, filters)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        parent_dict = super().model_dump(*args, **kwargs)
         # nested is not supported for DerivedDataVariable so remove from serialised form
         # it's included because we inherit from DV which has the field
         parent_dict.pop('nested')

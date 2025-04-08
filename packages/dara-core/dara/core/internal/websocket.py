@@ -30,14 +30,13 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
 from dara.core.logging import dev_logger, eng_logger
-from pydantic import ConfigDict
 
 
 # Client message types
@@ -61,9 +60,9 @@ class CustomClientMessagePayload(BaseModel):
     kind: str
     data: Any
 
-    def dict(self, *args, **kwargs):
+    def model_dump(self, *args, **kwargs):
         # Force by_alias to True to use __rchan name
-        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+        result = super().model_dump(*args, **{**kwargs, 'by_alias': True})
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -93,9 +92,9 @@ class ServerMessagePayload(BaseModel):
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
     model_config = ConfigDict(extra='allow')
 
-    def dict(self, *args, **kwargs):
+    def model_dump(self, *args, **kwargs):
         # Force by_alias to True to use __rchan name
-        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+        result = super().model_dump(*args, **{**kwargs, 'by_alias': True})
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -164,8 +163,7 @@ class WebSocketHandler:
     notify when the response is received and the response data.
     """
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, channel_id: str):
         send_stream, receive_stream = create_memory_object_stream[ServerMessage](math.inf)

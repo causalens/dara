@@ -23,7 +23,7 @@ from typing import Optional, Union, cast
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
@@ -43,7 +43,6 @@ from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
-from pydantic import ConfigDict
 
 
 class DataVariable(AnyDataVariable):
@@ -301,8 +300,8 @@ class DataVariable(AnyDataVariable):
 
         return UpdateVariableImpl(variable=self, value=value)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        parent_dict = super().model_dump(*args, **kwargs)
         if 'data' in parent_dict:
             parent_dict.pop('data')   # make sure data is not included in the serialised dict
         return {**parent_dict, '__typename': 'DataVariable', 'uid': str(parent_dict['uid'])}

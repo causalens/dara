@@ -67,9 +67,6 @@ class Chat(StyledComponentInstance):
 
     value: NonDataVariable
 
-    class Config:
-        extra = 'forbid'
-
     @field_validator('value')
     @classmethod
     def validate_variable(cls, value):

@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import Dict, List, Optional, Union
 
+from pydantic import ConfigDict
+
 from dara.components.graphs.definitions import (
     DEFAULT_LEGENDS,
     EditorMode,
@@ -73,6 +75,4 @@ class BaseGraphComponent(StyledComponentInstance):
     verbose_descriptions: Optional[bool] = None
     zoom_thresholds: Optional[ZoomThresholds] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        extra = 'forbid'
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')

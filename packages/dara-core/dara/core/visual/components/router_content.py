@@ -17,12 +17,13 @@ limitations under the License.
 
 from typing import List
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import (
     ComponentInstance,
     JsComponentDef,
     TemplateRouterContent,
 )
-from pydantic import ConfigDict
 
 RouterContentDef = JsComponentDef(name='RouterContent', js_module='@darajs/core', py_module='dara.core')
 
