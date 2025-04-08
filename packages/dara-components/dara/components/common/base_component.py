@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_validator
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 

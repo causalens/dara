@@ -159,7 +159,7 @@ class UpdateVariableInputs(ActionInputs):
 
 
 class UpdateVariableContext(ActionContext):
-    inputs: UpdateVariableInputs
+    inputs: UpdateVariableInputs   # type: ignore
 
 
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
@@ -1272,7 +1272,7 @@ class action:
     ```
     """
 
-    Ctx = ActionCtx
+    Ctx: ClassVar = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action

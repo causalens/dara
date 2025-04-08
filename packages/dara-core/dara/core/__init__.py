@@ -22,7 +22,7 @@ from importlib.metadata import version
 from dara.core.base_definitions import Cache, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.css import CSSProperties, get_icon
-from dara.core.definitions import ComponentInstance, ErrorHandlingConfig, template
+from dara.core.definitions import ComponentInstance, ErrorHandlingConfig
 from dara.core.interactivity import (
     DataVariable,
     DerivedDataVariable,
@@ -42,7 +42,7 @@ from dara.core.interactivity import (
     Variable,
     action,
 )
-from dara.core.visual.components import Fallback, For
+from dara.core.visual.components import Fallback
 from dara.core.visual.dynamic_component import py_component
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
 
@@ -76,8 +76,6 @@ __all__ = [
     'track_progress',
     'ComponentInstance',
     'ErrorHandlingConfig',
-    'template',
-    'For',
     'Fallback',
     'UpdateVariableImpl',
     'DownloadContentImpl',

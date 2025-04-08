@@ -25,7 +25,6 @@ from typing import (
     Awaitable,
     Callable,
     ClassVar,
-    Generic,
     List,
     Literal,
     Mapping,
@@ -39,7 +38,7 @@ from typing import (
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-from pydantic import BaseModel, ConfigDict, Field, GenericModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from dara.core.base_definitions import Action, ComponentType, DaraBaseModel
 from dara.core.css import CSSProperties
@@ -354,9 +353,6 @@ class StyledComponentInstance(ComponentInstance):
     shrink: Optional[Union[int, str, float, bool]] = None
     underline: bool = False
     width: Optional[Union[float, int, str]] = None
-    # TODO[pydantic]: The following keys were removed: `smart_union`.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-    model_config = ConfigDict(smart_union=True)
 
     @field_validator(
         'height',
@@ -481,7 +477,7 @@ class Page(BaseModel):
 
 
 # This is required by pydantic to support the self referential type subpages.
-Page.update_forward_refs()
+Page.model_rebuild()
 
 
 class TemplateRoute(BaseModel):

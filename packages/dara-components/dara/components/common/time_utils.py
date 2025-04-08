@@ -39,9 +39,9 @@ def date_to_datetime(d: datetime.date, hh=23, mm=59, ss=59) -> datetime.datetime
 
 def coerce_to_timemilli(t: Union[int, float, datetime.date, datetime.datetime]) -> float:
     """Convert any of int/float/date/datetime into a timemilli."""
-    if isinstance(t, int) or isinstance(t, numpy.int_):
+    if isinstance(t, int) or isinstance(t, numpy.signedinteger):
         return float(t)
-    elif isinstance(t, float) or isinstance(t, numpy.float_):
+    elif isinstance(t, float) or isinstance(t, numpy.floating):
         return float(t)
     # The order matters - datetime.datetime is a subclass of the datetime.date
     elif isinstance(t, datetime.datetime):

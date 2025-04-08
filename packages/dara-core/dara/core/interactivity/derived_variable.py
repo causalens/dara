@@ -20,9 +20,19 @@ from __future__ import annotations
 import json
 import uuid
 from inspect import Parameter, signature
-from typing import Any, Awaitable, Callable, Generic, List, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (
@@ -153,13 +163,13 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
     @field_validator('deps', mode='before')
     @classmethod
-    def validate_deps(cls, deps: Any) -> List[AnyVariable]:
+    def validate_deps(cls, deps: Any, info: ValidationInfo) -> List[AnyVariable]:
         """
         If deps is not specified, set deps to include all variables used
         """
         if deps is None:
             # This will always be set on the variable with the type verified by pydantic
-            return values.get('variables')   # type: ignore
+            return cast(List[AnyVariable], info.data.get('variables'))
 
         return deps
 

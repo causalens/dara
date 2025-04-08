@@ -82,7 +82,7 @@ class If(ModifierComponent):
 
     def __init__(
         self,
-        condition: Union[Condition, AnyVariable],
+        condition: Union[Condition, AnyVariable],  # type: ignore
         true_children: Union[ComponentInstance, List[Union[ComponentInstance, None]]],
         false_children: Optional[Union[ComponentInstance, List[Union[ComponentInstance, None]]]] = None,
     ):
