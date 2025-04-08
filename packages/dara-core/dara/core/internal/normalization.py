@@ -28,7 +28,7 @@ from typing import (
     overload,
 )
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.internal.hashing import hash_object
@@ -68,27 +68,6 @@ class ReferrableWithFilters(Referrable):
     filters: dict
 
 
-def _has_template_marker(obj: Any) -> bool:
-    """
-    Check if an object has a TemplateMarker
-    anywhere in its data
-    """
-    if isinstance(obj, dict):
-        if obj.get('__typename') == 'TemplateMarker':
-            return True
-
-        for val in obj.values():
-            if _has_template_marker(val):
-                return True
-
-    if isinstance(obj, list):
-        for item in obj:
-            if _has_template_marker(item):
-                return True
-
-    return False
-
-
 def _get_identifier(obj: Referrable) -> str:
     """
     Get a unique identifier from a 'referrable' object
@@ -112,15 +91,12 @@ def _get_identifier(obj: Referrable) -> str:
 def _is_referrable(obj: Any) -> TypeGuard[Referrable]:
     """
     Check if a dict is a Referrable type with a '__typename' field and 'uid'
-
-    Bails out if the object has a TemplateMarker
     """
     return (
         isinstance(obj, dict)
         and '__typename' in obj
         and 'Variable' in obj['__typename']  # Right now this is meant for Variable objects only
         and 'uid' in obj
-        and not _has_template_marker(obj)
     )
 
 

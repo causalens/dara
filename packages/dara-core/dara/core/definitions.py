@@ -27,6 +27,7 @@ from typing import (
     ClassVar,
     Generic,
     List,
+    Literal,
     Mapping,
     Optional,
     Protocol,
@@ -38,15 +39,9 @@ from typing import (
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-from pydantic.v1 import BaseModel, Field, validator
-from pydantic.v1.generics import GenericModel
+from pydantic import BaseModel, ConfigDict, Field, GenericModel, field_validator
 
-from dara.core.base_definitions import (
-    Action,
-    ComponentType,
-    DaraBaseModel,
-    TemplateMarker,
-)
+from dara.core.base_definitions import Action, ComponentType, DaraBaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 
@@ -79,8 +74,8 @@ class ErrorHandlingConfig(BaseModel):
     raw_css: Optional[Union[CSSProperties, dict, str]] = None
     """Raw styling to apply to the displayed error boundary"""
 
-    def dict(self, *args, **kwargs):
-        result = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        result = super().model_dump(*args, **kwargs)
 
         # Exclude raw_css if not set
         if 'raw_css' in result and result.get('raw_css') is None:
@@ -90,27 +85,6 @@ class ErrorHandlingConfig(BaseModel):
             result['raw_css'] = self.raw_css.dict(exclude_none=True)
 
         return result
-
-
-class TemplateMarkerCreator:
-    """
-    Creates a TemplateMarker instance for a given field name when accessing
-    any attribute on the instance. Should not be used standalone, it is injected
-    into function parameters when using the @template decorator.
-
-    Example
-
-    ```python
-    from dara.core.definitions import TemplateMarkerCreator
-
-    creator = TemplateMarkerCreator()
-    creator.foo
-    # <TemplateMarker field_name='foo'>
-    ```
-    """
-
-    def __getattribute__(self, __name: str) -> Any:
-        return TemplateMarker(field_name=__name)
 
 
 class BaseFallback(DaraBaseModel):
@@ -131,7 +105,7 @@ class BaseFallback(DaraBaseModel):
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
     """
 
-    @validator('suspend_render')
+    @field_validator('suspend_render')
     @classmethod
     def validate_suspend_render(cls, value):
         if isinstance(value, int):
@@ -191,9 +165,6 @@ class ComponentInstance(DaraBaseModel):
     ```
     """
 
-    templated: bool = False
-    """Whether the component is templated, created by the @template decorator"""
-
     track_progress: Optional[bool] = False
     """Whether to use ProgressTracker to display progress updates from a task the component is subscribed to"""
 
@@ -230,7 +201,7 @@ class ComponentInstance(DaraBaseModel):
     def __repr__(self):
         return '__dara__' + json.dumps(jsonable_encoder(self))
 
-    @validator('raw_css', pre=True)
+    @field_validator('raw_css', mode='before')
     @classmethod
     def parse_css(cls, css: Optional[Union[CSSProperties, dict, str]]):
         # If it's a plain dict, change kebab case to camel case
@@ -244,8 +215,8 @@ class ComponentInstance(DaraBaseModel):
 
         return css
 
-    def dict(self, *args, **kwargs):
-        props = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        props = super().model_dump(*args, **kwargs)
         props.pop('uid')
 
         # Exclude raw_css if not set
@@ -262,10 +233,6 @@ class ComponentInstance(DaraBaseModel):
         # Exclude error handler if not set
         if 'error_handler' in props and props.get('error_handler') is None:
             props.pop('error_handler')
-
-        # Exclude template if not set
-        if 'templated' in props and props.get('templated') is False:
-            props.pop('templated')
 
         # Exclude fallback if not set
         if 'fallback' in props and props.get('fallback') is None:
@@ -311,6 +278,26 @@ def discover(outer_obj: DiscoverT) -> DiscoverT:
     return outer_obj
 
 
+AlignItems = Literal[
+    '-moz-initial',
+    'baseline',
+    'center',
+    'end',
+    'flex-end',
+    'flex-start',
+    'inherit',
+    'initial',
+    'normal',
+    'revert',
+    'self-end',
+    'self-start',
+    'start',
+    'stretch',
+    'unset',
+    None,
+]
+
+
 class StyledComponentInstance(ComponentInstance):
     """
     Base class for a component implementing the common styling props
@@ -341,13 +328,13 @@ class StyledComponentInstance(ComponentInstance):
     :param width: the width of the component, can be an number, which will be converted to pixels, or a string
     """
 
-    align: Optional[str] = None
+    align: Optional[AlignItems] = None
     background: Optional[str] = None
     basis: Optional[Union[int, str, bool]] = None
     bold: bool = False
     border: Optional[str] = None
     border_radius: Optional[Union[float, int, str]] = None
-    children: Optional[List[Union[ComponentInstance, TemplateMarker]]] = None
+    children: Optional[List[ComponentInstance]] = None
     color: Optional[str] = None
     font: Optional[str] = None
     font_size: Optional[str] = None
@@ -367,11 +354,11 @@ class StyledComponentInstance(ComponentInstance):
     shrink: Optional[Union[int, str, float, bool]] = None
     underline: bool = False
     width: Optional[Union[float, int, str]] = None
+    # TODO[pydantic]: The following keys were removed: `smart_union`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(smart_union=True)
 
-    class Config:
-        smart_union = True
-
-    @validator(
+    @field_validator(
         'height',
         'basis',
         'border_radius',
@@ -383,7 +370,7 @@ class StyledComponentInstance(ComponentInstance):
         'min_height',
         'padding',
         'width',
-        pre=True,
+        mode='before',
     )
     @classmethod
     def validate_dimension(cls, value):
@@ -392,7 +379,7 @@ class StyledComponentInstance(ComponentInstance):
 
         return value
 
-    @validator('grow', 'shrink', pre=True)
+    @field_validator('grow', 'shrink', mode='before')
     @classmethod
     def validate_flex(cls, value):
         if isinstance(value, (bool)):
@@ -400,7 +387,7 @@ class StyledComponentInstance(ComponentInstance):
 
         return value
 
-    @validator('children', pre=True)
+    @field_validator('children', mode='before')
     @classmethod
     def validate_children(cls, children):
         # Filter out None children
@@ -433,7 +420,7 @@ class JsComponentDef(BaseModel):
     name: str
     """Name of the component, must match the Python definition and JS implementation"""
 
-    type: str = Field(default=ComponentType.JS, const=True)
+    type: Literal[ComponentType.JS] = ComponentType.JS
 
 
 class PyComponentDef(BaseModel):
@@ -447,126 +434,7 @@ class PyComponentDef(BaseModel):
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 
-    type: str = Field(default=ComponentType.PY, const=True)
-
-
-ComponentT = TypeVar('ComponentT', bound=ComponentInstance)
-
-
-class TemplateComponentDef(GenericModel, Generic[ComponentT]):
-    """
-    Definition of a Template Component, as returned by the @template decorator.
-    When called, executes the decorated function with the marker creator injected and returns a component instance,
-    annotated with `templated=True`.
-    """
-
-    func: Callable[..., ComponentT]
-    name: str
-
-    def __call__(self, *args, **kwds) -> ComponentT:
-        creator = TemplateMarkerCreator()
-        result = self.func(creator, *args, **kwds)
-        result.templated = True
-        return result
-
-
-class template(Generic[ComponentT]):
-    """
-    The @template decorator is used to define reusable components that can be
-    dynamically rendered based on input data. It allows you to create template
-    components with customizable properties that can be injected into certain
-    components equipped to handle such templates.
-
-    Usage:
-    ------
-
-    1. Define a template component using the `@template` decorator and provide a
-    function that accepts a first argument of type `template.Value`.
-    This argument is automatically injected by the decorator, and its name can be
-    chosen by the user. Inside the function, use the first argument to access
-    properties that will be injected into the component when rendered.
-
-    Example:
-
-    ```
-    from dara.core import template
-    from dara_dashboarding_extension import Card, Heading, Text, Button
-
-    @template
-    def ExperimentCard(data: template.Value):
-        return Card(
-            Heading(data.title, level=2),
-            Text(data.description),
-            Button(data.button_text, raw_css={'backgroundColor': data.button_color}),
-            ...
-        )
-    ```
-
-    2. Use the template component in certain components that can handle such
-       templates, like the `For` component.
-
-    Example:
-
-    ```
-    from dara.core import Variable, For
-
-    var = Variable([
-        {
-            'title': 'Experiment 1',
-            'description': 'This is a description of experiment 1',
-            'button_text': 'Run Experiment 1',
-            'button_color': 'red',
-        },
-        ...
-    ])
-
-    For(
-        key_accessor='title',
-        data=var,
-        template=ExperimentCard(),
-    )
-    ```
-
-    The `For` component will dynamically render elements according to the
-    template, using the properties specified by the `template.Value`. As opposed
-    to `py_component`, the decorated component only executes once, when called.
-
-    Note that only certain components are equipped to handle template components,
-    so refer to the component documentation for compatibility information.
-    """
-
-    Value = TemplateMarkerCreator
-    """
-    The `template.Value` is a special class used with the @template decorator to
-    define dynamic properties that will be injected into a template component
-    when it is rendered.
-
-    When defining a template component, use the `template.Value` as the type
-    for the first argument of the function. This argument is automatically
-    injected by the `@template` decorator, and its name can be chosen by the user.
-    Access the properties of the Value within the function to create
-    dynamic components based on the injected data.
-
-    Example usage:
-
-    ```
-    from dara.core import template
-    from dara_dashboarding_extension import Card, Heading, Text, Button
-
-    @template
-    def ExperimentCard(data: template.Value):
-        return Card(
-            Heading(data.title, level=2),
-            Text(data.description),
-            Button(data.button_text, raw_css={'backgroundColor': data.button_color}),
-            ...
-        )
-    ```
-
-    """
-
-    def __new__(cls, func: Callable[..., ComponentT]) -> TemplateComponentDef[ComponentT]:   # type: ignore
-        return TemplateComponentDef(func=func, name=func.__name__)
+    type: Literal[ComponentType.PY] = ComponentType.PY
 
 
 # Helper type annotation for working with components
@@ -593,9 +461,7 @@ class ApiRoute(BaseModel):
     handler: Callable
     method: HttpMethod
     url: str
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __hash__(self):
         return hash((self.handler, self.method, self.url, tuple(self.dependencies)))
@@ -611,9 +477,7 @@ class Page(BaseModel):
     url_safe_name: str
     include_in_menu: Optional[bool]
     on_load: Optional[Action] = None
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
 
 # This is required by pydantic to support the self referential type subpages.

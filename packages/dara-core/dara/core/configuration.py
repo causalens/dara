@@ -33,7 +33,7 @@ from typing import (
 )
 
 from fastapi.middleware import Middleware
-from pydantic.v1.generics import GenericModel
+from pydantic import BaseModel, ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth.base import BaseAuthConfig
@@ -65,7 +65,7 @@ from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
 
 
-class Configuration(GenericModel):
+class Configuration(BaseModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
@@ -93,10 +93,7 @@ class Configuration(GenericModel):
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
     encoders: Dict[Type[Any], Encoder]
     middlewares: List[Middleware]
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
     def get_package_map(self) -> Dict[str, str]:
         """

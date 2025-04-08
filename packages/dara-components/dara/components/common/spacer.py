@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Union
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 
@@ -87,7 +87,7 @@ class Spacer(ContentComponent):
     size: Union[int, str] = '0.75rem'
     inset: Union[int, str] = '0rem'
 
-    @validator('size', 'inset')
+    @field_validator('size', 'inset')
     @classmethod
     def validate_dimension(cls, value):
         if isinstance(value, int):

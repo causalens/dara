@@ -19,7 +19,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import List, Optional, Union
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 
@@ -43,9 +43,6 @@ class TokenData(BaseModel):
     identity_email: Optional[str] = None
     id_token: Optional[str] = None
     groups: Optional[List[str]] = []
-
-    class Config:
-        smart_union = True
 
 
 class UserData(BaseModel):

@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Union
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import NonDataVariable
@@ -57,7 +57,7 @@ class Text(ContentComponent):
     align: str = 'left'
     formatted: bool = False
 
-    @validator('text')
+    @field_validator('text')
     @classmethod
     def only_strings(cls, value: str):
         if not isinstance(value, (str, NonDataVariable)):

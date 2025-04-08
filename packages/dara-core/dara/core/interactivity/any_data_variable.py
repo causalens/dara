@@ -29,6 +29,7 @@ from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
+from pydantic import ConfigDict
 
 
 class AnyDataVariable(AnyVariable, abc.ABC):
@@ -73,10 +74,7 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
 
     get_schema: Callable[..., Awaitable[DataFrameSchema]]
     """Handler to get the schema for data variable. Defaults to DataVariable.get_schema for type=plain, and DerivedDataVariable.get_schema for type=derived"""
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
 
 async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: Optional[str] = None):

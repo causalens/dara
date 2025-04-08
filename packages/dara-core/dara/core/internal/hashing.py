@@ -19,7 +19,7 @@ import hashlib
 import json
 from typing import Union
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 
 def hash_object(obj: Union[BaseModel, dict, None]):

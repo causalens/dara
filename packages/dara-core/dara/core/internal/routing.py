@@ -37,7 +37,7 @@ from fastapi import (
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
@@ -120,7 +120,7 @@ def create_router(config: Configuration):
         values: NormalizedPayload[Mapping[str, Any]]
         """Dynamic kwarg values"""
 
-        input: Any
+        input: Any = None
         """Input from the component"""
 
         ws_channel: str
@@ -294,9 +294,9 @@ def create_router(config: Configuration):
             )
 
     class DataVariableRequestBody(BaseModel):
-        filters: Optional[FilterQuery]
-        cache_key: Optional[str]
-        ws_channel: Optional[str]
+        filters: Optional[FilterQuery] = None
+        cache_key: Optional[str] = None
+        ws_channel: Optional[str] = None
 
     @core_api_router.post('/data-variable/{uid}', dependencies=[Depends(verify_session)])
     async def get_data_variable(
@@ -366,8 +366,8 @@ def create_router(config: Configuration):
             raise HTTPException(status_code=400, detail=str(e))
 
     class DataVariableCountRequestBody(BaseModel):
-        cache_key: Optional[str]
-        filters: Optional[FilterQuery]
+        cache_key: Optional[str] = None
+        filters: Optional[FilterQuery] = None
 
     @core_api_router.post('/data-variable/{uid}/count', dependencies=[Depends(verify_session)])
     async def get_data_variable_count(uid: str, body: Optional[DataVariableCountRequestBody] = None):

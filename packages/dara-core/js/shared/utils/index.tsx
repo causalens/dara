@@ -13,7 +13,6 @@ export { default as useWindowTitle } from './use-window-title';
 export { default as getIcon } from './get-icon';
 export { default as useComponentStyles, parseRawCss } from './use-component-styles';
 export { default as useUrlSync } from './use-url-sync';
-export { getMarkerPaths, replaceMarkers, hasTemplateMarkers } from './templating';
 export { normalizeRequest } from './normalization';
 export { injectCss } from './inject-css';
 export type { RawCssProp };

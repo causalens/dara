@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic.v1 import BaseModel, validator
+from pydantic import BaseModel, ValidationInfo, field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
@@ -37,7 +37,7 @@ class ListSection(BaseModel):
     label: str
     items: List[Union[Item, str, dict]]
 
-    @validator('items')
+    @field_validator('items')
     @classmethod
     def validate_items(cls, items: Any) -> List[Item]:
         if len(items) == 0:
@@ -133,11 +133,11 @@ class Select(FormComponent):
     placeholder: Optional[str] = None
     value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
 
-    @validator('items', pre=True)
+    @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any, values: Dict[str, Any]) -> Union[List[Item], NonDataVariable]:
-        multiselect = values.get('multiselect')
-        searchable = values.get('searchable')
+    def validate_items(cls, items: Any, info: ValidationInfo) -> Union[List[Union[Item, ListSection]], NonDataVariable]:
+        multiselect = info.data.get('multiselect')
+        searchable = info.data.get('searchable')
         if isinstance(items, NonDataVariable):
             return items
         if not isinstance(items, list):
@@ -155,7 +155,7 @@ class Select(FormComponent):
         return [Item.to_item(item) for item in items]
 
 
-def _parse_item(item: Any, return_listsection: bool = False):
+def _parse_item(item: Any, return_listsection: bool = False) -> Union[Item, ListSection]:
     """
     Converts items to Item objects for a SectionedList. Can return a ListSection for a dictionary if
     return_listsection is set to True.

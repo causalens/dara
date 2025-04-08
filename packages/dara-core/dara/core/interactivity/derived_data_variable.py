@@ -53,6 +53,7 @@ from dara.core.internal.hashing import hash_object
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
+from pydantic import ConfigDict
 
 
 class DerivedDataVariable(AnyDataVariable, DerivedVariable):
@@ -68,9 +69,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
     variables: List[AnyVariable]
     polling_interval: Optional[int]
     deps: Optional[List[AnyVariable]]
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(
         self,

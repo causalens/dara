@@ -4,7 +4,7 @@ Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of
 
 from typing import List, Optional
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 
 class ChatUserData(BaseModel):

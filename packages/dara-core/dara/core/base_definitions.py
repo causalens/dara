@@ -36,7 +36,7 @@ from typing import (
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx
@@ -44,38 +44,10 @@ if TYPE_CHECKING:
 
 class DaraBaseModel(BaseModel):
     """
-    Custom BaseModel which handles TemplateMarkers.
-    If TemplateMarkers are present, validation is skipped.
+    Custom BaseModel for dara internals.
     """
 
-    class Config:
-        smart_union = True
-        extra = 'forbid'
-
-    def __init__(self, *args, **kwargs):
-        has_template_var_marker = any(isinstance(arg, TemplateMarker) for arg in args) or any(
-            isinstance(value, TemplateMarker) for value in kwargs.values()
-        )
-
-        if has_template_var_marker:
-            # Imitate pydantic's BaseModel.__init__ but avoid validation
-            values = {}
-            fields_set = set()
-            _missing = object()
-
-            for name, field in self.__class__.__fields__.items():
-                value = kwargs.get(field.alias, _missing)
-                if value is _missing:
-                    value = field.get_default()
-                else:
-                    fields_set.add(name)
-                values[name] = value
-
-            object.__setattr__(self, '__dict__', values)
-            object.__setattr__(self, '__fields_set__', fields_set)
-            self._init_private_attributes()
-        else:
-            super().__init__(*args, **kwargs)
+    model_config = ConfigDict(extra='forbid')
 
 
 class CacheType(str, Enum):
@@ -115,7 +87,7 @@ class LruCachePolicy(BaseCachePolicy):
         depending on `cache_type` set in the policy
     """
 
-    policy: str = Field(const=True, default='lru')
+    policy: str = Field(default='lru', frozen=True)
     max_size: int = 10
 
 
@@ -124,8 +96,8 @@ class MostRecentCachePolicy(LruCachePolicy):
     Most recent cache policy. Only keeps the most recent item in the cache.
     """
 
-    policy: str = Field(const=True, default='most-recent')
-    max_size: int = Field(const=True, default=1)
+    policy: str = Field(default='most-recent', frozen=True)
+    max_size: int = Field(default=1, frozen=True)
 
 
 class KeepAllCachePolicy(BaseCachePolicy):
@@ -135,7 +107,7 @@ class KeepAllCachePolicy(BaseCachePolicy):
     Should be used with caution as it can lead to memory leaks.
     """
 
-    policy: str = Field(const=True, default='keep-all')
+    policy: str = Field(default='keep-all', frozen=True)
 
 
 class TTLCachePolicy(BaseCachePolicy):
@@ -146,7 +118,7 @@ class TTLCachePolicy(BaseCachePolicy):
     :param ttl: time-to-live in seconds
     """
 
-    policy: str = Field(const=True, default='ttl')
+    policy: str = Field(default='ttl', frozen=True)
     ttl: int
 
 
@@ -250,9 +222,7 @@ class TaskError(BaseTaskMessage):
     error: BaseException
     cache_key: Optional[str]
     reg_entry: Optional[CachedRegistryEntry]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 TaskMessage = Union[TaskProgressUpdate, TaskResult, TaskError]
@@ -287,9 +257,6 @@ class PendingTask(BaseTask):
     Represents a running pending task.
     Is associated to an underlying task definition.
     """
-
-    cache_key: None = None
-    reg_entry: None = None
 
     def __init__(self, task_id: str, task_def: BaseTask, ws_channel: Optional[str] = None):
         self.task_id = task_id
@@ -431,7 +398,7 @@ class AnnotatedAction(BaseModel):
         # pylint: disable-next=import-error, import-outside-toplevel
         from dara.core.interactivity.plain_variable import Variable
 
-        self.update_forward_refs(Variable=Variable)
+        self.model_rebuild()
         super().__init__(**data, loading=Variable(False))
 
 
@@ -456,11 +423,11 @@ class ActionImpl(DaraBaseModel):
         """
         await ctx._push_action(self)
 
-    def dict(self, *args, **kwargs):
+    def model_dump(self, *args, **kwargs):
         """
         This structure is expected by the frontend, must match the JS implementation
         """
-        dict_form = super().dict(*args, **kwargs)
+        dict_form = super().model_dump(*args, **kwargs)
         dict_form['name'] = self.__class__.py_name or self.__class__.__name__
         dict_form['__typename'] = 'ActionImpl'
         return dict_form
@@ -523,17 +490,3 @@ class ComponentType(Enum):
 
     JS = 'js'
     PY = 'py'
-
-
-class TemplateMarker(BaseModel):
-    """
-    Template marker used to mark fields that should be replaced with a data field on the client before being rendered.
-    See dara_core.definitions.template for details
-    """
-
-    field_name: str
-
-    def dict(self, *args, **kwargs):
-        dict_form = super().dict(*args, **kwargs)
-        dict_form['__typename'] = 'TemplateMarker'
-        return dict_form

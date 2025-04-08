@@ -41,7 +41,7 @@ from typing import (
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
@@ -49,7 +49,6 @@ from dara.core.base_definitions import (
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
-    TemplateMarker,
 )
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
@@ -72,8 +71,7 @@ class ActionInputs(BaseModel):
     Base class for all action inputs
     """
 
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra='allow')
 
 
 class ActionContext(BaseModel):
@@ -96,7 +94,7 @@ class ComponentActionContext(ActionContext):
     ActionContext for actions that only require component value
     """
 
-    inputs: ComponentActionInputs
+    inputs: ComponentActionInputs # type: ignore
 
 
 class UpdateVariableImpl(ActionImpl):
@@ -239,13 +237,13 @@ class UpdateVariable(AnnotatedAction):
     Ctx = UpdateVariableContext
 
     variable: Union[Variable, DataVariable, UrlVariable]
-    extras: Optional[List[Union[AnyVariable, TemplateMarker]]]
+    extras: Optional[List[AnyVariable]]
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
         variable: Union[Variable, DataVariable, UrlVariable],
-        extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
+        extras: Optional[List[AnyVariable]] = None,
     ):
         """
         :param resolver: a function to resolve the new value for the variable.  Takes one arguments: containing a context of type `Updatevariable.Ctx`
@@ -725,7 +723,7 @@ class DownloadVariable(ActionImpl):
 @deprecated('Use @action instead')
 def SideEffect(
     function: Callable[[ComponentActionContext], Any],
-    extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
+    extras: Optional[List[AnyVariable]] = None,
     block: bool = False,
 ):
     """
@@ -1274,7 +1272,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar = ActionCtx
+    Ctx = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
@@ -1337,7 +1335,7 @@ class action:
         ...
 
     @overload
-    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction: # type: ignore
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:

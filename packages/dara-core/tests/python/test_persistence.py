@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, call
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
-from pydantic.v1 import ValidationError
+from pydantic import ValidationError
 
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable

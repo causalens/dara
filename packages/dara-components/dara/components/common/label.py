@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List, Optional, Union
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.definitions import ComponentInstance
@@ -69,7 +69,7 @@ class Label(ContentComponent):
     direction: Direction = Direction.VERTICAL
     label_width: Optional[str] = None
 
-    @validator('children')
+    @field_validator('children')
     @classmethod
     def validate_only_one_child(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
 

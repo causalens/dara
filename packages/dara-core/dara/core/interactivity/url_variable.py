@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, Generic, Optional, TypeVar
 
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from pydantic import ConfigDict
 
 VariableType = TypeVar('VariableType')
 
@@ -34,9 +35,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
     default: Optional[VariableType]
     query: str
     uid: str
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(self, query: str, default: Optional[VariableType] = None, uid: Optional[str] = None):
         """

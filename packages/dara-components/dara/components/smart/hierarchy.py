@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List, Optional, Union
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
@@ -59,7 +59,7 @@ class Node(BaseModel):
         return None
 
 
-Node.update_forward_refs()
+Node.model_rebuild()
 
 
 class HierarchySelector(StyledComponentInstance):

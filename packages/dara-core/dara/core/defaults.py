@@ -39,8 +39,6 @@ from dara.core.visual.components import (
     DynamicComponent,
     DynamicComponentDef,
     Fallback,
-    For,
-    ForDef,
     Menu,
     MenuDef,
     ProgressTracker,
@@ -79,7 +77,6 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     TopBarFrame.__name__: TopBarFrameDef,
     Fallback.Default.py_component: DefaultFallbackDef,
     Fallback.Row.py_component: RowFallbackDef,
-    For.__name__: ForDef,
 }
 
 # These actions are provided by the core JS of this module

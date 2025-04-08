@@ -16,9 +16,9 @@ limitations under the License.
 """
 
 from decimal import ROUND_FLOOR, Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
-from pydantic.v1 import validator
+from pydantic import Field, ValidationInfo, field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
@@ -131,7 +131,7 @@ class Slider(FormComponent):
 
     domain: List[float]
     onchange: Optional[Action] = None
-    step: Optional[float] = None
+    step: Optional[float] = Field(None, validate_default=True)
     rail_from_start: bool = True
     rail_labels: Optional[List[str]] = None
     rail_to_end: bool = False
@@ -140,7 +140,7 @@ class Slider(FormComponent):
     disable_input_alternative: bool = False
     id: Optional[str] = None
 
-    @validator('domain')
+    @field_validator('domain')
     @classmethod
     def domain_valid(cls, v: List[float]) -> List[float]:
         if len(v) != 2:
@@ -151,16 +151,16 @@ class Slider(FormComponent):
 
         return v
 
-    @validator('step', always=True)
+    @field_validator('step')
     @classmethod
-    def step_valid(cls, v: Optional[float], values: Dict[str, Any]) -> Optional[float]:
+    def step_valid(cls, v: Optional[float], info: ValidationInfo) -> Optional[float]:
         # domain validation must have failed, skip
-        if 'domain' not in values:
+        if 'domain' not in info.data:
             return v
 
         # make sure step and domain are compatible
         # using Decimal to avoid floating point errors
-        domain = values['domain']
+        domain = info.data['domain']
         domain_range = Decimal(str(domain[1])) - Decimal(str(domain[0]))
 
         # If step is not provided, run inference to check if the

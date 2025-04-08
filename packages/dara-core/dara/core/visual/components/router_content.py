@@ -22,12 +22,11 @@ from dara.core.definitions import (
     JsComponentDef,
     TemplateRouterContent,
 )
+from pydantic import ConfigDict
 
 RouterContentDef = JsComponentDef(name='RouterContent', js_module='@darajs/core', py_module='dara.core')
 
 
 class RouterContent(ComponentInstance):
     routes: List[TemplateRouterContent]
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

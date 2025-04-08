@@ -24,7 +24,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy
 from pandas import DataFrame, Series  # pylint: disable=unused-import
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.logging import dev_logger
 
@@ -86,7 +86,7 @@ FilterQuery = Union[ClauseQuery, ValueQuery]
 Filter query to be applied
 """
 
-ClauseQuery.update_forward_refs()
+ClauseQuery.model_rebuild()
 
 
 def coerce_to_filter_query(filters: Union[ClauseQuery, ValueQuery, dict, None]) -> Optional[FilterQuery]:

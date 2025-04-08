@@ -271,15 +271,6 @@ export function isInvalidComponent(instance: ComponentInstance): instance is Inv
     return instance.name === 'InvalidComponent';
 }
 
-export interface TemplatedComponentInstance {
-    templated: true;
-}
-
-export interface TemplateMarker {
-    __typename: 'TemplateMarker';
-    field_name: string;
-}
-
 export interface RouteContent {
     content: ComponentInstance;
     name: string;

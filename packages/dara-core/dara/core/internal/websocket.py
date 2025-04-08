@@ -30,13 +30,14 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic.v1 import BaseModel, Field, parse_obj_as
+from pydantic import BaseModel, Field, TypeAdapter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
 from dara.core.logging import dev_logger, eng_logger
+from pydantic import ConfigDict
 
 
 # Client message types
@@ -47,7 +48,7 @@ class DaraClientMessage(BaseModel):
     An optional chunk_count field can be used to indicate that a message is chunked and what number of messages to expect
     """
 
-    type: Literal['message'] = Field(default='message', const=True)
+    type: Literal['message'] = 'message'
     channel: str
     chunk_count: Optional[int] = None
     message: Any
@@ -76,7 +77,7 @@ class CustomClientMessage(BaseModel):
     Represents a custom message sent by the frontend to the backend.
     """
 
-    type: Literal['custom'] = Field(default='custom', const=True)
+    type: Literal['custom'] = 'custom'
     message: CustomClientMessagePayload
 
 
@@ -90,9 +91,7 @@ class ServerMessagePayload(BaseModel):
 
     response_for: Optional[str] = Field(default=None, alias='__response_for')
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
-
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra='allow')
 
     def dict(self, *args, **kwargs):
         # Force by_alias to True to use __rchan name
@@ -119,7 +118,7 @@ class DaraServerMessage(BaseModel):
     Represents a message sent by Dara internals from the backend to the frontend.
     """
 
-    type: Literal['message'] = Field(default='message', const=True)
+    type: Literal['message'] = 'message'
     message: ServerMessagePayload  # exact messages expected by frontend are defined in js/api/websocket.tsx
 
 
@@ -128,7 +127,7 @@ class CustomServerMessage(BaseModel):
     Represents a custom message sent by the backend to the frontend.
     """
 
-    type: Literal['custom'] = Field(default='custom', const=True)
+    type: Literal['custom'] = 'custom'
     message: CustomServerMessagePayload
 
 
@@ -534,7 +533,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                                 eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
-                                parsed_data = parse_obj_as(ClientMessage, data)
+                                parsed_data = TypeAdapter(ClientMessage).validate_python(data)
                                 result = handler.process_client_message(parsed_data)
                                 # Process the resulting coroutine before moving on to next message
                                 if inspect.iscoroutine(result):

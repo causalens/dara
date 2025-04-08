@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic.v1 import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
@@ -114,7 +114,7 @@ class NodeHierarchyBuilder(StyledComponentInstance):
     on_update: Optional[Action] = None
     wrap_node_text: bool = True
 
-    @validator('nodes')
+    @field_validator('nodes')
     @classmethod
     def validate_nodes(cls, nodes: Any) -> Union[NonDataVariable, List[List[str]], List[List[Node]]]:
         if isinstance(nodes, NonDataVariable):

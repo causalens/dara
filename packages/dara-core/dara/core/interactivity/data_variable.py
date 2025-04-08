@@ -23,7 +23,7 @@ from typing import Optional, Union, cast
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
@@ -43,6 +43,7 @@ from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
+from pydantic import ConfigDict
 
 
 class DataVariable(AnyDataVariable):
@@ -67,11 +68,7 @@ class DataVariable(AnyDataVariable):
     uid: str
     filters: Optional[FilterQuery] = None
     cache: Optional[BaseCachePolicy] = None
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
-        use_enum_values = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True, use_enum_values=True)
 
     def __init__(
         self,
@@ -319,7 +316,4 @@ class DataStoreEntry(BaseModel):
 
     data: Optional[DataFrame] = None
     path: Optional[str] = None
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)

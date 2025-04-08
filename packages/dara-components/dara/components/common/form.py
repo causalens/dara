@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List, Optional
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.base_definitions import Action
@@ -85,7 +85,7 @@ class Form(LayoutComponent):
     value: Optional[Variable[dict]] = None
     onsubmit: Optional[Action] = None
 
-    @validator('children')
+    @field_validator('children')
     @classmethod
     def validate_children_pages(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
         # Make sure if FormPage is included, non-pages are not direct children of the Form

@@ -40,8 +40,6 @@ import type {
     Task,
     TaskResponse,
     Template,
-    TemplateMarker,
-    TemplatedComponentInstance,
     UrlVariable,
     ValueQuery,
     Variable,

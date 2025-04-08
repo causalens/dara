@@ -25,7 +25,7 @@ from importlib.metadata import version
 from typing import Any, ClassVar, Dict, List, Literal, Optional, Set, Union, cast
 
 from packaging.version import Version
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.configuration import Configuration
 from dara.core.internal.settings import get_settings

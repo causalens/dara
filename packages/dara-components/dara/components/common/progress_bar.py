@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional, Union
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import NonDataVariable
@@ -52,7 +52,7 @@ class ProgressBar(ContentComponent):
     small: bool = False
     color: Optional[str] = None
 
-    @validator('progress')
+    @field_validator('progress')
     @classmethod
     def validate_progress(cls, progress):
         if not isinstance(progress, (int, NonDataVariable)):

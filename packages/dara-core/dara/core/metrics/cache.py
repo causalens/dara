@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Dict, Union
 
 from prometheus_client import Info
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 cache_metric = Info('cache_size', 'Current size of cache stores and registries', labelnames=['registry_name'])
 

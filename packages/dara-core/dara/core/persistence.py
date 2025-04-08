@@ -6,11 +6,12 @@ from uuid import uuid4
 
 import aiorwlock
 import anyio
-from pydantic.v1 import BaseModel, Field, PrivateAttr, validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WS_CHANNEL
+from pydantic import field_validator
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -88,7 +89,7 @@ class FileBackend(PersistenceBackend):
     path: str
     _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
 
-    @validator('path', check_fields=True)
+    @field_validator('path', check_fields=True)
     @classmethod
     def validate_path(cls, value):
         if not os.path.splitext(value)[1] == '.json':

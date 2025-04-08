@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List, Optional
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.core.definitions import ComponentInstance
@@ -52,7 +52,7 @@ class FormPage(FormComponent):
 
     title: Optional[str] = None
 
-    @validator('children')
+    @field_validator('children')
     @classmethod
     def validate_children(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
         for c in children:

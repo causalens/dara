@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 
 class ThemeColors(BaseModel):

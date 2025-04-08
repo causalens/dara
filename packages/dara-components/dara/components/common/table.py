@@ -15,16 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional, Sequence, Union
 
-from pydantic.v1 import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from dara.components.common.base_component import ContentComponent
-from dara.components.common.time_utils import coerce_to_timemilli
 from dara.core.base_definitions import Action
-from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import (
     AnyDataVariable,
     NonDataVariable,
@@ -378,7 +375,7 @@ class Column(BaseModel):
     unique_items: Optional[List[str]] = None
     filter: Optional[TableFilter] = None
     formatter: Optional[dict] = None
-    label: Optional[str] = None
+    label: Optional[str] = Field(default=None, validate_default=True)   # mimics always=True in pydantic v1
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
@@ -387,14 +384,14 @@ class Column(BaseModel):
     class Config:
         use_enum_values = True
 
-    @validator('label', always=True)
+    @field_validator('label')
     @classmethod
     def validate_label(cls, value, values):
         if value is None:
             return values.get('col_id')
         return value
 
-    @validator('formatter')
+    @field_validator('formatter')
     @classmethod
     def vaildate_formatter_dict(cls, formatter):
         """
@@ -468,7 +465,7 @@ class Column(BaseModel):
                     )
         return formatter
 
-    @validator('sticky')
+    @field_validator('sticky')
     @classmethod
     def validate_sticky(cls, sticky):
         """
@@ -478,7 +475,7 @@ class Column(BaseModel):
             raise ValueError(f'Invalid sticky value: {sticky}, accepted values: left, right')
         return sticky
 
-    @validator('filter')
+    @field_validator('filter')
     @classmethod
     def validate_unique_items(cls, filter, values):
         """
@@ -733,6 +730,8 @@ class Table(ContentComponent):
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
+    model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True)
+
     columns: Optional[Union[Sequence[Union[Column, dict, str]], NonDataVariable]] = None
     data: AnyDataVariable
     multi_select: bool = False
@@ -743,16 +742,11 @@ class Table(ContentComponent):
     searchable: bool = False
     include_index: bool = True
     max_rows: Optional[int] = None
-    children: List[ComponentInstance] = []
 
     TableFormatterType = TableFormatterType
     TableFilter = TableFilter
 
-    class Config:
-        json_encoders = {datetime: coerce_to_timemilli}
-        use_enum_values = True
-
-    @validator('columns')
+    @field_validator('columns')
     @classmethod
     def validate_columns(cls, columns):
         if columns is None:

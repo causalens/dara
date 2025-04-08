@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Union
 
 from cai_causal_graph.graph_components import Node
 from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
-from pydantic.v1 import root_validator
+from pydantic import model_validator
 from typing_extensions import TypedDict
 
 from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
@@ -139,10 +139,9 @@ class VisualEdgeEncoder(StyledComponentInstance):
     class Config:
         arbitrary_types_allowed = True
 
-    @root_validator
-    @classmethod
-    def validate_layout(cls, values: dict):
-        if isinstance(values.get('graph_layout'), PlanarLayout):
+    @model_validator(mode='after')
+    def validate_layout(self):
+        if isinstance(self.graph_layout, PlanarLayout):
             raise ValueError('Planar Layout is not currently supported by EdgeEncoder.')
 
-        return values
+        return self

@@ -24,11 +24,10 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
-from pydantic.v1 import Field
-
 from dara.core.base_definitions import DaraBaseModel
 
 from . import Property
+from pydantic import Field, ConfigDict
 
 # Has to be rebound due to mypy issues https://mypy.readthedocs.io/en/stable/common_issues.html#dealing-with-conflicting-names
 float_ = float
@@ -7684,8 +7683,6 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The non-standard **`zoom`** CSS property can be used to control the magnification level of an element. `transform: scale()` should be used instead of this property, if possible. However, unlike CSS Transforms, `zoom` affects the layout size of the element.\n\n**Syntax**: `normal | reset | <number> | <percentage>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  |  Edge  |   IE    |\n| :----: | :-----: | :-----: | :----: | :-----: |\n| **1**  |   No    | **3.1** | **12** | **5.5** |',
     )
-
-    class Config:
-        extra = 'allow'
-        use_enum_values = True
-        smart_union = True
+    # TODO[pydantic]: The following keys were removed: `smart_union`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(extra='allow', use_enum_values=True, smart_union=True)

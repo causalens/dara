@@ -23,7 +23,7 @@ from dara.components.common.base_component import (
     ModifierComponent,
 )
 from dara.components.common.text import Text
-from dara.core.definitions import TemplateMarker, discover
+from dara.core.definitions import discover
 from dara.core.interactivity import AnyVariable, DerivedVariable, Variable
 
 
@@ -65,14 +65,12 @@ class Anchor(ModifierComponent):
     clean: bool = False
     new_tab: bool = False
 
-    def __init__(
-        self, child: Union[ContentComponent, str, Variable[str], DerivedVariable[str], TemplateMarker], **kwargs
-    ):
-        if isinstance(child, (ContentComponent, Variable, DerivedVariable, TemplateMarker, str)) is False:
+    def __init__(self, child: Union[ContentComponent, str, Variable[str], DerivedVariable[str]], **kwargs):
+        if isinstance(child, (ContentComponent, Variable, DerivedVariable, str)) is False:
             raise LayoutError(f'Only a single ContentComponent may be passed as an Anchors child, passed : {child}')
 
         # Handle a string or Variable being passed directly to an anchor
-        if isinstance(child, (str, AnyVariable, TemplateMarker)):
+        if isinstance(child, (str, AnyVariable)):
             child = Text(child)
         parsed_args: List[ContentComponent] = [child]
         super().__init__(*parsed_args, **kwargs)

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.smart.chat.endpoints import on_new_message
 from dara.core.definitions import StyledComponentInstance
@@ -70,9 +70,9 @@ class Chat(StyledComponentInstance):
     class Config:
         extra = 'forbid'
 
-    @validator('value')
+    @field_validator('value')
     @classmethod
-    def validate_vaeiable(cls, value):
+    def validate_variable(cls, value):
         """
         Validate that the Variable has a store attached to it.
         """

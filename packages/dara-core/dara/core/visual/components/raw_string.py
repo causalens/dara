@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from dara.core.definitions import ComponentInstance
+from pydantic import ConfigDict
 
 
 class RawString(ComponentInstance):
@@ -25,6 +26,4 @@ class RawString(ComponentInstance):
     """
 
     content: str
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

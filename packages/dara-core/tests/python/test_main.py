@@ -12,7 +12,7 @@ from anyio import create_task_group
 from anyio.abc import TaskStatus
 from async_asgi_testclient import TestClient as AsyncClient
 from exceptiongroup import BaseExceptionGroup
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from tests.python.tasks import calc_task, delay_exception_task, exception_task
 from tests.python.utils import (
     AUTH_HEADERS,

@@ -22,7 +22,7 @@ from typing import Awaitable, Callable, Optional, Tuple
 from uuid import uuid4
 
 import anyio
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import Cache, CachedRegistryEntry

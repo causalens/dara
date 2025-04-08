@@ -23,7 +23,7 @@ from pickle import PicklingError
 from typing import Any, List, Optional, Union
 
 from croniter import croniter
-from pydantic.v1 import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class ScheduledJob(BaseModel):
@@ -174,7 +174,8 @@ class ScheduledJobFactory(BaseModel):
     weekday: Optional[datetime] = None
     run_once: bool
 
-    @validator('weekday', pre=True)
+    @field_validator('weekday', mode="before")
+    @classmethod
     def validate_weekday(cls, weekday: Any) -> datetime:  # pylint: disable=E0213
         if isinstance(weekday, datetime):
             return weekday

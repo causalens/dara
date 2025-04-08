@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 
 JustifyContent = Literal[
@@ -40,25 +42,6 @@ JustifyContent = Literal[
     None,
 ]
 
-AlignItems = Literal[
-    '-moz-initial',
-    'baseline',
-    'center',
-    'end',
-    'flex-end',
-    'flex-start',
-    'inherit',
-    'initial',
-    'normal',
-    'revert',
-    'self-end',
-    'self-start',
-    'start',
-    'stretch',
-    'unset',
-    None,
-]
-
 
 class LayoutError(Exception):
     """An Error type for when the layout is invalid"""
@@ -69,16 +52,13 @@ class BaseDashboardComponent(StyledComponentInstance):
     The base Component class for all other dashboarding components to extend from.
     """
 
+    model_config = ConfigDict(extra='forbid', use_enum_values=True)
+
     # Define JS module on the base component so we don't have to repeat that on each component
     js_module = '@darajs/components'
 
-    class Config:
-        smart_union = True
-        extra = 'forbid'
-        use_enum_values = True
-
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
-        super().__init__(children=list(args), **kwargs)
+        super().__init__(children=list(arg for arg in args if arg is not None), **kwargs)
 
 
 class LayoutComponent(BaseDashboardComponent):
@@ -91,9 +71,15 @@ class LayoutComponent(BaseDashboardComponent):
     :param align: the align-items value to be passed to the component
     """
 
-    position: str = 'relative'
     justify: Optional[JustifyContent] = None
-    align: Optional[AlignItems] = None
+
+    # default position to relative if not set
+    @field_validator('position')
+    @classmethod
+    def validate_position(cls, value):
+        if not value:
+            return 'relative'
+        return value
 
     def append(self, component: ComponentInstance):
         """

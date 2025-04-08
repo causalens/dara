@@ -26,6 +26,7 @@ from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.persistence import PersistenceStore
+from pydantic import ConfigDict
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -43,9 +44,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
     store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = []
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(
         self,

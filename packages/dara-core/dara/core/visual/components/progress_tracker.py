@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
+from pydantic import ConfigDict
 
 ProgressTrackerDef = JsComponentDef(name='ProgressTracker', js_module='@darajs/core', py_module='dara.core')
 
@@ -48,6 +49,4 @@ class ProgressTracker(ComponentInstance):
     ```
 
     """
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

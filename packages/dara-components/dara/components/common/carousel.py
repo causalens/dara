@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, List, Optional, Union
 
-from pydantic.v1 import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.components.common.utils import CarouselItem
@@ -122,7 +122,7 @@ class Carousel(ContentComponent):
     value: Optional[Union[Variable[int], UrlVariable[int]]] = None
     onchange: Optional[Action] = None
 
-    @validator('items', pre=True)
+    @field_validator('items', mode='before')
     @classmethod
     def validate_items(cls, items: Any) -> Union[List[CarouselItem], NonDataVariable]:
         if isinstance(items, NonDataVariable):

@@ -42,9 +42,6 @@ class Item(DaraBaseModel):
     label: str
     value: Union[str, int, float, BaseModel]
 
-    class Config:
-        smart_union = True
-
     def __init__(
         self,
         value: Union[str, int, float, BaseModel],
