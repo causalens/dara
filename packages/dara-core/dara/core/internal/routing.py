@@ -194,7 +194,7 @@ def create_router(config: Configuration):
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
     async def get_config():  # pylint: disable=unused-variable
         return {
-            **config.dict(
+            **config.model_dump(
                 include={
                     'enable_devtools',
                     'live_reload',
@@ -211,7 +211,7 @@ def create_router(config: Configuration):
     @core_api_router.get('/auth-config')
     async def get_auth_config():  # pylint: disable=unused-variable
         return {
-            'auth_components': config.auth_config.component_config.dict(),
+            'auth_components': config.auth_config.component_config.model_dump(),
         }
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
@@ -225,7 +225,7 @@ def create_router(config: Configuration):
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
             await registry_mgr.get(component_registry, name)
 
-        return {k: comp.dict(exclude={'func'}) for k, comp in component_registry.get_all().items()}
+        return {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()}
 
     class ComponentRequestBody(BaseModel):
         # Dynamic kwarg values
@@ -538,7 +538,7 @@ def create_router(config: Configuration):
     async def get_template(template: str):  # pylint: disable=unused-variable
         try:
             selected_template = template_registry.get(template)
-            normalized_template, lookup = normalize(selected_template.dict())
+            normalized_template, lookup = normalize(selected_template.model_dump())
             return {'data': normalized_template, 'lookup': lookup}
         except KeyError:
             raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry')

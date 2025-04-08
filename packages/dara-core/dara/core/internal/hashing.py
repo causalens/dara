@@ -29,7 +29,7 @@ def hash_object(obj: Union[BaseModel, dict, None]):
     :param object: object to create a hash for
     """
     if isinstance(obj, BaseModel):
-        obj = obj.dict()
+        obj = obj.model_dump()
 
     filter_hash = hashlib.sha1(
         usedforsecurity=False

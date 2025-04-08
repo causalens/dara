@@ -553,7 +553,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                             data = message.message
                             # Reconstruct the payload without the result field
                             message.message = ServerMessagePayload(
-                                **{k: v for k, v in data.dict().items() if k != 'result'}
+                                **{k: v for k, v in data.model_dump().items() if k != 'result'}
                             )
                         await websocket.send_json(jsonable_encoder(message))
 

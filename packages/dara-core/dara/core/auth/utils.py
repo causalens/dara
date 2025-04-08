@@ -79,7 +79,7 @@ def sign_jwt(
             identity_email=identity_email,
             groups=groups,
             id_token=id_token,
-        ).dict(),
+        ).model_dump(),
         settings.jwt_secret,
         algorithm=JWT_ALGO,
     )

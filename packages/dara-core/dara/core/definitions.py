@@ -82,7 +82,7 @@ class ErrorHandlingConfig(BaseModel):
             result.pop('raw_css')
         elif isinstance(self.raw_css, CSSProperties):
             # If it's an instance of CSSProperties, serialize but exclude none
-            result['raw_css'] = self.raw_css.dict(exclude_none=True)
+            result['raw_css'] = self.raw_css.model_dump(exclude_none=True)
 
         return result
 
@@ -224,7 +224,7 @@ class ComponentInstance(DaraBaseModel):
             props.pop('raw_css')
         elif isinstance(self.raw_css, CSSProperties):
             # If it's an instance of CSSProperties, serialize but exclude none
-            props['raw_css'] = self.raw_css.dict(exclude_none=True)
+            props['raw_css'] = self.raw_css.model_dump(exclude_none=True)
 
         # Exclude track_progress if not set
         if 'track_progress' in props and props.get('track_progress') is False:
