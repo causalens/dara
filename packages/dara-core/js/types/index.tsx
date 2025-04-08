@@ -88,8 +88,6 @@ export type {
     AnyVariable,
     BaseStylingProps,
     StyledComponentProps,
-    TemplatedComponentInstance,
-    TemplateMarker,
     DaraEventMap,
     DaraEventType,
     DaraEvent,
