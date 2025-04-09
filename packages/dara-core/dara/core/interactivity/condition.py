@@ -18,7 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Union
+from typing import TYPE_CHECKING, ClassVar, TypeAlias, Union
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
@@ -42,4 +42,4 @@ class Condition(BaseModel):
     other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
     variable: AnyVariable
 
-    Operator: ClassVar[type[Operator]] = Operator
+    Operator: ClassVar[TypeAlias] = Operator

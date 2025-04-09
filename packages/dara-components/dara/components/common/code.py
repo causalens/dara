@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Optional, TypeAlias, Union
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import NonDataVariable
@@ -68,4 +68,4 @@ class Code(ContentComponent):
     theme: Optional[Themes] = None
     language: str = 'python'
 
-    Themes: ClassVar = Themes
+    Themes: ClassVar[TypeAlias] = Themes

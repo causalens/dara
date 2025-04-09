@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar, List, Optional, Union
+from typing import ClassVar, List, Optional, TypeAlias, Union
 
 from pydantic import field_validator
 
@@ -66,7 +66,7 @@ class If(ModifierComponent):
     true_children: List[ComponentInstance]
     false_children: List[ComponentInstance]
 
-    Condition: ClassVar = Condition
+    Condition: ClassVar[TypeAlias] = Condition
 
     @field_validator('condition')
     @classmethod

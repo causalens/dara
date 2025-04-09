@@ -33,6 +33,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    TypeAlias,
     TypeVar,
     Union,
     overload,
@@ -234,7 +235,7 @@ class UpdateVariable(AnnotatedAction):
     ```
     """
 
-    Ctx = UpdateVariableContext
+    Ctx: ClassVar[TypeAlias] = UpdateVariableContext
 
     variable: Union[Variable, DataVariable, UrlVariable]
     extras: Optional[List[AnyVariable]]
@@ -424,7 +425,7 @@ def NavigateTo(
         return NavigateToImpl(url=url, new_tab=new_tab)
 
     # Otherwise create a new @action with the provided resolver
-    async def _navigate(ctx: action.Ctx, **kwargs):
+    async def _navigate(ctx: action.Ctx, **kwargs):   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(url, args=(old_ctx,))   # type: ignore
@@ -571,8 +572,8 @@ class Notify(ActionImpl):
     status: NotificationStatus
     title: str
 
-    Status: ClassVar = NotificationStatus
-    Ctx: ClassVar = ComponentActionContext
+    Status: ClassVar[TypeAlias] = NotificationStatus
+    Ctx: ClassVar[TypeAlias] = ComponentActionContext
     """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
@@ -1272,7 +1273,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar = ActionCtx
+    Ctx: ClassVar[TypeAlias] = ActionContext
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
