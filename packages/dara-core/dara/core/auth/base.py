@@ -19,7 +19,7 @@ import abc
 from typing import Any, ClassVar, Dict, Union
 
 from fastapi import HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import (
@@ -59,7 +59,8 @@ class AuthComponentConfig(BaseModel):
     extra: Dict[str, AuthComponent] = {}
     """Extra components, map of route -> component"""
 
-    def model_dump(self, *args, **kwargs):
+    @model_serializer()
+    def ser_model(self) -> dict:
         return {'login': self.login, 'logout': self.logout, **self.extra}
 
 

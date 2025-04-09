@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_serializer, SerializerFunctionWrapHandler
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
@@ -229,7 +229,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         return cls(default=other)   # type: ignore
 
-    def model_dump(self, *args, **kwargs):
-        parent_dict = super().model_dump(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
 
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

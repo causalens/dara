@@ -33,6 +33,7 @@ from typing import (
     Union,
     overload,
 )
+from pydantic import SerializeAsAny
 
 from fastapi.encoders import jsonable_encoder
 
@@ -327,7 +328,7 @@ def _make_render_safe(handler: Callable):
 
             # Handle primitives being returned by just displaying the value as a string
             safe_result = RawString(content=str(result))
-        elif not isinstance(result, ComponentInstance):
+        elif not ComponentInstance.isinstance(result):
             # Otherwise it must be a component instance, return the error for frontend to display
             safe_result = InvalidComponent(
                 error=f'PyComponent "{handler.__name__}" did not return a ComponentInstance, found "{result}"'

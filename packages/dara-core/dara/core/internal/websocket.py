@@ -30,7 +30,7 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_serializer, SerializerFunctionWrapHandler
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig
@@ -60,9 +60,12 @@ class CustomClientMessagePayload(BaseModel):
     kind: str
     data: Any
 
-    def model_dump(self, *args, **kwargs):
-        # Force by_alias to True to use __rchan name
-        result = super().model_dump(*args, **{**kwargs, 'by_alias': True})
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        result = nxt(self)
+
+        if result.get('rchan'):
+            result['__rchan'] = result.pop('rchan')
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -92,9 +95,12 @@ class ServerMessagePayload(BaseModel):
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
     model_config = ConfigDict(extra='allow')
 
-    def model_dump(self, *args, **kwargs):
-        # Force by_alias to True to use __rchan name
-        result = super().model_dump(*args, **{**kwargs, 'by_alias': True})
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        result = nxt(self)
+
+        if result.get('rchan'):
+            result['__rchan'] = result.pop('rchan')
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:

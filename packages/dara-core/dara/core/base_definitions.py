@@ -36,7 +36,7 @@ from typing import (
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx
@@ -423,7 +423,8 @@ class ActionImpl(DaraBaseModel):
         """
         await ctx._push_action(self)
 
-    def model_dump(self, *args, **kwargs):
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         """
         This structure is expected by the frontend, must match the JS implementation
         """

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import aiorwlock
 import anyio
-from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_serializer, SerializerFunctionWrapHandler
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
@@ -151,8 +151,9 @@ class PersistenceStore(BaseModel, abc.ABC):
         Initialize the store when connecting to a variable
         """
 
-    def model_dump(self, *args, **kwargs):
-        parent_dict = super().model_dump(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         parent_dict['__typename'] = self.__class__.__name__
         return parent_dict
 

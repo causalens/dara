@@ -571,8 +571,8 @@ class Notify(ActionImpl):
     status: NotificationStatus
     title: str
 
-    Status = NotificationStatus
-    Ctx = ComponentActionContext
+    Status: ClassVar = NotificationStatus
+    Ctx: ClassVar = ComponentActionContext
     """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 

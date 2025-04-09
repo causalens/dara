@@ -88,7 +88,7 @@ class LayoutComponent(BaseDashboardComponent):
 
         :param component: the component to add, can be any type of BaseComponent
         """
-        if isinstance(component, ComponentInstance) is False:
+        if ComponentInstance.isinstance(component) is False:
             name = self.__class__.__name__
             raise TypeError(f'You may only append other components to a {name} component. Not: {component}')
         self.children.append(component)   # type: ignore

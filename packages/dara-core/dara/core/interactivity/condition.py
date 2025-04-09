@@ -18,7 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, ClassVar, Union
 
 from pydantic import BaseModel
 
@@ -42,4 +42,4 @@ class Condition(BaseModel):
     other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
     variable: AnyVariable
 
-    Operator = Operator
+    Operator: ClassVar = Operator

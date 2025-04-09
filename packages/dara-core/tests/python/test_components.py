@@ -3,7 +3,7 @@ from typing import List, Union
 from fastapi.encoders import jsonable_encoder
 
 from dara.core import CSSProperties
-from dara.core.definitions import ComponentInstance, StyledComponentInstance, template
+from dara.core.definitions import ComponentInstance, StyledComponentInstance
 from dara.core.interactivity.any_variable import AnyVariable
 
 

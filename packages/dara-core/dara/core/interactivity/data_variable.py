@@ -23,7 +23,7 @@ from typing import Optional, Union, cast
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_serializer, SerializerFunctionWrapHandler
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
@@ -300,8 +300,9 @@ class DataVariable(AnyDataVariable):
 
         return UpdateVariableImpl(variable=self, value=value)
 
-    def model_dump(self, *args, **kwargs):
-        parent_dict = super().model_dump(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         if 'data' in parent_dict:
             parent_dict.pop('data')   # make sure data is not included in the serialised dict
         return {**parent_dict, '__typename': 'DataVariable', 'uid': str(parent_dict['uid'])}

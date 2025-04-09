@@ -38,7 +38,7 @@ from typing import (
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, SerializeAsAny, SerializerFunctionWrapHandler, TypeAdapter, field_validator, model_serializer
 
 from dara.core.base_definitions import Action, ComponentType, DaraBaseModel
 from dara.core.css import CSSProperties
@@ -197,8 +197,8 @@ class ComponentInstance(DaraBaseModel):
 
         super().__init__(*args, **kwargs)
 
-    def __repr__(self):
-        return '__dara__' + json.dumps(jsonable_encoder(self))
+    # def __repr__(self):
+    #     return '__dara__' + json.dumps(jsonable_encoder(self))
 
     @field_validator('raw_css', mode='before')
     @classmethod
@@ -214,8 +214,27 @@ class ComponentInstance(DaraBaseModel):
 
         return css
 
-    def model_dump(self, *args, **kwargs):
-        props = super().model_dump(*args, **kwargs)
+    @classmethod
+    def isinstance(cls, obj: Any) -> bool:
+        return isinstance(obj, cls)
+
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        # props = {}
+    # def model_dump(self, *args, **kwargs):
+
+        print('---NAME', self.__class__.__name__, nxt)
+        # props = super().model_dump(*args, **kwargs)
+        props = nxt(self)
+
+
+        # fields = self.__class__.model_fields
+        # for field_name, field_info in fields.items():
+        #     props[field_name] = value
+        # props = self.model_dump(serialize_as_any=True)
+        # print('PROP TYPE?', type(props))
+        # print('---PROPS', props)
+
         props.pop('uid')
 
         # Exclude raw_css if not set
@@ -251,6 +270,7 @@ class ComponentInstance(DaraBaseModel):
             'uid': self.uid,
         }
 
+ComponentInstance = SerializeAsAny[ComponentInstance]
 
 @runtime_checkable
 class CallableClassComponent(Protocol):
@@ -391,6 +411,7 @@ class StyledComponentInstance(ComponentInstance):
             return [x for x in children if x is not None]
         return children
 
+StyledComponentInstance = SerializeAsAny[StyledComponentInstance]
 
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
 
@@ -474,10 +495,6 @@ class Page(BaseModel):
     include_in_menu: Optional[bool]
     on_load: Optional[Action] = None
     model_config = ConfigDict(extra='forbid')
-
-
-# This is required by pydantic to support the self referential type subpages.
-Page.model_rebuild()
 
 
 class TemplateRoute(BaseModel):

@@ -32,7 +32,7 @@ from typing import (
     cast,
 )
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_serializer, SerializerFunctionWrapHandler
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (
@@ -476,8 +476,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 return True
         return False
 
-    def model_dump(self, *args, **kwargs):
-        parent_dict = super().model_dump(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'DerivedVariable', 'uid': str(parent_dict['uid'])}
 
 

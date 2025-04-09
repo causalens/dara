@@ -98,6 +98,7 @@ class MockComponent(ComponentInstance):
     ):
         super().__init__(text=text, uid='uid', action=action)
 
+MockComponent.model_rebuild()
 
 async def test_derived_data_variable_dv_value_not_returned():
     builder = ConfigurationBuilder()
@@ -908,6 +909,8 @@ async def test_py_component_with_derived_data_variable():
     async with AsyncClient(app) as client:
 
         response, status = await _get_template(client)
+        import pprint
+        pprint.pprint(response)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         data = await _get_py_component(

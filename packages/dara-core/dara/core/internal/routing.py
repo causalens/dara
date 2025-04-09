@@ -538,7 +538,7 @@ def create_router(config: Configuration):
     async def get_template(template: str):  # pylint: disable=unused-variable
         try:
             selected_template = template_registry.get(template)
-            normalized_template, lookup = normalize(selected_template.model_dump())
+            normalized_template, lookup = normalize(jsonable_encoder(selected_template))
             return {'data': normalized_template, 'lookup': lookup}
         except KeyError:
             raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry')

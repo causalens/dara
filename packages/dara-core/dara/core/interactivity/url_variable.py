@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, Generic, Optional, TypeVar
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_serializer
 
 from dara.core.interactivity.non_data_variable import NonDataVariable
 
@@ -130,6 +130,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)
 
-    def model_dump(self, *args, **kwargs):
-        parent_dict = super().model_dump(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'UrlVariable', 'uid': str(parent_dict['uid'])}
