@@ -1272,7 +1272,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar[type[ActionCtx]] = ActionCtx
+    Ctx: ClassVar = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
