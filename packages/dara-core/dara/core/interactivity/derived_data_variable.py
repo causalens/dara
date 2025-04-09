@@ -23,7 +23,7 @@ from uuid import uuid4
 
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic import ConfigDict, model_serializer, SerializerFunctionWrapHandler
+from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.base_definitions import (
     BaseTask,

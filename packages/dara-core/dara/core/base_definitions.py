@@ -21,9 +21,7 @@ from __future__ import annotations
 # between other parts of the framework
 import abc
 import uuid
-from collections.abc import Mapping as MappingABC
 from enum import Enum
-from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -63,19 +61,14 @@ def annotation_has_base_model(typ: Any) -> bool:
 
     Handles Union and List types.
     """
-    # print('check typ', typ)
-    # Handle Union types
-    orig = get_origin(typ)
-
     try:
         type_args = get_args(typ)
         if len(type_args) > 0:
             return any(annotation_has_base_model(arg) for arg in type_args)
-    except Exception:
-        print('cannot check')
+    except:   # pylint: disable=bare-except
+        # canot get arguments, should be a simple type
         pass
 
-    # print('SIMPLE', typ)
     # Handle simple types
     return typ is BaseModel or issubclass(typ, BaseModel)
 
@@ -84,9 +77,10 @@ def annotation_has_base_model(typ: Any) -> bool:
 # It works by adding SerializeAsAny to all fields of the model.
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
-    def __new__(self, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs):
+    def __new__(
+        self, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs
+    ):   # pylint: disable=bad-mcs-classmethod-argument
         annotations: dict = namespaces.get('__annotations__', {}).copy()
-        print('META BUILD', name)
 
         for base in bases:
             for base_ in base.__mro__:
@@ -101,9 +95,7 @@ class SerializeAsAnyMeta(ModelMetaclass):
                 if isinstance(annotation, str) or annotation is ClassVar:
                     continue
                 if annotation_has_base_model(annotation):
-                    print('MODEL', name)
-                    print('ANNOTATING FIELD', field, annotation)
-                    annotations[field] = SerializeAsAny[annotation]
+                    annotations[field] = SerializeAsAny[annotation]   # type: ignore
 
         namespaces['__annotations__'] = annotations
 
@@ -131,26 +123,23 @@ class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
             _parent_namespace_depth=_parent_namespace_depth + 1,
             _types_namespace=_types_namespace,
         )
-        print('POST REBUILD MODEL', cls.__name__)
 
         # Re-apply the SerializeAsAny wrapper to any fields that were originally strings
-        for field_name, field_info in cls.__pydantic_fields__.items():
+        for field_info in cls.__pydantic_fields__.values():
             # if the original was a str, we've just resolved it so we can re-apply the SerializeAsAny wrapper
             if (
                 field_info.annotation is not SerializeAsAny
                 and field_info.annotation is not ClassVar
                 and annotation_has_base_model(field_info.annotation)
             ):
-                if get_origin(field_info.annotation) is Annotated:
-                    if any(
-                        isinstance(arg, SerializeAsAny) for arg in field_info.annotation.__metadata__
-                    ):
-                        print('SKIP ANNOTATED', field_name, field_info.annotation)
-                        continue
-                print('ANNOTATING FIELD', field_name, field_info.annotation, field_info.metadata)
-                field_info.annotation = SerializeAsAny[field_info.annotation]
-                field_info.metadata = list(field_info.annotation.__metadata__)
-                print('annotation after', field_info.annotation)
+                # Skip if the type is already annotated with SerializeAsAny
+                if get_origin(field_info.annotation) is Annotated and any(
+                    isinstance(arg, SerializeAsAny) for arg in field_info.annotation.__metadata__  # type: ignore
+                ):
+                    continue
+
+                field_info.annotation = SerializeAsAny[field_info.annotation]   # type: ignore
+                field_info.metadata = list(field_info.annotation.__metadata__)   # type: ignore
 
         # Rebuild again with force to ensure we rebuild the schema with new annotations
         return super().model_rebuild(
@@ -539,10 +528,7 @@ class ActionImpl(DaraBaseModel):
         """
         This structure is expected by the frontend, must match the JS implementation
         """
-        print('SERIALIZING ACTION', self.__class__.__name__, nxt, self.__pydantic_fields__)
-        print('SCHEMA', self.__pydantic_core_schema__)
         dict_form = nxt(self)
-        print('SERIALIZED ACTION', self.__class__.__name__, dict_form)
         dict_form['name'] = self.__class__.py_name or self.__class__.__name__
         dict_form['__typename'] = 'ActionImpl'
         return dict_form

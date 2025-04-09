@@ -35,12 +35,16 @@ from typing import (
     runtime_checkable,
 )
 
-from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-from pydantic import ConfigDict, GetCoreSchemaHandler, SerializerFunctionWrapHandler, TypeAdapter, field_validator, model_serializer
-from pydantic_core import core_schema
+from pydantic import (
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+)
 
-from dara.core.base_definitions import Action, ComponentType, DaraBaseModel as BaseModel
+from dara.core.base_definitions import Action, ComponentType
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 
@@ -84,34 +88,6 @@ class ErrorHandlingConfig(BaseModel):
             result['raw_css'] = self.raw_css.model_dump(exclude_none=True)
 
         return result
-
-
-class BaseFallback(BaseModel):
-    suspend_render: Union[bool, int] = 200
-    """
-    :param suspend_render: bool or int, optional
-        Determines the suspense behavior of the component during state updates.
-
-        - If True, the component will always use suspense during state updates.
-          This means the component will suspend rendering and show a fallback UI until the new state is ready.
-
-        - If False, the component will always show the previous state while loading the new state.
-          This means the component will never suspend during state updates. The fallback UI will only
-          be shown on the first render.
-
-        - If a positive integer (default is 200), this denotes the threshold in milliseconds.
-          The component will show the previous state while loading the new state,
-          but will suspend and show a fallback UI after the given timeout if the new state is not ready.
-    """
-
-    @field_validator('suspend_render')
-    @classmethod
-    def validate_suspend_render(cls, value):
-        if isinstance(value, int):
-            if value < 0:
-                raise ValueError('suspend_render must be a positive integer')
-
-        return value
 
 
 class ComponentInstance(BaseModel):
@@ -220,9 +196,7 @@ class ComponentInstance(BaseModel):
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
-        print('---SERIALIZING', self.__class__.__name__, nxt)
         props = nxt(self)
-        print('---RESULT', self.__class__.__name__, props)
 
         props.pop('uid')
 
@@ -258,6 +232,7 @@ class ComponentInstance(BaseModel):
             'props': props,
             'uid': self.uid,
         }
+
 
 @runtime_checkable
 class CallableClassComponent(Protocol):
@@ -398,6 +373,38 @@ class StyledComponentInstance(ComponentInstance):
             return [x for x in children if x is not None]
         return children
 
+
+class BaseFallback(StyledComponentInstance):
+    suspend_render: Union[bool, int] = 200
+    """
+    :param suspend_render: bool or int, optional
+        Determines the suspense behavior of the component during state updates.
+
+        - If True, the component will always use suspense during state updates.
+          This means the component will suspend rendering and show a fallback UI until the new state is ready.
+
+        - If False, the component will always show the previous state while loading the new state.
+          This means the component will never suspend during state updates. The fallback UI will only
+          be shown on the first render.
+
+        - If a positive integer (default is 200), this denotes the threshold in milliseconds.
+          The component will show the previous state while loading the new state,
+          but will suspend and show a fallback UI after the given timeout if the new state is not ready.
+    """
+
+    @field_validator('suspend_render')
+    @classmethod
+    def validate_suspend_render(cls, value):
+        if isinstance(value, int):
+            if value < 0:
+                raise ValueError('suspend_render must be a positive integer')
+
+        return value
+
+
+ComponentInstance.model_rebuild()
+
+
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
 
 
@@ -472,12 +479,12 @@ class ApiRoute(BaseModel):
 class Page(BaseModel):
     """Definition of a Page"""
 
-    icon: Optional[str]
+    icon: Optional[str] = None
     content: ComponentInstanceType
     name: str
     sub_pages: Optional[List['Page']] = []
     url_safe_name: str
-    include_in_menu: Optional[bool]
+    include_in_menu: Optional[bool] = None
     on_load: Optional[Action] = None
     model_config = ConfigDict(extra='forbid')
 
@@ -489,14 +496,14 @@ class TemplateRoute(BaseModel):
     icon: Optional[str]
     name: str
     route: str
-    include_in_menu: Optional[bool]
+    include_in_menu: Optional[bool] = None
     on_load: Optional[Action] = None
 
 
 class TemplateRouterLink(BaseModel):
     """Definition of a link for the TemplateRouter"""
 
-    icon: Optional[str]
+    icon: Optional[str] = None
     name: str
     route: str
 
@@ -507,7 +514,7 @@ class TemplateRouterContent(BaseModel):
     content: ComponentInstance
     route: str
     on_load: Optional[Action] = None
-    name: Optional[str]
+    name: Optional[str] = None
 
 
 class Template(BaseModel):

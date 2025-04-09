@@ -27,10 +27,12 @@ from typing import Any, Callable, Dict, Optional, Set
 
 import anyio
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import BaseTask, PendingTask
+from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.base_definitions import PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager

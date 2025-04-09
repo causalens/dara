@@ -594,7 +594,7 @@ async def test_derived_variables_with_polling():
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval') == 2
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == Cache.Policy.from_arg(
             'global'
-        )
+        ).model_dump()
 
 
 async def test_chained_derived_variables():
@@ -775,7 +775,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
 
     @py_component
     def TestSimpleComp(var: str):
-        return MockComponent(text=var)
+        return MockComponent(text=str(var))
 
     builder.add_page('Test', content=TestSimpleComp(var=dv_top))
 

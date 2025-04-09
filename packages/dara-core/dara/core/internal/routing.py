@@ -43,7 +43,6 @@ from starlette.background import BackgroundTask
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
-from dara.core.definitions import ComponentInstance, ComponentInstanceType
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.internal.cache_store import CacheStore
@@ -539,8 +538,6 @@ def create_router(config: Configuration):
     async def get_template(template: str):  # pylint: disable=unused-variable
         try:
             selected_template = template_registry.get(template)
-            print('serializing', selected_template)
-            print('serialized', jsonable_encoder(selected_template))
             normalized_template, lookup = normalize(jsonable_encoder(selected_template))
             return {'data': normalized_template, 'lookup': lookup}
         except KeyError:

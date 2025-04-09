@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from importlib.metadata import version
+
 from pydantic import BaseModel
 
 from dara.core.base_definitions import *
@@ -67,5 +68,5 @@ for symbol in list(globals().values()):
     try:
         if issubclass(symbol, BaseModel):
             symbol.model_rebuild()
-    except:
+    except:   # pylint: disable=bare-except
         pass

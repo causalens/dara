@@ -567,7 +567,6 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                             message.message = ServerMessagePayload(
                                 **{k: v for k, v in data.model_dump().items() if k != 'result'}
                             )
-                        print('sending message', type(message), message)
                         await websocket.send_json(jsonable_encoder(message))
 
                 # Start the two tasks to handle sending and receiving messages
