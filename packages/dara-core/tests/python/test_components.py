@@ -1,10 +1,5 @@
-from typing import List, Union
-
-from fastapi.encoders import jsonable_encoder
-
 from dara.core import CSSProperties
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
-from dara.core.interactivity.any_variable import AnyVariable
 
 
 def test_base_component_instance():
@@ -22,6 +17,7 @@ def test_children():
         foo: str
 
     instance = TestComponent(foo='bar', children=[TestComponent(foo='baz'), None])
+    print('calling dict...')
     assert instance.dict(exclude_none=True) == {
         'name': 'TestComponent',
         'uid': instance.uid,

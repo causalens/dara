@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import List
 
-from pydantic import ConfigDict, SerializeAsAny
+from pydantic import ConfigDict
 
 from dara.core.definitions import (
     ComponentInstance,
@@ -29,5 +29,5 @@ RouterContentDef = JsComponentDef(name='RouterContent', js_module='@darajs/core'
 
 
 class RouterContent(ComponentInstance):
-    routes: SerializeAsAny[List[TemplateRouterContent]]
+    routes: List[TemplateRouterContent]
     model_config = ConfigDict(extra='forbid')

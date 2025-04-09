@@ -330,6 +330,10 @@ class AnyVariable(BaseModel, abc.ABC):
         assert_no_context('ctx.reset')
         return ResetVariables(variables=[self])
 
+    @classmethod
+    def isinstance(cls, obj: Any) -> bool:
+        return isinstance(obj, cls)
+
     async def get_current_value(self, timeout: float = 3) -> Any:
         """
         Retrieve the current value of the variable for the current user

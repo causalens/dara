@@ -30,12 +30,19 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_serializer, SerializerFunctionWrapHandler
+from pydantic import (
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    TypeAdapter,
+    model_serializer,
+)
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger, eng_logger
 
 
@@ -54,6 +61,8 @@ class DaraClientMessage(BaseModel):
 
 
 class CustomClientMessagePayload(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+
     rchan: Optional[str] = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
@@ -63,9 +72,6 @@ class CustomClientMessagePayload(BaseModel):
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         result = nxt(self)
-
-        if result.get('rchan'):
-            result['__rchan'] = result.pop('rchan')
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -88,19 +94,17 @@ ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 
 # Server message types
 class ServerMessagePayload(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True, extra='allow')
+
     rchan: Optional[str] = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
     response_for: Optional[str] = Field(default=None, alias='__response_for')
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
-    model_config = ConfigDict(extra='allow')
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         result = nxt(self)
-
-        if result.get('rchan'):
-            result['__rchan'] = result.pop('rchan')
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -337,9 +341,9 @@ class WebsocketManager:
         :param custom: Whether the message is a custom message
         """
         if custom:
-            return CustomServerMessage(message=CustomServerMessagePayload.parse_obj(payload))
+            return CustomServerMessage(message=CustomServerMessagePayload.model_validate(payload))
         else:
-            return DaraServerMessage(message=ServerMessagePayload.parse_obj(payload))
+            return DaraServerMessage(message=ServerMessagePayload.model_validate(payload))
 
     def create_handler(self, channel_id: str) -> WebSocketHandler:
         """
@@ -550,6 +554,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                     Handle messages sent to the client and pass them via the websocket
                     """
                     async for message in handler.receive_stream:
+                        # TODO: This is hacky, should probably be a model_serializer
+                        # on a proper payload type
                         if (
                             message.type == 'message'
                             and isinstance(message.message, ServerMessagePayload)
@@ -561,6 +567,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                             message.message = ServerMessagePayload(
                                 **{k: v for k, v in data.model_dump().items() if k != 'result'}
                             )
+                        print('sending message', type(message), message)
                         await websocket.send_json(jsonable_encoder(message))
 
                 # Start the two tasks to handle sending and receiving messages

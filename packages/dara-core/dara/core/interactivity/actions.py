@@ -41,7 +41,7 @@ from typing import (
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SerializeAsAny
 from typing_extensions import deprecated
 
 from dara.core.base_definitions import (

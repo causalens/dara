@@ -543,6 +543,7 @@ async def test_py_component_with_derived_variable():
 
     async with AsyncClient(app) as client:
         response, status = await _get_template(client)
+        print('RESPONSE', response)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         data = await _get_py_component(

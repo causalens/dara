@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
-from pydantic import ConfigDict, model_serializer, SerializerFunctionWrapHandler
+from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable

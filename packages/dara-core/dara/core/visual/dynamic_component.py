@@ -14,9 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-from __future__ import annotations
-
 import json
 import uuid
 from contextvars import ContextVar
@@ -33,9 +30,9 @@ from typing import (
     Union,
     overload,
 )
-from pydantic import SerializeAsAny
 
 from fastapi.encoders import jsonable_encoder
+from pydantic import create_model
 
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
@@ -190,6 +187,8 @@ def py_component(
 
             # Returning a PyComponentInstance with dynamic and static args
             instance_cls = type(str(uid), (PyComponentInstance,), {})
+            # instance_cls = create_model(str(uid), __base__=PyComponentInstance)
+            # print(instance_cls.__pydantic_fields__)
             return instance_cls(
                 func_name=func.__name__,
                 dynamic_kwargs=dynamic_kwargs,

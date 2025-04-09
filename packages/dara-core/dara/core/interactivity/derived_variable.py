@@ -32,7 +32,14 @@ from typing import (
     cast,
 )
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_serializer, SerializerFunctionWrapHandler
+from pydantic import (
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (

@@ -17,7 +17,6 @@ limitations under the License.
 
 from __future__ import annotations
 
-import json
 import uuid
 from enum import Enum
 from typing import (
@@ -38,9 +37,10 @@ from typing import (
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
-from pydantic import BaseModel, ConfigDict, SerializeAsAny, SerializerFunctionWrapHandler, TypeAdapter, field_validator, model_serializer
+from pydantic import ConfigDict, GetCoreSchemaHandler, SerializerFunctionWrapHandler, TypeAdapter, field_validator, model_serializer
+from pydantic_core import core_schema
 
-from dara.core.base_definitions import Action, ComponentType, DaraBaseModel
+from dara.core.base_definitions import Action, ComponentType, DaraBaseModel as BaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 
@@ -86,7 +86,7 @@ class ErrorHandlingConfig(BaseModel):
         return result
 
 
-class BaseFallback(DaraBaseModel):
+class BaseFallback(BaseModel):
     suspend_render: Union[bool, int] = 200
     """
     :param suspend_render: bool or int, optional
@@ -114,7 +114,7 @@ class BaseFallback(DaraBaseModel):
         return value
 
 
-class ComponentInstance(DaraBaseModel):
+class ComponentInstance(BaseModel):
     """
     Definition of a Component Instance
     """
@@ -220,20 +220,9 @@ class ComponentInstance(DaraBaseModel):
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
-        # props = {}
-    # def model_dump(self, *args, **kwargs):
-
-        print('---NAME', self.__class__.__name__, nxt)
-        # props = super().model_dump(*args, **kwargs)
+        print('---SERIALIZING', self.__class__.__name__, nxt)
         props = nxt(self)
-
-
-        # fields = self.__class__.model_fields
-        # for field_name, field_info in fields.items():
-        #     props[field_name] = value
-        # props = self.model_dump(serialize_as_any=True)
-        # print('PROP TYPE?', type(props))
-        # print('---PROPS', props)
+        print('---RESULT', self.__class__.__name__, props)
 
         props.pop('uid')
 
@@ -269,8 +258,6 @@ class ComponentInstance(DaraBaseModel):
             'props': props,
             'uid': self.uid,
         }
-
-ComponentInstance = SerializeAsAny[ComponentInstance]
 
 @runtime_checkable
 class CallableClassComponent(Protocol):
@@ -410,8 +397,6 @@ class StyledComponentInstance(ComponentInstance):
         if isinstance(children, list):
             return [x for x in children if x is not None]
         return children
-
-StyledComponentInstance = SerializeAsAny[StyledComponentInstance]
 
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
 
