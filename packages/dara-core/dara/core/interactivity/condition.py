@@ -42,4 +42,4 @@ class Condition(BaseModel):
     other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
     variable: AnyVariable
 
-    Operator: ClassVar = Operator
+    Operator: ClassVar[type[Operator]] = Operator
