@@ -46,9 +46,5 @@ class TestFormComponent(unittest.TestCase):
         Form(fs3, value=form_state)
 
         # A mix is not allowed
-        with self.assertRaises(ValidationError) as cm:
+        with self.assertRaises(TypeError) as cm:
             Form(FormPage(fs1), fs3, FormPage(fs2), value=form_state)
-
-        error = cm.exception.errors()[0]
-        self.assertEqual('type_error', error['type'])
-        self.assertEqual(('children',), error['loc'])

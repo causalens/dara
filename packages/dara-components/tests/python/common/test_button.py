@@ -1,6 +1,7 @@
 import unittest
 import uuid
 from unittest.mock import patch
+from fastapi.encoders import jsonable_encoder
 
 from dara.core.interactivity.actions import NavigateTo
 from dara.components.common import Button, Text
@@ -14,6 +15,7 @@ class TestButtonComponent(unittest.TestCase):
 
     @patch('dara.core.definitions.uuid.uuid4', return_value=test_uid)
     def test_serialization(self, _uid):
+        self.maxDiff = None
         """Test the component serializes to a dict"""
         action = NavigateTo(url='/test')
         cmp = Button('Click Here', onclick=action)
@@ -31,4 +33,4 @@ class TestButtonComponent(unittest.TestCase):
             },
             'uid': str(test_uid),
         }
-        self.assertDictEqual(cmp.dict(exclude_none=True), expected_dict)
+        self.assertDictEqual(jsonable_encoder(cmp, exclude_none=True), expected_dict)

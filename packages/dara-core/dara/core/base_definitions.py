@@ -132,6 +132,9 @@ class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
                 and field_info.annotation is not ClassVar
                 and annotation_has_base_model(field_info.annotation)
             ):
+                # Skip if it has metadata that is already annotated with SerializeAsAny
+                if any(isinstance(x, SerializeAsAny) for x in field_info.metadata):   # type: ignore
+                    continue
                 # Skip if the type is already annotated with SerializeAsAny
                 if get_origin(field_info.annotation) is Annotated and any(
                     isinstance(arg, SerializeAsAny) for arg in field_info.annotation.__metadata__  # type: ignore

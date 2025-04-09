@@ -18,7 +18,7 @@ limitations under the License.
 from enum import Enum
 from typing import List, Literal, Optional, Sequence, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.base_definitions import Action
@@ -385,9 +385,9 @@ class Column(BaseModel):
 
     @field_validator('label')
     @classmethod
-    def validate_label(cls, value, values):
+    def validate_label(cls, value, info: ValidationInfo):
         if value is None:
-            return values.get('col_id')
+            return info.data.get('col_id')
         return value
 
     @field_validator('formatter')

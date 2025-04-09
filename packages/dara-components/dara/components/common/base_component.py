@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict
 
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 
@@ -58,7 +58,14 @@ class BaseDashboardComponent(StyledComponentInstance):
     js_module = '@darajs/components'
 
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
-        super().__init__(children=list(arg for arg in args if arg is not None), **kwargs)
+        if len(args) > 0 and len(kwargs.get('children') or []) == 0:
+            kwargs['children'] = list(arg for arg in args if arg is not None)
+
+        # Fallback
+        if 'children' not in kwargs:
+            kwargs['children'] = []
+
+        super().__init__(**kwargs)
 
 
 class LayoutComponent(BaseDashboardComponent):
@@ -71,15 +78,9 @@ class LayoutComponent(BaseDashboardComponent):
     :param align: the align-items value to be passed to the component
     """
 
-    justify: Optional[JustifyContent] = None
+    position: str = 'relative'
 
-    # default position to relative if not set
-    @field_validator('position')
-    @classmethod
-    def validate_position(cls, value):
-        if not value:
-            return 'relative'
-        return value
+    justify: Optional[JustifyContent] = None
 
     def append(self, component: ComponentInstance):
         """

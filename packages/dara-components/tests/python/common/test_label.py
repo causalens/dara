@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from dara.components.common import Label, Input
+from dara.components.common import Input, Label
 from dara.core.visual.components.types import Direction
 
 test_uid = uuid.uuid4()
@@ -42,9 +42,5 @@ class TestLabelComponent(unittest.TestCase):
         Label(input1, value='test label')
 
         # Multiple components is not allowed
-        with self.assertRaises(ValidationError) as cm:
+        with self.assertRaises(TypeError) as cm:
             Label(input1, input2, value='test label')
-
-        error = cm.exception.errors()[0]
-        self.assertEqual('type_error', error['type'])
-        self.assertEqual(('children',), error['loc'])

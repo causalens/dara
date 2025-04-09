@@ -3,9 +3,11 @@ from unittest.mock import patch
 
 import pandas
 
-from dara.core import DataVariable
+from fastapi.encoders import jsonable_encoder
+
 from dara.components.common import Table
 from dara.components.common.table import TableFormatterType
+from dara.core import DataVariable
 
 
 class TestTableComponent(unittest.TestCase):
@@ -102,4 +104,4 @@ class TestTableComponent(unittest.TestCase):
             },
             'uid': 'uid',
         }
-        self.assertDictEqual(cmp.dict(exclude_none=True), expected_dict)
+        self.assertDictEqual(jsonable_encoder(cmp, exclude_none=True), expected_dict)

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 from pydantic import BaseModel
 
@@ -119,9 +119,9 @@ class Grid(LayoutComponent):
     row_gap: str = '0.75rem'
     breakpoints: Optional[ScreenBreakpoints] = ScreenBreakpoints()
 
-    Column = Column
-    Row = Row
-    Breakpoints = ScreenBreakpoints
+    Column: ClassVar = Column
+    Row: ClassVar = Row
+    Breakpoints: ClassVar = ScreenBreakpoints
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):

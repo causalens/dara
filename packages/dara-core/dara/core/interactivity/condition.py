@@ -20,7 +20,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Union
 
-from pydantic import BaseModel
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 # Type-only imports
 if TYPE_CHECKING:

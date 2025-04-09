@@ -53,6 +53,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         persist_value: Optional[bool] = False,
         uid: Optional[str] = None,
         store: Optional[PersistenceStoreType_co] = None,
+        nested: Optional[List[str]] = [],
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions

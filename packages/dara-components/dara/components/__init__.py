@@ -16,9 +16,22 @@ limitations under the License.
 """
 from importlib.metadata import version
 
+from pydantic import BaseModel
+
 from dara.components.common import *
 from dara.components.graphs import *
 from dara.components.plotting import *
 from dara.components.smart import *
 
+# NOTE: apparently this is required for model_rebuild to work, otherwise
+# the rebuild silently fails and the components only accept ComponentInstance fields
+from dara.core.interactivity import Variable
+
 __version__ = version('dara-components')
+
+for symbol in list(globals().values()):
+    try:
+        if issubclass(symbol, BaseModel):
+            symbol.model_rebuild()
+    except:   # pylint: disable=bare-except
+        pass

@@ -2,8 +2,10 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from dara.core.interactivity import Operator, Variable
+from fastapi.encoders import jsonable_encoder
+
 from dara.components.common import If
+from dara.core.interactivity import Operator, Variable
 
 from tests.python.utils import MockComponent
 
@@ -26,16 +28,17 @@ class TestIfComponent(unittest.TestCase):
             'props': {
                 'children': [],
                 'condition': {
-                    'operator': Operator.EQUAL,
+                    'operator': Operator.EQUAL.value,
                     'other': True,
-                    'variable': {'nested': [], 'uid': str(var.uid), 'persist_value': False, '__typename': 'Variable'},
+                    'variable': jsonable_encoder(var, exclude_none=True),
                 },
-                'false_children': [t3.dict(exclude_none=True)],
-                'true_children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
+                'false_children': [jsonable_encoder(t3, exclude_none=True)],
+                'true_children': [jsonable_encoder(t1, exclude_none=True), jsonable_encoder(t2, exclude_none=True)],
                 'bold': False,
                 'italic': False,
                 'underline': False,
             },
             'uid': str(test_uid),
         }
-        self.assertDictEqual(cmp.dict(exclude_none=True), expected_dict)
+
+        self.assertDictEqual(jsonable_encoder(cmp, exclude_none=True), expected_dict)

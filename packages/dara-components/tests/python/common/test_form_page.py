@@ -37,10 +37,5 @@ class TestFormPageComponent(unittest.TestCase):
         """Test the component validates children correctly"""
         page_nested = FormPage()
 
-        with self.assertRaises(ValidationError) as cm:
+        with self.assertRaises(TypeError) as cm:
             FormPage(page_nested)
-
-        error = cm.exception.errors()[0]
-        self.assertEqual('type_error', error['type'])
-        self.assertEqual(('children',), error['loc'])
-

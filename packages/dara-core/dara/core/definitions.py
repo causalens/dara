@@ -17,6 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import json
 import uuid
 from enum import Enum
 from typing import (
@@ -35,9 +36,11 @@ from typing import (
     runtime_checkable,
 )
 
+from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
 from pydantic import (
     ConfigDict,
+    Field,
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
@@ -95,7 +98,7 @@ class ComponentInstance(BaseModel):
     Definition of a Component Instance
     """
 
-    uid: Optional[str] = None
+    uid: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
 
     js_module: ClassVar[Optional[str]] = None
     """
@@ -165,16 +168,8 @@ class ComponentInstance(BaseModel):
     This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
     """
 
-    def __init__(self, *args, **kwargs):
-        uid = kwargs.get('uid', None)
-        if uid is None:
-            uid = str(uuid.uuid4())
-            kwargs = {**kwargs, 'uid': uid}
-
-        super().__init__(*args, **kwargs)
-
-    # def __repr__(self):
-    #     return '__dara__' + json.dumps(jsonable_encoder(self))
+    def __repr__(self):
+        return '__dara__' + json.dumps(jsonable_encoder(self))
 
     @field_validator('raw_css', mode='before')
     @classmethod
