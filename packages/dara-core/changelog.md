@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.0-alpha.1
 
 -   Updated Dara to use `pydantic` v2.
 -   BREAKING: removed `@template` markers and the `For` component due to incompatibility with pydantic v2 and very low usage.
