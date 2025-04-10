@@ -14,35 +14,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-from __future__ import annotations
-
 from importlib.metadata import version
 
-from dara.core.base_definitions import Cache, CacheType
+from pydantic import BaseModel
+
+from dara.core.base_definitions import *
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.css import CSSProperties, get_icon
-from dara.core.definitions import ComponentInstance, ErrorHandlingConfig, template
-from dara.core.interactivity import (
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    DownloadContent,
-    DownloadContentImpl,
-    DownloadVariable,
-    NavigateTo,
-    NavigateToImpl,
-    Notify,
-    ResetVariables,
-    SideEffect,
-    TriggerVariable,
-    UpdateVariable,
-    UpdateVariableImpl,
-    UrlVariable,
-    Variable,
-    action,
-)
-from dara.core.visual.components import Fallback, For
+from dara.core.definitions import *
+from dara.core.interactivity import *
+from dara.core.visual.components import Fallback
 from dara.core.visual.dynamic_component import py_component
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
 
@@ -75,11 +56,19 @@ __all__ = [
     'ProgressUpdater',
     'track_progress',
     'ComponentInstance',
+    'StyledComponentInstance',
     'ErrorHandlingConfig',
-    'template',
-    'For',
     'Fallback',
     'UpdateVariableImpl',
     'DownloadContentImpl',
     'NavigateToImpl',
 ]
+
+for symbol in list(globals().values()):
+    try:
+        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+            symbol.model_rebuild()
+    except Exception as e:
+        from dara.core.logging import dev_logger
+
+        dev_logger.warning(f'Error rebuilding model "{symbol}": {e}')

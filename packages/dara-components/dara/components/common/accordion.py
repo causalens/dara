@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from dara.components.common.base_component import LayoutComponent
 from dara.components.common.utils import ItemBadge
@@ -78,9 +78,9 @@ class AccordionItem(BaseModel):
     :param content: Optional content to render
     """
 
-    badge: Optional[ItemBadge]
+    badge: Optional[ItemBadge] = None
     label: Union[str, ComponentInstance]
-    content: Optional[ComponentInstance]
+    content: Optional[ComponentInstance] = None
 
 
 class Accordion(LayoutComponent):
@@ -257,14 +257,14 @@ class Accordion(LayoutComponent):
     items: List[AccordionItem]
     multi: Optional[bool] = True
 
-    @validator('initial', pre=True)
+    @field_validator('initial', mode='before')
     @classmethod
     def validate_initial(cls, initial: Any) -> Union[int, List[int]]:
         if initial is not None:
             dev_logger.warning("Accordion's initial prop is now deprecated, please use value instead.")
         return initial
 
-    @validator('items', pre=True)
+    @field_validator('items', mode='before')
     @classmethod
     def validate_items(cls, items: Any) -> List[AccordionItem]:
         if not isinstance(items, list):

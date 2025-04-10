@@ -18,7 +18,7 @@ limitations under the License.
 from enum import Enum
 from typing import Any, List, Optional, Union
 
-from pydantic import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
@@ -112,7 +112,7 @@ class ButtonBar(FormComponent):
     id: Optional[str] = None
     styling: ButtonBarStyle = ButtonBarStyle.PRIMARY
 
-    @validator('items', pre=True)
+    @field_validator('items', mode='before')
     @classmethod
     def validate_items(cls, items: Any) -> List[Item]:
         if not isinstance(items, list):

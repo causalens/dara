@@ -46,6 +46,3 @@ class CodeEditor(StyledComponentInstance):
     script: NonDataVariable
 
     language: Optional[Union[Literal['json'], Literal['python'], Literal['markdown'], Literal['sql']]] = None
-
-    class Config:
-        extra = 'forbid'

@@ -21,7 +21,7 @@ from secrets import token_hex
 from typing import List, Optional
 
 from dotenv import dotenv_values
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dara.core.logging import dev_logger
 
@@ -45,9 +45,7 @@ class Settings(BaseSettings):
     sso_jwt_algo: str = 'ES256'
     sso_verify_audience: bool = False
     sso_extra_audience: Optional[List[str]] = None
-
-    class Config:
-        env_file = '.env'
+    model_config = SettingsConfigDict(env_file='.env')
 
 
 def generate_env_content():

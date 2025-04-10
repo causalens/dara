@@ -86,7 +86,7 @@ FilterQuery = Union[ClauseQuery, ValueQuery]
 Filter query to be applied
 """
 
-ClauseQuery.update_forward_refs()
+ClauseQuery.model_rebuild()
 
 
 def coerce_to_filter_query(filters: Union[ClauseQuery, ValueQuery, dict, None]) -> Optional[FilterQuery]:

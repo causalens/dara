@@ -17,14 +17,14 @@ limitations under the License.
 
 from typing import ClassVar
 
-from dara.core.definitions import BaseFallback, JsComponentDef, StyledComponentInstance
+from dara.core.definitions import BaseFallback, JsComponentDef
 
 DefaultFallbackDef = JsComponentDef(name='DefaultFallback', js_module='@darajs/core', py_module='dara.core')
 RowFallbackDef = JsComponentDef(name='RowFallback', js_module='@darajs/core', py_module='dara.core')
 
 
 class Fallback:
-    class Default(BaseFallback, StyledComponentInstance):
+    class Default(BaseFallback):
         """
         ![FallbackDefault](../../../../../docs/packages/dara-core/assets/FallbackDefault.gif)
 
@@ -49,7 +49,7 @@ class Fallback:
 
         py_component: ClassVar[str] = 'DefaultFallback'
 
-    class Row(BaseFallback, StyledComponentInstance):
+    class Row(BaseFallback):
         """
         ![FallbackRow](../../../../../docs/packages/dara-core/assets/FallbackRow.gif)
 

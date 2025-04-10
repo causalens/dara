@@ -22,7 +22,7 @@ from dara.components.common.base_component import LayoutComponent
 from dara.components.common.text import Text
 from dara.core import ComponentInstance
 from dara.core.base_definitions import Action
-from dara.core.definitions import TemplateMarker, discover
+from dara.core.definitions import discover
 from dara.core.interactivity import Condition, NonDataVariable
 
 
@@ -124,18 +124,12 @@ class Button(LayoutComponent):
     styling: Optional[ButtonStyle] = None
     outline: bool = False
 
-    class Config:
-        smart_union = True
-
     def __init__(
-        self,
-        children: Union[str, ComponentInstance, NonDataVariable, TemplateMarker],
-        styling: Optional[ButtonStyle] = None,
-        **kwargs
+        self, children: Union[str, ComponentInstance, NonDataVariable], styling: Optional[ButtonStyle] = None, **kwargs
     ):
         child = children
         style = styling if styling is not None else ButtonStyle.PRIMARY
-        if isinstance(children, (str, NonDataVariable, TemplateMarker)):
+        if isinstance(children, (str, NonDataVariable)):
             child = Text(text=children)
         if not styling and isinstance(children, ComponentInstance) and not isinstance(children, Text):
             style = ButtonStyle.PLAIN

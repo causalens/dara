@@ -23,7 +23,12 @@ from typing import Optional, Union, cast
 from anyio.abc import TaskGroup
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
 
 from dara.core.base_definitions import BaseCachePolicy, Cache, CacheArgType
 from dara.core.interactivity.any_data_variable import (
@@ -67,11 +72,7 @@ class DataVariable(AnyDataVariable):
     uid: str
     filters: Optional[FilterQuery] = None
     cache: Optional[BaseCachePolicy] = None
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
-        use_enum_values = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True, use_enum_values=True)
 
     def __init__(
         self,
@@ -304,8 +305,9 @@ class DataVariable(AnyDataVariable):
 
         return UpdateVariableImpl(variable=self, value=value)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         if 'data' in parent_dict:
             parent_dict.pop('data')   # make sure data is not included in the serialised dict
         return {**parent_dict, '__typename': 'DataVariable', 'uid': str(parent_dict['uid'])}
@@ -319,7 +321,4 @@ class DataStoreEntry(BaseModel):
 
     data: Optional[DataFrame] = None
     path: Optional[str] = None
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)

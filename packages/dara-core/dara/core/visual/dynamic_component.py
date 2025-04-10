@@ -14,9 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-from __future__ import annotations
-
 import json
 import uuid
 from contextvars import ContextVar
@@ -59,8 +56,8 @@ CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 
 class PyComponentInstance(ComponentInstance):
     func_name: str
-    dynamic_kwargs: Optional[Mapping[str, AnyVariable]]
-    polling_interval: Optional[int]
+    dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
+    polling_interval: Optional[int] = None
     js_module: ClassVar[Optional[str]] = None
 
 
@@ -327,7 +324,7 @@ def _make_render_safe(handler: Callable):
 
             # Handle primitives being returned by just displaying the value as a string
             safe_result = RawString(content=str(result))
-        elif not isinstance(result, ComponentInstance):
+        elif not ComponentInstance.isinstance(result):
             # Otherwise it must be a component instance, return the error for frontend to display
             safe_result = InvalidComponent(
                 error=f'PyComponent "{handler.__name__}" did not return a ComponentInstance, found "{result}"'

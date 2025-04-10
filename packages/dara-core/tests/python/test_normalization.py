@@ -1,6 +1,8 @@
 import os
 from typing import List, Mapping, Union
 
+from fastapi.encoders import jsonable_encoder
+
 from dara.core.base_definitions import CacheType, BaseCachePolicy, Cache
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import (
@@ -57,7 +59,7 @@ def test_normalizes_components_with_no_variables():
     For components with no variables it should return the component unchanged.
     """
     layout = MockStack(MockText(text='test'))
-    layout_dict = layout.dict()
+    layout_dict = jsonable_encoder(layout)
 
     template_data = {
         'mock_stack_uid': str(layout.uid),
@@ -73,7 +75,7 @@ def test_normalizes_components_with_no_variables():
 
     assert normalized_layout == normalized_data
     assert lookup_map == lookup_data
-    assert denormalize(normalized_layout, lookup_map) == denormalized_data
+    assert jsonable_encoder(denormalize(normalized_layout, lookup_map)) == denormalized_data
 
 
 def test_normalizes_components_with_data_variable():
@@ -95,7 +97,7 @@ def test_normalizes_components_with_data_variable():
         'data_var_hash_2': hash_object(data_var_2.filters),
     }
 
-    layout_dict = layout.dict()
+    layout_dict = jsonable_encoder(layout)
     normalized_layout, lookup_map = normalize(layout_dict)
 
     test_data_path = os.path.join(ROOT_TEST_DATA_PATH, 'component_data_variable')
@@ -105,7 +107,7 @@ def test_normalizes_components_with_data_variable():
 
     assert normalized_layout == normalized_data
     assert_dict_equal(lookup_map, lookup_data)
-    assert denormalize(normalized_layout, lookup_map) == denormalized_data
+    assert jsonable_encoder(denormalize(normalized_layout, lookup_map)) == denormalized_data
 
 
 def test_normalizes_components_with_plain_variable():

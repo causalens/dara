@@ -98,6 +98,7 @@ class MockComponent(ComponentInstance):
     ):
         super().__init__(text=text, uid='uid', action=action)
 
+MockComponent.model_rebuild()
 
 async def test_derived_data_variable_dv_value_not_returned():
     builder = ConfigurationBuilder()

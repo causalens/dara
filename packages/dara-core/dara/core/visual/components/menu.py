@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import List
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance, JsComponentDef, TemplateRouterLink
 
 MenuDef = JsComponentDef(name='Menu', js_module='@darajs/core', py_module='dara.core')
@@ -24,6 +26,4 @@ MenuDef = JsComponentDef(name='Menu', js_module='@darajs/core', py_module='dara.
 
 class Menu(ComponentInstance):
     routes: List[TemplateRouterLink]
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

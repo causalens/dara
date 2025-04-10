@@ -31,9 +31,6 @@ class Store:
     and resolve at the same time when the value is correctly updated by the first one to request the specific key
     """
 
-    class Config:
-        use_enum_values = True
-
     def __init__(self):
         # This dict is the main store of values, the first level of keys is the cache type and the second level are the
         # value keys. The root key is used for any non-session/user dependant keys that are added.

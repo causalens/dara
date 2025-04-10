@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import Optional
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
 TopBarFrameDef = JsComponentDef(name='TopBarFrame', js_module='@darajs/core', py_module='dara.core')
@@ -32,6 +34,4 @@ class TopBarFrame(ComponentInstance):
     top_bar_padding: Optional[str] = None
     top_bar_position: Optional[str] = None
     top_bar_height: Optional[str] = None
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

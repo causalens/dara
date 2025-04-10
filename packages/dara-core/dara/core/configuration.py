@@ -33,7 +33,7 @@ from typing import (
 )
 
 from fastapi.middleware import Middleware
-from pydantic.generics import GenericModel
+from pydantic import BaseModel, ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth.base import BaseAuthConfig
@@ -65,7 +65,7 @@ from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
 
 
-class Configuration(GenericModel):
+class Configuration(BaseModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
@@ -85,7 +85,7 @@ class Configuration(GenericModel):
     static_files_dir: str
     package_tag_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     template_extra_js: str
-    task_module: Optional[str]
+    task_module: Optional[str] = None
     template: str
     template_renderers: Dict[str, Callable[..., Template]]
     theme: Union[BaseTheme, str]
@@ -93,10 +93,7 @@ class Configuration(GenericModel):
     ws_handlers: Dict[str, Callable[[str, Any], Any]]
     encoders: Dict[Type[Any], Encoder]
     middlewares: List[Middleware]
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
     def get_package_map(self) -> Dict[str, str]:
         """
@@ -117,7 +114,7 @@ class Configuration(GenericModel):
                 packages[act_def.py_module] = act_def.js_module
 
         # Handle auth components
-        for comp in self.auth_config.component_config.dict().values():
+        for comp in self.auth_config.component_config.model_dump().values():
             packages[comp['py_module']] = comp['js_module']
 
         return packages

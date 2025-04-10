@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Optional
 
-from pydantic import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.interactivity import NonDataVariable
@@ -43,20 +43,16 @@ class Overlay(LayoutComponent):
 
     :param show: Boolean Variable instance recording the state, if True it renders the overlay and its' children
     :param position: the position of the overlay; can be top-left, top-right, bottom-left, bottom-right
-    :param padding: the padding around the overlay elements passed a string; can also be passed as individual side's padding in css shorthand format
-    :param margin: the margin property to shift the overlay in any direction passed as a string; can also be passed as individual side's margin in css shorthand format
     """
 
     show: Optional[NonDataVariable] = None
-    padding: Optional[str] = None
-    margin: Optional[str] = None
 
-    @validator('position')
+    @field_validator('position')
     @classmethod
-    def validate_position(cls, position) -> str:
+    def validate_position(cls, value) -> str:
         position_list = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
-        if position not in position_list:
+        if value not in position_list:
             raise ValueError(
-                f'Invalid position: {position}, position should be one of the following values: {position_list}'
+                f'Invalid position: {value}, position should be one of the following values: {position_list}'
             )
-        return position
+        return value

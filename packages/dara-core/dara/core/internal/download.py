@@ -36,7 +36,7 @@ class DownloadDataEntry(BaseModel):
     uid: str
     file_path: str
     cleanup_file: bool
-    identity_name: Optional[str]
+    identity_name: Optional[str] = None
     download: Callable[['DownloadDataEntry'], Awaitable[Tuple[anyio.AsyncFile, Callable[..., Awaitable]]]]
     """Handler for getting the file from the entry"""
 

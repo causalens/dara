@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 
 JustifyContent = Literal[
@@ -40,25 +42,6 @@ JustifyContent = Literal[
     None,
 ]
 
-AlignItems = Literal[
-    '-moz-initial',
-    'baseline',
-    'center',
-    'end',
-    'flex-end',
-    'flex-start',
-    'inherit',
-    'initial',
-    'normal',
-    'revert',
-    'self-end',
-    'self-start',
-    'start',
-    'stretch',
-    'unset',
-    None,
-]
-
 
 class LayoutError(Exception):
     """An Error type for when the layout is invalid"""
@@ -69,16 +52,20 @@ class BaseDashboardComponent(StyledComponentInstance):
     The base Component class for all other dashboarding components to extend from.
     """
 
+    model_config = ConfigDict(extra='forbid', use_enum_values=True)
+
     # Define JS module on the base component so we don't have to repeat that on each component
     js_module = '@darajs/components'
 
-    class Config:
-        smart_union = True
-        extra = 'forbid'
-        use_enum_values = True
-
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
-        super().__init__(children=list(args), **kwargs)
+        if len(args) > 0 and len(kwargs.get('children') or []) == 0:
+            kwargs['children'] = list(arg for arg in args if arg is not None)
+
+        # Fallback
+        if 'children' not in kwargs:
+            kwargs['children'] = []
+
+        super().__init__(**kwargs)
 
 
 class LayoutComponent(BaseDashboardComponent):
@@ -92,8 +79,8 @@ class LayoutComponent(BaseDashboardComponent):
     """
 
     position: str = 'relative'
+
     justify: Optional[JustifyContent] = None
-    align: Optional[AlignItems] = None
 
     def append(self, component: ComponentInstance):
         """
@@ -102,7 +89,7 @@ class LayoutComponent(BaseDashboardComponent):
 
         :param component: the component to add, can be any type of BaseComponent
         """
-        if isinstance(component, ComponentInstance) is False:
+        if ComponentInstance.isinstance(component) is False:
             name = self.__class__.__name__
             raise TypeError(f'You may only append other components to a {name} component. Not: {component}')
         self.children.append(component)   # type: ignore

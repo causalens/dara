@@ -30,12 +30,19 @@ from exceptiongroup import catch
 from fastapi import Query, WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
-from pydantic import BaseModel, Field, parse_obj_as
+from pydantic import (
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    TypeAdapter,
+    model_serializer,
+)
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import AuthError, TokenData
 from dara.core.auth.utils import decode_token
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger, eng_logger
 
 
@@ -47,22 +54,24 @@ class DaraClientMessage(BaseModel):
     An optional chunk_count field can be used to indicate that a message is chunked and what number of messages to expect
     """
 
-    type: Literal['message'] = Field(default='message', const=True)
+    type: Literal['message'] = 'message'
     channel: str
     chunk_count: Optional[int] = None
     message: Any
 
 
 class CustomClientMessagePayload(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+
     rchan: Optional[str] = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
     kind: str
     data: Any
 
-    def dict(self, *args, **kwargs):
-        # Force by_alias to True to use __rchan name
-        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        result = nxt(self)
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -76,7 +85,7 @@ class CustomClientMessage(BaseModel):
     Represents a custom message sent by the frontend to the backend.
     """
 
-    type: Literal['custom'] = Field(default='custom', const=True)
+    type: Literal['custom'] = 'custom'
     message: CustomClientMessagePayload
 
 
@@ -85,18 +94,17 @@ ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 
 # Server message types
 class ServerMessagePayload(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True, extra='allow')
+
     rchan: Optional[str] = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
     response_for: Optional[str] = Field(default=None, alias='__response_for')
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
 
-    class Config:
-        extra = 'allow'
-
-    def dict(self, *args, **kwargs):
-        # Force by_alias to True to use __rchan name
-        result = super().dict(*args, **{**kwargs, 'by_alias': True})
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        result = nxt(self)
 
         # remove rchan if None
         if '__rchan' in result and result.get('__rchan') is None:
@@ -119,7 +127,7 @@ class DaraServerMessage(BaseModel):
     Represents a message sent by Dara internals from the backend to the frontend.
     """
 
-    type: Literal['message'] = Field(default='message', const=True)
+    type: Literal['message'] = 'message'
     message: ServerMessagePayload  # exact messages expected by frontend are defined in js/api/websocket.tsx
 
 
@@ -128,7 +136,7 @@ class CustomServerMessage(BaseModel):
     Represents a custom message sent by the backend to the frontend.
     """
 
-    type: Literal['custom'] = Field(default='custom', const=True)
+    type: Literal['custom'] = 'custom'
     message: CustomServerMessagePayload
 
 
@@ -165,8 +173,7 @@ class WebSocketHandler:
     notify when the response is received and the response data.
     """
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, channel_id: str):
         send_stream, receive_stream = create_memory_object_stream[ServerMessage](math.inf)
@@ -334,9 +341,9 @@ class WebsocketManager:
         :param custom: Whether the message is a custom message
         """
         if custom:
-            return CustomServerMessage(message=CustomServerMessagePayload.parse_obj(payload))
+            return CustomServerMessage(message=CustomServerMessagePayload.model_validate(payload))
         else:
-            return DaraServerMessage(message=ServerMessagePayload.parse_obj(payload))
+            return DaraServerMessage(message=ServerMessagePayload.model_validate(payload))
 
     def create_handler(self, channel_id: str) -> WebSocketHandler:
         """
@@ -534,7 +541,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                                 eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
-                                parsed_data = parse_obj_as(ClientMessage, data)
+                                parsed_data = TypeAdapter(ClientMessage).validate_python(data)
                                 result = handler.process_client_message(parsed_data)
                                 # Process the resulting coroutine before moving on to next message
                                 if inspect.iscoroutine(result):
@@ -547,6 +554,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                     Handle messages sent to the client and pass them via the websocket
                     """
                     async for message in handler.receive_stream:
+                        # TODO: This is hacky, should probably be a model_serializer
+                        # on a proper payload type
                         if (
                             message.type == 'message'
                             and isinstance(message.message, ServerMessagePayload)
@@ -556,7 +565,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
                             data = message.message
                             # Reconstruct the payload without the result field
                             message.message = ServerMessagePayload(
-                                **{k: v for k, v in data.dict().items() if k != 'result'}
+                                **{k: v for k, v in data.model_dump().items() if k != 'result'}
                             )
                         await websocket.send_json(jsonable_encoder(message))
 

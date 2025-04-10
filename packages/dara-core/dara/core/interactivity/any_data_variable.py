@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable, Literal, Optional, TypedDict, Union
 
 import pandas
 from fastapi import UploadFile
+from pydantic import ConfigDict
 
 from dara.core.base_definitions import CachedRegistryEntry, UploadResolverDef
 from dara.core.interactivity.any_variable import AnyVariable
@@ -73,10 +74,7 @@ class DataVariableRegistryEntry(CachedRegistryEntry):
 
     get_schema: Callable[..., Awaitable[DataFrameSchema]]
     """Handler to get the schema for data variable. Defaults to DataVariable.get_schema for type=plain, and DerivedDataVariable.get_schema for type=derived"""
-
-    class Config:
-        extra = 'forbid'
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
 
 async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: Optional[str] = None):

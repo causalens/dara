@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance
 
 
@@ -24,6 +26,4 @@ class InvalidComponent(ComponentInstance):
     """
 
     error: str
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

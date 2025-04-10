@@ -59,7 +59,7 @@ class Node(BaseModel):
         return None
 
 
-Node.update_forward_refs()
+Node.model_rebuild()
 
 
 class HierarchySelector(StyledComponentInstance):

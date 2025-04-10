@@ -23,7 +23,6 @@ from dara.core.visual.components.fallback import (
     Fallback,
     RowFallbackDef,
 )
-from dara.core.visual.components.for_cmp import For, ForDef
 from dara.core.visual.components.invalid_component import InvalidComponent
 from dara.core.visual.components.menu import Menu, MenuDef
 from dara.core.visual.components.progress_tracker import (
@@ -50,8 +49,6 @@ __all__ = [
     'SideBarFrameDef',
     'TopBarFrame',
     'TopBarFrameDef',
-    'For',
-    'ForDef',
     'DefaultFallbackDef',
     'RowFallbackDef',
     'Fallback',

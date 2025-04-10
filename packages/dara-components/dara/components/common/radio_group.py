@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, List, Optional, Union
 
-from pydantic import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
@@ -83,7 +83,7 @@ class RadioGroup(FormComponent):
     direction: Direction = Direction.VERTICAL
     id: Optional[str] = None
 
-    @validator('items', pre=True)
+    @field_validator('items', mode='before')
     @classmethod
     def validate_items(cls, items: Any) -> Union[List[Item], NonDataVariable]:
         if isinstance(items, NonDataVariable):

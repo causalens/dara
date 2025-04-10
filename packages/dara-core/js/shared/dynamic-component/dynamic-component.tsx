@@ -8,7 +8,7 @@ import { FallbackCtx, ImportersCtx, VariableCtx, useTaskContext } from '@/shared
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { hasTemplateMarkers, isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
+import { isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
 import {
     Component,
     ComponentInstance,
@@ -211,18 +211,6 @@ function DynamicComponent(props: DynamicComponentProps): JSX.Element {
     const { get: getComponent } = useComponentRegistry();
     const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
-
-    const firstRender = useRef(true);
-
-    if (firstRender.current) {
-        if (hasTemplateMarkers(props.component)) {
-            throw new Error(
-                `Component "${props.component.name}" has unhandled template markers. Make sure it's used in a component which handles templated components`
-            );
-        }
-
-        firstRender.current = false;
-    }
 
     useEffect(() => {
         if (props.component?.name === 'RawString') {

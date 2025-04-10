@@ -35,13 +35,14 @@ from typing import (
     Optional,
     TypeVar,
     Union,
+    cast,
     overload,
 )
 
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
@@ -49,7 +50,6 @@ from dara.core.base_definitions import (
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
-    TemplateMarker,
 )
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
@@ -72,8 +72,7 @@ class ActionInputs(BaseModel):
     Base class for all action inputs
     """
 
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra='allow')
 
 
 class ActionContext(BaseModel):
@@ -96,7 +95,7 @@ class ComponentActionContext(ActionContext):
     ActionContext for actions that only require component value
     """
 
-    inputs: ComponentActionInputs
+    inputs: ComponentActionInputs   # type: ignore
 
 
 class UpdateVariableImpl(ActionImpl):
@@ -161,7 +160,7 @@ class UpdateVariableInputs(ActionInputs):
 
 
 class UpdateVariableContext(ActionContext):
-    inputs: UpdateVariableInputs
+    inputs: UpdateVariableInputs   # type: ignore
 
 
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
@@ -236,16 +235,16 @@ class UpdateVariable(AnnotatedAction):
     ```
     """
 
-    Ctx = UpdateVariableContext
+    Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
     variable: Union[Variable, DataVariable, UrlVariable]
-    extras: Optional[List[Union[AnyVariable, TemplateMarker]]]
+    extras: Optional[List[AnyVariable]]
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
         variable: Union[Variable, DataVariable, UrlVariable],
-        extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
+        extras: Optional[List[AnyVariable]] = None,
     ):
         """
         :param resolver: a function to resolve the new value for the variable.  Takes one arguments: containing a context of type `Updatevariable.Ctx`
@@ -253,7 +252,8 @@ class UpdateVariable(AnnotatedAction):
         :param extras: any extra variables to resolve and pass to the resolution function context
         """
 
-        async def _update(ctx: action.Ctx, **kwargs):
+        async def _update(ctx: action.Ctx, **kwargs):   # type: ignore
+            ctx = cast(ActionCtx, ctx)   # type: ignore
             old = kwargs.pop('old')
             extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
             old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
@@ -371,7 +371,7 @@ class NavigateToImpl(ActionImpl):
 
     py_name = 'NavigateTo'
 
-    url: Optional[str]
+    url: Optional[str] = None
     new_tab: bool
 
 
@@ -426,7 +426,8 @@ def NavigateTo(
         return NavigateToImpl(url=url, new_tab=new_tab)
 
     # Otherwise create a new @action with the provided resolver
-    async def _navigate(ctx: action.Ctx, **kwargs):
+    async def _navigate(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(url, args=(old_ctx,))   # type: ignore
@@ -573,8 +574,8 @@ class Notify(ActionImpl):
     status: NotificationStatus
     title: str
 
-    Status = NotificationStatus
-    Ctx = ComponentActionContext
+    Status: ClassVar[type[NotificationStatus]] = NotificationStatus
+    Ctx: ClassVar[type[ComponentActionContext]] = ComponentActionContext
     """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
@@ -660,7 +661,8 @@ def DownloadContent(
     ```
     """
 
-    async def _download(ctx: action.Ctx, **kwargs):
+    async def _download(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(resolver, args=(old_ctx,))
@@ -725,7 +727,7 @@ class DownloadVariable(ActionImpl):
 @deprecated('Use @action instead')
 def SideEffect(
     function: Callable[[ComponentActionContext], Any],
-    extras: Optional[List[Union[AnyVariable, TemplateMarker]]] = None,
+    extras: Optional[List[AnyVariable]] = None,
     block: bool = False,
 ):
     """
@@ -765,7 +767,8 @@ def SideEffect(
     ```
     """
 
-    async def _effect(ctx: action.Ctx, **kwargs):
+    async def _effect(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         # Simply run the user handler
@@ -1274,7 +1277,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar = ActionCtx
+    Ctx: ClassVar[type[ActionContext]] = ActionContext
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
@@ -1337,7 +1340,7 @@ class action:
         ...
 
     @overload
-    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:   # type: ignore
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:

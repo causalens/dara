@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional, Union
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from dara.core.base_definitions import DaraBaseModel
 
@@ -7684,8 +7684,4 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The non-standard **`zoom`** CSS property can be used to control the magnification level of an element. `transform: scale()` should be used instead of this property, if possible. However, unlike CSS Transforms, `zoom` affects the layout size of the element.\n\n**Syntax**: `normal | reset | <number> | <percentage>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  |  Edge  |   IE    |\n| :----: | :-----: | :-----: | :----: | :-----: |\n| **1**  |   No    | **3.1** | **12** | **5.5** |',
     )
-
-    class Config:
-        extra = 'allow'
-        use_enum_values = True
-        smart_union = True
+    model_config = ConfigDict(extra='allow', use_enum_values=True)

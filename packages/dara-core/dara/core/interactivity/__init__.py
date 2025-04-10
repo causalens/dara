@@ -17,6 +17,8 @@ limitations under the License.
 
 from __future__ import annotations
 
+from pydantic import BaseModel
+
 from dara.core.interactivity.actions import (
     DownloadContent,
     DownloadContentImpl,
@@ -41,24 +43,6 @@ from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.interactivity.url_variable import UrlVariable
 
-# Update references to variable types in these actions
-refs = {
-    'AnyDataVariable': AnyDataVariable,
-    'DerivedVariable': DerivedVariable,
-    'Variable': Variable,
-    'AnyVariable': AnyVariable,
-    'DataVariable': DataVariable,
-    'UrlVariable': UrlVariable,
-}
-DownloadVariable.update_forward_refs(**refs)
-ResetVariables.update_forward_refs(**refs)
-TriggerVariable.update_forward_refs(**refs)
-UpdateVariable.update_forward_refs(**refs)
-UpdateVariableImpl.update_forward_refs(**refs)
-Condition.update_forward_refs(**refs)
-Notify.update_forward_refs(**refs)
-
-
 __all__ = [
     'action',
     'AnyVariable',
@@ -78,7 +62,17 @@ __all__ = [
     'ResetVariables',
     'TriggerVariable',
     'UpdateVariable',
+    'UpdateVariableImpl',
     'SideEffect',
     'Condition',
     'Operator',
 ]
+
+for symbol in list(globals().values()):
+    try:
+        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+            symbol.model_rebuild()
+    except Exception as e:
+        from dara.core.logging import dev_logger
+
+        dev_logger.warning(f'Error rebuilding model "{symbol}": {e}')

@@ -28,7 +28,7 @@ from dara.core.definitions import ComponentInstanceType
 class ItemBadge(BaseModel):
     """Add a badge to an item in a list"""
 
-    color: Optional[str]
+    color: Optional[str] = None
     label: str
 
 
@@ -37,13 +37,10 @@ class Item(DaraBaseModel):
     A class for serializing a list of options for the select to show
     """
 
-    badge: Optional[ItemBadge]
-    image: Optional[str]
+    badge: Optional[ItemBadge] = None
+    image: Optional[str] = None
     label: str
     value: Union[str, int, float, BaseModel]
-
-    class Config:
-        smart_union = True
 
     def __init__(
         self,
@@ -103,13 +100,13 @@ class CarouselItem(DaraBaseModel):
     :param image_width: Optional string containing the width the image should take
     """
 
-    title: Optional[str]
-    subtitle: Optional[str]
-    component: Optional[ComponentInstanceType]
-    image: Optional[str]
-    image_alt: Optional[str]
-    image_height: Optional[str]
-    image_width: Optional[str]
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    component: Optional[ComponentInstanceType] = None
+    image: Optional[str] = None
+    image_alt: Optional[str] = None
+    image_height: Optional[str] = None
+    image_width: Optional[str] = None
 
     def __init__(
         self,

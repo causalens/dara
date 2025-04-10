@@ -18,11 +18,9 @@ limitations under the License.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, ClassVar, Union
 
-from pydantic import BaseModel
-
-from dara.core.base_definitions import TemplateMarker
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 # Type-only imports
 if TYPE_CHECKING:
@@ -39,13 +37,12 @@ class Operator(Enum):
     TRUTHY = 'truthy'
 
 
+OperatorType = type[Operator]
+
+
 class Condition(BaseModel):
     operator: Operator
     other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
-    variable: Union[AnyVariable, TemplateMarker]
+    variable: AnyVariable
 
-    Operator = Operator
-
-    class Config:
-        # This makes it properly check the union type rather than coercing to variable type
-        smart_union = True
+    Operator: ClassVar[OperatorType] = Operator

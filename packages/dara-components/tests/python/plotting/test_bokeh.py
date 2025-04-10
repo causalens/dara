@@ -33,4 +33,4 @@ class TestBokehComponent(unittest.TestCase):
             },
             'uid': str(test_uid),
         }
-        self.assertEqual(cmp.dict(exclude_none=True), expected_dict)
+        self.assertEqual(cmp.model_dump(exclude_none=True), expected_dict)

@@ -1,6 +1,7 @@
 import unittest
 import uuid
 from unittest.mock import patch
+from fastapi.encoders import jsonable_encoder
 
 from dara.core.interactivity.actions import NavigateTo
 from dara.components.common import Button, Text
@@ -31,4 +32,4 @@ class TestButtonComponent(unittest.TestCase):
             },
             'uid': str(test_uid),
         }
-        self.assertDictEqual(cmp.dict(exclude_none=True), expected_dict)
+        self.assertDictEqual(jsonable_encoder(cmp, exclude_none=True), expected_dict)

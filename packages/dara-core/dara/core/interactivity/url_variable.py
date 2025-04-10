@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from typing import Any, Generic, Optional, TypeVar
 
+from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
+
 from dara.core.interactivity.non_data_variable import NonDataVariable
 
 VariableType = TypeVar('VariableType')
@@ -31,12 +33,10 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
     pages as you switch from one to the other.
     """
 
-    default: Optional[VariableType]
+    default: Optional[VariableType] = None
     query: str
     uid: str
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(self, query: str, default: Optional[VariableType] = None, uid: Optional[str] = None):
         """
@@ -130,6 +130,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         assert_no_context('ctx.update')
         return UpdateVariableImpl(variable=self, value=value)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'UrlVariable', 'uid': str(parent_dict['uid'])}

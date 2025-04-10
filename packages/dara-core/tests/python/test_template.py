@@ -1,3 +1,4 @@
+from fastapi.encoders import jsonable_encoder
 import pytest
 
 from dara.core.definitions import (
@@ -43,7 +44,7 @@ def test_template_layout():
     template = builder.to_template()
 
     assert isinstance(template.layout, Frame)
-    assert template.layout.dict() == {
+    assert jsonable_encoder(template.layout) == {
         'name': 'Frame',
         'props': {'prop_1': 'test1', 'dummy_prop': 'test2'},
         'uid': 'uid',
@@ -63,10 +64,10 @@ def test_router():
 
     # Test add_route
     router.add_route(
-        name='Test Page', route='test-page', content=ComponentInstance.construct(name='Menu', props={}, uid='uid')
+        name='Test Page', route='test-page', content=ComponentInstance.model_construct(name='Menu', props={}, uid='uid')
     )
     router.add_route(
-        name='Test 2', route='test-2', content=ComponentInstance.construct(name='Test', props={}, uid='uid'), icon='Hdd'
+        name='Test 2', route='test-2', content=ComponentInstance.model_construct(name='Test', props={}, uid='uid'), icon='Hdd'
     )
 
     # Test links format
@@ -78,10 +79,10 @@ def test_router():
     # Test content format
     assert router.content == [
         TemplateRouterContent(
-            name='Test Page', route='test-page', content=ComponentInstance.construct(name='Menu', props={}, uid='uid')
+            name='Test Page', route='test-page', content=ComponentInstance.model_construct(name='Menu', props={}, uid='uid')
         ),
         TemplateRouterContent(
-            name='Test 2', route='test-2', content=ComponentInstance.construct(name='Test', props={}, uid='uid')
+            name='Test 2', route='test-2', content=ComponentInstance.model_construct(name='Test', props={}, uid='uid')
         ),
     ]
 

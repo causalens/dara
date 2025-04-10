@@ -44,9 +44,6 @@ class TokenData(BaseModel):
     id_token: Optional[str] = None
     groups: Optional[List[str]] = []
 
-    class Config:
-        smart_union = True
-
 
 class UserData(BaseModel):
     """

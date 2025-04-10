@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anthology-meta-package"
-version = "1.15.7"
+version = "1.16.0-alpha.1"
 description = "Anthology Meta Package"
 authors = ["anthology"]
 source = []
@@ -18,11 +18,11 @@ colorama = ">=0.4.6,<0.5.0"
 cookiecutter = ">=2.1.1,<3.0.0"
 croniter = ">=1.0.15,<3.0.0"
 cryptography = ">=42.0.4"
-dara-core = "1.15.7"
+dara-core = "1.16.0-alpha.1"
 dill = ">=0.3.0,<0.4.0"
 exceptiongroup = ">=1.1.3,<2.0.0"
 fastapi = "0.109.0"
-fastapi_vite_dara = "0.3.1.0"
+fastapi_vite_dara = "0.4.0"
 httpx = ">=0.23.0"
 jinja2 = ">=2.1.1,<3.2.0"
 matplotlib = ">=2.0.0"
@@ -33,7 +33,8 @@ pandas = ">=1.1.0,<3.0.0"
 plotly = ">=5.14.0,<5.15.0"
 prometheus-client = ">=0.14.1,<0.15.0"
 pyarrow = "*"
-pydantic = ">=1.8.1,<2.0.0"
+pydantic = ">=2.10.0,<3.0.0"
+pydantic-settings = ">=2.8.1,<3.0.0"
 pyjwt = ">=2.0.1,<3.0.0"
 python = ">=3.9.0,<3.13.0"
 python-dotenv = ">=0.19.2"
@@ -49,11 +50,11 @@ xlrd = "*"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.15.7"
+version = "1.16.0-alpha.1"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.15.7"
+version = "1.16.0-alpha.1"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]

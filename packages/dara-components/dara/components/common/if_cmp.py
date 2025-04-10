@@ -15,22 +15,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional, Union
+from typing import ClassVar, List, Optional, Union
 
-from pydantic import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ModifierComponent
-from dara.core.definitions import ComponentInstance, TemplateMarker
+from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import AnyVariable, Condition, Operator
 
 
-def cast_list(value: Union[ComponentInstance, List[ComponentInstance]]) -> List[ComponentInstance]:
+def cast_list(value: Union[ComponentInstance, List[Union[ComponentInstance, None]]]) -> List[ComponentInstance]:
     """
     Cast the value to a list if it is not or return original list if it is.
 
     :param value: the value to cast
     """
-    return value if isinstance(value, List) else [value]
+    return [v for v in value if v is not None] if isinstance(value, List) else [value]
+
+
+ConditionType = type[Condition]
 
 
 class If(ModifierComponent):
@@ -66,9 +69,9 @@ class If(ModifierComponent):
     true_children: List[ComponentInstance]
     false_children: List[ComponentInstance]
 
-    Condition = Condition
+    Condition: ClassVar[ConditionType] = Condition
 
-    @validator('condition')
+    @field_validator('condition')
     @classmethod
     def validate_condition(cls, value):
         if not isinstance(value, Condition):
@@ -82,15 +85,15 @@ class If(ModifierComponent):
 
     def __init__(
         self,
-        condition: Union[Condition, AnyVariable, TemplateMarker],  # type: ignore
+        condition: Union[Condition, AnyVariable],  # type: ignore
         true_children: Union[ComponentInstance, List[Union[ComponentInstance, None]]],
         false_children: Optional[Union[ComponentInstance, List[Union[ComponentInstance, None]]]] = None,
     ):
         if false_children is None:
             false_children = []
-        if isinstance(condition, (AnyVariable, TemplateMarker)):
+        if isinstance(condition, AnyVariable):
             condition = Condition(operator=Operator.TRUTHY, other=None, variable=condition)
 
         super().__init__(
-            condition=condition, true_children=cast_list(true_children), false_children=cast_list(false_children)
+            condition=condition, true_children=cast_list(true_children), false_children=cast_list(false_children)  # type: ignore
         )

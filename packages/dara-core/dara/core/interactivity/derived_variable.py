@@ -24,15 +24,22 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     Generic,
     List,
     Optional,
     TypeVar,
     Union,
+    cast,
 )
 
-from pydantic import validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import (
@@ -76,13 +83,10 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     cache: Optional[BaseCachePolicy]
     variables: List[AnyVariable]
     polling_interval: Optional[int]
-    deps: Optional[List[AnyVariable]]
+    deps: Optional[List[AnyVariable]] = Field(validate_default=True)
     nested: List[str] = []
     uid: str
-
-    class Config:
-        extra = 'forbid'
-        use_enum_values = True
+    model_config = ConfigDict(extra='forbid', use_enum_values=True)
 
     def __init__(
         self,
@@ -130,7 +134,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         # Explicitly disallow run_as_task within a Jupyter environment
         if run_as_task:
             try:
-                from IPython import get_ipython
+                from IPython import get_ipython  # type: ignore
             except ImportError:
                 pass
             else:
@@ -164,20 +168,20 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             ),
         )
 
-    @validator('deps', pre=True, always=True)
+    @field_validator('deps', mode='before')
     @classmethod
-    def validate_deps(cls, deps: Any, values: Dict) -> List[AnyVariable]:
+    def validate_deps(cls, deps: Any, info: ValidationInfo) -> List[AnyVariable]:
         """
         If deps is not specified, set deps to include all variables used
         """
         if deps is None:
             # This will always be set on the variable with the type verified by pydantic
-            return values.get('variables')   # type: ignore
+            return cast(List[AnyVariable], info.data.get('variables'))
 
         return deps
 
     def get(self, key: str):
-        return self.copy(update={'nested': [*self.nested, key]}, deep=True)
+        return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
     def trigger(self, force: bool = True):
         """
@@ -479,8 +483,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 return True
         return False
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'DerivedVariable', 'uid': str(parent_dict['uid'])}
 
 
@@ -492,9 +497,7 @@ class DerivedVariableRegistryEntry(CachedRegistryEntry):
     polling_interval: Optional[int]
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
 
 class LatestValueRegistryEntry(CachedRegistryEntry):

@@ -29,6 +29,7 @@ from anyio import (
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
 from exceptiongroup import ExceptionGroup
+from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -58,8 +59,7 @@ class Task(BaseTask):
     Methods for reading from the subprocess and writing to it are also provided.
     """
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
     def __init__(
         self,

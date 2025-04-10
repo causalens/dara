@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from pandas import DataFrame
 from pandas.io.json._table_schema import build_table_schema
+from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.base_definitions import (
     BaseTask,
@@ -66,11 +67,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
     uid: str
     filters: Optional[FilterQuery] = None
     variables: List[AnyVariable]
-    polling_interval: Optional[int]
-    deps: Optional[List[AnyVariable]]
-
-    class Config:
-        extra = 'forbid'
+    polling_interval: Optional[int] = None
+    deps: Optional[List[AnyVariable]] = None
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(
         self,
@@ -365,8 +364,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
         return await cls.get_data(dv_entry, data_entry, dv_result['cache_key'], store, filters)
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         # nested is not supported for DerivedDataVariable so remove from serialised form
         # it's included because we inherit from DV which has the field
         parent_dict.pop('nested')

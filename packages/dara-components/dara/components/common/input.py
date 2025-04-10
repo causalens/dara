@@ -62,4 +62,4 @@ class Input(FormComponent):
     placeholder: Optional[str] = None
     type: Optional[str] = None
     onchange: Optional[Action] = None
-    value: Optional[Variable[str]] = None
+    value: Optional[Variable] = None

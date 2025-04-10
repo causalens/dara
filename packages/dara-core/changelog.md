@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## 1.16.0-alpha.1
+
+-   Updated Dara to use `pydantic` v2.
+-   BREAKING: removed `@template` markers and the `For` component due to incompatibility with pydantic v2 and very low usage.
+
 ## 1.15.7
 
 -   Add support for setting a base_url in `dara start` so it can run behind a path prefixed proxy. e.g. `dara start --base-url https://my.app.com/proxy/`

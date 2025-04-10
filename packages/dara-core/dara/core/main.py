@@ -264,8 +264,8 @@ def _start_application(config: Configuration):
             dev_logger.debug(
                 'Building JS...',
                 extra={
-                    'New build cache': build_cache.dict(),
-                    'Difference from last cache': build_diff.dict(),
+                    'New build cache': build_cache.model_dump(),
+                    'Difference from last cache': build_diff.model_dump(),
                 },
             )
             rebuild_js(build_cache, build_diff)

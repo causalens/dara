@@ -27,10 +27,12 @@ from typing import Any, Callable, Dict, Optional, Set
 
 import anyio
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
+from pydantic import ConfigDict
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import BaseTask, PendingTask
+from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.base_definitions import PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
@@ -275,6 +277,8 @@ class AnyVariable(BaseModel, abc.ABC):
     Base class for all variables. Used for typing to specify that any variable can be provided.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     uid: str
 
     def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
@@ -327,6 +331,10 @@ class AnyVariable(BaseModel, abc.ABC):
 
         assert_no_context('ctx.reset')
         return ResetVariables(variables=[self])
+
+    @classmethod
+    def isinstance(cls, obj: Any) -> bool:
+        return isinstance(obj, cls)
 
     async def get_current_value(self, timeout: float = 3) -> Any:
         """

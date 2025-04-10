@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import Optional
 
+from pydantic import ConfigDict
+
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
 SideBarFrameDef = JsComponentDef(name='SideBarFrame', js_module='@darajs/core', py_module='dara.core')
@@ -32,6 +34,4 @@ class SideBarFrame(ComponentInstance):
     side_bar_padding: Optional[str] = None
     side_bar_position: Optional[str] = None
     side_bar_width: Optional[str] = None
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')

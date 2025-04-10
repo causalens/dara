@@ -179,7 +179,7 @@ class CircularLayout(GraphLayout):
     :param node_size: node size in pixels
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.CIRCULAR, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.CIRCULAR, frozen=True)
 
 
 class CustomLayout(GraphLayout):
@@ -206,7 +206,7 @@ class CustomLayout(GraphLayout):
     If not all nodes have coordinates defined, the graph editor will fall back to a default layout.
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.CUSTOM, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.CUSTOM, frozen=True)
 
 
 class FcoseLayout(GraphLayout, TieringLayout, GroupingLayout):
@@ -228,7 +228,7 @@ class FcoseLayout(GraphLayout, TieringLayout, GroupingLayout):
     :param tier_separation: Separation force between tiers (default value: 200)
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.FCOSE, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.FCOSE, frozen=True)
 
     edge_elasticity: Optional[Number] = 0.45
     edge_length: Optional[Number] = 3
@@ -266,7 +266,7 @@ class ForceAtlasLayout(GraphLayout):
         However, its advantage is to force a very compact layout, which may be useful for certain purposes. (default value: `False`)
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.FORCE_ATLAS, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.FORCE_ATLAS, frozen=True)
 
     barnes_hut_optimize: Optional[bool] = False
     edge_weight_influence: Optional[Number] = 1
@@ -288,7 +288,7 @@ class MarketingLayout(GraphLayout, TieringLayout):
     :param tier_separation: Separation force between tiers (default value: 300)
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.MARKETING, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.MARKETING, frozen=True)
     target_location: Optional[TargetLocation] = None
     tier_separation: Optional[Number] = 300
 
@@ -305,7 +305,7 @@ class PlanarLayout(GraphLayout, TieringLayout):
         as tiers are only supported by it (defaults to: simplex)
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, frozen=True)
     layering_algorithm: Optional[LayeringAlgorithm] = LayeringAlgorithm.SIMPLEX
     orientation: Optional[DirectionType] = None
 
@@ -325,7 +325,7 @@ class SpringLayout(GraphLayout, TieringLayout, GroupingLayout):
     :param group_repel_strength: Strength of repulsion force between groups (default value: 2000)
     """
 
-    layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, const=True)
+    layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, frozen=True)
 
     collision_force: Optional[Number] = 2
     gravity: Optional[Number] = -50

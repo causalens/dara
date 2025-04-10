@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Optional, Union
 
 from cai_causal_graph import CausalGraph, Skeleton
-from pydantic import root_validator, validator
+from pydantic import field_validator, model_validator
 
 from dara.components.graphs.components.base_graph_component import BaseGraphComponent
 from dara.components.graphs.definitions import EditorMode
@@ -248,10 +248,10 @@ class CausalGraphViewer(BaseGraphComponent):
 
     js_module = '@darajs/components'
 
-    causal_graph: Optional[Union[CausalGraph, DerivedVariable, Variable, dict, Skeleton]]
+    causal_graph: Union[CausalGraph, DerivedVariable, Variable, dict, Skeleton]
     editor_mode: Optional[EditorMode] = None
 
-    @validator('causal_graph')
+    @field_validator('causal_graph')
     @classmethod
     def validate_causal_graph(cls, causal_graph):
         """
@@ -266,15 +266,11 @@ class CausalGraphViewer(BaseGraphComponent):
             )
         return causal_graph
 
-    @root_validator
-    @classmethod
-    def validate_layout(cls, values: dict):
-        if (
-            isinstance(values.get('graph_layout'), PlanarLayout)
-            and values.get('editor_mode', EditorMode.DEFAULT) != EditorMode.DEFAULT
-        ):
+    @model_validator(mode='after')
+    def validate_layout(self):
+        if isinstance(self.graph_layout, PlanarLayout) and self.editor_mode != EditorMode.DEFAULT:
             dev_logger.warning(
                 'Planar Layout is currently only supported with EditorMode.DEFAULT. Setting editor_mode to EditorMode.DEFAULT.'
             )
-            values['editor_mode'] = EditorMode.DEFAULT
-        return values
+            self.editor_mode = EditorMode.DEFAULT
+        return self

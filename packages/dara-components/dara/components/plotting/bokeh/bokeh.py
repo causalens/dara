@@ -20,6 +20,7 @@ from typing import Any, List, Optional, Tuple
 
 from bokeh.document import Document
 from bokeh.themes import Theme
+from pydantic import ConfigDict
 
 from dara.components.plotting.bokeh.themes import light_theme
 from dara.core.base_definitions import Action
@@ -53,10 +54,7 @@ class Bokeh(StyledComponentInstance):
     document: str
     events: Optional[List[Tuple[str, Action]]] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {Document: lambda v: v.to_json()}
-        use_enum_values = True
+    model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
     def __init__(
         self,

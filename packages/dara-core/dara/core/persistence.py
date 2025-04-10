@@ -6,7 +6,14 @@ from uuid import uuid4
 
 import aiorwlock
 import anyio
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+)
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
@@ -88,7 +95,7 @@ class FileBackend(PersistenceBackend):
     path: str
     _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
 
-    @validator('path', check_fields=True)
+    @field_validator('path', check_fields=True)
     @classmethod
     def validate_path(cls, value):
         if not os.path.splitext(value)[1] == '.json':
@@ -151,8 +158,9 @@ class PersistenceStore(BaseModel, abc.ABC):
         Initialize the store when connecting to a variable
         """
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
         parent_dict['__typename'] = self.__class__.__name__
         return parent_dict
 

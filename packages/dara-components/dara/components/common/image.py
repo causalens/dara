@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from pydantic import validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
 
@@ -57,7 +57,7 @@ class Image(ContentComponent):
 
     src: str
 
-    @validator('src')
+    @field_validator('src')
     @classmethod
     def validate_src(cls, value: str):
         if not value.startswith('/static/') and not value.startswith('http'):

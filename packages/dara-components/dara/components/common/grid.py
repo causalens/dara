@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 from pydantic import BaseModel
 
@@ -69,7 +69,7 @@ class Column(LayoutComponent):
     # TODO: :param order: optional number denoting the order of priority of the columns, with 1 being first to appear, and 12 the last to be added.
 
     span: Optional[Union[int, ScreenBreakpoints]] = None
-    offset: Optional[Union[int, ScreenBreakpoints]]
+    offset: Optional[Union[int, ScreenBreakpoints]] = None
     direction: Direction = Direction.HORIZONTAL
 
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
@@ -106,6 +106,10 @@ class Row(LayoutComponent):
         super().__init__(*args, **kwargs)
 
 
+ColumnType = type[Column]
+RowType = type[Row]
+
+
 @discover
 class Grid(LayoutComponent):
     """
@@ -119,9 +123,9 @@ class Grid(LayoutComponent):
     row_gap: str = '0.75rem'
     breakpoints: Optional[ScreenBreakpoints] = ScreenBreakpoints()
 
-    Column = Column
-    Row = Row
-    Breakpoints = ScreenBreakpoints
+    Column: ClassVar[ColumnType] = Column
+    Row: ClassVar[RowType] = Row
+    Breakpoints: ClassVar[type[ScreenBreakpoints]] = ScreenBreakpoints
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):

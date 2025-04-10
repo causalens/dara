@@ -19,6 +19,7 @@ from typing import Callable, Optional, Union
 from uuid import uuid4
 
 from pandas import DataFrame
+from pydantic import ConfigDict
 
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
@@ -71,8 +72,7 @@ class UploadDropzone(StyledComponentInstance):
     on_drop: Optional[Action] = None
     enable_paste: bool = False
 
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra='allow')
 
     def __init__(
         self,

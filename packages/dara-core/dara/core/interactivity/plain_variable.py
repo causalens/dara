@@ -21,11 +21,33 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
+from pydantic import (
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_serializer,
+    model_serializer,
+)
+
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
+from dara.core.logging import dev_logger
 from dara.core.persistence import PersistenceStore
+
+
+def _is_subclass_safe(value: type, base: type) -> bool:
+    """
+    Check if a class is a subclass of another class. Returns False if the value is not a class.
+
+    :param value: the class to check
+    :param base: the class to check against
+    """
+    try:
+        return issubclass(value, base)
+    except TypeError:
+        return False
+
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -38,14 +60,12 @@ class Variable(NonDataVariable, Generic[VariableType]):
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
     """
 
-    default: Optional[VariableType]
+    default: Optional[VariableType] = None
     persist_value: bool = False
     store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = []
-
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     def __init__(
         self,
@@ -53,6 +73,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         persist_value: Optional[bool] = False,
         uid: Optional[str] = None,
         store: Optional[PersistenceStoreType_co] = None,
+        nested: Optional[List[str]] = None,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -62,6 +83,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         :param store: a persistence store to attach to the variable; modifies where the source of truth for the variable is
         """
+        if nested is None:
+            nested = []
         kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store}
 
         # If an override is active, run the kwargs through it
@@ -77,6 +100,29 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         if self.store:
             call_async(self.store.init, self)
+
+    @field_serializer('default', mode='wrap')
+    def serialize_default(self, default: Any, nxt: SerializerFunctionWrapHandler):
+        """
+        Handle serializing the default value of the Variable using the registry of encoders.
+        This ensures that users can define a serializer with config.add_encoder and it will be used
+        when serializing the Variable.default.
+        """
+        from dara.core.internal.encoder_registry import encoder_registry
+
+        default_type = type(default)
+
+        try:
+            for encoder_type, encoder in encoder_registry.items():
+                if default_type is encoder_type or _is_subclass_safe(default_type, encoder_type):
+                    return encoder['serialize'](default)
+        except Exception as e:
+            dev_logger.error(
+                f'Error serializing default value of Variable {self.uid}, falling back to default serialization',
+                error=e,
+            )
+
+        return nxt(default)
 
     @staticmethod
     @contextmanager
@@ -229,7 +275,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         return cls(default=other)   # type: ignore
 
-    def dict(self, *args, **kwargs):
-        parent_dict = super().dict(*args, **kwargs)
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
 
         return {**parent_dict, '__typename': 'Variable', 'uid': str(parent_dict['uid'])}

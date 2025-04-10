@@ -451,7 +451,7 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheD
     # Store the new build cache
     build_cache_path = os.path.join(build_cache.static_files_dir, BuildCache.FILENAME)
     with open(build_cache_path, 'w+', encoding='utf-8') as f:
-        f.write(build_cache.json(indent=2))
+        f.write(build_cache.model_dump_json(indent=2))
 
 
 def bundle_js(build_cache: BuildCache, copy_js: bool = False):
