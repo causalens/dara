@@ -66,7 +66,7 @@ __all__ = [
 
 for symbol in list(globals().values()):
     try:
-        if issubclass(symbol, BaseModel):
+        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
             symbol.model_rebuild()
     except Exception as e:
         from dara.core.logging import dev_logger
