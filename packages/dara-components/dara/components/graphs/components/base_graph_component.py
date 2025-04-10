@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Any, Dict, List, Optional, Union
 
 from cai_causal_graph import CausalGraph, Skeleton
-from pydantic import ConfigDict, field_serializer
+from pydantic import ConfigDict, SerializerFunctionWrapHandler, field_serializer
 
 from dara.components.graphs.definitions import (
     DEFAULT_LEGENDS,
@@ -81,10 +81,10 @@ class BaseGraphComponent(StyledComponentInstance):
         extra='forbid',
     )
 
-    @field_serializer('*')
-    def serialize_graphs(self, value: Any):
+    @field_serializer('*', mode='wrap')
+    def serialize_graphs(self, value: Any, nxt: SerializerFunctionWrapHandler):
         # handle serializing fields of type CausalGraph and Skeleton
         if isinstance(value, (CausalGraph, Skeleton)):
             return value.to_dict()
 
-        return value
+        return nxt(value)
