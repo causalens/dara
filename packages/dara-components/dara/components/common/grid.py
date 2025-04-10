@@ -15,9 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar, Optional, TypeAlias, Union
+from typing import ClassVar, Optional, Union
 
 from pydantic import BaseModel
+from typing_extensions import TypeAlias
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance, discover

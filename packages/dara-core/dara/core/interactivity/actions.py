@@ -33,7 +33,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    TypeAlias,
     TypeVar,
     Union,
     overload,
@@ -43,7 +42,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
-from typing_extensions import deprecated
+from typing_extensions import TypeAlias, deprecated
 
 from dara.core.base_definitions import (
     ActionDef,

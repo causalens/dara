@@ -16,7 +16,9 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import ClassVar, Optional, TypeAlias, Union
+from typing import ClassVar, Optional, Union
+
+from typing_extensions import TypeAlias
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import NonDataVariable

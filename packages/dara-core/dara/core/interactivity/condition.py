@@ -18,7 +18,9 @@ limitations under the License.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, TypeAlias, Union
+from typing import TYPE_CHECKING, ClassVar, Union
+
+from typing_extensions import TypeAlias
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
