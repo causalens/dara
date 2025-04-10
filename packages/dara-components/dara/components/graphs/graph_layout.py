@@ -19,7 +19,9 @@ import abc
 from enum import Enum
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class GraphLayoutType(Enum):

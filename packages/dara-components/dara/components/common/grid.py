@@ -17,9 +17,8 @@ limitations under the License.
 
 from typing import ClassVar, Optional, Union
 
-from pydantic import BaseModel
-
 from dara.components.common.base_component import LayoutComponent
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstance, discover
 from dara.core.visual.components.types import Direction
 

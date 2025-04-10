@@ -18,10 +18,11 @@ limitations under the License.
 from enum import Enum
 from typing import List, Literal, Optional, Sequence, Union
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.base_definitions import Action
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
     AnyDataVariable,
     NonDataVariable,

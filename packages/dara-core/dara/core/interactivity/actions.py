@@ -42,7 +42,7 @@ from typing import (
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
@@ -51,6 +51,7 @@ from dara.core.base_definitions import (
     ActionResolverDef,
     AnnotatedAction,
 )
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup

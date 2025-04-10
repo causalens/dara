@@ -33,12 +33,13 @@ from typing import (
 )
 
 from fastapi.middleware import Middleware
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
 from dara.core.base_definitions import Action, ActionDef
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import (
     ApiRoute,
     CallableClassComponent,

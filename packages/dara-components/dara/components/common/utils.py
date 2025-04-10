@@ -19,9 +19,7 @@ import os
 from enum import Enum
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel
-
-from dara.core.base_definitions import DaraBaseModel
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstanceType
 
 
@@ -32,7 +30,7 @@ class ItemBadge(BaseModel):
     label: str
 
 
-class Item(DaraBaseModel):
+class Item(BaseModel):
     """
     A class for serializing a list of options for the select to show
     """
@@ -87,7 +85,7 @@ class Item(DaraBaseModel):
             )
 
 
-class CarouselItem(DaraBaseModel):
+class CarouselItem(BaseModel):
     """
     CarouselItem provides with the following props:
 

@@ -17,9 +17,10 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
 
 from dara.core.base_definitions import Action
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import NonDataVariable
 

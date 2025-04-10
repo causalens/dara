@@ -21,9 +21,9 @@ from typing import List, Optional, Union
 
 import pandas
 from pandas import DataFrame
-from pydantic import BaseModel
 
 from dara.core.base_definitions import CacheType
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
     DerivedDataVariable,
     DerivedVariable,
