@@ -33,7 +33,7 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
     pages as you switch from one to the other.
     """
 
-    default: Optional[VariableType]
+    default: Optional[VariableType] = None
     query: str
     uid: str
     model_config = ConfigDict(extra='forbid')

@@ -63,7 +63,7 @@ class HttpMethod(Enum):
 
 
 class Session(BaseModel):
-    session_id: Optional[str]
+    session_id: Optional[str] = None
 
 
 DEFAULT_ERROR_TITLE = 'Unexpected error occurred'
@@ -406,7 +406,7 @@ ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance
 class JsComponentDef(BaseModel):
     """Definition of a JS Component"""
 
-    js_module: Optional[str]
+    js_module: Optional[str] = None
     """
     JS module where the component implementation lives.
 
@@ -430,7 +430,7 @@ class JsComponentDef(BaseModel):
 class PyComponentDef(BaseModel):
     """Definition of a Python Component"""
 
-    func: Optional[Callable[..., Any]]
+    func: Optional[Callable[..., Any]] = None
     name: str
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
     fallback: Optional[BaseFallback] = None
@@ -488,7 +488,7 @@ class TemplateRoute(BaseModel):
     """Definition of a route for the TemplateRouter"""
 
     content: ComponentInstance
-    icon: Optional[str]
+    icon: Optional[str] = None
     name: str
     route: str
     include_in_menu: Optional[bool] = None

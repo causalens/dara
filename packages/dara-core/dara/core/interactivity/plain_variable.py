@@ -40,7 +40,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
     """
 
-    default: Optional[VariableType]
+    default: Optional[VariableType] = None
     persist_value: bool = False
     store: Optional[PersistenceStore] = None
     uid: str
@@ -53,7 +53,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         persist_value: Optional[bool] = False,
         uid: Optional[str] = None,
         store: Optional[PersistenceStoreType_co] = None,
-        nested: Optional[List[str]] = [],
+        nested: Optional[List[str]] = None,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -63,6 +63,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         :param store: a persistence store to attach to the variable; modifies where the source of truth for the variable is
         """
+        if nested is None:
+            nested = []
         kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store}
 
         # If an override is active, run the kwargs through it

@@ -476,13 +476,13 @@ class Column(BaseModel):
 
     @field_validator('filter')
     @classmethod
-    def validate_unique_items(cls, filter, values):
+    def validate_unique_items(cls, filter, info: ValidationInfo):
         """
         Validate that for categorical filters unique_items is provided
         """
         if filter == 'categorical':
-            unique_items = values.get('unique_items')
-            col_id = values.get('col_id')
+            unique_items = info.data.get('unique_items')
+            col_id = info.data.get('col_id')
             if unique_items is None:
                 raise ValueError(
                     f'Invalid unique_items: {col_id} has categorical filter, it must have unique_items defined'

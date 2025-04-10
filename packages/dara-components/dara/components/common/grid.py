@@ -69,7 +69,7 @@ class Column(LayoutComponent):
     # TODO: :param order: optional number denoting the order of priority of the columns, with 1 being first to appear, and 12 the last to be added.
 
     span: Optional[Union[int, ScreenBreakpoints]] = None
-    offset: Optional[Union[int, ScreenBreakpoints]]
+    offset: Optional[Union[int, ScreenBreakpoints]] = None
     direction: Direction = Direction.HORIZONTAL
 
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):

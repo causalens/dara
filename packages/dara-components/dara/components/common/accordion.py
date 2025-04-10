@@ -78,9 +78,9 @@ class AccordionItem(BaseModel):
     :param content: Optional content to render
     """
 
-    badge: Optional[ItemBadge]
+    badge: Optional[ItemBadge] = None
     label: Union[str, ComponentInstance]
-    content: Optional[ComponentInstance]
+    content: Optional[ComponentInstance] = None
 
 
 class Accordion(LayoutComponent):

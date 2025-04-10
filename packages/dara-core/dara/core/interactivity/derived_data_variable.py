@@ -67,8 +67,8 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
     uid: str
     filters: Optional[FilterQuery] = None
     variables: List[AnyVariable]
-    polling_interval: Optional[int]
-    deps: Optional[List[AnyVariable]]
+    polling_interval: Optional[int] = None
+    deps: Optional[List[AnyVariable]] = None
     model_config = ConfigDict(extra='forbid')
 
     def __init__(

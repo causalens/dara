@@ -85,7 +85,7 @@ class Configuration(BaseModel):
     static_files_dir: str
     package_tag_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
     template_extra_js: str
-    task_module: Optional[str]
+    task_module: Optional[str] = None
     template: str
     template_renderers: Dict[str, Callable[..., Template]]
     theme: Union[BaseTheme, str]

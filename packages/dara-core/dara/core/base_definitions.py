@@ -293,7 +293,7 @@ class CachedRegistryEntry(BaseModel):
     via the cache policy.
     """
 
-    cache: Optional[BaseCachePolicy]
+    cache: Optional[BaseCachePolicy] = None
     uid: str
 
     def to_store_key(self):
@@ -317,14 +317,14 @@ class TaskProgressUpdate(BaseTaskMessage):
 
 class TaskResult(BaseTaskMessage):
     result: Any
-    cache_key: Optional[str]
-    reg_entry: Optional[CachedRegistryEntry]
+    cache_key: Optional[str] = None
+    reg_entry: Optional[CachedRegistryEntry] = None
 
 
 class TaskError(BaseTaskMessage):
     error: BaseException
-    cache_key: Optional[str]
-    reg_entry: Optional[CachedRegistryEntry]
+    cache_key: Optional[str] = None
+    reg_entry: Optional[CachedRegistryEntry] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -568,14 +568,14 @@ class ActionDef(BaseModel):
 
     name: str
     py_module: str
-    js_module: Optional[str]
+    js_module: Optional[str] = None
 
 
 class ActionResolverDef(BaseModel):
     uid: str
     """Unique id of the action definition"""
 
-    resolver: Optional[Callable]
+    resolver: Optional[Callable] = None
     """Resolver function for the action"""
 
     execute_action: Callable[..., Awaitable[Any]]
@@ -583,7 +583,7 @@ class ActionResolverDef(BaseModel):
 
 
 class UploadResolverDef(BaseModel):
-    resolver: Optional[Callable]
+    resolver: Optional[Callable] = None
     """Optional custom resolver function for the upload"""
     upload: Callable
     """Upload handling function, default dara.core.interactivity.any_data_variable.upload"""

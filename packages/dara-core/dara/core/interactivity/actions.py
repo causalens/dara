@@ -371,7 +371,7 @@ class NavigateToImpl(ActionImpl):
 
     py_name = 'NavigateTo'
 
-    url: Optional[str]
+    url: Optional[str] = None
     new_tab: bool
 
 

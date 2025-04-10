@@ -27,7 +27,7 @@ from dara.core.interactivity import Variable
 
 class ComponentItem(BaseModel):
     title: str
-    subtitle: Optional[str]
+    subtitle: Optional[str] = None
     component: ComponentInstanceType
 
 
