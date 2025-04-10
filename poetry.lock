@@ -577,7 +577,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.16.0"
+version = "1.16.1"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -674,7 +674,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.16.0"
+version = "1.16.1"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -685,7 +685,7 @@ develop = true
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.16.0"
+dara-core = "1.16.1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -699,7 +699,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.16.0"
+version = "1.16.1"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -740,7 +740,7 @@ uvicorn = {version = "^0.22.0", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.16.0)"]
+all = ["dara-components (==1.16.1)"]
 
 [package.source]
 type = "directory"
@@ -774,7 +774,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2046,7 +2046,7 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2800,7 +2800,7 @@ pbr = ">=2.0.0"
 
 [[package]]
 name = "styled-components"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2813,7 +2813,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3018,7 +3018,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3031,7 +3031,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-code-editor"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3044,7 +3044,7 @@ url = "packages/ui-code-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3057,7 +3057,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3070,7 +3070,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3083,7 +3083,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3096,7 +3096,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3109,7 +3109,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.16.0"
+version = "1.16.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3122,13 +3122,13 @@ url = "packages/ui-widgets"
 
 [[package]]
 name = "urllib3"
-version = "2.3.0"
+version = "2.4.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "urllib3-2.3.0-py3-none-any.whl", hash = "sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df"},
-    {file = "urllib3-2.3.0.tar.gz", hash = "sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d"},
+    {file = "urllib3-2.4.0-py3-none-any.whl", hash = "sha256:4e16665048960a0900c702d4a66415956a584919c03361cac9f1df5c5dd7e813"},
+    {file = "urllib3-2.4.0.tar.gz", hash = "sha256:414bc6535b787febd7567804cc015fee39daab8ad86268f1310a9250697de466"},
 ]
 
 [package.extras]
@@ -3423,4 +3423,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.13.0"
-content-hash = "2a11d96d1bb47a0fb0352183dfd773b8e75c82ff19f964c7e61b81b61ad67b14"
+content-hash = "230db33c7419cca4dda2d7dc0d363c5e29df4a36109f7e6501a98ce7ab805e5c"

@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.1
 
 -  Fixed an issue where `AccordionItem` wouldn't serialize its children properly
 
