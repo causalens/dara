@@ -15,7 +15,6 @@ class TestButtonComponent(unittest.TestCase):
 
     @patch('dara.core.definitions.uuid.uuid4', return_value=test_uid)
     def test_serialization(self, _uid):
-        self.maxDiff = None
         """Test the component serializes to a dict"""
         action = NavigateTo(url='/test')
         cmp = Button('Click Here', onclick=action)

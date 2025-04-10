@@ -14,7 +14,6 @@ class TestCodeEditorComponent(unittest.TestCase):
     @patch('dara.core.definitions.uuid.uuid4', return_value=test_uid)
     def test_serialization(self, _uid):
         """Test the component serializes to a dict"""
-        self.maxDiff = None
         script = Variable()
         cmp = CodeEditor(script=script)
         expected_dict = {

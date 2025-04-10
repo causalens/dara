@@ -34,7 +34,6 @@ class TestTableComponent(unittest.TestCase):
     @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
     def test_serialization(self, _uid):
         """Test the component serializes to a dict"""
-        self.maxDiff = None
         data_var = DataVariable(uid='uid')
         cmp = Table(columns=self.columns, data=data_var)
         expected_dict = {

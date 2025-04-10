@@ -16,7 +16,6 @@ class TestParagraphComponent(unittest.TestCase):
     @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
     def test_serialization(self, _uid):
         """Test the component serializes to a dict"""
-        self.maxDiff = None
         t1 = Text(text='Some text.')
         t2 = Text(text='More text')
         cmp = Paragraph(t1, t2)

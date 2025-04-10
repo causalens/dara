@@ -17,7 +17,6 @@ def test_children():
         foo: str
 
     instance = TestComponent(foo='bar', children=[TestComponent(foo='baz'), None])
-    print('calling dict...')
     assert instance.dict(exclude_none=True) == {
         'name': 'TestComponent',
         'uid': instance.uid,
@@ -66,4 +65,3 @@ def test_raw_css():
         'uid': str_instance.uid,
         'props': {'raw_css': 'width: 100;'},
     }
-

@@ -33,7 +33,7 @@ def cast_list(value: Union[ComponentInstance, List[Union[ComponentInstance, None
     return [v for v in value if v is not None] if isinstance(value, List) else [value]
 
 
-ContidionType = type[Condition]
+ConditionType = type[Condition]
 
 
 class If(ModifierComponent):
@@ -69,7 +69,7 @@ class If(ModifierComponent):
     true_children: List[ComponentInstance]
     false_children: List[ComponentInstance]
 
-    Condition: ClassVar[type[Condition]] = Condition
+    Condition: ClassVar[ConditionType] = Condition
 
     @field_validator('condition')
     @classmethod

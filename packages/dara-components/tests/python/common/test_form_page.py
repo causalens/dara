@@ -15,8 +15,6 @@ class TestFormPageComponent(unittest.TestCase):
     @patch('dara.core.definitions.uuid.uuid4', return_value=test_uid)
     def test_serialization(self, _uid):
         """Test the component serializes to a dict"""
-        self.maxDiff = None
-
         s1 = Switch(id='switch')
         cmp = FormPage(s1, title='Page')
 
