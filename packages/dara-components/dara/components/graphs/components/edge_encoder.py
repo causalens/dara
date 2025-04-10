@@ -136,7 +136,10 @@ class VisualEdgeEncoder(StyledComponentInstance):
     require_focus_to_zoom: Optional[bool] = True
     tooltip_size: Optional[str] = None
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        extra='forbid',
+    )
 
     @model_validator(mode='after')
     def validate_layout(self):

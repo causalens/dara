@@ -21,7 +21,12 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
-from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_serializer,
+    model_serializer,
+)
 
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
@@ -80,6 +85,23 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         if self.store:
             call_async(self.store.init, self)
+
+    @field_serializer('default', mode='wrap')
+    def serialize_default(self, default: Any, nxt: SerializerFunctionWrapHandler):
+        """
+        Handle serializing the default value of the Variable using the registry of encoders.
+        This ensures that users can define a serializer with config.add_encoder and it will be used
+        when serializing the Variable.default.
+        """
+        from dara.core.internal.encoder_registry import encoder_registry
+
+        default_type = type(default)
+
+        for encoder_type, encoder in encoder_registry.items():
+            if default_type is encoder_type or issubclass(default_type, encoder_type):
+                return encoder['serialize'](default)
+
+        return nxt(default)
 
     @staticmethod
     @contextmanager

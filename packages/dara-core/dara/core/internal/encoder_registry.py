@@ -193,6 +193,20 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
     ),
 }
 
+try:
+    # technically you can use dara core without this package
+    from cai_causal_graph import CausalGraph, Skeleton
+except ImportError:
+    # If the import fails, we don't need to register the encoders for these types
+    pass
+else:
+    encoder_registry.update(
+        {
+            CausalGraph: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: CausalGraph.from_dict(x)),
+            Skeleton: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: Skeleton.from_dict(x)),
+        }
+    )
+
 
 def deserialize(value: Any, typ: Optional[Type]):
     """
