@@ -32,7 +32,22 @@ from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
+from dara.core.logging import dev_logger
 from dara.core.persistence import PersistenceStore
+
+
+def _is_subclass_safe(value: type, base: type) -> bool:
+    """
+    Check if a class is a subclass of another class. Returns False if the value is not a class.
+
+    :param value: the class to check
+    :param base: the class to check against
+    """
+    try:
+        return issubclass(value, base)
+    except TypeError:
+        return False
+
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -97,9 +112,15 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         default_type = type(default)
 
-        for encoder_type, encoder in encoder_registry.items():
-            if default_type is encoder_type or issubclass(default_type, encoder_type):
-                return encoder['serialize'](default)
+        try:
+            for encoder_type, encoder in encoder_registry.items():
+                if default_type is encoder_type or _is_subclass_safe(default_type, encoder_type):
+                    return encoder['serialize'](default)
+        except Exception as e:
+            dev_logger.error(
+                f'Error serializing default value of Variable {self.uid}, falling back to default serialization',
+                error=e,
+            )
 
         return nxt(default)
 
