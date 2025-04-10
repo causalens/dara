@@ -37,12 +37,11 @@ from fastapi import (
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import ActionResolverDef, BaseTask
-from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import UploadResolverDef
+from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
