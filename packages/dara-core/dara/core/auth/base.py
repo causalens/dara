@@ -19,7 +19,7 @@ import abc
 from typing import Any, ClassVar, Dict, Union
 
 from fastapi import HTTPException, Response
-from pydantic import BaseModel, model_serializer
+from pydantic import model_serializer
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import (
@@ -29,6 +29,7 @@ from dara.core.auth.definitions import (
     TokenData,
     TokenResponse,
 )
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class AuthComponent(TypedDict):

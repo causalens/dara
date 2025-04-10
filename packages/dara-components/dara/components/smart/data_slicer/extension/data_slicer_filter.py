@@ -18,9 +18,9 @@ limitations under the License.
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel
 from typing_extensions import TypedDict
 
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import AnyVariable, Variable
 

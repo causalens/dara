@@ -19,8 +19,9 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import List, Optional, Union
 
-from pydantic import BaseModel
 from typing_extensions import TypedDict
+
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class TokenData(BaseModel):

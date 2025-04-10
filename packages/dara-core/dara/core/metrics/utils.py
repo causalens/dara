@@ -18,8 +18,7 @@ limitations under the License.
 from itertools import chain
 from sys import getsizeof
 
-from pydantic import BaseModel
-
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger
 
 

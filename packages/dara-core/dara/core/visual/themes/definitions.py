@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Literal, Optional, Union
 
-from pydantic import BaseModel
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class ThemeColors(BaseModel):

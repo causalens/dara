@@ -17,11 +17,12 @@ limitations under the License.
 
 from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
 
 from dara.components.common.base_component import LayoutComponent
 from dara.components.common.utils import ItemBadge
 from dara.core.base_definitions import Action
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import UrlVariable, Variable
 from dara.core.logging import dev_logger

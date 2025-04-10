@@ -22,10 +22,10 @@ from typing import Awaitable, Callable, Optional, Tuple
 from uuid import uuid4
 
 import anyio
-from pydantic import BaseModel
 
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import Cache, CachedRegistryEntry
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class DownloadDataEntry(BaseModel):

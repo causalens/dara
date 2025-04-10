@@ -17,10 +17,9 @@ limitations under the License.
 
 from typing import List, Optional, Union
 
-from pydantic import BaseModel
-
 from dara.components.common.base_component import LayoutComponent
 from dara.core.base_definitions import Action
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstanceType
 from dara.core.interactivity import Variable
 

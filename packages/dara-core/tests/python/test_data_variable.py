@@ -8,6 +8,21 @@ import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pandas import DataFrame
+
+from dara.core.auth.basic import BasicAuthConfig
+from dara.core.auth.definitions import JWT_ALGO
+from dara.core.base_definitions import Action, CacheType
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.definitions import ComponentInstance
+from dara.core.interactivity import DataVariable, Variable
+from dara.core.interactivity.actions import UpdateVariable
+from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
+from dara.core.interactivity.plain_variable import Variable
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
+from dara.core.main import _start_application
+from dara.core.visual.dynamic_component import py_component
+
 from tests.python.utils import (
     AUTH_HEADERS,
     TEST_JWT_SECRET,
@@ -19,20 +34,6 @@ from tests.python.utils import (
     get_action_results,
     wait_assert,
 )
-
-from dara.core.auth.basic import BasicAuthConfig
-from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import Action, CacheType
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DataVariable
-from dara.core.interactivity.actions import UpdateVariable
-from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
-from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
-from dara.core.main import _start_application
-from dara.core.visual.dynamic_component import py_component
 
 pytestmark = pytest.mark.anyio
 
@@ -77,6 +78,9 @@ class MockComponent(ComponentInstance):
 
     def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
         super().__init__(text=text, uid='uid', action=action)
+
+
+MockComponent.model_rebuild()
 
 
 async def test_data_cache_combinations():

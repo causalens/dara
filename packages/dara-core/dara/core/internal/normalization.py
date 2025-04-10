@@ -28,9 +28,9 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel
 from typing_extensions import TypedDict, TypeGuard
 
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.internal.hashing import hash_object
 
 JsonLike = Union[Mapping, List]

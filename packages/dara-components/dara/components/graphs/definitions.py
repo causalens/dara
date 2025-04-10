@@ -18,7 +18,9 @@ limitations under the License.
 from enum import Enum
 from typing import ClassVar, Dict, List, Literal, Optional, Type, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
 class EditorMode(str, Enum):
