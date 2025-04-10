@@ -18,7 +18,6 @@ limitations under the License.
 from typing import ClassVar, Optional, Union
 
 from pydantic import BaseModel
-from typing_extensions import TypeAlias
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance, discover
@@ -107,6 +106,10 @@ class Row(LayoutComponent):
         super().__init__(*args, **kwargs)
 
 
+ColumnType = type[Column]
+RowType = type[Row]
+
+
 @discover
 class Grid(LayoutComponent):
     """
@@ -120,9 +123,9 @@ class Grid(LayoutComponent):
     row_gap: str = '0.75rem'
     breakpoints: Optional[ScreenBreakpoints] = ScreenBreakpoints()
 
-    Column: ClassVar[TypeAlias] = Column
-    Row: ClassVar[TypeAlias] = Row
-    Breakpoints: ClassVar[TypeAlias] = ScreenBreakpoints
+    Column: ClassVar[ColumnType] = Column
+    Row: ClassVar[RowType] = Row
+    Breakpoints: ClassVar[type[ScreenBreakpoints]] = ScreenBreakpoints
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):

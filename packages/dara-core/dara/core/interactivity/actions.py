@@ -35,6 +35,7 @@ from typing import (
     Optional,
     TypeVar,
     Union,
+    cast,
     overload,
 )
 
@@ -42,7 +43,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -234,7 +235,7 @@ class UpdateVariable(AnnotatedAction):
     ```
     """
 
-    Ctx: ClassVar[TypeAlias] = UpdateVariableContext
+    Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
     variable: Union[Variable, DataVariable, UrlVariable]
     extras: Optional[List[AnyVariable]]
@@ -251,7 +252,8 @@ class UpdateVariable(AnnotatedAction):
         :param extras: any extra variables to resolve and pass to the resolution function context
         """
 
-        async def _update(ctx: action.Ctx, **kwargs):
+        async def _update(ctx: action.Ctx, **kwargs):   # type: ignore
+            ctx = cast(ActionCtx, ctx)   # type: ignore
             old = kwargs.pop('old')
             extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
             old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
@@ -425,6 +427,7 @@ def NavigateTo(
 
     # Otherwise create a new @action with the provided resolver
     async def _navigate(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(url, args=(old_ctx,))   # type: ignore
@@ -571,8 +574,8 @@ class Notify(ActionImpl):
     status: NotificationStatus
     title: str
 
-    Status: ClassVar[TypeAlias] = NotificationStatus
-    Ctx: ClassVar[TypeAlias] = ComponentActionContext
+    Status: ClassVar[type[NotificationStatus]] = NotificationStatus
+    Ctx: ClassVar[type[ComponentActionContext]] = ComponentActionContext
     """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
@@ -658,7 +661,8 @@ def DownloadContent(
     ```
     """
 
-    async def _download(ctx: action.Ctx, **kwargs):
+    async def _download(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(resolver, args=(old_ctx,))
@@ -763,7 +767,8 @@ def SideEffect(
     ```
     """
 
-    async def _effect(ctx: action.Ctx, **kwargs):
+    async def _effect(ctx: action.Ctx, **kwargs):   # type: ignore
+        ctx = cast(ActionCtx, ctx)   # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         # Simply run the user handler
@@ -1272,7 +1277,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar[TypeAlias] = ActionContext
+    Ctx: ClassVar[type[ActionContext]] = ActionContext
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action

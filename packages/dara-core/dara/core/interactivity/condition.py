@@ -20,8 +20,6 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Union
 
-from typing_extensions import TypeAlias
-
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 # Type-only imports
@@ -39,9 +37,12 @@ class Operator(Enum):
     TRUTHY = 'truthy'
 
 
+OperatorType = type[Operator]
+
+
 class Condition(BaseModel):
     operator: Operator
     other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
     variable: AnyVariable
 
-    Operator: ClassVar[TypeAlias] = Operator
+    Operator: ClassVar[OperatorType] = Operator

@@ -18,7 +18,6 @@ limitations under the License.
 from typing import ClassVar, List, Optional, Union
 
 from pydantic import field_validator
-from typing_extensions import TypeAlias
 
 from dara.components.common.base_component import ModifierComponent
 from dara.core.definitions import ComponentInstance
@@ -32,6 +31,9 @@ def cast_list(value: Union[ComponentInstance, List[Union[ComponentInstance, None
     :param value: the value to cast
     """
     return [v for v in value if v is not None] if isinstance(value, List) else [value]
+
+
+ContidionType = type[Condition]
 
 
 class If(ModifierComponent):
@@ -67,7 +69,7 @@ class If(ModifierComponent):
     true_children: List[ComponentInstance]
     false_children: List[ComponentInstance]
 
-    Condition: ClassVar[TypeAlias] = Condition
+    Condition: ClassVar[type[Condition]] = Condition
 
     @field_validator('condition')
     @classmethod
