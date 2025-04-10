@@ -4,7 +4,8 @@ title: Changelog
 
 ## NEXT
 
--   Unlock `pydantic` version to support both `v1` and `v2`. Migrated all imports to use `pydantic.v1` namespace
+-   Updated Dara to use `pydantic` v2.
+-   BREAKING: removed `@template` markers and the `For` component due to incompatibility with pydantic v2 and very low usage.
 
 ## 1.15.7
 
