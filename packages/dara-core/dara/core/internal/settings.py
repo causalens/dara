@@ -20,9 +20,10 @@ from functools import lru_cache
 from secrets import token_hex
 from typing import List, Optional
 
-from dara.core.logging import dev_logger
 from dotenv import dotenv_values
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from dara.core.logging import dev_logger
 
 
 class Settings(BaseSettings):

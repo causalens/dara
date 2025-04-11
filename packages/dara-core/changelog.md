@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--   Allow extra fields in `Settings` model.
+-   Allow extra fields in the `Settings` model.
 
 ## 1.16.0-alpha.1
 
