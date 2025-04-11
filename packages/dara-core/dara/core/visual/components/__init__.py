@@ -14,6 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
+from typing import Optional  # needed for model_rebuild
+
+from pydantic import BaseModel
+
+from dara.core.interactivity import Variable  # needed for model_rebuild
 from dara.core.visual.components.dynamic_component import (
     DynamicComponent,
     DynamicComponentDef,
@@ -53,3 +59,12 @@ __all__ = [
     'RowFallbackDef',
     'Fallback',
 ]
+
+for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:
+    try:
+        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+            symbol.model_rebuild()
+    except Exception as e:
+        from dara.core.logging import dev_logger
+
+        dev_logger.warning(f'Error rebuilding model "{symbol}": {e}')
