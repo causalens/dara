@@ -1,5 +1,8 @@
-from dara.core import CSSProperties
+from fastapi.encoders import jsonable_encoder
+
+from dara.core import CSSProperties, py_component
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
+from dara.core.visual.components import Fallback
 
 
 def test_base_component_instance():
@@ -65,3 +68,28 @@ def test_raw_css():
         'uid': str_instance.uid,
         'props': {'raw_css': 'width: 100;'},
     }
+
+
+def test_fallback():
+    """
+    Test that we can serialize components with fallbacks
+    """
+    for fallback in [Fallback.Default(), Fallback.Row()]:
+
+        @py_component(fallback=fallback)
+        def TestComponent():
+            return 'test'
+
+        component = TestComponent()
+
+        dict_instance = jsonable_encoder(component)
+        assert dict_instance == {
+            'name': type(component).__name__,
+            'props': {
+                'fallback': jsonable_encoder(fallback),
+                'func_name': 'TestComponent',
+                'dynamic_kwargs': {},
+                'polling_interval': None,
+            },
+            'uid': component.uid,
+        }
