@@ -2,7 +2,11 @@
 title: Changelog
 ---
 
-## 1.16.0-alpha.1
+## NEXT
+
+-   Fix an issue where `Fallback` components would fail to serialize correctly
+
+## 1.16.0
 
 -   Updated Dara to use `pydantic` v2.
 -   BREAKING: removed `@template` markers and the `For` component due to incompatibility with pydantic v2 and very low usage.
