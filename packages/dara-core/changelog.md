@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Allow extra fields in the `Settings` model.
+
 ## 1.16.0-alpha.1
 
 -   Updated Dara to use `pydantic` v2.
