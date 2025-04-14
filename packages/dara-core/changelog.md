@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.2
 
 -   Fix an issue where `Fallback` components would fail to serialize correctly
 -   Allow extra fields in the `Settings` model.

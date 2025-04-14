@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.2
 
 -  Fixed an issue where `cai_causal_graph`'s `Node` wasn't serialized in `VisualEdgeEncoder` component.
 
