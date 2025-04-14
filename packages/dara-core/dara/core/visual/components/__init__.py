@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from inspect import isclass
 from typing import Optional  # needed for model_rebuild
 
 from pydantic import BaseModel
@@ -62,7 +63,7 @@ __all__ = [
 
 for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:
     try:
-        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+        if isclass(symbol) and issubclass(symbol, BaseModel) and symbol is not BaseModel:
             symbol.model_rebuild()
     except Exception as e:
         from dara.core.logging import dev_logger
