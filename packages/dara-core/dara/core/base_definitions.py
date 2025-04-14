@@ -542,6 +542,7 @@ class ActionImpl(DaraBaseModel):
     def serialize_field(self, value: Any):
         return jsonable_encoder(value)
 
+
 ActionInstance = Union[ActionImpl, AnnotatedAction]
 """
 @deprecated alias for backwards compatibility
