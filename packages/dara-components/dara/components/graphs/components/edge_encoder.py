@@ -15,11 +15,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from cai_causal_graph.graph_components import Node
 from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
-from pydantic import ConfigDict, model_validator
+from fastapi.encoders import jsonable_encoder
+from pydantic import (
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_serializer,
+    model_validator,
+)
 from typing_extensions import TypedDict
 
 from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
@@ -30,7 +36,7 @@ from dara.components.graphs.graph_layout import (
 )
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import AnyVariable, NonDataVariable
 
 
 class EdgeConstraint(TypedDict):
@@ -147,3 +153,19 @@ class VisualEdgeEncoder(StyledComponentInstance):
             raise ValueError('Planar Layout is not currently supported by EdgeEncoder.')
 
         return self
+
+    @field_serializer('nodes', mode='wrap')
+    def serialize_nodes(self, value: Any, nxt: SerializerFunctionWrapHandler):
+        if isinstance(value, dict):
+            if len(value.keys()) == 0:
+                return value
+            # Handle dict[str, Node]
+            if isinstance(value.get(list(value.keys())[0]), Node):
+                result = {k: v.to_dict() for k, v in value.items()}
+                return result
+
+        # For some reason just invoking nxt() in it will not invoke the proper variable serialization
+        if isinstance(value, AnyVariable):
+            return jsonable_encoder(value)
+
+        return nxt(value)
