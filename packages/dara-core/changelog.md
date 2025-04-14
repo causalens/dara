@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix `fastapi_vite_dara` environment variables to enable HMR mode
+
 ## 1.16.2
 
 -   Fix an issue where `Fallback` components would fail to serialize correctly
