@@ -6,6 +6,7 @@ title: Changelog
 
 -   Fix an issue where `Fallback` components would fail to serialize correctly
 -   Allow extra fields in the `Settings` model.
+-   Improve serialization of `Variable.default` to handle more common scenarios
 
 ## 1.16.0
 

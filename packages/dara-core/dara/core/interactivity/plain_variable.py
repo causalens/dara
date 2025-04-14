@@ -21,6 +21,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
 
+from fastapi.encoders import jsonable_encoder
 from pydantic import (
     ConfigDict,
     SerializerFunctionWrapHandler,
@@ -108,14 +109,10 @@ class Variable(NonDataVariable, Generic[VariableType]):
         This ensures that users can define a serializer with config.add_encoder and it will be used
         when serializing the Variable.default.
         """
-        from dara.core.internal.encoder_registry import encoder_registry
-
-        default_type = type(default)
+        from dara.core.internal.encoder_registry import get_jsonable_encoder
 
         try:
-            for encoder_type, encoder in encoder_registry.items():
-                if default_type is encoder_type or _is_subclass_safe(default_type, encoder_type):
-                    return encoder['serialize'](default)
+            return jsonable_encoder(default, custom_encoder=get_jsonable_encoder())
         except Exception as e:
             dev_logger.error(
                 f'Error serializing default value of Variable {self.uid}, falling back to default serialization',

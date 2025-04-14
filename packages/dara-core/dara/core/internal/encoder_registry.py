@@ -19,6 +19,7 @@ from inspect import Parameter, isclass
 from typing import (
     Any,
     Callable,
+    Dict,
     MutableMapping,
     Optional,
     Type,
@@ -196,6 +197,7 @@ encoder_registry: MutableMapping[Type[Any], Encoder] = {
 try:
     # technically you can use dara core without this package
     from cai_causal_graph import CausalGraph, Skeleton
+    from cai_causal_graph.graph_components import Node
 except ImportError:
     # If the import fails, we don't need to register the encoders for these types
     pass
@@ -204,8 +206,16 @@ else:
         {
             CausalGraph: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: CausalGraph.from_dict(x)),
             Skeleton: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: Skeleton.from_dict(x)),
+            Node: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: Node.from_dict(x)),
         }
     )
+
+
+def get_jsonable_encoder() -> Dict[Type[Any], Callable[..., Any]]:
+    """
+    Get the encoder registry as a dict of {type: serialize} pairs
+    """
+    return {k: v['serialize'] for k, v in encoder_registry.items()}
 
 
 def deserialize(value: Any, typ: Optional[Type]):
