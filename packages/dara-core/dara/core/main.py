@@ -89,6 +89,7 @@ def _start_application(config: Configuration):
 
     # Setup the main template to work with Vite
     os.environ['VITE_MANIFEST_PATH'] = f'{config.static_files_dir}/manifest.json'
+    os.environ['VITE_STATIC_PATH'] = config.static_files_dir
     import fastapi_vite_dara
 
     if len(config.pages) > 0:
