@@ -24,7 +24,6 @@ from typing import List, Optional
 import click
 import uvicorn
 from click.exceptions import UsageError
-
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
 from dara.core.internal.utils import find_module_path
@@ -118,12 +117,12 @@ def start(
     # This enables HotModuleReloading when enable_hmr=True
     if enable_hmr:
         os.environ['DARA_HMR_MODE'] = 'TRUE'
-        os.environ['VITE_REACTJS_HMR'] = 'True'
-        os.environ['VITE_SERVE_MODE'] = 'True'
+        os.environ['VITE_HOT_RELOAD'] = 'True'
+        os.environ['VITE_IS_REACT'] = 'True'
     else:
         os.environ['DARA_HMR_MODE'] = 'FALSE'
-        os.environ['VITE_REACTJS_HMR'] = 'False'
-        os.environ['VITE_SERVE_MODE'] = 'False'
+        os.environ['VITE_HOT_RELOAD'] = 'False'
+        os.environ['VITE_IS_REACT'] = 'False'
 
     # Tell frontend to restart on WS reconnection
     if reload:
