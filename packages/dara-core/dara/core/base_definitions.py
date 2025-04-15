@@ -41,12 +41,14 @@ from typing import (
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
+from fastapi.encoders import jsonable_encoder
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     SerializeAsAny,
     SerializerFunctionWrapHandler,
+    field_serializer,
     model_serializer,
 )
 from pydantic._internal._model_construction import ModelMetaclass
@@ -535,6 +537,10 @@ class ActionImpl(DaraBaseModel):
         dict_form['name'] = self.__class__.py_name or self.__class__.__name__
         dict_form['__typename'] = 'ActionImpl'
         return dict_form
+
+    @field_serializer('*')
+    def serialize_field(self, value: Any):
+        return jsonable_encoder(value)
 
 
 ActionInstance = Union[ActionImpl, AnnotatedAction]

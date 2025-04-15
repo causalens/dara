@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -   Fix `fastapi_vite_dara` environment variables to enable HMR mode
+-   Improve serialization of `ActionImpl` to automatically serialize nested fields
 
 ## 1.16.2
 
