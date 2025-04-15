@@ -463,7 +463,7 @@ class ConfigurationBuilder:
             if len(options) > 0:
                 dev_logger.warning(f'Options provided for a function middleware {middleware}, but they will be ignored')
         elif isclass(middleware):
-            constructed_middleware = Middleware(middleware, **options) # type: ignore
+            constructed_middleware = Middleware(middleware, **options)   # type: ignore
         else:
             raise ValueError(f'Invalid middleware type: {type(middleware)}')
 
