@@ -6,6 +6,7 @@ title: Changelog
 
 -   Fix `fastapi_vite_dara` environment variables to enable HMR mode
 -   Improve serialization of `ActionImpl` to automatically serialize nested fields
+-   Unlock `uvicorn` version to `>=0.23`, bump FastAPI to `^0.115.0`
 
 ## 1.16.2
 
