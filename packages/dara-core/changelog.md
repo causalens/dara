@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix a typo in `action.Ctx` typing
+
 ## 1.16.3
 
 -   Fix `fastapi_vite_dara` environment variables to enable HMR mode
