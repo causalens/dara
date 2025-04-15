@@ -2,11 +2,11 @@
 title: Changelog
 ---
 
-## 1.16.3
+## NEXT
 
 -   Fix a typo in `action.Ctx` typing
 
-## NEXT
+## 1.16.3
 
 -   Fix `fastapi_vite_dara` environment variables to enable HMR mode
 -   Improve serialization of `ActionImpl` to automatically serialize nested fields
