@@ -42,7 +42,7 @@ croniter = ">=1.0.15, <3.0.0"
 certifi = ">=2024.7.4"
 cryptography = ">=42.0.4"
 exceptiongroup = "^1.1.3"
-fastapi = "0.109.0"
+fastapi = "^0.115.0"
 fastapi_vite_dara = "0.4.0"
 httpx = ">=0.23.0"
 jinja2 = ">=2.1.1, <3.2.0"
@@ -75,7 +75,7 @@ version = "1.16.2"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
-version = "^0.22.0"
+version = ">=0.23.1"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
