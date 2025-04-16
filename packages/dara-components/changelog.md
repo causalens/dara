@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.5
 
 -  Fixed `UploadDropzone` component `resolver` field type hinting.
 
