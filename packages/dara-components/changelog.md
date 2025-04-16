@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed `UploadDropzone` component `resolver` field type hinting.
+
 ## 1.16.2
 
 -  Fixed an issue where `cai_causal_graph`'s `Node` wasn't serialized in `VisualEdgeEncoder` component.

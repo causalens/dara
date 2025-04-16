@@ -68,7 +68,7 @@ class UploadDropzone(StyledComponentInstance):
 
     accept: Optional[str] = None
     target: Optional[DataVariable] = None
-    resolver: Optional[DropzoneResolver]
+    resolver: Optional[DropzoneResolver] = None
     on_drop: Optional[Action] = None
     enable_paste: bool = False
 
