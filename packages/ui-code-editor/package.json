@@ -55,7 +55,10 @@
     "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
     "@darajs/styled-components": "1.16.3",
-    "react": "^18.0"
+    "@vscode/codicons": "0.0.36",
+    "react": "^18.0",
+    "react-dom": "^18.0",
+    "vscode-languageserver-types": "^3.17.5"
   },
   "files": [
     "dist"
