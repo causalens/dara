@@ -18,11 +18,12 @@ limitations under the License.
 from typing import Callable, Optional, Union
 from uuid import uuid4
 
+from pandas import DataFrame
+from pydantic import ConfigDict
+
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import DataVariable
-from pandas import DataFrame
-from pydantic import ConfigDict
 
 DropzoneResolver = Union[
     Callable[[bytes, str], DataFrame],
