@@ -43,7 +43,8 @@
     "lodash": "4.17.21",
     "nanoid": "^3.3.0",
     "react": "^18.0",
-    "rxjs": "^7.0.0"
+    "rxjs": "^7.0.0",
+    "tinykeys": "^3.0.0"
   },
   "files": [
     "dist"

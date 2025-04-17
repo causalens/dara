@@ -35,3 +35,6 @@ export { useD3LinearAxis, useD3TimeAxis, useD3OrdinalAxis } from './use-d3-axis'
 export { default as useIntersectionObserver } from './use-intersection-observer';
 export { default as useOnClickOutside } from './use-on-click-outside';
 export { default as useUpdateEffect } from './use-update-effect';
+export { useLatestCallback } from './use-latest-callback';
+export { useLatestRef } from './use-latest-ref';
+export { useTinykeys, useFocusTinykeys } from './use-tinykeys';

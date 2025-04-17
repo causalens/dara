@@ -1,5 +1,0 @@
-[tool.poetry]
-source = []
-package-mode = false
-name = "ui-code-editor"
-version = "1.16.5"

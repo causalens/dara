@@ -1,0 +1,120 @@
+/* CodeMirror hover tooltip root element */
+.cm-tooltip {
+    border: none;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+}
+
+.cm-editor .cm-foldPlaceholder {
+    background-color: transparent;
+    font-size: 10px;
+    color: #8d9199;
+}
+
+.cm-editor .cm-selectionMatch {
+    background-color: #c4dffc; /* blue4 */
+}
+
+.cm-tooltip.cm-tooltip-autocomplete {
+    border-radius: 3px;
+    z-index: 101; /* default is 100, autocomplete should be on top of others */
+
+    /* theme.background */
+    background-color: rgb(248, 249, 255);
+
+    ul {
+        border-radius: 3px;
+
+        li[aria-selected='true'] {
+            color: unset !important;
+            /* theme.blue3 */
+            background-color: #d3e8f8 !important;
+        }
+    }
+
+    /* Styles and colors copied from VSCode base styles */
+    .cm-completionIcon {
+        user-select: none;
+
+        display: inline-block;
+
+        /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+        font: normal normal normal 16px/1 codicon;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        text-decoration: none;
+        text-rendering: auto;
+        vertical-align: middle;
+    }
+
+    .cm-completionIcon-class::after {
+        content: '';
+        color: #d67e00;
+    }
+
+    .cm-completionIcon-constant::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-enum::after {
+        content: '';
+        color: #d67e00;
+    }
+
+    .cm-completionIcon-function::after {
+        content: '';
+        color: #652d90;
+    }
+
+    .cm-completionIcon-interface::after {
+        content: '';
+        color: #007acc;
+    }
+
+    .cm-completionIcon-keyword::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-method::after {
+        content: '';
+        color: #652d90;
+    }
+
+    .cm-completionIcon-namespace::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-module::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-property::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-text::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-type::after {
+        content: '';
+        color: #403f53;
+    }
+
+    .cm-completionIcon-variable::after {
+        content: '';
+        color: #007acc;
+    }
+
+    .cm-completionIcon-reference::after {
+        content: '';
+        color: #403f53;
+    }
+}
