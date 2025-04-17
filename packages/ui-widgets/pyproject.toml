@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "ui-widgets"
-version = "1.16.3"
+version = "1.16.5"
