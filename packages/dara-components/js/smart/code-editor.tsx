@@ -1,5 +1,13 @@
+import { ViewUpdate } from '@codemirror/view';
+import * as React from 'react';
+
 import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
-import { CodeEditor as UICodeEditor } from '@darajs/ui-code-editor';
+
+import { CodeEditor as UICodeEditor } from './ui-code-editor';
+import { getJSONExtensions } from './ui-code-editor/extensions/json';
+import { getMarkdownExtensions } from './ui-code-editor/extensions/markdown';
+import { getPythonExtensions } from './ui-code-editor/extensions/python';
+import { getSQLExtensions } from './ui-code-editor/extensions/sql';
 
 interface CodeEditorProps extends StyledComponentProps {
     script: Variable<string>;
@@ -16,13 +24,38 @@ function CodeEditor(props: CodeEditorProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [script, setScript] = useVariable(props.script);
 
+    const onChange = React.useCallback(
+        (update: ViewUpdate) => {
+            if (update.docChanged) {
+                setScript(update.state.doc.toString());
+            }
+        },
+        [setScript]
+    );
+
+    const extensions = React.useMemo(() => {
+        if (props.language === 'json') {
+            return getJSONExtensions();
+        }
+        if (props.language === 'python') {
+            return getPythonExtensions();
+        }
+        if (props.language === 'markdown') {
+            return getMarkdownExtensions();
+        }
+        if (props.language === 'sql') {
+            return getSQLExtensions();
+        }
+        return [];
+    }, [props.language]);
+
     return (
         <StyledCodeEditor
             $rawCss={css}
-            initialScript={script}
-            onChange={setScript}
+            initialValue={script}
+            onChange={onChange}
             style={style}
-            language={props.language}
+            extensions={extensions}
         />
     );
 }

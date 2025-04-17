@@ -15,3 +15,10 @@
  * limitations under the License.
  */
 export { default as CodeEditor } from './code-editor';
+export { argumentHints, closeArgumentsHintsTooltip } from './extensions/argument-hints';
+export { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
+export { getJSONExtensions } from './extensions/json';
+export { getMarkdownExtensions } from './extensions/markdown';
+export { getPythonExtensions } from './extensions/python';
+export { getSQLExtensions } from './extensions/sql';
+export * from './types';

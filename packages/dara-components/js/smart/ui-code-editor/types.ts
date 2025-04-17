@@ -1,4 +1,18 @@
+import { ContextType } from 'react';
 import type { CompletionItem, MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types';
+
+import { WebSocketCtx } from '@darajs/core';
+
+export type ErrorResponse = {
+    error_code: number;
+    error_message: string;
+};
+
+export function isErrorResponse(obj: any): obj is ErrorResponse {
+    return obj && obj.error_code && obj.error_message;
+}
+
+export const LSP_MESSAGE_KIND = 'lsp_message';
 
 type LspPayload =
     | { method: 'textDocument/definition'; params: { line: number; character: number } }
@@ -39,3 +53,5 @@ export type LspSignatureHelpResponse = {
     id: string;
     signature: SignatureHelp;
 };
+
+export type WsClient = Exclude<ContextType<typeof WebSocketCtx>['client'], undefined>;

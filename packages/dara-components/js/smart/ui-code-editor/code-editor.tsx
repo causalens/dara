@@ -12,15 +12,14 @@ import type { Range } from 'vscode-languageserver-types';
 
 import { WebSocketCtx } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
-import { useLatestCallback, useLatestRef, useOnClickOutside } from '@darajs/ui-utils';
+import { useFocusTinykeys, useLatestCallback, useLatestRef, useOnClickOutside } from '@darajs/ui-utils';
 
-import { useFocusTinykeys } from '../../hooks/use-tinykeys';
-import { argumentHints, closeArgumentsHintsTooltip } from '../extensions/argument-hints';
-import type { ThemeType } from '../extensions/shared';
-import { getDefaultExtensions, goToDefinitionExtension } from '../extensions/shared';
 import { useCodeMirrorContext } from './codemirror-context';
+import { argumentHints, closeArgumentsHintsTooltip } from './extensions/argument-hints';
+import { getLspCompletion, getLspDefinition, getLspInspection } from './extensions/lsp-utils';
+import type { ThemeType } from './extensions/shared';
+import { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
 import './index.css';
-import { getLspCompletion, getLspDefinition, getLspInspection } from './lsp-utils';
 import type { LSPDefinition, LspHoverResponse } from './types';
 import { EXTERNAL_UPDATE } from './utils';
 
@@ -60,7 +59,9 @@ function Tooltip({ content }: TooltipProps): JSX.Element {
 }
 
 export interface ConfigurableHotkeys {
-    hotkeyBindings?: { [key: string]: (e: KeyboardEvent, view: EditorView) => void };
+    hotkeyBindings?: {
+        [key: string]: (e: KeyboardEvent, view: EditorView) => void;
+    };
     focusMiddlewares?: (() => boolean)[];
     allowInputs?: boolean;
 }
@@ -164,7 +165,7 @@ export interface CodeEditorProps extends Omit<React.HTMLAttributes<HTMLDivElemen
 }
 
 // eslint-disable-next-line no-empty-function
-const noop = () => {};
+const noop = (): void => {};
 
 /**
  * Base CodeEditor component.
@@ -292,7 +293,7 @@ const CodeEditor: FunctionComponent<CodeEditorProps> = ({
                 enableLsp ?
                     [
                         // signature help
-                        signatureHelp!,
+                        signatureHelp,
                         // completion
                         autocompletion({
                             override: [(ctx) => getLspCompletion(client, ctx, uri)],
@@ -488,7 +489,11 @@ const CodeEditor: FunctionComponent<CodeEditorProps> = ({
                 if (viewRef.current.state.doc.toString() !== initialValue) {
                     viewRef.current.dispatch({
                         annotations: EXTERNAL_UPDATE.of(true),
-                        changes: { from: 0, insert: initialValue, to: viewRef.current.state.doc.length },
+                        changes: {
+                            from: 0,
+                            insert: initialValue,
+                            to: viewRef.current.state.doc.length,
+                        },
                         selection: { anchor: initialValue?.length ?? 0 },
                     });
                 }

@@ -53,6 +53,18 @@
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-json": "^6.0.0",
+    "@codemirror/lang-markdown": "^6.0.0",
+    "@codemirror/lang-python": "^6.0.0",
+    "@codemirror/lang-sql": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/search": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.0.0",
     "@darajs/core": "1.16.3",
     "@darajs/styled-components": "1.16.3",
     "@darajs/ui-causal-graph-editor": "1.16.3",
@@ -62,6 +74,7 @@
     "@darajs/ui-icons": "1.16.3",
     "@darajs/ui-utils": "1.16.3",
     "@popperjs/core": "2.4.0",
+    "@vscode/codicons": "0.0.36",
     "date-fns": "2.9.0",
     "immer": "^10.0.0",
     "lodash": "^4.17.21",
@@ -75,7 +88,8 @@
     "react-virtualized-auto-sizer": "1.0.6",
     "recoil": "^0.7.7",
     "rehype-raw": "^6.1.1",
-    "vfile": "6.0.1"
+    "vfile": "6.0.1",
+    "vscode-languageserver-types": "^3.17.5"
   },
   "files": [
     "dist"

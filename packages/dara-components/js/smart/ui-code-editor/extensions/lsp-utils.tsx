@@ -3,15 +3,14 @@ import { nanoid } from 'nanoid';
 import { type CompletionItem, CompletionItemKind, type SignatureHelp } from 'vscode-languageserver-types';
 
 import type {
-    ErrorResponse,
     LspCompletionResponse,
     LspDefinitionResponse,
     LspHoverResponse,
     LspMessage,
     LspSignatureHelpResponse,
     WsClient,
-} from './types';
-import { MessageKind, isErrorResponse } from './types';
+} from '../types';
+import { ErrorResponse, LSP_MESSAGE_KIND, isErrorResponse } from '../types';
 
 const LSP_CODEMIRROR_TYPE_MAP = Object.fromEntries(
     Object.entries(CompletionItemKind).map(([key, value]) => [value, key])
@@ -64,7 +63,7 @@ function lspCompletionToCodeMirror(completion: CompletionItem): Completion & {
  * @param chars - the set of characters to convert
  * @returns the RegExp character set string
  */
-function toSet(chars: Set<string>) {
+function toSet(chars: Set<string>): string {
     let preamble = '';
     let flat = Array.from(chars).join('');
 
@@ -99,7 +98,7 @@ function prefixMatch(options: Completion[]): RegExp {
 
     for (const { apply } of options) {
         const [initial, ...restStr] = apply as string;
-        first.add(initial!);
+        first.add(initial);
         for (const char of restStr) {
             rest.add(char);
         }
@@ -153,7 +152,7 @@ export async function getLspCompletion(
     }
 
     const msg = await client?.sendCustomMessage(
-        MessageKind.LspMessage,
+        LSP_MESSAGE_KIND,
         {
             method: 'textDocument/completion',
             id,
@@ -269,7 +268,7 @@ export async function getLspInspection(
 ): Promise<LspHoverResponse | null> {
     const id = nanoid();
     const msg = await client?.sendCustomMessage(
-        MessageKind.LspMessage,
+        LSP_MESSAGE_KIND,
         {
             method: 'textDocument/hover',
             id,
@@ -311,7 +310,7 @@ export async function getLspDefinition(
 ): Promise<LspDefinitionResponse | null> {
     const id = nanoid();
     const msg = await client.sendCustomMessage(
-        MessageKind.LspMessage,
+        LSP_MESSAGE_KIND,
         {
             method: 'textDocument/definition',
             id,
@@ -353,7 +352,7 @@ export async function getLspSignatureHelp(
 ): Promise<SignatureHelp | null> {
     const id = nanoid();
     const msg = await client.sendCustomMessage(
-        MessageKind.LspMessage,
+        LSP_MESSAGE_KIND,
         {
             method: 'textDocument/signatureHelp',
             id,
