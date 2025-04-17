@@ -26,4 +26,3 @@ export const useLatestCallback = <Args extends ReadonlyArray<unknown>, Return>(
 
     return stableCallback;
 };
-
