@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 export { default as UiCodeEditor } from './code-editor';
-export * from './code-editor';
 export { argumentHints, closeArgumentsHintsTooltip } from './extensions/argument-hints';
 export { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
 export { getJSONExtensions } from './extensions/json';
 export { getMarkdownExtensions } from './extensions/markdown';
 export { getPythonExtensions } from './extensions/python';
 export { getSQLExtensions } from './extensions/sql';
-export { getExtensionsForLang, LangsType } from './extensions/lang';
+export { getExtensionsForLang, type LangsType } from './extensions/lang';
+export * from './code-editor';
 export * from './codemirror-context';
 export * from './types';
