@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 
-import { CodeEditor as UICodeEditor } from './ui-code-editor';
+import { UiCodeEditor } from './ui-code-editor';
 import { LangsType, getExtensionsForLang } from './ui-code-editor/extensions/lang';
 
 interface CodeEditorProps extends StyledComponentProps {
@@ -11,7 +11,7 @@ interface CodeEditorProps extends StyledComponentProps {
     language?: LangsType;
 }
 
-const StyledCodeEditor = injectCss(UICodeEditor);
+const StyledCodeEditor = injectCss(UiCodeEditor);
 
 /**
  * A component that creates a CodeEditor. The script is stored in a variable and is updated
