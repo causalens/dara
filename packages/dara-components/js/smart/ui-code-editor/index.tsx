@@ -16,11 +16,12 @@
  */
 export { default as UiCodeEditor } from './code-editor';
 export { argumentHints, closeArgumentsHintsTooltip } from './extensions/argument-hints';
-export { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
+export { codeFoldingExtensions } from './extensions/code-folding';
 export { getJSONExtensions } from './extensions/json';
 export { getMarkdownExtensions } from './extensions/markdown';
 export { getPythonExtensions } from './extensions/python';
 export { getSQLExtensions } from './extensions/sql';
+export { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
 export { getExtensionsForLang, type LangsType } from './extensions/lang';
 export * from './code-editor';
 export * from './codemirror-context';

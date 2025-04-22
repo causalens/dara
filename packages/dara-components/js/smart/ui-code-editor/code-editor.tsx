@@ -73,7 +73,7 @@ export interface TooltipRenderProps {
     contents: LspHoverResponse['contents'];
 }
 
-type FocusState = 'soft' | 'hard';
+type FocusState = 'soft' | 'hard' | null;
 
 export interface CodeEditorProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'onBlur'> {
     /**
