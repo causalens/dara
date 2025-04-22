@@ -23,6 +23,7 @@ export { getPythonExtensions } from './extensions/python';
 export { getSQLExtensions } from './extensions/sql';
 export { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
 export { getExtensionsForLang, type LangsType } from './extensions/lang';
+export * from './extensions/lsp-utils';
 export * from './code-editor';
 export * from './codemirror-context';
 export * from './types';
