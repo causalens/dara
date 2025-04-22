@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added a new improved `UiCodeEditor` implementation into this package directly, superseding the old `@darajs/ui-code-editor` package
+
 ## 1.16.5
 
 -  Fixed `UploadDropzone` component `resolver` field type hinting.

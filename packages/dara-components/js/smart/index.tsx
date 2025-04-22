@@ -5,3 +5,4 @@ export { default as HierarchySelector } from './hierarchy-selector/hierarchy-sel
 export { default as HierarchyViewer } from './hierarchy-viewer/hierarchy-viewer';
 export { default as CodeEditor } from './code-editor';
 export { default as Chat } from './chat/chat';
+export * from './ui-code-editor';
