@@ -402,6 +402,13 @@ def _py_version_to_js(package_name: str) -> str:
     # Handle pre releases (a|b|c|rc|alpha|beta|pre|preview)
     if parsed_version.is_prerelease and parsed_version.pre is not None:
         pre_name, pre_version = parsed_version.pre
+
+        # js names created are full alpha/beta
+        if pre_name == 'a':
+            pre_name = 'alpha'
+        elif pre_name == 'b':
+            pre_name = 'beta'
+
         return f'{parsed_version.base_version}-{pre_name}.{pre_version}'
 
     # Handle dev releases (dev)

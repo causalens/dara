@@ -1,12 +1,17 @@
+import { ViewUpdate } from '@codemirror/view';
+import * as React from 'react';
+
 import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
-import { CodeEditor as UICodeEditor } from '@darajs/ui-code-editor';
+
+import { UiCodeEditor } from './ui-code-editor';
+import { LangsType, getExtensionsForLang } from './ui-code-editor/extensions/lang';
 
 interface CodeEditorProps extends StyledComponentProps {
     script: Variable<string>;
-    language?: 'json' | 'python' | 'markdown' | 'sql';
+    language?: LangsType;
 }
 
-const StyledCodeEditor = injectCss(UICodeEditor);
+const StyledCodeEditor = injectCss(UiCodeEditor);
 
 /**
  * A component that creates a CodeEditor. The script is stored in a variable and is updated
@@ -16,13 +21,24 @@ function CodeEditor(props: CodeEditorProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [script, setScript] = useVariable(props.script);
 
+    const onChange = React.useCallback(
+        (update: ViewUpdate) => {
+            if (update.docChanged) {
+                setScript(update.state.doc.toString());
+            }
+        },
+        [setScript]
+    );
+
+    const extensions = React.useMemo(() => getExtensionsForLang(props.language), [props.language]);
+
     return (
         <StyledCodeEditor
             $rawCss={css}
-            initialScript={script}
-            onChange={setScript}
+            initialValue={script}
+            onChange={onChange}
             style={style}
-            language={props.language}
+            extensions={extensions}
         />
     );
 }

@@ -5,6 +5,8 @@ import { linter } from '@codemirror/lint';
 import type { Extension } from '@codemirror/state';
 import { lineNumbers } from '@codemirror/view';
 
+import { codeFoldingExtensions } from './code-folding';
+
 /**
  * Get the extensions for JSON
  * Currently includes:
@@ -14,6 +16,7 @@ import { lineNumbers } from '@codemirror/view';
  * - linter
  * - bracketMatching
  * - closeBrackets
+ * - codeFoldingExtensions
  *
  * @returns - an array of extensions for JSON
  */
@@ -24,4 +27,5 @@ export const getJSONExtensions = (): Extension[] => [
     linter(jsonParseLinter()),
     bracketMatching(),
     closeBrackets(),
+    codeFoldingExtensions(),
 ];
