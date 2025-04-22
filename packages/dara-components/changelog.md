@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.6
 
 -  Added a new improved `UiCodeEditor` implementation into this package directly, superseding the old `@darajs/ui-code-editor` package.
 
