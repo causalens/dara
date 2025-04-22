@@ -4,14 +4,11 @@ import * as React from 'react';
 import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 
 import { CodeEditor as UICodeEditor } from './ui-code-editor';
-import { getJSONExtensions } from './ui-code-editor/extensions/json';
-import { getMarkdownExtensions } from './ui-code-editor/extensions/markdown';
-import { getPythonExtensions } from './ui-code-editor/extensions/python';
-import { getSQLExtensions } from './ui-code-editor/extensions/sql';
+import { LangsType, getExtensionsForLang } from './ui-code-editor/extensions/lang';
 
 interface CodeEditorProps extends StyledComponentProps {
     script: Variable<string>;
-    language?: 'json' | 'python' | 'markdown' | 'sql';
+    language?: LangsType;
 }
 
 const StyledCodeEditor = injectCss(UICodeEditor);
@@ -33,21 +30,7 @@ function CodeEditor(props: CodeEditorProps): JSX.Element {
         [setScript]
     );
 
-    const extensions = React.useMemo(() => {
-        if (props.language === 'json') {
-            return getJSONExtensions();
-        }
-        if (props.language === 'python') {
-            return getPythonExtensions();
-        }
-        if (props.language === 'markdown') {
-            return getMarkdownExtensions();
-        }
-        if (props.language === 'sql') {
-            return getSQLExtensions();
-        }
-        return [];
-    }, [props.language]);
+    const extensions = React.useMemo(() => getExtensionsForLang(props.language), [props.language]);
 
     return (
         <StyledCodeEditor

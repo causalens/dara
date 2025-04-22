@@ -168,10 +168,8 @@ const noop = (): void => {};
 
 /**
  * Base CodeEditor component.
- * Should not depend on studio-specific contexts or hooks as it will eventually be moved into Dara.
- * Studio-specific functionality should be implemented as extensions or configured via props, injected in StudioEditor.
  */
-const CodeEditor: FunctionComponent<CodeEditorProps> = ({
+const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
     className,
     uri,
     extensions,
@@ -558,4 +556,4 @@ const CodeEditor: FunctionComponent<CodeEditorProps> = ({
     );
 };
 
-export default CodeEditor;
+export default UiCodeEditor;
