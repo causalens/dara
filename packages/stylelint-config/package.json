@@ -1,6 +1,6 @@
 {
   "name": "@darajs/stylelint-config",
-  "version": "1.16.6-alpha.2",
+  "version": "1.16.6-alpha.3",
   "description": "Dara Stylelint configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "main": "index.json",
