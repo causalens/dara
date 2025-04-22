@@ -8,8 +8,6 @@ import { oneDarkHighlightStyle, oneDarkTheme } from '@codemirror/theme-one-dark'
 import type { DecorationSet, KeyBinding, MouseSelectionStyle } from '@codemirror/view';
 import { Decoration, EditorView, crosshairCursor, drawSelection, keymap, rectangularSelection } from '@codemirror/view';
 
-export type LangsType = 'json' | 'markdown' | 'python';
-export type NonPythonLangsType = Exclude<LangsType, 'python'>;
 export type ThemeType = 'light' | 'dark';
 
 /**
