@@ -33,21 +33,12 @@ interface DaraGlobals {
  *
  * @param importers - the importers object.
  */
-function run(
-    importers: {
-        [k: string]: () => Promise<any>;
-    },
-    baseUrl?: string
-): void {
+function run(importers: { [k: string]: () => Promise<any> }): void {
     const queryClient = new QueryClient();
-
-    window.dara = {
-        ...window.dara,
-        base_url: baseUrl ?? '',
-    };
 
     let basename = '';
 
+    // The base_url is set in the html template by the backend when returning it
     if (window.dara.base_url !== '') {
         basename = new URL(window.dara.base_url, window.origin).pathname;
     }

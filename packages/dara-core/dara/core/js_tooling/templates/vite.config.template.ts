@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    base: '/static/',
+    base: '',
     plugins: [
         react({
             jsxRuntime: 'classic',
@@ -15,6 +15,14 @@ export default defineConfig({
         manifest: true,
         rollupOptions: {
             input: './_entry.tsx',
+        },
+    },
+    experimental: {
+        renderBuiltUrl(filename, { hostType }) {
+            if (hostType !== 'css') {
+                return { runtime: `window.__toDaraUrl(${JSON.stringify(filename)})` };
+            }
+            return { relative: true };
         },
     },
     server: {

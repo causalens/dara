@@ -97,6 +97,8 @@ def _start_application(config: Configuration):
         jinja_templates = Jinja2Templates(directory=str((Path(BASE_DIR, 'jinja'))))
         jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
         jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
+        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.settings.STATIC_URL
+        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
         jinja_templates.env.globals['entry'] = '_entry.tsx'
 
         # If --enable-hmr or --reload enabled, set live reload to true
