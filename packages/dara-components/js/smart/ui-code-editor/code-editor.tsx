@@ -19,7 +19,6 @@ import { argumentHints, closeArgumentsHintsTooltip } from './extensions/argument
 import { getLspCompletion, getLspDefinition, getLspInspection } from './extensions/lsp-utils';
 import type { ThemeType } from './extensions/shared';
 import { getDefaultExtensions, goToDefinitionExtension } from './extensions/shared';
-import './index.css';
 import type { LSPDefinition, LspHoverResponse } from './types';
 import { EXTERNAL_UPDATE } from './utils';
 
