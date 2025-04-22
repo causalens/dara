@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-icons",
-  "version": "1.16.6-alpha.1",
+  "version": "1.16.6-alpha.2",
   "description": "Icons for the Dara UI framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -17,9 +17,9 @@
   "license": "Apache-2.0",
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.16.6-alpha.1",
-    "@darajs/prettier-config": "1.16.6-alpha.1",
-    "@darajs/stylelint-config": "1.16.6-alpha.1",
+    "@darajs/eslint-config": "1.16.6-alpha.2",
+    "@darajs/prettier-config": "1.16.6-alpha.2",
+    "@darajs/stylelint-config": "1.16.6-alpha.2",
     "@types/jest": "^25.2.3",
     "@types/react": "18.2.60",
     "@types/styled-components": "^5.1.26",
@@ -33,7 +33,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.16.6-alpha.1",
+    "@darajs/styled-components": "1.16.6-alpha.2",
     "@fortawesome/fontawesome-svg-core": "~6.4.0",
     "@fortawesome/free-brands-svg-icons": "~6.4.0",
     "@fortawesome/free-regular-svg-icons": "~6.4.0",
