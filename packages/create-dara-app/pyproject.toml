@@ -50,4 +50,3 @@ types-requests = "^2.28.1"
 
 [tool.poetry.scripts]
 create-dara-app = "create_dara_app.cli:cli"
-

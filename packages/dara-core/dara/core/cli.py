@@ -136,6 +136,10 @@ def start(
     # Ensure the base_url is set as an env var as well
     if base_url:
         os.environ['DARA_BASE_URL'] = base_url
+        os.environ['VITE_STATIC_URL'] = f'{base_url}/static/'
+    else:
+        # Needs to match where the static files are mounted at in the router
+        os.environ['VITE_STATIC_URL'] = '/static/'
 
     # Check that if production/dev mode is set, node is installed - unless we're in docker mode, or explicitly skipping jsbuild
     if not docker and not skip_jsbuild and (production or enable_hmr):
@@ -143,9 +147,6 @@ def start(
 
         if exit_code > 0:
             raise SystemError('NodeJS is required in production mode.')
-
-    # Needs to match where the static files are mounted at in the router
-    os.environ['STATIC_URL'] = '/static/'
 
     logging_config = os.path.join(LOG_CONFIG_PATH, 'logging.yaml')
 

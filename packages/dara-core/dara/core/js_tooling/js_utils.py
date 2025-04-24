@@ -634,10 +634,8 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
     for name, _ in importers_dict.items():
         importers_out += f'"{name}": () => Promise.resolve({name}),'
     importers_out = f'{importers_out[:-1]}}}'
-    start_script = (
-        entry_template_str.replace('$$importers$$', importers_out)
-        .replace('$$baseUrl$$', settings.dara_base_url)
-        .replace('$$extraJs$$', config.template_extra_js + '\n' + settings.dara_template_extra_js)
+    start_script = entry_template_str.replace('$$importers$$', importers_out).replace(
+        '$$extraJs$$', config.template_extra_js + '\n' + settings.dara_template_extra_js
     )
 
     package_tags: Dict[str, List[str]] = {
@@ -677,4 +675,4 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
         f'<link id="favicon" rel="icon" type="image/x-icon" href="{settings.dara_base_url}/static/favicon.ico"></link>'
     )
 
-    return html_template.replace('$$assets$$', '\n'.join(tags))
+    return html_template.replace('$$assets$$', '\n'.join(tags)).replace('$$baseUrl$$', settings.dara_base_url)

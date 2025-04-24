@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Update how base_urls are handled so that Dara apps with custom JS can be run behind a proxy.
+
+
 ## 1.16.4
 
 -   Fix a typo in `action.Ctx` typing

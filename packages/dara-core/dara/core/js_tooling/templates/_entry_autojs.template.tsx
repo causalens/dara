@@ -4,5 +4,5 @@
 window.onload = function () {
     $$extraJs$$;
 
-    dara.core['default']($$importers$$, '$$baseUrl$$');
+    dara.core['default']($$importers$$);
 };
