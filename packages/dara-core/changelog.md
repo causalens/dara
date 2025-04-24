@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.7
 
 -   Update how base_urls are handled so that Dara apps with custom JS can be run behind a proxy.
 
