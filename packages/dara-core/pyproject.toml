@@ -26,7 +26,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.16.7"
+version = "1.16.8"
 source = []
 
 [[tool.poetry.packages]]
@@ -67,11 +67,11 @@ pydantic-settings = "^2.8.1"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.16.7"
+version = "1.16.8"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.16.7"
+version = "1.16.8"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]

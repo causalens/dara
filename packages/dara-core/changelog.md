@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.8
 
 -   Fix a bug in static_url handling when running the local dev server.
 
