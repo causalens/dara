@@ -293,7 +293,8 @@ class BuildCache(BaseModel):
             'private': True,
             'version': '0.0.1',
             'main': 'dist/index.js',
-            'scripts': {'dev': 'vite', 'build': 'vite build'},
+            # --base needs to be set here due to the changes in how static urls are resolved
+            'scripts': {'dev': 'vite --base=http://localhost:3000/static/', 'build': 'vite build'},
             'overrides': {'react': '^18.2.0', 'react-dom': '^18.2.0'},
         }
 

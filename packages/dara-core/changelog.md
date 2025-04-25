@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix a bug in static_url handling when running the local dev server.
+
 ## 1.16.7
 
 -   Update how base_urls are handled so that Dara apps with custom JS can be run behind a proxy.
