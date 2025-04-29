@@ -213,7 +213,7 @@ else:
 
 def get_jsonable_encoder() -> Dict[Type[Any], Callable[..., Any]]:
     """
-    Get the encoder registry as a dict of {type: serialize} pairs
+    Get the encoder registry as a dict of `{type: serialize}` pairs
     """
     return {k: v['serialize'] for k, v in encoder_registry.items()}
 
