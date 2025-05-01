@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.9
 
 -   Bump minimum `h11` verson to `0.16.0` to fix security vulnerability
 
