@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.10
 
 -   Unlock the `python-multipart` dependency, is now `>=0.0.7`
 
