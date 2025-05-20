@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.11
 
 -   Fix an issue with base_url handling during redirection in the authentication flow
 
