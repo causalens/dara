@@ -123,7 +123,7 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
 /**
  * Resolve the referrer url to be passed back to login, adjusted for the base path.
  */
-export function resolve_referrer(): string {
+export function resolveReferrer(): string {
     if (!window.dara.base_url) {
         return encodeURIComponent(window.location.pathname + window.location.search);
     }
@@ -161,7 +161,7 @@ export async function handleAuthErrors(
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
-        const referrer = queryParams.get('referrer') ?? resolve_referrer();
+        const referrer = queryParams.get('referrer') ?? resolveReferrer();
 
         const path =
             toLogin || shouldRedirectToLogin(content.detail) ?

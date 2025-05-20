@@ -2,7 +2,7 @@
 import { ReactNode, useEffect } from 'react';
 import { Redirect } from 'react-router-dom';
 
-import { resolve_referrer } from '@/auth/auth';
+import { resolveReferrer } from '@/auth/auth';
 import { useSessionToken } from '@/auth/use-session-token';
 import DefaultFallback from '@/components/fallback/default';
 import useAction, { useActionIsLoading } from '@/shared/utils/use-action';
@@ -37,7 +37,7 @@ function PrivateRoute({ children, on_load, name }: PrivateRouteProps): ReactNode
     }, []);
 
     if (!token) {
-        const referrer = resolve_referrer();
+        const referrer = resolveReferrer();
         return (
             <Redirect
                 to={{

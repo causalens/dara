@@ -1,4 +1,4 @@
-import { resolve_referrer } from '@/auth/auth';
+import { resolveReferrer } from '@/auth/auth';
 
 describe('resolve_referrer', () => {
     let originalWindowLocation = window.location;
@@ -24,7 +24,7 @@ describe('resolve_referrer', () => {
             base_url: 'https://test.com/',
         };
 
-        expect(resolve_referrer()).toBe('%2Ftest%2Froute');
+        expect(resolveReferrer()).toBe('%2Ftest%2Froute');
     });
 
     it("should remove the path part of the base_url when it's set", () => {
@@ -32,6 +32,6 @@ describe('resolve_referrer', () => {
             base_url: 'https://test.com/test',
         };
 
-        expect(resolve_referrer()).toBe('%2Froute');
+        expect(resolveReferrer()).toBe('%2Froute');
     });
 });
