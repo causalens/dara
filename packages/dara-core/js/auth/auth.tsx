@@ -121,6 +121,28 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
 }
 
 /**
+ * Resolve the referrer url to be passed back to login, adjusted for the base path.
+ */
+export function resolveReferrer(): string {
+    if (!window.dara.base_url) {
+        return encodeURIComponent(window.location.pathname + window.location.search);
+    }
+
+    const base_url_path = new URL(window.dara.base_url).pathname;
+    const referrer = window.location.pathname;
+
+    // Remove the matching part of the base_url from the referrer.
+    let strippedReferrer = referrer.replace(base_url_path, '');
+
+    // If this has stripped the leading / then replace it
+    if (!strippedReferrer.startsWith('/')) {
+        strippedReferrer = `/${strippedReferrer}`;
+    }
+
+    return encodeURIComponent(strippedReferrer + window.location.search);
+}
+
+/**
  * Helper function to handle auth errors in a response
  *
  * @param res the response object to check
@@ -139,8 +161,7 @@ export async function handleAuthErrors(
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
-        const referrer =
-            queryParams.get('referrer') ?? encodeURIComponent(window.location.pathname + window.location.search);
+        const referrer = queryParams.get('referrer') ?? resolveReferrer();
 
         const path =
             toLogin || shouldRedirectToLogin(content.detail) ?
