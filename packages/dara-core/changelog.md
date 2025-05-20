@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-   Fix an issue with base_url handling during redirection in the authentication flow
+
 ## 1.16.10
 
 -   Unlock the `python-multipart` dependency, is now `>=0.0.7`
