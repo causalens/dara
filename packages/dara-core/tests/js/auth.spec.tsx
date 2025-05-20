@@ -1,7 +1,7 @@
 import { resolveReferrer } from '@/auth/auth';
 
 describe('resolve_referrer', () => {
-    let originalWindowLocation = window.location;
+    const originalWindowLocation = window.location;
 
     beforeEach(() => {
         Object.defineProperty(window, 'location', {
