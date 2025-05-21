@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.12
 
 -  Internal: re-export `@codemirror` packages to solve duplication of CM dependencies across UMD bundles
 
