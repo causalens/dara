@@ -28,3 +28,14 @@ export * from './code-editor';
 export * from './codemirror-context';
 export * from './types';
 export * from './utils';
+
+// Re-export CodeMirror modules to prevent duplication in other packages
+export * as CMState from '@codemirror/state';
+export * as CMView from '@codemirror/view';
+export * as CMAutoComplete from '@codemirror/autocomplete';
+export * as CMLanguage from '@codemirror/language';
+export * as CMSearch from '@codemirror/search';
+export * as CMCommands from '@codemirror/commands';
+export * as CMLint from '@codemirror/lint';
+export * as CMLangMarkdown from '@codemirror/lang-markdown';
+export * as CMLangJson from '@codemirror/lang-json';
