@@ -271,7 +271,7 @@ class BackendStore(PersistenceStore):
             raise ValueError('BackendStore uid must be unique') from e
 
     @property
-    def ws_mgr(self) -> WebsocketManager:
+    def ws_mgr(self) -> 'WebsocketManager':
         from dara.core.internal.registries import utils_registry
 
         return utils_registry.get('WebsocketManager')
@@ -314,7 +314,15 @@ class BackendStore(PersistenceStore):
         """
         if self.scope == 'global':
             return await self._notify_global(value)
-        return await self._notify_user(self.scope, value)
+
+        # For user scope, we need to find channels for the user and notify them
+        user = USER.get()
+
+        if not user:
+            return
+
+        user_identifier = user.identity_id or user.identity_name
+        return await self._notify_user(user_identifier, value)
 
     async def init(self, variable: 'Variable'):
         """

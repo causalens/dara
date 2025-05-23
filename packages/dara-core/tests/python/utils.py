@@ -1,8 +1,10 @@
 import datetime
+import inspect
 import json
 from contextlib import asynccontextmanager
 from typing import (
     Any,
+    Awaitable,
     Callable,
     Dict,
     List,
@@ -12,17 +14,17 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypedDict
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import anyio
-from dara.core.base_definitions import ActionImpl, AnnotatedAction
 import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.websocket import WebSocketSession
+from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO
+from dara.core.base_definitions import ActionImpl, AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
@@ -298,7 +300,7 @@ async def wait_for(callback: Callable[[], WaitForResult], timeout: float = 1) ->
     return callback()
 
 
-async def wait_assert(condition: Callable[[], bool], timeout: float = 1):
+async def wait_assert(condition: Callable[[], bool | Awaitable[bool]], timeout: float = 1):
     """
     Wait for assertion to be true.
     Retries the assertion until succeeds or timeout is passed.
@@ -311,13 +313,20 @@ async def wait_assert(condition: Callable[[], bool], timeout: float = 1):
 
             try:
                 # Quit once condition is true
-                if condition():
+                result = condition()
+                if inspect.iscoroutine(result):
+                    result = await result
+
+                if result:
                     return
             except AssertionError:
                 continue
 
     # Once timeout passed, assert condition must be true
-    assert condition() == True
+    result = condition()
+    if inspect.iscoroutine(result):
+        result = await result
+    assert result == True
 
 
 async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict]:
