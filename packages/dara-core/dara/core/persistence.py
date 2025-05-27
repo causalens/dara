@@ -184,12 +184,17 @@ class BackendStore(PersistenceStore):
     uid: str = Field(default_factory=lambda: str(uuid4()))
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
     scope: Literal['global', 'user'] = 'global'
+    readonly: bool = False
 
     default_value: Any = Field(default=None, exclude=True)
     initialized_scopes: Set[str] = Field(default_factory=set, exclude=True)
 
     def __init__(
-        self, backend: Optional[PersistenceBackend] = None, uid: Optional[str] = None, scope: Optional[str] = None
+        self,
+        backend: Optional[PersistenceBackend] = None,
+        uid: Optional[str] = None,
+        scope: Optional[str] = None,
+        readonly: bool = False,
     ):
         """
         Persistence store implementation that uses a backend implementation to store data server-side
@@ -208,6 +213,9 @@ class BackendStore(PersistenceStore):
 
         if scope:
             kwargs['scope'] = scope
+
+        if readonly:
+            kwargs['readonly'] = readonly
 
         super().__init__(**kwargs)
 
@@ -350,6 +358,9 @@ class BackendStore(PersistenceStore):
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
         """
+        if self.readonly:
+            raise ValueError('Cannot write to a read-only store')
+
         key = await self._get_key()
 
         if notify:
@@ -379,6 +390,9 @@ class BackendStore(PersistenceStore):
 
         :param notify: whether to broadcast that the value was deleted to clients
         """
+        if self.readonly:
+            raise ValueError('Cannot delete from a read-only store')
+
         key = await self._get_key()
         if notify:
             # Schedule notification on delete

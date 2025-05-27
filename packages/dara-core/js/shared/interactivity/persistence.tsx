@@ -1,6 +1,6 @@
 import { mixed } from '@recoiljs/refine';
 import * as React from 'react';
-import { AtomEffect } from 'recoil';
+import { AtomEffect, DefaultValue } from 'recoil';
 import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
@@ -125,6 +125,19 @@ function backendStoreEffect<T>(
         itemKey: variable.store.uid,
         refine: mixed(),
         storeKey: 'BackendStore',
+        write({ write }, newValue) {
+            // If store is read-only, do not write - this is a no-op
+            if (variable.store.readonly) {
+                return;
+            }
+
+            // skip writing default values
+            if (newValue instanceof DefaultValue) {
+                return;
+            }
+
+            write(variable.store.uid, newValue);
+        },
     });
 }
 
