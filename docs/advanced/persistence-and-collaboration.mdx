@@ -108,7 +108,7 @@ collab_variable = Variable(
 )
 ```
 
-You can also choose to provide a custom backend implementation as long as it extends the `dara.core.persistence.PersistenceBackend` class.
+You can also choose to provide a custom backend implementation as long as it extends the `dara.core.persistence.PersistenceBackend` class. This is useful to e.g. use a database or other backend-data as a source of truth and expose it to the client. In particular, you might find the `subscribe` method on a `PersistenceBackend` helpful - it can be implemented to subscribe to changes in the backend data and update the variable accordingly. Make sure to use the `readonly` flag on the `BackendStore` if your backend does not support writing.
 
 
 
