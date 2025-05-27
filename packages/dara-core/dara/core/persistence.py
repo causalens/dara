@@ -64,7 +64,6 @@ class PersistenceBackend(BaseModel, abc.ABC):
         Subscribe to changes in the backend. Called with a callback that should be invoked whenever a value is updated.
         """
         # Default implementation does nothing, not all backends need to support this
-        pass
 
 
 class InMemoryBackend(PersistenceBackend):
@@ -249,7 +248,7 @@ class BackendStore(PersistenceStore):
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
-    def _get_user(self, key: str) -> str | None:
+    def _get_user(self, key: str) -> Optional[str]:
         """
         Get the user for a given key. Returns None if the key is global.
         Reverts the `_get_key` method to get the user for a given key.
