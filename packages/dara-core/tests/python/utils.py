@@ -24,7 +24,7 @@ from async_asgi_testclient.websocket import WebSocketSession
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import ActionImpl, AnnotatedAction
+from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
@@ -300,7 +300,7 @@ async def wait_for(callback: Callable[[], WaitForResult], timeout: float = 1) ->
     return callback()
 
 
-async def wait_assert(condition: Callable[[], bool | Awaitable[bool]], timeout: float = 1):
+async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], timeout: float = 1):
     """
     Wait for assertion to be true.
     Retries the assertion until succeeds or timeout is passed.
