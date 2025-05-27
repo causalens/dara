@@ -178,6 +178,7 @@ class BackendStore(PersistenceStore):
     :param backend: the backend to use for storing data; defaults to an in-memory backend
     :param scope: the scope for the store; if 'global' a single value is stored for all users,
         if 'user' a value is stored per user
+    :param readonly: whether to use the backend in read-only mode, i.e. skip syncing values from client to backend and raise if write()/delete() is called
     """
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
@@ -202,6 +203,7 @@ class BackendStore(PersistenceStore):
         :param backend: the backend to use for storing data; defaults to an in-memory backend
         :param scope: the scope for the store; if 'global' a single value is stored for all users,
             if 'user' a value is stored per user
+        :param readonly: whether to use the backend in read-only mode, i.e. skip syncing values from client to backend and raise if write()/delete() is called
         """
         kwargs: Dict[str, Any] = {}
         if backend:
