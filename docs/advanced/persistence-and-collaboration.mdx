@@ -110,6 +110,45 @@ collab_variable = Variable(
 
 You can also choose to provide a custom backend implementation as long as it extends the `dara.core.persistence.PersistenceBackend` class. This is useful to e.g. use a database or other backend-data as a source of truth and expose it to the client. In particular, you might find the `subscribe` method on a `PersistenceBackend` helpful - it can be implemented to subscribe to changes in the backend data and update the variable accordingly. Make sure to use the `readonly` flag on the `BackendStore` if your backend does not support writing.
 
+```python
+from dara.core import action
+from dara.core.persistence import BackendStore, PersistenceBackend
+from dara.core.variables import Variable
+
+from dara.components import Button, Stack
+
+DB: MyDatabase
+
+class MyBackend(PersistenceBackend):
+    def read(self, key: str) -> Any:
+        # Read from the DB
+        return DB.query("SELECT ...")
+
+    def write(self, key: str, value: Any) -> None:
+        raise NotImplementedError("Writing to the backend is not supported")
+
+    def subscribe(self, callback: Callable[[Any], None]) -> None:
+        # assume there is a way to subscribe to changes in the DB
+        DB.subscribe("data_updated", callback)
+
+    # ... other methods omitted for brevity
+
+store = BackendStore(MyBackend(), readonly=True)
+variable = Variable(store=store)
+
+@action
+async def update_data():
+    # Update the data directly in the backend
+    await DB.update("UPDATE ...")
+    # Assuming this triggers a notification back from the DB into MyBackend, this will send a notification to the open clients
+    await DB.notify("data_updated")
+
+Stack(
+    # displays the data from the backend
+    display_data(variable),
+    Button("Update data", onclick=update_data())
+)
+```
 
 
 
