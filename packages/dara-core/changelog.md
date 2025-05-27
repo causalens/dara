@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.13
 
 -  Add a new `subscribe` method to base `PersistenceBackend` for `BackendStore`s to allow for the storage layer to trigger updates
 -  Added a `readonly` flag to `BackendStore` to mark the storage layer to be read-only and skip writing to the backend

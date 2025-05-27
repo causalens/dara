@@ -1,6 +1,6 @@
 {
   "name": "@darajs/eslint-config",
-  "version": "1.16.12",
+  "version": "1.16.13",
   "description": "Dara ESLint configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
@@ -10,7 +10,7 @@
   ],
   "prettier": "@darajs/prettier-config",
   "dependencies": {
-    "@darajs/prettier-config": "1.16.12",
+    "@darajs/prettier-config": "1.16.13",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.1",
     "eslint": "^8.57.1",
