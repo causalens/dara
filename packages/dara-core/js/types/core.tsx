@@ -77,6 +77,8 @@ export interface PersistenceStore {
 export interface BackendStore extends PersistenceStore {
     __typename: 'BackendStore';
     uid: string;
+    scope: 'global' | 'user';
+    readonly: boolean;
 }
 
 export interface SingleVariable<T = any, TStore extends PersistenceStore = never> {

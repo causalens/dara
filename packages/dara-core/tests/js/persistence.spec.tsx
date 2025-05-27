@@ -176,6 +176,86 @@ describe('Variable Persistence', () => {
         expect(result.current[0]).toEqual({ foo: 'baz' });
     });
 
+    test('variable with readonly BackendStore does not send request on update', async () => {
+        // Mock endpoint to retrieve store value
+        server.use(
+            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+                return res(
+                    ctx.json({
+                        foo: 'bar',
+                    })
+                );
+            })
+        );
+
+        const onSave = jest.fn();
+
+        // Mock endpoint to save store value
+        server.use(
+            rest.post('/api/core/store', (req, res, ctx) => {
+                onSave(req.body);
+                return res(ctx.json({}));
+            })
+        );
+
+        // first one is readonly
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'store-uid',
+                        readonly: true,
+                    },
+                    uid: 'session-test-1',
+                } as SingleVariable<any, BackendStore>),
+            { wrapper: Wrapper }
+        );
+
+        const { result: result2 } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: 'foo',
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'store-uid-2',
+                    },
+                    uid: 'session-test-2',
+                } as SingleVariable<any, BackendStore>),
+            { wrapper: Wrapper }
+        );
+
+        await waitFor(() => {
+            expect(result.current).not.toBeNull();
+            expect(result2.current).not.toBeNull();
+        });
+
+        // update both
+        act(() => {
+            result.current[1]({ foo: 'new1' });
+            result2.current[1]({ foo: 'new2' });
+        });
+
+        await waitFor(() => {
+            // check each request has the correct extras depending on the context
+            expect(onSave).toHaveBeenCalledWith({
+                values: { 'store-uid-2': { foo: 'new2' } },
+                ws_channel: expect.any(String),
+            });
+            // not called for the readonly store
+            expect(onSave).toHaveBeenCalledTimes(1);
+        });
+
+        // Check that the value is updated for both
+        expect(result.current[0]).toEqual({ foo: 'new1' });
+        expect(result2.current[0]).toEqual({ foo: 'new2' });
+    });
+
     test('variable with BackendStore sends separate request for different extras context', async () => {
         // Mock endpoint to retrieve store value
         server.use(

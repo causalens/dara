@@ -1,17 +1,25 @@
 import inspect
 import json
 import tempfile
+from typing import Any, Awaitable, Callable, Dict, Set
 from unittest.mock import AsyncMock, call
 
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.websocket import WS_CHANNEL
-from dara.core.persistence import BackendStore, FileBackend, InMemoryBackend
+from dara.core.persistence import (
+    BackendStore,
+    FileBackend,
+    InMemoryBackend,
+    PersistenceBackend,
+)
+
+from tests.python.utils import wait_assert, wait_for
 
 pytestmark = pytest.mark.anyio
 
@@ -271,7 +279,9 @@ async def test_notify_on_write(backend_store, mock_ws_mgr):
     # Write a value and check if _notify was called
     await backend_store.write('test_value')
 
-    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': 'test_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_called_once_with(
+        {'store_uid': backend_store.uid, 'value': 'test_value'}, ignore_channel=None
+    )
 
 
 async def test_notify_on_delete(backend_store, mock_ws_mgr):
@@ -330,6 +340,7 @@ async def test_file_backend_existing_value_not_overwritten():
 
         backend = FileBackend(path=tmpfile.name)
         variable = Variable(default='default_value', store=BackendStore(backend=backend, uid='my_var'))
+        assert isinstance(variable.store, BackendStore)
 
         # read value, ensure it's as existed in the file rather than default
         assert await variable.store.read() == 'value1'
@@ -351,6 +362,148 @@ async def test_file_backend_user_scope_existing_value_not_overwritten():
 
         backend = FileBackend(path=tmpfile.name)
         variable = Variable(default='default_value', store=BackendStore(backend=backend, uid='my_var', scope='user'))
+        assert isinstance(variable.store, BackendStore)
 
         # read value, ensure it's as existed in the file rather than default
         assert await variable.store.read() == 'value1'
+
+
+class CustomBackend(PersistenceBackend):
+    """
+    Custom backend implementation that supports subscriptions
+    """
+
+    data: Dict[str, Any] = Field(default_factory=dict)
+    subscribers: list[Callable[[str, Any], Awaitable[None]]] = Field(default_factory=list, exclude=True)
+
+    async def has(self, key: str) -> bool:
+        return key in self.data
+
+    async def write(self, key: str, value: Any):
+        self.data[key] = value
+        # Notify subscribers
+        for callback in self.subscribers:
+            await callback(key, value)
+
+    async def read(self, key: str):
+        return self.data.get(key)
+
+    async def delete(self, key: str):
+        if key in self.data:
+            del self.data[key]
+            # Notify subscribers with None value
+            for callback in self.subscribers:
+                await callback(key, None)
+
+    async def get_all(self):
+        return self.data.copy()
+
+    async def subscribe(self, on_value: Callable[[str, Any], Awaitable[None]]):
+        """
+        Subscribe to changes in the backend
+        """
+        # Subscribe to all keys
+        self.subscribers.append(on_value)
+
+    async def trigger_external_change(self, key: str, value: Any):
+        """
+        Simulate an external change to the data
+        """
+        self.data[key] = value
+        for callback in self.subscribers:
+            await callback(key, value)
+
+
+@pytest.fixture
+def custom_backend():
+    return CustomBackend()
+
+
+async def test_backend_subscribe_global(custom_backend, mock_ws_mgr):
+    """
+    Test that BackendStore can subscribe to changes in a global-scoped backend
+    """
+    # Create a store with the custom backend
+    store = BackendStore(backend=custom_backend, uid='test_store')
+
+    # Initialize the store with a variable
+    Variable(default='default_value', store=store)
+
+    # Verify the store now contains the default value
+    await wait_for(store.read)
+    assert await store.read() == 'default_value', 'The store should be initialized with the default value.'
+
+    # Simulate an external change to the data
+    await custom_backend.trigger_external_change('global', 'external_value')
+
+    # Verify the notification was sent
+    mock_ws_mgr.broadcast.assert_called_with({'store_uid': store.uid, 'value': 'external_value'}, ignore_channel=None)
+
+
+async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
+    """
+    Test that BackendStore can subscribe to changes in a user-scoped backend
+    """
+    USER.set(USER_1)
+
+    # Create a store with the custom backend
+    store = BackendStore(backend=custom_backend, uid='test_store', scope='user')
+
+    # Initialize the store with a variable
+    Variable(default='default_value', store=store)
+
+    # Verify the store now contains the default value
+    await wait_for(store.read)
+    assert await store.read() == 'default_value'
+
+    mock_ws_mgr.send_message_to_user.reset_mock()
+
+    # Simulate an external change to the data for USER_1
+    await custom_backend.trigger_external_change(USER_1.identity_id, 'external_value_1')
+
+    # Verify the notification was sent to USER_1
+    mock_ws_mgr.send_message_to_user.assert_called_with(
+        USER_1.identity_id, {'store_uid': store.uid, 'value': 'external_value_1'}, ignore_channel=None
+    )
+    assert mock_ws_mgr.send_message_to_user.call_count == 1
+
+    # Change to USER_2
+    USER.set(USER_2)
+
+    # Reset mock to clear previous calls
+    mock_ws_mgr.send_message_to_user.reset_mock()
+
+    # Simulate an external change to the data for USER_2
+    await custom_backend.trigger_external_change(USER_2.identity_id, 'external_value_2')
+
+    # Verify the notification was sent to USER_2
+    mock_ws_mgr.send_message_to_user.assert_called_with(
+        USER_2.identity_id, {'store_uid': store.uid, 'value': 'external_value_2'}, ignore_channel=None
+    )
+    assert mock_ws_mgr.send_message_to_user.call_count == 1
+
+
+async def test_backend_subscribe_multiple_stores(custom_backend, mock_ws_mgr):
+    """
+    Test that multiple stores can subscribe to the same backend
+    """
+    # Create two stores with the same backend
+    store1 = BackendStore(backend=custom_backend, uid='test_store_1')
+    store2 = BackendStore(backend=custom_backend, uid='test_store_2')
+
+    # Initialize both stores
+    Variable(default='default_value', store=store1)
+    Variable(default='default_value', store=store2)
+    await wait_for(store1.read)
+    await wait_for(store2.read)
+
+    # Reset mock to clear initialization calls
+    mock_ws_mgr.broadcast.reset_mock()
+
+    # Simulate an external change to the data
+    await custom_backend.trigger_external_change('global', 'external_value')
+
+    # Verify both stores received notifications
+    assert mock_ws_mgr.broadcast.call_count == 2
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value'}, ignore_channel=None)

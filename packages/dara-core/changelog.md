@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Add a new `subscribe` method to base `PersistenceBackend` for `BackendStore`s to allow for the storage layer to trigger updates
+-  Added a `readonly` flag to `BackendStore` to mark the storage layer to be read-only and skip writing to the backend
+
 ## 1.16.11
 
 -   Fix an issue with base_url handling during redirection in the authentication flow

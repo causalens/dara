@@ -1,7 +1,7 @@
 import abc
 import json
 import os
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Set
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Literal, Optional, Set
 from uuid import uuid4
 
 import aiorwlock
@@ -21,13 +21,12 @@ from dara.core.internal.websocket import WS_CHANNEL
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
+    from dara.core.internal.websocket import WebsocketManager
 
 
 class PersistenceBackend(BaseModel, abc.ABC):
     """
-    Abstract base class for a BackendStore backend
-
-    Warning: the API is not stable yet and may change in the future
+    Abstract base class for a BackendStore backend.
     """
 
     @abc.abstractmethod
@@ -59,6 +58,12 @@ class PersistenceBackend(BaseModel, abc.ABC):
         """
         Get all the values as a dictionary of key-value pairs
         """
+
+    async def subscribe(self, on_value: Callable[[str, Any], Awaitable[None]]):
+        """
+        Subscribe to changes in the backend. Called with a callback that should be invoked whenever a value is updated.
+        """
+        # Default implementation does nothing, not all backends need to support this
 
 
 class InMemoryBackend(PersistenceBackend):
@@ -173,17 +178,23 @@ class BackendStore(PersistenceStore):
     :param backend: the backend to use for storing data; defaults to an in-memory backend
     :param scope: the scope for the store; if 'global' a single value is stored for all users,
         if 'user' a value is stored per user
+    :param readonly: whether to use the backend in read-only mode, i.e. skip syncing values from client to backend and raise if write()/delete() is called
     """
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
     scope: Literal['global', 'user'] = 'global'
+    readonly: bool = False
 
     default_value: Any = Field(default=None, exclude=True)
     initialized_scopes: Set[str] = Field(default_factory=set, exclude=True)
 
     def __init__(
-        self, backend: Optional[PersistenceBackend] = None, uid: Optional[str] = None, scope: Optional[str] = None
+        self,
+        backend: Optional[PersistenceBackend] = None,
+        uid: Optional[str] = None,
+        scope: Optional[str] = None,
+        readonly: bool = False,
     ):
         """
         Persistence store implementation that uses a backend implementation to store data server-side
@@ -192,6 +203,7 @@ class BackendStore(PersistenceStore):
         :param backend: the backend to use for storing data; defaults to an in-memory backend
         :param scope: the scope for the store; if 'global' a single value is stored for all users,
             if 'user' a value is stored per user
+        :param readonly: whether to use the backend in read-only mode, i.e. skip syncing values from client to backend and raise if write()/delete() is called
         """
         kwargs: Dict[str, Any] = {}
         if backend:
@@ -202,6 +214,9 @@ class BackendStore(PersistenceStore):
 
         if scope:
             kwargs['scope'] = scope
+
+        if readonly:
+            kwargs['readonly'] = readonly
 
         super().__init__(**kwargs)
 
@@ -235,6 +250,17 @@ class BackendStore(PersistenceStore):
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
+    def _get_user(self, key: str) -> Optional[str]:
+        """
+        Get the user for a given key. Returns None if the key is global.
+        Reverts the `_get_key` method to get the user for a given key.
+        """
+        if key == 'global':
+            return None
+
+        # otherwise key is a user identity_id or identity_name
+        return key
+
     def _register(self):
         """
         Register this store in the backend store registry.
@@ -253,20 +279,50 @@ class BackendStore(PersistenceStore):
         except ValueError as e:
             raise ValueError('BackendStore uid must be unique') from e
 
-    async def _notify(self, value: Any):
+    @property
+    def ws_mgr(self) -> 'WebsocketManager':
+        from dara.core.internal.registries import utils_registry
+
+        return utils_registry.get('WebsocketManager')
+
+    def _create_msg(self, value: Any) -> Dict[str, Any]:
         """
-        Notify all clients about the new value for this store
+        Create a message to send to the frontend.
+        :param value: value to send
+        """
+        return {'store_uid': self.uid, 'value': value}
+
+    async def _notify_user(self, user_identifier: str, value: Any):
+        """
+        Notify a given user about the new value for this store.
+        :param user_identifier: user to notify
+        :param value: value to notify about
+        """
+        return await self.ws_mgr.send_message_to_user(
+            user_identifier,
+            self._create_msg(value),
+            ignore_channel=WS_CHANNEL.get(),
+        )
+
+    async def _notify_global(self, value: Any):
+        """
+        Notify all users about the new value for this store.
+        :param value: value to notify about
+        """
+        return await self.ws_mgr.broadcast(
+            self._create_msg(value),
+            ignore_channel=WS_CHANNEL.get(),
+        )
+
+    async def _notify_value(self, value: Any):
+        """
+        Notify all clients about the new value for this store.
+        Broadcasts to all users if scope is global or sends to the current user if scope is user.
 
         :param value: value to notify about
         """
-        from dara.core.internal.registries import utils_registry
-        from dara.core.internal.websocket import WebsocketManager
-
-        ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-        msg = {'store_uid': self.uid, 'value': value}
-
         if self.scope == 'global':
-            return await ws_mgr.broadcast(msg, ignore_channel=WS_CHANNEL.get())
+            return await self._notify_global(value)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -275,7 +331,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await ws_mgr.send_message_to_user(user_identifier, msg, ignore_channel=WS_CHANNEL.get())
+        return await self._notify_user(user_identifier, value)
 
     async def init(self, variable: 'Variable'):
         """
@@ -285,6 +341,13 @@ class BackendStore(PersistenceStore):
         """
         self._register()
         self.default_value = variable.default
+
+        async def _on_value(key: str, value: Any):
+            if user := self._get_user(key):
+                return await self._notify_user(user, value)
+            return await self._notify_global(value)
+
+        await self.backend.subscribe(_on_value)
 
     async def write(self, value: Any, notify=True):
         """
@@ -296,10 +359,13 @@ class BackendStore(PersistenceStore):
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
         """
+        if self.readonly:
+            raise ValueError('Cannot write to a read-only store')
+
         key = await self._get_key()
 
         if notify:
-            await self._notify(value)
+            await self._notify_value(value)
 
         return await run_user_handler(self.backend.write, (key, value))
 
@@ -325,10 +391,13 @@ class BackendStore(PersistenceStore):
 
         :param notify: whether to broadcast that the value was deleted to clients
         """
+        if self.readonly:
+            raise ValueError('Cannot delete from a read-only store')
+
         key = await self._get_key()
         if notify:
             # Schedule notification on delete
-            await self._notify(None)
+            await self._notify_value(None)
         return await run_user_handler(self.backend.delete, (key,))
 
     async def get_all(self) -> Dict[str, Any]:
