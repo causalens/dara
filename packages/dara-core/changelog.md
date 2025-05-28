@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.14
 
 -  Fixed an issue where a `BackendStore` created within a `py_component` would not notify its creator about subscribed updates
 
