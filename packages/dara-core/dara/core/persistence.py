@@ -18,6 +18,7 @@ from pydantic import (
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WS_CHANNEL
+from dara.core.logging import dev_logger
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -264,7 +265,9 @@ class BackendStore(PersistenceStore):
     def _register(self):
         """
         Register this store in the backend store registry.
-        Raises ValueError if the uid is not unique, i.e. another store with the same uid already exists
+        Warns if the uid is not unique, i.e. another store with the same uid already exists.
+
+        :return: True if the store was registered, False if it was already registered previously
         """
         from dara.core.internal.registries import backend_store_registry
 
@@ -276,8 +279,10 @@ class BackendStore(PersistenceStore):
                     store=self,
                 ),
             )
-        except ValueError as e:
-            raise ValueError('BackendStore uid must be unique') from e
+            return True
+        except ValueError:
+            dev_logger.info(f'BackendStore with uid "{self.uid}" already exists, reusing the same instance')
+            return False
 
     @property
     def ws_mgr(self) -> 'WebsocketManager':
@@ -292,26 +297,30 @@ class BackendStore(PersistenceStore):
         """
         return {'store_uid': self.uid, 'value': value}
 
-    async def _notify_user(self, user_identifier: str, value: Any):
+    async def _notify_user(self, user_identifier: str, value: Any, ignore_current_channel: bool = True):
         """
         Notify a given user about the new value for this store.
+
         :param user_identifier: user to notify
         :param value: value to notify about
+        :param ignore_current_channel: if True, ignore the current websocket channel
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
             self._create_msg(value),
-            ignore_channel=WS_CHANNEL.get(),
+            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
-    async def _notify_global(self, value: Any):
+    async def _notify_global(self, value: Any, ignore_current_channel: bool = True):
         """
         Notify all users about the new value for this store.
+
         :param value: value to notify about
+        :param ignore_current_channel: if True, ignore the current websocket channel
         """
         return await self.ws_mgr.broadcast(
             self._create_msg(value),
-            ignore_channel=WS_CHANNEL.get(),
+            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
     async def _notify_value(self, value: Any):
@@ -339,15 +348,18 @@ class BackendStore(PersistenceStore):
 
         :param variable: the variable to initialize the store for
         """
-        self._register()
         self.default_value = variable.default
 
-        async def _on_value(key: str, value: Any):
-            if user := self._get_user(key):
-                return await self._notify_user(user, value)
-            return await self._notify_global(value)
+        # only if successfully registered, subscribe to the backend - this makes sure we do it once
+        if self._register():
 
-        await self.backend.subscribe(_on_value)
+            async def _on_value(key: str, value: Any):
+                # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
+                if user := self._get_user(key):
+                    return await self._notify_user(user, value, ignore_current_channel=False)
+                return await self._notify_global(value, ignore_current_channel=False)
+
+            await self.backend.subscribe(_on_value)
 
     async def write(self, value: Any, notify=True):
         """

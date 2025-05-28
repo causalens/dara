@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where a `BackendStore` created within a `py_component` would not notify its creator about subscribed updates
+
 ## 1.16.13
 
 -  Add a new `subscribe` method to base `PersistenceBackend` for `BackendStore`s to allow for the storage layer to trigger updates

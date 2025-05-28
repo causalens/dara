@@ -119,30 +119,6 @@ async def test_backend_store_serialization():
     assert 'backend' not in jsonable_encoder(store)
 
 
-async def test_backend_store_unique_uid():
-    # Creating stores without a uid should generate unique uids
-    store_1 = BackendStore()
-    store_2 = BackendStore()
-    assert store_1.uid != store_2.uid
-    # Both can be registered
-    store_1._register()
-    store_2._register()
-
-    # Creating stores with a uid should use the provided uid
-    store_3 = BackendStore(uid='my_uid')
-    store_4 = BackendStore(uid='my_uid')
-
-    store_3._register()
-
-    # Creating a store with a uid that already exists should raise a ValueError
-    with pytest.raises(ValueError):
-        store_4._register()
-
-    # Re-registering store with the same uid should raise a ValueError
-    with pytest.raises(ValueError):
-        store_1._register()
-
-
 async def test_write_and_read(backend_store):
     # Write a value
     await backend_store.write('test_value')
