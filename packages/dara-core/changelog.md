@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Bump minimum version of `pyjwt` to `2.3.0`
+
 ## 1.16.14
 
 -  Fixed an issue where a `BackendStore` created within a `py_component` would not notify its creator about subscribed updates
