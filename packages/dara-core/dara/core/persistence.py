@@ -280,8 +280,8 @@ class BackendStore(PersistenceStore):
                 ),
             )
             return True
-        except ValueError as e:
-            dev_logger.warning(f'BackendStore with uid "{self.uid}" already exists, reusing the same instance')
+        except ValueError:
+            dev_logger.info(f'BackendStore with uid "{self.uid}" already exists, reusing the same instance')
             return False
 
     @property
