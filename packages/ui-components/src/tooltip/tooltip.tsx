@@ -14,31 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as React from 'react';
 import {
-    useFloating,
-    autoUpdate,
-    offset,
-    flip,
-    shift,
-    useHover,
-    useFocus,
-    useClick,
-    useDismiss,
-    useRole,
-    useInteractions,
-    useMergeRefs,
-    FloatingPortal,
-    arrow,
     FloatingArrow,
+    FloatingPortal,
     type Placement,
     type ReferenceType,
+    arrow,
     autoPlacement,
+    autoUpdate,
+    flip,
+    offset,
+    shift,
+    useClick,
+    useDismiss,
+    useFloating,
+    useFocus,
+    useHover,
+    useInteractions,
+    useMergeRefs,
+    useRole,
 } from '@floating-ui/react';
-
-import styled, { useTheme } from '@darajs/styled-components';
+import * as React from 'react';
 import { Ref } from 'react';
 
+import styled, { useTheme } from '@darajs/styled-components';
 
 interface StylingProp {
     $hidden: boolean;
@@ -170,7 +169,7 @@ function Tooltip({
     });
 
     // Set up virtual element if getReferenceClientRect is provided
-    const {setReference} = refs;
+    const { setReference } = refs;
     React.useEffect(() => {
         if (getReferenceClientRect) {
             setReference({
@@ -203,34 +202,30 @@ function Tooltip({
         },
     });
 
-    const role = useRole(context, { 
-        role: 'tooltip' 
+    const role = useRole(context, {
+        role: 'tooltip',
     });
 
-    const { getReferenceProps, getFloatingProps } = useInteractions([
-        hover,
-        focus,
-        click,
-        dismiss,
-        role,
-    ]);
+    const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
 
     const isVisible = visible !== undefined ? visible : isOpen;
 
     // Always call useMergeRefs but conditionally use the result
-    const childRef = children && typeof children === 'object' && 'ref' in children ? children.ref as Ref<unknown> : null;
+    const childRef =
+        children && typeof children === 'object' && 'ref' in children ? (children.ref as Ref<unknown>) : null;
     const mergedRef = useMergeRefs([refs.setReference, childRef]);
 
     // Clone children and add reference props
-    const referenceElement = children ? (
-        React.cloneElement(
-            children,
-            getReferenceProps({
-                ref: mergedRef,
-                ...children.props,
-            })
-        )
-    ) : null;
+    const referenceElement =
+        children ?
+            React.cloneElement(
+                children,
+                getReferenceProps({
+                    ref: mergedRef,
+                    ...children.props,
+                })
+            )
+        :   null;
 
     // Determine portal container
     const portalContainer = React.useMemo(() => {
@@ -242,53 +237,50 @@ function Tooltip({
         }
         if (typeof appendTo === 'function') {
             const appendToFn = appendTo as (ref: Element) => Element;
-            return appendToFn(refs.reference.current as Element || document.body) as HTMLElement;
+            return appendToFn((refs.reference.current as Element) || document.body) as HTMLElement;
         }
         return appendTo as HTMLElement;
     }, [appendTo, refs.reference]);
 
-    const tooltipContent = isVisible && !disabled && !hidden && content ? (
-        <div
-            ref={refs.setFloating}
-            style={{
-                ...floatingStyles,
-                zIndex: 9998,
-                ...(interactive && { pointerEvents: 'auto' }),
-            }}
-            {...getFloatingProps()}
-        >
-            <TooltipWrapper
-                $hidden={false}
-                className={className}
-                style={style}
-                styling={styling}
-                data-placement={context.placement}
+    const tooltipContent =
+        isVisible && !disabled && !hidden && content ?
+            <div
+                ref={refs.setFloating}
+                style={{
+                    ...floatingStyles,
+                    zIndex: 9998,
+                    ...(interactive && { pointerEvents: 'auto' }),
+                }}
+                {...getFloatingProps()}
             >
-                {content}
-                <FloatingArrow
-                    ref={arrowRef}
-                    context={context}
-                    width={12}
-                    height={6}
-                    tipRadius={2}
-                    stroke={styling === 'default' ? theme.colors.grey5 : theme.colors.errorDown}
-                    strokeWidth={1}
-                    fill={styling === 'default' ? theme.colors.grey2 : theme.colors.error}
-                />
-            </TooltipWrapper>
-        </div>
-    ) : null;
+                <TooltipWrapper
+                    $hidden={false}
+                    className={className}
+                    style={style}
+                    styling={styling}
+                    data-placement={context.placement}
+                >
+                    {content}
+                    <FloatingArrow
+                        ref={arrowRef}
+                        context={context}
+                        width={12}
+                        height={6}
+                        tipRadius={2}
+                        stroke={styling === 'default' ? theme.colors.grey5 : theme.colors.errorDown}
+                        strokeWidth={1}
+                        fill={styling === 'default' ? theme.colors.grey2 : theme.colors.error}
+                    />
+                </TooltipWrapper>
+            </div>
+        :   null;
 
     return (
         <>
             {referenceElement}
-            {portalContainer ? (
-                <FloatingPortal root={portalContainer}>
-                    {tooltipContent}
-                </FloatingPortal>
-            ) : (
-                tooltipContent
-            )}
+            {portalContainer ?
+                <FloatingPortal root={portalContainer}>{tooltipContent}</FloatingPortal>
+            :   tooltipContent}
         </>
     );
 }

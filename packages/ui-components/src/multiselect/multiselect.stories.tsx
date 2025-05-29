@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 import { Meta } from '@storybook/react';
-import { useCallback, useMemo, useState } from 'react';
 import { isEqual } from 'lodash';
+import { useCallback, useMemo, useState } from 'react';
 
-import { default as MultiSelectComponent, MultiSelectProps } from './multiselect';
 import { Item } from '../types';
+import { default as MultiSelectComponent, MultiSelectProps } from './multiselect';
 
 export default {
     component: MultiSelectComponent,
@@ -94,7 +94,7 @@ export const MultiSelectTooltipShowcase = (): JSX.Element => (
                 size={1}
             />
         </div>
-        
+
         <div>
             <h3>MultiSelect with Short Error Message</h3>
             <MultiSelectComponent
@@ -106,7 +106,7 @@ export const MultiSelectTooltipShowcase = (): JSX.Element => (
                 size={1}
             />
         </div>
-        
+
         <div>
             <h3>MultiSelect with Long Error Message</h3>
             <MultiSelectComponent
@@ -118,7 +118,7 @@ export const MultiSelectTooltipShowcase = (): JSX.Element => (
                 size={1}
             />
         </div>
-        
+
         <div>
             <h3>Disabled MultiSelect with Error</h3>
             <MultiSelectComponent
@@ -140,13 +140,13 @@ export const MultiSelectTooltipShowcase = (): JSX.Element => (
  */
 export const ControlledMultiSelect = (): JSX.Element => {
     const [selectedValues, setSelectedValues] = useState<unknown[]>(['value 2', 'value 5']);
-    
+
     // Convert values to items, similar to getMultiselectItems function
     const getMultiselectItems = useCallback((values: unknown[], items: Item[]): Item[] => {
         if (!values) {
             return [];
         }
-        
+
         return items.reduce((acc: Item[], item: Item) => {
             const stringOfValues = values.map(String);
             if (stringOfValues.includes(String(item.value))) {
@@ -155,13 +155,17 @@ export const ControlledMultiSelect = (): JSX.Element => {
             return acc;
         }, []);
     }, []);
-    
+
     // Convert a value to an Item, similar to toItem function in Select
     const toItem = useCallback((val: unknown): Item | null => {
         // Type guard for primitive values to avoid "[object Object]" string conversion
-        const isPrimitive = (value: unknown): value is string | number | boolean | null | undefined => 
-            value === null || value === undefined || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
-        
+        const isPrimitive = (value: unknown): value is string | number | boolean | null | undefined =>
+            value === null ||
+            value === undefined ||
+            typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean';
+
         const matchingItem = sampleItems.find((item) => {
             if (isPrimitive(item.value) && isPrimitive(val)) {
                 return String(item.value) === String(val);
@@ -174,31 +178,34 @@ export const ControlledMultiSelect = (): JSX.Element => {
         // Return the item as an Item type with the value as the label, only for primitives
         return isPrimitive(val) ? { label: String(val), value: val } : null;
     }, []);
-    
+
     const selectedItems = useMemo(() => {
         const found = getMultiselectItems(selectedValues, sampleItems);
         const explicitValues = selectedValues.map(toItem).filter((item): item is Item => item !== null);
         return found.length > 0 ? found : explicitValues;
     }, [selectedValues, getMultiselectItems, toItem]);
-    
+
     // Filter out already selected items from the dropdown
     const availableItems = useMemo(() => {
         const selectedValueStrings = selectedValues.map(String);
-        return sampleItems.filter(item => !selectedValueStrings.includes(String(item.value)));
+        return sampleItems.filter((item) => !selectedValueStrings.includes(String(item.value)));
     }, [selectedValues]);
-    
-    const onSelect = useCallback((items: Item[]) => {
-        const currentSelection = items.map((item: Item) => item.value);
-        if (!isEqual(currentSelection, selectedValues)) {
-            setSelectedValues(currentSelection);
-            console.log('Selection changed:', currentSelection); // eslint-disable-line no-console
-        }
-    }, [selectedValues]);
-    
+
+    const onSelect = useCallback(
+        (items: Item[]) => {
+            const currentSelection = items.map((item: Item) => item.value);
+            if (!isEqual(currentSelection, selectedValues)) {
+                setSelectedValues(currentSelection);
+                console.log('Selection changed:', currentSelection); // eslint-disable-line no-console
+            }
+        },
+        [selectedValues]
+    );
+
     const onTermChange = useCallback((term: string) => {
         console.log('Search term changed:', term); // eslint-disable-line no-console
     }, []);
-    
+
     return (
         <div style={{ padding: '2rem' }}>
             <h3>Controlled MultiSelect (Dara-style)</h3>
@@ -214,24 +221,17 @@ export const ControlledMultiSelect = (): JSX.Element => {
                 size={1}
             />
             <div style={{ marginTop: '1rem' }}>
-                <button 
+                <button
                     type="button"
                     onClick={() => setSelectedValues(['value 1', 'value 3', 'value 7'])}
                     style={{ marginRight: '0.5rem' }}
                 >
                     Set to 1, 3, 7
                 </button>
-                <button 
-                    type="button"
-                    onClick={() => setSelectedValues([])}
-                    style={{ marginRight: '0.5rem' }}
-                >
+                <button type="button" onClick={() => setSelectedValues([])} style={{ marginRight: '0.5rem' }}>
                     Clear All
                 </button>
-                <button 
-                    type="button"
-                    onClick={() => setSelectedValues(['value 2', 'value 5', 'value 8', 'value 10'])}
-                >
+                <button type="button" onClick={() => setSelectedValues(['value 2', 'value 5', 'value 8', 'value 10'])}>
                     Set to 2, 5, 8, 10
                 </button>
             </div>
