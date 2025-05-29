@@ -471,7 +471,13 @@ function Table(props: TableProps): JSX.Element {
     );
 
     const extraDataCache = useRef<Record<string, DataRow>>({});
-    const { getItem, onItemsRendered, itemCount: totalCount } = useInfiniteLoader(fetchData);
+
+    const onError = useCallback((err: Error) => {
+        // eslint-disable-next-line no-console
+        console.error('[Table] error while fetching data', err);
+    }, []);
+
+    const { getItem, onItemsRendered, itemCount: totalCount } = useInfiniteLoader(fetchData, onError);
 
     /**
      * Returns a row by index
