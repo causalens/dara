@@ -105,7 +105,6 @@
     "react-dnd": "^14.0.5",
     "react-dnd-html5-backend": "^14.1.0",
     "svg-path-parser": "^1.1.0",
-    "tippy.js": "6.2.6",
     "use-immer": "^0.9.0",
     "vis-data": "^7.1.2",
     "vis-network": "^9.1.0"

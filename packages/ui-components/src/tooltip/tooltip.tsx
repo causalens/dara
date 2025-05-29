@@ -14,11 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Tippy from '@tippyjs/react/headless';
 import * as React from 'react';
-import { GetReferenceClientRect, Placement, followCursor as followCursorPlugin } from 'tippy.js';
+import {
+    useFloating,
+    autoUpdate,
+    offset,
+    flip,
+    shift,
+    useHover,
+    useFocus,
+    useClick,
+    useDismiss,
+    useRole,
+    useInteractions,
+    useMergeRefs,
+    FloatingPortal,
+    arrow,
+    FloatingArrow,
+    type Placement,
+    type ReferenceType,
+} from '@floating-ui/react';
 
-import styled from '@darajs/styled-components';
+import styled, { useTheme } from '@darajs/styled-components';
+
 
 interface StylingProp {
     $hidden: boolean;
@@ -50,107 +68,6 @@ const TooltipWrapper = styled.div<StylingProp>`
             `;
         }
     }};
-`;
-
-interface ArrowProps extends StylingProp {
-    $hidden: boolean;
-    placement: Placement;
-}
-
-const Arrow = styled.span<ArrowProps>`
-    position: absolute;
-
-    ${(props) => {
-        switch (props.placement) {
-            case 'top':
-                return 'bottom: 3px; left: -3px !important;';
-            case 'bottom':
-                return 'top: -5px;';
-            case 'left':
-                return 'right: 3px;';
-            case 'right':
-                return 'left: -5px;';
-            case 'top-start':
-            case 'top-end':
-                return 'bottom: 3px;';
-            case 'bottom-start':
-            case 'bottom-end':
-                return 'top: -5px;';
-            case 'left-start':
-            case 'left-end':
-                return 'right: 3px;';
-            case 'right-start':
-            case 'right-end':
-                return 'left: -5px;';
-            case 'auto':
-            case 'auto-start':
-            case 'auto-end':
-            default:
-                // Unsupported placement, hide the arrow
-                return 'display: none;';
-        }
-    }}
-
-    ${(props) => {
-        if (props.$hidden) {
-            return 'display: none;';
-        }
-    }}
-
-    &::before {
-        content: '';
-
-        position: absolute;
-
-        ${(props) => {
-            switch (props.placement) {
-                case 'top':
-                case 'top-start':
-                case 'top-end':
-                    return 'transform: rotate(45deg);';
-                case 'bottom':
-                case 'bottom-start':
-                case 'bottom-end':
-                    return 'transform: rotate(45deg);';
-                case 'left':
-                case 'left-start':
-                case 'left-end':
-                    return 'transform: rotate(135deg);';
-                case 'right':
-                case 'right-start':
-                case 'right-end':
-                    return 'transform: rotate(-45deg);';
-                case 'auto':
-                case 'auto-start':
-                case 'auto-end':
-                default:
-                    return 'display: none;';
-            }
-        }}
-
-        width: 0.5rem;
-        height: 0.5rem;
-
-        background: ${(props) => {
-            return props.styling === 'default' ? props.theme.colors.grey2 : props.theme.colors.error;
-        }};
-        ${(props) => {
-            if (props.placement === 'top') {
-                return `border-bottom: 1px solid ${
-                    props.styling === 'default' ? props.theme.colors.grey5 : props.theme.colors.errorDown
-                };
-                        border-right: 1px solid ${
-                            props.styling === 'default' ? props.theme.colors.grey5 : props.theme.colors.errorDown
-                        };`;
-            }
-            return `border-top: 1px solid ${
-                props.styling === 'default' ? props.theme.colors.grey5 : props.theme.colors.errorDown
-            };
-                        border-left: 1px solid ${
-                            props.styling === 'default' ? props.theme.colors.grey5 : props.theme.colors.errorDown
-                        };`;
-        }}
-    }
 `;
 
 export interface TooltipProps {
@@ -198,7 +115,7 @@ export interface TooltipProps {
  * @param props the props for the tooltip component
  */
 function Tooltip({
-    appendTo = document.body,
+    appendTo,
     getReferenceClientRect,
     children,
     className,
@@ -215,35 +132,171 @@ function Tooltip({
     delay = 0,
     onClickOutside = () => false,
 }: TooltipProps): JSX.Element {
-    return (
-        <Tippy
-            appendTo={appendTo}
-            arrow
-            delay={delay}
-            disabled={disabled}
-            followCursor={followCursor}
-            getReferenceClientRect={getReferenceClientRect}
-            hideOnClick={visible !== undefined ? undefined : hideOnClick}
-            interactive={interactive}
-            onClickOutside={onClickOutside}
-            placement={placement}
-            plugins={[followCursorPlugin]}
-            render={(attrs) => (
-                <TooltipWrapper $hidden={hidden} className={className} style={style} styling={styling} {...attrs}>
-                    {content}
-                    <Arrow
-                        $hidden={hidden}
-                        data-popper-arrow=""
-                        placement={attrs['data-placement']}
-                        styling={styling}
-                    />
-                </TooltipWrapper>
-            )}
-            visible={visible}
-            zIndex={9998}
+    const [isOpen, setIsOpen] = React.useState(false);
+    const arrowRef = React.useRef(null);
+    const theme = useTheme();
+
+    // Convert placement from Tippy format to floating-ui format
+    const getFloatingPlacement = (tooltipPlacement: string): Placement => {
+        const placementMap: Record<string, Placement> = {
+            'auto': 'bottom',
+            'top': 'top',
+            'bottom': 'bottom',
+            'left': 'left',
+            'right': 'right',
+        };
+        return placementMap[tooltipPlacement] || 'bottom';
+    };
+
+    // Handle delay prop (can be number or array)
+    const delayValue = React.useMemo(() => {
+        if (typeof delay === 'number') {
+            return { open: delay, close: delay };
+        }
+        if (Array.isArray(delay)) {
+            return { open: delay[0] || 0, close: delay[1] || 0 };
+        }
+        return { open: 0, close: 0 };
+    }, [delay]);
+
+    const middleware = React.useMemo(() => {
+        const middlewares = [
+            offset(8),
+            flip(),
+            shift({ padding: 8 }),
+            arrow({ element: arrowRef }),
+        ];
+
+        return middlewares;
+    }, []);
+
+    const { refs, floatingStyles, context } = useFloating({
+        open: visible !== undefined ? visible : isOpen,
+        onOpenChange: visible !== undefined ? undefined : setIsOpen,
+        placement: getFloatingPlacement(placement),
+        middleware,
+        whileElementsMounted: autoUpdate,
+    });
+
+    // Set up virtual element if getReferenceClientRect is provided
+    React.useEffect(() => {
+        if (getReferenceClientRect) {
+            refs.setReference({
+                getBoundingClientRect: getReferenceClientRect,
+            } as ReferenceType);
+        }
+    }, [getReferenceClientRect, refs]);
+
+    const hover = useHover(context, {
+        enabled: visible === undefined && !disabled,
+        delay: delayValue,
+        move: followCursor !== false,
+    });
+
+    const focus = useFocus(context, {
+        enabled: visible === undefined && !disabled,
+    });
+
+    const click = useClick(context, {
+        enabled: visible === undefined && !disabled && !hideOnClick,
+    });
+
+    const dismiss = useDismiss(context, {
+        enabled: !disabled,
+        outsidePress: (event) => {
+            if (onClickOutside) {
+                onClickOutside(context, event as Event);
+            }
+            return true;
+        },
+    });
+
+    const role = useRole(context, { 
+        role: 'tooltip' 
+    });
+
+    const { getReferenceProps, getFloatingProps } = useInteractions([
+        hover,
+        focus,
+        click,
+        dismiss,
+        role,
+    ]);
+
+    const isVisible = visible !== undefined ? visible : isOpen;
+
+    // Always call useMergeRefs but conditionally use the result
+    const mergedRef = useMergeRefs([refs.setReference, children ? (children as any).ref : null]);
+
+    // Clone children and add reference props
+    const referenceElement = children ? (
+        React.cloneElement(
+            children,
+            getReferenceProps({
+                ref: mergedRef,
+                ...children.props,
+            })
+        )
+    ) : null;
+
+    // Determine portal container
+    const portalContainer = React.useMemo(() => {
+        if (!appendTo) {
+            return document.body;
+        }
+        if (appendTo === 'parent') {
+            return undefined;
+        }
+        if (typeof appendTo === 'function') {
+            const appendToFn = appendTo as (ref: Element) => Element;
+            return appendToFn(refs.reference.current as Element || document.body) as HTMLElement;
+        }
+        return appendTo as HTMLElement;
+    }, [appendTo, refs.reference]);
+
+    const tooltipContent = isVisible && !disabled && !hidden && content ? (
+        <div
+            ref={refs.setFloating}
+            style={{
+                ...floatingStyles,
+                zIndex: 9998,
+                ...(interactive && { pointerEvents: 'auto' }),
+            }}
+            {...getFloatingProps()}
         >
-            {children}
-        </Tippy>
+            <TooltipWrapper
+                $hidden={false}
+                className={className}
+                style={style}
+                styling={styling}
+                data-placement={context.placement}
+            >
+                {content}
+                <FloatingArrow
+                    ref={arrowRef}
+                    context={context}
+                    width={12}
+                    height={6}
+                    tipRadius={2}
+                    stroke={styling === 'default' ? theme.colors.grey5 : theme.colors.errorDown}
+                    strokeWidth={1}
+                    fill={styling === 'default' ? theme.colors.grey2 : theme.colors.error}
+                />
+            </TooltipWrapper>
+        </div>
+    ) : null;
+
+    return (
+        <>
+            {referenceElement}
+            {portalContainer ? (
+                <FloatingPortal root={portalContainer}>
+                    {tooltipContent}
+                </FloatingPortal>
+            ) : (
+                tooltipContent
+            )}
+        </>
     );
 }
 

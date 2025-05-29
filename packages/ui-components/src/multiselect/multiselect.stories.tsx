@@ -80,6 +80,61 @@ MultiSelect.args = {
 } as MultiSelectProps;
 
 /**
+ * Multiple MultiSelects with different error states for tooltip testing
+ */
+export const MultiSelectTooltipShowcase = (): JSX.Element => (
+    <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div>
+            <h3>Normal MultiSelect (no error)</h3>
+            <MultiSelectComponent
+                items={sampleItems.slice(0, 5)}
+                placeholder="Normal multiselect..."
+                maxRows={2}
+                maxWidth="20rem"
+                size={1}
+            />
+        </div>
+        
+        <div>
+            <h3>MultiSelect with Short Error Message</h3>
+            <MultiSelectComponent
+                items={sampleItems.slice(0, 5)}
+                errorMsg="An error message"
+                placeholder="Hover to see error tooltip..."
+                maxRows={2}
+                maxWidth="20rem"
+                size={1}
+            />
+        </div>
+        
+        <div>
+            <h3>MultiSelect with Long Error Message</h3>
+            <MultiSelectComponent
+                items={sampleItems.slice(0, 5)}
+                errorMsg="This is a very long error message that should wrap nicely in the tooltip and demonstrate how the floating-ui tooltip handles longer content with proper positioning and styling"
+                placeholder="Hover for long error tooltip..."
+                maxRows={2}
+                maxWidth="20rem"
+                size={1}
+            />
+        </div>
+        
+        <div>
+            <h3>Disabled MultiSelect with Error</h3>
+            <MultiSelectComponent
+                items={sampleItems.slice(0, 5)}
+                errorMsg="Another error message"
+                placeholder="Disabled with error..."
+                disabled
+                maxRows={2}
+                maxWidth="20rem"
+                size={1}
+            />
+        </div>
+    </div>
+);
+
+/**
  * Controlled MultiSelect story that demonstrates the component in controlled mode,
  * similar to how the Dara Select component works with state management and callbacks.
  */
@@ -136,12 +191,12 @@ export const ControlledMultiSelect = (): JSX.Element => {
         const currentSelection = items.map((item: Item) => item.value);
         if (!isEqual(currentSelection, selectedValues)) {
             setSelectedValues(currentSelection);
-            console.log('Selection changed:', currentSelection);
+            console.log('Selection changed:', currentSelection); // eslint-disable-line no-console
         }
     }, [selectedValues]);
     
     const onTermChange = useCallback((term: string) => {
-        console.log('Search term changed:', term);
+        console.log('Search term changed:', term); // eslint-disable-line no-console
     }, []);
     
     return (
