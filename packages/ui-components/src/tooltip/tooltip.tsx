@@ -33,9 +33,11 @@ import {
     FloatingArrow,
     type Placement,
     type ReferenceType,
+    autoPlacement,
 } from '@floating-ui/react';
 
 import styled, { useTheme } from '@darajs/styled-components';
+import { Ref } from 'react';
 
 
 interface StylingProp {
@@ -86,7 +88,7 @@ export interface TooltipProps {
     /** Whether the tooltip should follow the mouse cursor; or control how it will be followed */
     followCursor?: boolean | 'horizontal' | 'vertical' | 'initial';
     /** Optional prop to use with a virtual element */
-    getReferenceClientRect?: GetReferenceClientRect;
+    getReferenceClientRect?: () => DOMRect;
     /** Optional parameter to determine whether to hide the tooltip wrapper */
     hidden?: boolean;
     /** Optional parameter to determine if the tooltip should be shown even when the children are clicked, by default
@@ -136,18 +138,6 @@ function Tooltip({
     const arrowRef = React.useRef(null);
     const theme = useTheme();
 
-    // Convert placement from Tippy format to floating-ui format
-    const getFloatingPlacement = (tooltipPlacement: string): Placement => {
-        const placementMap: Record<string, Placement> = {
-            'auto': 'bottom',
-            'top': 'top',
-            'bottom': 'bottom',
-            'left': 'left',
-            'right': 'right',
-        };
-        return placementMap[tooltipPlacement] || 'bottom';
-    };
-
     // Handle delay prop (can be number or array)
     const delayValue = React.useMemo(() => {
         if (typeof delay === 'number') {
@@ -162,30 +152,32 @@ function Tooltip({
     const middleware = React.useMemo(() => {
         const middlewares = [
             offset(8),
-            flip(),
+            placement === 'auto' ? autoPlacement() : flip(),
             shift({ padding: 8 }),
             arrow({ element: arrowRef }),
         ];
 
         return middlewares;
-    }, []);
+    }, [placement]);
 
     const { refs, floatingStyles, context } = useFloating({
         open: visible !== undefined ? visible : isOpen,
         onOpenChange: visible !== undefined ? undefined : setIsOpen,
-        placement: getFloatingPlacement(placement),
+        // Only specify placement if it's not 'auto' - let autoPlacement middleware handle 'auto'
+        placement: placement === 'auto' ? undefined : (placement as Placement),
         middleware,
         whileElementsMounted: autoUpdate,
     });
 
     // Set up virtual element if getReferenceClientRect is provided
+    const {setReference} = refs;
     React.useEffect(() => {
         if (getReferenceClientRect) {
-            refs.setReference({
+            setReference({
                 getBoundingClientRect: getReferenceClientRect,
             } as ReferenceType);
         }
-    }, [getReferenceClientRect, refs]);
+    }, [getReferenceClientRect, setReference]);
 
     const hover = useHover(context, {
         enabled: visible === undefined && !disabled,
@@ -226,7 +218,8 @@ function Tooltip({
     const isVisible = visible !== undefined ? visible : isOpen;
 
     // Always call useMergeRefs but conditionally use the result
-    const mergedRef = useMergeRefs([refs.setReference, children ? (children as any).ref : null]);
+    const childRef = children && typeof children === 'object' && 'ref' in children ? children.ref as Ref<unknown> : null;
+    const mergedRef = useMergeRefs([refs.setReference, childRef]);
 
     // Clone children and add reference props
     const referenceElement = children ? (
