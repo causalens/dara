@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type { GetReferenceClientRect } from 'tippy.js';
 
 import usePaneVisibility from './use-pane-visibility';
 
@@ -13,7 +12,7 @@ import usePaneVisibility from './use-pane-visibility';
  */
 export default function useGraphTooltip(
     pane: React.RefObject<HTMLElement>,
-    tooltipRef: React.MutableRefObject<GetReferenceClientRect>
+    tooltipRef: React.MutableRefObject<() => DOMRect>
 ): {
     setTooltipContent: (content: React.ReactNode) => void;
     tooltipContent: React.ReactNode;

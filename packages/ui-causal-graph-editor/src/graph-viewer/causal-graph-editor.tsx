@@ -18,7 +18,6 @@ import debounce from 'lodash/debounce';
 import noop from 'lodash/noop';
 import { useEffect, useMemo, useState } from 'react';
 import * as React from 'react';
-import type { GetReferenceClientRect } from 'tippy.js';
 
 import styled, { useTheme } from '@darajs/styled-components';
 import { Spinner, Tooltip } from '@darajs/ui-components';
@@ -473,7 +472,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
         }
     }
 
-    const tooltipRef = React.useRef<GetReferenceClientRect>(null);
+    const tooltipRef = React.useRef<() => DOMRect>(null);
     const { tooltipContent, setTooltipContent } = useGraphTooltip(paneRef, tooltipRef);
 
     // keep track of when a drag action is happening
@@ -499,15 +498,7 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
 
     useEngineEvent('nodeMouseover', (event, nodeId) => {
         const nodeAttributes = state.graph.getNodeAttributes(nodeId);
-        tooltipRef.current = () =>
-            ({
-                bottom: event.clientY,
-                height: 0,
-                left: event.clientX,
-                right: event.clientX,
-                top: event.clientY,
-                width: 0,
-            }) as DOMRect;
+        tooltipRef.current = () => new DOMRect(event?.clientX ?? 0, event?.clientY ?? 0, 0, 0);
 
         setTooltipContent(
             getTooltipContent(
@@ -544,28 +535,12 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
             props.tooltipSize
         );
 
-        tooltipRef.current = () =>
-            ({
-                bottom: event.clientY,
-                height: 0,
-                left: event.clientX,
-                right: event.clientX,
-                top: event.clientY,
-                width: 0,
-            }) as DOMRect;
+        tooltipRef.current = () => new DOMRect(event?.clientX ?? 0, event?.clientY ?? 0, 0, 0);
         setTooltipContent(edgeTooltipContent);
     });
 
     useEngineEvent('groupMouseover', (event, groupId) => {
-        tooltipRef.current = () =>
-            ({
-                bottom: event.clientY,
-                height: 0,
-                left: event.clientX,
-                right: event.clientX,
-                top: event.clientY,
-                width: 0,
-            }) as DOMRect;
+        tooltipRef.current = () => new DOMRect(event?.clientX ?? 0, event?.clientY ?? 0, 0, 0);
 
         setTooltipContent(getTooltipContent(groupId, '', theme));
     });

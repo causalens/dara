@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Migrated `Tooltip` component to use Floating UI instead of tippy.js.
+- Removed `tippy.js` dependency.
+
 ## 1.15.1
 
 - Fixed an issue where `NumericInput` would display a duplicate error message
