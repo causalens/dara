@@ -254,16 +254,14 @@ class DaraDevFormatter(logging.Formatter):
         'INFO': (Back.GREEN, Fore.GREEN),
         'WARNING': (Back.YELLOW, Fore.YELLOW),
     }
-    default_color = (Back.GREEN, Fore.GREEN),
-
-
+    default_color: tuple[str, str] = ((Back.GREEN, Fore.GREEN),)
 
     def format(self, record: logging.LogRecord):
+        colors = self._resolve_record_color(record)
         if isinstance(record.msg, dict):
             payload = {**record.msg}
             fmt_time = self.formatTime(record, self.datefmt)
             spacer = ' ' * 4
-            colors = self._resolve_record_color(record.levelname)
             base_msg = self.base_message_template % (
                 fmt_time,
                 colors[0],
@@ -306,7 +304,6 @@ class DaraDevFormatter(logging.Formatter):
                     description = self.extra_template % (spacer, f'Description: {payload["description"]}')
                 return base_msg + '\r\n' + file_details + description + content + '\r\n' + self.message_end
 
-        colors = self.level_to_color_map[record.levelname]
         return self.base_message_template % (
             self.formatTime(record, self.datefmt),
             colors[0],
@@ -320,14 +317,14 @@ class DaraDevFormatter(logging.Formatter):
         # If level is present explicitly, use that
         if level in self.level_to_color_map:
             return self.level_to_color_map[level]
-        
+
         level_map = logging.getLevelNamesMapping()
         # Check that level of record is valid
         level_num = level_map.get(level, None)
 
         if level_num is None:
             return self.default_color
-        
+
         # Otherwise, resolve based on predefined levels. Use the closest lower level.
         # For example, if `level_num` is 29, we will use `INFO` (which is 20). If `level_num` is 31, we will use `WARNING` (which is 30).
         all_levels = sorted(self.level_to_color_map.items(), reverse=True, key=lambda l: level_map[l[0]])
@@ -339,6 +336,7 @@ class DaraDevFormatter(logging.Formatter):
 
         # If for any reason, we couldn't resolve the color - return default color
         return self.default_color
+
 
 eng_logger = Logger('eng')
 """ Logger for engineers working on Dara itself, for debugging purposes.
