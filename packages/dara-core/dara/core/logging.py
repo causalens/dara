@@ -254,10 +254,10 @@ class DaraDevFormatter(logging.Formatter):
         'INFO': (Back.GREEN, Fore.GREEN),
         'WARNING': (Back.YELLOW, Fore.YELLOW),
     }
-    default_color: tuple[str, str] = (Back.GREEN, Fore.GREEN)
+    default_color = (Back.GREEN, Fore.GREEN)
 
     def format(self, record: logging.LogRecord):
-        colors = self.level_to_color_map.get(record, default=self.default_color)
+        colors = self.level_to_color_map.get(record.levelname, self.default_color)
         if isinstance(record.msg, dict):
             payload = {**record.msg}
             fmt_time = self.formatTime(record, self.datefmt)
