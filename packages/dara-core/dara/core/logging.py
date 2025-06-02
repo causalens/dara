@@ -254,13 +254,14 @@ class DaraDevFormatter(logging.Formatter):
         'INFO': (Back.GREEN, Fore.GREEN),
         'WARNING': (Back.YELLOW, Fore.YELLOW),
     }
+    default_color = (Back.GREEN, Fore.GREEN)
 
     def format(self, record: logging.LogRecord):
+        colors = self.level_to_color_map.get(record.levelname, self.default_color)
         if isinstance(record.msg, dict):
             payload = {**record.msg}
             fmt_time = self.formatTime(record, self.datefmt)
             spacer = ' ' * 4
-            colors = self.level_to_color_map[record.levelname]
             base_msg = self.base_message_template % (
                 fmt_time,
                 colors[0],
@@ -303,7 +304,6 @@ class DaraDevFormatter(logging.Formatter):
                     description = self.extra_template % (spacer, f'Description: {payload["description"]}')
                 return base_msg + '\r\n' + file_details + description + content + '\r\n' + self.message_end
 
-        colors = self.level_to_color_map[record.levelname]
         return self.base_message_template % (
             self.formatTime(record, self.datefmt),
             colors[0],
