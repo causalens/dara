@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.15
 
 - Migrated `Tooltip` component to use Floating UI instead of tippy.js.
 - Removed `tippy.js` dependency.

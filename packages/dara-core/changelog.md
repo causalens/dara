@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.15
 
 -  Bump minimum version of `pyjwt` to `2.3.0`
 -  Added support for custom logging in `DaraDevFormatter` by defaulting to `logging.INFO` colors for any undefined level.
