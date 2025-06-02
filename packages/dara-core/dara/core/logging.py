@@ -20,6 +20,7 @@ import logging
 import sys
 import time
 import traceback
+from logging import getLevelNamesMapping
 from typing import Any, Dict, Optional, Union
 
 import colorama
@@ -318,7 +319,7 @@ class DaraDevFormatter(logging.Formatter):
         if level in self.level_to_color_map:
             return self.level_to_color_map[level]
 
-        level_map = logging.getLevelNamesMapping()
+        level_map = getLevelNamesMapping()
         # Check that level of record is valid
         level_num = level_map.get(level, None)
 
