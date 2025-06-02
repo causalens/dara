@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Bump minimum version of `pyjwt` to `2.3.0`
+-  Added support for custom logging in `DaraDevFormatter`.
 
 ## 1.16.14
 

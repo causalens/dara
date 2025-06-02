@@ -254,7 +254,7 @@ class DaraDevFormatter(logging.Formatter):
         'INFO': (Back.GREEN, Fore.GREEN),
         'WARNING': (Back.YELLOW, Fore.YELLOW),
     }
-    default_color: tuple[str, str] = ((Back.GREEN, Fore.GREEN),)
+    default_color: tuple[str, str] = (Back.GREEN, Fore.GREEN)
 
     def format(self, record: logging.LogRecord):
         colors = self._resolve_record_color(record)
