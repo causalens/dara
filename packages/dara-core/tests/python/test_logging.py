@@ -16,13 +16,14 @@ def test_custom_level():
     args, exc_info, extra = (), None, None
     msg = 'Sample message'
 
+    # Always default to INFO
     record = logger.makeRecord(logger.name, HIGHER_INFO, fn, lno, msg, args, exc_info, func, extra, sinfo)
     colors = formatter._resolve_record_color(record)
     assert colors == (Back.GREEN, Fore.GREEN)
 
     record = logger.makeRecord(logger.name, HIGHER_WARNING, fn, lno, msg, args, exc_info, func, extra, sinfo)
     colors = formatter._resolve_record_color(record)
-    assert colors == (Back.YELLOW, Fore.YELLOW)
+    assert colors == (Back.GREEN, Fore.GREEN)
 
     record = logger.makeRecord(logger.name, logging.DEBUG, fn, lno, msg, args, exc_info, func, extra, sinfo)
     colors = formatter._resolve_record_color(record)

@@ -20,7 +20,6 @@ import logging
 import sys
 import time
 import traceback
-from logging import getLevelNamesMapping
 from typing import Any, Dict, Optional, Union
 
 import colorama
@@ -258,7 +257,7 @@ class DaraDevFormatter(logging.Formatter):
     default_color: tuple[str, str] = (Back.GREEN, Fore.GREEN)
 
     def format(self, record: logging.LogRecord):
-        colors = self._resolve_record_color(record)
+        colors = self.level_to_color_map.get(record, default=self.default_color)
         if isinstance(record.msg, dict):
             payload = {**record.msg}
             fmt_time = self.formatTime(record, self.datefmt)
@@ -312,31 +311,6 @@ class DaraDevFormatter(logging.Formatter):
             record.name,
             record.getMessage(),
         )
-
-    def _resolve_record_color(self, record: logging.LogRecord) -> tuple[str, str]:
-        level = record.levelname
-        # If level is present explicitly, use that
-        if level in self.level_to_color_map:
-            return self.level_to_color_map[level]
-
-        level_map = getLevelNamesMapping()
-        # Check that level of record is valid
-        level_num = level_map.get(level, None)
-
-        if level_num is None:
-            return self.default_color
-
-        # Otherwise, resolve based on predefined levels. Use the closest lower level.
-        # For example, if `level_num` is 29, we will use `INFO` (which is 20). If `level_num` is 31, we will use `WARNING` (which is 30).
-        all_levels = sorted(self.level_to_color_map.items(), reverse=True, key=lambda l: level_map[l[0]])
-
-        # Start from highest predefined level, and if it is lower or equal to `level_num`, use it.
-        for lvl, color in all_levels:
-            if level_map[lvl] <= level_num:
-                return color
-
-        # If for any reason, we couldn't resolve the color - return default color
-        return self.default_color
 
 
 eng_logger = Logger('eng')
