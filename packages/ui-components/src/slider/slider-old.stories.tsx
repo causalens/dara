@@ -18,11 +18,11 @@ import { Meta } from '@storybook/react';
 import * as React from 'react';
 import { useState } from 'react';
 
-import { BaseSliderProps, Slider as SliderComponent, CategoricalSlider as CategoricalSliderComponent } from './slider';
+import { BaseSliderProps, Slider as SliderComponent } from './slider-old';
 
 export default {
     component: SliderComponent,
-    title: 'UI Components/Slider',
+    title: 'UI Components/Slider Old',
 } as Meta;
 
 export const Slider = (args: BaseSliderProps<number>): JSX.Element => (
@@ -94,7 +94,7 @@ ControlledSlider.args = {
 };
 
 export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX.Element => {
-    const [domain, setDomain] = useState([1, 151]);
+    const [domain, setDomain] = useState<[number, number]>([1, 151]);
     const [step, setStep] = useState(1);
     const [value, setValue] = useState([102]);
 
@@ -124,19 +124,4 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
             <SliderComponent {...args} onChange={onChange} values={value} domain={domain} step={step} />
         </div>
     );
-};
-
-export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element => {
-    const initialValue = args.initialValue?.map((val) => args.domain.indexOf(val)) || [0];
-
-    return (
-        <div style={{ alignItems: 'center', display: 'flex', height: '100%' }}>
-            <CategoricalSliderComponent {...args} />
-        </div>
-    );
-};
-
-CategoricalSlider.args = {
-    domain: ['low', 'med', 'high'],
-    initialValue: ['med'],
 };

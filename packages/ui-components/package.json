@@ -82,6 +82,7 @@
     "polished": "3.6.4",
     "prism-react-renderer": "^1.2.0",
     "react": "^18.0",
+    "react-aria-components": "^1.9.0",
     "react-collapse": "^5.1.1",
     "react-compound-slider": "3.3.0",
     "react-datepicker": "4.8.0",

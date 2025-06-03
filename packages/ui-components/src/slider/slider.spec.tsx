@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 import { fireEvent, render } from '@testing-library/react';
+import * as React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { BaseSliderProps, Slider, computeStep } from './slider';
+import { BaseSliderProps, Slider, computeStep } from './slider-old';
 
 const domain: [number, number] = [0, 100];
 const initialValue = [20, 60];
