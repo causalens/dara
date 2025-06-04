@@ -81,7 +81,7 @@ const StyledSlider = styled(AriaSlider)`
     justify-content: center;
 
     width: 100%;
-    margin: 0 1rem;
+    padding: 0 1rem;
 `;
 
 const StyledSliderTrack = styled(SliderTrack)`
