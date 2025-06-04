@@ -68,25 +68,26 @@ const SliderWrapper = styled.div`
 `;
 
 const SliderInner = styled.div`
-    min-width: 0;
     position: relative;
     display: flex;
     width: 100%;
+    min-width: 0;
 `;
 
 const StyledSlider = styled(AriaSlider)`
+    overflow: hidden;
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;
+
     width: 100%;
     margin: 0 1rem;
 `;
 
 const StyledSliderTrack = styled(SliderTrack)`
+    cursor: pointer;
     width: 100%;
     height: 3rem;
-    cursor: pointer;
 
     &[data-focus-visible] {
         outline: 2px solid ${(props) => props.theme.colors.primary};
@@ -98,8 +99,10 @@ const SliderRail = styled.div`
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+
     width: 100%;
     height: 0.25rem;
+
     background-color: ${(props) => props.theme.colors.grey2};
     border-radius: 0.125rem;
 `;
@@ -109,14 +112,18 @@ interface HasTicksProp {
 }
 
 const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
+    cursor: pointer;
+
     position: absolute;
-    top: 50%;
     z-index: 2;
+    top: 50%;
+
     width: 1rem;
     height: 1rem;
+
     background-color: ${(props) => props.theme.colors.primary};
     border-radius: 50%;
-    cursor: pointer;
+
     transition: transform 0.2s ease;
 
     &[data-hovered] {
@@ -129,8 +136,8 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
     }
 
     &[data-disabled] {
-        opacity: 0.5;
         cursor: not-allowed;
+        opacity: 0.5;
     }
 `;
 
@@ -138,7 +145,9 @@ const Track = styled.div`
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+
     height: 0.25rem;
+
     background-color: ${(props) => props.theme.colors.primary};
     border-radius: 0.125rem;
 `;
@@ -146,8 +155,8 @@ const Track = styled.div`
 const TrackLabel = styled.span`
     position: absolute;
     z-index: 1;
-    color: ${(props) => props.theme.colors.grey6};
     transform: translateX(-50%);
+    color: ${(props) => props.theme.colors.grey6};
 `;
 
 const SliderTicks = styled.div`
@@ -166,14 +175,18 @@ const Tick = styled.span<TickProps>`
 
     &${(props) => (props.showLine ? '' : ':not(:first-child):not(:last-child)')}::before {
         content: '';
+
         position: fixed;
         z-index: 1;
         left: 50%;
         transform: translateX(-50%);
+
         display: block;
+
         width: 0.125rem;
         height: 0.125rem;
         margin-top: -0.685rem;
+
         background-color: ${(props) => props.theme.colors.grey3};
         border-radius: 50%;
     }
@@ -181,10 +194,11 @@ const Tick = styled.span<TickProps>`
 
 const SwapButton = styled(Button).attrs({ styling: 'plain' })`
     flex-shrink: 0;
+
     width: min-content;
     height: min-content;
-    padding: 0 0.25rem;
     margin-top: 0.3rem;
+    padding: 0 0.25rem;
 
     svg {
         cursor: pointer;

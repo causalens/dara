@@ -22,11 +22,13 @@ import styled from '@darajs/styled-components';
 import NumericInput from '../numeric-input/numeric-input';
 
 const InputList = styled.div`
-    flex: 1;
     position: relative;
-    display: flex;
-    gap: 0.25rem;
+
     overflow-x: auto;
+    display: flex;
+    flex: 1;
+    gap: 0.25rem;
+
     min-width: 0;
 `;
 
@@ -66,7 +68,9 @@ const SliderInputField: FunctionComponent<SliderInputsProps> = ({ getErrorMsg, t
                     <InputWrapper key={index}>
                         <NumericInput
                             errorMsg={getErrorMsg(value, index, state.values)}
-                            onChange={(val) => state.setThumbValue(index, val)}
+                            onChange={(val) => {
+                                state.setThumbValue(index, val);
+                            }}
                             value={value}
                             stepper
                             stepSkip={state.step}

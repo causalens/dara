@@ -18,7 +18,7 @@ import { Meta } from '@storybook/react';
 import * as React from 'react';
 import { useState } from 'react';
 
-import { BaseSliderProps, Slider as SliderComponent, CategoricalSlider as CategoricalSliderComponent } from './slider';
+import { BaseSliderProps, CategoricalSlider as CategoricalSliderComponent, Slider as SliderComponent } from './slider';
 
 export default {
     component: SliderComponent,
@@ -67,7 +67,7 @@ SliderMultiThumb.args = {
     trackToStart: false,
     trackToEnd: false,
 
-    thumbLabels: ['min', 'max']
+    thumbLabels: ['min', 'max'],
 };
 
 export const ControlledSlider = (args: BaseSliderProps<number>): JSX.Element => {
@@ -118,7 +118,7 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
     return (
         <div>
             <button onClick={() => changeDomain()} type="button">
-            Change Domain to 197
+                Change Domain to 197
             </button>
             <button onClick={() => resetDomain()} type="button">
                 Reset Domain to 1,151
@@ -129,7 +129,6 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
 };
 
 export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element => {
-
     return (
         <div style={{ alignItems: 'center', display: 'flex', height: '100%' }}>
             <CategoricalSliderComponent {...args} />
@@ -149,7 +148,6 @@ MultipleThumbs.args = {
     initialValue: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
 
     step: 0.1,
-
 };
 
 export const TrackLabels = Slider.bind({});
@@ -169,4 +167,11 @@ SmallDecimals.args = {
 
     initialValue: [0.004],
     step: 0.002,
+};
+
+export const NegativeValues = Slider.bind({});
+NegativeValues.args = {
+    domain: [-100, 100],
+
+    initialValue: [20, 60],
 };

@@ -819,6 +819,9 @@ importers:
       '@fortawesome/react-fontawesome':
         specifier: ^0.2.0
         version: 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
+      d3-array:
+        specifier: ^3.2.4
+        version: 3.2.4
       date-fns:
         specifier: 2.9.0
         version: 2.9.0
@@ -940,6 +943,9 @@ importers:
       '@testing-library/user-event':
         specifier: ^13.2.1
         version: 13.5.0(@testing-library/dom@9.3.4)
+      '@types/d3-array':
+        specifier: ^3.2.1
+        version: 3.2.1
       '@types/jest':
         specifier: ^27.0.0
         version: 27.5.2
@@ -4244,6 +4250,9 @@ packages:
 
   '@types/d3-array@2.12.7':
     resolution: {integrity: sha512-SVvxzxRVnIgtJbNTj5ZVJ9CZkVOANCpW0nQbRi7EOU5Q9G+JQQjXD2SCpr1OYCX09b3Yr7o0+CBofZAgU42rbQ==}
+
+  '@types/d3-array@3.2.1':
+    resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
 
   '@types/d3-axis@2.1.6':
     resolution: {integrity: sha512-X/CazlQun7XcSbRhaxwr605neUIGiUeURvsOGAIdvH1nD6o25pzkdxPNe7XcTKyRJeShlubjsUEG9tNeZZdRaQ==}
@@ -17803,6 +17812,8 @@ snapshots:
   '@types/cytoscape@3.21.8': {}
 
   '@types/d3-array@2.12.7': {}
+
+  '@types/d3-array@3.2.1': {}
 
   '@types/d3-axis@2.1.6':
     dependencies:
