@@ -53,13 +53,9 @@ export function computeStep(difference: number): number {
  * @param value value to map
  * @param step current step
  */
-function mapToClosestStep(value: number, step: number): number {
-    // this has to be rounded as otherwise we could get floating point errors
-    const stepsNumber = parseFloat((value / step).toFixed(1));
-
-    const mappedRaw = Math.floor(stepsNumber) * step;
-    const fractionDigits = Math.abs(Math.floor(Math.log10(step)));
-    return parseFloat(mappedRaw.toFixed(fractionDigits));
+function mapToClosestStep(value: number, step: number, domain: [min: number, max: number]): number {
+    const stepsNumber = Math.round((value - domain[0]) / step);
+    return domain[0] + stepsNumber * step;
 }
 
 const SliderWrapper = styled.div`
@@ -214,9 +210,9 @@ const SwapButton = styled(Button).attrs({ styling: 'plain' })`
  */
 function getTickTransform(idx: number, length: number): string {
     if (idx === 0) {
-        return 'translateX(-0.7rem)';
+        return 'translateX(0.7rem)';
     }
-    return idx === length - 1 ? 'translateX(-100%) translateX(0.7rem)' : 'translateX(-50%)';
+    return idx === length - 1 ? 'translateX(-100%) translateX(-0.7rem)' : 'translateX(-50%)';
 }
 
 /**
@@ -246,14 +242,14 @@ function correctValues(values: number[], domain: [number, number], step: number)
     return values.map((value) => {
         // First clamp to domain
         const clampedValue = Math.max(domain[0], Math.min(domain[1], value));
+
         // Then snap to nearest step
-        return mapToClosestStep(clampedValue, step);
+        return mapToClosestStep(clampedValue, step, domain);
     });
 }
 
 /**
  * Hook to handle value correction when domain/step changes.
- * Watches for changes to domain/step and calls onChange with corrected values to let parent components know.
  *
  * @param values - the values to correct
  * @param domain - the domain of the slider
@@ -357,7 +353,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
     // Handle controlled/uncontrolled mode
     const defaultValue = useMemo(() => {
-        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep)) || [domain[0]];
+        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) || [domain[0]];
         return initial.length === 1 ? initial[0] : initial;
     }, [initialValue, adjustedStep, domain]);
 
