@@ -1,5 +1,4 @@
 import _debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 import { useCallback, useMemo, useState } from 'react';
 
 import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
