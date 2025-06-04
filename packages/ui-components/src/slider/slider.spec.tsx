@@ -33,17 +33,6 @@ function RenderNumericSlider(props: BaseSliderProps<number>): JSX.Element {
 }
 
 describe('Numeric Slider Test', () => {
-    beforeEach(() => {
-        // IntersectionObserver isn't available in test environment
-        const mockIntersectionObserver = jest.fn();
-        mockIntersectionObserver.mockReturnValue({
-            disconnect: () => null,
-            observe: () => null,
-            unobserve: () => null,
-        });
-        window.IntersectionObserver = mockIntersectionObserver;
-    });
-
     it('should display correctly', () => {
         const { getByRole, getByTestId, getAllByTestId } = render(
             <RenderNumericSlider domain={domain} initialValue={initialValue} />

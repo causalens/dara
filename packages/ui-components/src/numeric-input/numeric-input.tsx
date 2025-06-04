@@ -175,21 +175,27 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
         const [input, setInput] = useState(getInitialValue(value, initialValue));
 
         const step = (v: number): void => {
+            let currentInput = input;
+
             if (!input || input === '-') {
-                return;
+                currentInput = props.min ? String(props.min) : '0';
             }
 
-            const isFloat = input.includes('.');
-            const parsedValue = isFloat ? parseFloat(input) : parseInt(input);
+            const parsedValue = parseFloat(currentInput) || 0;
+            const nextValueNumber = parsedValue + v;
+            // Determine appropriate decimal places for formatting
+            let nextValueStr: string;
+            const inputHasDecimals = currentInput.includes('.');
+            const stepHasDecimals = v % 1 !== 0;
 
-            let nextValueNumber = parsedValue + v;
-            let nextValueStr = String(nextValueNumber);
-            if (isFloat) {
-                const decimals = input.split('.')[1];
-                if (decimals) {
-                    nextValueStr = (parsedValue + v / 10 ** decimals.length).toFixed(decimals.length);
-                    nextValueNumber = parseFloat(nextValueStr);
-                }
+            if (inputHasDecimals || stepHasDecimals) {
+                // Preserve reasonable precision
+                const inputDecimals = inputHasDecimals ? currentInput.split('.')[1]?.length || 0 : 0;
+                const stepDecimals = stepHasDecimals ? v.toString().split('.')[1]?.length || 0 : 0;
+                const maxDecimals = Math.max(inputDecimals, stepDecimals);
+                nextValueStr = nextValueNumber.toFixed(maxDecimals);
+            } else {
+                nextValueStr = String(nextValueNumber);
             }
 
             // controlled

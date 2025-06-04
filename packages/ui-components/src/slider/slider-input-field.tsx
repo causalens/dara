@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2023 Impulse Innovations Limited
  *
@@ -15,117 +14,68 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { FunctionComponent, useCallback, useRef } from 'react';
+import { FunctionComponent, useContext } from 'react';
+import { SliderStateContext } from 'react-aria-components';
 
 import styled from '@darajs/styled-components';
-import { useIntersectionObserver } from '@darajs/ui-utils';
 
 import NumericInput from '../numeric-input/numeric-input';
 
-interface InputWrapperProps {
-    firstInputVisible: boolean;
-    lastInputVisible: boolean;
-}
-
-const InputWrapper = styled.div<InputWrapperProps>`
+const InputList = styled.div`
+    flex: 1;
     position: relative;
     display: flex;
-    flex: 1 1 auto;
-    height: 3rem;
+    gap: 0.25rem;
+    overflow-x: auto;
+    min-width: 0;
+`;
 
-    div {
-        flex: 1 1 auto;
-    }
+const InputWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+`;
 
-    input {
-        height: 100%;
-
-        ::before {
-            content: ' ';
-
-            position: sticky;
-            top: 0;
-            left: 0;
-
-            width: ${(props) => (!props.firstInputVisible ? '8px' : 0)};
-            height: 2.5rem;
-        }
-
-        ::after {
-            content: '';
-
-            position: sticky;
-            top: 0;
-            right: 0;
-
-            width: ${(props) => (!props.lastInputVisible ? '8px' : 0)};
-            height: 2.5rem;
-        }
-    }
+const InputLabel = styled.span`
+    font-size: 0.825rem;
+    color: ${(props) => props.theme.colors.grey4};
 `;
 
 interface SliderInputsProps {
-    /** The domain defines the range of possible values that the slider can take */
-    domain: [number, number];
     /** The error message callback for inputs when value is out of domain range */
-    getErrorMsg: (value: number, index: number) => string;
-    /** Slider Values state setter */
-    setSliderValues: React.Dispatch<React.SetStateAction<number[]>>;
-    /** Slider Values */
-    sliderValues: number[];
+    getErrorMsg: (value: number, index: number, currentValues: number[]) => string;
+    /** An optional set of labels to display for the thumbs */
+    thumbLabels?: string[];
 }
 
 /**
  * The SliderInputs component displays the actual input values of the slider in a horizontal scrollable view
  * that can be edited and have the changes reflected on the slider.
- *
- * @param {SliderInputsProps} props - the props for the component
  */
-const SliderInputField: FunctionComponent<SliderInputsProps> = ({
-    getErrorMsg,
-    sliderValues,
-    setSliderValues,
-    domain,
-}): JSX.Element => {
-    const firstInputRef = useRef();
-    const lastInputRef = useRef();
+const SliderInputField: FunctionComponent<SliderInputsProps> = ({ getErrorMsg, thumbLabels }): JSX.Element => {
+    const state = useContext(SliderStateContext);
 
-    const firstInputVisible = useIntersectionObserver(firstInputRef, '0px', 0.5);
-    const lastInputVisible = useIntersectionObserver(lastInputRef, '0px', 0.5);
-
-    const onInputChange = useCallback(
-        (value: number, index: number): void => {
-            setSliderValues((currSliderValues) => {
-                const updatedValues = [...currSliderValues];
-                updatedValues[index] = Number.isNaN(value) ? domain[0] : value;
-                return updatedValues;
-            });
-        },
-        [domain, setSliderValues]
-    );
+    if (!state) {
+        throw new Error('SliderStateContext is not available, SliderInputField must be used within a Slider component');
+    }
 
     return (
-        <InputWrapper firstInputVisible={firstInputVisible} lastInputVisible={lastInputVisible}>
-            {sliderValues.map((value, index) => {
-                let inputRef = null;
-                if (index === 0) {
-                    inputRef = firstInputRef;
-                }
-                if (index === sliderValues.length - 1) {
-                    inputRef = lastInputRef;
-                }
+        <InputList>
+            {state.values.map((value, index) => {
                 return (
-                    <div key={index} ref={inputRef}>
+                    <InputWrapper key={index}>
                         <NumericInput
-                            errorMsg={getErrorMsg(value, index)}
-                            onChange={(val) => onInputChange(val, index)}
-                            style={{ height: '2rem', margin: '0.25rem 0.5rem' }}
+                            errorMsg={getErrorMsg(value, index, state.values)}
+                            onChange={(val) => state.setThumbValue(index, val)}
                             value={value}
+                            stepper
+                            stepSkip={state.step}
                         />
-                    </div>
+                        <InputLabel>{thumbLabels?.[index] ?? `Thumb ${index + 1}`}</InputLabel>
+                    </InputWrapper>
                 );
             })}
-        </InputWrapper>
+        </InputList>
     );
 };
 

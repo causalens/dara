@@ -66,6 +66,8 @@ SliderMultiThumb.args = {
     step: 0.2,
     trackToStart: false,
     trackToEnd: false,
+
+    thumbLabels: ['min', 'max']
 };
 
 export const ControlledSlider = (args: BaseSliderProps<number>): JSX.Element => {
@@ -127,7 +129,6 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
 };
 
 export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element => {
-    const initialValue = args.initialValue?.map((val) => args.domain.indexOf(val)) || [0];
 
     return (
         <div style={{ alignItems: 'center', display: 'flex', height: '100%' }}>
@@ -139,4 +140,33 @@ export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element =>
 CategoricalSlider.args = {
     domain: ['low', 'med', 'high'],
     initialValue: ['med'],
+};
+
+export const MultipleThumbs = Slider.bind({});
+MultipleThumbs.args = {
+    domain: [0, 10],
+
+    initialValue: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
+
+    step: 0.1,
+
+};
+
+export const TrackLabels = Slider.bind({});
+TrackLabels.args = {
+    domain: [1, 16],
+
+    initialValue: [1, 6, 8],
+    step: 1,
+
+    trackLabels: ['first range', 'second range'],
+    trackToStart: false,
+};
+
+export const SmallDecimals = Slider.bind({});
+SmallDecimals.args = {
+    domain: [0, 1],
+
+    initialValue: [0.004],
+    step: 0.002,
 };

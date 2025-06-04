@@ -26,7 +26,7 @@ import { SwapHorizontal } from '@darajs/ui-icons';
 import Button from '../button/button';
 import Tooltip from '../tooltip/tooltip';
 import { InteractiveComponentProps } from '../types';
-import SliderInputs from './slider-inputs';
+import SliderInputField from './slider-input-field';
 
 /**
  * Compute what step should be used for the given domain difference
@@ -68,25 +68,24 @@ const SliderWrapper = styled.div`
 `;
 
 const SliderInner = styled.div`
-    overflow: hidden;
+    min-width: 0;
+    position: relative;
     display: flex;
     width: 100%;
 `;
 
 const StyledSlider = styled(AriaSlider)`
-    position: relative;
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
+    overflow: hidden;
     width: 100%;
-    height: 3rem;
     margin: 0 1rem;
 `;
 
 const StyledSliderTrack = styled(SliderTrack)`
-    position: relative;
     width: 100%;
-    height: 0.25rem;
+    height: 3rem;
     cursor: pointer;
 
     &[data-focus-visible] {
@@ -135,7 +134,7 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
     }
 `;
 
-const Track = styled.div<HasTicksProp>`
+const Track = styled.div`
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -147,18 +146,12 @@ const Track = styled.div<HasTicksProp>`
 const TrackLabel = styled.span`
     position: absolute;
     z-index: 1;
-    top: -0.3rem;
     color: ${(props) => props.theme.colors.grey6};
     transform: translateX(-50%);
 `;
 
-const LabelInner = styled.span`
-    line-height: 1.5rem;
-`;
-
 const SliderTicks = styled.div`
-    position: relative;
-    margin-top: 0.5rem;
+    overflow: hidden;
 `;
 
 interface TickProps {
@@ -167,12 +160,13 @@ interface TickProps {
 
 const Tick = styled.span<TickProps>`
     position: absolute;
+    top: 2.125rem;
     font-size: 0.875rem;
     color: ${(props) => props.theme.colors.grey6};
 
     &${(props) => (props.showLine ? '' : ':not(:first-child):not(:last-child)')}::before {
         content: '';
-        position: absolute;
+        position: fixed;
         z-index: 1;
         left: 50%;
         transform: translateX(-50%);
@@ -186,6 +180,7 @@ const Tick = styled.span<TickProps>`
 `;
 
 const SwapButton = styled(Button).attrs({ styling: 'plain' })`
+    flex-shrink: 0;
     width: min-content;
     height: min-content;
     padding: 0 0.25rem;
@@ -286,6 +281,7 @@ function useValueCorrection<T>(
 
 export interface BaseSliderProps<T> extends InteractiveComponentProps<Array<number>> {
     'aria-label'?: string;
+    thumbLabels?: string[];
     /** An optional flag to disable the input alternative switch render, its false by default */
     disableInputAlternative?: boolean;
     /** The domain defines the range of possible values that the slider can take */
@@ -317,6 +313,7 @@ export interface BaseSliderProps<T> extends InteractiveComponentProps<Array<numb
  */
 function BaseSlider<T extends string | number | React.ReactNode>({
     'aria-label': ariaLabel,
+    thumbLabels,
     domain,
     getValueLabel,
     initialValue,
@@ -338,7 +335,6 @@ function BaseSlider<T extends string | number | React.ReactNode>({
         }
         return computeStep(domain[1] - domain[0]);
     }, [domain, step]);
-    console.log({ adjustedStep });
 
     // Handle value correction for controlled mode
     useValueCorrection(values, domain, adjustedStep, onChange, getValueLabel);
@@ -427,7 +423,6 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                             segments.push(
                                 <Track
                                     key="track-start"
-                                    hasTicks={!!ticks}
                                     data-testid="track-start"
                                     style={{
                                         left: `${startPercent}%`,
@@ -447,7 +442,6 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                             segments.push(
                                 <Fragment key={`track-${i}`}>
                                     <Track
-                                        hasTicks={!!ticks}
                                         data-testid={`track-${i}`}
                                         style={{
                                             left: `${startPercent}%`,
@@ -462,7 +456,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                                                 left: `${(endPercent + startPercent) / 2}%`,
                                             }}
                                         >
-                                            <LabelInner>{trackLabels[i]}</LabelInner>
+                                            <span>{trackLabels[i]}</span>
                                         </TrackLabel>
                                     )}
                                 </Fragment>
@@ -478,7 +472,6 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                             segments.push(
                                 <Track
                                     key="track-end"
-                                    hasTicks={!!ticks}
                                     data-testid="track-end"
                                     style={{
                                         left: `${startPercent}%`,
@@ -502,7 +495,9 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                         >
                             <StyledSliderThumb
                                 aria-label={
-                                    getValueLabel ? String(getValueLabel(value) as string) : `Thumb ${index + 1}`
+                                    thumbLabels?.[index] ??
+                                    (getValueLabel?.(value) as string | undefined) ??
+                                    `Thumb ${index + 1}`
                                 }
                                 index={index}
                                 data-testid={`handle-${index}`}
@@ -513,38 +508,8 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                 </>
             );
         },
-        [trackToStart, trackToEnd, ticks, trackLabels, getValueLabel]
+        [trackToStart, trackToEnd, ticks, trackLabels, getValueLabel, thumbLabels]
     );
-
-    if (showInputs) {
-        // For input mode, we need to handle the values differently
-        const currentInputValues =
-            isControlled ? safeControlledValues
-            : Array.isArray(defaultValue) ? defaultValue
-            : [defaultValue];
-
-        return (
-            <SliderWrapper className={className}>
-                <SliderInner>
-                    <SliderInputs
-                        domain={domain}
-                        getErrorMsg={(value, index) => getErrorMsg(value, index, currentInputValues)}
-                        setSliderValues={(newValues) => handleChange(newValues)}
-                        sliderValues={currentInputValues}
-                    />
-                </SliderInner>
-                {!disableInputAlternative && (
-                    <Tooltip content="Use Slider?" placement="top">
-                        <SwapButton>
-                            <SwapHorizontal onClick={() => setShowInputs(false)} size="2x" />
-                        </SwapButton>
-                    </Tooltip>
-                )}
-            </SliderWrapper>
-        );
-    }
-
-    console.log('controlled values', isControlled, values, safeControlledValues);
 
     return (
         <SliderWrapper className={className}>
@@ -559,34 +524,39 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                     onChange={handleChange}
                     style={style}
                 >
-                    <StyledSliderTrack data-testid="slider-track">{renderTrackContent}</StyledSliderTrack>
+                    {showInputs && <SliderInputField getErrorMsg={getErrorMsg} thumbLabels={thumbLabels} />}
+                    {!showInputs && (
+                        <>
+                            <StyledSliderTrack data-testid="slider-track">{renderTrackContent}</StyledSliderTrack>
 
-                    {/* Render ticks */}
-                    {tickValues.length > 0 && (
-                        <SliderTicks>
-                            {tickValues.map(({ value: tickValue, percent }, idx) => {
-                                return (
-                                    <Tick
-                                        data-testid={`tick-${idx}`}
-                                        key={idx}
-                                        showLine={tickValue !== domain[0] && tickValue !== domain[1]}
-                                        style={{
-                                            left: `${percent}%`,
-                                            transform: getTickTransform(idx, tickValues.length),
-                                        }}
-                                    >
-                                        {getValueLabel(tickValue)}
-                                    </Tick>
-                                );
-                            })}
-                        </SliderTicks>
+                            {/* Render ticks */}
+                            {tickValues.length > 0 && (
+                                <SliderTicks>
+                                    {tickValues.map(({ value: tickValue, percent }, idx) => {
+                                        return (
+                                            <Tick
+                                                data-testid={`tick-${idx}`}
+                                                key={idx}
+                                                showLine={tickValue !== domain[0] && tickValue !== domain[1]}
+                                                style={{
+                                                    left: `${percent}%`,
+                                                    transform: getTickTransform(idx, tickValues.length),
+                                                }}
+                                            >
+                                                {getValueLabel(tickValue)}
+                                            </Tick>
+                                        );
+                                    })}
+                                </SliderTicks>
+                            )}
+                        </>
                     )}
                 </StyledSlider>
             </SliderInner>
             {!disableInputAlternative && (
-                <Tooltip content="Use Input Alternative?" placement="top">
+                <Tooltip content={showInputs ? 'Use Slider' : 'Use Input Alternative'}>
                     <SwapButton>
-                        <SwapHorizontal onClick={() => setShowInputs(true)} size="2x" />
+                        <SwapHorizontal onClick={() => setShowInputs((v) => !v)} size="2x" />
                     </SwapButton>
                 </Tooltip>
             )}
