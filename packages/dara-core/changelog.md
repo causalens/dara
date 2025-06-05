@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.16
 
 -  Fixed an issue where import discovery would not register a component if it was imported as a component *instance* defined in another file
 -  Internal: add `add_module_dependency` API to `ConfigurationBuilder` to allow for explicit module dependencies to be defined by plugins to ensure dependend on assets are included even if they weren't included via e.g. import discovery
