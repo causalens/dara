@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import importlib
 import json
 import os
 import pathlib
@@ -419,6 +420,20 @@ def _py_version_to_js(package_name: str) -> str:
     return raw_version
 
 
+def _get_module_file(module: str) -> str:
+    """
+    Get the file containing the given module
+
+    :param module: module name, e.g. 'dara.core'
+    """
+    try:
+        return cast(str, sys.modules[module].__file__)
+    except KeyError:
+        # module wasn't imported, try to load it explicitly
+        imported_module = importlib.import_module(module)
+        return cast(str, imported_module.__file__)
+
+
 def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheDiff.full_diff()):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
@@ -576,7 +591,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
     :param config: the main app configuration
     """
     # copy over dara.core js/css into static dir
-    core_path = os.path.dirname(cast(str, sys.modules['dara.core'].__file__))
+    core_path = os.path.dirname(_get_module_file('dara.core'))
     core_js_path = os.path.join(core_path, 'umd', 'dara.core.umd.js')
     core_css_path = os.path.join(core_path, 'umd', 'style.css')
     statics = os.path.join(pathlib.Path(__file__).parent.absolute(), 'statics')
@@ -599,7 +614,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
     # Copy over js/css for all modules
     for module_name in py_modules:
         # Get path to the module
-        module_path = os.path.dirname(cast(str, sys.modules[module_name].__file__))
+        module_path = os.path.dirname(_get_module_file(module_name))
 
         # Build paths to the JS and CSS assets for the given module
         # Note: this assumes assets structure of module/umd folder with the module.umd.js and style.css file
