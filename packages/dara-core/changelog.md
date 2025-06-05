@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Internal: add `add_module_dependency` API to `ConfigurationBuilder` to allow for explicit module dependencies to be defined by plugins to ensure dependend on assets are included even if they weren't included via e.g. import discovery
+
 ## 1.16.15
 
 -  Bump minimum version of `pyjwt` to `2.3.0`

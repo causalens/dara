@@ -76,6 +76,7 @@ class Configuration(BaseModel):
     components: List[ComponentTypeAnnotation]
     context_components: List[ComponentInstance]
     enable_devtools: bool
+    module_dependencies: List[Tuple[str, str]]
     live_reload: bool
     powered_by_causalens: bool
     pages: Dict[str, Page]
@@ -118,6 +119,10 @@ class Configuration(BaseModel):
         for comp in self.auth_config.component_config.model_dump().values():
             packages[comp['py_module']] = comp['js_module']
 
+        # Include explicit modules
+        for py_module, js_module in self.module_dependencies:
+            packages[py_module] = js_module
+
         return packages
 
 
@@ -137,6 +142,7 @@ class ConfigurationBuilder:
     registry_lookup: CustomRegistryLookup
     _actions: List[ActionDef]
     _components: List[ComponentTypeAnnotation]
+    _module_dependencies: List[Tuple[str, str]]
     _errors: List[str]
     enable_devtools: bool
     live_reload: bool
@@ -164,6 +170,7 @@ class ConfigurationBuilder:
         self.registry_lookup = {}
         self._actions = []
         self._components = []
+        self._module_dependencies = []
         self._errors = []
         self.enable_devtools = False
         self.live_reload = False
@@ -265,6 +272,21 @@ class ConfigurationBuilder:
             self.routes.add(route)
 
         return component_def
+
+    def add_module_dependency(self, py_module: str, js_module: str):
+        """
+        Explicitly add a module to the application. This is useful to ensure that a given module's assets are included in the build even
+        if no components from it are used explicitly in the application.
+
+        For example, when building a plugin that registers custom JS (e.g. in the form of a context component) that relies on the JS side of `@darajs/components`,
+        you could explicitly add the module in your plugin:
+
+        ```python
+        def my_plugin(config: ConfigurationBuilder):
+            config.add_module('dara.components', '@darajs/components')
+        ```
+        """
+        self._module_dependencies.append((py_module, js_module))
 
     def add_configuration(self, config: EndpointConfiguration):
         """
@@ -543,6 +565,7 @@ class ConfigurationBuilder:
             context_components=self.context_components,
             endpoint_configurations=self._endpoint_configurations,
             enable_devtools=self.enable_devtools,
+            module_dependencies=self._module_dependencies,
             live_reload=self.live_reload,
             powered_by_causalens=self.powered_by_causalens,
             package_tag_processors=self._package_tags_processors,
