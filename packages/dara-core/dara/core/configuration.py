@@ -76,7 +76,7 @@ class Configuration(BaseModel):
     components: List[ComponentTypeAnnotation]
     context_components: List[ComponentInstance]
     enable_devtools: bool
-    module_dependencies: List[Tuple[str, str]]
+    module_dependencies: Dict[str, str]
     live_reload: bool
     powered_by_causalens: bool
     pages: Dict[str, Page]
@@ -120,7 +120,7 @@ class Configuration(BaseModel):
             packages[comp['py_module']] = comp['js_module']
 
         # Include explicit modules
-        for py_module, js_module in self.module_dependencies:
+        for py_module, js_module in self.module_dependencies.items():
             packages[py_module] = js_module
 
         return packages
@@ -142,7 +142,7 @@ class ConfigurationBuilder:
     registry_lookup: CustomRegistryLookup
     _actions: List[ActionDef]
     _components: List[ComponentTypeAnnotation]
-    _module_dependencies: List[Tuple[str, str]]
+    _module_dependencies: Dict[str, str]
     _errors: List[str]
     enable_devtools: bool
     live_reload: bool
@@ -170,7 +170,7 @@ class ConfigurationBuilder:
         self.registry_lookup = {}
         self._actions = []
         self._components = []
-        self._module_dependencies = []
+        self._module_dependencies = {}
         self._errors = []
         self.enable_devtools = False
         self.live_reload = False
@@ -286,7 +286,7 @@ class ConfigurationBuilder:
             config.add_module('dara.components', '@darajs/components')
         ```
         """
-        self._module_dependencies.append((py_module, js_module))
+        self._module_dependencies[py_module] = js_module
 
     def add_configuration(self, config: EndpointConfiguration):
         """
