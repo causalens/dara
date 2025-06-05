@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `Slider` would malfunction when dynamically its domain/step so that its current value falls outside of a valid step. Internal implementation now uses `react-aria-components`
+-  Added `thumb_labels` prop to `Slider` to allow for custom labels for the slider's thumbs displayed when using input alternative
+
 ## 1.16.12
 
 -  Internal: re-export `@codemirror` packages to solve duplication of CM dependencies across UMD bundles

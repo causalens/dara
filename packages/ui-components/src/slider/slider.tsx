@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { ticks as d3Ticks } from 'd3-array';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Handles, Slider as RCSlider, Rail, Ticks, Tracks } from 'react-compound-slider';
+import { Slider as AriaSlider, SliderThumb, SliderTrack, type SliderTrackRenderProps } from 'react-aria-components';
 
 import styled from '@darajs/styled-components';
 import { SwapHorizontal } from '@darajs/ui-icons';
-import { useDeepCompare } from '@darajs/ui-utils';
 
+import Button from '../button/button';
 import Tooltip from '../tooltip/tooltip';
 import { InteractiveComponentProps } from '../types';
-import SliderInputs from './slider-inputs';
+import SliderInputField from './slider-input-field';
 
 /**
  * Compute what step should be used for the given domain difference
@@ -51,14 +52,11 @@ export function computeStep(difference: number): number {
  *
  * @param value value to map
  * @param step current step
+ * @param domain the domain of the slider
  */
-function mapToClosestStep(value: number, step: number): number {
-    // this has to be rounded as otherwise we could get floating point errors
-    const stepsNumber = parseFloat((value / step).toFixed(1));
-
-    const mappedRaw = Math.floor(stepsNumber) * step;
-    const fractionDigits = Math.abs(Math.floor(Math.log10(step)));
-    return parseFloat(mappedRaw.toFixed(fractionDigits));
+function mapToClosestStep(value: number, step: number, domain: [min: number, max: number]): number {
+    const stepsNumber = Math.round((value - domain[0]) / step);
+    return domain[0] + stepsNumber * step;
 }
 
 const SliderWrapper = styled.div`
@@ -67,29 +65,40 @@ const SliderWrapper = styled.div`
 `;
 
 const SliderInner = styled.div`
-    overflow: hidden;
+    position: relative;
     display: flex;
     width: 100%;
+    min-width: 0;
 `;
 
-const StyledSlider = styled(RCSlider)`
-    position: relative;
-
+const StyledSlider = styled(AriaSlider)`
+    overflow: hidden;
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
 
     width: 100%;
+    padding: 0 1rem;
+`;
+
+const StyledSliderTrack = styled(SliderTrack)`
+    cursor: pointer;
+    width: 100%;
     height: 3rem;
-    margin: 0 1rem;
+
+    &[data-focus-visible] {
+        outline: 2px solid ${(props) => props.theme.colors.primary};
+        outline-offset: 2px;
+    }
 `;
 
 const SliderRail = styled.div`
-    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 
     width: 100%;
     height: 0.25rem;
-    padding: 0 0.3rem;
 
     background-color: ${(props) => props.theme.colors.grey2};
     border-radius: 0.125rem;
@@ -99,26 +108,40 @@ interface HasTicksProp {
     hasTicks: boolean;
 }
 
-const Handle = styled.span<HasTicksProp>`
+const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
     cursor: pointer;
 
     position: absolute;
     z-index: 2;
+    top: 50%;
 
     width: 1rem;
     height: 1rem;
-    margin-top: ${(props) => (props.hasTicks ? '-0.5rem' : '0')};
-    margin-left: -0.6rem;
 
     background-color: ${(props) => props.theme.colors.primary};
     border-radius: 50%;
+
+    &[data-focus-visible] {
+        outline: 2px solid ${(props) => props.theme.colors.primary};
+        outline-offset: 2px;
+    }
+
+    &[data-disabled] {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    &[data-dragging] {
+        background-color: ${(props) => props.theme.colors.primaryDown};
+    }
 `;
 
-const Track = styled.span<HasTicksProp>`
+const Track = styled.div`
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 
     height: 0.25rem;
-    margin-top: ${(props) => (props.hasTicks ? '-0.5rem' : '0')};
 
     background-color: ${(props) => props.theme.colors.primary};
     border-radius: 0.125rem;
@@ -127,18 +150,12 @@ const Track = styled.span<HasTicksProp>`
 const TrackLabel = styled.span`
     position: absolute;
     z-index: 1;
-    top: -0.3rem;
+    transform: translateX(-50%);
     color: ${(props) => props.theme.colors.grey6};
 `;
 
-const LabelInner = styled.span`
-    margin-left: -50%;
-    line-height: 1.5rem;
-`;
-
 const SliderTicks = styled.div`
-    position: relative;
-    margin-top: 0.5rem;
+    overflow: hidden;
 `;
 
 interface TickProps {
@@ -147,15 +164,17 @@ interface TickProps {
 
 const Tick = styled.span<TickProps>`
     position: absolute;
+    top: 2.125rem;
     font-size: 0.875rem;
     color: ${(props) => props.theme.colors.grey6};
 
     &${(props) => (props.showLine ? '' : ':not(:first-child):not(:last-child)')}::before {
         content: '';
 
-        position: absolute;
+        position: fixed;
         z-index: 1;
         left: 50%;
+        transform: translateX(-50%);
 
         display: block;
 
@@ -168,10 +187,17 @@ const Tick = styled.span<TickProps>`
     }
 `;
 
-const SwapButtonWrapper = styled.div`
-    display: flex;
-    height: fit-content;
+const SwapButton = styled(Button).attrs({ styling: 'plain' })`
+    flex-shrink: 0;
+
+    width: min-content;
+    height: min-content;
     margin-top: 0.3rem;
+    padding: 0 0.25rem;
+
+    svg {
+        cursor: pointer;
+    }
 `;
 
 /**
@@ -183,12 +209,95 @@ const SwapButtonWrapper = styled.div`
  */
 function getTickTransform(idx: number, length: number): string {
     if (idx === 0) {
-        return 'translateX(-0.7rem)';
+        return 'translateX(0.7rem)';
     }
-    return idx === length - 1 ? 'translateX(-100%) translateX(0.7rem)' : 'translateX(-50%)';
+    return idx === length - 1 ? 'translateX(-100%) translateX(-0.7rem)' : 'translateX(-50%)';
+}
+
+/**
+ * Generate tick values.
+ * If ticks is a list of values, return those values and calculate the percent for each tick.
+ * If ticks is a number, first calculate interpolated ticks between the domain min/max.
+ *
+ * @param ticks - the number of ticks or an array of tick values
+ * @param domain - the domain of the slider
+ */
+function getTicks(
+    ticks: number | number[] | undefined,
+    domain: [min: number, max: number]
+): { value: number; percent: number }[] {
+    if (!ticks) {
+        return [];
+    }
+
+    const [min, max] = domain;
+
+    // tick values
+    const values = Array.isArray(ticks) ? ticks : d3Ticks(min, max, ticks);
+    return values.map((val) => ({ value: val, percent: ((val - min) / (max - min)) * 100 }));
+}
+
+/**
+ * Correct the values to be within the domain and snap to the nearest step
+ *
+ * @param values - the values to correct
+ * @param domain - the domain of the slider
+ * @param step - the step of the slider
+ */
+function correctValues(values: number[], domain: [number, number], step: number): number[] {
+    return values.map((value) => {
+        // First clamp to domain
+        const clampedValue = Math.max(domain[0], Math.min(domain[1], value));
+
+        // Then snap to nearest step
+        return mapToClosestStep(clampedValue, step, domain);
+    });
+}
+
+/**
+ * Hook to handle value correction when domain/step changes.
+ *
+ * @param values - the values to correct
+ * @param domain - the domain of the slider
+ * @param step - the step of the slider
+ * @param onChange - the onChange handler
+ * @param getValueLabel - the getValueLabel handler
+ */
+function useValueCorrection<T>(
+    values: number[] | undefined,
+    domain: [number, number],
+    step: number,
+    onChange?: (values: Array<T>) => void | Promise<void>,
+    getValueLabel?: (value: number) => T
+): void {
+    const previousConstraints = useRef({ domain, step });
+
+    useEffect(() => {
+        // Only correct values if constraints actually changed and we have controlled values
+        const constraintsChanged =
+            !isEqual(previousConstraints.current.domain, domain) || previousConstraints.current.step !== step;
+
+        if (!constraintsChanged || !values?.length || !onChange) {
+            previousConstraints.current = { domain, step };
+            return;
+        }
+
+        // Check if any values need correction
+        const correctedValues = correctValues(values, domain, step);
+
+        // Only fire onChange if values actually changed
+        if (!isEqual(values, correctedValues)) {
+            const formattedValues = correctedValues.map(getValueLabel);
+            onChange(formattedValues);
+        }
+
+        previousConstraints.current = { domain, step };
+    }, [domain, step, values, onChange, getValueLabel]);
 }
 
 export interface BaseSliderProps<T> extends InteractiveComponentProps<Array<number>> {
+    'aria-label'?: string;
+    thumbLabels?: string[];
     /** An optional flag to disable the input alternative switch render, its false by default */
     disableInputAlternative?: boolean;
     /** The domain defines the range of possible values that the slider can take */
@@ -215,18 +324,12 @@ export interface BaseSliderProps<T> extends InteractiveComponentProps<Array<numb
 }
 
 /**
- * The BaseSlider component forms the basis for the other sliders. It wraps the thirdparty react-compound-slider library
- * and adds a simple UI to the component, with support for multiple handle sliders. It accepts a domain property that
- * defines the range of the slider and can be further tweaked by passing the step and ticks parameters which adjust the
- * step size and control the display of ticks respectively.
- *
- * The number of handles is controlled by the number of values passed to the values array. A single value will create a
- * single handle and two will create 2, etc... The trackToStart and trackToEnd properties can be used to define whether
- * the tracks to the left and right most handles are filled to the end or not. By default trackToStart is true.
- *
- * @param {BaseSliderProps} props - the props for the component
+ * The BaseSlider component forms the basis for the other sliders. It wraps the react-aria-components library
+ * and adds a simple UI to the component, with support for multiple handle sliders.
  */
 function BaseSlider<T extends string | number | React.ReactNode>({
+    'aria-label': ariaLabel,
+    thumbLabels,
     domain,
     getValueLabel,
     initialValue,
@@ -246,39 +349,51 @@ function BaseSlider<T extends string | number | React.ReactNode>({
         if (step) {
             return step;
         }
-
         return computeStep(domain[1] - domain[0]);
     }, [domain, step]);
 
-    const [sliderValues, setSliderValues] = useState(
-        values?.map((v) => mapToClosestStep(v, adjustedStep)) ||
-            initialValue?.map((v) => mapToClosestStep(v, adjustedStep)) || [domain[0]]
-    );
-    const currSliderValues = useRef(sliderValues);
-    currSliderValues.current = sliderValues;
-
-    const isFirstRender = useRef(true);
-
-    useEffect(() => {
-        if (values !== undefined) {
-            const mappedValues = values.map((v) => mapToClosestStep(v, adjustedStep));
-
-            if (!isEqual(mappedValues, currSliderValues.current)) {
-                setSliderValues(mappedValues);
-            }
-        }
-    }, [adjustedStep, values]);
+    // Handle value correction for controlled mode
+    useValueCorrection(values, domain, adjustedStep, onChange, getValueLabel);
 
     const [showInputs, setShowInputs] = useState(false);
 
-    const precision = useMemo(
-        () => (Math.floor(adjustedStep) === adjustedStep ? 0 : adjustedStep.toString().split('.')[1].length || 0),
-        [adjustedStep]
+    // Handle controlled/uncontrolled mode
+    const defaultValue = useMemo(() => {
+        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) || [domain[0]];
+        return initial.length === 1 ? initial[0] : initial;
+    }, [initialValue, adjustedStep, domain]);
+
+    const isControlled = values !== undefined;
+
+    // For controlled mode, we need to ensure values are valid before using them
+    const safeControlledValues = useMemo(() => {
+        if (!isControlled || !values?.length) {
+            return undefined;
+        }
+
+        // Correct any invalid values for internal use
+        return correctValues(values, domain, adjustedStep);
+    }, [values, isControlled, domain, adjustedStep]);
+
+    const handleChange = useCallback(
+        (value: number | number[]) => {
+            if (!onChange) {
+                return;
+            }
+
+            const valueArray = Array.isArray(value) ? value : [value];
+            const formattedValues = valueArray.map(getValueLabel);
+            onChange(formattedValues);
+        },
+        [onChange, getValueLabel]
     );
 
-    // Get the error message for inputs when value is out of domain range
+    // Generate tick values
+    const tickValues = useMemo(() => getTicks(ticks, domain), [ticks, domain]);
+
+    // Get error message for input validation
     const getErrorMsg = useCallback(
-        (value: number, index: number): string => {
+        (value: number, index: number, currentValues: number[]): string => {
             if (Number.isNaN(value)) {
                 return 'Value should not be left blank';
             }
@@ -286,157 +401,173 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                 return `Value out of allowed range of ${domain[0]} - ${domain[1]}`;
             }
             if (
-                (index > 0 && value < sliderValues[index - 1]) ||
-                (index < sliderValues.length - 1 && value > sliderValues[index + 1])
+                (index > 0 && value < currentValues[index - 1]) ||
+                (index < currentValues.length - 1 && value > currentValues[index + 1])
             ) {
                 return 'Values have to be in ascending order';
             }
             return '';
         },
-        [domain, sliderValues]
+        [domain]
     );
 
-    // Validate values are in order and in range
-    const validateValues = useCallback(
-        (value: number[]): boolean => {
-            for (let index = 0; index < value.length; index++) {
-                if (getErrorMsg(value[index], index) !== '') {
-                    return false;
-                }
-            }
-            return true;
+    const adjustedLabel = ariaLabel ?? 'Slider';
+
+    const renderTrackContent = useCallback(
+        (renderProps: SliderTrackRenderProps) => {
+            const { state } = renderProps;
+            const currentValues = state.values;
+
+            return (
+                <>
+                    {/* Rail */}
+                    <SliderRail data-testid="rail" />
+
+                    {/* Track segments */}
+                    {(() => {
+                        const segments = [];
+                        const sortedIndices = Array.from({ length: currentValues.length }, (_, i) => i).sort(
+                            (a, b) => currentValues[a] - currentValues[b]
+                        );
+
+                        // Track to start
+                        if (trackToStart && sortedIndices.length > 0) {
+                            const firstIndex = sortedIndices[0];
+                            const startPercent = 0;
+                            const endPercent = state.getThumbPercent(firstIndex) * 100;
+
+                            segments.push(
+                                <Track
+                                    key="track-start"
+                                    data-testid="track-start"
+                                    style={{
+                                        left: `${startPercent}%`,
+                                        width: `${endPercent - startPercent}%`,
+                                    }}
+                                />
+                            );
+                        }
+
+                        // Tracks between thumbs
+                        for (let i = 0; i < sortedIndices.length - 1; i++) {
+                            const startIndex = sortedIndices[i];
+                            const endIndex = sortedIndices[i + 1];
+                            const startPercent = state.getThumbPercent(startIndex) * 100;
+                            const endPercent = state.getThumbPercent(endIndex) * 100;
+
+                            segments.push(
+                                <Fragment key={`track-${i}`}>
+                                    <Track
+                                        data-testid={`track-${i}`}
+                                        style={{
+                                            left: `${startPercent}%`,
+                                            width: `${endPercent - startPercent}%`,
+                                        }}
+                                    />
+                                    {trackLabels && trackLabels[i] && (
+                                        <TrackLabel
+                                            data-testid={`track-label-${i}`}
+                                            style={{
+                                                display: endPercent - startPercent === 0 ? 'none' : 'flex',
+                                                left: `${(endPercent + startPercent) / 2}%`,
+                                            }}
+                                        >
+                                            <span>{trackLabels[i]}</span>
+                                        </TrackLabel>
+                                    )}
+                                </Fragment>
+                            );
+                        }
+
+                        // Track to end
+                        if (trackToEnd && sortedIndices.length > 0) {
+                            const lastIndex = sortedIndices[sortedIndices.length - 1];
+                            const startPercent = state.getThumbPercent(lastIndex) * 100;
+                            const endPercent = 100;
+
+                            segments.push(
+                                <Track
+                                    key="track-end"
+                                    data-testid="track-end"
+                                    style={{
+                                        left: `${startPercent}%`,
+                                        width: `${endPercent - startPercent}%`,
+                                    }}
+                                />
+                            );
+                        }
+
+                        return segments;
+                    })()}
+
+                    {/* Thumbs */}
+                    {currentValues.map((value, index) => (
+                        <Tooltip content={getValueLabel(value)} hideOnClick={false} key={index} placement="top">
+                            <StyledSliderThumb
+                                aria-label={
+                                    thumbLabels?.[index] ??
+                                    (getValueLabel?.(value) as string | undefined) ??
+                                    `Thumb ${index + 1}`
+                                }
+                                index={index}
+                                data-testid={`handle-${index}`}
+                                hasTicks={!!ticks}
+                            />
+                        </Tooltip>
+                    ))}
+                </>
+            );
         },
-        [getErrorMsg]
+        [trackToStart, trackToEnd, ticks, trackLabels, getValueLabel, thumbLabels]
     );
-
-    useEffect(
-        () => {
-            if (isFirstRender.current) {
-                isFirstRender.current = false;
-                return;
-            }
-            if (validateValues(sliderValues)) {
-                const formattedValues = sliderValues.map(getValueLabel);
-                onChange?.(formattedValues);
-            }
-        },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        useDeepCompare([sliderValues])
-    );
-
-    const onSliderChange = useCallback(
-        (value: Array<number>): void => {
-            setSliderValues(value.map((val) => parseFloat(val.toFixed(precision))));
-        },
-        [precision]
-    );
-
-    const tickProps = typeof ticks === 'number' ? { count: ticks } : { values: ticks };
 
     return (
         <SliderWrapper className={className}>
             <SliderInner>
-                {showInputs ?
-                    <SliderInputs
-                        domain={domain}
-                        getErrorMsg={getErrorMsg}
-                        setSliderValues={setSliderValues}
-                        sliderValues={sliderValues}
-                    />
-                :   <StyledSlider
-                        domain={domain}
-                        onChange={onSliderChange}
-                        rootStyle={style}
-                        step={adjustedStep}
-                        values={sliderValues}
-                    >
-                        <Rail>{({ getRailProps }) => <SliderRail {...getRailProps()} data-testid="rail" />}</Rail>
-                        <Handles>
-                            {({ handles, getHandleProps }) => (
-                                <>
-                                    {handles.map((handle, idx) => (
-                                        <Tooltip
-                                            content={getValueLabel(handle.value)}
-                                            hideOnClick={false}
-                                            interactive
-                                            key={handle.id}
-                                            placement="top"
-                                        >
-                                            <Handle
-                                                {...getHandleProps(handle.id)}
-                                                data-testid={`handle-${idx}`}
-                                                hasTicks={!!ticks}
-                                                style={{ left: `${handle.percent}%` }}
-                                            />
-                                        </Tooltip>
-                                    ))}
-                                </>
-                            )}
-                        </Handles>
-                        <Tracks left={trackToStart} right={trackToEnd}>
-                            {({ tracks, getTrackProps }) => (
-                                <>
-                                    {tracks.map(({ id, source, target }, idx) => (
-                                        <Fragment key={id}>
-                                            <Track
-                                                hasTicks={!!ticks}
-                                                key={id}
-                                                {...getTrackProps()}
-                                                data-testid={`track-${idx}`}
-                                                style={{
-                                                    left: `${source.percent}%`,
-                                                    width: `${target.percent - source.percent}%`,
-                                                }}
-                                            />
-                                            {trackLabels && trackLabels.length > 0 && (
-                                                <TrackLabel
-                                                    data-testid={`track-label-${idx}`}
-                                                    key={`label_${id}`}
-                                                    style={{
-                                                        display:
-                                                            target.percent - source.percent === 0 ? 'none' : 'flex',
-                                                        left: `${
-                                                            (target.percent - source.percent) / 2 + source.percent
-                                                        }%`,
-                                                    }}
-                                                >
-                                                    <LabelInner>{trackLabels[idx]}</LabelInner>
-                                                </TrackLabel>
-                                            )}
-                                        </Fragment>
-                                    ))}
-                                </>
-                            )}
-                        </Tracks>
-                        {ticks && (
-                            <Ticks {...tickProps}>
-                                {({ ticks: sliderTicks }) => (
-                                    <SliderTicks>
-                                        {sliderTicks.map((tick, idx) => (
+                <StyledSlider
+                    aria-label={adjustedLabel}
+                    minValue={domain[0]}
+                    maxValue={domain[1]}
+                    step={adjustedStep}
+                    value={isControlled ? safeControlledValues : undefined}
+                    defaultValue={!isControlled ? defaultValue : undefined}
+                    onChange={handleChange}
+                    style={style}
+                >
+                    {showInputs && <SliderInputField getErrorMsg={getErrorMsg} thumbLabels={thumbLabels} />}
+                    {!showInputs && (
+                        <>
+                            <StyledSliderTrack data-testid="slider-track">{renderTrackContent}</StyledSliderTrack>
+
+                            {/* Render ticks */}
+                            {tickValues.length > 0 && (
+                                <SliderTicks>
+                                    {tickValues.map(({ value: tickValue, percent }, idx) => {
+                                        return (
                                             <Tick
                                                 data-testid={`tick-${idx}`}
-                                                key={tick.id}
-                                                showLine={tick.value !== domain[0] && tick.value !== domain[1]}
+                                                key={idx}
+                                                showLine={tickValue !== domain[0] && tickValue !== domain[1]}
                                                 style={{
-                                                    left: `${tick.percent}%`,
-                                                    transform: getTickTransform(idx, sliderTicks.length),
+                                                    left: `${percent}%`,
+                                                    transform: getTickTransform(idx, tickValues.length),
                                                 }}
                                             >
-                                                {getValueLabel(tick.value)}
+                                                {getValueLabel(tickValue)}
                                             </Tick>
-                                        ))}
-                                    </SliderTicks>
-                                )}
-                            </Ticks>
-                        )}
-                    </StyledSlider>
-                }
+                                        );
+                                    })}
+                                </SliderTicks>
+                            )}
+                        </>
+                    )}
+                </StyledSlider>
             </SliderInner>
-            {!disableInputAlternative && sliderValues && (
-                <Tooltip content={showInputs ? 'Use Slider?' : 'Use Input Alternative?'} placement="top">
-                    <SwapButtonWrapper>
-                        <SwapHorizontal asButton onClick={() => setShowInputs(!showInputs)} size="2x" />
-                    </SwapButtonWrapper>
+            {!disableInputAlternative && (
+                <Tooltip content={showInputs ? 'Use Slider' : 'Use Input Alternative'}>
+                    <SwapButton>
+                        <SwapHorizontal onClick={() => setShowInputs((v) => !v)} size="2x" />
+                    </SwapButton>
                 </Tooltip>
             )}
         </SliderWrapper>
@@ -449,13 +580,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
  * @param props - the component props
  */
 export function Slider(props: BaseSliderProps<number>): JSX.Element {
-    return (
-        <BaseSlider<number>
-            disableInputAlternative={props.disableInputAlternative}
-            {...props}
-            getValueLabel={(val: number) => round(val, 4)}
-        />
-    );
+    return <BaseSlider<number> {...props} getValueLabel={(val: number) => round(val, 4)} />;
 }
 
 export interface CategoricalSliderProps

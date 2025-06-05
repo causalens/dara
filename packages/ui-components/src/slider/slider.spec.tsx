@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
@@ -32,17 +32,6 @@ function RenderNumericSlider(props: BaseSliderProps<number>): JSX.Element {
 }
 
 describe('Numeric Slider Test', () => {
-    beforeEach(() => {
-        // IntersectionObserver isn't available in test environment
-        const mockIntersectionObserver = jest.fn();
-        mockIntersectionObserver.mockReturnValue({
-            disconnect: () => null,
-            observe: () => null,
-            unobserve: () => null,
-        });
-        window.IntersectionObserver = mockIntersectionObserver;
-    });
-
     it('should display correctly', () => {
         const { getByRole, getByTestId, getAllByTestId } = render(
             <RenderNumericSlider domain={domain} initialValue={initialValue} />
@@ -111,15 +100,15 @@ describe('Numeric Slider Test', () => {
         expect(inputs[1]).toHaveValue('60');
     });
 
-    it('should work with inputs normally', () => {
+    it('should work with inputs normally', async () => {
         const onChangeStub = jest.fn((value) => value);
         const { getByRole, getAllByRole } = render(
-            <RenderNumericSlider domain={domain} onChange={onChangeStub} values={initialValue} />
+            <RenderNumericSlider domain={domain} onChange={onChangeStub} initialValue={initialValue} />
         );
         const switchButton = getByRole('presentation', { hidden: true });
         fireEvent.click(switchButton);
 
-        const inputs = getAllByRole('textbox', { hidden: true });
+        let inputs = getAllByRole('textbox', { hidden: true });
 
         expect(inputs.length).toEqual(2);
         expect(inputs[0]).toHaveValue('20');
@@ -129,27 +118,34 @@ describe('Numeric Slider Test', () => {
         expect(onChangeStub).toHaveBeenCalledTimes(0);
 
         // Firing a change event on first input calls the onChange function with the updated value
-        fireEvent.change(inputs[0], { target: { value: 12 } });
+        fireEvent.change(inputs[0], { target: { value: 40 } });
+
         expect(onChangeStub).toHaveBeenCalledTimes(1);
-        expect(onChangeStub.mock.results[0].value).toEqual([12, 60]);
+        expect(onChangeStub.mock.results[0].value).toEqual([40, 60]);
 
         // Firing a change event on second input calls the onChange function with the updated value
         fireEvent.change(inputs[1], { target: { value: 50 } });
         expect(onChangeStub).toHaveBeenCalledTimes(2);
-        expect(onChangeStub.mock.results[1].value).toEqual([12, 50]);
+        expect(onChangeStub.mock.results[1].value).toEqual([40, 50]);
 
         /**
-         * Firing a change event on first input with a value more than second input should not
-         * trigger onChange
+         * Firing a change event on first input with a value more than second input should
+         * trigger onChange, but the value will be clamped
          */
         fireEvent.change(inputs[0], { target: { value: 60 } });
-        expect(onChangeStub).toHaveBeenCalledTimes(2);
+        expect(onChangeStub).toHaveBeenCalledTimes(3);
+
+        await waitFor(() => {
+            inputs = getAllByRole('textbox', { hidden: true });
+            expect(inputs[0]).toHaveValue('50');
+            expect(inputs[1]).toHaveValue('50');
+        });
     });
 
     it('should work with negative inputs', () => {
         const onChangeStub = jest.fn((value) => value);
         const { getByRole, getAllByRole } = render(
-            <RenderNumericSlider domain={[-100, 100]} onChange={onChangeStub} values={initialValue} />
+            <RenderNumericSlider domain={[-100, 100]} onChange={onChangeStub} initialValue={initialValue} />
         );
         const switchButton = getByRole('presentation', { hidden: true });
         fireEvent.click(switchButton);
@@ -167,17 +163,17 @@ describe('Numeric Slider Test', () => {
          * Firing a change event with negative value on first input calls the onChange function with
          * the updated value
          */
-        fireEvent.change(inputs[0], { target: { value: -12 } });
+        fireEvent.change(inputs[0], { target: { value: -20 } });
         expect(onChangeStub).toHaveBeenCalledTimes(1);
-        expect(onChangeStub.mock.results[0].value).toEqual([-12, 60]);
+        expect(onChangeStub.mock.results[0].value).toEqual([-20, 60]);
 
         /**
          * Firing a change event with negative value on second input calls the onChange function with
          * the updated value
          */
-        fireEvent.change(inputs[1], { target: { value: -5 } });
+        fireEvent.change(inputs[1], { target: { value: -10 } });
         expect(onChangeStub).toHaveBeenCalledTimes(2);
-        expect(onChangeStub.mock.results[1].value).toEqual([-12, -5]);
+        expect(onChangeStub.mock.results[1].value).toEqual([-20, -10]);
     });
 });
 
