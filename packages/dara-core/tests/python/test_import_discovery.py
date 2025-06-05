@@ -146,6 +146,35 @@ from tests.component_discovery.module import CustomComponent
     assert ('CustomAction', 'tests.component_discovery.module') in action_names
 
 
+def test_discovers_component_instance_class():
+    """
+    Test that when defining a component instance in a separate file, it is discovered.
+    This requires us to look if `isinstance(obj, ComponentInstance)` and not just `issubclass(obj, ComponentInstance)`
+    """
+    create_module(
+        'tests.component_discovery.component_instance',
+        """\
+from dara.core.visual.components.menu import Menu
+
+my_instance = Menu(routes=[])
+""",
+    )
+
+    # Note we're importing the INSTANCE, not referencing the class
+    main_module = create_module(
+        'tests.component_discovery.main',
+        """\
+from tests.component_discovery.component_instance import my_instance
+""",
+    )
+
+    components, _ = run_discovery(main_module)
+
+    assert len(components) == 1
+    component_names = [(c.__name__, c.__module__) for c in components]
+    assert ('Menu', 'dara.core.visual.components.menu') in component_names
+
+
 def test_ignores_nonlocal_modules():
     """Test that non-local module (not under same root) is not examined"""
     create_module(
