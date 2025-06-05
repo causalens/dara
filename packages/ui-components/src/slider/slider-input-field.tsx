@@ -74,6 +74,8 @@ const SliderInputField: FunctionComponent<SliderInputsProps> = ({ getErrorMsg, t
                             value={value}
                             stepper
                             stepSkip={state.step}
+                            minValue={state.getThumbMinValue(index)}
+                            maxValue={state.getThumbMaxValue(index)}
                         />
                         <InputLabel>{thumbLabels?.[index] ?? `Thumb ${index + 1}`}</InputLabel>
                     </InputWrapper>

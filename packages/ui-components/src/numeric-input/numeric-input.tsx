@@ -172,13 +172,13 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
         ref: React.ForwardedRef<HTMLInputElement>
     ): JSX.Element => {
         const keydownFilter = useMemo(() => numericFilter(props.integerOnly), [props.integerOnly]);
-        const [input, setInput] = useState(getInitialValue(value, initialValue));
+        const [input, setInput] = useState(() => getInitialValue(value, initialValue));
 
         const step = (v: number): void => {
             let currentInput = input;
 
             if (!input || input === '-') {
-                currentInput = props.min ? String(props.min) : '0';
+                currentInput = props.minValue ? String(props.minValue) : '0';
             }
 
             const parsedValue = parseFloat(currentInput) || 0;
