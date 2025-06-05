@@ -52,6 +52,7 @@ export function computeStep(difference: number): number {
  *
  * @param value value to map
  * @param step current step
+ * @param domain the domain of the slider
  */
 function mapToClosestStep(value: number, step: number, domain: [min: number, max: number]): number {
     const stepsNumber = Math.round((value - domain[0]) / step);
@@ -120,12 +121,6 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
     background-color: ${(props) => props.theme.colors.primary};
     border-radius: 50%;
 
-    transition: transform 0.2s ease;
-
-    &[data-hovered] {
-        transform: translateY(-50%) scale(1.1);
-    }
-
     &[data-focus-visible] {
         outline: 2px solid ${(props) => props.theme.colors.primary};
         outline-offset: 2px;
@@ -134,6 +129,10 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
     &[data-disabled] {
         cursor: not-allowed;
         opacity: 0.5;
+    }
+
+    &[data-dragging] {
+        background-color: ${(props) => props.theme.colors.primaryDown};
     }
 `;
 
@@ -238,6 +237,13 @@ function getTicks(
     return values.map((val) => ({ value: val, percent: ((val - min) / (max - min)) * 100 }));
 }
 
+/**
+ * Correct the values to be within the domain and snap to the nearest step
+ *
+ * @param values - the values to correct
+ * @param domain - the domain of the slider
+ * @param step - the step of the slider
+ */
 function correctValues(values: number[], domain: [number, number], step: number): number[] {
     return values.map((value) => {
         // First clamp to domain
@@ -496,13 +502,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
                     {/* Thumbs */}
                     {currentValues.map((value, index) => (
-                        <Tooltip
-                            content={getValueLabel(value)}
-                            hideOnClick={false}
-                            interactive
-                            key={index}
-                            placement="top"
-                        >
+                        <Tooltip content={getValueLabel(value)} hideOnClick={false} key={index} placement="top">
                             <StyledSliderThumb
                                 aria-label={
                                     thumbLabels?.[index] ??
