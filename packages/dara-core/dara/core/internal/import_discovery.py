@@ -36,7 +36,7 @@ def _is_component_subclass(obj: Any) -> bool:
 def _is_component_instance(obj: Any) -> TypeGuard[ComponentInstance]:
     try:
         return isinstance(obj, ComponentInstance)
-    except:
+    except Exception:
         return False
 
 
