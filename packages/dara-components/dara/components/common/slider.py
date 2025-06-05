@@ -123,6 +123,7 @@ class Slider(FormComponent):
     :param rail_from_start:  Boolean, if True the track is rendered from leftmost handle to the end
     :param rail_labels: A label for the track
     :param rail_to_end: Boolean, if True the track is rendered from rightmost handle to the end
+    :param thumb_labels: A list of labels for the slider's thumbs
     :param ticks: List specifying the position of the ticks
     :param value: A Variable instance recording the component's state; can be a single number for single-handle Slider, or an N-length array for a Slider with N handles
     :param disable_input_alternative: Boolean, if True disable the rendering of the input alternative switch
@@ -135,6 +136,7 @@ class Slider(FormComponent):
     rail_from_start: bool = True
     rail_labels: Optional[List[str]] = None
     rail_to_end: bool = False
+    thumb_labels: Optional[List[str]] = None
     ticks: Optional[List[Union[float, int]]] = None
     value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
     disable_input_alternative: bool = False

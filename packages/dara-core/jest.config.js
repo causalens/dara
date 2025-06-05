@@ -42,6 +42,8 @@ var ignoredModules = [
     'jest-runtime',
     'mdast-util-phrasing',
     '@darajs',
+    'd3-array',
+    'internmap',
 ];
 
 module.exports = {

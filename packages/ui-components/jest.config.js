@@ -41,6 +41,8 @@ var ignoredModules = [
     'longest-streak',
     'jest-runtime',
     'mdast-util-phrasing',
+    'd3-array',
+    'internmap'
 ];
 
 module.exports = {

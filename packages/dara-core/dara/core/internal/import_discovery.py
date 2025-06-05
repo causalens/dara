@@ -20,6 +20,8 @@ import sys
 from types import ModuleType
 from typing import Any, List, Optional, Set, Tuple, Type, Union
 
+from typing_extensions import TypeGuard
+
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
 from dara.core.interactivity.any_variable import AnyVariable
@@ -29,6 +31,13 @@ from dara.core.visual.dynamic_component import py_component
 
 def _is_component_subclass(obj: Any) -> bool:
     return inspect.isclass(obj) and issubclass(obj, ComponentInstance) and obj != ComponentInstance
+
+
+def _is_component_instance(obj: Any) -> TypeGuard[ComponentInstance]:
+    try:
+        return isinstance(obj, ComponentInstance)
+    except Exception:
+        return False
 
 
 def _is_action_subclass(obj: Any) -> bool:
@@ -101,6 +110,8 @@ def run_discovery(
         # Look for subclasses of ComponentInstance or ActionImpl
         if _is_component_subclass(v):
             components.add(v)
+        elif _is_component_instance(v):
+            components.add(v.__class__)
         elif _is_action_subclass(v):
             actions.add(v)
         elif inspect.isfunction(v):

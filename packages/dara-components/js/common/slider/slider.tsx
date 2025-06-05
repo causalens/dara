@@ -1,5 +1,5 @@
 import _debounce from 'lodash/debounce';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Slider as UISlider } from '@darajs/ui-components';
@@ -18,6 +18,8 @@ interface SliderProps extends FormComponentProps {
     rail_labels?: Array<string>;
     /** Draw track from rightmost handle to end */
     rail_to_end: boolean;
+    /** Slider thumb labels */
+    thumb_labels?: Array<string>;
     /** Slider step size */
     step?: number;
     /** Slider tick positions */
@@ -38,30 +40,40 @@ const StyledSlider = injectCss(UISlider);
 function Slider(props: SliderProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
+
     const [value, setValue] = useVariable(formCtx.resolveInitialValue(props.domain[0]));
+    // store separate internal value for instant updates, actual variable is updated via debounce
+    const [internalValue, setInternalValue] = useState(value);
+
     const onTrack = useAction(props.onchange);
 
     const debouncedSetValue = useMemo(() => _debounce(setValue, 300), [setValue]);
     const debouncedOnTrack = useMemo(() => _debounce(onTrack, 300), [onTrack]);
     const debouncedUpdateForm = useMemo(() => _debounce(formCtx.updateForm, 300), [formCtx.updateForm]);
 
-    const isOutputNumber = typeof value === 'number';
+    const isOutputNumber = typeof internalValue === 'number';
 
-    function onChange(values: number[]): void {
-        let serialisedValues: number[] | number = values;
+    const onChange = useCallback(
+        (values: number[]) => {
+            let serialisedValues: number[] | number = values;
 
-        // if we're supposed to output a number, unwrap the array
-        if (isOutputNumber) {
-            [serialisedValues] = values;
-        }
+            // if we're supposed to output a number, unwrap the array
+            if (isOutputNumber) {
+                [serialisedValues] = values;
+            }
 
-        debouncedSetValue(serialisedValues);
-        debouncedOnTrack?.(serialisedValues);
-        debouncedUpdateForm(serialisedValues);
-    }
+            // immediately update internal state
+            setInternalValue(serialisedValues);
+
+            debouncedSetValue(serialisedValues);
+            debouncedUpdateForm(serialisedValues);
+            debouncedOnTrack?.(serialisedValues);
+        },
+        [isOutputNumber, debouncedSetValue, debouncedUpdateForm, debouncedOnTrack]
+    );
 
     // Values passed to the UI component must always be an array
-    const parsedValues = isOutputNumber ? [value] : value;
+    const parsedValues = isOutputNumber ? [internalValue] : internalValue;
 
     return (
         <StyledSlider
@@ -75,6 +87,7 @@ function Slider(props: SliderProps): JSX.Element {
             trackLabels={props.rail_labels}
             trackToEnd={props.rail_to_end}
             trackToStart={props.rail_from_start}
+            thumbLabels={props.thumb_labels}
             values={parsedValues}
         />
     );

@@ -218,19 +218,19 @@ describe('Numeric Input', () => {
         await userEvent.type(input, '-0.1', { delay: 1 });
 
         await userEvent.type(input, '{arrowup}', { delay: 1 });
-        expect(input).toHaveValue('0.0');
+        expect(input).toHaveValue('0.9');
 
         await userEvent.type(input, '{arrowup}', { delay: 1 });
-        expect(input).toHaveValue('0.1');
+        expect(input).toHaveValue('1.9');
 
         await userEvent.type(input, '{arrowdown}', { delay: 1 });
-        expect(input).toHaveValue('0.0');
+        expect(input).toHaveValue('0.9');
 
         await userEvent.type(input, '{arrowdown}', { delay: 1 });
         expect(input).toHaveValue('-0.1');
     });
 
-    it("should not step if input doesn't contain a valid number", async () => {
+    it("should step from 0 if input doesn't contain a valid number", async () => {
         const { getByRole, getAllByRole } = render(<RenderNumericInput stepper />);
         const input = getByRole('textbox', { hidden: true });
 
@@ -239,13 +239,29 @@ describe('Numeric Input', () => {
 
         const stepDownButton = stepperButtons[1];
 
-        // Nothing should happen if the input is empty
+        // If input is empty, like the HTML numeric input it should default to lower bound or 0
         userEvent.click(stepDownButton);
-        expect(input).toHaveValue('');
+        expect(input).toHaveValue('-1');
 
         // Nothing should happen if the input is invalid
         await userEvent.type(input, '-', { delay: 1 });
+
+        // Input is still at -1 under the hood, next value should be -2
         userEvent.click(stepDownButton);
-        expect(input).toHaveValue('-');
+        expect(input).toHaveValue('-2');
+    });
+
+    it("should step from min value if input doesn't contain a valid number", () => {
+        const { getByRole, getAllByRole } = render(<RenderNumericInput stepper minValue={5} />);
+        const input = getByRole('textbox', { hidden: true });
+
+        const stepperButtons = getAllByRole('button');
+        expect(stepperButtons.length).toBe(2);
+
+        const stepDownButton = stepperButtons[1];
+
+        // If input is empty, like the HTML numeric input it should default to lower bound
+        userEvent.click(stepDownButton);
+        expect(input).toHaveValue('4');
     });
 });
