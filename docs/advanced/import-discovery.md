@@ -86,3 +86,37 @@ config.add_component(LocalComponent, local=True)
 ```
 
 The local flag marks the component as a local one, meaning it does not need to define the `js_module` field - this is normally required to defined the `npm` JavaScript package containing the component implementation. This is because the local module is defined via the `dara.config.json` file. This is described in detail in the [custom JS page](./custom-js.mdx).
+
+3. Importing component *instances*
+
+In some cases, you may want to import a component instance from another module, e.g.
+
+```python
+# file: my_project/my_component.py
+from dara.components import UploadDropzone
+
+dropzone = UploadDropzone()
+
+# file: my_project/main.py
+from dara.core import ConfigurationBuilder
+from .my_component import dropzone
+
+config = ConfigurationBuilder()
+config.add_page(name='Upload Dropzone', content=dropzone)
+```
+
+This is supported, and import discovery will pick up that `dropzone` is an instance of `UploadDropzone` and register it in the app.
+It will not, however, recurse into the `my_component.py` module to discover any other components. In general it is recommended to instead define components or parts of the page as functions and import those:
+
+```python
+# file: my_project/my_component.py
+def dropzone() -> UploadDropzone:
+    return UploadDropzone()
+
+# file: my_project/main.py
+from dara.core import ConfigurationBuilder
+from .my_component import dropzone
+
+config = ConfigurationBuilder()
+config.add_page(name='Upload Dropzone', content=dropzone())
+```

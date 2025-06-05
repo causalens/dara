@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where import discovery would not register a component if it was imported as a component *instance* defined in another file
+
 ## 1.16.15
 
 -  Bump minimum version of `pyjwt` to `2.3.0`
