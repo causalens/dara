@@ -24,6 +24,7 @@ from typing import Any, Callable, Generic, List, Optional, TypeVar
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
     ConfigDict,
+    Field,
     SerializerFunctionWrapHandler,
     field_serializer,
     model_serializer,
@@ -65,7 +66,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
     persist_value: bool = False
     store: Optional[PersistenceStore] = None
     uid: str
-    nested: List[str] = []
+    nested: List[str] = Field(default_factory=list)
     model_config = ConfigDict(extra='forbid')
 
     def __init__(
@@ -86,7 +87,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         """
         if nested is None:
             nested = []
-        kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store}
+        kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store, 'nested': nested}
 
         # If an override is active, run the kwargs through it
         override = VARIABLE_INIT_OVERRIDE.get()
@@ -174,7 +175,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         :param key: the key to access; must be a string
         ```
         """
-        return self.copy(update={'nested': [*self.nested, key]}, deep=True)
+        return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
     def sync(self):
         """

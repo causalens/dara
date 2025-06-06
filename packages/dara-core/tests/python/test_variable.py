@@ -1,10 +1,13 @@
 import unittest
+from typing import Any
 
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
+from fastapi.encoders import jsonable_encoder
 
 from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
+from dara.core.definitions import ComponentInstance
 from dara.core.main import _start_application
 
 from tests.python.utils import _get_derived_variable, create_app
@@ -21,17 +24,36 @@ def test_resolver(*args):
 class TestVariables(unittest.TestCase):
     """Test variables components"""
 
-    def test_getter(self):
+    def test_getter_plain(self):
         # Plain variable test
         variable = Variable()
 
         # Test these can be nested and separate from each other
         first = variable.get('a').get('b')
-        second = variable.get('c').get('d')
+        second = variable.get('c')
 
         assert first.nested == ['a', 'b']
-        assert second.nested == ['c', 'd']
+        assert second.nested == ['c']
 
+    def test_getter_plain_serialization(self):
+        """
+        Test that the plain variable gets serialized correctly with the nested property
+        """
+        variable = Variable()
+        first = variable.get('a').get('b')
+
+        class Component(ComponentInstance):
+            value: Variable[Any]
+
+        component = Component(value=first)
+
+        # Check that they get serialized correctly
+        first_serialized = jsonable_encoder(component)
+        assert first_serialized['props']['value']['__typename'] == 'Variable'
+        assert first_serialized['props']['value']['nested'] == ['a', 'b']
+
+    def test_getter_derived(self):
+        variable = Variable()
         # Derived variable test
         derived_variable = DerivedVariable(test_resolver, variables=[variable])
 
