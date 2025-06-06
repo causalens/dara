@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed a regression where nested property on Variables created via `Variable.get` wasn't being serialized correctly
+
 ## 1.16.16
 
 -  Fixed an issue where import discovery would not register a component if it was imported as a component *instance* defined in another file
