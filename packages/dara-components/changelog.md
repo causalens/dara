@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed a regression where outside updates to a `Variable` connected to `Slider` would not be reflected in the slider's value
+
 ## 1.16.16
 
 -  Fixed an issue where `Slider` would malfunction when dynamically its domain/step so that its current value falls outside of a valid step. Internal implementation now uses `react-aria-components`
