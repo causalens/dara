@@ -1,9 +1,9 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import _debounce from 'lodash/debounce';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Input as UiInput, NumericInput as UiNumericInput } from '@darajs/ui-components';
+import { useLatestRef } from '@darajs/ui-utils';
 
 import { useFormContext } from '../context';
 import { FormComponentProps } from '../types';
@@ -55,10 +55,13 @@ function Input(props: InputProps): JSX.Element {
         debouncedUpdateForm(newValue);
     }
 
+    const debouncedUpdateFormRef = useLatestRef(debouncedUpdateForm);
+    const debouncedSetValueRef = useLatestRef(debouncedSetValue);
+
     useEffect(() => {
         // cancel in-progress debounced updates to make sure the variable value takes precedence
-        debouncedSetValue.cancel();
-        debouncedUpdateForm.cancel();
+        debouncedSetValueRef.current.cancel();
+        debouncedUpdateFormRef.current.cancel();
 
         // If value has been coerced to string convert it back to number for NumericInput
         let newValue = value;
@@ -67,7 +70,7 @@ function Input(props: InputProps): JSX.Element {
         }
         // Sync the internal value with the variable value when the variable value changes
         setInternalValue(newValue);
-    }, [value]);
+    }, [debouncedSetValueRef, debouncedUpdateFormRef, props.type, value]);
 
     if (props.type === 'number') {
         return (

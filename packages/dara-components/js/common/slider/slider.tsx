@@ -1,8 +1,9 @@
 import _debounce from 'lodash/debounce';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Slider as UISlider } from '@darajs/ui-components';
+import { useLatestRef } from '@darajs/ui-utils';
 
 import { useFormContext } from '../context';
 import { FormComponentProps } from '../types';
@@ -71,6 +72,29 @@ function Slider(props: SliderProps): JSX.Element {
         },
         [isOutputNumber, debouncedSetValue, debouncedUpdateForm, debouncedOnTrack]
     );
+
+    const debouncedUpdateFormRef = useLatestRef(debouncedUpdateForm);
+    const debouncedSetValueRef = useLatestRef(debouncedSetValue);
+    const domainRef = useLatestRef(props.domain);
+
+    useEffect(() => {
+        // cancel in-progress debounced updates to make sure the variable value takes precedence
+        debouncedSetValueRef.current.cancel();
+        debouncedUpdateFormRef.current.cancel();
+
+        // handle string values
+        let newValue = value;
+        if (typeof value === 'string') {
+            newValue = parseFloat(value);
+        }
+
+        if (Number.isNaN(newValue)) {
+            [newValue] = domainRef.current;
+        }
+
+        // Sync the internal value with the variable value when the variable value changes
+        setInternalValue(newValue);
+    }, [value, domainRef, debouncedSetValueRef, debouncedUpdateFormRef]);
 
     // Values passed to the UI component must always be an array
     const parsedValues = isOutputNumber ? [internalValue] : internalValue;
