@@ -64,6 +64,24 @@ class TestVariables(unittest.TestCase):
         assert first_derived.nested == ['a', 'b']
         assert second_derived.nested == ['c', 'd']
 
+    def test_getter_derived_serialization(self):
+        """
+        Test that the derived variable gets serialized correctly with the nested property
+        """
+        variable = Variable()
+        derived_variable = DerivedVariable[Any](test_resolver, variables=[variable])
+        first_derived = derived_variable.get('a').get('b')
+
+        class Component(ComponentInstance):
+            value: DerivedVariable[Any]
+
+        component = Component(value=first_derived)
+
+        # Check that they get serialized correctly
+        first_serialized = jsonable_encoder(component)
+        assert first_serialized['props']['value']['__typename'] == 'DerivedVariable'
+        assert first_serialized['props']['value']['nested'] == ['a', 'b']
+
     def test_derived_variable_uid(self):
         """Test that when giving derived variables uid, that you can't have two with the same name"""
         variable = Variable()

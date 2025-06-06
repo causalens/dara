@@ -84,7 +84,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     variables: List[AnyVariable]
     polling_interval: Optional[int]
     deps: Optional[List[AnyVariable]] = Field(validate_default=True)
-    nested: List[str] = []
+    nested: List[str] = Field(default_factory=list)
     uid: str
     model_config = ConfigDict(extra='forbid', use_enum_values=True)
 
@@ -97,6 +97,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         polling_interval: Optional[int] = None,
         deps: Optional[List[AnyVariable]] = None,
         uid: Optional[str] = None,
+        nested: Optional[List[str]] = None,
         _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
     ):
         """
@@ -124,6 +125,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         - `deps = [var1.get('nested_property')]` - `func` is ran only when the nested property changes, other changes to the variable are ignored
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
+        if nested is None:
+            nested = []
+
         if cache is not None:
             cache = Cache.Policy.from_arg(cache)
 
@@ -141,7 +145,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 if get_ipython() is not None:
                     raise RuntimeError('run_as_task is not supported within a Jupyter environment')
 
-        super().__init__(cache=cache, uid=uid, variables=variables, polling_interval=polling_interval, deps=deps)
+        super().__init__(
+            cache=cache, uid=uid, variables=variables, polling_interval=polling_interval, deps=deps, nested=nested
+        )
 
         # Import the registry of variables and register the function at import
         from dara.core.internal.registries import derived_variable_registry
