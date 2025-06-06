@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.18
 
 -  Fixed a regression where nested property on Variables created via `Variable.get` wasn't being serialized correctly
 
