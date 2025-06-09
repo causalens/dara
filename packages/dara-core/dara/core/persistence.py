@@ -447,6 +447,12 @@ class BackendStore(PersistenceStore):
         if current_value is None:
             # If no current value, create an empty dict as the base
             current_value = {}
+        elif not isinstance(current_value, (dict, list)):
+            # JSON patches can only be applied to structured data (objects/arrays)
+            raise ValueError(
+                f'Cannot apply JSON patches to non-structured data. '
+                f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
+            )
 
         # Apply patches to current value
         try:

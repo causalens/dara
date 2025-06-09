@@ -730,3 +730,31 @@ async def test_write_partial_with_ws_channel(backend_store, mock_ws_mgr):
     )
     
     WS_CHANNEL.set(None)
+
+
+async def test_write_partial_non_structured_data(backend_store):
+    """
+    Test that write_partial fails when trying to apply patches to non-structured data
+    """
+    # Set a primitive value (string)
+    await backend_store.write('simple_string', notify=False)
+    
+    patches = [{'op': 'add', 'path': '/new_field', 'value': 'value'}]
+    
+    with pytest.raises(ValueError, match='Cannot apply JSON patches to non-structured data'):
+        await backend_store.write_partial(patches)
+    
+    # Verify original value is unchanged
+    assert await backend_store.read() == 'simple_string'
+    
+    # Test with number
+    await backend_store.write(42, notify=False)
+    
+    with pytest.raises(ValueError, match='Current value is of type int'):
+        await backend_store.write_partial(patches)
+    
+    # Test with boolean
+    await backend_store.write(True, notify=False)
+    
+    with pytest.raises(ValueError, match='Current value is of type bool'):
+        await backend_store.write_partial(patches)
