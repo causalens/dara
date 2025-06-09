@@ -9,6 +9,7 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 import { ErrorBoundary } from '@darajs/ui-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
+import { GlobalTaskProvider } from '@/shared/context';
 import { useUrlSync } from '@/shared/utils';
 
 import AuthWrapper from './auth/auth-wrapper';
@@ -55,12 +56,14 @@ function run(importers: { [k: string]: () => Promise<any> }): void {
                             <DirectionCtx.Provider value={{ direction: 'row' }}>
                                 <RecoilRoot>
                                     <RecoilURLSync {...syncOptions}>
-                                        <Router history={history}>
-                                            <AuthWrapper>
-                                                <NotificationWrapper />
-                                                <TemplateRoot />
-                                            </AuthWrapper>
-                                        </Router>
+                                        <GlobalTaskProvider>
+                                            <Router history={history}>
+                                                <AuthWrapper>
+                                                    <NotificationWrapper />
+                                                    <TemplateRoot />
+                                                </AuthWrapper>
+                                            </Router>
+                                        </GlobalTaskProvider>
                                     </RecoilURLSync>
                                 </RecoilRoot>
                             </DirectionCtx.Provider>

@@ -1,5 +1,5 @@
 import { mixed } from '@recoiljs/refine';
-import { RecoilState, atom, useRecoilState } from 'recoil';
+import { type RecoilState, atom, useRecoilState } from 'recoil';
 import { urlSyncEffect } from 'recoil-sync';
 
 import { type UrlVariable } from '@/types';

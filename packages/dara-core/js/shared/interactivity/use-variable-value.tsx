@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Snapshot, useRecoilCallback } from 'recoil';
+import { type Snapshot, useRecoilCallback } from 'recoil';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 

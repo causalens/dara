@@ -1,4 +1,4 @@
-import { RecoilState, atom, useRecoilValue } from 'recoil';
+import { type RecoilState, atom, useRecoilValue } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import {

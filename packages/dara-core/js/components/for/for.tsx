@@ -7,12 +7,12 @@ import { useFallbackCtx } from '@/shared/context/fallback-context';
 import { resolveNested } from '@/shared/interactivity/nested';
 
 import { type AnyVariable, type ComponentInstance } from '../../types/core';
-import { type LoopVarPath, getLoopVarPaths, injectLoopVar } from './templating';
+import { type Marker, getInjectionMarkers, applyMarkers } from './templating';
 
 interface ForProps {
     items: AnyVariable<Array<any>>;
     renderer: ComponentInstance;
-    key: string | null;
+    key_accessor: string | null;
 }
 
 /**
@@ -20,11 +20,16 @@ interface ForProps {
  * for the given loop item.
  */
 const ForChild = React.memo(
-    (props: { renderer: ComponentInstance; item: any; loopVarPaths: LoopVarPath[] }): React.ReactNode => {
-        const transformedRenderer = React.useMemo(
-            () => injectLoopVar(props.renderer, props.loopVarPaths, props.item),
-            [props.renderer, props.loopVarPaths, props.item]
-        );
+    (props: {
+        renderer: ComponentInstance;
+        itemKey: string | number;
+        item: any;
+        markers: Marker[];
+    }): React.ReactNode => {
+        const transformedRenderer = React.useMemo(() => {
+            return applyMarkers(props.renderer, props.markers, props.item, props.itemKey);
+        }, [props.renderer, props.markers, props.item, props.itemKey]);
+        console.log('RENDER CHILD', transformedRenderer);
 
         return <DynamicComponent component={transformedRenderer} />;
     },
@@ -33,8 +38,8 @@ const ForChild = React.memo(
 
 function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNode {
     const items = useAnyVariable(props.items);
-    const loopVarPaths = React.useMemo(() => getLoopVarPaths(props.renderer), [props.renderer]);
-    const key = React.useMemo(() => props.key?.split('.') ?? null, [props.key]);
+    const markers = React.useMemo(() => getInjectionMarkers(props.renderer), [props.renderer]);
+    const key = React.useMemo(() => props.key_accessor?.split('.') ?? null, [props.key_accessor]);
 
     // reapply the parent suspend setting
     return (
@@ -42,8 +47,9 @@ function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNo
             {items.map((item, index) => (
                 <ForChild
                     key={key ? resolveNested(item, key) : index}
+                    itemKey={key ? resolveNested(item, key) : index}
                     item={item}
-                    loopVarPaths={loopVarPaths}
+                    markers={markers}
                     renderer={props.renderer}
                 />
             ))}

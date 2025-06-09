@@ -1,4 +1,4 @@
-import { RecoilState } from 'recoil';
+import { type RecoilState } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras } from '@/api/http';

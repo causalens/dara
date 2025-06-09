@@ -15,4 +15,4 @@ class For(ComponentInstance):
 
     items: AnyVariable
     renderer: ComponentInstance
-    key: str | None = None
+    key_accessor: str | None = None

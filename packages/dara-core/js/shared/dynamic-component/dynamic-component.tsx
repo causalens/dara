@@ -158,6 +158,7 @@ async function resolveComponent(
     return (
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         <PythonWrapper
+            component={component}
             dynamic_kwargs={component.props.dynamic_kwargs}
             func_name={component.props.func_name}
             name={component.name}
@@ -287,6 +288,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
 }
 
 interface PythonWrapperProps {
+    component: ComponentInstance;
     /* Dynamic kwargs - variable definitions */
     dynamic_kwargs: {
         [k: string]: AnyVariable<any>;
@@ -309,7 +311,12 @@ interface PythonWrapperProps {
  * dynamic_kwargs (checked recursively).
  */
 function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
-    const component = useServerComponent(props.name, props.uid, props.dynamic_kwargs);
+    const component = useServerComponent(
+        props.name,
+        props.uid,
+        props.dynamic_kwargs,
+        props.component.loop_instance_uid
+    );
     const refresh = useRefreshServerComponent(props.uid);
 
     // Poll to update the component if polling_interval is set

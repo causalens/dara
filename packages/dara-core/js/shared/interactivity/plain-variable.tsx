@@ -1,4 +1,4 @@
-import { type AtomEffect, RecoilState, atomFamily, selectorFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, atomFamily, selectorFamily } from 'recoil';
 import { BehaviorSubject } from 'rxjs';
 
 import { type WebSocketClientInterface } from '@/api';

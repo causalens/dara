@@ -7,3 +7,4 @@ export { useDataVariable } from './use-data-variable';
 export { combineFilters } from './filtering';
 export { default as useRefreshSelector } from './use-refresh-selector';
 export { default as useVariableState } from './use-variable-state';
+export { getComponentRegistryKey } from './use-server-component';

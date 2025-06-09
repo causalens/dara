@@ -1,6 +1,10 @@
+import { isObject } from 'lodash';
+
 import {
     type ActionImpl,
+    type AnnotatedAction,
     type AnyVariable,
+    type ComponentInstance,
     type DataVariable,
     type DerivedDataVariable,
     type DerivedVariable,
@@ -129,10 +133,21 @@ export function isResolvedDerivedDataVariable(
 }
 
 /**
- * Check f a value is an ActionImpl
+ * Check if a value is an ActionImpl
  *
  * @param action value to check
  */
 export function isActionImpl(action: any): action is ActionImpl {
     return action && typeof action === 'object' && action.__typename === 'ActionImpl';
 }
+
+export function isAnnotatedAction(action: any): action is AnnotatedAction {
+    return action && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
+}
+
+export const isPyComponent = (value: unknown): value is ComponentInstance =>
+    isObject(value) &&
+    'props' in value &&
+    isObject(value.props) &&
+    'func_name' in value.props &&
+    'dynamic_kwargs' in value.props;

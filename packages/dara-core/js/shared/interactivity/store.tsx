@@ -1,8 +1,8 @@
-import { RecoilState, type RecoilValue } from 'recoil';
+import { type RecoilState, type RecoilValue } from 'recoil';
 
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
-import { type AnyVariable, isVariable } from '@/types';
+import { type AnyVariable, isDerivedVariable, isVariable } from '@/types';
 
 /**
  * Selector family type which constructs a selector from a given set of extras.
@@ -72,7 +72,13 @@ type RegistryKeyType = 'selector' | 'derived-selector' | 'trigger' | 'filters';
  * @param type type of the registry entry
  */
 export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyType): string {
-    return `${getUniqueIdentifier(variable)}-${type}`;
+    let extras = '';
+
+    if (isDerivedVariable(variable)) {
+        extras = variable.loop_instance_uid ?? '';
+    }
+
+    return `${getUniqueIdentifier(variable)}-${type}-${extras}`;
 }
 
 /**

@@ -2,7 +2,14 @@
 import { isEqual } from 'lodash';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
-import { type GetRecoilValue, type RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
+import {
+    type GetRecoilValue,
+    type RecoilValue,
+    isRecoilValue,
+    selectorFamily,
+    useRecoilValue,
+    useSetRecoilState,
+} from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 
@@ -26,6 +33,7 @@ import {
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
@@ -211,7 +219,11 @@ export function resolveValue(
         return value;
     }
 
-    return getter(value);
+    if (isRecoilValue(value)) {
+        return getter(value);
+    }
+
+    return value;
 }
 
 /**
@@ -304,8 +316,8 @@ type DerivedResult = PreviousResult | CurrentResult;
  */
 export async function resolveDerivedValue(
     key: string,
-    variables: AnyVariable<any>[],
-    deps: AnyVariable<any>[],
+    variables: any[], // variable or primitive
+    deps: any[], // variable or primitive
     resolvedVariables: any[],
     wsClient: WebSocketClientInterface,
     get: GetRecoilValue,
@@ -320,6 +332,7 @@ export async function resolveDerivedValue(
 
     /**
      * Array of values:
+     * - primitive values are resolved to themselves
      * - simple variables are resolved to their values
      * - derived variables are resolved to ResolvedDerivedVariable objects with nested values/deps resolved to values
      * - ResolvedDataVariable objects are left as is
@@ -341,10 +354,13 @@ export async function resolveDerivedValue(
      * `nested` is used to generate a key so that the same variable with different nested property will be
      * present in the map separately.
      */
-    const variableValueMap = variables.reduce(
-        (acc, v, idx) => acc.set(getUniqueIdentifier(v), depsValues[idx]),
-        new Map<string, any>()
-    );
+    const variableValueMap = variables.reduce((acc, v, idx) => {
+        // skip non-variables
+        if (!isVariable(v)) {
+            return acc;
+        }
+        return acc.set(getUniqueIdentifier(v), depsValues[idx]);
+    }, new Map<string, any>());
 
     let recalculateForced = false; // whether the recalculation was forced or not (by calling trigger with force=true)
     let wasTriggered = false; // whether a trigger caused the selector execution
@@ -357,6 +373,7 @@ export async function resolveDerivedValue(
 
     // Get relevant values based on deps
     const relevantValues = deps
+        .filter(isVariable)
         .map((dep) => variableValueMap.get(getUniqueIdentifier(dep)))
         .concat(triggers.map((trigger) => trigger.inc)); // Append triggerValues to make triggers force a recalc even when deps didn't change
 
@@ -447,9 +464,14 @@ export function getOrRegisterDerivedVariable(
                          * and deps resolved to array of indexes of variables (or null if not set)
                          * For data variables, put ResolvedDataVariable object.
                          */
-                        const resolvedVariables = variable.variables.map((v) =>
-                            resolveVariable(v, wsClient, taskContext, currentExtras)
-                        );
+                        const resolvedVariables = variable.variables.map((v) => {
+                            // Handle non-variables - plain values could be injected via LoopVariable
+                            if (!isVariable(v)) {
+                                return v;
+                            }
+
+                            return resolveVariable(v, wsClient, taskContext, currentExtras);
+                        });
 
                         const selfTrigger = get(getOrRegisterTrigger(variable));
                         const { extras } = extrasSerializable;

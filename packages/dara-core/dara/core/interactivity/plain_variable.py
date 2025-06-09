@@ -177,10 +177,11 @@ class Variable(NonDataVariable, Generic[VariableType]):
         """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
+    @property
     def list_item(self):
         from .loop_variable import LoopVariable
 
-        return LoopVariable(parent=self)
+        return LoopVariable()
 
     def sync(self):
         """

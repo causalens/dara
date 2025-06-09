@@ -100,11 +100,16 @@ export interface UrlVariable<T> {
 export interface DerivedVariable {
     __typename: 'DerivedVariable';
     cache?: null | CachePolicy;
-    deps: Array<AnyVariable<any>>;
+    deps: Array<AnyVariable<any> | any>;
     nested: string[];
     polling_interval?: number;
     uid: string;
-    variables: Array<AnyVariable<any>>;
+    variables: Array<AnyVariable<any> | any>;
+    /**
+     * Field injected by loop variable logic, should be treated as a different variable instance
+     * and use different client-side cache
+     * */
+    loop_instance_uid?: string;
 }
 
 export interface DerivedDataVariable {
@@ -260,8 +265,12 @@ export interface LayoutComponentProps extends StyledComponentProps {
 export interface ComponentInstance<Props = BaseComponentProps> {
     name: string;
     props: Props;
-    templated?: boolean;
     uid: string;
+    /**
+     * Field injected by loop variable logic, should be treated as a different component instance
+     * and use different client-side cache
+     * */
+    loop_instance_uid?: string;
 }
 
 export interface RawString extends ComponentInstance<{ content: string }> {

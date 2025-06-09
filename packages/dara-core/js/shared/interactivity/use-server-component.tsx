@@ -1,6 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useEffect } from 'react';
-import { RecoilState, type RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import {
+    type RecoilState,
+    type RecoilValue,
+    atom,
+    selectorFamily,
+    useRecoilCallback,
+    useRecoilValueLoadable,
+} from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -16,6 +23,7 @@ import {
     type TaskResponse,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isVariable,
 } from '@/types';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
@@ -41,11 +49,15 @@ function isTaskResponse(response: any): response is TaskResponse {
  * @param uid component instance uid
  * @param trigger whether it's a trigger key
  */
-function getComponentRegistryKey(uid: string, trigger?: boolean): string {
+export function getComponentRegistryKey(uid: string, trigger?: boolean, loopInstanceUid?: string): string {
     let key = `_COMPONENT_${uid}`;
 
     if (trigger) {
         key += '_TRIGGER';
+    }
+
+    if (loopInstanceUid) {
+        key += `_${loopInstanceUid}`;
     }
 
     return key;
@@ -146,15 +158,24 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
  * @param search current search string
  * @param currentExtras request extras to be merged into the options
  */
-function getOrRegisterServerComponent(
-    name: string,
-    uid: string,
-    dynamicKwargs: Record<string, AnyVariable<any>>,
-    wsClient: WebSocketClientInterface,
-    taskContext: GlobalTaskContext,
-    currentExtras: RequestExtras
-): RecoilValue<ComponentInstance> {
-    const key = getComponentRegistryKey(uid);
+function getOrRegisterServerComponent({
+    name,
+    uid,
+    dynamicKwargs,
+    wsClient,
+    taskContext,
+    currentExtras,
+    loop_instance_uid,
+}: {
+    name: string;
+    uid: string;
+    dynamicKwargs: Record<string, AnyVariable<any>>;
+    wsClient: WebSocketClientInterface;
+    taskContext: GlobalTaskContext;
+    currentExtras: RequestExtras;
+    loop_instance_uid?: string;
+}): RecoilValue<ComponentInstance> {
+    const key = getComponentRegistryKey(uid, false, loop_instance_uid);
 
     if (!selectorFamilyRegistry.has(key)) {
         selectorFamilyRegistry.set(
@@ -170,7 +191,10 @@ function getOrRegisterServerComponent(
                         const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
                             (acc, k) => {
                                 const value = dynamicKwargs[k]!;
-                                acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
+                                acc[k] =
+                                    isVariable(value) ?
+                                        resolveVariable(value, wsClient, taskContext, currentExtras)
+                                    :   value;
                                 return acc;
                             },
                             {} as Record<string, any>
@@ -298,11 +322,13 @@ function getOrRegisterServerComponent(
  * @param name component name - specific to a given py_component
  * @param uid component uid - specific to a given *instance* of a py_component
  * @param dynamicKwargs kwargs passed into the component
+ * @param loop_instance_uid loop instance uid - extra loop variable key
  */
 export default function useServerComponent(
     name: string,
     uid: string,
-    dynamicKwargs: Record<string, AnyVariable<any>>
+    dynamicKwargs: Record<string, AnyVariable<any>>,
+    loop_instance_uid?: string
 ): ComponentInstance {
     const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
@@ -319,7 +345,15 @@ export default function useServerComponent(
         };
     }, []);
 
-    const componentSelector = getOrRegisterServerComponent(name, uid, dynamicKwargs, wsClient, taskContext, extras);
+    const componentSelector = getOrRegisterServerComponent({
+        name,
+        uid,
+        dynamicKwargs,
+        wsClient,
+        taskContext,
+        currentExtras: extras,
+        loop_instance_uid,
+    });
     const componentLoadable = useRecoilValueLoadable(componentSelector);
 
     useEffect(() => {

@@ -20,7 +20,7 @@ import {
     type ActionImpl,
     type AnnotatedAction,
 } from '@/types/core';
-import { isActionImpl } from '@/types/utils';
+import { isActionImpl, isVariable } from '@/types/utils';
 
 import { useEventBus } from '../event-bus/event-bus';
 import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
@@ -48,11 +48,14 @@ async function invokeAction(
     const resolvedKwargs = Object.keys(annotatedAction.dynamic_kwargs).reduce(
         (acc, k) => {
             const value = annotatedAction.dynamic_kwargs[k]!;
-            acc[k] = resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
-                // This is only called for primitive variables so it should always resolve successfully
-                // hence not using a promise
-                actionCtx.snapshot.getLoadable(v).getValue()
-            );
+            acc[k] =
+                isVariable(value) ?
+                    resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
+                        // This is only called for primitive variables so it should always resolve successfully
+                        // hence not using a promise
+                        actionCtx.snapshot.getLoadable(v).getValue()
+                    )
+                :   value;
             return acc;
         },
         {} as Record<string, any>

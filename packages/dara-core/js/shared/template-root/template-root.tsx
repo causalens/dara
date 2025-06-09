@@ -6,7 +6,7 @@ import styled, { ThemeProvider } from '@darajs/styled-components';
 import { WebSocketClient, setupWebsocket, useActions, useComponents, useConfig, useTemplate } from '@/api';
 import { onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
-import { GlobalTaskProvider, RegistriesCtx, WebSocketCtx } from '@/shared/context';
+import { RegistriesCtx, WebSocketCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { cleanSessionCache, resolveTheme } from '@/shared/utils';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
@@ -115,17 +115,15 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
                 <RegistriesCtx.Provider
                     value={{ actionRegistry: actions!, componentRegistry: components!, refetchComponents }}
                 >
-                    <GlobalTaskProvider>
-                        <DynamicContext contextComponents={config?.context_components ?? []}>
-                            <StoreProviders>
-                                <RootWrapper>
-                                    <DynamicComponent component={template!.layout} />
-                                    <VariableStateProvider wsClient={wsClient} />
-                                    {config?.enable_devtools && <DevTools />}
-                                </RootWrapper>
-                            </StoreProviders>
-                        </DynamicContext>
-                    </GlobalTaskProvider>
+                    <DynamicContext contextComponents={config?.context_components ?? []}>
+                        <StoreProviders>
+                            <RootWrapper>
+                                <DynamicComponent component={template!.layout} />
+                                <VariableStateProvider wsClient={wsClient} />
+                                {config?.enable_devtools && <DevTools />}
+                            </RootWrapper>
+                        </StoreProviders>
+                    </DynamicContext>
                 </RegistriesCtx.Provider>
             </WebSocketCtx.Provider>
         </ThemeProvider>

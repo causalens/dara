@@ -2,11 +2,11 @@ from typing import List, Optional
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
-from .any_variable import AnyVariable
+from .non_data_variable import NonDataVariable
 from .plain_variable import Variable
 
 
-class LoopVariable(AnyVariable):
+class LoopVariable(NonDataVariable):
     """
     A LoopVariable is a type of variable that represents an item in a list.
     It should be constructed using a parent Variable's `list_item()` method.
@@ -44,11 +44,12 @@ class LoopVariable(AnyVariable):
     )
     """
 
-    parent: Variable
     nested: List[str] = Field(default_factory=list)
 
-    def __init__(self, parent: Variable, uid: Optional[str] = None, nested: Optional[List[str]] = None):
-        super().__init__(parent=parent, uid=uid, nested=nested)
+    def __init__(self, uid: Optional[str] = None, nested: Optional[List[str]] = None):
+        if nested is None:
+            nested = []
+        super().__init__(uid=uid, nested=nested)
 
     def get(self, key: str):
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
@@ -58,5 +59,5 @@ class LoopVariable(AnyVariable):
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler):
-        parent_dict = nxt(self.parent)
+        parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'LoopVariable', 'uid': str(parent_dict['uid'])}
