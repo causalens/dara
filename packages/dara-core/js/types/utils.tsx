@@ -4,6 +4,7 @@ import {
     DataVariable,
     DerivedDataVariable,
     DerivedVariable,
+    LoopVariable,
     ResolvedDataVariable,
     ResolvedDerivedDataVariable,
     ResolvedDerivedVariable,
@@ -59,6 +60,15 @@ export function isDataVariable<T>(variable: AnyVariable<T> | T): variable is Dat
  */
 export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable is DerivedDataVariable {
     return isVariable(variable) && variable.__typename === 'DerivedDataVariable';
+}
+
+/**
+ * Check if a value is a loop variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isLoopVariable(variable: any): variable is LoopVariable {
+    return isVariable(variable) && variable.__typename === 'LoopVariable';
 }
 
 /**

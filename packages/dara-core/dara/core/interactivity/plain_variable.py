@@ -177,6 +177,11 @@ class Variable(NonDataVariable, Generic[VariableType]):
         """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
+    def list_item(self):
+        from .loop_variable import LoopVariable
+
+        return LoopVariable(parent=self)
+
     def sync(self):
         """
         Create an action to synchronise the value of this Variable with input value sent from the component.

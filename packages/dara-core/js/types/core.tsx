@@ -117,6 +117,13 @@ export interface DerivedDataVariable {
     variables: Array<AnyVariable<any>>;
 }
 
+export interface LoopVariable {
+    __typename: 'LoopVariable';
+    parent: SingleVariable<any>;
+    uid: string;
+    nested: string[];
+}
+
 export type DataFrame = Array<{
     [col: string]: any;
 }>;
@@ -128,7 +135,13 @@ export interface DataVariable {
     uid: string;
 }
 
-export type AnyVariable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | DataVariable | DerivedDataVariable;
+export type AnyVariable<T> =
+    | SingleVariable<T>
+    | UrlVariable<T>
+    | DerivedVariable
+    | DataVariable
+    | DerivedDataVariable
+    | LoopVariable;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
 export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable;
 
