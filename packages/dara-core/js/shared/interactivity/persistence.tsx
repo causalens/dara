@@ -1,7 +1,7 @@
 import { applyPatch } from 'fast-json-patch';
 import { mixed } from '@recoiljs/refine';
 import * as React from 'react';
-import { AtomEffect, DefaultValue, useRecoilCallback } from 'recoil';
+import { AtomEffect, DefaultValue, RecoilState, useRecoilCallback } from 'recoil';
 import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
@@ -102,18 +102,14 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     return;
                 }
 
-                // For each variable, find its atoms and apply patches
+                // Collect all atoms that need patching
+                const atomsToUpdate: Array<{ atom: RecoilState<any>; variableUid: string }> = [];
+
                 for (const variableUid of variableUids) {
-                    // First check if there's a direct atom
+                    // Check if there's a direct atom
                     const directAtom = atomRegistry.get(variableUid);
                     if (directAtom) {
-                        try {
-                            const currentValue = await snapshot.getPromise(directAtom);
-                            const patchedValue = applyPatch(currentValue, patches as any, false, false).newDocument;
-                            set(directAtom, patchedValue);
-                        } catch (error) {
-                            console.warn(`Failed to apply patch to direct atom ${variableUid}:`, error);
-                        }
+                        atomsToUpdate.push({ atom: directAtom, variableUid });
                         continue;
                     }
 
@@ -122,19 +118,56 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     if (atomFamily) {
                         const familyMembers = atomFamilyMembersRegistry.get(atomFamily);
                         if (familyMembers) {
-                            // Apply patches to all instances of this atom family
+                            // Add all instances of this atom family
                             for (const [, atomInstance] of familyMembers) {
-                                try {
-                                    const currentValue = await snapshot.getPromise(atomInstance);
-                                    const patchedValue = applyPatch(currentValue, patches as any, false, false).newDocument;
-                                    set(atomInstance, patchedValue);
-                                } catch (error) {
-                                    console.warn(`Failed to apply patch to atom family instance ${variableUid}:`, error);
-                                }
+                                atomsToUpdate.push({ atom: atomInstance, variableUid });
                             }
                         }
                     }
                 }
+
+                // Batch read all current values
+                const currentValues = await Promise.all(
+                    atomsToUpdate.map(async ({ atom, variableUid }) => {
+                        try {
+                            return { 
+                                atom, 
+                                variableUid, 
+                                currentValue: await snapshot.getPromise(atom),
+                                error: null as Error | null
+                            };
+                        } catch (error) {
+                            return { 
+                                atom, 
+                                variableUid, 
+                                currentValue: null, 
+                                error: error as Error
+                            };
+                        }
+                    })
+                );
+
+                const applyPatchToValue = (currentValue: any, variableUid: string): any => {
+                    try {
+                        return applyPatch(currentValue, patches as any, false, false).newDocument;
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`Failed to apply patch to atom ${variableUid}:`, error);
+                        return currentValue; // Return unchanged value on error
+                    }
+                };
+
+                // Apply patches and set new values
+                currentValues.forEach(({ atom, variableUid, currentValue, error }) => {
+                    if (error) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`Failed to read current value for atom ${variableUid}:`, error);
+                        return;
+                    }
+                    
+                    const patchedValue = applyPatchToValue(currentValue, variableUid);
+                    set(atom, patchedValue);
+                });
             },
         []
     );
