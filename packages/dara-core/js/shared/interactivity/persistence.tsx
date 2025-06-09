@@ -1,5 +1,5 @@
-import { applyPatch } from 'fast-json-patch';
 import { mixed } from '@recoiljs/refine';
+import { applyPatch } from 'fast-json-patch';
 import * as React from 'react';
 import { AtomEffect, DefaultValue, RecoilState, useRecoilCallback } from 'recoil';
 import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
@@ -14,9 +14,9 @@ import { GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
 import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
-import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue } from './internal';
+import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
 
 /**
  * Global map to store the extras for each store uid
@@ -130,18 +130,18 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 const currentValues = await Promise.all(
                     atomsToUpdate.map(async ({ atom, variableUid }) => {
                         try {
-                            return { 
-                                atom, 
-                                variableUid, 
+                            return {
+                                atom,
+                                variableUid,
                                 currentValue: await snapshot.getPromise(atom),
-                                error: null as Error | null
+                                error: null as Error | null,
                             };
                         } catch (error) {
-                            return { 
-                                atom, 
-                                variableUid, 
-                                currentValue: null, 
-                                error: error as Error
+                            return {
+                                atom,
+                                variableUid,
+                                currentValue: null,
+                                error: error as Error,
                             };
                         }
                     })
@@ -164,7 +164,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                         console.warn(`Failed to read current value for atom ${variableUid}:`, error);
                         return;
                     }
-                    
+
                     const patchedValue = applyPatchToValue(currentValue, variableUid);
                     set(atom, patchedValue);
                 });
