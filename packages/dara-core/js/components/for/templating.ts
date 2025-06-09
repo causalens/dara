@@ -16,71 +16,87 @@ export type Marker =
       }
     | { type: 'server_component'; path: string; loopInstanceUid: string };
 
+interface ScopeContext {
+    action?: string;
+    derivedVariable?: string;
+    serverComponent?: string;
+}
+
+/**
+ * Create markers for a given scope and loop instance uid.
+ * Used in the terminal case when we find a loop variable. Adds markers for the current action/derived variable/server component we're within.
+ */
+function createMarkers(scope: ScopeContext, loopInstanceUid: string): Marker[] {
+    const markers: Marker[] = [];
+
+    if (scope.action) {
+        markers.push({ type: 'action', path: scope.action });
+    }
+
+    if (scope.derivedVariable) {
+        markers.push({ type: 'derived_var', path: scope.derivedVariable, loopInstanceUid });
+    }
+
+    if (scope.serverComponent) {
+        markers.push({ type: 'server_component', path: scope.serverComponent, loopInstanceUid });
+    }
+
+    return markers;
+}
+
+function updateScope(scope: ScopeContext, value: any, path: string): ScopeContext {
+    const newScope = { ...scope };
+
+    if (!scope.action && isAnnotatedAction(value)) {
+        newScope.action = path;
+    }
+
+    if (!scope.derivedVariable && isDerivedVariable(value)) {
+        newScope.derivedVariable = path;
+    }
+
+    if (!scope.serverComponent && isPyComponent(value)) {
+        newScope.serverComponent = path;
+    }
+
+    return newScope;
+}
+
 /**
  * Get markers for injection points in a renderer
  *
  * @param renderer renderer to check
  */
 export function getInjectionMarkers(renderer: Record<string, any>): Marker[] {
-    const paths: Marker[] = [];
+    const markers: Marker[] = [];
 
-    function recurse(
-        obj: Record<string, any>,
-        path: string[],
-        scope: {
-            actionPath: string[] | null;
-            derivedVariablePath: string[] | null;
-            serverComponentPath: string[] | null;
-        }
-    ): void {
+    function walk(obj: Record<string, any>, pathSegments: string[], scope: ScopeContext = {}): void {
         for (const [key, value] of Object.entries(obj)) {
+            const currentPath = [...pathSegments, key];
+            const dotPath = currentPath.join('.');
+
+            // loop var found (terminal case)
             if (isLoopVariable(value)) {
-                // loop var found! construct the dotted path
-                const resolvedPath = [...path, key].join('.');
-                paths.push({ path: resolvedPath, nested: value.nested, type: 'loop_var' });
+                markers.push(
+                    { path: dotPath, nested: value.nested, type: 'loop_var' },
+                    ...createMarkers(scope, value.uid)
+                );
 
-                // Keep track of other paths we were in
-                if (scope.actionPath) {
-                    paths.push({ path: scope.actionPath.join('.'), type: 'action' });
-                }
-                if (scope.derivedVariablePath) {
-                    paths.push({
-                        path: scope.derivedVariablePath.join('.'),
-                        type: 'derived_var',
-                        loopInstanceUid: value.uid,
-                    });
-                }
-                if (scope.serverComponentPath) {
-                    paths.push({
-                        path: scope.serverComponentPath.join('.'),
-                        type: 'server_component',
-                        loopInstanceUid: value.uid,
-                    });
-                }
-            } else if (isPlainObject(value) || Array.isArray(value)) {
-                let newScope = { ...scope };
+                continue;
+            }
 
-                if (!scope.actionPath && isAnnotatedAction(value)) {
-                    newScope.actionPath = [...path, key];
-                }
-
-                if (!scope.derivedVariablePath && isDerivedVariable(value)) {
-                    newScope.derivedVariablePath = [...path, key];
-                }
-
-                if (!scope.serverComponentPath && isPyComponent(value)) {
-                    newScope.serverComponentPath = [...path, key];
-                }
+            if (isPlainObject(value) || Array.isArray(value)) {
+                const newScope = updateScope(scope, value, dotPath);
 
                 // recurse into objects/arrays, keeping track of the path
-                recurse(value, [...path, key], newScope);
+                walk(value, [...pathSegments, key], newScope);
             }
         }
     }
 
-    recurse(renderer, [], { actionPath: null, derivedVariablePath: null, serverComponentPath: null });
+    walk(renderer, []);
 
-    return paths;
+    return markers;
 }
 
 /**

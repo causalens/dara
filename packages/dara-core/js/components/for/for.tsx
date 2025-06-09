@@ -7,7 +7,7 @@ import { useFallbackCtx } from '@/shared/context/fallback-context';
 import { resolveNested } from '@/shared/interactivity/nested';
 
 import { type AnyVariable, type ComponentInstance } from '../../types/core';
-import { type Marker, getInjectionMarkers, applyMarkers } from './templating';
+import { type Marker, applyMarkers, getInjectionMarkers } from './templating';
 
 interface ForProps {
     items: AnyVariable<Array<any>>;
@@ -29,7 +29,6 @@ const ForChild = React.memo(
         const transformedRenderer = React.useMemo(() => {
             return applyMarkers(props.renderer, props.markers, props.item, props.itemKey);
         }, [props.renderer, props.markers, props.item, props.itemKey]);
-        console.log('RENDER CHILD', transformedRenderer);
 
         return <DynamicComponent component={transformedRenderer} />;
     },
