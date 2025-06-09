@@ -1,7 +1,17 @@
 import abc
 import json
 import os
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Literal, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+)
 from uuid import uuid4
 
 import aiorwlock
@@ -319,7 +329,9 @@ class BackendStore(PersistenceStore):
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
-    async def _notify_user_patch(self, user_identifier: str, patches: List[Dict[str, Any]], ignore_current_channel: bool = True):
+    async def _notify_user_patch(
+        self, user_identifier: str, patches: List[Dict[str, Any]], ignore_current_channel: bool = True
+    ):
         """
         Notify a given user about partial updates to this store.
 
@@ -431,7 +443,7 @@ class BackendStore(PersistenceStore):
 
         # Read current value
         current_value = await run_user_handler(self.backend.read, (key,))
-        
+
         if current_value is None:
             # If no current value, create an empty dict as the base
             current_value = {}
