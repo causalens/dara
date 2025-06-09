@@ -21,7 +21,6 @@ import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
 import {
-    type AnyVariable,
     type DerivedDataVariable,
     type DerivedVariable,
     type GlobalTaskContext,

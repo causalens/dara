@@ -128,8 +128,8 @@ function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string
     );
 }
 
-function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexValue> {
-    const triggerKey = getComponentRegistryKey(uid, true);
+function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string): RecoilState<TriggerIndexValue> {
+    const triggerKey = getComponentRegistryKey(uid, true, loop_instance_uid);
 
     if (!atomRegistry.has(triggerKey)) {
         atomRegistry.set(
@@ -372,11 +372,11 @@ export default function useServerComponent(
  *
  * @param name component uid
  */
-export function useRefreshServerComponent(uid: string): () => void {
+export function useRefreshServerComponent(uid: string, loop_instance_uid?: string): () => void {
     return useRecoilCallback(
         ({ set }) =>
             () => {
-                const triggerAtom = getOrRegisterComponentTrigger(uid);
+                const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
 
                 set(triggerAtom, (triggerIndexValue) => ({
                     force: false,
