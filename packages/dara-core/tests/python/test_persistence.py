@@ -483,3 +483,250 @@ async def test_backend_subscribe_multiple_stores(custom_backend, mock_ws_mgr):
     assert mock_ws_mgr.broadcast.call_count == 2
     mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value'}, ignore_channel=None)
     mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value'}, ignore_channel=None)
+
+
+async def test_write_partial_basic(backend_store, mock_ws_mgr):
+    """
+    Test basic write_partial functionality with simple operations
+    """
+    # Set initial value
+    await backend_store.write({'name': 'John', 'age': 30, 'city': 'New York'}, notify=False)
+    
+    # Apply patches
+    patches = [
+        {'op': 'replace', 'path': '/age', 'value': 31},
+        {'op': 'add', 'path': '/country', 'value': 'USA'},
+        {'op': 'remove', 'path': '/city'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    # Check the result
+    expected = {'name': 'John', 'age': 31, 'country': 'USA'}
+    assert result == expected
+    
+    # Verify it was persisted
+    assert await backend_store.read() == expected
+    
+    # Verify patch notification was sent
+    mock_ws_mgr.broadcast.assert_called_once_with(
+        {'store_uid': backend_store.uid, 'patches': patches}, 
+        ignore_channel=None
+    )
+
+
+async def test_write_partial_nested_objects(backend_store):
+    """
+    Test write_partial with nested object operations
+    """
+    # Set initial value with nested structure
+    initial_data = {
+        'user': {
+            'profile': {
+                'name': 'John',
+                'age': 30
+            },
+            'settings': {
+                'theme': 'light'
+            }
+        },
+        'items': ['apple', 'banana']
+    }
+    await backend_store.write(initial_data, notify=False)
+    
+    # Apply patches to nested structures
+    patches = [
+        {'op': 'replace', 'path': '/user/profile/age', 'value': 31},
+        {'op': 'add', 'path': '/user/profile/city', 'value': 'New York'},
+        {'op': 'replace', 'path': '/user/settings/theme', 'value': 'dark'},
+        {'op': 'add', 'path': '/items/-', 'value': 'cherry'},
+        {'op': 'remove', 'path': '/items/0'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {
+        'user': {
+            'profile': {
+                'name': 'John',
+                'age': 31,
+                'city': 'New York'
+            },
+            'settings': {
+                'theme': 'dark'
+            }
+        },
+        'items': ['banana', 'cherry']
+    }
+    
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_empty_store(backend_store):
+    """
+    Test write_partial on an empty store (creates base structure)
+    """
+    # Apply patches to empty store
+    patches = [
+        {'op': 'add', 'path': '/name', 'value': 'John'},
+        {'op': 'add', 'path': '/age', 'value': 30}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {'name': 'John', 'age': 30}
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_user_scope(user_backend_store, mock_ws_mgr):
+    """
+    Test write_partial with user-scoped store
+    """
+    USER.set(USER_1)
+    
+    # Set initial value for user1
+    await user_backend_store.write({'name': 'John', 'age': 30}, notify=False)
+    
+    patches = [
+        {'op': 'replace', 'path': '/age', 'value': 31},
+        {'op': 'add', 'path': '/city', 'value': 'New York'}
+    ]
+    
+    result = await user_backend_store.write_partial(patches)
+    
+    expected = {'name': 'John', 'age': 31, 'city': 'New York'}
+    assert result == expected
+    assert await user_backend_store.read() == expected
+    
+    # Verify patch notification was sent to the correct user
+    mock_ws_mgr.send_message_to_user.assert_called_once_with(
+        USER_1.identity_id,
+        {'store_uid': user_backend_store.uid, 'patches': patches},
+        ignore_channel=None
+    )
+    
+    # Test isolation - switch to user2
+    USER.set(USER_2)
+    
+    # User2 should not see user1's data
+    assert await user_backend_store.read() is None
+
+
+async def test_write_partial_readonly_store(backend_store):
+    """
+    Test that write_partial fails on readonly store
+    """
+    backend_store.readonly = True
+    
+    patches = [{'op': 'add', 'path': '/name', 'value': 'John'}]
+    
+    with pytest.raises(ValueError, match='Cannot write to a read-only store'):
+        await backend_store.write_partial(patches)
+
+
+async def test_write_partial_invalid_patches(backend_store):
+    """
+    Test that write_partial handles invalid JSON patches properly
+    """
+    # Set initial value
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    # Invalid patch - trying to replace non-existent path
+    invalid_patches = [{'op': 'replace', 'path': '/nonexistent', 'value': 'value'}]
+    
+    with pytest.raises(ValueError, match='Invalid JSON patch operation'):
+        await backend_store.write_partial(invalid_patches)
+    
+    # Verify original value is unchanged
+    assert await backend_store.read() == {'name': 'John'}
+
+
+async def test_write_partial_no_notify(backend_store, mock_ws_mgr):
+    """
+    Test write_partial with notify=False
+    """
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    patches = [{'op': 'replace', 'path': '/name', 'value': 'Jane'}]
+    
+    result = await backend_store.write_partial(patches, notify=False)
+    
+    assert result == {'name': 'Jane'}
+    assert await backend_store.read() == {'name': 'Jane'}
+    
+    # Should not have sent any notifications
+    mock_ws_mgr.broadcast.assert_not_called()
+    mock_ws_mgr.send_message_to_user.assert_not_called()
+
+
+async def test_write_partial_array_operations(backend_store):
+    """
+    Test write_partial with various array operations
+    """
+    # Set initial array
+    await backend_store.write({'items': ['a', 'b', 'c']}, notify=False)
+    
+    patches = [
+        {'op': 'add', 'path': '/items/1', 'value': 'x'},  # Insert at index 1
+        {'op': 'remove', 'path': '/items/3'},              # Remove item at index 3 (was 'c')
+        {'op': 'add', 'path': '/items/-', 'value': 'end'}, # Append to end
+        {'op': 'replace', 'path': '/items/0', 'value': 'start'} # Replace first item
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {'items': ['start', 'x', 'b', 'end']}
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_copy_and_move_operations(backend_store):
+    """
+    Test write_partial with copy and move operations
+    """
+    initial_data = {
+        'source': {'value': 'test_value'},
+        'items': ['a', 'b', 'c'],
+        'target': {}
+    }
+    await backend_store.write(initial_data, notify=False)
+    
+    patches = [
+        {'op': 'copy', 'from': '/source/value', 'path': '/target/copied_value'},
+        {'op': 'move', 'from': '/items/1', 'path': '/moved_item'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {
+        'source': {'value': 'test_value'},
+        'items': ['a', 'c'],  # 'b' was moved out
+        'target': {'copied_value': 'test_value'},
+        'moved_item': 'b'
+    }
+    
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_with_ws_channel(backend_store, mock_ws_mgr):
+    """
+    Test that write_partial respects WS_CHANNEL context for ignoring originating channel
+    """
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    # Set WS channel context
+    WS_CHANNEL.set('test_channel')
+    
+    patches = [{'op': 'replace', 'path': '/name', 'value': 'Jane'}]
+    await backend_store.write_partial(patches)
+    
+    # Should ignore the originating channel
+    mock_ws_mgr.broadcast.assert_called_once_with(
+        {'store_uid': backend_store.uid, 'patches': patches},
+        ignore_channel='test_channel'
+    )
+    
+    WS_CHANNEL.set(None)

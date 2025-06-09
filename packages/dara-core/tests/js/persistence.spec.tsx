@@ -1,7 +1,7 @@
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 
-import { BackendStoreMessage } from '@/api/websocket';
+import { BackendStoreMessage, BackendStorePatchMessage } from '@/api/websocket';
 import { setSessionToken } from '@/auth/use-session-token';
 import { RequestExtrasProvider } from '@/shared';
 import { getSessionKey } from '@/shared/interactivity/persistence';
@@ -428,6 +428,121 @@ describe('Variable Persistence', () => {
 
         await waitFor(() => {
             expect(result.current[0]).toEqual({ foo: 'updated' });
+        });
+    });
+
+    test('variable with BackendStore applies JSON patches on received WS message', async () => {
+        // Mock endpoint to retrieve store value
+        server.use(
+            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+                return res(
+                    ctx.json({
+                        user: {
+                            name: 'John',
+                            age: 30,
+                        },
+                        items: ['apple', 'banana'],
+                    })
+                );
+            })
+        );
+
+        const wsClient = new MockWebSocketClient('CHANNEL');
+
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: {},
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'store-uid',
+                    },
+                    uid: 'session-test-1',
+                } as SingleVariable<any, BackendStore>),
+            {
+                wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper>,
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({
+                user: {
+                    name: 'John',
+                    age: 30,
+                },
+                items: ['apple', 'banana'],
+            });
+        });
+
+        // Apply JSON patch to update user age and add item
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'store-uid',
+                    patches: [
+                        { op: 'replace', path: '/user/age', value: 31 },
+                        { op: 'add', path: '/items/-', value: 'cherry' },
+                        { op: 'add', path: '/user/city', value: 'New York' },
+                    ],
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({
+                user: {
+                    name: 'John',
+                    age: 31,
+                    city: 'New York',
+                },
+                items: ['apple', 'banana', 'cherry'],
+            });
+        });
+
+        // Apply another patch to remove an item
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'store-uid',
+                    patches: [{ op: 'remove', path: '/items/0' }],
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({
+                user: {
+                    name: 'John',
+                    age: 31,
+                    city: 'New York',
+                },
+                items: ['banana', 'cherry'],
+            });
+        });
+
+        // Test patch for different store uid should not affect our variable
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'other-store-uid',
+                    patches: [{ op: 'replace', path: '/user/name', value: 'Jane' }],
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        // Value should remain unchanged
+        expect(result.current[0]).toEqual({
+            user: {
+                name: 'John',
+                age: 31,
+                city: 'New York',
+            },
+            items: ['banana', 'cherry'],
         });
     });
 

@@ -1,11 +1,12 @@
 import abc
 import json
 import os
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Literal, Optional, Set
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Literal, Optional, Set
 from uuid import uuid4
 
 import aiorwlock
 import anyio
+import jsonpatch
 from pydantic import (
     BaseModel,
     Field,
@@ -297,6 +298,13 @@ class BackendStore(PersistenceStore):
         """
         return {'store_uid': self.uid, 'value': value}
 
+    def _create_patch_msg(self, patches: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create a patch message to send to the frontend.
+        :param patches: list of JSON patch operations
+        """
+        return {'store_uid': self.uid, 'patches': patches}
+
     async def _notify_user(self, user_identifier: str, value: Any, ignore_current_channel: bool = True):
         """
         Notify a given user about the new value for this store.
@@ -311,6 +319,20 @@ class BackendStore(PersistenceStore):
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
+    async def _notify_user_patch(self, user_identifier: str, patches: List[Dict[str, Any]], ignore_current_channel: bool = True):
+        """
+        Notify a given user about partial updates to this store.
+
+        :param user_identifier: user to notify
+        :param patches: list of JSON patch operations
+        :param ignore_current_channel: if True, ignore the current websocket channel
+        """
+        return await self.ws_mgr.send_message_to_user(
+            user_identifier,
+            self._create_patch_msg(patches),
+            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
+        )
+
     async def _notify_global(self, value: Any, ignore_current_channel: bool = True):
         """
         Notify all users about the new value for this store.
@@ -320,6 +342,18 @@ class BackendStore(PersistenceStore):
         """
         return await self.ws_mgr.broadcast(
             self._create_msg(value),
+            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
+        )
+
+    async def _notify_global_patch(self, patches: List[Dict[str, Any]], ignore_current_channel: bool = True):
+        """
+        Notify all users about partial updates to this store.
+
+        :param patches: list of JSON patch operations
+        :param ignore_current_channel: if True, ignore the current websocket channel
+        """
+        return await self.ws_mgr.broadcast(
+            self._create_patch_msg(patches),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -342,6 +376,25 @@ class BackendStore(PersistenceStore):
         user_identifier = user.identity_id or user.identity_name
         return await self._notify_user(user_identifier, value)
 
+    async def _notify_patches(self, patches: List[Dict[str, Any]]):
+        """
+        Notify all clients about partial updates to this store.
+        Broadcasts to all users if scope is global or sends to the current user if scope is user.
+
+        :param patches: list of JSON patch operations
+        """
+        if self.scope == 'global':
+            return await self._notify_global_patch(patches)
+
+        # For user scope, we need to find channels for the user and notify them
+        user = USER.get()
+
+        if not user:
+            return
+
+        user_identifier = user.identity_id or user.identity_name
+        return await self._notify_user_patch(user_identifier, patches)
+
     async def init(self, variable: 'Variable'):
         """
         Write the default value to the store if it's not set
@@ -360,6 +413,43 @@ class BackendStore(PersistenceStore):
                 return await self._notify_global(value, ignore_current_channel=False)
 
             await self.backend.subscribe(_on_value)
+
+    async def write_partial(self, patches: List[Dict[str, Any]], notify: bool = True):
+        """
+        Apply partial updates to the store using JSON Patch operations.
+
+        If scope='user', the patches are applied for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param patches: list of JSON patch operations conforming to RFC 6902
+        :param notify: whether to broadcast the patches to clients
+        """
+        if self.readonly:
+            raise ValueError('Cannot write to a read-only store')
+
+        key = await self._get_key()
+
+        # Read current value
+        current_value = await run_user_handler(self.backend.read, (key,))
+        
+        if current_value is None:
+            # If no current value, create an empty dict as the base
+            current_value = {}
+
+        # Apply patches to current value
+        try:
+            updated_value = jsonpatch.apply_patch(current_value, patches)
+        except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
+            raise ValueError(f'Invalid JSON patch operation: {e}') from e
+
+        # Write updated value back to store
+        await run_user_handler(self.backend.write, (key, updated_value))
+
+        if notify:
+            # Notify clients about the patches, not the full value
+            await self._notify_patches(patches)
+
+        return updated_value
 
     async def write(self, value: Any, notify=True):
         """

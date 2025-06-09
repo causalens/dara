@@ -1,11 +1,12 @@
+import { applyPatch } from 'fast-json-patch';
 import { mixed } from '@recoiljs/refine';
 import * as React from 'react';
-import { AtomEffect, DefaultValue } from 'recoil';
+import { AtomEffect, DefaultValue, useRecoilCallback } from 'recoil';
 import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, handleAuthErrors } from '@/api';
+import { BackendStorePatchMessage, WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
@@ -13,6 +14,7 @@ import { GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
 import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
+import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue } from './internal';
 
@@ -20,6 +22,11 @@ import { getOrRegisterDerivedVariableValue } from './internal';
  * Global map to store the extras for each store uid
  */
 const STORE_EXTRAS_MAP = new Map<string, RequestExtrasSerializable>();
+
+/**
+ * Global map from store uid to set of variable uids that use that store
+ */
+const STORE_VARIABLE_MAP = new Map<string, Set<string>>();
 
 /**
  * RecoilSync implementation for BackendStore
@@ -86,19 +93,75 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         [client]
     );
 
+    const applyPatchesToAtoms = useRecoilCallback(
+        ({ snapshot, set }) =>
+            async (storeUid: string, patches: BackendStorePatchMessage['message']['patches']) => {
+                // Get all variable UIDs that use this store
+                const variableUids = STORE_VARIABLE_MAP.get(storeUid);
+                if (!variableUids) {
+                    return;
+                }
+
+                // For each variable, find its atoms and apply patches
+                for (const variableUid of variableUids) {
+                    // First check if there's a direct atom
+                    const directAtom = atomRegistry.get(variableUid);
+                    if (directAtom) {
+                        try {
+                            const currentValue = await snapshot.getPromise(directAtom);
+                            const patchedValue = applyPatch(currentValue, patches as any, false, false).newDocument;
+                            set(directAtom, patchedValue);
+                        } catch (error) {
+                            console.warn(`Failed to apply patch to direct atom ${variableUid}:`, error);
+                        }
+                        continue;
+                    }
+
+                    // Check if there's an atom family
+                    const atomFamily = atomFamilyRegistry.get(variableUid);
+                    if (atomFamily) {
+                        const familyMembers = atomFamilyMembersRegistry.get(atomFamily);
+                        if (familyMembers) {
+                            // Apply patches to all instances of this atom family
+                            for (const [, atomInstance] of familyMembers) {
+                                try {
+                                    const currentValue = await snapshot.getPromise(atomInstance);
+                                    const patchedValue = applyPatch(currentValue, patches as any, false, false).newDocument;
+                                    set(atomInstance, patchedValue);
+                                } catch (error) {
+                                    console.warn(`Failed to apply patch to atom family instance ${variableUid}:`, error);
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        []
+    );
+
     const listenToStoreChanges = React.useCallback<ListenToItems>(
         ({ updateItem }) => {
             if (!client) {
                 return;
             }
 
-            const sub = client.backendStoreMessages$().subscribe((message) => {
+            // Subscribe to regular value updates
+            const valueSub = client.backendStoreMessages$().subscribe((message) => {
                 updateItem(message.store_uid, message.value);
             });
 
-            return () => sub.unsubscribe();
+            // Subscribe to patch updates
+            const patchSub = client.backendStorePatchMessages$().subscribe((message) => {
+                // Apply patches directly to atoms instead of going through RecoilSync
+                applyPatchesToAtoms(message.store_uid, message.patches);
+            });
+
+            return () => {
+                valueSub.unsubscribe();
+                patchSub.unsubscribe();
+            };
         },
-        [client]
+        [client, applyPatchesToAtoms]
     );
 
     return (
@@ -120,6 +183,13 @@ function backendStoreEffect<T>(
 ): AtomEffect<any> {
     // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
     STORE_EXTRAS_MAP.set(variable.store.uid, requestExtras);
+
+    // Register this variable as using this store for patch handling
+    if (!STORE_VARIABLE_MAP.has(variable.store.uid)) {
+        STORE_VARIABLE_MAP.set(variable.store.uid, new Set());
+    }
+    STORE_VARIABLE_MAP.get(variable.store.uid).add(variable.uid);
+
     return syncEffect({
         /** Use store uid as the unique identifier */
         itemKey: variable.store.uid,
