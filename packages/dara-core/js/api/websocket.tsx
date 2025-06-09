@@ -197,7 +197,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     maxAttempts: number;
 
-    #pingInterval: NodeJS.Timeout;
+    #pingInterval: NodeJS.Timeout | null;
 
     #socketUrl: string;
 
@@ -213,6 +213,9 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.#reconnectCount = 0;
         this.#pingInterval = null;
 
+        // Satisfy TSC, channel is set within initialize again
+        this.channel = Promise.resolve('');
+
         // Lastly call initialize to setup the socket properly
         this.socket = this.initialize();
     }
@@ -222,7 +225,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         const url = new URL(this.#socketUrl);
 
         // Get the latest token from the global store to ensure it's always up to date
-        this.token = globalStore.getValueSync(getTokenKey());
+        this.token = globalStore.getValueSync(getTokenKey())!;
 
         // Set the token on the params of the request
         url.searchParams.set('token', this.token);
@@ -304,7 +307,9 @@ export class WebSocketClient implements WebSocketClientInterface {
      * Forcefully close the websocket connection, first clearing the closehandler
      */
     close(): void {
-        clearInterval(this.#pingInterval);
+        if (this.#pingInterval) {
+            clearInterval(this.#pingInterval);
+        }
         this.socket.removeEventListener('close', this.closeHandler);
         this.socket.close();
     }
@@ -340,7 +345,10 @@ export class WebSocketClient implements WebSocketClientInterface {
      */
     taskStatusUpdates$(...task_ids: string[]): Observable<TaskStatus> {
         return this.messages$.pipe(
-            filter((msg) => isTaskNotification(msg) && task_ids.includes(msg.message.task_id)),
+            filter(
+                (msg): msg is TaskNotificationMessage =>
+                    isTaskNotification(msg) && task_ids.includes(msg.message.task_id)
+            ),
             map((msg: TaskNotificationMessage) => msg.message.status)
         );
     }
@@ -530,6 +538,8 @@ export class WebSocketClient implements WebSocketClientInterface {
             );
             return Promise.resolve(null);
         }
+
+        return Promise.resolve(null);
     }
 }
 

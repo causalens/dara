@@ -1,12 +1,12 @@
 import { type History, type Location } from 'history';
-import { CallbackInterface } from 'recoil';
+import { type CallbackInterface } from 'recoil';
 
-import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload, useNotifications } from '@darajs/ui-notifications';
-import { SortingRule } from '@darajs/ui-utils';
+import { type DefaultTheme } from '@darajs/styled-components';
+import { type NotificationPayload, useNotifications } from '@darajs/ui-notifications';
+import { type SortingRule } from '@darajs/ui-utils';
 
-import { RequestExtras } from '@/api/http';
-import { WebSocketClientInterface } from '@/api/websocket';
+import { type RequestExtras } from '@/api/http';
+import { type WebSocketClientInterface } from '@/api/websocket';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -135,13 +135,7 @@ export interface DataVariable {
     uid: string;
 }
 
-export type AnyVariable<T> =
-    | SingleVariable<T>
-    | UrlVariable<T>
-    | DerivedVariable
-    | DataVariable
-    | DerivedDataVariable
-    | LoopVariable;
+export type AnyVariable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | DataVariable | DerivedDataVariable;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
 export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable;
 

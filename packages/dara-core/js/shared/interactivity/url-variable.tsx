@@ -2,7 +2,7 @@ import { mixed } from '@recoiljs/refine';
 import { RecoilState, atom, useRecoilState } from 'recoil';
 import { urlSyncEffect } from 'recoil-sync';
 
-import { UrlVariable } from '@/types';
+import { type UrlVariable } from '@/types';
 
 import { atomRegistry } from './store';
 
@@ -26,7 +26,7 @@ export function getOrRegisterUrlVariable<T>(variable: UrlVariable<T>): RecoilSta
             })
         );
     }
-    return atomRegistry.get(variable.uid);
+    return atomRegistry.get(variable.uid)!;
 }
 
 export function useUrlVariable<T>(variable: UrlVariable<T>): [T, (value: T) => void] {

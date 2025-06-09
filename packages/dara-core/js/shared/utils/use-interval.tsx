@@ -9,7 +9,7 @@ import { useDeepCompare } from '@darajs/ui-utils';
  * @param callback the function to run after each interval
  * @param delay the delay in seconds between each interval
  */
-function useInterval(callback: () => void, delay: number): void {
+function useInterval(callback: () => void, delay: number | undefined): void {
     useEffect(
         () => {
             if (delay) {

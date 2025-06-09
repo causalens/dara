@@ -7,6 +7,6 @@ export interface VariableContext {
     variables: React.MutableRefObject<Set<string>>;
 }
 
-const variablesCtx = React.createContext<VariableContext>(null);
+const variablesCtx = React.createContext<VariableContext | null>(null);
 
 export default variablesCtx;

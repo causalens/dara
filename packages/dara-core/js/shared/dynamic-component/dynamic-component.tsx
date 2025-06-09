@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { MutableRefObject, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { type MutableRefObject, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import DefaultFallback from '@/components/fallback/default';
@@ -10,14 +10,14 @@ import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
 import { isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
 import {
-    Component,
-    ComponentInstance,
-    DerivedDataVariable,
-    DerivedVariable,
+    type Component,
+    type ComponentInstance,
+    type DerivedDataVariable,
+    type DerivedVariable,
     isDerivedDataVariable,
     isDerivedVariable,
 } from '@/types';
-import { AnyVariable, isInvalidComponent, isRawString } from '@/types/core';
+import { type AnyVariable, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
 
@@ -27,8 +27,8 @@ import { cleanProps } from './clean-props';
  *
  * @param variable the derived variable to get the polling interval
  */
-function getDerivedVariablePollingInterval(variable: DerivedVariable | DerivedDataVariable): number {
-    let pollingInterval: number;
+function getDerivedVariablePollingInterval(variable: DerivedVariable | DerivedDataVariable): number | undefined {
+    let pollingInterval!: number;
 
     if (variable.polling_interval) {
         pollingInterval = variable.polling_interval;
@@ -51,7 +51,10 @@ function getDerivedVariablePollingInterval(variable: DerivedVariable | DerivedDa
  * @param kwargs component kwargs
  * @param componentInterval component polling interval
  */
-function computePollingInterval(kwargs: Record<string, AnyVariable<any>>, componentInterval?: number): number {
+function computePollingInterval(
+    kwargs: Record<string, AnyVariable<any>>,
+    componentInterval?: number
+): number | undefined {
     let pollingInterval: number | undefined;
 
     Object.values(kwargs).forEach((value) => {
@@ -178,8 +181,8 @@ interface DynamicComponentProps {
  * @param taskRef ref to task id of the running task
  */
 function getFallbackComponent(
-    fallback: ComponentInstance,
-    track_progress: boolean,
+    fallback: ComponentInstance | undefined,
+    track_progress: boolean | undefined,
     variablesRef: MutableRefObject<Set<string>>
 ): JSX.Element {
     let fallbackComponent = <DefaultFallback />;
@@ -205,7 +208,7 @@ function getFallbackComponent(
  *
  * @param props - the components props
  */
-function DynamicComponent(props: DynamicComponentProps): JSX.Element {
+function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     const [isLoading, setIsLoading] = useState(true);
     const [component, setComponent] = useState<JSX.Element>();
     const { get: getComponent } = useComponentRegistry();
@@ -305,7 +308,7 @@ interface PythonWrapperProps {
  * Handles polling for the component if polling_interval is set in the component definition or in any of the
  * dynamic_kwargs (checked recursively).
  */
-function PythonWrapper(props: PythonWrapperProps): JSX.Element {
+function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
     const component = useServerComponent(props.name, props.uid, props.dynamic_kwargs);
     const refresh = useRefreshServerComponent(props.uid);
 

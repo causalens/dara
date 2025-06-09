@@ -1,19 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useEffect } from 'react';
-import { RecoilState, RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import { RecoilState, type RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
-import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
-    AnyVariable,
-    ComponentInstance,
-    GlobalTaskContext,
-    NormalizedPayload,
-    TaskResponse,
+    type AnyVariable,
+    type ComponentInstance,
+    type GlobalTaskContext,
+    type NormalizedPayload,
+    type TaskResponse,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
 } from '@/types';
@@ -24,7 +24,7 @@ import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
 import {
-    TriggerIndexValue,
+    type TriggerIndexValue,
     atomRegistry,
     depsRegistry,
     selectorFamilyMembersRegistry,
@@ -132,7 +132,7 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
         );
     }
 
-    return atomRegistry.get(triggerKey);
+    return atomRegistry.get(triggerKey)!;
 }
 
 /**
@@ -169,7 +169,7 @@ function getOrRegisterServerComponent(
                         // Kwargs resolved to their simple values
                         const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
                             (acc, k) => {
-                                const value = dynamicKwargs[k];
+                                const value = dynamicKwargs[k]!;
                                 acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
                                 return acc;
                             },
@@ -225,8 +225,8 @@ function getOrRegisterServerComponent(
                                 wsClient
                             );
                         } catch (e) {
-                            e.selectorId = key;
-                            e.selectorExtras = extrasSerializable.toJSON();
+                            (e as any).selectorId = key;
+                            (e as any).selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -250,8 +250,8 @@ function getOrRegisterServerComponent(
                             try {
                                 result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
                             } catch (e) {
-                                e.selectorId = key;
-                                e.selectorExtras = extrasSerializable.toJSON();
+                                (e as any).selectorId = key;
+                                (e as any).selectorExtras = extrasSerializable.toJSON();
                                 throw e;
                             }
                         }
@@ -274,7 +274,7 @@ function getOrRegisterServerComponent(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -287,7 +287,7 @@ function getOrRegisterServerComponent(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -312,10 +312,10 @@ export default function useServerComponent(
     const bus = useEventBus();
 
     // Synchronously register the py_component uid, and clean it up on unmount
-    variablesContext.variables.current.add(getComponentRegistryKey(uid));
+    variablesContext?.variables.current.add(getComponentRegistryKey(uid));
     useEffect(() => {
         return () => {
-            variablesContext.variables.current.delete(getComponentRegistryKey(uid));
+            variablesContext?.variables.current.delete(getComponentRegistryKey(uid));
         };
     }, []);
 

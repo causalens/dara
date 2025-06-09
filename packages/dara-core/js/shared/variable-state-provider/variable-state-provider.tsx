@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { WebSocketClientInterface } from '@/api';
+import { type WebSocketClientInterface } from '@/api';
 import { useVariableState } from '@/shared/interactivity';
 
 interface VariableStateProviderProps {
@@ -10,7 +10,7 @@ interface VariableStateProviderProps {
 /**
  * Responds to server variable value requests
  */
-function VariableStateProvider(props: VariableStateProviderProps): JSX.Element {
+function VariableStateProvider(props: VariableStateProviderProps): React.ReactNode {
     const getVariableState = useVariableState();
 
     useEffect(() => {
@@ -22,7 +22,7 @@ function VariableStateProvider(props: VariableStateProviderProps): JSX.Element {
                 props.wsClient.sendVariable(variableValue, req.message.__rchan);
             } catch (err) {
                 // eslint-disable-next-line no-console
-                console.warn(`Error when processing a getVariableValue request: ${err}`);
+                console.warn(`Error when processing a getVariableValue request: ${String(err)}`);
             }
         });
 

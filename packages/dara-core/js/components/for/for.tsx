@@ -3,10 +3,11 @@ import * as React from 'react';
 
 import { DynamicComponent, useAnyVariable } from '@/shared';
 import { FallbackCtx } from '@/shared/context';
+import { useFallbackCtx } from '@/shared/context/fallback-context';
 import { resolveNested } from '@/shared/interactivity/nested';
 
-import { AnyVariable, ComponentInstance } from '../../types/core';
-import { LoopVarPath, getLoopVarPaths, injectLoopVar } from './templating';
+import { type AnyVariable, type ComponentInstance } from '../../types/core';
+import { type LoopVarPath, getLoopVarPaths, injectLoopVar } from './templating';
 
 interface ForProps {
     items: AnyVariable<Array<any>>;
@@ -51,7 +52,7 @@ function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNo
 }
 
 function For(props: ForProps): React.ReactNode {
-    const { suspend } = React.useContext(FallbackCtx);
+    const { suspend } = useFallbackCtx();
 
     // Force disable suspend, as that defeats the purpose of this component.
     return (

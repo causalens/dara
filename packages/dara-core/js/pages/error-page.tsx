@@ -1,4 +1,4 @@
-import { ComponentProps, useMemo } from 'react';
+import { type ComponentProps, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import styled from '@darajs/styled-components';
@@ -39,7 +39,7 @@ function ErrorPage(): JSX.Element {
 
     const code = query.get('code');
 
-    const errorConfig = errorMessages[code] || errorMessages.default;
+    const errorConfig = (code && errorMessages[code]) || errorMessages.default!;
 
     return (
         <CenteredDivWithGap>

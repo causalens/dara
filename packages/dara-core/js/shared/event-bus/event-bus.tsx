@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Subject } from 'rxjs';
 
-import { DaraEvent, DaraEventMap, EventMap, IEventBus, UnionFromMap } from '@/types/core';
+import { type DaraEvent, type DaraEventMap, type EventMap, type IEventBus, type UnionFromMap } from '@/types/core';
 
 /**
  * Global event bus that allows to publish and subscribe to events.

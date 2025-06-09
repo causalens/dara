@@ -1,10 +1,10 @@
 import {
-    AnyVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    NormalizedPayload,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
+    type AnyVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type NormalizedPayload,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDerivedDataVariable,
@@ -115,7 +115,7 @@ function normalizeResolvedDerivedVariable(
             };
         } else {
             // Put values into lookup
-            const varDef = def.variables[key];
+            const varDef = def.variables[key]!;
             const identifier = getIdentifier(varDef);
             lookup[identifier] = val;
             normalizedValues.push({ __ref: identifier });

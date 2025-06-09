@@ -1,13 +1,13 @@
-import { UseQueryResult, useQuery } from '@tanstack/react-query';
+import { type UseQueryResult, useQuery } from '@tanstack/react-query';
 
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { handleAuthErrors } from '@/auth/auth';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { denormalize } from '@/shared/utils/normalization';
-import { ActionDef, Component, Config, NormalizedPayload, Template } from '@/types';
+import { type ActionDef, type Component, type Config, type NormalizedPayload, type Template } from '@/types';
 
-import { RequestExtras, request } from './http';
+import { type RequestExtras, request } from './http';
 
 /** Api call to fetch the action registry from the backend */
 export function useActions(): UseQueryResult<
@@ -70,7 +70,7 @@ export function useComponents(): UseQueryResult<
  *
  * @param template - the template name to fetch
  */
-export function useTemplate(template: string): UseQueryResult<Template, RequestError> {
+export function useTemplate(template: string | undefined): UseQueryResult<Template, RequestError> {
     const extras = useRequestExtras();
     return useQuery({
         enabled: !!template,

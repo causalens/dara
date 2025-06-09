@@ -59,7 +59,7 @@ interface TemplateRootProps {
  * template for the application. It provides the Template context down to it's children and also renders the root
  * component of the template
  */
-function TemplateRoot(props: TemplateRootProps): JSX.Element {
+function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     const token = useSessionToken();
     const tokenRef = useRef(token);
     const { data: config } = useConfig();
@@ -67,10 +67,12 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
 
     const { data: actions, isLoading: actionsLoading } = useActions();
     const { data: components, isLoading: componentsLoading, refetch: refetchComponents } = useComponents();
-    const [wsClient, setWsClient] = useState<WebSocketClient>(props.initialWebsocketClient);
+    const [wsClient, setWsClient] = useState<WebSocketClient | undefined>(() => props.initialWebsocketClient);
 
     useEffect(() => {
-        cleanSessionCache(token);
+        if (token) {
+            cleanSessionCache(token);
+        }
     }, [token]);
 
     useEffect(() => {
@@ -81,7 +83,9 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
         // subscribe to token changes and notify the live WS connection
         return onTokenChange((newToken) => {
             tokenRef.current = newToken;
-            wsClient.updateToken(newToken);
+            if (newToken) {
+                wsClient.updateToken(newToken);
+            }
         });
     }, [wsClient]);
 
@@ -92,7 +96,7 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
     }, [config?.title]);
 
     useEffect(() => {
-        if (config) {
+        if (config && tokenRef.current) {
             setWsClient(setupWebsocket(tokenRef.current, config.live_reload));
         }
 
@@ -101,7 +105,7 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
         };
     }, [tokenRef, config?.live_reload]);
 
-    if (templateLoading || actionsLoading || componentsLoading) {
+    if (templateLoading || actionsLoading || componentsLoading || !wsClient) {
         return null;
     }
 
@@ -109,13 +113,13 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
         <ThemeProvider theme={resolveTheme(config?.theme?.main, config?.theme?.base)}>
             <WebSocketCtx.Provider value={{ client: wsClient }}>
                 <RegistriesCtx.Provider
-                    value={{ actionRegistry: actions, componentRegistry: components, refetchComponents }}
+                    value={{ actionRegistry: actions!, componentRegistry: components!, refetchComponents }}
                 >
                     <GlobalTaskProvider>
                         <DynamicContext contextComponents={config?.context_components ?? []}>
                             <StoreProviders>
                                 <RootWrapper>
-                                    <DynamicComponent component={template?.layout} />
+                                    <DynamicComponent component={template!.layout} />
                                     <VariableStateProvider wsClient={wsClient} />
                                     {config?.enable_devtools && <DevTools />}
                                 </RootWrapper>

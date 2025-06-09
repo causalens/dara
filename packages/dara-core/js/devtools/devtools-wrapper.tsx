@@ -51,12 +51,12 @@ function DevToolsWrapper(): JSX.Element {
 
     const { errors } = useBackendErrors();
 
-    const sidebarRef = useRef(null);
+    const sidebarRef = useRef<HTMLDivElement>(null);
     const [sidebarWidth, setSidebarWidth] = useState(MIN_WIDTH);
 
     // invoked on resizer move
     const resize = useCallback((mouseMoveEvent: MouseEvent) => {
-        setSidebarWidth(fitInBounds(sidebarRef.current.getBoundingClientRect().right - mouseMoveEvent.clientX));
+        setSidebarWidth(fitInBounds(sidebarRef.current!.getBoundingClientRect().right - mouseMoveEvent.clientX));
     }, []);
 
     const { startMoving: startResizing } = useMove(resize);

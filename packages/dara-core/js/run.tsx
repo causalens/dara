@@ -71,7 +71,7 @@ function run(importers: { [k: string]: () => Promise<any> }): void {
         );
     }
 
-    const container = document.getElementById('dara_root');
+    const container = document.getElementById('dara_root')!;
     const root = createRoot(container);
     root.render(<Root />);
 }

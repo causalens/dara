@@ -1,13 +1,13 @@
 import { RecoilState } from 'recoil';
 
-import { WebSocketClientInterface } from '@/api';
-import { RequestExtras } from '@/api/http';
+import { type WebSocketClientInterface } from '@/api';
+import { type RequestExtras } from '@/api/http';
 import {
-    AnyVariable,
-    GlobalTaskContext,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
+    type AnyVariable,
+    type GlobalTaskContext,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,

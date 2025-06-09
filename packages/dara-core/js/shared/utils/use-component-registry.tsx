@@ -8,7 +8,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth/auth';
 import { RegistriesCtx, useRequestExtras } from '@/shared/context';
-import { Component, ComponentInstance } from '@/types/core';
+import { type Component, type ComponentInstance } from '@/types/core';
 
 interface ComponentRegistryInterface {
     get: (instance: ComponentInstance) => Promise<Component>;
@@ -23,12 +23,12 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
     const extras = useRequestExtras();
     const get = useCallback(
         async (instance: ComponentInstance): Promise<Component> => {
-            let component: Component = null;
+            let component: Component | null = null;
             let registry = { ...components };
             let i = 0;
             while (i < maxRetries) {
                 if (registry && registry[instance.name]) {
-                    component = registry[instance.name];
+                    component = registry[instance.name]!;
                     break;
                 }
                 if (i === 0) {
@@ -46,7 +46,7 @@ function useComponentRegistry(maxRetries = 5): ComponentRegistryInterface {
                     // But first wait for 0,5s before retrying, to give time for backend to update the registry
                     await new Promise((resolve) => setTimeout(resolve, 500));
                     const { data } = await refetchComponents();
-                    registry = data;
+                    registry = data!;
                 }
                 i++;
             }

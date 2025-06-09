@@ -2,25 +2,25 @@
 import { isEqual } from 'lodash';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
-import { GetRecoilValue, RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
+import { type GetRecoilValue, type RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
-import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
 import {
-    AnyVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    GlobalTaskContext,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
+    type AnyVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type GlobalTaskContext,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
@@ -31,7 +31,7 @@ import {
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
 import {
-    TriggerIndexValue,
+    type TriggerIndexValue,
     depsRegistry,
     getRegistryKey,
     selectorFamilyMembersRegistry,
@@ -144,7 +144,7 @@ export async function fetchDerivedVariable<T>({
  * promise based and async
  */
 const debouncedFetchSubjects: {
-    [k: string]: BehaviorSubject<FetchDerivedVariableArgs>;
+    [k: string]: BehaviorSubject<FetchDerivedVariableArgs | null>;
 } = {};
 const debouncedFetchCache: {
     [k: string]: Observable<any>;
@@ -162,7 +162,7 @@ async function debouncedFetchDerivedVariable({
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     // If this is the first time this is called then set up a subject and return stream for this selector
     if (!debouncedFetchSubjects[selectorKey]) {
-        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs>(null);
+        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs | null>(null);
         debouncedFetchCache[selectorKey] = debouncedFetchSubjects[selectorKey].pipe(
             filter((args) => !!args),
             debounceTime(10),
@@ -185,7 +185,7 @@ async function debouncedFetchDerivedVariable({
 
     // Return the debounced response from the backend
     return new Promise((resolve, reject) => {
-        debouncedFetchCache[selectorKey].pipe(take(1)).subscribe(resolve, reject);
+        debouncedFetchCache[selectorKey]!.pipe(take(1)).subscribe(resolve, reject);
     });
 }
 
@@ -254,7 +254,7 @@ interface PreviousResult {
      */
     entry: {
         args: any[];
-        cacheKey: string;
+        cacheKey: string | null;
         result: any;
     };
     type: 'previous';
@@ -486,10 +486,10 @@ export function getOrRegisterDerivedVariable(
                                 variableUid: variable.uid,
                                 wsClient,
                             });
-                        } catch (e) {
+                        } catch (e: unknown) {
                             // On DV error put selectorId and extras into the error so the boundary can reset the selector cache
-                            e.selectorId = key;
-                            e.selectorExtras = extrasSerializable.toJSON();
+                            (e as any).selectorId = key;
+                            (e as any).selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -527,8 +527,8 @@ export function getOrRegisterDerivedVariable(
                                     variableValue = await fetchTaskResult<any>(taskId, extras);
                                 } catch (e) {
                                     // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
-                                    e.selectorId = key;
-                                    e.selectorExtras = extrasSerializable.toJSON();
+                                    (e as any).selectorId = key;
+                                    (e as any).selectorExtras = extrasSerializable.toJSON();
                                     throw e;
                                 }
                             } else {
@@ -558,7 +558,7 @@ export function getOrRegisterDerivedVariable(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -571,7 +571,7 @@ export function getOrRegisterDerivedVariable(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -616,7 +616,7 @@ export function getOrRegisterDerivedVariableValue(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -629,7 +629,7 @@ export function getOrRegisterDerivedVariableValue(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }

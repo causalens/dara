@@ -4,7 +4,7 @@ import { Collapse } from 'react-collapse';
 
 import styled from '@darajs/styled-components';
 
-import { ServerErrorMessage } from '@/api/websocket';
+import { type ServerErrorMessage } from '@/api/websocket';
 
 const ErrorWrapper = styled.div`
     display: flex;
@@ -98,11 +98,11 @@ export function parseErrorsForDisplay(errors: ServerErrorMessage['message'][]): 
 
         const time = parseISO(e.time);
         const [description] = errorContent.slice(-1);
-        const tracebackTitle = errorContent[0];
+        const tracebackTitle = errorContent[0]!;
         const traceback = errorContent.slice(1, -1).join('\n');
 
         return {
-            description,
+            description: description!,
             time,
             traceback,
             tracebackTitle,

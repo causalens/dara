@@ -1,14 +1,14 @@
 import {
-    ActionImpl,
-    AnyVariable,
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    LoopVariable,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
-    UrlVariable,
+    type ActionImpl,
+    type AnyVariable,
+    type DataVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type LoopVariable,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
+    type UrlVariable,
 } from './core';
 
 /**
@@ -68,7 +68,13 @@ export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable
  * @param variable the potential variable to check
  */
 export function isLoopVariable(variable: any): variable is LoopVariable {
-    return isVariable(variable) && variable.__typename === 'LoopVariable';
+    return (
+        variable &&
+        typeof variable == 'object' &&
+        variable.hasOwnProperty('uid') &&
+        variable.hasOwnProperty('__typename') &&
+        variable.__typename === 'LoopVariable'
+    );
 }
 
 /**

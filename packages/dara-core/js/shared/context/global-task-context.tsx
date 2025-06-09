@@ -3,13 +3,13 @@ import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
 import { cancelTask } from '@/api/core';
-import { RequestExtras } from '@/api/http';
-import { TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
-import { GlobalTaskContext } from '@/types/core';
+import { type RequestExtras } from '@/api/http';
+import { type TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
+import { type GlobalTaskContext } from '@/types/core';
 
 import { useRequestExtras } from './request-extras-context';
 
-const GlobalTaskCtx = React.createContext<GlobalTaskContext>(null);
+const GlobalTaskCtx = React.createContext<GlobalTaskContext | null>(null);
 
 /**
  * Represents a task run
@@ -18,7 +18,7 @@ export interface VariableTaskEntry {
     /** Task ID */
     taskId: string;
     /** Key of the trigger to increment in order to reset the associated selector */
-    triggerKey: string;
+    triggerKey?: string;
 }
 
 interface GlobalTaskProviderProps {
@@ -39,12 +39,12 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
     const mapRef = React.useRef<Map<string, Array<VariableTaskEntry>>>(variableTaskMap ?? new Map());
 
     const extras = useRequestExtras();
-    const extrasRef = React.useRef<RequestExtras>();
+    const extrasRef = React.useRef<RequestExtras>(extras);
     extrasRef.current = extras;
 
     const refreshSelector = useRecoilCallback(({ set }) => (key: string) => {
         // refresh the selector by incrementing the associated trigger so next run will skip the cache
-        set(atomRegistry.get(key), (prev: TriggerIndexValue) => ({ ...prev, inc: prev.inc + 1 }));
+        set(atomRegistry.get(key)!, (prev: TriggerIndexValue) => ({ ...prev, inc: prev.inc + 1 }));
     });
 
     const cleanupRunningTasks = React.useCallback((...variableIds: string[]): void => {
@@ -61,8 +61,10 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
                     cancelTask(runningTask, extrasRef.current);
                     tasksRef.current.delete(runningTask);
 
-                    // make sure next time the selector runs it will run from scratch rather than using the cached value
-                    refreshSelector(taskToCancel.triggerKey);
+                    if (taskToCancel.triggerKey) {
+                        // make sure next time the selector runs it will run from scratch rather than using the cached value
+                        refreshSelector(taskToCancel.triggerKey);
+                    }
                 }
             }
         }
@@ -115,7 +117,7 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
 export function useTaskContext(): GlobalTaskContext {
     const taskCtx = React.useContext(GlobalTaskCtx);
 
-    if (taskCtx === undefined) {
+    if (!taskCtx) {
         throw new Error('useTaskContext must be used within GlobalTaskProvider');
     }
 

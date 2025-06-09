@@ -1,10 +1,10 @@
 import { transparentize } from 'polished';
-import { FallbackProps } from 'react-error-boundary';
+import { type FallbackProps } from 'react-error-boundary';
 
 import styled from '@darajs/styled-components';
 
 import { injectCss, parseRawCss } from '@/shared/utils';
-import { ErrorHandlingConfig } from '@/types/core';
+import { type ErrorHandlingConfig } from '@/types/core';
 
 const StyledErrorDisplay = styled.div`
     display: flex;
@@ -118,7 +118,7 @@ function ErrorDisplay(props: ErrorDisplayProps): JSX.Element {
                 </ErrorContent>
             </ContentWrapper>
             {props.resetErrorBoundary && (
-                <RetryButton onClick={() => props.resetErrorBoundary(props.error)} type="button">
+                <RetryButton onClick={() => props.resetErrorBoundary!(props.error)} type="button">
                     <i aria-hidden className="fa-solid fa-rotate fa-xl" />
                 </RetryButton>
             )}

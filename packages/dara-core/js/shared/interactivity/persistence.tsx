@@ -1,16 +1,16 @@
 import { mixed } from '@recoiljs/refine';
 import * as React from 'react';
-import { AtomEffect, DefaultValue } from 'recoil';
-import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
+import { type AtomEffect, DefaultValue } from 'recoil';
+import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, handleAuthErrors } from '@/api';
+import { type WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
-import { GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
-import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
+import { type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
+import { type BackendStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
@@ -32,8 +32,8 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     const { client } = React.useContext(WebSocketCtx);
 
     const getStoreValue = React.useCallback<ReadItem>(async (itemKey) => {
-        const serializableExtras = STORE_EXTRAS_MAP.get(itemKey);
-        const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras.extras);
+        const serializableExtras = STORE_EXTRAS_MAP.get(itemKey)!;
+        const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras?.extras ?? {});
         await handleAuthErrors(response, true);
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
         const val = await response.json();
@@ -47,14 +47,14 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
 
             for (const [itemKey, value] of diff.entries()) {
-                const extras = STORE_EXTRAS_MAP.get(itemKey);
+                const extras = STORE_EXTRAS_MAP.get(itemKey)!;
 
                 if (!extrasMap.has(extras)) {
                     extrasMap.set(extras, {});
                 }
 
                 // store the value in the extras map
-                extrasMap.get(extras)[itemKey] = value;
+                extrasMap.get(extras)![itemKey] = value;
             }
 
             async function sendRequest(
@@ -66,7 +66,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     {
                         body: JSON.stringify({
                             values: storeDiff,
-                            ws_channel: await client.getChannel(),
+                            ws_channel: await client!.getChannel(),
                         }),
                         method: 'POST',
                     },
@@ -86,6 +86,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         [client]
     );
 
+    // recoilt callback
     const listenToStoreChanges = React.useCallback<ListenToItems>(
         ({ updateItem }) => {
             if (!client) {
@@ -119,15 +120,16 @@ function backendStoreEffect<T>(
     requestExtras: RequestExtrasSerializable
 ): AtomEffect<any> {
     // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
-    STORE_EXTRAS_MAP.set(variable.store.uid, requestExtras);
+    STORE_EXTRAS_MAP.set(variable.store!.uid, requestExtras);
+
     return syncEffect({
         /** Use store uid as the unique identifier */
-        itemKey: variable.store.uid,
+        itemKey: variable.store!.uid,
         refine: mixed(),
         storeKey: 'BackendStore',
         write({ write }, newValue) {
             // If store is read-only, do not write - this is a no-op
-            if (variable.store.readonly) {
+            if (variable.store!.readonly) {
                 return;
             }
 
@@ -136,7 +138,7 @@ function backendStoreEffect<T>(
                 return;
             }
 
-            write(variable.store.uid, newValue);
+            write(variable.store!.uid, newValue);
         },
     });
 }
@@ -191,7 +193,7 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     if (match) {
                         const [, sessionToken, uid] = match;
                         if (sessionToken === getSessionToken()) {
-                            updateItem(uid, JSON.parse(e.newValue ?? 'null'));
+                            updateItem(uid!, JSON.parse(e.newValue ?? 'null'));
                         }
                     }
                 }
@@ -300,7 +302,7 @@ export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effe
         return null;
     }
 
-    return STORES[storeName].effect ?? null;
+    return STORES[storeName]?.effect ?? null;
 }
 
 /**

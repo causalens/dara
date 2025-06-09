@@ -146,7 +146,7 @@ function BasicAuthLogin(): JSX.Element {
         setIsError(false);
 
         try {
-            const sessionToken: string = await requestSessionToken({ password, username });
+            const sessionToken = await requestSessionToken({ password, username });
 
             if (sessionToken) {
                 setSessionToken(sessionToken);

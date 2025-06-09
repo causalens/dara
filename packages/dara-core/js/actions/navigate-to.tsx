@@ -1,4 +1,4 @@
-import { ActionHandler, NavigateToImpl } from '@/types/core';
+import { type ActionHandler, type NavigateToImpl } from '@/types/core';
 
 /**
  * Check whether the passed url is a valid url

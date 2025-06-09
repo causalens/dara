@@ -8,7 +8,7 @@ import { setSessionToken } from '../use-session-token';
 /**
  * Auth component that wipes user token in AuthContext on mount and redirects to /login
  */
-function BasicAuthLogout(): JSX.Element {
+function BasicAuthLogout(): React.ReactNode {
     useEffect(() => {
         revokeSession().then(() => {
             setSessionToken(null);

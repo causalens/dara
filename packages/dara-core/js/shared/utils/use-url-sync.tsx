@@ -1,13 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { History } from 'history';
+import { type History } from 'history';
 import { useCallback } from 'react';
-import { BrowserInterface, RecoilURLSyncOptions } from 'recoil-sync';
+import { type BrowserInterface, type RecoilURLSyncOptions } from 'recoil-sync';
 
 interface UrlSyncOptions {
     /**
      * History object to use
      */
-    history?: History;
+    history: History;
     /**
      * Whether to use memory history overrides for testing
      */

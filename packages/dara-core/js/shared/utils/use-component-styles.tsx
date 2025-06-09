@@ -4,8 +4,8 @@ import * as React from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 
-import { default as DisplayCtx, DisplayCtxValue } from '@/shared/context/display-context';
-import { StyledComponentProps } from '@/types';
+import { default as DisplayCtx, type DisplayCtxValue } from '@/shared/context/display-context';
+import { type StyledComponentProps } from '@/types';
 
 interface FlexProps {
     flexBasis?: string;
@@ -62,7 +62,7 @@ function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, us
  * @param rawCss raw css property to parse
  */
 export function parseRawCss(
-    rawCss: string | CustomCSSProperties | React.CSSProperties
+    rawCss: string | CustomCSSProperties | React.CSSProperties | undefined | null
 ): [rawStyles: CustomCSSProperties, rawCss: string] {
     const isRawObject = typeof rawCss === 'object' && rawCss !== null && rawCss !== undefined;
 

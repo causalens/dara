@@ -1,4 +1,4 @@
-import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 
 import DefaultFallback from '@/components/fallback/default';
@@ -8,7 +8,7 @@ import { ImportersCtx } from '@/shared/context';
 import PrivateRoute from '@/shared/private-route/private-route';
 import { getToken } from '@/shared/utils';
 
-import { AuthComponent, useAuthConfig } from './auth';
+import { type AuthComponent, useAuthConfig } from './auth';
 import { setSessionToken } from './use-session-token';
 
 interface AuthWrapperProps {
@@ -27,6 +27,10 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
 
     useEffect(() => {
         const importer = importers[props.component.py_module];
+
+        if (!importer) {
+            throw new Error(`Missing importer for module ${props.component.py_module}`);
+        }
 
         importer()
             .then((moduleContent) => {
@@ -77,7 +81,8 @@ function AuthWrapper(props: AuthWrapperProps): JSX.Element {
         );
     }
 
-    const { login, logout, ...extraRoutes } = authConfig.auth_components;
+    // assuming authConfig loading cannot fail
+    const { login, logout, ...extraRoutes } = authConfig!.auth_components;
 
     return (
         <Switch>

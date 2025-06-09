@@ -1,7 +1,7 @@
 import styled from '@darajs/styled-components';
 
 import { injectCss, useComponentStyles } from '@/shared/utils';
-import { StyledComponentProps } from '@/types';
+import { type StyledComponentProps } from '@/types';
 
 import Dots from './dots';
 

@@ -1,17 +1,17 @@
 import { RecoilState, atom, useRecoilValue } from 'recoil';
 
-import { WebSocketClientInterface } from '@/api';
+import { type WebSocketClientInterface } from '@/api';
 import {
-    AnyVariable,
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
+    type AnyVariable,
+    type DataVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
 } from '@/types';
 
-import { TriggerIndexValue, atomRegistry, dataRegistry, getRegistryKey } from './store';
+import { type TriggerIndexValue, atomRegistry, dataRegistry, getRegistryKey } from './store';
 
 /**
  * Get a trigger index for a variable from the atom registry, registering it if not already registered
@@ -34,7 +34,7 @@ export function getOrRegisterTrigger(variable: DerivedVariable | DerivedDataVari
         );
     }
 
-    return atomRegistry.get(triggerKey);
+    return atomRegistry.get(triggerKey)!;
 }
 
 /**
@@ -51,7 +51,7 @@ export function getOrRegisterDataVariableTrigger(
             key,
             atom({
                 default: {
-                    force: true,
+                    force: true as boolean,
                     inc: 0,
                 },
                 effects: [
@@ -82,7 +82,7 @@ export function getOrRegisterDataVariableTrigger(
         );
     }
 
-    return dataRegistry.get(key);
+    return dataRegistry.get(key)!;
 }
 
 /**

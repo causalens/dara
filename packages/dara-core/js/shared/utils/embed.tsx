@@ -13,20 +13,24 @@ export function isEmbedded(): boolean {
  */
 export function getEmbedTokenKey(): string {
     const frame = window.frameElement as HTMLIFrameElement;
-    return frame?.dataset?.daraPageId;
+    return frame?.dataset?.daraPageId as string;
 }
 
 /**
  * Get token for the embedded Dara app
  */
-export function getEmbedToken(): string {
-    return localStorage.getItem(getEmbedTokenKey());
+export function getEmbedToken(): string | null {
+    const key = getEmbedTokenKey();
+    if (!key) {
+        return null;
+    }
+    return localStorage.getItem(key);
 }
 
 /**
  * Get the jwt token. Uses the embedded token if the app is embedded.
  */
-export function getToken(): string {
+export function getToken(): string | null {
     if (isEmbedded()) {
         const embedToken = getEmbedToken();
         return embedToken;

@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo } from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 
-import { RequestExtras } from '@/api/http';
+import { type RequestExtras } from '@/api/http';
 
 interface RequestExtrasCtx {
     options: RequestInit;

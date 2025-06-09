@@ -1,6 +1,6 @@
 import type { StyledComponent } from 'styled-components';
 
-import styled, { DefaultTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme } from '@darajs/styled-components';
 
 export interface RawCssProp {
     $rawCss?: string;

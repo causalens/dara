@@ -2,7 +2,7 @@ import { createContext } from 'react';
 
 export interface DisplayCtxValue {
     /** Name of the component  */
-    component: string;
+    component: string | null;
     /**
      * Parent direction of content
      */
