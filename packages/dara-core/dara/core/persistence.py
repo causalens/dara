@@ -309,19 +309,16 @@ class BackendStore(PersistenceStore):
 
         return utils_registry.get('WebsocketManager')
 
-    def _create_msg(self, value: Any, scope_key: str) -> Dict[str, Any]:
+    def _create_msg(self, scope_key: str, **payload) -> Dict[str, Any]:
         """
         Create a message to send to the frontend.
-        :param value: value to send
+        :param scope_key: scope key for sequence number
+        :param payload: either value=... or patches=...
         """
-        return {'store_uid': self.uid, 'value': value, 'sequence_number': self.sequence_number.get(scope_key, 0)}
+        if not payload or len(payload) != 1:
+            raise ValueError("Exactly one of 'value' or 'patches' must be provided")
 
-    def _create_patch_msg(self, patches: List[Dict[str, Any]], scope_key: str) -> Dict[str, Any]:
-        """
-        Create a patch message to send to the frontend.
-        :param patches: list of JSON patch operations
-        """
-        return {'store_uid': self.uid, 'patches': patches, 'sequence_number': self.sequence_number.get(scope_key, 0)}
+        return {'store_uid': self.uid, 'sequence_number': self.sequence_number.get(scope_key, 0), **payload}
 
     def _get_next_sequence_number(self, key: str) -> int:
         """
@@ -333,57 +330,27 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(self, user_identifier: str, value: Any, ignore_current_channel: bool = True):
+    async def _notify_user(self, user_identifier: str, ignore_current_channel: bool = True, **payload):
         """
-        Notify a given user about the new value for this store.
-
+        Notify a given user about updates to this store.
         :param user_identifier: user to notify
-        :param value: value to notify about
         :param ignore_current_channel: if True, ignore the current websocket channel
+        :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
-            self._create_msg(value, user_identifier),
+            self._create_msg(user_identifier, **payload),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
-    async def _notify_user_patch(
-        self, user_identifier: str, patches: List[Dict[str, Any]], ignore_current_channel: bool = True
-    ):
+    async def _notify_global(self, ignore_current_channel: bool = True, **payload):
         """
-        Notify a given user about partial updates to this store.
-
-        :param user_identifier: user to notify
-        :param patches: list of JSON patch operations
+        Notify all users about updates to this store.
         :param ignore_current_channel: if True, ignore the current websocket channel
-        """
-        return await self.ws_mgr.send_message_to_user(
-            user_identifier,
-            self._create_patch_msg(patches, user_identifier),
-            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
-        )
-
-    async def _notify_global(self, value: Any, ignore_current_channel: bool = True):
-        """
-        Notify all users about the new value for this store.
-
-        :param value: value to notify about
-        :param ignore_current_channel: if True, ignore the current websocket channel
+        :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.broadcast(
-            self._create_msg(value, 'global'),
-            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
-        )
-
-    async def _notify_global_patch(self, patches: List[Dict[str, Any]], ignore_current_channel: bool = True):
-        """
-        Notify all users about partial updates to this store.
-
-        :param patches: list of JSON patch operations
-        :param ignore_current_channel: if True, ignore the current websocket channel
-        """
-        return await self.ws_mgr.broadcast(
-            self._create_patch_msg(patches, 'global'),
+            self._create_msg('global', **payload),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -395,7 +362,7 @@ class BackendStore(PersistenceStore):
         :param value: value to notify about
         """
         if self.scope == 'global':
-            return await self._notify_global(value)
+            return await self._notify_global(value=value)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -404,7 +371,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await self._notify_user(user_identifier, value)
+        return await self._notify_user(user_identifier, value=value)
 
     async def _notify_patches(self, patches: List[Dict[str, Any]]):
         """
@@ -414,7 +381,7 @@ class BackendStore(PersistenceStore):
         :param patches: list of JSON patch operations
         """
         if self.scope == 'global':
-            return await self._notify_global_patch(patches)
+            return await self._notify_global(patches=patches)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -423,7 +390,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await self._notify_user_patch(user_identifier, patches)
+        return await self._notify_user(user_identifier, patches=patches)
 
     async def init(self, variable: 'Variable'):
         """
@@ -439,8 +406,8 @@ class BackendStore(PersistenceStore):
             async def _on_value(key: str, value: Any):
                 # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
                 if user := self._get_user(key):
-                    return await self._notify_user(user, value, ignore_current_channel=False)
-                return await self._notify_global(value, ignore_current_channel=False)
+                    return await self._notify_user(user, ignore_current_channel=False, value=value)
+                return await self._notify_global(ignore_current_channel=False, value=value)
 
             await self.backend.subscribe(_on_value)
 
