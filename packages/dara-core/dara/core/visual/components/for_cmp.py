@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field
 
@@ -113,6 +113,10 @@ class For(ComponentInstance):
     )
     ```
 
+    For component also supports "virtualization" of the list items. This means that the component
+    will only render a certain number of items at a time, and will load more items as the user scrolls down.
+    This can be configured by passing a `VirtualizationConfig` instance to the `virtualization` argument.
+
     :param items: The data source to render the template component for.
     :param renderer: The template component to render for each item in the data source.
     :param key_accessor: The key accessor to use for the data source. If not provided, the key will be the index of the item in the data source.
@@ -121,5 +125,5 @@ class For(ComponentInstance):
 
     items: AnyVariable
     renderer: ComponentInstance
-    key_accessor: str | None = None
-    virtualization: VirtualizationConfig | None = None
+    key_accessor: Optional[str] = None
+    virtualization: Optional[VirtualizationConfig] = None
