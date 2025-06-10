@@ -68,8 +68,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             Array.from(diff.entries())
                 .filter(
                     ([itemKey, value]) =>
-                        !STORE_LATEST_VALUE_MAP.has(itemKey) ||
-                        STORE_LATEST_VALUE_MAP.get(itemKey) !== value
+                        !STORE_LATEST_VALUE_MAP.has(itemKey) || STORE_LATEST_VALUE_MAP.get(itemKey) !== value
                 )
                 .forEach(([itemKey, value]) => {
                     STORE_LATEST_VALUE_MAP.set(itemKey, value);
