@@ -1,5 +1,6 @@
-import type { ModuleContent } from '@/types/core';
 import { createContext } from 'react';
+
+import type { ModuleContent } from '@/types/core';
 
 type ImportersCtx = {
     [k: string]: () => Promise<ModuleContent>;

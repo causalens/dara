@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Reintroduced a `For` component that can be used to render a list of items.
+-  Added a `list_item` property to the `NonDataVariable` class (so `Variable`, `DerivedVariable`, `UrlVariable`) which can be used to access the current item's data within a `For` component renderer.
+
 ## 1.16.18
 
 -  Fixed a regression where nested property on Variables created via `Variable.get` wasn't being serialized correctly

@@ -78,6 +78,10 @@ class LoopVariable(NonDataVariable):
     def __getitem__(self, key: str):
         return self.get(key)
 
+    @property
+    def list_item(self):
+        raise RuntimeError('LoopVariable does not support list_item')
+
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler):
         parent_dict = nxt(self)

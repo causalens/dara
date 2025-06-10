@@ -309,7 +309,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }
 
-    const taskCtx = useTaskContext();
+    const { hasRunningTasks, cleanupRunningTasks } = useTaskContext();
     const variables = useRef<Set<string>>(new Set());
 
     /*
@@ -321,13 +321,12 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     useEffect(() => {
         return () => {
             // If there are running tasks and this component is subscribed to variables
-            if (variables.current.size > 0 && taskCtx.hasRunningTasks()) {
+            if (variables.current.size > 0 && hasRunningTasks()) {
                 // eslint-disable-next-line react-hooks/exhaustive-deps
-                taskCtx.cleanupRunningTasks(...variables.current.values());
+                cleanupRunningTasks(...variables.current.values());
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [cleanupRunningTasks, hasRunningTasks]);
 
     const [fallback] = useState(() =>
         getFallbackComponent(props.component?.props?.fallback, props.component?.props?.track_progress, variables)
