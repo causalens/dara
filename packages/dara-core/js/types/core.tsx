@@ -165,6 +165,10 @@ export interface ResolvedDerivedDataVariable {
     values: Array<any>;
 }
 
+export type ModuleContent = {
+    [componentName: string]: React.ComponentType<any>;
+};
+
 export enum ComponentType {
     JS = 'js',
     PY = 'py',

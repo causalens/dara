@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import {
     type MutableRefObject,
     Suspense,
@@ -28,7 +27,7 @@ import {
     isDerivedDataVariable,
     isDerivedVariable,
 } from '@/types';
-import { type AnyVariable, UserError, isInvalidComponent, isRawString } from '@/types/core';
+import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
 
@@ -84,99 +83,133 @@ function computePollingInterval(
     return pollingInterval;
 }
 
+/** py_module -> loaded module */
+const MODULE_CACHE = new Map<string, ModuleContent>();
+/** component.name -> metadata */
+const COMPONENT_METADATA_CACHE = new Map<string, Component>();
+
 /**
- * Resolve a component instance definition to an actual component to render
- *
- * @param component component instance definition
- * @param getComponentEntry callback to get component registry entry
- * @param importers importers registry
+ * Try resolving component synchronously from cache
  */
-async function resolveComponent(
+function resolveComponentSync(component: ComponentInstance): JSX.Element | null {
+    if (component?.name === 'RawString') {
+        return component.props.content;
+    }
+
+    const metadata = COMPONENT_METADATA_CACHE.get(component.name);
+
+    if (!metadata) {
+        return null; // no cached metadata
+    }
+
+    // we've cached information that this component is a python component, we know we have to use the PythonWrapper
+    if (metadata.type === 'py') {
+        return (
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            <PythonWrapper
+                component={component}
+                dynamic_kwargs={component.props.dynamic_kwargs}
+                func_name={component.props.func_name}
+                name={component.name}
+                polling_interval={component.props.polling_interval}
+                uid={component.uid}
+            />
+        );
+    }
+
+    // JS component - check if module is loaded
+    const moduleContent = MODULE_CACHE.get(metadata.py_module);
+
+    if (!moduleContent) {
+        return null; // Module not loaded yet
+    }
+
+    const ResolvedComponent = moduleContent[metadata.js_component ?? metadata.name];
+
+    // Component does not exist in the module
+    if (!ResolvedComponent) {
+        return (
+            <ErrorDisplay
+                config={{
+                    description: `The JavaScript module was imported successfully but the component was not found within the module.`,
+                    title: `Component "${metadata.name}" could not be resolved`,
+                }}
+            />
+        );
+    }
+
+    const props = cleanProps(component.props);
+    return <ResolvedComponent uid={component.uid} {...props} />;
+}
+
+class ComponentLoadError extends Error {
+    title: string;
+
+    constructor(message: string, title: string) {
+        super(message);
+        this.title = title;
+    }
+}
+
+/**
+ * Resolve component asynchronously and populate caches
+ */
+async function resolveComponentAsync(
     component: ComponentInstance,
-    getComponentEntry: (instance: ComponentInstance) => Promise<Component>,
-    importers: Record<string, () => Promise<any>>
-): Promise<JSX.Element> {
-    const componentEntry = await getComponentEntry(component);
+    getComponent: (component: ComponentInstance) => Promise<any>,
+    importers: Record<string, () => Promise<ModuleContent>>
+): Promise<void> {
+    // Get component entry from registry
+    const entry = await getComponent(component);
 
-    // It's a JS component - dynamically import the right component
-    if (isJsComponent(componentEntry)) {
-        const importer = importers[componentEntry.py_module];
+    if (!isJsComponent(entry)) {
+        // Python component, just cache metadata and nothing else to do here
+        COMPONENT_METADATA_CACHE.set(component.name, entry);
+        return;
+    }
 
-        // Importer entry not present
-        if (!importer) {
-            // This error should only be seen by the app developer, so include details on how to solve it
-            const errorDescription =
-                componentEntry.py_module === 'LOCAL' ?
-                    `This is a local component so make sure you are in production mode and dara.config.json is present.
+    // JS component - cache metadata first
+    COMPONENT_METADATA_CACHE.set(component.name, entry);
+
+    // Check if module is already loaded
+    if (MODULE_CACHE.has(entry.py_module)) {
+        return; // Module already cached
+    }
+
+    // Load module if not cached
+    const importer = importers[entry.py_module];
+    if (!importer) {
+        const errorDescription =
+            entry.py_module === 'LOCAL' ?
+                `This is a local component so make sure you are in production mode and dara.config.json is present.
                     You can try re-building JavaScript by running Dara with the --rebuild flag.`
-                :   `This means that the JavaScript module for the component was not included by the discovery system.
+            :   `This means that the JavaScript module for the component was not included by the discovery system.
                     You can try re-building JavaScript by running Dara with the --rebuild flag
                     and/or explicitly registering the component with "config.add_component(MyComponentClass)".`;
-            return (
-                <ErrorDisplay
-                    config={{
-                        description: `Importer for module "${componentEntry.py_module}" was not found. ${errorDescription}`,
-                        title: `Component "${componentEntry.name}" could not be resolved`,
-                    }}
-                />
-            );
+
+        throw new ComponentLoadError(errorDescription, `Component ${entry.name} could not be resolved`);
+    }
+
+    let moduleContent = null;
+    try {
+        moduleContent = await importer();
+        if (moduleContent) {
+            MODULE_CACHE.set(entry.py_module, moduleContent);
         }
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to load module ${entry.py_module}:`, e);
+    }
 
-        let moduleContent = null;
-
-        try {
-            moduleContent = await importer();
-        } catch (e) {
-            // eslint-disable-next-line no-console
-            console.error(e);
-        }
-
-        // Could not import module
-        if (!moduleContent) {
-            return (
-                <ErrorDisplay
-                    config={{
-                        description: `Failed to import the JavaScript module for the component.
+    if (!moduleContent) {
+        throw new ComponentLoadError(
+            `Failed to import the JavaScript module for the component.
                             This likely means that the module was not installed properly.
                             You can try re-building JavaScript by running Dara with the --rebuild flag
                             and/or explicitly registering the component with "config.add_component(MyComponentClass)".`,
-                        title: `Component "${componentEntry.name}" could not be resolved`,
-                    }}
-                />
-            );
-        }
-
-        const ResolvedComponent = moduleContent[componentEntry.js_component ?? componentEntry.name];
-
-        // Component does not exist in the module
-        if (!ResolvedComponent) {
-            return (
-                <ErrorDisplay
-                    config={{
-                        description: `The JavaScript module was imported successfully but the component was not found within the module.`,
-                        title: `Component "${componentEntry.name}" could not be resolved`,
-                    }}
-                />
-            );
-        }
-
-        const props = cleanProps(component.props);
-
-        return <ResolvedComponent uid={component.uid} {...props} />;
+            `Component ${entry.name} could not be resolved`
+        );
     }
-
-    // Otherwise it's a @py_component
-    return (
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        <PythonWrapper
-            component={component}
-            dynamic_kwargs={component.props.dynamic_kwargs}
-            func_name={component.props.func_name}
-            name={component.name}
-            polling_interval={component.props.polling_interval}
-            uid={component.uid}
-        />
-    );
 }
 
 interface DynamicComponentProps {
@@ -221,11 +254,14 @@ function getFallbackComponent(
  * @param props - the components props
  */
 function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
-    const [isLoading, setIsLoading] = useState(true);
-    const [component, setComponent] = useState<JSX.Element>();
-    const { get: getComponent } = useComponentRegistry();
     const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
+    const { get: getComponent } = useComponentRegistry();
+
+    // Try sync resolution first
+    const [component, setComponent] = useState<JSX.Element | null>(() => resolveComponentSync(props.component));
+    const [isLoading, setIsLoading] = useState(() => component === null);
+    const [loadingStarted, setLoadingStarted] = useState(false);
 
     // Sanity check - LoopVariable should NEVER leak into the actual component, should be replaced
     // by the For component. Raise a user-visible error if it does as its a developer error.
@@ -239,20 +275,31 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }, [props.component]);
 
+    // Async loading effect
     useEffect(() => {
-        if (props.component?.name === 'RawString') {
-            setComponent(props.component.props.content);
-            setIsLoading(false);
+        if (!isLoading || loadingStarted) {
             return;
         }
 
-        if (props.component) {
-            resolveComponent(props.component, getComponent, importers).then((ResolvedComponent) => {
-                setComponent(ResolvedComponent);
+        setLoadingStarted(true);
+
+        resolveComponentAsync(props.component, getComponent, importers)
+            .then(() => {
+                // Try sync resolution again after async loading
+                const resolvedComponent = resolveComponentSync(props.component);
+                setComponent(resolvedComponent);
                 setIsLoading(false);
+            })
+            .catch((error) => {
+                // eslint-disable-next-line no-console
+                console.error('Failed to resolve component:', error);
+                setIsLoading(false);
+
+                if (error instanceof ComponentLoadError) {
+                    setComponent(<ErrorDisplay config={{ title: error.title, description: error.message }} />);
+                }
             });
-        }
-    }, [props.component, getComponent]);
+    }, [props.component, getComponent, importers, isLoading, loadingStarted]);
 
     const refreshSelector = useRefreshSelector();
 
@@ -275,9 +322,11 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         return () => {
             // If there are running tasks and this component is subscribed to variables
             if (variables.current.size > 0 && taskCtx.hasRunningTasks()) {
+                // eslint-disable-next-line react-hooks/exhaustive-deps
                 taskCtx.cleanupRunningTasks(...variables.current.values());
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const [fallback] = useState(() =>
@@ -285,7 +334,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     );
 
     if (isLoading) {
-        return null;
+        return fallback;
     }
 
     // Compute the suspend setting for the component in order of precedence:
@@ -345,7 +394,7 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
     // Poll to update the component if polling_interval is set
     const pollingInterval = useMemo(
         () => computePollingInterval(props.dynamic_kwargs, props.polling_interval),
-        [props.polling_interval]
+        [props.dynamic_kwargs, props.polling_interval]
     );
     useInterval(refresh, pollingInterval);
 

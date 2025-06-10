@@ -107,11 +107,18 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
         return tasksRef.current.size > 0;
     }, []);
 
-    return (
-        <GlobalTaskCtx.Provider value={{ cleanupRunningTasks, endTask, getVariableTasks, hasRunningTasks, startTask }}>
-            {children}
-        </GlobalTaskCtx.Provider>
+    const value = React.useMemo(
+        () => ({
+            cleanupRunningTasks,
+            endTask,
+            getVariableTasks,
+            hasRunningTasks,
+            startTask,
+        }),
+        [cleanupRunningTasks, endTask, getVariableTasks, hasRunningTasks, startTask]
     );
+
+    return <GlobalTaskCtx.Provider value={value}>{children}</GlobalTaskCtx.Provider>;
 }
 
 export function useTaskContext(): GlobalTaskContext {
