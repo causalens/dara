@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--  Added `write_partial` partial updates to `BackendStore` API using JSON Patch
+-  Added `write_partial` method to `BackendStore` for partial updates using JSON Patch
 
 ## 1.16.18
 

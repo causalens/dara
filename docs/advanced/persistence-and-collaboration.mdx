@@ -108,6 +108,71 @@ collab_variable = Variable(
 )
 ```
 
+### Partial Updates
+
+`BackendStore` supports efficient partial updates through the `write_partial` method, which allows you to update only specific parts of your data without sending the entire object. This is particularly useful for large objects where you only want to modify specific fields.
+
+The `write_partial` method accepts two types of input:
+
+#### 1. JSON Patch Operations (RFC 6902)
+
+You can provide a list of JSON Patch operations for precise, granular updates:
+
+```python
+from dara.core import Variable
+from dara.core.persistence import BackendStore
+
+store = BackendStore()
+# Initialize with some structured data
+user_data = Variable(default={
+    'user': {'name': 'John', 'age': 30},
+    'items': ['apple', 'banana']
+}, store=store)
+
+# Apply specific patch operations
+await store.write_partial([
+    {'op': 'replace', 'path': '/user/age', 'value': 31},
+    {'op': 'add', 'path': '/items/-', 'value': 'cherry'},
+    {'op': 'add', 'path': '/user/city', 'value': 'New York'}
+])
+```
+
+#### 2. Full Object with Automatic Diffing
+
+Alternatively, you can provide a complete updated object and `write_partial` will automatically calculate the differences:
+
+```python
+# Get current data
+current = await store.read()
+# Modify the data
+updated_data = {
+    **current,
+    'user': {**current['user'], 'age': 32},
+    'items': current['items'] + ['orange']
+}
+
+# Apply the changes - only the differences will be sent to clients
+await store.write_partial(updated_data)
+```
+
+#### Benefits of Partial Updates
+
+- **Performance**: Only changed data is transmitted to clients via WebSocket
+- **Efficiency**: Reduces network traffic and improves update speed for large objects
+- **Real-time sync**: All connected clients receive the same patch operations, ensuring consistency
+- **Sequence validation**: Updates include sequence numbers to prevent race conditions and ensure proper ordering
+
+#### Supported JSON Patch Operations
+
+- `add`: Add a new value to an object or array
+- `remove`: Remove a value from an object or array  
+- `replace`: Replace a value in an object or array
+- `move`: Move a value within the data structure
+- `copy`: Copy a value to another location
+- `test`: Test that a value is as expected
+
+Note that JSON patches can only be applied to structured data (objects and arrays). For primitive values, use the regular `write` method instead.
+
 You can also choose to provide a custom backend implementation as long as it extends the `dara.core.persistence.PersistenceBackend` class. This is useful to e.g. use a database or other backend-data as a source of truth and expose it to the client. In particular, you might find the `subscribe` method on a `PersistenceBackend` helpful - it can be implemented to subscribe to changes in the backend data and update the variable accordingly. Make sure to use the `readonly` flag on the `BackendStore` if your backend does not support writing.
 
 ```python
