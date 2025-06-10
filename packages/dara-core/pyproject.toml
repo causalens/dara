@@ -65,6 +65,7 @@ typing-extensions = ">=4.5.0"
 xlrd = "*"
 pydantic-settings = "^2.8.1"
 h11 = ">=0.16.0"
+jsonpatch = ">=1.33"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true

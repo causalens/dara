@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added `write_partial` method to `BackendStore` for partial updates using JSON Patch
+
 ## 1.16.18
 
 -  Fixed a regression where nested property on Variables created via `Variable.get` wasn't being serialized correctly

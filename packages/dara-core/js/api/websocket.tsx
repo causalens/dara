@@ -13,7 +13,7 @@ const maxAttempts = Math.round(maxDisconnectedTime / interAttemptTimeout);
 
 interface InitMessage {
     message: {
-        channel: 'string';
+        channel: string;
     };
     type: 'init';
 }
@@ -95,6 +95,21 @@ export interface BackendStoreMessage {
     message: {
         store_uid: string;
         value: any;
+        sequence_number: number;
+    };
+    type: 'message';
+}
+
+export interface BackendStorePatchMessage {
+    message: {
+        store_uid: string;
+        patches: Array<{
+            op: 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';
+            path: string;
+            value?: any;
+            from?: string;
+        }>;
+        sequence_number: number;
     };
     type: 'message';
 }
@@ -122,6 +137,7 @@ export type WebSocketMessage =
     | VariableRequestMessage
     | ActionMessage
     | BackendStoreMessage
+    | BackendStorePatchMessage
     | CustomMessage;
 
 function isInitMessage(message: WebSocketMessage): message is InitMessage {
@@ -149,7 +165,11 @@ function isActionMessage(message: WebSocketMessage): message is ActionMessage {
 }
 
 function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
-    return message.type === 'message' && 'store_uid' in message.message;
+    return message.type === 'message' && 'store_uid' in message.message && 'value' in message.message;
+}
+
+function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
+    return message.type === 'message' && 'store_uid' in message.message && 'patches' in message.message;
 }
 
 function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
@@ -164,6 +184,7 @@ const pingMessage: PingPongMessage = {
 export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
     backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
+    backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']>;
     channel$: () => Observable<string>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
@@ -319,6 +340,13 @@ export class WebSocketClient implements WebSocketClientInterface {
     backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
         return this.messages$.pipe(
             filter(isBackendStoreMessage),
+            map((msg) => msg.message)
+        );
+    }
+
+    backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']> {
+        return this.messages$.pipe(
+            filter(isBackendStorePatchMessage),
             map((msg) => msg.message)
         );
     }

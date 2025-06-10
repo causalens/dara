@@ -5,6 +5,7 @@ import { ActionImpl } from '@/types/core';
 
 import {
     BackendStoreMessage,
+    BackendStorePatchMessage,
     CustomMessage,
     ProgressNotificationMessage,
     ServerErrorMessage,
@@ -13,6 +14,31 @@ import {
     WebSocketClientInterface,
     WebSocketMessage,
 } from '../../../js/api/websocket';
+
+// Type guard functions
+function isInitMessage(message: WebSocketMessage): message is { type: 'init'; message: { channel: string } } {
+    return message.type === 'init';
+}
+
+function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
+    return message.type === 'message' && 'store_uid' in (message.message as any) && 'value' in (message.message as any);
+}
+
+function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
+    return message.type === 'message' && 'store_uid' in (message.message as any) && 'patches' in (message.message as any);
+}
+
+function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
+    return message.type === 'custom';
+}
+
+function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
+    return message.type === 'message' && 'variable' in (message.message as any);
+}
+
+function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
+    return message.type === 'message' && 'error' in (message.message as any);
+}
 
 export interface MockWebSocketClientInterface extends WebSocketClientInterface {
     receiveMessage: (message: WebSocketMessage) => void;
@@ -37,8 +63,25 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
 
     backendStoreMessages$(): Observable<BackendStoreMessage['message']> {
         return this.messages$.pipe(
-            filter((msg): msg is BackendStoreMessage => 'store_uid' in msg.message),
+            filter(isBackendStoreMessage),
             map((msg) => msg.message)
+        );
+    }
+
+    backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']> {
+        return this.messages$.pipe(
+            filter(isBackendStorePatchMessage),
+            map((msg) => msg.message)
+        );
+    }
+
+    /**
+     * Get the observable to receive the new channel when the socket reconnects
+     */
+    channel$(): Observable<string> {
+        return this.messages$.pipe(
+            filter(isInitMessage),
+            map((msg) => msg.message.channel)
         );
     }
 
@@ -46,7 +89,7 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
      * Get the observable to receive custom messages
      */
     customMessages$(): Observable<CustomMessage> {
-        return this.messages$.pipe(filter((msg): msg is CustomMessage => msg.type === 'custom'));
+        return this.messages$.pipe(filter(isCustomMessage));
     }
 
     getChannel(): Promise<string> {
@@ -78,7 +121,7 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     }
 
     serverErrors$(): Observable<ServerErrorMessage> {
-        return this.messages$.pipe(filter((msg: any) => 'error' in msg.message)) as Observable<ServerErrorMessage>;
+        return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
     serverTriggers$(dataId: string): Observable<any> {
@@ -89,9 +132,7 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
      * Get the observable to receive variable request messages
      */
     variableRequests$(): Observable<VariableRequestMessage> {
-        return this.messages$.pipe(
-            filter((msg) => !!msg?.message && 'variable' in msg.message)
-        ) as Observable<VariableRequestMessage>;
+        return this.messages$.pipe(filter(isVariableRequestMessage));
     }
 
     /** Mock receiving a message */
@@ -100,7 +141,13 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     }
 
     // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
-    sendCustomMessage(kind: string, data: any): void {
+    sendCustomMessage(kind: string, data: any): Promise<CustomMessage | null> {
+        // Do nothing
+        return Promise.resolve(null);
+    }
+
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    sendMessage(value: any, channel: string, chunkCount?: number): void {
         // Do nothing
     }
 
