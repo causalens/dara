@@ -44,7 +44,7 @@ class For(ComponentInstance):
     ```
 
     Most of the time, you'll want to store objects in a list. You should then use the `get` property to access specific
-    properties of the object and the `key` on the `For` component to specify the unique key.
+    properties of the object and the `key_accessor` on the `For` component to specify the unique key.
 
     ```python
     from dara.core import Variable
@@ -56,11 +56,11 @@ class For(ComponentInstance):
     For(
         items=my_list,
         renderer=Text(text=my_list.list_item.get('name')),
-        key='id'
+        key_accessor='id'
     )
     ```
 
-    For interactivity can use list items in Dara actions, DerivedVariables and py_components.
+    For interactivity can use list items in Dara actions, DerivedVariables, py_components, and `If` component for conditional rendering.
 
     ```python
     import asyncio
@@ -89,6 +89,7 @@ class For(ComponentInstance):
         Text(text='Items:'),
         For(
             items=arr_var,
+            key_accessor='id',
             renderer=Card(
                 Stack(
                     Text('City:'),
@@ -99,6 +100,8 @@ class For(ComponentInstance):
                     Text(text=arr_var.list_item['data']['country']),
                     # Pass item data into the action
                     Button('Say Hello!', onclick=say_hello(arr_var.list_item['name'])),
+                    # Conditionally render data based on the value
+                    If(arr_var.list_item['age'] > 30, Text(text='Age is greater than 30')),
                     # Pass item data into a derived variable
                     Text(
                         text=DerivedVariable(lambda x: f'age doubled is {x * 2}', variables=[arr_var.list_item['age']])
@@ -116,6 +119,23 @@ class For(ComponentInstance):
     For component also supports "virtualization" of the list items. This means that the component
     will only render a certain number of items at a time, and will load more items as the user scrolls down.
     This can be configured by passing a `VirtualizationConfig` instance to the `virtualization` argument.
+
+    For example, the above example can be extended to virtualize the list by adding the config:
+
+    ```python
+    Stack(
+        For(
+            items=arr_var,
+            key_accessor='id',
+            renderer=..., # omitted for brevity
+            virtualization={'size': 300, 'direction': 'vertical'},
+        )
+    )
+    ```
+
+    which will set each item's size to precisely 300px and will virtualize the list vertically.
+
+    Alternatively, the size can be set to a string to specify a field in the data to use as the size.
 
     :param items: The data source to render the template component for.
     :param renderer: The template component to render for each item in the data source.

@@ -39,7 +39,7 @@ class LoopVariable(NonDataVariable):
     For(
         items=my_list,
         renderer=Text(text=my_list.list_item.get('name')),
-        key='id'
+        key_accessor='id'
     )
     ```
 
