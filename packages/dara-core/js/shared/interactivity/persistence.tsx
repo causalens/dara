@@ -29,6 +29,16 @@ const STORE_EXTRAS_MAP = new Map<string, RequestExtrasSerializable>();
 const STORE_VARIABLE_MAP = new Map<string, Set<string>>();
 
 /**
+ * Global map to track expected sequence numbers per store for patch validation
+ */
+const STORE_SEQUENCE_MAP = new Map<string, number>();
+
+/**
+ * Global map to track the latest value for each store, to prevent cyclic updates
+ */
+const STORE_LATEST_VALUE_MAP = new Map<string, any>();
+
+/**
  * RecoilSync implementation for BackendStore
  *
  * - read: GET from /api/core/store/:store_uid
@@ -43,9 +53,11 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras.extras);
         await handleAuthErrors(response, true);
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
-        const val = await response.json();
+        const { value, sequence_number } = await response.json();
 
-        return val;
+        STORE_SEQUENCE_MAP.set(itemKey, sequence_number);
+
+        return value;
     }, []);
 
     const syncStoreValues = React.useCallback<WriteItems>(
@@ -53,16 +65,24 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             // keep track of extras -> diff to send each set of extras as a separate request
             const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
 
-            for (const [itemKey, value] of diff.entries()) {
-                const extras = STORE_EXTRAS_MAP.get(itemKey);
+            Array.from(diff.entries())
+                .filter(
+                    ([itemKey, value]) =>
+                        !STORE_LATEST_VALUE_MAP.has(itemKey) ||
+                        STORE_LATEST_VALUE_MAP.get(itemKey) !== value
+                )
+                .forEach(([itemKey, value]) => {
+                    STORE_LATEST_VALUE_MAP.set(itemKey, value);
 
-                if (!extrasMap.has(extras)) {
-                    extrasMap.set(extras, {});
-                }
+                    const extras = STORE_EXTRAS_MAP.get(itemKey);
 
-                // store the value in the extras map
-                extrasMap.get(extras)[itemKey] = value;
-            }
+                    if (!extrasMap.has(extras)) {
+                        extrasMap.set(extras, {});
+                    }
+
+                    // store the value in the extras map
+                    extrasMap.get(extras)[itemKey] = value;
+                });
 
             async function sendRequest(
                 serializableExtras: RequestExtrasSerializable,
@@ -95,7 +115,25 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
 
     const applyPatchesToAtoms = useRecoilCallback(
         ({ snapshot, set }) =>
-            async (storeUid: string, patches: BackendStorePatchMessage['message']['patches']) => {
+            async (
+                storeUid: string,
+                patches: BackendStorePatchMessage['message']['patches'],
+                sequenceNumber: number
+            ) => {
+                // Validate sequence number to ensure UI state is in sync with backend
+                const expectedSequence = STORE_SEQUENCE_MAP.get(storeUid) || 0;
+                if (sequenceNumber !== expectedSequence + 1) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        `Sequence number mismatch for store ${storeUid}. Expected: ${expectedSequence + 1}, Got: ${sequenceNumber}. Rejecting patch.`
+                    );
+                    // Could trigger a full state refresh here in the future
+                    return;
+                }
+
+                // Update expected sequence number
+                STORE_SEQUENCE_MAP.set(storeUid, sequenceNumber);
+
                 // Get all variable UIDs that use this store
                 const variableUids = STORE_VARIABLE_MAP.get(storeUid);
                 if (!variableUids) {
@@ -167,6 +205,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
 
                     const patchedValue = applyPatchToValue(currentValue, variableUid);
                     set(atom, patchedValue);
+                    STORE_LATEST_VALUE_MAP.set(storeUid, patchedValue);
                 });
             },
         []
@@ -180,13 +219,16 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
 
             // Subscribe to regular value updates
             const valueSub = client.backendStoreMessages$().subscribe((message) => {
+                // Set sequence number when full value is received
+                STORE_SEQUENCE_MAP.set(message.store_uid, message.sequence_number);
                 updateItem(message.store_uid, message.value);
+                STORE_LATEST_VALUE_MAP.set(message.store_uid, message.value);
             });
 
             // Subscribe to patch updates
             const patchSub = client.backendStorePatchMessages$().subscribe((message) => {
                 // Apply patches directly to atoms instead of going through RecoilSync
-                applyPatchesToAtoms(message.store_uid, message.patches);
+                applyPatchesToAtoms(message.store_uid, message.patches, message.sequence_number);
             });
 
             return () => {

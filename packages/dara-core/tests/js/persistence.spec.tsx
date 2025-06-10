@@ -90,7 +90,10 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        foo: 'bar',
+                        value: {
+                            foo: 'bar',
+                        },
+                        sequence_number: 0,
                     })
                 );
             })
@@ -124,7 +127,10 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        foo: 'bar',
+                        value: {
+                            foo: 'bar',
+                        },
+                        sequence_number: 0,
                     })
                 );
             })
@@ -182,7 +188,10 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        foo: 'bar',
+                        value: {
+                            foo: 'bar',
+                        },
+                        sequence_number: 0,
                     })
                 );
             })
@@ -262,7 +271,10 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        foo: 'bar',
+                        value: {
+                            foo: 'bar',
+                        },
+                        sequence_number: 0,
                     })
                 );
             })
@@ -369,7 +381,10 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        foo: 'bar',
+                        value: {
+                            foo: 'bar',
+                        },
+                        sequence_number: 0,
                     })
                 );
             })
@@ -406,6 +421,7 @@ describe('Variable Persistence', () => {
                     value: {
                         foo: 'baz',
                     },
+                    sequence_number: 1,
                 },
                 type: 'message',
             } as BackendStoreMessage);
@@ -421,6 +437,7 @@ describe('Variable Persistence', () => {
                     value: {
                         foo: 'updated',
                     },
+                    sequence_number: 1,
                 },
                 type: 'message',
             } as BackendStoreMessage);
@@ -437,11 +454,14 @@ describe('Variable Persistence', () => {
             rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
                 return res(
                     ctx.json({
-                        user: {
-                            name: 'John',
-                            age: 30,
+                        value: {
+                            user: {
+                                name: 'John',
+                                age: 30,
+                            },
+                            items: ['apple', 'banana'],
                         },
-                        items: ['apple', 'banana'],
+                        sequence_number: 0,
                     })
                 );
             })
@@ -486,6 +506,7 @@ describe('Variable Persistence', () => {
                         { op: 'add', path: '/items/-', value: 'cherry' },
                         { op: 'add', path: '/user/city', value: 'New York' },
                     ],
+                    sequence_number: 1,
                 },
                 type: 'message',
             } as BackendStorePatchMessage);
@@ -508,6 +529,7 @@ describe('Variable Persistence', () => {
                 message: {
                     store_uid: 'store-uid',
                     patches: [{ op: 'remove', path: '/items/0' }],
+                    sequence_number: 2,
                 },
                 type: 'message',
             } as BackendStorePatchMessage);
@@ -530,6 +552,7 @@ describe('Variable Persistence', () => {
                 message: {
                     store_uid: 'other-store-uid',
                     patches: [{ op: 'replace', path: '/user/name', value: 'Jane' }],
+                    sequence_number: 1,
                 },
                 type: 'message',
             } as BackendStorePatchMessage);
@@ -693,6 +716,160 @@ describe('Variable Persistence', () => {
         // The new variable should have the same value as the first one
         await waitFor(() => {
             expect(result3.current[0]).toEqual('new1');
+        });
+    });
+
+    test('BackendStore validates sequence numbers', async () => {
+        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        // Mock endpoint to retrieve store value
+        server.use(
+            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+                return res(ctx.json({ value: { count: 0 }, sequence_number: 0 }));
+            })
+        );
+
+        const wsClient = new MockWebSocketClient('CHANNEL');
+
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: { count: 0 },
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'sequence-validation-store',
+                    },
+                    uid: 'sequence-validation-var',
+                } as SingleVariable<any, BackendStore>),
+            {
+                wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper>,
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 0 });
+        });
+
+        // Send a patch with correct sequence number 1
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'sequence-validation-store',
+                    patches: [{ op: 'replace', path: '/count', value: 1 }],
+                    sequence_number: 1,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 1 });
+        });
+
+        // Send patch with wrong sequence number - value should not change
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'sequence-validation-store',
+                    patches: [{ op: 'replace', path: '/count', value: 999 }],
+                    sequence_number: 999, // Wrong sequence
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        // Value should remain unchanged after invalid patch
+        expect(result.current[0]).toEqual({ count: 1 });
+
+        consoleSpy.mockRestore();
+    });
+
+    test('BackendStore resets sequence number on full value update', async () => {
+        // Mock endpoint to retrieve store value
+        server.use(
+            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+                return res(
+                    ctx.json({
+                        value: {
+                            count: 0,
+                        },
+                        sequence_number: 0,
+                    })
+                );
+            })
+        );
+
+        const wsClient = new MockWebSocketClient('CHANNEL');
+
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: { count: 0 },
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'sequence-reset-store',
+                    },
+                    uid: 'sequence-reset-var',
+                } as SingleVariable<any, BackendStore>),
+            {
+                wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper>,
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 0 });
+        });
+
+        // Send a patch with sequence number 1
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'sequence-reset-store',
+                    patches: [{ op: 'replace', path: '/count', value: 1 }],
+                    sequence_number: 1,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 1 });
+        });
+
+        // Send a full value update (resets sequence to 0)
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'sequence-reset-store',
+                    value: { count: 10 },
+                    sequence_number: 5,
+                },
+                type: 'message',
+            } as BackendStoreMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 10 });
+        });
+
+        // Now send a patch with sequence number 6 (should be accepted since sequence was reset to 5)
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'sequence-reset-store',
+                    patches: [{ op: 'replace', path: '/count', value: 11 }],
+                    sequence_number: 6,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 11 });
         });
     });
 });

@@ -186,7 +186,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user1 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 1
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value'}, ignore_channel=None)]
+        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value', 'sequence_number': 1}, ignore_channel=None)]
     )
 
     USER.set(USER_2)
@@ -197,7 +197,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user2 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 2
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}, ignore_channel=None)],
+        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2', 'sequence_number': 1}, ignore_channel=None)],
         any_order=True,
     )
 
@@ -209,7 +209,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         [
             call(
                 USER_2.identity_id,
-                {'store_uid': user_backend_store.uid, 'value': 'test_value_3'},
+                {'store_uid': user_backend_store.uid, 'value': 'test_value_3', 'sequence_number': 2},
                 ignore_channel='channel3',
             )
         ],
@@ -255,7 +255,7 @@ async def test_notify_on_write(backend_store, mock_ws_mgr):
     await backend_store.write('test_value')
 
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'value': 'test_value'}, ignore_channel=None
+        {'store_uid': backend_store.uid, 'value': 'test_value', 'sequence_number': 1}, ignore_channel=None
     )
 
 
@@ -265,7 +265,7 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
     await backend_store.delete()
 
     # Need to await to yield to the loop to process the task
-    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None, 'sequence_number': 1}, ignore_channel=None)
 
 
 @pytest.mark.parametrize('backend_name', [('in_memory_backend'), ('file_backend')])
@@ -412,7 +412,7 @@ async def test_backend_subscribe_global(custom_backend, mock_ws_mgr):
     await custom_backend.trigger_external_change('global', 'external_value')
 
     # Verify the notification was sent
-    mock_ws_mgr.broadcast.assert_called_with({'store_uid': store.uid, 'value': 'external_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_called_with({'store_uid': store.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
 
 
 async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
@@ -438,7 +438,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
 
     # Verify the notification was sent to USER_1
     mock_ws_mgr.send_message_to_user.assert_called_with(
-        USER_1.identity_id, {'store_uid': store.uid, 'value': 'external_value_1'}, ignore_channel=None
+        USER_1.identity_id, {'store_uid': store.uid, 'value': 'external_value_1', 'sequence_number': 0}, ignore_channel=None
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
 
@@ -453,7 +453,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
 
     # Verify the notification was sent to USER_2
     mock_ws_mgr.send_message_to_user.assert_called_with(
-        USER_2.identity_id, {'store_uid': store.uid, 'value': 'external_value_2'}, ignore_channel=None
+        USER_2.identity_id, {'store_uid': store.uid, 'value': 'external_value_2', 'sequence_number': 0}, ignore_channel=None
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
 
@@ -480,8 +480,8 @@ async def test_backend_subscribe_multiple_stores(custom_backend, mock_ws_mgr):
 
     # Verify both stores received notifications
     assert mock_ws_mgr.broadcast.call_count == 2
-    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value'}, ignore_channel=None)
-    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
 
 
 async def test_write_partial_basic(backend_store, mock_ws_mgr):
@@ -509,7 +509,7 @@ async def test_write_partial_basic(backend_store, mock_ws_mgr):
     
     # Verify patch notification was sent
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'patches': patches}, 
+        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2}, 
         ignore_channel=None
     )
 
@@ -602,7 +602,7 @@ async def test_write_partial_user_scope(user_backend_store, mock_ws_mgr):
     # Verify patch notification was sent to the correct user
     mock_ws_mgr.send_message_to_user.assert_called_once_with(
         USER_1.identity_id,
-        {'store_uid': user_backend_store.uid, 'patches': patches},
+        {'store_uid': user_backend_store.uid, 'patches': patches, 'sequence_number': 2},
         ignore_channel=None
     )
 
@@ -857,7 +857,7 @@ async def test_write_partial_with_ws_channel(backend_store, mock_ws_mgr):
     
     # Should ignore the originating channel
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'patches': patches},
+        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2},
         ignore_channel='test_channel'
     )
     
@@ -890,3 +890,201 @@ async def test_write_partial_non_structured_data(backend_store):
     
     with pytest.raises(ValueError, match='Current value is of type bool'):
         await backend_store.write_partial(patches)
+
+
+async def test_sequence_number_tracking(backend_store):
+    """Test that sequence numbers are properly tracked and incremented"""
+    # Check initial sequence number dict is empty
+    assert backend_store.sequence_number == {}
+    
+    # Write initial data - this will initialize the global key
+    initial_data = {"name": "Alice", "age": 30}
+    await backend_store.write_partial(initial_data, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 1
+    
+    # Make another update
+    patches = [{"op": "replace", "path": "/age", "value": 31}]
+    await backend_store.write_partial(patches, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 2
+    
+    # Make third update using full object (automatic diffing)
+    updated_data = {"name": "Alice Smith", "age": 31}
+    await backend_store.write_partial(updated_data, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 3
+
+
+async def test_sequence_number_in_patch_message(backend_store, mock_ws_mgr):
+    """Test that patch messages include the correct sequence number"""
+    # Set initial data
+    initial_data = {"count": 0}
+    await backend_store.write_partial(initial_data, notify=False)
+    
+    # Reset mock to clear any previous calls
+    mock_ws_mgr.broadcast.reset_mock()
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Make a patch update that should notify
+    patches = [{"op": "replace", "path": "/count", "value": 1}]
+    await backend_store.write_partial(patches, notify=True)
+    
+    # For global scope, check broadcast was called with sequence number
+    if backend_store.scope == 'global':
+        mock_ws_mgr.broadcast.assert_called_once()
+        call_args = mock_ws_mgr.broadcast.call_args[0]
+        message = call_args[0]
+        assert 'sequence_number' in message
+        assert message['sequence_number'] == 2  # Should be 2 (1 from initial write + 1 from patch)
+    
+    # Make another update
+    await backend_store.write_partial([{"op": "replace", "path": "/count", "value": 2}], notify=True)
+    
+    # Check sequence number incremented
+    if backend_store.scope == 'global':
+        assert mock_ws_mgr.broadcast.call_count == 2
+        # Get the second call
+        second_call_args = mock_ws_mgr.broadcast.call_args_list[1][0]
+        second_message = second_call_args[0]
+        assert second_message['sequence_number'] == 3
+
+
+async def test_sequence_number_with_write_no_notify(backend_store):
+    """Test that sequence numbers increment on all writes regardless of notify"""
+    # Write with notify=False should still increment sequence
+    await backend_store.write_partial({"data": "test"}, notify=False)
+    assert backend_store.sequence_number.get('global', 0) == 1
+    
+    # Write with notify=True should increment sequence
+    await backend_store.write_partial({"data": "test2"}, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 2
+    
+    # Another write with notify=False should still increment
+    await backend_store.write_partial({"data": "test3"}, notify=False)
+    assert backend_store.sequence_number.get('global', 0) == 3
+
+
+async def test_sequence_number_separate_stores():
+    """Test that different stores maintain separate sequence numbers"""
+    store1 = BackendStore(backend=InMemoryBackend())
+    store2 = BackendStore(backend=InMemoryBackend())
+    
+    # Both start empty
+    assert store1.sequence_number == {}
+    assert store2.sequence_number == {}
+    
+    # Update store1
+    await store1.write_partial({"data": "store1"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 1
+    assert store2.sequence_number == {}  # store2 unchanged
+    
+    # Update store2
+    await store2.write_partial({"data": "store2"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 1  # store1 unchanged
+    assert store2.sequence_number.get('global', 0) == 1
+    
+    # Update store1 again
+    await store1.write_partial({"data": "store1_v2"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 2
+    assert store2.sequence_number.get('global', 0) == 1  # store2 unchanged
+
+
+async def test_sequence_number_per_scope_key_separation():
+    """Test that sequence numbers are tracked separately per scope key (user vs global)"""
+    # Test global scope store
+    global_store = BackendStore(backend=InMemoryBackend(), scope='global')
+    user_store = BackendStore(backend=InMemoryBackend(), scope='user')
+    
+    # Set up users
+    USER.set(USER_1)
+    
+    # Update user store for user1
+    await user_store.write_partial({"data": "user1_data"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 1
+    
+    # Update global store
+    await global_store.write_partial({"data": "global_data"}, notify=True)
+    assert global_store.sequence_number.get('global', 0) == 1
+    
+    # Switch to user2
+    USER.set(USER_2)
+    
+    # Update user store for user2 - should be separate from user1
+    await user_store.write_partial({"data": "user2_data"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 1  # user1 unchanged
+    assert user_store.sequence_number.get(USER_2.identity_id, 0) == 1  # user2 starts at 1
+    
+    # Update global store again
+    await global_store.write_partial({"data": "global_data_2"}, notify=True)
+    assert global_store.sequence_number.get('global', 0) == 2
+    
+    # Switch back to user1 and update again
+    USER.set(USER_1)
+    await user_store.write_partial({"data": "user1_data_2"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 2  # incremented from 1
+    assert user_store.sequence_number.get(USER_2.identity_id, 0) == 1  # user2 unchanged
+    
+    # Verify that the same store maintains separate sequences per user
+    assert len(user_store.sequence_number) == 2  # Two users
+    assert len(global_store.sequence_number) == 1  # One global key
+
+
+async def test_sequence_number_subscription_notifications(mock_ws_mgr):
+    """Test that sequence numbers are included in subscription notifications"""
+    custom_backend = CustomBackend()
+    store = BackendStore(backend=custom_backend, uid='test_subscription_store', scope='global')
+    
+    # Initialize the store
+    Variable(default={'count': 0}, store=store)
+    await wait_for(lambda: store.read())
+    
+    # Reset mock to clear initialization calls
+    mock_ws_mgr.broadcast.reset_mock()
+    
+    # Trigger external change which should include sequence number
+    await custom_backend.trigger_external_change('global', {'count': 5})
+    
+    # Verify notification was sent with proper message format
+    mock_ws_mgr.broadcast.assert_called_once()
+    call_args = mock_ws_mgr.broadcast.call_args[0]
+    message = call_args[0]
+    
+    assert 'store_uid' in message
+    assert 'value' in message
+    assert 'sequence_number' in message
+    assert message['store_uid'] == store.uid
+    assert message['value'] == {'count': 5}
+    # Since this is external notification, sequence should be current value (0 initially)
+    assert message['sequence_number'] == 0
+
+
+async def test_sequence_number_user_subscription_notifications(mock_ws_mgr):
+    """Test that sequence numbers work correctly with user-scoped subscription notifications"""
+    custom_backend = CustomBackend()
+    store = BackendStore(backend=custom_backend, uid='test_user_subscription_store', scope='user')
+    
+    # Set user context
+    USER.set(USER_1)
+    
+    # Initialize the store
+    Variable(default={'score': 100}, store=store)
+    await wait_for(lambda: store.read())
+    
+    # Reset mock to clear initialization calls
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Make a regular update to increment sequence
+    await store.write_partial({'score': 150}, notify=True)
+    
+    # Reset mock again to focus on external change
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Now trigger external change for the same user
+    await custom_backend.trigger_external_change(USER_1.identity_id, {'score': 200})
+    
+    # Verify external notification was sent
+    assert mock_ws_mgr.send_message_to_user.call_count == 1
+    
+    # Check the external trigger message
+    call_args = mock_ws_mgr.send_message_to_user.call_args[0]
+    message = call_args[1]
+    assert 'value' in message
+    assert message['sequence_number'] == 1  # Should use current sequence for this user

@@ -201,6 +201,9 @@ class BackendStore(PersistenceStore):
 
     default_value: Any = Field(default=None, exclude=True)
     initialized_scopes: Set[str] = Field(default_factory=set, exclude=True)
+    sequence_number: Dict[str, int] = Field(
+        default_factory=dict, exclude=True
+    )  # Track sequence numbers per user for patch validation
 
     def __init__(
         self,
@@ -245,6 +248,8 @@ class BackendStore(PersistenceStore):
                 self.initialized_scopes.add('global')
                 if not await run_user_handler(self.backend.has, args=(key,)):
                     await run_user_handler(self.backend.write, (key, self.default_value))
+                    # Initialize sequence number for this key
+                    self.sequence_number[key] = 0
 
             return key
 
@@ -258,6 +263,8 @@ class BackendStore(PersistenceStore):
                 self.initialized_scopes.add(user_key)
                 if not await run_user_handler(self.backend.has, args=(user_key,)):
                     await run_user_handler(self.backend.write, (user_key, self.default_value))
+                    # Initialize sequence number for this key
+                    self.sequence_number[user_key] = 0
 
             return user_key
 
@@ -302,19 +309,29 @@ class BackendStore(PersistenceStore):
 
         return utils_registry.get('WebsocketManager')
 
-    def _create_msg(self, value: Any) -> Dict[str, Any]:
+    def _create_msg(self, value: Any, scope_key: str) -> Dict[str, Any]:
         """
         Create a message to send to the frontend.
         :param value: value to send
         """
-        return {'store_uid': self.uid, 'value': value}
+        return {'store_uid': self.uid, 'value': value, 'sequence_number': self.sequence_number.get(scope_key, 0)}
 
-    def _create_patch_msg(self, patches: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _create_patch_msg(self, patches: List[Dict[str, Any]], scope_key: str) -> Dict[str, Any]:
         """
         Create a patch message to send to the frontend.
         :param patches: list of JSON patch operations
         """
-        return {'store_uid': self.uid, 'patches': patches}
+        return {'store_uid': self.uid, 'patches': patches, 'sequence_number': self.sequence_number.get(scope_key, 0)}
+
+    def _get_next_sequence_number(self, key: str) -> int:
+        """
+        Get the next sequence number for this store.
+
+        :param key: key for the store
+        """
+        current = self.sequence_number.get(key, 0)
+        self.sequence_number[key] = current + 1
+        return self.sequence_number[key]
 
     async def _notify_user(self, user_identifier: str, value: Any, ignore_current_channel: bool = True):
         """
@@ -326,7 +343,7 @@ class BackendStore(PersistenceStore):
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
-            self._create_msg(value),
+            self._create_msg(value, user_identifier),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -342,7 +359,7 @@ class BackendStore(PersistenceStore):
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
-            self._create_patch_msg(patches),
+            self._create_patch_msg(patches, user_identifier),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -354,7 +371,7 @@ class BackendStore(PersistenceStore):
         :param ignore_current_channel: if True, ignore the current websocket channel
         """
         return await self.ws_mgr.broadcast(
-            self._create_msg(value),
+            self._create_msg(value, 'global'),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -366,7 +383,7 @@ class BackendStore(PersistenceStore):
         :param ignore_current_channel: if True, ignore the current websocket channel
         """
         return await self.ws_mgr.broadcast(
-            self._create_patch_msg(patches),
+            self._create_patch_msg(patches, 'global'),
             ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
         )
 
@@ -473,6 +490,8 @@ class BackendStore(PersistenceStore):
 
         # Write updated value back to store
         await run_user_handler(self.backend.write, (key, updated_value))
+        # Increment sequence number for this update
+        self._get_next_sequence_number(key)
 
         if notify:
             # Notify clients about the patches, not the full value
@@ -495,10 +514,14 @@ class BackendStore(PersistenceStore):
 
         key = await self._get_key()
 
+        res = await run_user_handler(self.backend.write, (key, value))
+        # Increment sequence number for this update
+        self._get_next_sequence_number(key)
+        
         if notify:
             await self._notify_value(value)
-
-        return await run_user_handler(self.backend.write, (key, value))
+            
+        return res
 
     async def read(self):
         """

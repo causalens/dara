@@ -487,7 +487,12 @@ def create_router(config: Configuration):
         if inspect.iscoroutine(result):
             result = await result
 
-        return result
+        # Get the current key and sequence number for this store
+        store = store_entry.store
+        key = await store._get_key()
+        sequence_number = store.sequence_number.get(key, 0)
+
+        return {'value': result, 'sequence_number': sequence_number}
 
     @core_api_router.post('/store', dependencies=[Depends(verify_session)])
     async def sync_backend_store(ws_channel: str = Body(), values: Dict[str, Any] = Body()):

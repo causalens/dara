@@ -95,6 +95,7 @@ export interface BackendStoreMessage {
     message: {
         store_uid: string;
         value: any;
+        sequence_number: number;
     };
     type: 'message';
 }
@@ -108,6 +109,7 @@ export interface BackendStorePatchMessage {
             value?: any;
             from?: string;
         }>;
+        sequence_number: number;
     };
     type: 'message';
 }
