@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Union,
 )
 from uuid import uuid4
 
@@ -426,14 +427,14 @@ class BackendStore(PersistenceStore):
 
             await self.backend.subscribe(_on_value)
 
-    async def write_partial(self, patches: List[Dict[str, Any]], notify: bool = True):
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
         """
-        Apply partial updates to the store using JSON Patch operations.
+        Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
         If scope='user', the patches are applied for the current user so the method can only
         be used in authenticated contexts.
 
-        :param patches: list of JSON patch operations conforming to RFC 6902
+        :param data: Either a list of JSON patch operations (RFC 6902) or a full object to diff against current value
         :param notify: whether to broadcast the patches to clients
         """
         if self.readonly:
@@ -447,18 +448,28 @@ class BackendStore(PersistenceStore):
         if current_value is None:
             # If no current value, create an empty dict as the base
             current_value = {}
-        elif not isinstance(current_value, (dict, list)):
-            # JSON patches can only be applied to structured data (objects/arrays)
-            raise ValueError(
-                f'Cannot apply JSON patches to non-structured data. '
-                f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
-            )
 
-        # Apply patches to current value
-        try:
-            updated_value = jsonpatch.apply_patch(current_value, patches)
-        except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
-            raise ValueError(f'Invalid JSON patch operation: {e}') from e
+        # Determine if data is patches or a full object
+        if isinstance(data, list) and all(isinstance(item, dict) and 'op' in item for item in data):
+            # Data is a list of patch operations
+            patches = data
+            
+            if not isinstance(current_value, (dict, list)):
+                # JSON patches can only be applied to structured data (objects/arrays)
+                raise ValueError(
+                    f'Cannot apply JSON patches to non-structured data. '
+                    f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
+                )
+            
+            # Apply patches to current value
+            try:
+                updated_value = jsonpatch.apply_patch(current_value, patches)
+            except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
+                raise ValueError(f'Invalid JSON patch operation: {e}') from e
+        else:
+            # Data is a full object - generate patches by diffing
+            patches = jsonpatch.make_patch(current_value, data).patch
+            updated_value = data
 
         # Write updated value back to store
         await run_user_handler(self.backend.write, (key, updated_value))

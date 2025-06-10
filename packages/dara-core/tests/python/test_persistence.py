@@ -1,7 +1,7 @@
 import inspect
 import json
 import tempfile
-from typing import Any, Awaitable, Callable, Dict, Set
+from typing import Any, Awaitable, Callable, Dict
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -19,7 +19,7 @@ from dara.core.persistence import (
     PersistenceBackend,
 )
 
-from tests.python.utils import wait_assert, wait_for
+from tests.python.utils import wait_for
 
 pytestmark = pytest.mark.anyio
 
@@ -62,7 +62,6 @@ def user_backend_store(in_memory_backend):
 @pytest.fixture(autouse=True)
 def mock_ws_mgr():
     from dara.core.internal.registries import utils_registry
-    from dara.core.internal.websocket import WebsocketManager
 
     try:
         original_mgr = utils_registry.get('WebsocketManager')
@@ -606,12 +605,145 @@ async def test_write_partial_user_scope(user_backend_store, mock_ws_mgr):
         {'store_uid': user_backend_store.uid, 'patches': patches},
         ignore_channel=None
     )
+
+
+async def test_write_partial_with_full_object(backend_store, mock_ws_mgr):
+    """
+    Test write_partial with full object (automatic diffing mode)
+    """
+    # Set initial value
+    initial_data = {'name': 'John', 'age': 30, 'items': ['apple', 'banana']}
+    await backend_store.write(initial_data, notify=False)
     
-    # Test isolation - switch to user2
+    # Update with full object
+    updated_data = {'name': 'Jane', 'age': 30, 'items': ['apple', 'banana', 'cherry']}
+    result = await backend_store.write_partial(updated_data)
+    
+    assert result == updated_data
+    assert await backend_store.read() == updated_data
+    
+    # Verify that patches were generated and sent
+    assert mock_ws_mgr.broadcast.called
+    call_args = mock_ws_mgr.broadcast.call_args[0][0]
+    assert 'store_uid' in call_args
+    assert 'patches' in call_args
+    assert call_args['store_uid'] == backend_store.uid
+    
+    # Patches should include name change and item addition
+    patches = call_args['patches']
+    assert len(patches) == 2  # name change + items change
+    
+    # Check that patches contain the expected operations
+    patch_paths = [p['path'] for p in patches]
+    assert '/name' in patch_paths
+    # Items patch might be granular (e.g., /items/2 for adding to specific index)
+    assert any(path.startswith('/items') for path in patch_paths)
+
+async def test_write_partial_detects_mode_correctly(backend_store):
+    """
+    Test that write_partial correctly detects automatic vs manual mode
+    """
+    # Set initial value
+    initial_data = {'name': 'John', 'age': 30}
+    await backend_store.write(initial_data, notify=False)
+    
+    # Test 1: Full object should be detected as automatic mode
+    full_object = {'name': 'Jane', 'age': 31}
+    result1 = await backend_store.write_partial(full_object, notify=False)
+    assert result1 == full_object
+    
+    # Test 2: List of patches should be detected as manual mode
+    patches = [{'op': 'replace', 'path': '/age', 'value': 32}]
+    result2 = await backend_store.write_partial(patches, notify=False)
+    expected = {'name': 'Jane', 'age': 32}
+    assert result2 == expected
+    
+    # Test 3: Empty list should be treated as manual patches (no changes)
+    result3 = await backend_store.write_partial([], notify=False)
+    assert result3 == expected  # No changes
+    
+    # Test 4: List without 'op' field should be treated as full object
+    not_patches = [{'name': 'Bob'}, {'age': 25}]
+    result4 = await backend_store.write_partial(not_patches, notify=False)
+    assert result4 == not_patches
+
+
+async def test_write_partial_full_object_with_empty_store(backend_store):
+    """
+    Test write_partial with full object on empty store
+    """
+    # Store is empty initially
+    
+    # Provide full object
+    new_data = {'name': 'Alice', 'settings': {'theme': 'dark'}}
+    result = await backend_store.write_partial(new_data, notify=False)
+    
+    assert result == new_data
+    assert await backend_store.read() == new_data
+
+
+async def test_write_partial_user_separation(user_backend_store):
+    """
+    Test that write_partial maintains user separation properly
+    """
+    # Set user1 initial data with write_partial
+    USER.set(USER_1)
+    user1_initial = {'name': 'User1', 'score': 100, 'items': ['item1']}
+    await user_backend_store.write_partial(user1_initial, notify=False)
+    
+    # Verify user1 can read their data
+    assert await user_backend_store.read() == user1_initial
+    
+    # User1 makes a partial update
+    user1_updated = {'name': 'User1_Updated', 'score': 150, 'items': ['item1', 'item2']}
+    await user_backend_store.write_partial(user1_updated, notify=False)
+    
+    # Verify user1's update was applied
+    assert await user_backend_store.read() == user1_updated
+    
+    # Switch to user2
     USER.set(USER_2)
     
-    # User2 should not see user1's data
+    # User2 should not see user1's data (should be None initially)
     assert await user_backend_store.read() is None
+    
+    # User2 creates their own data using write_partial
+    user2_data = {'name': 'User2', 'score': 200, 'category': 'admin'}
+    await user_backend_store.write_partial(user2_data, notify=False)
+    
+    # Verify user2 can read their data
+    assert await user_backend_store.read() == user2_data
+    
+    # User2 makes their own partial update
+    user2_updated = {'name': 'User2_Updated', 'score': 250, 'category': 'super_admin'}
+    await user_backend_store.write_partial(user2_updated, notify=False)
+    
+    # Verify user2's update was applied
+    assert await user_backend_store.read() == user2_updated
+    
+    # Switch back to user1
+    USER.set(USER_1)
+    
+    # CRITICAL CHECK: User1 should still see their updated data, not user2's
+    # This verifies that write_partial operations are properly isolated per user
+    assert await user_backend_store.read() == user1_updated
+    
+    # Verify user1's data was not affected by user2's operations
+    user1_final = await user_backend_store.read()
+    assert user1_final['name'] == 'User1_Updated'
+    assert user1_final['score'] == 150
+    assert user1_final['items'] == ['item1', 'item2']
+    assert 'category' not in user1_final  # User2's field should not appear
+    
+    # Switch back to user2 to double-check
+    USER.set(USER_2)
+    
+    # Verify user2's data was not affected by user1's operations  
+    user2_final = await user_backend_store.read()
+    assert user2_final['name'] == 'User2_Updated'
+    assert user2_final['score'] == 250
+    assert user2_final['category'] == 'super_admin'
+    assert 'items' not in user2_final  # User1's field should not appear
 
 
 async def test_write_partial_readonly_store(backend_store):
