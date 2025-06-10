@@ -66,7 +66,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     {
                         body: JSON.stringify({
                             values: storeDiff,
-                            ws_channel: await client!.getChannel(),
+                            ws_channel: await client.getChannel(),
                         }),
                         method: 'POST',
                     },

@@ -63,7 +63,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     if (isDerivedVariable(variable)) {
-        const selector = useDerivedVariable(variable, wsClient!, taskContext, extras);
+        const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         useEffect(() => {

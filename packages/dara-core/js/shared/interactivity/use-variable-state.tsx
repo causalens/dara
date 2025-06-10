@@ -2,7 +2,12 @@ import { useContext } from 'react';
 import { useRecoilCallback } from 'recoil';
 
 import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import { type AnyVariable, type ResolvedDataVariable, type ResolvedDerivedDataVariable, type ResolvedDerivedVariable } from '@/types';
+import {
+    type AnyVariable,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
+} from '@/types';
 
 import { resolveVariable } from './resolve-variable';
 import { isRegistered } from './store';
