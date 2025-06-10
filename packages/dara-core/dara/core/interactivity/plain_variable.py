@@ -183,6 +183,8 @@ class Variable(NonDataVariable, Generic[VariableType]):
         Get a LoopVariable that represents the current item in the list.
         Should only be used in conjunction with the `For` component.
 
+        Note that it is a type of a Variable so it can be used in places where a regular Variable is expected.
+
         By default, the entire list item is used as the item.
 
         `LoopVariable` supports nested property access using `get` or index access i.e. `[]`.

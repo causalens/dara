@@ -22,7 +22,7 @@ class LoopVariable(NonDataVariable):
     # Renders a list of Text component where each item is the corresponding item in the list
     For(
         items=my_list,
-        renderer=Text(text=my_list.list_item())
+        renderer=Text(text=my_list.list_item)
     )
     ```
 
@@ -38,7 +38,7 @@ class LoopVariable(NonDataVariable):
     # Renders a list of Text component where each item is the corresponding item in the list
     For(
         items=my_list,
-        renderer=Text(text=my_list.list_item().get('name')),
+        renderer=Text(text=my_list.list_item.get('name')),
         key='id'
     )
     ```
