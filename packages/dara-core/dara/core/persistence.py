@@ -470,14 +470,14 @@ class BackendStore(PersistenceStore):
         if isinstance(data, list) and all(isinstance(item, dict) and 'op' in item for item in data):
             # Data is a list of patch operations
             patches = data
-            
+
             if not isinstance(current_value, (dict, list)):
                 # JSON patches can only be applied to structured data (objects/arrays)
                 raise ValueError(
                     f'Cannot apply JSON patches to non-structured data. '
                     f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
                 )
-            
+
             # Apply patches to current value
             try:
                 updated_value = jsonpatch.apply_patch(current_value, patches)
@@ -517,10 +517,10 @@ class BackendStore(PersistenceStore):
         res = await run_user_handler(self.backend.write, (key, value))
         # Increment sequence number for this update
         self._get_next_sequence_number(key)
-        
+
         if notify:
             await self._notify_value(value)
-            
+
         return res
 
     async def read(self):
