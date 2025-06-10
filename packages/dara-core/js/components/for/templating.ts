@@ -2,8 +2,10 @@ import cloneDeep from 'lodash/cloneDeep';
 import isPlainObject from 'lodash/isPlainObject';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
+import * as React from 'react';
 
 import { resolveNested } from '@/shared/interactivity/nested';
+import type { ComponentInstance } from '@/types';
 import { isAnnotatedAction, isDerivedVariable, isLoopVariable, isPyComponent } from '@/types/utils';
 
 export type Marker =
@@ -111,8 +113,13 @@ export function applyMarkers<T extends Record<string, any>>(
     renderer: T,
     markers: Marker[],
     loopValue: any,
-    itemKey: string | number
+    itemKey: React.Key
 ): T {
+    // early exit if there are no markers
+    if (markers.length === 0) {
+        return renderer;
+    }
+
     const clonedRenderer = cloneDeep(renderer);
 
     for (const marker of markers) {
@@ -141,4 +148,18 @@ export function applyMarkers<T extends Record<string, any>>(
     }
 
     return clonedRenderer;
+}
+
+/**
+ * Check if the renderer component has any loop variables
+ * Only checks top-level props of the component
+ */
+export function hasMarkers(component: ComponentInstance): boolean {
+    for (const value of Object.values(component.props)) {
+        if (isLoopVariable(value)) {
+            return true;
+        }
+    }
+
+    return false;
 }

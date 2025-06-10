@@ -179,6 +179,33 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
     @property
     def list_item(self):
+        """
+        Get a LoopVariable that represents the current item in the list.
+        Should only be used in conjunction with the `For` component.
+
+        By default, the entire list item is used as the item.
+
+        `LoopVariable` supports nested property access using `get` or index access i.e. `[]`.
+        You can mix and match those two methods to access nested properties as they are equivalent.
+
+        ```python
+        my_list = Variable(['foo', 'bar', 'baz'])
+
+        # Represents the entire item in the list
+        my_list.list_item
+
+        my_list_of_objects = Variable([
+            {'id': 1, 'name': 'John', 'data': {'city': 'London', 'country': 'UK'}},
+            {'id': 2, 'name': 'Jane', 'data': {'city': 'Paris', 'country': 'France'}},
+        ])
+
+        # Represents the item 'name' property
+        my_list_of_objects.list_item['name']
+
+        # Represents the item 'data.country' property
+        my_list_of_objects.list_item.get('data')['country']
+        """
+
         from .loop_variable import LoopVariable
 
         return LoopVariable()

@@ -1,8 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { type MutableRefObject, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    type MutableRefObject,
+    Suspense,
+    memo,
+    useContext,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import DefaultFallback from '@/components/fallback/default';
+import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker/progress-tracker';
 import { FallbackCtx, ImportersCtx, VariableCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
@@ -17,7 +28,7 @@ import {
     isDerivedDataVariable,
     isDerivedVariable,
 } from '@/types';
-import { type AnyVariable, isInvalidComponent, isRawString } from '@/types/core';
+import { type AnyVariable, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
 
@@ -216,6 +227,18 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
 
+    // Sanity check - LoopVariable should NEVER leak into the actual component, should be replaced
+    // by the For component. Raise a user-visible error if it does as its a developer error.
+    useLayoutEffect(() => {
+        const markerProp = hasMarkers(props.component);
+        if (markerProp) {
+            throw new UserError(
+                `Component "${props.component.name}" has a loop variable in its "${markerProp}" property
+                LoopVariable (aka "Variable.list_item") can only be used within the For component's "renderer" property.`
+            );
+        }
+    }, [props.component]);
+
     useEffect(() => {
         if (props.component?.name === 'RawString') {
             setComponent(props.component.props.content);
@@ -317,7 +340,7 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         props.dynamic_kwargs,
         props.component.loop_instance_uid
     );
-    const refresh = useRefreshServerComponent(props.uid);
+    const refresh = useRefreshServerComponent(props.uid, props.component.loop_instance_uid);
 
     // Poll to update the component if polling_interval is set
     const pollingInterval = useMemo(
@@ -351,4 +374,4 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
     return <DynamicComponent component={component} key={component.uid} />;
 }
 
-export default DynamicComponent;
+export default memo(DynamicComponent);

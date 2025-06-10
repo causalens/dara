@@ -512,3 +512,9 @@ export interface AnnotatedAction {
 }
 
 export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;
+
+/**
+ * User-visible error.
+ * When thrown, our built-in error boundary will display its `message` property rather than a default blurb.
+ */
+export class UserError extends Error {}

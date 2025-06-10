@@ -3,7 +3,6 @@ from typing import List, Optional
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
 from .non_data_variable import NonDataVariable
-from .plain_variable import Variable
 
 
 class LoopVariable(NonDataVariable):
@@ -42,6 +41,10 @@ class LoopVariable(NonDataVariable):
         renderer=Text(text=my_list.list_item().get('name')),
         key='id'
     )
+    ```
+
+    Alternatively, you can use index access instead of `get` to access specific properties of the object.
+    Both `get` and `[]` are equivalent.
     """
 
     nested: List[str] = Field(default_factory=list)
@@ -52,6 +55,24 @@ class LoopVariable(NonDataVariable):
         super().__init__(uid=uid, nested=nested)
 
     def get(self, key: str):
+        """
+        Access a nested property of the current item in the list.
+
+        ```python
+        from dara.core import Variable
+
+        my_list_of_objects = Variable([
+            {'id': 1, 'name': 'John', 'data': {'city': 'London', 'country': 'UK'}},
+            {'id': 2, 'name': 'Jane', 'data': {'city': 'Paris', 'country': 'France'}},
+        ])
+
+        # Represents the item 'name' property
+        my_list_of_objects.list_item.get('name')
+
+        # Represents the item 'data.country' property
+        my_list_of_objects.list_item.get('data').get('country')
+        ```
+        """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
     def __getitem__(self, key: str):
