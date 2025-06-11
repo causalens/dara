@@ -124,7 +124,6 @@ export interface DerivedDataVariable {
 
 export interface LoopVariable {
     __typename: 'LoopVariable';
-    parent: SingleVariable<any>;
     uid: string;
     nested: string[];
 }

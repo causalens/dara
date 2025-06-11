@@ -154,12 +154,12 @@ export function applyMarkers<T extends Record<string, any>>(
  * Check if the renderer component has any loop variables
  * Only checks top-level props of the component
  */
-export function hasMarkers(component: ComponentInstance): boolean {
-    for (const value of Object.values(component.props)) {
+export function hasMarkers(component: ComponentInstance): string | null {
+    for (const [key, value] of Object.entries(component.props)) {
         if (isLoopVariable(value)) {
-            return true;
+            return key;
         }
     }
 
-    return false;
+    return null;
 }
