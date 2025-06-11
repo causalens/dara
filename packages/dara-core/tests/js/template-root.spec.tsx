@@ -3,6 +3,7 @@ import { act } from '@testing-library/react';
 import * as React from 'react';
 
 import { setSessionToken } from '@/auth/use-session-token';
+import { clearCaches_TEST } from '@/shared/dynamic-component/dynamic-component';
 import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
@@ -14,6 +15,7 @@ mockLocalStorage();
 
 describe('TemplateRoot', () => {
     beforeEach(() => {
+        clearCaches_TEST();
         server.listen();
         localStorage.clear();
         jest.restoreAllMocks();
@@ -28,9 +30,10 @@ describe('TemplateRoot', () => {
     afterAll(() => server.close());
 
     it('should render the template root component and expose the templateCtx', async () => {
-        const { getByText } = wrappedRender(<TemplateRoot />);
-        await waitFor(() => expect(getByText('Frame, Menu')).not.toBe(null));
-        expect(getByText('Frame, Menu')).toBeInstanceOf(HTMLSpanElement);
+        // use a mock ws to speed up the test
+        const wsClient = new MockWebSocketClient('uid');
+        const { findByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient as any} />);
+        expect(await findByText('Frame, Menu')).toBeInstanceOf(HTMLSpanElement);
     });
 
     it('should clean up cache on startup', async () => {

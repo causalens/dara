@@ -1,7 +1,7 @@
 import { mixed } from '@recoiljs/refine';
 import { applyPatch } from 'fast-json-patch';
 import * as React from 'react';
-import { type AtomEffect, DefaultValue, RecoilState, useRecoilCallback } from 'recoil';
+import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
 import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';

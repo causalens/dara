@@ -165,7 +165,7 @@ export interface ResolvedDerivedDataVariable {
 }
 
 export type ModuleContent = {
-    [componentName: string]: React.ComponentType<any>;
+    [componentOrActionName: string]: React.ComponentType<any> | ActionHandler<any>;
 };
 
 export enum ComponentType {

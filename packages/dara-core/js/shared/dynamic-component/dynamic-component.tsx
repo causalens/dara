@@ -89,6 +89,15 @@ const MODULE_CACHE = new Map<string, ModuleContent>();
 const COMPONENT_METADATA_CACHE = new Map<string, Component>();
 
 /**
+ * Clear the caches for testing.
+ * In prod we don't want to clear ever
+ */
+export function clearCaches_TEST(): void {
+    MODULE_CACHE.clear();
+    COMPONENT_METADATA_CACHE.clear();
+}
+
+/**
  * Try resolving component synchronously from cache
  */
 function resolveComponentSync(component: ComponentInstance): JSX.Element | null {
@@ -124,7 +133,7 @@ function resolveComponentSync(component: ComponentInstance): JSX.Element | null 
         return null; // Module not loaded yet
     }
 
-    const ResolvedComponent = moduleContent[metadata.js_component ?? metadata.name];
+    const ResolvedComponent = moduleContent[metadata.js_component ?? metadata.name] as React.ComponentType<any> | null;
 
     // Component does not exist in the module
     if (!ResolvedComponent) {
@@ -138,6 +147,7 @@ function resolveComponentSync(component: ComponentInstance): JSX.Element | null 
         );
     }
 
+    // assuming we returned a component, technically could be an action
     const props = cleanProps(component.props);
     return <ResolvedComponent uid={component.uid} {...props} />;
 }
@@ -190,7 +200,7 @@ async function resolveComponentAsync(
         throw new ComponentLoadError(errorDescription, `Component ${entry.name} could not be resolved`);
     }
 
-    let moduleContent = null;
+    let moduleContent: ModuleContent | null = null;
     try {
         moduleContent = await importer();
         if (moduleContent) {
@@ -287,8 +297,8 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
             .then(() => {
                 // Try sync resolution again after async loading
                 const resolvedComponent = resolveComponentSync(props.component);
-                setComponent(resolvedComponent);
                 setIsLoading(false);
+                setComponent(resolvedComponent);
             })
             .catch((error) => {
                 // eslint-disable-next-line no-console

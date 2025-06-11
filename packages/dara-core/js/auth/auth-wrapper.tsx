@@ -1,4 +1,4 @@
-import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { type ComponentType, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 
 import DefaultFallback from '@/components/fallback/default';
@@ -38,7 +38,7 @@ function DynamicAuthComponent(props: { component: AuthComponent }): JSX.Element 
                     throw new Error(`Failed to import module ${props.component.py_module}`);
                 }
 
-                const Component = moduleContent[props.component.js_name];
+                const Component = moduleContent[props.component.js_name] as ComponentType<any> | null;
 
                 if (!Component) {
                     throw new Error(

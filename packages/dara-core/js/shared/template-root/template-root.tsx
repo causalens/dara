@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled, { ThemeProvider } from '@darajs/styled-components';
 
@@ -61,7 +61,6 @@ interface TemplateRootProps {
  */
 function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     const token = useSessionToken()!;
-    const tokenRef = useRef(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
 
@@ -84,7 +83,6 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
         return onTokenChange((newToken) => {
             // it only changes to null if we're logging out
             if (newToken) {
-                tokenRef.current = newToken;
                 wsClient.updateToken(newToken);
             }
         });
@@ -97,22 +95,20 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     }, [config?.title]);
 
     useEffect(() => {
-        // already set up
-        if (wsClient) {
+        // 1) don't have config yet
+        // 2) already set up - make sure we don't recreate connections,
+        // we use updateToken explicitly to update a live connection
+        if (wsClient || !config) {
             return;
         }
 
-        let newWsClient: WebSocketClient | undefined;
-
-        if (config && tokenRef.current) {
-            newWsClient = setupWebsocket(tokenRef.current, config.live_reload);
-            setWsClient(newWsClient);
-        }
+        const newWsClient = setupWebsocket(token, config.live_reload);
+        setWsClient(newWsClient);
 
         return () => {
-            newWsClient?.close();
+            newWsClient.close();
         };
-    }, [tokenRef, config, wsClient]);
+    }, [token, config?.live_reload]);
 
     if (templateLoading || actionsLoading || componentsLoading || !wsClient) {
         return null;
