@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.20-alpha.1
 
 -  Reintroduced a `For` component that can be used to render a list of items. Note: this is an initial release of the component and we reserve the right to make (potentially breaking) changes to it in the next few releases as we roll it out internally.
 -  Added a `list_item` property to the `NonDataVariable` class (so `Variable`, `DerivedVariable`, `UrlVariable`) which can be used to access the current item's data within a `For` component renderer.
