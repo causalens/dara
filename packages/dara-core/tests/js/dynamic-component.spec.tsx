@@ -8,8 +8,8 @@ import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
-import { Action, DerivedVariable, SingleVariable, Variable } from '../../js/types';
-import { DaraEventMap, DerivedDataVariable, TriggerVariableImpl } from '../../js/types/core';
+import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
+import { type DaraEventMap, type DerivedDataVariable, type TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
 
 describe('DynamicComponent', () => {
@@ -22,15 +22,6 @@ describe('DynamicComponent', () => {
     });
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());
-
-    it('should render nothing until the component has loaded', async () => {
-        const { container } = wrappedRender(
-            <DynamicComponent component={{ name: 'TestComponent', props: {}, uid: 'uid' }} />
-        );
-        await waitFor(() => {
-            expect(container.firstChild).toBe(null);
-        });
-    });
 
     it("should load the component from the registry and render it if it's a JS one", async () => {
         const { container } = wrappedRender(

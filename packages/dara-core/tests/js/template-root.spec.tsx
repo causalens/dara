@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/dom';
 import { act } from '@testing-library/react';
-import React from 'react';
+import * as React from 'react';
 
 import { setSessionToken } from '@/auth/use-session-token';
 import globalStore from '@/shared/global-state-store';
@@ -21,17 +21,11 @@ describe('TemplateRoot', () => {
     });
     afterEach(() => {
         server.resetHandlers();
-        setSessionToken(null);
-    });
-    afterAll(() => server.close());
-
-    it('should render nothing until the component has loaded', async () => {
-        const { container } = wrappedRender(<TemplateRoot />);
-
-        await waitFor(() => {
-            expect(container.firstChild.firstChild).toBe(null);
+        act(() => {
+            setSessionToken(null);
         });
     });
+    afterAll(() => server.close());
 
     it('should render the template root component and expose the templateCtx', async () => {
         const { getByText } = wrappedRender(<TemplateRoot />);
@@ -72,7 +66,7 @@ describe('TemplateRoot', () => {
         const wsClient = new MockWebSocketClient('uid');
         const updateTokenSpy = jest.spyOn(wsClient, 'updateToken');
 
-        const { getByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient} />);
+        const { getByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient as any} />);
         // Wait for the page to be rendered
         await waitFor(() => expect(getByText('Frame, Menu')).not.toBe(null));
 

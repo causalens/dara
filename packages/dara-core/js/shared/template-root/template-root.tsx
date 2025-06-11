@@ -60,7 +60,7 @@ interface TemplateRootProps {
  * component of the template
  */
 function TemplateRoot(props: TemplateRootProps): React.ReactNode {
-    const token = useSessionToken();
+    const token = useSessionToken()!;
     const tokenRef = useRef(token);
     const { data: config } = useConfig();
     const { data: template, isLoading: templateLoading } = useTemplate(config?.template);
@@ -82,8 +82,9 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
 
         // subscribe to token changes and notify the live WS connection
         return onTokenChange((newToken) => {
-            tokenRef.current = newToken;
+            // it only changes to null if we're logging out
             if (newToken) {
+                tokenRef.current = newToken;
                 wsClient.updateToken(newToken);
             }
         });
@@ -96,14 +97,22 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     }, [config?.title]);
 
     useEffect(() => {
+        // already set up
+        if (wsClient) {
+            return;
+        }
+
+        let newWsClient: WebSocketClient | undefined;
+
         if (config && tokenRef.current) {
-            setWsClient(setupWebsocket(tokenRef.current, config.live_reload));
+            newWsClient = setupWebsocket(tokenRef.current, config.live_reload);
+            setWsClient(newWsClient);
         }
 
         return () => {
-            wsClient?.close();
+            newWsClient?.close();
         };
-    }, [tokenRef, config?.live_reload]);
+    }, [tokenRef, config, wsClient]);
 
     if (templateLoading || actionsLoading || componentsLoading || !wsClient) {
         return null;
