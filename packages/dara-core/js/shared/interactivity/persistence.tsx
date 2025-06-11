@@ -1,11 +1,12 @@
 import { mixed } from '@recoiljs/refine';
+import { applyPatch } from 'fast-json-patch';
 import * as React from 'react';
-import { type AtomEffect, DefaultValue } from 'recoil';
+import { type AtomEffect, DefaultValue, RecoilState, useRecoilCallback } from 'recoil';
 import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, handleAuthErrors } from '@/api';
+import { type BackendStorePatchMessage, type WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
@@ -15,11 +16,27 @@ import { type BackendStore, type DerivedVariable, type PersistenceStore } from '
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue } from './internal';
+import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
 
 /**
  * Global map to store the extras for each store uid
  */
 const STORE_EXTRAS_MAP = new Map<string, RequestExtrasSerializable>();
+
+/**
+ * Global map from store uid to set of variable uids that use that store
+ */
+const STORE_VARIABLE_MAP = new Map<string, Set<string>>();
+
+/**
+ * Global map to track expected sequence numbers per store for patch validation
+ */
+const STORE_SEQUENCE_MAP = new Map<string, number>();
+
+/**
+ * Global map to track the latest read value for each store, to prevent cyclic updates
+ */
+const STORE_LATEST_VALUE_MAP = new Map<string, any>();
 
 /**
  * RecoilSync implementation for BackendStore
@@ -36,9 +53,11 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras?.extras ?? {});
         await handleAuthErrors(response, true);
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
-        const val = await response.json();
+        const { value, sequence_number } = await response.json();
 
-        return val;
+        STORE_SEQUENCE_MAP.set(itemKey, sequence_number);
+
+        return value;
     }, []);
 
     const syncStoreValues = React.useCallback<WriteItems>(
@@ -46,16 +65,23 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             // keep track of extras -> diff to send each set of extras as a separate request
             const extrasMap = new Map<RequestExtrasSerializable, Record<string, any>>();
 
-            for (const [itemKey, value] of diff.entries()) {
-                const extras = STORE_EXTRAS_MAP.get(itemKey)!;
+            Array.from(diff.entries())
+                .filter(
+                    ([itemKey, value]) =>
+                        !STORE_LATEST_VALUE_MAP.has(itemKey) || STORE_LATEST_VALUE_MAP.get(itemKey) !== value
+                )
+                .forEach(([itemKey, value]) => {
+                    STORE_LATEST_VALUE_MAP.set(itemKey, value);
 
-                if (!extrasMap.has(extras)) {
-                    extrasMap.set(extras, {});
-                }
+                    const extras = STORE_EXTRAS_MAP.get(itemKey)!;
 
-                // store the value in the extras map
-                extrasMap.get(extras)![itemKey] = value;
-            }
+                    if (!extrasMap.has(extras)) {
+                        extrasMap.set(extras, {});
+                    }
+
+                    // store the value in the extras map
+                    extrasMap.get(extras)![itemKey] = value;
+                });
 
             async function sendRequest(
                 serializableExtras: RequestExtrasSerializable,
@@ -86,20 +112,130 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         [client]
     );
 
-    // recoilt callback
+    const applyPatchesToAtoms = useRecoilCallback(
+        ({ snapshot, set }) =>
+            async (
+                storeUid: string,
+                patches: BackendStorePatchMessage['message']['patches'],
+                sequenceNumber: number
+            ) => {
+                // Validate sequence number to ensure UI state is in sync with backend
+                const expectedSequence = STORE_SEQUENCE_MAP.get(storeUid) || 0;
+                if (sequenceNumber !== expectedSequence + 1) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        `Sequence number mismatch for store ${storeUid}. Expected: ${expectedSequence + 1}, Got: ${sequenceNumber}. Rejecting patch.`
+                    );
+                    // Could trigger a full state refresh here in the future
+                    return;
+                }
+
+                // Update expected sequence number
+                STORE_SEQUENCE_MAP.set(storeUid, sequenceNumber);
+
+                // Get all variable UIDs that use this store
+                const variableUids = STORE_VARIABLE_MAP.get(storeUid);
+                if (!variableUids) {
+                    return;
+                }
+
+                // Collect all atoms that need patching
+                const atomsToUpdate: Array<{ atom: RecoilState<any>; variableUid: string }> = [];
+
+                for (const variableUid of variableUids) {
+                    // Check if there's a direct atom
+                    const directAtom = atomRegistry.get(variableUid);
+                    if (directAtom) {
+                        atomsToUpdate.push({ atom: directAtom, variableUid });
+                        continue;
+                    }
+
+                    // Check if there's an atom family
+                    const atomFamily = atomFamilyRegistry.get(variableUid);
+                    if (atomFamily) {
+                        const familyMembers = atomFamilyMembersRegistry.get(atomFamily);
+                        if (familyMembers) {
+                            // Add all instances of this atom family
+                            for (const [, atomInstance] of familyMembers) {
+                                atomsToUpdate.push({ atom: atomInstance, variableUid });
+                            }
+                        }
+                    }
+                }
+
+                // Batch read all current values
+                const currentValues = await Promise.all(
+                    atomsToUpdate.map(async ({ atom, variableUid }) => {
+                        try {
+                            return {
+                                atom,
+                                variableUid,
+                                currentValue: await snapshot.getPromise(atom),
+                                error: null as Error | null,
+                            };
+                        } catch (error) {
+                            return {
+                                atom,
+                                variableUid,
+                                currentValue: null,
+                                error: error as Error,
+                            };
+                        }
+                    })
+                );
+
+                const applyPatchToValue = (currentValue: any, variableUid: string): any => {
+                    try {
+                        return applyPatch(currentValue, patches as any, false, false).newDocument;
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`Failed to apply patch to atom ${variableUid}:`, error);
+                        return currentValue; // Return unchanged value on error
+                    }
+                };
+
+                // Apply patches and set new values
+                currentValues.forEach(({ atom, variableUid, currentValue, error }) => {
+                    if (error) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`Failed to read current value for atom ${variableUid}:`, error);
+                        return;
+                    }
+
+                    const patchedValue = applyPatchToValue(currentValue, variableUid);
+                    set(atom, patchedValue);
+                    STORE_LATEST_VALUE_MAP.set(storeUid, patchedValue);
+                });
+            },
+        []
+    );
+
     const listenToStoreChanges = React.useCallback<ListenToItems>(
         ({ updateItem }) => {
             if (!client) {
                 return;
             }
 
-            const sub = client.backendStoreMessages$().subscribe((message) => {
+            // Subscribe to regular value updates
+            const valueSub = client.backendStoreMessages$().subscribe((message) => {
+                // Set sequence number when full value is received
+                STORE_SEQUENCE_MAP.set(message.store_uid, message.sequence_number);
                 updateItem(message.store_uid, message.value);
+                STORE_LATEST_VALUE_MAP.set(message.store_uid, message.value);
             });
 
-            return () => sub.unsubscribe();
+            // Subscribe to patch updates
+            const patchSub = client.backendStorePatchMessages$().subscribe((message) => {
+                // Apply patches directly to atoms instead of going through RecoilSync
+                applyPatchesToAtoms(message.store_uid, message.patches, message.sequence_number);
+            });
+
+            return () => {
+                valueSub.unsubscribe();
+                patchSub.unsubscribe();
+            };
         },
-        [client]
+        [client, applyPatchesToAtoms]
     );
 
     return (
@@ -121,6 +257,12 @@ function backendStoreEffect<T>(
 ): AtomEffect<any> {
     // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
     STORE_EXTRAS_MAP.set(variable.store!.uid, requestExtras);
+
+    // Register this variable as using this store for patch handling
+    if (!STORE_VARIABLE_MAP.has(variable.store!.uid)) {
+        STORE_VARIABLE_MAP.set(variable.store!.uid, new Set());
+    }
+    STORE_VARIABLE_MAP.get(variable.store!.uid)!.add(variable.uid);
 
     return syncEffect({
         /** Use store uid as the unique identifier */

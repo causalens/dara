@@ -1,7 +1,7 @@
 import inspect
 import json
 import tempfile
-from typing import Any, Awaitable, Callable, Dict, Set
+from typing import Any, Awaitable, Callable, Dict
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -19,7 +19,7 @@ from dara.core.persistence import (
     PersistenceBackend,
 )
 
-from tests.python.utils import wait_assert, wait_for
+from tests.python.utils import wait_for
 
 pytestmark = pytest.mark.anyio
 
@@ -62,7 +62,6 @@ def user_backend_store(in_memory_backend):
 @pytest.fixture(autouse=True)
 def mock_ws_mgr():
     from dara.core.internal.registries import utils_registry
-    from dara.core.internal.websocket import WebsocketManager
 
     try:
         original_mgr = utils_registry.get('WebsocketManager')
@@ -187,7 +186,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user1 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 1
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value'}, ignore_channel=None)]
+        [call(USER_1.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value', 'sequence_number': 1}, ignore_channel=None)]
     )
 
     USER.set(USER_2)
@@ -198,7 +197,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
     # Verify the value was sent to user2 channels
     assert mock_ws_mgr.send_message_to_user.call_count == 2
     mock_ws_mgr.send_message_to_user.assert_has_calls(
-        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2'}, ignore_channel=None)],
+        [call(USER_2.identity_id, {'store_uid': user_backend_store.uid, 'value': 'test_value_2', 'sequence_number': 1}, ignore_channel=None)],
         any_order=True,
     )
 
@@ -210,7 +209,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         [
             call(
                 USER_2.identity_id,
-                {'store_uid': user_backend_store.uid, 'value': 'test_value_3'},
+                {'store_uid': user_backend_store.uid, 'value': 'test_value_3', 'sequence_number': 2},
                 ignore_channel='channel3',
             )
         ],
@@ -256,7 +255,7 @@ async def test_notify_on_write(backend_store, mock_ws_mgr):
     await backend_store.write('test_value')
 
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'value': 'test_value'}, ignore_channel=None
+        {'store_uid': backend_store.uid, 'value': 'test_value', 'sequence_number': 1}, ignore_channel=None
     )
 
 
@@ -266,7 +265,7 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
     await backend_store.delete()
 
     # Need to await to yield to the loop to process the task
-    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_called_once_with({'store_uid': backend_store.uid, 'value': None, 'sequence_number': 1}, ignore_channel=None)
 
 
 @pytest.mark.parametrize('backend_name', [('in_memory_backend'), ('file_backend')])
@@ -413,7 +412,7 @@ async def test_backend_subscribe_global(custom_backend, mock_ws_mgr):
     await custom_backend.trigger_external_change('global', 'external_value')
 
     # Verify the notification was sent
-    mock_ws_mgr.broadcast.assert_called_with({'store_uid': store.uid, 'value': 'external_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_called_with({'store_uid': store.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
 
 
 async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
@@ -439,7 +438,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
 
     # Verify the notification was sent to USER_1
     mock_ws_mgr.send_message_to_user.assert_called_with(
-        USER_1.identity_id, {'store_uid': store.uid, 'value': 'external_value_1'}, ignore_channel=None
+        USER_1.identity_id, {'store_uid': store.uid, 'value': 'external_value_1', 'sequence_number': 0}, ignore_channel=None
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
 
@@ -454,7 +453,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
 
     # Verify the notification was sent to USER_2
     mock_ws_mgr.send_message_to_user.assert_called_with(
-        USER_2.identity_id, {'store_uid': store.uid, 'value': 'external_value_2'}, ignore_channel=None
+        USER_2.identity_id, {'store_uid': store.uid, 'value': 'external_value_2', 'sequence_number': 0}, ignore_channel=None
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
 
@@ -481,5 +480,611 @@ async def test_backend_subscribe_multiple_stores(custom_backend, mock_ws_mgr):
 
     # Verify both stores received notifications
     assert mock_ws_mgr.broadcast.call_count == 2
-    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value'}, ignore_channel=None)
-    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value'}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store1.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
+    mock_ws_mgr.broadcast.assert_any_call({'store_uid': store2.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None)
+
+
+async def test_write_partial_basic(backend_store, mock_ws_mgr):
+    """
+    Test basic write_partial functionality with simple operations
+    """
+    # Set initial value
+    await backend_store.write({'name': 'John', 'age': 30, 'city': 'New York'}, notify=False)
+    
+    # Apply patches
+    patches = [
+        {'op': 'replace', 'path': '/age', 'value': 31},
+        {'op': 'add', 'path': '/country', 'value': 'USA'},
+        {'op': 'remove', 'path': '/city'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    # Check the result
+    expected = {'name': 'John', 'age': 31, 'country': 'USA'}
+    assert result == expected
+    
+    # Verify it was persisted
+    assert await backend_store.read() == expected
+    
+    # Verify patch notification was sent
+    mock_ws_mgr.broadcast.assert_called_once_with(
+        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2}, 
+        ignore_channel=None
+    )
+
+
+async def test_write_partial_nested_objects(backend_store):
+    """
+    Test write_partial with nested object operations
+    """
+    # Set initial value with nested structure
+    initial_data = {
+        'user': {
+            'profile': {
+                'name': 'John',
+                'age': 30
+            },
+            'settings': {
+                'theme': 'light'
+            }
+        },
+        'items': ['apple', 'banana']
+    }
+    await backend_store.write(initial_data, notify=False)
+    
+    # Apply patches to nested structures
+    patches = [
+        {'op': 'replace', 'path': '/user/profile/age', 'value': 31},
+        {'op': 'add', 'path': '/user/profile/city', 'value': 'New York'},
+        {'op': 'replace', 'path': '/user/settings/theme', 'value': 'dark'},
+        {'op': 'add', 'path': '/items/-', 'value': 'cherry'},
+        {'op': 'remove', 'path': '/items/0'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {
+        'user': {
+            'profile': {
+                'name': 'John',
+                'age': 31,
+                'city': 'New York'
+            },
+            'settings': {
+                'theme': 'dark'
+            }
+        },
+        'items': ['banana', 'cherry']
+    }
+    
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_empty_store(backend_store):
+    """
+    Test write_partial on an empty store (creates base structure)
+    """
+    # Apply patches to empty store
+    patches = [
+        {'op': 'add', 'path': '/name', 'value': 'John'},
+        {'op': 'add', 'path': '/age', 'value': 30}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {'name': 'John', 'age': 30}
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_user_scope(user_backend_store, mock_ws_mgr):
+    """
+    Test write_partial with user-scoped store
+    """
+    USER.set(USER_1)
+    
+    # Set initial value for user1
+    await user_backend_store.write({'name': 'John', 'age': 30}, notify=False)
+    
+    patches = [
+        {'op': 'replace', 'path': '/age', 'value': 31},
+        {'op': 'add', 'path': '/city', 'value': 'New York'}
+    ]
+    
+    result = await user_backend_store.write_partial(patches)
+    
+    expected = {'name': 'John', 'age': 31, 'city': 'New York'}
+    assert result == expected
+    assert await user_backend_store.read() == expected
+    
+    # Verify patch notification was sent to the correct user
+    mock_ws_mgr.send_message_to_user.assert_called_once_with(
+        USER_1.identity_id,
+        {'store_uid': user_backend_store.uid, 'patches': patches, 'sequence_number': 2},
+        ignore_channel=None
+    )
+
+
+async def test_write_partial_with_full_object(backend_store, mock_ws_mgr):
+    """
+    Test write_partial with full object (automatic diffing mode)
+    """
+    # Set initial value
+    initial_data = {'name': 'John', 'age': 30, 'items': ['apple', 'banana']}
+    await backend_store.write(initial_data, notify=False)
+    
+    # Update with full object
+    updated_data = {'name': 'Jane', 'age': 30, 'items': ['apple', 'banana', 'cherry']}
+    result = await backend_store.write_partial(updated_data)
+    
+    assert result == updated_data
+    assert await backend_store.read() == updated_data
+    
+    # Verify that patches were generated and sent
+    assert mock_ws_mgr.broadcast.called
+    call_args = mock_ws_mgr.broadcast.call_args[0][0]
+    assert 'store_uid' in call_args
+    assert 'patches' in call_args
+    assert call_args['store_uid'] == backend_store.uid
+    
+    # Patches should include name change and item addition
+    patches = call_args['patches']
+    assert len(patches) == 2  # name change + items change
+    
+    # Check that patches contain the expected operations
+    patch_paths = [p['path'] for p in patches]
+    assert '/name' in patch_paths
+    # Items patch might be granular (e.g., /items/2 for adding to specific index)
+    assert any(path.startswith('/items') for path in patch_paths)
+
+async def test_write_partial_detects_mode_correctly(backend_store):
+    """
+    Test that write_partial correctly detects automatic vs manual mode
+    """
+    # Set initial value
+    initial_data = {'name': 'John', 'age': 30}
+    await backend_store.write(initial_data, notify=False)
+    
+    # Test 1: Full object should be detected as automatic mode
+    full_object = {'name': 'Jane', 'age': 31}
+    result1 = await backend_store.write_partial(full_object, notify=False)
+    assert result1 == full_object
+    
+    # Test 2: List of patches should be detected as manual mode
+    patches = [{'op': 'replace', 'path': '/age', 'value': 32}]
+    result2 = await backend_store.write_partial(patches, notify=False)
+    expected = {'name': 'Jane', 'age': 32}
+    assert result2 == expected
+    
+    # Test 3: Empty list should be treated as manual patches (no changes)
+    result3 = await backend_store.write_partial([], notify=False)
+    assert result3 == expected  # No changes
+    
+    # Test 4: List without 'op' field should be treated as full object
+    not_patches = [{'name': 'Bob'}, {'age': 25}]
+    result4 = await backend_store.write_partial(not_patches, notify=False)
+    assert result4 == not_patches
+
+
+async def test_write_partial_full_object_with_empty_store(backend_store):
+    """
+    Test write_partial with full object on empty store
+    """
+    # Store is empty initially
+    
+    # Provide full object
+    new_data = {'name': 'Alice', 'settings': {'theme': 'dark'}}
+    result = await backend_store.write_partial(new_data, notify=False)
+    
+    assert result == new_data
+    assert await backend_store.read() == new_data
+
+
+async def test_write_partial_user_separation(user_backend_store):
+    """
+    Test that write_partial maintains user separation properly
+    """
+    # Set user1 initial data with write_partial
+    USER.set(USER_1)
+    user1_initial = {'name': 'User1', 'score': 100, 'items': ['item1']}
+    await user_backend_store.write_partial(user1_initial, notify=False)
+    
+    # Verify user1 can read their data
+    assert await user_backend_store.read() == user1_initial
+    
+    # User1 makes a partial update
+    user1_updated = {'name': 'User1_Updated', 'score': 150, 'items': ['item1', 'item2']}
+    await user_backend_store.write_partial(user1_updated, notify=False)
+    
+    # Verify user1's update was applied
+    assert await user_backend_store.read() == user1_updated
+    
+    # Switch to user2
+    USER.set(USER_2)
+    
+    # User2 should not see user1's data (should be None initially)
+    assert await user_backend_store.read() is None
+    
+    # User2 creates their own data using write_partial
+    user2_data = {'name': 'User2', 'score': 200, 'category': 'admin'}
+    await user_backend_store.write_partial(user2_data, notify=False)
+    
+    # Verify user2 can read their data
+    assert await user_backend_store.read() == user2_data
+    
+    # User2 makes their own partial update
+    user2_updated = {'name': 'User2_Updated', 'score': 250, 'category': 'super_admin'}
+    await user_backend_store.write_partial(user2_updated, notify=False)
+    
+    # Verify user2's update was applied
+    assert await user_backend_store.read() == user2_updated
+    
+    # Switch back to user1
+    USER.set(USER_1)
+    
+    # CRITICAL CHECK: User1 should still see their updated data, not user2's
+    # This verifies that write_partial operations are properly isolated per user
+    assert await user_backend_store.read() == user1_updated
+    
+    # Verify user1's data was not affected by user2's operations
+    user1_final = await user_backend_store.read()
+    assert user1_final['name'] == 'User1_Updated'
+    assert user1_final['score'] == 150
+    assert user1_final['items'] == ['item1', 'item2']
+    assert 'category' not in user1_final  # User2's field should not appear
+    
+    # Switch back to user2 to double-check
+    USER.set(USER_2)
+    
+    # Verify user2's data was not affected by user1's operations  
+    user2_final = await user_backend_store.read()
+    assert user2_final['name'] == 'User2_Updated'
+    assert user2_final['score'] == 250
+    assert user2_final['category'] == 'super_admin'
+    assert 'items' not in user2_final  # User1's field should not appear
+
+
+async def test_write_partial_readonly_store(backend_store):
+    """
+    Test that write_partial fails on readonly store
+    """
+    backend_store.readonly = True
+    
+    patches = [{'op': 'add', 'path': '/name', 'value': 'John'}]
+    
+    with pytest.raises(ValueError, match='Cannot write to a read-only store'):
+        await backend_store.write_partial(patches)
+
+
+async def test_write_partial_invalid_patches(backend_store):
+    """
+    Test that write_partial handles invalid JSON patches properly
+    """
+    # Set initial value
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    # Invalid patch - trying to replace non-existent path
+    invalid_patches = [{'op': 'replace', 'path': '/nonexistent', 'value': 'value'}]
+    
+    with pytest.raises(ValueError, match='Invalid JSON patch operation'):
+        await backend_store.write_partial(invalid_patches)
+    
+    # Verify original value is unchanged
+    assert await backend_store.read() == {'name': 'John'}
+
+
+async def test_write_partial_no_notify(backend_store, mock_ws_mgr):
+    """
+    Test write_partial with notify=False
+    """
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    patches = [{'op': 'replace', 'path': '/name', 'value': 'Jane'}]
+    
+    result = await backend_store.write_partial(patches, notify=False)
+    
+    assert result == {'name': 'Jane'}
+    assert await backend_store.read() == {'name': 'Jane'}
+    
+    # Should not have sent any notifications
+    mock_ws_mgr.broadcast.assert_not_called()
+    mock_ws_mgr.send_message_to_user.assert_not_called()
+
+
+async def test_write_partial_array_operations(backend_store):
+    """
+    Test write_partial with various array operations
+    """
+    # Set initial array
+    await backend_store.write({'items': ['a', 'b', 'c']}, notify=False)
+    
+    patches = [
+        {'op': 'add', 'path': '/items/1', 'value': 'x'},  # Insert at index 1
+        {'op': 'remove', 'path': '/items/3'},              # Remove item at index 3 (was 'c')
+        {'op': 'add', 'path': '/items/-', 'value': 'end'}, # Append to end
+        {'op': 'replace', 'path': '/items/0', 'value': 'start'} # Replace first item
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {'items': ['start', 'x', 'b', 'end']}
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_copy_and_move_operations(backend_store):
+    """
+    Test write_partial with copy and move operations
+    """
+    initial_data = {
+        'source': {'value': 'test_value'},
+        'items': ['a', 'b', 'c'],
+        'target': {}
+    }
+    await backend_store.write(initial_data, notify=False)
+    
+    patches = [
+        {'op': 'copy', 'from': '/source/value', 'path': '/target/copied_value'},
+        {'op': 'move', 'from': '/items/1', 'path': '/moved_item'}
+    ]
+    
+    result = await backend_store.write_partial(patches)
+    
+    expected = {
+        'source': {'value': 'test_value'},
+        'items': ['a', 'c'],  # 'b' was moved out
+        'target': {'copied_value': 'test_value'},
+        'moved_item': 'b'
+    }
+    
+    assert result == expected
+    assert await backend_store.read() == expected
+
+
+async def test_write_partial_with_ws_channel(backend_store, mock_ws_mgr):
+    """
+    Test that write_partial respects WS_CHANNEL context for ignoring originating channel
+    """
+    await backend_store.write({'name': 'John'}, notify=False)
+    
+    # Set WS channel context
+    WS_CHANNEL.set('test_channel')
+    
+    patches = [{'op': 'replace', 'path': '/name', 'value': 'Jane'}]
+    await backend_store.write_partial(patches)
+    
+    # Should ignore the originating channel
+    mock_ws_mgr.broadcast.assert_called_once_with(
+        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2},
+        ignore_channel='test_channel'
+    )
+    
+    WS_CHANNEL.set(None)
+
+
+async def test_write_partial_non_structured_data(backend_store):
+    """
+    Test that write_partial fails when trying to apply patches to non-structured data
+    """
+    # Set a primitive value (string)
+    await backend_store.write('simple_string', notify=False)
+    
+    patches = [{'op': 'add', 'path': '/new_field', 'value': 'value'}]
+    
+    with pytest.raises(ValueError, match='Cannot apply JSON patches to non-structured data'):
+        await backend_store.write_partial(patches)
+    
+    # Verify original value is unchanged
+    assert await backend_store.read() == 'simple_string'
+    
+    # Test with number
+    await backend_store.write(42, notify=False)
+    
+    with pytest.raises(ValueError, match='Current value is of type int'):
+        await backend_store.write_partial(patches)
+    
+    # Test with boolean
+    await backend_store.write(True, notify=False)
+    
+    with pytest.raises(ValueError, match='Current value is of type bool'):
+        await backend_store.write_partial(patches)
+
+
+async def test_sequence_number_tracking(backend_store):
+    """Test that sequence numbers are properly tracked and incremented"""
+    # Check initial sequence number dict is empty
+    assert backend_store.sequence_number == {}
+    
+    # Write initial data - this will initialize the global key
+    initial_data = {"name": "Alice", "age": 30}
+    await backend_store.write_partial(initial_data, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 1
+    
+    # Make another update
+    patches = [{"op": "replace", "path": "/age", "value": 31}]
+    await backend_store.write_partial(patches, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 2
+    
+    # Make third update using full object (automatic diffing)
+    updated_data = {"name": "Alice Smith", "age": 31}
+    await backend_store.write_partial(updated_data, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 3
+
+
+async def test_sequence_number_in_patch_message(backend_store, mock_ws_mgr):
+    """Test that patch messages include the correct sequence number"""
+    # Set initial data
+    initial_data = {"count": 0}
+    await backend_store.write_partial(initial_data, notify=False)
+    
+    # Reset mock to clear any previous calls
+    mock_ws_mgr.broadcast.reset_mock()
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Make a patch update that should notify
+    patches = [{"op": "replace", "path": "/count", "value": 1}]
+    await backend_store.write_partial(patches, notify=True)
+    
+    # For global scope, check broadcast was called with sequence number
+    if backend_store.scope == 'global':
+        mock_ws_mgr.broadcast.assert_called_once()
+        call_args = mock_ws_mgr.broadcast.call_args[0]
+        message = call_args[0]
+        assert 'sequence_number' in message
+        assert message['sequence_number'] == 2  # Should be 2 (1 from initial write + 1 from patch)
+    
+    # Make another update
+    await backend_store.write_partial([{"op": "replace", "path": "/count", "value": 2}], notify=True)
+    
+    # Check sequence number incremented
+    if backend_store.scope == 'global':
+        assert mock_ws_mgr.broadcast.call_count == 2
+        # Get the second call
+        second_call_args = mock_ws_mgr.broadcast.call_args_list[1][0]
+        second_message = second_call_args[0]
+        assert second_message['sequence_number'] == 3
+
+
+async def test_sequence_number_with_write_no_notify(backend_store):
+    """Test that sequence numbers increment on all writes regardless of notify"""
+    # Write with notify=False should still increment sequence
+    await backend_store.write_partial({"data": "test"}, notify=False)
+    assert backend_store.sequence_number.get('global', 0) == 1
+    
+    # Write with notify=True should increment sequence
+    await backend_store.write_partial({"data": "test2"}, notify=True)
+    assert backend_store.sequence_number.get('global', 0) == 2
+    
+    # Another write with notify=False should still increment
+    await backend_store.write_partial({"data": "test3"}, notify=False)
+    assert backend_store.sequence_number.get('global', 0) == 3
+
+
+async def test_sequence_number_separate_stores():
+    """Test that different stores maintain separate sequence numbers"""
+    store1 = BackendStore(backend=InMemoryBackend())
+    store2 = BackendStore(backend=InMemoryBackend())
+    
+    # Both start empty
+    assert store1.sequence_number == {}
+    assert store2.sequence_number == {}
+    
+    # Update store1
+    await store1.write_partial({"data": "store1"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 1
+    assert store2.sequence_number == {}  # store2 unchanged
+    
+    # Update store2
+    await store2.write_partial({"data": "store2"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 1  # store1 unchanged
+    assert store2.sequence_number.get('global', 0) == 1
+    
+    # Update store1 again
+    await store1.write_partial({"data": "store1_v2"}, notify=True)
+    assert store1.sequence_number.get('global', 0) == 2
+    assert store2.sequence_number.get('global', 0) == 1  # store2 unchanged
+
+
+async def test_sequence_number_per_scope_key_separation():
+    """Test that sequence numbers are tracked separately per scope key (user vs global)"""
+    # Test global scope store
+    global_store = BackendStore(backend=InMemoryBackend(), scope='global')
+    user_store = BackendStore(backend=InMemoryBackend(), scope='user')
+    
+    # Set up users
+    USER.set(USER_1)
+    
+    # Update user store for user1
+    await user_store.write_partial({"data": "user1_data"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 1
+    
+    # Update global store
+    await global_store.write_partial({"data": "global_data"}, notify=True)
+    assert global_store.sequence_number.get('global', 0) == 1
+    
+    # Switch to user2
+    USER.set(USER_2)
+    
+    # Update user store for user2 - should be separate from user1
+    await user_store.write_partial({"data": "user2_data"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 1  # user1 unchanged
+    assert user_store.sequence_number.get(USER_2.identity_id, 0) == 1  # user2 starts at 1
+    
+    # Update global store again
+    await global_store.write_partial({"data": "global_data_2"}, notify=True)
+    assert global_store.sequence_number.get('global', 0) == 2
+    
+    # Switch back to user1 and update again
+    USER.set(USER_1)
+    await user_store.write_partial({"data": "user1_data_2"}, notify=True)
+    assert user_store.sequence_number.get(USER_1.identity_id, 0) == 2  # incremented from 1
+    assert user_store.sequence_number.get(USER_2.identity_id, 0) == 1  # user2 unchanged
+    
+    # Verify that the same store maintains separate sequences per user
+    assert len(user_store.sequence_number) == 2  # Two users
+    assert len(global_store.sequence_number) == 1  # One global key
+
+
+async def test_sequence_number_subscription_notifications(mock_ws_mgr):
+    """Test that sequence numbers are included in subscription notifications"""
+    custom_backend = CustomBackend()
+    store = BackendStore(backend=custom_backend, uid='test_subscription_store', scope='global')
+    
+    # Initialize the store
+    Variable(default={'count': 0}, store=store)
+    await wait_for(lambda: store.read())
+    
+    # Reset mock to clear initialization calls
+    mock_ws_mgr.broadcast.reset_mock()
+    
+    # Trigger external change which should include sequence number
+    await custom_backend.trigger_external_change('global', {'count': 5})
+    
+    # Verify notification was sent with proper message format
+    mock_ws_mgr.broadcast.assert_called_once()
+    call_args = mock_ws_mgr.broadcast.call_args[0]
+    message = call_args[0]
+    
+    assert 'store_uid' in message
+    assert 'value' in message
+    assert 'sequence_number' in message
+    assert message['store_uid'] == store.uid
+    assert message['value'] == {'count': 5}
+    # Since this is external notification, sequence should be current value (0 initially)
+    assert message['sequence_number'] == 0
+
+
+async def test_sequence_number_user_subscription_notifications(mock_ws_mgr):
+    """Test that sequence numbers work correctly with user-scoped subscription notifications"""
+    custom_backend = CustomBackend()
+    store = BackendStore(backend=custom_backend, uid='test_user_subscription_store', scope='user')
+    
+    # Set user context
+    USER.set(USER_1)
+    
+    # Initialize the store
+    Variable(default={'score': 100}, store=store)
+    await wait_for(lambda: store.read())
+    
+    # Reset mock to clear initialization calls
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Make a regular update to increment sequence
+    await store.write_partial({'score': 150}, notify=True)
+    
+    # Reset mock again to focus on external change
+    mock_ws_mgr.send_message_to_user.reset_mock()
+    
+    # Now trigger external change for the same user
+    await custom_backend.trigger_external_change(USER_1.identity_id, {'score': 200})
+    
+    # Verify external notification was sent
+    assert mock_ws_mgr.send_message_to_user.call_count == 1
+    
+    # Check the external trigger message
+    call_args = mock_ws_mgr.send_message_to_user.call_args[0]
+    message = call_args[1]
+    assert 'value' in message
+    assert message['sequence_number'] == 1  # Should use current sequence for this user
