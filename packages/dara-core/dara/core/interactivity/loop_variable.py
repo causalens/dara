@@ -8,7 +8,7 @@ from .non_data_variable import NonDataVariable
 class LoopVariable(NonDataVariable):
     """
     A LoopVariable is a type of variable that represents an item in a list.
-    It should be constructed using a parent Variable's `list_item()` method.
+    It should be constructed using a parent Variable's `.list_item` property.
     It should only be used in conjunction with the `For` component.
 
     By default, the entire value is used as the item and the index in the list is used as the unique key.

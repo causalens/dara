@@ -39,7 +39,7 @@ class For(ComponentInstance):
     # Renders a list of Text component where each item is the corresponding item in the list
     For(
         items=my_list,
-        renderer=Text(text=my_list.list_item())
+        renderer=Text(text=my_list.list_item)
     )
     ```
 
@@ -140,6 +140,7 @@ class For(ComponentInstance):
     :param items: The data source to render the template component for.
     :param renderer: The template component to render for each item in the data source.
     :param key_accessor: The key accessor to use for the data source. If not provided, the key will be the index of the item in the data source.
+    Can be a dotted path to access a nested path in the list item.
     :param virtualization: The virtualization configuration for the component. If provided, the component will be virtualized.
     """
 
