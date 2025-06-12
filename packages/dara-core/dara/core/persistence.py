@@ -18,9 +18,6 @@ from uuid import uuid4
 import aiorwlock
 import anyio
 import jsonpatch
-from dara.core.auth.definitions import USER
-from dara.core.internal.utils import run_user_handler
-from dara.core.logging import dev_logger
 from pydantic import (
     BaseModel,
     Field,
@@ -29,6 +26,10 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+
+from dara.core.auth.definitions import USER
+from dara.core.internal.utils import run_user_handler
+from dara.core.logging import dev_logger
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -111,20 +112,20 @@ class FileBackend(PersistenceBackend):
     path: str
     _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
 
-    @field_validator("path", check_fields=True)
+    @field_validator('path', check_fields=True)
     @classmethod
     def validate_path(cls, value):
-        if not os.path.splitext(value)[1] == ".json":
-            raise ValueError("FileBackend path must be a .json file")
+        if not os.path.splitext(value)[1] == '.json':
+            raise ValueError('FileBackend path must be a .json file')
         return value
 
     async def _read_data(self):
-        async with await anyio.open_file(self.path, "r") as f:
+        async with await anyio.open_file(self.path, 'r') as f:
             content = await f.read()
             return json.loads(content) if content else {}
 
     async def _write_data(self, data: Dict[str, Any]):
-        async with await anyio.open_file(self.path, "w") as f:
+        async with await anyio.open_file(self.path, 'w') as f:
             await f.write(json.dumps(data))
 
     async def has(self, key: str) -> bool:
@@ -169,15 +170,15 @@ class PersistenceStore(BaseModel, abc.ABC):
     # TODO: if need be this can also hold a reference to js impl
 
     @abc.abstractmethod
-    async def init(self, variable: "Variable"):
+    async def init(self, variable: 'Variable'):
         """
         Initialize the store when connecting to a variable
         """
 
-    @model_serializer(mode="wrap")
+    @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         parent_dict = nxt(self)
-        parent_dict["__typename"] = self.__class__.__name__
+        parent_dict['__typename'] = self.__class__.__name__
         return parent_dict
 
 
@@ -194,7 +195,7 @@ class BackendStore(PersistenceStore):
 
     uid: str = Field(default_factory=lambda: str(uuid4()))
     backend: PersistenceBackend = Field(default_factory=InMemoryBackend, exclude=True)
-    scope: Literal["global", "user"] = "global"
+    scope: Literal['global', 'user'] = 'global'
     readonly: bool = False
 
     default_value: Any = Field(default=None, exclude=True)
@@ -221,16 +222,16 @@ class BackendStore(PersistenceStore):
         """
         kwargs: Dict[str, Any] = {}
         if backend:
-            kwargs["backend"] = backend
+            kwargs['backend'] = backend
 
         if uid:
-            kwargs["uid"] = uid
+            kwargs['uid'] = uid
 
         if scope:
-            kwargs["scope"] = scope
+            kwargs['scope'] = scope
 
         if readonly:
-            kwargs["readonly"] = readonly
+            kwargs['readonly'] = readonly
 
         super().__init__(**kwargs)
 
@@ -238,16 +239,14 @@ class BackendStore(PersistenceStore):
         """
         Get the key for this store
         """
-        if self.scope == "global":
-            key = "global"
+        if self.scope == 'global':
+            key = 'global'
 
             # Make sure the store is initialized
-            if "global" not in self.initialized_scopes:
-                self.initialized_scopes.add("global")
+            if 'global' not in self.initialized_scopes:
+                self.initialized_scopes.add('global')
                 if not await run_user_handler(self.backend.has, args=(key,)):
-                    await run_user_handler(
-                        self.backend.write, (key, self.default_value)
-                    )
+                    await run_user_handler(self.backend.write, (key, self.default_value))
                     # Initialize sequence number for this key
                     self.sequence_number[key] = 0
 
@@ -262,24 +261,20 @@ class BackendStore(PersistenceStore):
             if user_key not in self.initialized_scopes:
                 self.initialized_scopes.add(user_key)
                 if not await run_user_handler(self.backend.has, args=(user_key,)):
-                    await run_user_handler(
-                        self.backend.write, (user_key, self.default_value)
-                    )
+                    await run_user_handler(self.backend.write, (user_key, self.default_value))
                     # Initialize sequence number for this key
                     self.sequence_number[user_key] = 0
 
             return user_key
 
-        raise ValueError(
-            "User not found when trying to compute the key for a user-scoped store"
-        )
+        raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
     def _get_user(self, key: str) -> Optional[str]:
         """
         Get the user for a given key. Returns None if the key is global.
         Reverts the `_get_key` method to get the user for a given key.
         """
-        if key == "global":
+        if key == 'global':
             return None
 
         # otherwise key is a user identity_id or identity_name
@@ -304,16 +299,14 @@ class BackendStore(PersistenceStore):
             )
             return True
         except ValueError:
-            dev_logger.info(
-                f'BackendStore with uid "{self.uid}" already exists, reusing the same instance'
-            )
+            dev_logger.info(f'BackendStore with uid "{self.uid}" already exists, reusing the same instance')
             return False
 
     @property
-    def ws_mgr(self) -> "WebsocketManager":
+    def ws_mgr(self) -> 'WebsocketManager':
         from dara.core.internal.registries import utils_registry
 
-        return utils_registry.get("WebsocketManager")
+        return utils_registry.get('WebsocketManager')
 
     def _create_msg(self, scope_key: str, **payload) -> Dict[str, Any]:
         """
@@ -325,8 +318,8 @@ class BackendStore(PersistenceStore):
             raise ValueError("Exactly one of 'value' or 'patches' must be provided")
 
         return {
-            "store_uid": self.uid,
-            "sequence_number": self.sequence_number.get(scope_key, 0),
+            'store_uid': self.uid,
+            'sequence_number': self.sequence_number.get(scope_key, 0),
             **payload,
         }
 
@@ -340,9 +333,7 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(
-        self, user_identifier: str, ignore_channel: Optional[str] = None, **payload
-    ):
+    async def _notify_user(self, user_identifier: str, ignore_channel: Optional[str] = None, **payload):
         """
         Notify a given user about updates to this store.
         :param user_identifier: user to notify
@@ -362,7 +353,7 @@ class BackendStore(PersistenceStore):
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.broadcast(
-            self._create_msg("global", **payload),
+            self._create_msg('global', **payload),
             ignore_channel=ignore_channel,
         )
 
@@ -374,7 +365,7 @@ class BackendStore(PersistenceStore):
         :param value: value to notify about
         :param ignore_channel: if passed, ignore the specified channel when broadcasting
         """
-        if self.scope == "global":
+        if self.scope == 'global':
             return await self._notify_global(value=value, ignore_channel=ignore_channel)
 
         # For user scope, we need to find channels for the user and notify them
@@ -384,9 +375,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await self._notify_user(
-            user_identifier, value=value, ignore_channel=ignore_channel
-        )
+        return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
 
     async def _notify_patches(self, patches: List[Dict[str, Any]]):
         """
@@ -395,7 +384,7 @@ class BackendStore(PersistenceStore):
 
         :param patches: list of JSON patch operations
         """
-        if self.scope == "global":
+        if self.scope == 'global':
             return await self._notify_global(patches=patches)
 
         # For user scope, we need to find channels for the user and notify them
@@ -407,7 +396,7 @@ class BackendStore(PersistenceStore):
         user_identifier = user.identity_id or user.identity_name
         return await self._notify_user(user_identifier, patches=patches)
 
-    async def init(self, variable: "Variable"):
+    async def init(self, variable: 'Variable'):
         """
         Write the default value to the store if it's not set
 
@@ -426,9 +415,7 @@ class BackendStore(PersistenceStore):
 
             await self.backend.subscribe(_on_value)
 
-    async def write_partial(
-        self, data: Union[List[Dict[str, Any]], Any], notify: bool = True
-    ):
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
         """
         Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
@@ -439,7 +426,7 @@ class BackendStore(PersistenceStore):
         :param notify: whether to broadcast the patches to clients
         """
         if self.readonly:
-            raise ValueError("Cannot write to a read-only store")
+            raise ValueError('Cannot write to a read-only store')
 
         key = await self._get_key()
 
@@ -451,24 +438,22 @@ class BackendStore(PersistenceStore):
             current_value = {}
 
         # Determine if data is patches or a full object
-        if isinstance(data, list) and all(
-            isinstance(item, dict) and "op" in item for item in data
-        ):
+        if isinstance(data, list) and all(isinstance(item, dict) and 'op' in item for item in data):
             # Data is a list of patch operations
             patches = data
 
             if not isinstance(current_value, (dict, list)):
                 # JSON patches can only be applied to structured data (objects/arrays)
                 raise ValueError(
-                    f"Cannot apply JSON patches to non-structured data. "
-                    f"Current value is of type {type(current_value).__name__}, but patches require dict or list."
+                    f'Cannot apply JSON patches to non-structured data. '
+                    f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
                 )
 
             # Apply patches to current value
             try:
                 updated_value = jsonpatch.apply_patch(current_value, patches)
             except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
-                raise ValueError(f"Invalid JSON patch operation: {e}") from e
+                raise ValueError(f'Invalid JSON patch operation: {e}') from e
         else:
             # Data is a full object - generate patches by diffing
             patches = jsonpatch.make_patch(current_value, data).patch
@@ -485,9 +470,7 @@ class BackendStore(PersistenceStore):
 
         return updated_value
 
-    async def write(
-        self, value: Any, notify=True, ignore_channel: Optional[str] = None
-    ):
+    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
         """
         Persist a value to the store.
 
@@ -499,7 +482,7 @@ class BackendStore(PersistenceStore):
         :param ignore_channel: if passed, ignore the specified websocket channel when broadcasting
         """
         if self.readonly:
-            raise ValueError("Cannot write to a read-only store")
+            raise ValueError('Cannot write to a read-only store')
 
         key = await self._get_key()
 
@@ -535,7 +518,7 @@ class BackendStore(PersistenceStore):
         :param notify: whether to broadcast that the value was deleted to clients
         """
         if self.readonly:
-            raise ValueError("Cannot delete from a read-only store")
+            raise ValueError('Cannot delete from a read-only store')
 
         key = await self._get_key()
         if notify:
