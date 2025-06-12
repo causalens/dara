@@ -31,6 +31,46 @@ describe('DynamicComponent', () => {
         expect(container.firstChild).toBeInstanceOf(HTMLDivElement);
     });
 
+    it('should update content when "component" prop changes', async () => {
+        const initialComponent = {
+            name: 'TestPropsComponent',
+            props: {
+                foo: 'bar',
+            },
+            uid: 'uid',
+        };
+        const { getByTestId, rerender } = wrappedRender(
+            <div data-testid="wrapper">
+                <DynamicComponent component={initialComponent} />
+            </div>
+        );
+        await waitFor(() =>
+            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual(
+                {...initialComponent.props, uid: initialComponent.uid}
+            )
+        );
+
+        const newComponent = {
+            name: 'TestPropsComponent',
+            props: {
+                children: 'new content',
+            },
+            uid: 'uid',
+        };
+
+        rerender(
+            <div data-testid="wrapper">
+                <DynamicComponent component={newComponent} />
+            </div>
+        );
+
+        await waitFor(() =>
+            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual(
+                { ...newComponent.props, uid: newComponent.uid }
+            )
+        );
+    });
+
     it('should inherit suspend_render setting', async () => {
         function Harness(): JSX.Element {
             const fallback = React.useContext(FallbackCtx);

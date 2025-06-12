@@ -52,7 +52,11 @@ const importers = {
             TriggerVariable,
             UpdateVariable,
         }),
-    test: () => Promise.resolve({ TestComponent: 'div' }),
+    test: () =>
+        Promise.resolve({
+            TestComponent: 'div',
+            TestPropsComponent: (props: any) => <div>{JSON.stringify(props)}</div>,
+        }),
 };
 
 const wsClient = new MockWebSocketClient('uid');

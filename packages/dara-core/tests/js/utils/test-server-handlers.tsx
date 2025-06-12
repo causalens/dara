@@ -22,6 +22,12 @@ const mockComponents: Record<string, JsComponent | PyComponent> = {
         py_module: 'test',
         type: ComponentType.JS,
     },
+    TestPropsComponent: {
+        js_module: '@test',
+        name: 'TestPropsComponent',
+        py_module: 'test',
+        type: ComponentType.JS,
+    },
     TestComponent2: {
         name: 'TestComponent2',
         type: ComponentType.PY,
