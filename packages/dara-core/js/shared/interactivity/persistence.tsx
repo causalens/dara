@@ -55,6 +55,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
         const { value, sequence_number } = await response.json();
 
+        STORE_LATEST_VALUE_MAP.set(itemKey, value);
         STORE_SEQUENCE_MAP.set(itemKey, sequence_number);
 
         return value;

@@ -501,7 +501,7 @@ def create_router(config: Configuration):
         async def _write(store_uid: str, value: Any):
             WS_CHANNEL.set(ws_channel)
             store_entry: BackendStoreEntry = await registry_mgr.get(backend_store_registry, store_uid)
-            result = store_entry.store.write(value)
+            result = store_entry.store.write(value, ignore_channel=ws_channel)
 
             # Backend implementation could return a coroutine
             if inspect.iscoroutine(result):

@@ -6,18 +6,16 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 from anyio import sleep
-from fastapi.encoders import jsonable_encoder
-from pydantic import Field, ValidationError
-
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.websocket import WS_CHANNEL
 from dara.core.persistence import (
     BackendStore,
     FileBackend,
     InMemoryBackend,
     PersistenceBackend,
 )
+from fastapi.encoders import jsonable_encoder
+from pydantic import Field, ValidationError
 
 from tests.python.utils import wait_for
 
@@ -201,9 +199,8 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         any_order=True,
     )
 
-    # test that if we're under a WS_CHANNEL scope, we don't notify the same originating channel
-    WS_CHANNEL.set('channel3')
-    await user_backend_store.write('test_value_3', notify=True)
+    # test that when an ignore_channel is provided, we don't notify it
+    await user_backend_store.write('test_value_3', notify=True, ignore_channel='channel3')
     assert mock_ws_mgr.send_message_to_user.call_count == 3
     mock_ws_mgr.send_message_to_user.assert_has_calls(
         [
@@ -843,25 +840,6 @@ async def test_write_partial_copy_and_move_operations(backend_store):
     assert await backend_store.read() == expected
 
 
-async def test_write_partial_with_ws_channel(backend_store, mock_ws_mgr):
-    """
-    Test that write_partial respects WS_CHANNEL context for ignoring originating channel
-    """
-    await backend_store.write({'name': 'John'}, notify=False)
-    
-    # Set WS channel context
-    WS_CHANNEL.set('test_channel')
-    
-    patches = [{'op': 'replace', 'path': '/name', 'value': 'Jane'}]
-    await backend_store.write_partial(patches)
-    
-    # Should ignore the originating channel
-    mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2},
-        ignore_channel='test_channel'
-    )
-    
-    WS_CHANNEL.set(None)
 
 
 async def test_write_partial_non_structured_data(backend_store):

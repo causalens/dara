@@ -7,7 +7,7 @@ deps-project:
 
 # Preprocess resources required to test or build packages
 prepare:
-	lerna run build
+	pnpm lerna run build
 
 # Install any deps and prepare any docs that need to be built without requiring all modules to be installed
 prepare-docs:
@@ -16,13 +16,13 @@ prepare-docs:
 
 # Run lint / static testing
 lint:
-	poetry anthology run lint && lerna run lint
+	poetry anthology run lint && pnpm lerna run lint
 
 format:
-	poetry anthology run format && lerna run format
+	poetry anthology run format && pnpm lerna run format
 
 format-check:
-	poetry anthology run format-check && lerna run format:check
+	poetry anthology run format-check && pnpm lerna run format:check
 
 # Run security scan
 security-scan:
@@ -58,7 +58,7 @@ link:
 
 # Run tests
 test:
-	poetry anthology run test && lerna run test
+	poetry anthology run test && pnpm lerna run test
 
 # Version all the main packages in lockstep as a patch - run pnpm i and lock to update the lockfiles accordingly
 version-patch:
@@ -85,7 +85,7 @@ publish:
 
 	echo "//registry.npmjs.org/:_authToken=$${NPMJS_TOKEN}" >> .npmrc
 	git update-index --assume-unchanged .npmrc
-	lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
+	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
 	sed -i '$$ d' .npmrc
 
 publish-docs:

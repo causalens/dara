@@ -29,7 +29,6 @@ from pydantic import (
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
-from dara.core.internal.websocket import WS_CHANNEL
 from dara.core.logging import dev_logger
 
 if TYPE_CHECKING:
@@ -318,7 +317,11 @@ class BackendStore(PersistenceStore):
         if not payload or len(payload) != 1:
             raise ValueError("Exactly one of 'value' or 'patches' must be provided")
 
-        return {'store_uid': self.uid, 'sequence_number': self.sequence_number.get(scope_key, 0), **payload}
+        return {
+            'store_uid': self.uid,
+            'sequence_number': self.sequence_number.get(scope_key, 0),
+            **payload,
+        }
 
     def _get_next_sequence_number(self, key: str) -> int:
         """
@@ -330,39 +333,40 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(self, user_identifier: str, ignore_current_channel: bool = True, **payload):
+    async def _notify_user(self, user_identifier: str, ignore_channel: Optional[str] = None, **payload):
         """
         Notify a given user about updates to this store.
         :param user_identifier: user to notify
-        :param ignore_current_channel: if True, ignore the current websocket channel
+        :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
             self._create_msg(user_identifier, **payload),
-            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
+            ignore_channel=ignore_channel,
         )
 
-    async def _notify_global(self, ignore_current_channel: bool = True, **payload):
+    async def _notify_global(self, ignore_channel: Optional[str] = None, **payload):
         """
         Notify all users about updates to this store.
-        :param ignore_current_channel: if True, ignore the current websocket channel
+        :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.broadcast(
             self._create_msg('global', **payload),
-            ignore_channel=WS_CHANNEL.get() if ignore_current_channel else None,
+            ignore_channel=ignore_channel,
         )
 
-    async def _notify_value(self, value: Any):
+    async def _notify_value(self, value: Any, ignore_channel: Optional[str] = None):
         """
         Notify all clients about the new value for this store.
         Broadcasts to all users if scope is global or sends to the current user if scope is user.
 
         :param value: value to notify about
+        :param ignore_channel: if passed, ignore the specified channel when broadcasting
         """
         if self.scope == 'global':
-            return await self._notify_global(value=value)
+            return await self._notify_global(value=value, ignore_channel=ignore_channel)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -371,7 +375,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id or user.identity_name
-        return await self._notify_user(user_identifier, value=value)
+        return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
 
     async def _notify_patches(self, patches: List[Dict[str, Any]]):
         """
@@ -406,8 +410,8 @@ class BackendStore(PersistenceStore):
             async def _on_value(key: str, value: Any):
                 # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
                 if user := self._get_user(key):
-                    return await self._notify_user(user, ignore_current_channel=False, value=value)
-                return await self._notify_global(ignore_current_channel=False, value=value)
+                    return await self._notify_user(user, value=value)
+                return await self._notify_global(value=value)
 
             await self.backend.subscribe(_on_value)
 
@@ -466,7 +470,7 @@ class BackendStore(PersistenceStore):
 
         return updated_value
 
-    async def write(self, value: Any, notify=True):
+    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
         """
         Persist a value to the store.
 
@@ -475,6 +479,7 @@ class BackendStore(PersistenceStore):
 
         :param value: value to write
         :param notify: whether to broadcast the new value to clients
+        :param ignore_channel: if passed, ignore the specified websocket channel when broadcasting
         """
         if self.readonly:
             raise ValueError('Cannot write to a read-only store')
@@ -486,7 +491,7 @@ class BackendStore(PersistenceStore):
         self._get_next_sequence_number(key)
 
         if notify:
-            await self._notify_value(value)
+            await self._notify_value(value, ignore_channel=ignore_channel)
 
         return res
 
