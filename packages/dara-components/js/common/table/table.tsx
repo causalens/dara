@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { formatISO } from 'date-fns';
-import { isArray, mapKeys } from 'lodash';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import mapKeys from 'lodash/mapKeys';
 import { ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -365,7 +365,7 @@ function Table(props: TableProps): JSX.Element {
 
     const [columnsProp] = useVariable(props.columns);
     const [resolvedColumns, setResolvedColumns] = useState<ColumnProps[]>(() =>
-        isArray(columnsProp) ? getColumnProps(columnsProp) : null
+        Array.isArray(columnsProp) ? getColumnProps(columnsProp) : null
     );
 
     // Resolve columns from data

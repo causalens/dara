@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
 import {

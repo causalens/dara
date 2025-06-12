@@ -156,6 +156,30 @@ describe('useVariable', () => {
             expect(result.current[0]).toBe('test_noop');
         });
 
+        it('should track primitive values and update when the input changes', () => {
+            const { result, rerender } = renderHook((props: { value: string }) => useVariable<string>(props.value), {
+                wrapper: Wrapper,
+                initialProps: { value: 'test' },
+            });
+            expect(result.current[0]).toBe('test');
+            expect(result.current[1]).toBeInstanceOf(Function);
+
+            // Change it from the outside
+            rerender({ value: 'test2' });
+            expect(result.current[0]).toBe('test2');
+
+            // change it from the inside
+            act(() => {
+                result.current[1]('test_noop');
+            });
+            expect(result.current[0]).toBe('test_noop');
+
+            // Change it from the outside again
+            rerender({ value: 'test3' });
+
+            expect(result.current[0]).toBe('test3');
+        });
+
         it('should resolve nested values for Variables', () => {
             const baseNestedVariable = {
                 __typename: 'Variable',

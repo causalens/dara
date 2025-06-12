@@ -1,5 +1,5 @@
 import { GetPropsCommonOptions, UseComboboxGetItemPropsOptions, UseComboboxGetMenuPropsOptions } from 'downshift';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import React from 'react';
 
 import styled from '@darajs/styled-components';

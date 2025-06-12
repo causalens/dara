@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CurriedFunction2 } from 'lodash';
+import { type CurriedFunction2 } from 'lodash';
 import curry from 'lodash/curry';
 import React, { useContext } from 'react';
 

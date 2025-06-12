@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { Meta } from '@storybook/react';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { useCallback, useMemo, useState } from 'react';
 
 import { Item } from '../types';

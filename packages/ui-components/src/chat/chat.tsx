@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { nanoid } from 'nanoid';
 import * as React from 'react';
 

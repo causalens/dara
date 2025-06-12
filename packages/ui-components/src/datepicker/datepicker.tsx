@@ -18,7 +18,7 @@
 import { format, parse } from 'date-fns';
 // eslint-disable-next-line import/no-duplicates
 import enGB from 'date-fns/locale/en-GB';
-import { range } from 'lodash';
+import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDatePicker, { ReactDatePickerProps } from 'react-datepicker';

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isArray } from 'lodash';
 import clone from 'lodash/cloneDeep';
 import { DropShadowFilter } from 'pixi-filters';
 import type { Viewport } from 'pixi-viewport';
@@ -391,13 +390,15 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         }
 
         // Create filter the first time
-        if (!edgeGfx.filters || (isArray(edgeGfx.filters) && edgeGfx.filters.length === 0)) {
+        if (!edgeGfx.filters || (Array.isArray(edgeGfx.filters) && edgeGfx.filters.length === 0)) {
             const shadowFilter = new DropShadowFilter({ blur: 3, offset: { x: 0, y: 0 } });
             [shadowFilter.color, shadowFilter.alpha] = colorToPixi('rgba(0, 0, 0, 0.5)');
             edgeGfx.filters = [shadowFilter];
         }
         const dropShadow =
-            isArray(edgeGfx.filters) ? (edgeGfx.filters[0] as DropShadowFilter) : (edgeGfx.filters as DropShadowFilter);
+            Array.isArray(edgeGfx.filters) ?
+                (edgeGfx.filters[0] as DropShadowFilter)
+            :   (edgeGfx.filters as DropShadowFilter);
 
         // Only show at high zoom and when hovered
         dropShadow.enabled = state.hover && zoomState.shadow;

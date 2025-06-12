@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import { type Dispatch, type SetStateAction, useContext, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
@@ -45,8 +46,22 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     const variablesContext = useContext(VariableCtx);
     const bus = useEventBus();
 
+    // if it's a primitive, use it as a piece of state
     if (!isVariable(variable)) {
-        return useState(variable);
+        const [state, setState] = useState(variable);
+
+        // Keep track of the last passed through primitive value
+        // When it changes, adjust the state to the new value
+        const [prevVariable, setPrevVariable] = useState(variable);
+
+        // uses lodash just to be sure, most cases the reference check will short circuit this
+        // but for objects/arrays we want to check the actual value
+        if (!isEqual(variable, prevVariable)) {
+            setState(variable);
+            setPrevVariable(variable);
+        }
+
+        return [state, setState];
     }
 
     // Synchronously register variable subscription, and clean it up on unmount
