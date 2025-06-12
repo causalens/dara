@@ -8,7 +8,6 @@ import pytest
 from anyio import sleep
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
-from dara.core.internal.websocket import WS_CHANNEL
 from dara.core.persistence import (
     BackendStore,
     FileBackend,
@@ -200,8 +199,7 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         any_order=True,
     )
 
-    # test that if we're under a WS_CHANNEL scope, we don't notify the same originating channel
-    WS_CHANNEL.set('channel3')
+    # test that when an ignore_channel is provided, we don't notify it
     await user_backend_store.write('test_value_3', notify=True, ignore_channel='channel3')
     assert mock_ws_mgr.send_message_to_user.call_count == 3
     mock_ws_mgr.send_message_to_user.assert_has_calls(
