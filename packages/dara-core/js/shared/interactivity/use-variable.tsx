@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import { type Dispatch, type SetStateAction, useContext, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
@@ -53,7 +54,9 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         // When it changes, adjust the state to the new value
         const [prevVariable, setPrevVariable] = useState(variable);
 
-        if (variable !== prevVariable) {
+        // uses lodash just to be sure, most cases the reference check will short circuit this
+        // but for objects/arrays we want to check the actual value
+        if (!isEqual(variable, prevVariable)) {
             setState(variable);
             setPrevVariable(variable);
         }
