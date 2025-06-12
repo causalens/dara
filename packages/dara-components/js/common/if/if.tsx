@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useMemo } from 'react';
 
 import {
@@ -68,7 +67,7 @@ function If(props: IfProps): JSX.Element {
     );
     const children = useMemo(() => {
         return conditionResult ? props.true_children : props.false_children;
-    }, [conditionResult]);
+    }, [conditionResult, props.false_children, props.true_children]);
 
     return (
         <>
