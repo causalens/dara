@@ -22,7 +22,7 @@ format:
 	poetry anthology run format && pnpm lerna run format
 
 format-check:
-	poetry anthology run format-check && pnpmlerna run format:check
+	poetry anthology run format-check && pnpm lerna run format:check
 
 # Run security scan
 security-scan:
