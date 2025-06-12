@@ -2,36 +2,43 @@
 import { isEqual } from 'lodash';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
-import { GetRecoilValue, RecoilValue, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
+import {
+    type GetRecoilValue,
+    type RecoilValue,
+    isRecoilValue,
+    selectorFamily,
+    useRecoilValue,
+    useSetRecoilState,
+} from 'recoil';
 import { BehaviorSubject, Observable, from } from 'rxjs';
 import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
-import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
 import {
-    AnyVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    GlobalTaskContext,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type GlobalTaskContext,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
 import {
-    TriggerIndexValue,
+    type TriggerIndexValue,
     depsRegistry,
     getRegistryKey,
     selectorFamilyMembersRegistry,
@@ -144,7 +151,7 @@ export async function fetchDerivedVariable<T>({
  * promise based and async
  */
 const debouncedFetchSubjects: {
-    [k: string]: BehaviorSubject<FetchDerivedVariableArgs>;
+    [k: string]: BehaviorSubject<FetchDerivedVariableArgs | null>;
 } = {};
 const debouncedFetchCache: {
     [k: string]: Observable<any>;
@@ -162,7 +169,7 @@ async function debouncedFetchDerivedVariable({
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     // If this is the first time this is called then set up a subject and return stream for this selector
     if (!debouncedFetchSubjects[selectorKey]) {
-        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs>(null);
+        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs | null>(null);
         debouncedFetchCache[selectorKey] = debouncedFetchSubjects[selectorKey].pipe(
             filter((args) => !!args),
             debounceTime(10),
@@ -185,7 +192,7 @@ async function debouncedFetchDerivedVariable({
 
     // Return the debounced response from the backend
     return new Promise((resolve, reject) => {
-        debouncedFetchCache[selectorKey].pipe(take(1)).subscribe(resolve, reject);
+        debouncedFetchCache[selectorKey]!.pipe(take(1)).subscribe(resolve, reject);
     });
 }
 
@@ -211,7 +218,11 @@ export function resolveValue(
         return value;
     }
 
-    return getter(value);
+    if (isRecoilValue(value)) {
+        return getter(value);
+    }
+
+    return value;
 }
 
 /**
@@ -254,7 +265,7 @@ interface PreviousResult {
      */
     entry: {
         args: any[];
-        cacheKey: string;
+        cacheKey: string | null;
         result: any;
     };
     type: 'previous';
@@ -304,8 +315,8 @@ type DerivedResult = PreviousResult | CurrentResult;
  */
 export async function resolveDerivedValue(
     key: string,
-    variables: AnyVariable<any>[],
-    deps: AnyVariable<any>[],
+    variables: any[], // variable or primitive
+    deps: any[], // variable or primitive
     resolvedVariables: any[],
     wsClient: WebSocketClientInterface,
     get: GetRecoilValue,
@@ -320,6 +331,7 @@ export async function resolveDerivedValue(
 
     /**
      * Array of values:
+     * - primitive values are resolved to themselves
      * - simple variables are resolved to their values
      * - derived variables are resolved to ResolvedDerivedVariable objects with nested values/deps resolved to values
      * - ResolvedDataVariable objects are left as is
@@ -341,10 +353,13 @@ export async function resolveDerivedValue(
      * `nested` is used to generate a key so that the same variable with different nested property will be
      * present in the map separately.
      */
-    const variableValueMap = variables.reduce(
-        (acc, v, idx) => acc.set(getUniqueIdentifier(v), depsValues[idx]),
-        new Map<string, any>()
-    );
+    const variableValueMap = variables.reduce((acc, v, idx) => {
+        // skip non-variables
+        if (!isVariable(v)) {
+            return acc;
+        }
+        return acc.set(getUniqueIdentifier(v), depsValues[idx]);
+    }, new Map<string, any>());
 
     let recalculateForced = false; // whether the recalculation was forced or not (by calling trigger with force=true)
     let wasTriggered = false; // whether a trigger caused the selector execution
@@ -357,6 +372,7 @@ export async function resolveDerivedValue(
 
     // Get relevant values based on deps
     const relevantValues = deps
+        .filter(isVariable)
         .map((dep) => variableValueMap.get(getUniqueIdentifier(dep)))
         .concat(triggers.map((trigger) => trigger.inc)); // Append triggerValues to make triggers force a recalc even when deps didn't change
 
@@ -447,9 +463,14 @@ export function getOrRegisterDerivedVariable(
                          * and deps resolved to array of indexes of variables (or null if not set)
                          * For data variables, put ResolvedDataVariable object.
                          */
-                        const resolvedVariables = variable.variables.map((v) =>
-                            resolveVariable(v, wsClient, taskContext, currentExtras)
-                        );
+                        const resolvedVariables = variable.variables.map((v) => {
+                            // Handle non-variables - plain values could be injected via LoopVariable
+                            if (!isVariable(v)) {
+                                return v;
+                            }
+
+                            return resolveVariable(v, wsClient, taskContext, currentExtras);
+                        });
 
                         const selfTrigger = get(getOrRegisterTrigger(variable));
                         const { extras } = extrasSerializable;
@@ -486,10 +507,10 @@ export function getOrRegisterDerivedVariable(
                                 variableUid: variable.uid,
                                 wsClient,
                             });
-                        } catch (e) {
+                        } catch (e: unknown) {
                             // On DV error put selectorId and extras into the error so the boundary can reset the selector cache
-                            e.selectorId = key;
-                            e.selectorExtras = extrasSerializable.toJSON();
+                            (e as any).selectorId = key;
+                            (e as any).selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -527,8 +548,8 @@ export function getOrRegisterDerivedVariable(
                                     variableValue = await fetchTaskResult<any>(taskId, extras);
                                 } catch (e) {
                                     // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
-                                    e.selectorId = key;
-                                    e.selectorExtras = extrasSerializable.toJSON();
+                                    (e as any).selectorId = key;
+                                    (e as any).selectorExtras = extrasSerializable.toJSON();
                                     throw e;
                                 }
                             } else {
@@ -558,7 +579,7 @@ export function getOrRegisterDerivedVariable(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -571,7 +592,7 @@ export function getOrRegisterDerivedVariable(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -616,7 +637,7 @@ export function getOrRegisterDerivedVariableValue(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -629,7 +650,7 @@ export function getOrRegisterDerivedVariableValue(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }

@@ -1,13 +1,18 @@
+import { isObject } from 'lodash';
+
 import {
-    ActionImpl,
-    AnyVariable,
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
-    UrlVariable,
+    type ActionImpl,
+    type AnnotatedAction,
+    type AnyVariable,
+    type ComponentInstance,
+    type DataVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type LoopVariable,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
+    type UrlVariable,
 } from './core';
 
 /**
@@ -62,6 +67,21 @@ export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable
 }
 
 /**
+ * Check if a value is a loop variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isLoopVariable(variable: any): variable is LoopVariable {
+    return (
+        variable &&
+        typeof variable == 'object' &&
+        variable.hasOwnProperty('uid') &&
+        variable.hasOwnProperty('__typename') &&
+        variable.__typename === 'LoopVariable'
+    );
+}
+
+/**
  * Check if a value is a ResolvedDerivedVariable
  *
  * @param value value to check
@@ -113,10 +133,21 @@ export function isResolvedDerivedDataVariable(
 }
 
 /**
- * Check f a value is an ActionImpl
+ * Check if a value is an ActionImpl
  *
  * @param action value to check
  */
 export function isActionImpl(action: any): action is ActionImpl {
     return action && typeof action === 'object' && action.__typename === 'ActionImpl';
 }
+
+export function isAnnotatedAction(action: any): action is AnnotatedAction {
+    return action && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
+}
+
+export const isPyComponent = (value: unknown): value is ComponentInstance =>
+    isObject(value) &&
+    'props' in value &&
+    isObject(value.props) &&
+    'func_name' in value.props &&
+    'dynamic_kwargs' in value.props;

@@ -161,7 +161,7 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
     if check_root and _is_referrable(obj):
         identifier = _get_identifier(obj)
         # Don't check root again otherwise we end up in an infinite loop, we know it's referrable
-        _normalized, _lookup = normalize(obj, False)
+        _normalized, _lookup = normalize(obj, check_root=False)
         lookup[identifier] = _normalized
         lookup.update(_lookup)
         output = Placeholder(__ref=identifier)

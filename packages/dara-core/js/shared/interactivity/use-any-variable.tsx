@@ -4,7 +4,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { AnyDataVariable, AnyVariable, DataFrame, isDataVariable, isDerivedDataVariable } from '@/types';
+import { type AnyDataVariable, type AnyVariable, type DataFrame, isDataVariable, isDerivedDataVariable } from '@/types';
 
 import { useDataVariable } from './use-data-variable';
 import { useVariable } from './use-variable';
@@ -13,9 +13,9 @@ import { useVariable } from './use-variable';
  * A helper hook to retrieve value of any variable.
  * For the rare occassions where a component can accept both a DataVariable and a non-DataVariable.
  */
-export function useAnyVariable(variable: AnyDataVariable): DataFrame;
+export function useAnyVariable(variable: AnyDataVariable): DataFrame | undefined;
 export function useAnyVariable<T = any>(variable: AnyVariable<T>): T;
-export function useAnyVariable<T = any>(variable: AnyVariable<T>): DataFrame | T {
+export function useAnyVariable<T = any>(variable: AnyVariable<T>): DataFrame | T | undefined {
     if (isDataVariable(variable) || isDerivedDataVariable(variable)) {
         const getData = useDataVariable(variable);
 
@@ -36,7 +36,7 @@ export function useAnyVariable<T = any>(variable: AnyVariable<T>): DataFrame | T
             refetch();
         }, [getData]);
 
-        return data;
+        return data ?? undefined;
     }
 
     return useVariable(variable)[0];

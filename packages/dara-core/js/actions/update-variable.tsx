@@ -1,6 +1,6 @@
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
-import { ActionHandler, UpdateVariableImpl } from '@/types/core';
+import { type ActionHandler, type UpdateVariableImpl } from '@/types/core';
 
 /**
  * Constant to replace with the input value.

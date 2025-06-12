@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { Redirect } from 'react-router-dom';
 
 import { resolveReferrer } from '@/auth/auth';
@@ -7,7 +7,7 @@ import { useSessionToken } from '@/auth/use-session-token';
 import DefaultFallback from '@/components/fallback/default';
 import useAction, { useActionIsLoading } from '@/shared/utils/use-action';
 import useWindowTitle from '@/shared/utils/use-window-title';
-import { Action } from '@/types';
+import { type Action } from '@/types';
 
 interface PrivateRouteProps {
     /** The children to wrap */

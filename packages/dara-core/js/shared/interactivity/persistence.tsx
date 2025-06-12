@@ -1,17 +1,17 @@
 import { mixed } from '@recoiljs/refine';
 import { applyPatch } from 'fast-json-patch';
 import * as React from 'react';
-import { AtomEffect, DefaultValue, RecoilState, useRecoilCallback } from 'recoil';
-import { ListenToItems, ReadItem, RecoilSync, WriteItems, syncEffect } from 'recoil-sync';
+import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
+import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { BackendStorePatchMessage, WebSocketClientInterface, handleAuthErrors } from '@/api';
+import { type BackendStorePatchMessage, type WebSocketClientInterface, handleAuthErrors } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
-import { GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
-import { BackendStore, DerivedVariable, PersistenceStore } from '@/types/core';
+import { type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
+import { type BackendStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
@@ -34,7 +34,7 @@ const STORE_VARIABLE_MAP = new Map<string, Set<string>>();
 const STORE_SEQUENCE_MAP = new Map<string, number>();
 
 /**
- * Global map to track the latest value for each store, to prevent cyclic updates
+ * Global map to track the latest read value for each store, to prevent cyclic updates
  */
 const STORE_LATEST_VALUE_MAP = new Map<string, any>();
 
@@ -49,8 +49,8 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     const { client } = React.useContext(WebSocketCtx);
 
     const getStoreValue = React.useCallback<ReadItem>(async (itemKey) => {
-        const serializableExtras = STORE_EXTRAS_MAP.get(itemKey);
-        const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras.extras);
+        const serializableExtras = STORE_EXTRAS_MAP.get(itemKey)!;
+        const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras?.extras ?? {});
         await handleAuthErrors(response, true);
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
         const { value, sequence_number } = await response.json();
@@ -73,14 +73,14 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 .forEach(([itemKey, value]) => {
                     STORE_LATEST_VALUE_MAP.set(itemKey, value);
 
-                    const extras = STORE_EXTRAS_MAP.get(itemKey);
+                    const extras = STORE_EXTRAS_MAP.get(itemKey)!;
 
                     if (!extrasMap.has(extras)) {
                         extrasMap.set(extras, {});
                     }
 
                     // store the value in the extras map
-                    extrasMap.get(extras)[itemKey] = value;
+                    extrasMap.get(extras)![itemKey] = value;
                 });
 
             async function sendRequest(
@@ -256,22 +256,22 @@ function backendStoreEffect<T>(
     requestExtras: RequestExtrasSerializable
 ): AtomEffect<any> {
     // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
-    STORE_EXTRAS_MAP.set(variable.store.uid, requestExtras);
+    STORE_EXTRAS_MAP.set(variable.store!.uid, requestExtras);
 
     // Register this variable as using this store for patch handling
-    if (!STORE_VARIABLE_MAP.has(variable.store.uid)) {
-        STORE_VARIABLE_MAP.set(variable.store.uid, new Set());
+    if (!STORE_VARIABLE_MAP.has(variable.store!.uid)) {
+        STORE_VARIABLE_MAP.set(variable.store!.uid, new Set());
     }
-    STORE_VARIABLE_MAP.get(variable.store.uid).add(variable.uid);
+    STORE_VARIABLE_MAP.get(variable.store!.uid)!.add(variable.uid);
 
     return syncEffect({
         /** Use store uid as the unique identifier */
-        itemKey: variable.store.uid,
+        itemKey: variable.store!.uid,
         refine: mixed(),
         storeKey: 'BackendStore',
         write({ write }, newValue) {
             // If store is read-only, do not write - this is a no-op
-            if (variable.store.readonly) {
+            if (variable.store!.readonly) {
                 return;
             }
 
@@ -280,7 +280,7 @@ function backendStoreEffect<T>(
                 return;
             }
 
-            write(variable.store.uid, newValue);
+            write(variable.store!.uid, newValue);
         },
     });
 }
@@ -335,7 +335,7 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     if (match) {
                         const [, sessionToken, uid] = match;
                         if (sessionToken === getSessionToken()) {
-                            updateItem(uid, JSON.parse(e.newValue ?? 'null'));
+                            updateItem(uid!, JSON.parse(e.newValue ?? 'null'));
                         }
                     }
                 }
@@ -444,7 +444,7 @@ export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effe
         return null;
     }
 
-    return STORES[storeName].effect ?? null;
+    return STORES[storeName]?.effect ?? null;
 }
 
 /**

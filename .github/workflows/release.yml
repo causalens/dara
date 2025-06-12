@@ -195,13 +195,14 @@ jobs:
                     "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
                   }
                 },
-                ...(${{ steps.set-changelog.outputs.changelog }}.map(section => ({
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": section
-                  }
-                })))
+                ...JSON.parse('${{ steps.set-changelog.outputs.changelog }}')
+                  .map(section => ({
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": section
+                      }
+                  }))
               ]
             }
         env:

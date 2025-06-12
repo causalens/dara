@@ -1,7 +1,7 @@
 import { useCallback, useContext, useMemo } from 'react';
 
 import RegistriesCtx from '@/shared/context/registries-context';
-import { ActionDef, ActionImpl } from '@/types/core';
+import { type ActionDef, type ActionImpl } from '@/types/core';
 
 interface ActionRegistryInterface {
     get: (instance: ActionImpl) => ActionDef;
@@ -17,7 +17,7 @@ function useActionRegistry(): ActionRegistryInterface {
     const get = useCallback(
         (impl: ActionImpl): ActionDef => {
             if (actions && actions[impl.name]) {
-                return actions[impl.name];
+                return actions[impl.name]!;
             }
             throw new Error(`Attempted to load an action (${impl.name}) that is not in the registry`);
         },

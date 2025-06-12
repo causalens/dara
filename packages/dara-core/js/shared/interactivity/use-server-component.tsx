@@ -1,21 +1,29 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useEffect } from 'react';
-import { RecoilState, RecoilValue, atom, selectorFamily, useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import {
+    type RecoilState,
+    type RecoilValue,
+    atom,
+    selectorFamily,
+    useRecoilCallback,
+    useRecoilValueLoadable,
+} from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
-import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {
-    AnyVariable,
-    ComponentInstance,
-    GlobalTaskContext,
-    NormalizedPayload,
-    TaskResponse,
+    type AnyVariable,
+    type ComponentInstance,
+    type GlobalTaskContext,
+    type NormalizedPayload,
+    type TaskResponse,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isVariable,
 } from '@/types';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
@@ -24,7 +32,7 @@ import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
 import { resolveVariable } from './resolve-variable';
 import {
-    TriggerIndexValue,
+    type TriggerIndexValue,
     atomRegistry,
     depsRegistry,
     selectorFamilyMembersRegistry,
@@ -41,11 +49,15 @@ function isTaskResponse(response: any): response is TaskResponse {
  * @param uid component instance uid
  * @param trigger whether it's a trigger key
  */
-function getComponentRegistryKey(uid: string, trigger?: boolean): string {
+export function getComponentRegistryKey(uid: string, trigger?: boolean, loopInstanceUid?: string): string {
     let key = `_COMPONENT_${uid}`;
 
     if (trigger) {
         key += '_TRIGGER';
+    }
+
+    if (loopInstanceUid) {
+        key += `_${loopInstanceUid}`;
     }
 
     return key;
@@ -116,8 +128,8 @@ function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string
     );
 }
 
-function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexValue> {
-    const triggerKey = getComponentRegistryKey(uid, true);
+function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string): RecoilState<TriggerIndexValue> {
+    const triggerKey = getComponentRegistryKey(uid, true, loop_instance_uid);
 
     if (!atomRegistry.has(triggerKey)) {
         atomRegistry.set(
@@ -132,7 +144,7 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
         );
     }
 
-    return atomRegistry.get(triggerKey);
+    return atomRegistry.get(triggerKey)!;
 }
 
 /**
@@ -146,15 +158,24 @@ function getOrRegisterComponentTrigger(uid: string): RecoilState<TriggerIndexVal
  * @param search current search string
  * @param currentExtras request extras to be merged into the options
  */
-function getOrRegisterServerComponent(
-    name: string,
-    uid: string,
-    dynamicKwargs: Record<string, AnyVariable<any>>,
-    wsClient: WebSocketClientInterface,
-    taskContext: GlobalTaskContext,
-    currentExtras: RequestExtras
-): RecoilValue<ComponentInstance> {
-    const key = getComponentRegistryKey(uid);
+function getOrRegisterServerComponent({
+    name,
+    uid,
+    dynamicKwargs,
+    wsClient,
+    taskContext,
+    currentExtras,
+    loop_instance_uid,
+}: {
+    name: string;
+    uid: string;
+    dynamicKwargs: Record<string, AnyVariable<any>>;
+    wsClient: WebSocketClientInterface;
+    taskContext: GlobalTaskContext;
+    currentExtras: RequestExtras;
+    loop_instance_uid?: string;
+}): RecoilValue<ComponentInstance> {
+    const key = getComponentRegistryKey(uid, false, loop_instance_uid);
 
     if (!selectorFamilyRegistry.has(key)) {
         selectorFamilyRegistry.set(
@@ -169,8 +190,11 @@ function getOrRegisterServerComponent(
                         // Kwargs resolved to their simple values
                         const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
                             (acc, k) => {
-                                const value = dynamicKwargs[k];
-                                acc[k] = resolveVariable(value, wsClient, taskContext, currentExtras);
+                                const value = dynamicKwargs[k]!;
+                                acc[k] =
+                                    isVariable(value) ?
+                                        resolveVariable(value, wsClient, taskContext, currentExtras)
+                                    :   value;
                                 return acc;
                             },
                             {} as Record<string, any>
@@ -225,8 +249,8 @@ function getOrRegisterServerComponent(
                                 wsClient
                             );
                         } catch (e) {
-                            e.selectorId = key;
-                            e.selectorExtras = extrasSerializable.toJSON();
+                            (e as any).selectorId = key;
+                            (e as any).selectorExtras = extrasSerializable.toJSON();
                             throw e;
                         }
 
@@ -250,8 +274,8 @@ function getOrRegisterServerComponent(
                             try {
                                 result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
                             } catch (e) {
-                                e.selectorId = key;
-                                e.selectorExtras = extrasSerializable.toJSON();
+                                (e as any).selectorId = key;
+                                (e as any).selectorExtras = extrasSerializable.toJSON();
                                 throw e;
                             }
                         }
@@ -274,7 +298,7 @@ function getOrRegisterServerComponent(
         );
     }
 
-    const family = selectorFamilyRegistry.get(key);
+    const family = selectorFamilyRegistry.get(key)!;
 
     // Get a selector instance for this particular extras value
     // This is required as otherwise the selector is not aware of different possible extras values
@@ -287,7 +311,7 @@ function getOrRegisterServerComponent(
     if (!selectorFamilyMembersRegistry.has(family)) {
         selectorFamilyMembersRegistry.set(family, new Map());
     }
-    selectorFamilyMembersRegistry.get(family).set(serializableExtras.toJSON(), selectorInstance);
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
 }
@@ -298,11 +322,13 @@ function getOrRegisterServerComponent(
  * @param name component name - specific to a given py_component
  * @param uid component uid - specific to a given *instance* of a py_component
  * @param dynamicKwargs kwargs passed into the component
+ * @param loop_instance_uid loop instance uid - extra loop variable key
  */
 export default function useServerComponent(
     name: string,
     uid: string,
-    dynamicKwargs: Record<string, AnyVariable<any>>
+    dynamicKwargs: Record<string, AnyVariable<any>>,
+    loop_instance_uid?: string
 ): ComponentInstance {
     const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
@@ -312,14 +338,22 @@ export default function useServerComponent(
     const bus = useEventBus();
 
     // Synchronously register the py_component uid, and clean it up on unmount
-    variablesContext.variables.current.add(getComponentRegistryKey(uid));
+    variablesContext?.variables.current.add(getComponentRegistryKey(uid));
     useEffect(() => {
         return () => {
-            variablesContext.variables.current.delete(getComponentRegistryKey(uid));
+            variablesContext?.variables.current.delete(getComponentRegistryKey(uid));
         };
     }, []);
 
-    const componentSelector = getOrRegisterServerComponent(name, uid, dynamicKwargs, wsClient, taskContext, extras);
+    const componentSelector = getOrRegisterServerComponent({
+        name,
+        uid,
+        dynamicKwargs,
+        wsClient,
+        taskContext,
+        currentExtras: extras,
+        loop_instance_uid,
+    });
     const componentLoadable = useRecoilValueLoadable(componentSelector);
 
     useEffect(() => {
@@ -338,11 +372,11 @@ export default function useServerComponent(
  *
  * @param name component uid
  */
-export function useRefreshServerComponent(uid: string): () => void {
+export function useRefreshServerComponent(uid: string, loop_instance_uid?: string): () => void {
     return useRecoilCallback(
         ({ set }) =>
             () => {
-                const triggerAtom = getOrRegisterComponentTrigger(uid);
+                const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
 
                 set(triggerAtom, (triggerIndexValue) => ({
                     force: false,

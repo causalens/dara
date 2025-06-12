@@ -1,7 +1,7 @@
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
-import { ActionHandler, ResetVariablesImpl } from '@/types/core';
+import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
 import { isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types/utils';
 
 /**

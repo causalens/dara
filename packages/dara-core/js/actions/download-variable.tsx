@@ -2,7 +2,7 @@ import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import { getVariableValue } from '@/shared/interactivity/use-variable-value';
-import { ActionHandler, DownloadVariableImpl } from '@/types/core';
+import { type ActionHandler, type DownloadVariableImpl } from '@/types/core';
 
 const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
     const headings: string[] = [];
@@ -23,7 +23,7 @@ const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): an
     content.forEach((c) => {
         const row: any[] = new Array(headingsLength);
         Object.entries(c).forEach(([k, v]) => {
-            row[indexes[k]] = v;
+            row[indexes[k]!] = v;
         });
 
         matrix.push(row);
@@ -64,7 +64,7 @@ const createXLFromMatrix = async (name: string, matrix: any[][]): Promise<Blob> 
 
     const ws = wb.addWorksheet(name);
 
-    const columns = matrix[0].map((h) => ({
+    const columns = matrix[0]!.map((h) => ({
         filterButton: true,
         name: h,
     }));
@@ -92,7 +92,7 @@ const createXLFromMatrix = async (name: string, matrix: any[][]): Promise<Blob> 
     return blob;
 };
 
-const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[][] => {
+const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[][] | null => {
     let isMatrix = false;
     let isArrayOfObjects = false;
 
@@ -114,7 +114,7 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
         return val as any[][];
     }
 
-    return undefined;
+    return null;
 };
 
 /**
@@ -151,7 +151,7 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         return Promise.resolve();
     }
     const matrix = createMatrixFromValue(value);
-    if (!matrix) {
+    if (matrix === null) {
         throw new Error('Unable to create matrix from value');
     }
     const notExcel = !actionImpl.type || actionImpl.type !== 'xlsx';

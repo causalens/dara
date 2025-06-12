@@ -6,7 +6,7 @@ import styled from '@darajs/styled-components';
 
 import { DirectionCtx } from '@/shared/context';
 import { getIcon } from '@/shared/utils';
-import { RouteLink } from '@/types';
+import { type RouteLink } from '@/types';
 
 interface MenuItemProps {
     direction: 'column' | 'row';
@@ -66,10 +66,10 @@ function Menu(props: MenuProps): JSX.Element {
     return (
         <>
             {props.routes.map(({ icon, name, route }) => {
-                const Icon = getIcon(icon);
+                const Icon = icon ? getIcon(icon) : null;
                 return (
                     <MenuItem activeClassName="selected" direction={directionCtx.direction} key={name} to={route}>
-                        <Icon style={{ marginRight: '0.5rem' }} />
+                        {Icon && <Icon style={{ marginRight: '0.5rem' }} />}
                         {name}
                     </MenuItem>
                 );

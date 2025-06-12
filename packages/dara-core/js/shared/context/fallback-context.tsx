@@ -8,6 +8,16 @@ export interface FallbackContext {
     suspend: boolean | number;
 }
 
-const fallbackCtx = React.createContext<FallbackContext>(null);
+const fallbackCtx = React.createContext<FallbackContext | null>(null);
+
+export function useFallbackCtx(): FallbackContext {
+    const ctx = React.useContext(fallbackCtx);
+
+    if (!ctx) {
+        throw new Error('useFallback must be used within FallbackCtx');
+    }
+
+    return ctx;
+}
 
 export default fallbackCtx;

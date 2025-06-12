@@ -1,4 +1,4 @@
-import { CSSProperties, useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';

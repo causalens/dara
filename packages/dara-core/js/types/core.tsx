@@ -1,12 +1,12 @@
 import { type History, type Location } from 'history';
-import { CallbackInterface } from 'recoil';
+import { type CallbackInterface } from 'recoil';
 
-import { DefaultTheme } from '@darajs/styled-components';
-import { NotificationPayload, useNotifications } from '@darajs/ui-notifications';
-import { SortingRule } from '@darajs/ui-utils';
+import { type DefaultTheme } from '@darajs/styled-components';
+import { type NotificationPayload, useNotifications } from '@darajs/ui-notifications';
+import { type SortingRule } from '@darajs/ui-utils';
 
-import { RequestExtras } from '@/api/http';
-import { WebSocketClientInterface } from '@/api/websocket';
+import { type RequestExtras } from '@/api/http';
+import { type WebSocketClientInterface } from '@/api/websocket';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -100,11 +100,16 @@ export interface UrlVariable<T> {
 export interface DerivedVariable {
     __typename: 'DerivedVariable';
     cache?: null | CachePolicy;
-    deps: Array<AnyVariable<any>>;
+    deps: Array<AnyVariable<any> | any>;
     nested: string[];
     polling_interval?: number;
     uid: string;
-    variables: Array<AnyVariable<any>>;
+    variables: Array<AnyVariable<any> | any>;
+    /**
+     * Field injected by loop variable logic, should be treated as a different variable instance
+     * and use different client-side cache
+     * */
+    loop_instance_uid?: string;
 }
 
 export interface DerivedDataVariable {
@@ -115,6 +120,12 @@ export interface DerivedDataVariable {
     polling_interval?: number;
     uid: string;
     variables: Array<AnyVariable<any>>;
+}
+
+export interface LoopVariable {
+    __typename: 'LoopVariable';
+    uid: string;
+    nested: string[];
 }
 
 export type DataFrame = Array<{
@@ -152,6 +163,10 @@ export interface ResolvedDerivedDataVariable {
     uid: string;
     values: Array<any>;
 }
+
+export type ModuleContent = {
+    [componentOrActionName: string]: React.ComponentType<any> | ActionHandler<any>;
+};
 
 export enum ComponentType {
     JS = 'js',
@@ -253,8 +268,12 @@ export interface LayoutComponentProps extends StyledComponentProps {
 export interface ComponentInstance<Props = BaseComponentProps> {
     name: string;
     props: Props;
-    templated?: boolean;
     uid: string;
+    /**
+     * Field injected by loop variable logic, should be treated as a different component instance
+     * and use different client-side cache
+     * */
+    loop_instance_uid?: string;
 }
 
 export interface RawString extends ComponentInstance<{ content: string }> {
@@ -496,3 +515,9 @@ export interface AnnotatedAction {
 }
 
 export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | ActionImpl>;
+
+/**
+ * User-visible error.
+ * When thrown, our built-in error boundary will display its `message` property rather than a default blurb.
+ */
+export class UserError extends Error {}

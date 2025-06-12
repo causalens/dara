@@ -1,10 +1,10 @@
-import { AtomEffect, RecoilState, atomFamily, selectorFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, atomFamily, selectorFamily } from 'recoil';
 import { BehaviorSubject } from 'rxjs';
 
-import { WebSocketClientInterface } from '@/api';
-import { RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { type WebSocketClientInterface } from '@/api';
+import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { isEmbedded } from '@/shared/utils/embed';
-import { DerivedVariable, GlobalTaskContext, SingleVariable, isDerivedVariable } from '@/types';
+import { type DerivedVariable, type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { STORES, getEffect, getOrRegisterDerivedVariableValue, resolveNested, setNested } from './internal';
@@ -43,7 +43,7 @@ class StateSynchronizer {
      */
     register(key: string, defaultValue: any): void {
         if (!this.#observers.has(key)) {
-            this.#observers.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue }));
+            this.#observers.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue } as VariableUpdate));
         }
     }
 
@@ -61,11 +61,11 @@ class StateSynchronizer {
      *
      * @param key key to get the current value for
      */
-    getCurrentState(key: string): VariableUpdate {
+    getCurrentState(key: string): VariableUpdate | null {
         if (!this.isRegistered(key)) {
             return null;
         }
-        return this.#observers.get(key).getValue();
+        return this.#observers.get(key)!.getValue();
     }
 
     /**
@@ -79,12 +79,12 @@ class StateSynchronizer {
             this.register(key, null);
         }
 
-        const sub = this.#observers.get(key).subscribe(subscription);
+        const sub = this.#observers.get(key)!.subscribe(subscription);
         return () => {
             sub.unsubscribe();
 
             // if no more observers, remove the listener
-            if (this.#observers.get(key).observers.length === 0) {
+            if (this.#observers.get(key)!.observers.length === 0) {
                 this.#observers.delete(key);
             }
         };
@@ -101,7 +101,7 @@ class StateSynchronizer {
         if (!this.isRegistered(key)) {
             this.register(key, null);
         }
-        this.#observers.get(key).next(update);
+        this.#observers.get(key)!.next(update);
     }
 }
 
@@ -206,7 +206,7 @@ export function getOrRegisterPlainVariable<T>(
                         // eslint-disable-next-line no-lonely-if
                         if (variable.persist_value || isEmbedded()) {
                             effects.push(
-                                STORES.BrowserStore.effect(variable, extrasSerializable, wsClient, taskContext)
+                                STORES.BrowserStore!.effect(variable, extrasSerializable, wsClient, taskContext)
                             );
                         }
                     }
@@ -218,7 +218,7 @@ export function getOrRegisterPlainVariable<T>(
         );
     }
 
-    const family = atomFamilyRegistry.get(variable.uid);
+    const family = atomFamilyRegistry.get(variable.uid)!;
     const extrasSerializable = new RequestExtrasSerializable(extras);
     const atomInstance: RecoilState<T> = family(extrasSerializable);
 
@@ -226,7 +226,7 @@ export function getOrRegisterPlainVariable<T>(
     if (!atomFamilyMembersRegistry.has(family)) {
         atomFamilyMembersRegistry.set(family, new Map());
     }
-    atomFamilyMembersRegistry.get(family).set(extrasSerializable.toJSON(), atomInstance);
+    atomFamilyMembersRegistry.get(family)!.set(extrasSerializable.toJSON(), atomInstance);
 
     // In case of a nested variable, register and return a selector to resolve the nested values
     if (isNested) {
@@ -264,7 +264,7 @@ export function getOrRegisterPlainVariable<T>(
                 })
             );
         }
-        const selectorFamilyInstance = selectorFamilyRegistry.get(key);
+        const selectorFamilyInstance = selectorFamilyRegistry.get(key)!;
 
         // We cast it since it's a writeable selector
         return selectorFamilyInstance(extrasSerializable) as RecoilState<T>;

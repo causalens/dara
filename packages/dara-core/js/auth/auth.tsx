@@ -1,11 +1,11 @@
-import { UseQueryResult, useQuery } from '@tanstack/react-query';
+import { type UseQueryResult, useQuery } from '@tanstack/react-query';
 
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { getTokenKey } from '@/shared/utils/embed';
-import { User, UserData } from '@/types';
+import { type User, type UserData } from '@/types';
 
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -104,7 +104,7 @@ interface SuccessResponse {
 /**
  * Revoke the current session
  */
-export async function revokeSession(): Promise<RedirectResponse | SuccessResponse> {
+export async function revokeSession(): Promise<RedirectResponse | SuccessResponse | null> {
     try {
         const response = await request('/api/auth/revoke-session', {
             method: HTTP_METHOD.POST,
@@ -118,6 +118,8 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
         // eslint-disable-next-line no-console
         console.error('Failed to revoke session', e);
     }
+
+    return null;
 }
 
 /**
@@ -152,11 +154,11 @@ export function resolveReferrer(): string {
 export async function handleAuthErrors(
     res: Response,
     toLogin = false,
-    ignoreErrors: Array<AuthenticationErrorReason> = null
+    ignoreErrors: Array<AuthenticationErrorReason> | null = null
 ): Promise<boolean> {
     const content = await res.clone().json();
 
-    if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors)) {
+    if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
         localStorage.removeItem(getTokenKey());
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
@@ -193,7 +195,7 @@ export function useUser(): UseQueryResult<UserData, RequestError> {
 }
 
 /** Api call to fetch the session token from the backend */
-export async function requestSessionToken(body: User = {}): Promise<string> {
+export async function requestSessionToken(body: User = {}): Promise<string | null> {
     const res = await request('/api/auth/session', {
         body: JSON.stringify(body),
         method: HTTP_METHOD.POST,

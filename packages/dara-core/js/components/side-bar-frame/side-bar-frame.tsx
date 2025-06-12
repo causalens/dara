@@ -9,7 +9,7 @@ import CausalensLight from '@/assets/causalens-light.svg';
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
 import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
-import { ComponentInstance } from '@/types';
+import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
 
 interface SideBarProps {

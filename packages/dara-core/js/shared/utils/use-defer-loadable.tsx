@@ -1,7 +1,7 @@
-import { useContext, useEffect, useRef, useState } from 'react';
-import { Loadable } from 'recoil';
+import { useEffect, useRef, useState } from 'react';
+import { type Loadable } from 'recoil';
 
-import { FallbackCtx } from '@/shared/context';
+import { useFallbackCtx } from '../context/fallback-context';
 
 /**
  * A hook that allows you to defer the loading of a loadable depending on the suspend setting in FallbackCtx.
@@ -9,11 +9,11 @@ import { FallbackCtx } from '@/shared/context';
  * @param loadable The loadable to defer
  */
 export default function useDeferLoadable<T>(loadable: Loadable<T>): T {
-    const { suspend } = useContext(FallbackCtx);
+    const { suspend } = useFallbackCtx();
     // Suspend on first render with getValue()
     const [availableState, setAvailableState] = useState(() => loadable.getValue());
 
-    const timerId = useRef<NodeJS.Timeout>(null);
+    const timerId = useRef<NodeJS.Timeout | null>(null);
     const isFirstRender = useRef(true);
     const [showFallback, setShowFallback] = useState(false);
 
@@ -32,13 +32,17 @@ export default function useDeferLoadable<T>(loadable: Loadable<T>): T {
         }
 
         return () => {
-            clearTimeout(timerId.current);
+            if (timerId.current) {
+                clearTimeout(timerId.current);
+            }
         };
     }, [loadable.state, suspend]);
 
     useEffect(() => {
         if (loadable.state === 'hasValue') {
-            clearTimeout(timerId.current);
+            if (timerId.current) {
+                clearTimeout(timerId.current);
+            }
             setShowFallback(false);
             setAvailableState(loadable.valueOrThrow());
         }

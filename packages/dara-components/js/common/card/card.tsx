@@ -5,8 +5,10 @@ import {
     DisplayCtx,
     DynamicComponent,
     LayoutComponentProps,
+    Variable,
     injectCss,
     useComponentStyles,
+    useVariable,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
@@ -82,9 +84,9 @@ interface CardProps extends LayoutComponentProps {
     /** Content to be displayed in the main card */
     children: Array<ComponentInstance>;
     /** Optional subtitle for the card */
-    subtitle?: string;
+    subtitle?: string | Variable<string>;
     /** Optional heading for the card */
-    title?: string;
+    title?: string | Variable<string>;
 }
 
 /**
@@ -94,11 +96,13 @@ interface CardProps extends LayoutComponentProps {
  * @param props - the component props
  */
 function Card(props: CardProps): JSX.Element {
+    const [title] = useVariable(props.title);
+    const [subtitle] = useVariable(props.subtitle);
     const [style, css] = useComponentStyles(props);
     return (
         <CardDiv $rawCss={css} accent={props.accent} style={style}>
-            {props.title && <Title>{props.title}</Title>}
-            {props.subtitle && <Subtitle hasTitle={props.title !== null}>{props.subtitle}</Subtitle>}
+            {title && <Title>{title}</Title>}
+            {subtitle && <Subtitle hasTitle={props.title !== null}>{subtitle}</Subtitle>}
             <ChildrenWrapper
                 data-type="children-wrapper"
                 hasSubtitle={props.subtitle !== null}

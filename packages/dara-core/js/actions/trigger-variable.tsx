@@ -1,5 +1,5 @@
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
-import { ActionHandler, TriggerVariableImpl } from '@/types/core';
+import { type ActionHandler, type TriggerVariableImpl } from '@/types/core';
 
 /**
  * Front-end handler for TriggerVariable action.

@@ -1,7 +1,7 @@
 import { Redirect, Route, Switch } from 'react-router-dom';
 
 import { DynamicComponent, PrivateRoute } from '@/shared';
-import { RouteContent } from '@/types';
+import { type RouteContent } from '@/types';
 
 const PageNotFound = (): JSX.Element => {
     return (
@@ -36,7 +36,7 @@ function RouterContent(props: RouterContentProps): JSX.Element {
                     )}
                 />
             ))}
-            <Route exact path="/" render={() => <Redirect to={props.routes[0].route} />} />
+            <Route exact path="/" render={() => <Redirect to={props.routes[0]!.route} />} />
             <Route component={PageNotFound} />
         </Switch>
     );

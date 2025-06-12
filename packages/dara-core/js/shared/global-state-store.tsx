@@ -15,11 +15,11 @@ class GlobalStore {
     /**
      * Subscribers for each key.
      */
-    #subscribers: Record<string, ((val: string) => void)[]>;
+    #subscribers: Record<string, ((val: string | null) => void)[]>;
 
     constructor() {
         this.#locks = {} as Record<string, Promise<string>>;
-        this.#subscribers = {} as Record<string, ((val: string) => void)[]>;
+        this.#subscribers = {} as Record<string, ((val: string | null) => void)[]>;
     }
 
     /**
@@ -28,7 +28,7 @@ class GlobalStore {
      */
     public clear(): void {
         this.#locks = {} as Record<string, Promise<string>>;
-        this.#subscribers = {} as Record<string, ((val: string) => void)[]>;
+        this.#subscribers = {} as Record<string, ((val: string | null) => void)[]>;
     }
 
     /**
@@ -81,7 +81,7 @@ class GlobalStore {
      * @param key - key to replace value for
      * @param fn - function to get the new value
      */
-    public async replaceValue(key: string, fn: () => Promise<string>): Promise<string> {
+    public async replaceValue(key: string, fn: () => Promise<string>): Promise<string | null> {
         // If there's already a replacement in progress, return the promise of the ongoing replacement
         if (this.#locks[key]) {
             return this.#locks[key];
@@ -89,8 +89,8 @@ class GlobalStore {
 
         // Create a new Promise to resolve to the replaced value
         // TODO: this can be Promise.withResolvers once it's more widely supported
-        let unlock: (res: string) => void;
-        let unlockError: (err: Error) => void;
+        let unlock!: (res: string) => void;
+        let unlockError!: (err: Error) => void;
         const lockPromise = new Promise<string>((resolve, reject) => {
             unlock = resolve;
             unlockError = reject;
@@ -109,10 +109,10 @@ class GlobalStore {
             // This resolves both the caller and other ongoing requests blocking on the lock to the new value.
             this.setValue(key, result);
             unlock(result);
-        } catch (e) {
+        } catch (e: unknown) {
             // On error - error out the 'lock' promise.
             // This errors both the caller and other ongoing requests blocking on the lock.
-            unlockError(e);
+            unlockError(e as Error);
         } finally {
             // Clear the lock for the key so future replaceValue calls call the `fn` again
             delete this.#locks[key];
@@ -127,7 +127,7 @@ class GlobalStore {
      * @param key - key to subscribe to changes to
      * @param callback - callback invoked when the value is updated
      */
-    public subscribe(key: string, callback: (val: string) => void): () => void {
+    public subscribe(key: string, callback: (val: string | null) => void): () => void {
         if (!this.#subscribers[key]) {
             this.#subscribers[key] = [];
         }
@@ -150,7 +150,7 @@ class GlobalStore {
         // Cleanup the subscriptions
         return () => {
             window.removeEventListener('storage', subFunc);
-            this.#subscribers[key].splice(
+            this.#subscribers[key]?.splice(
                 this.#subscribers[key].findIndex((val) => val === callback),
                 1
             );

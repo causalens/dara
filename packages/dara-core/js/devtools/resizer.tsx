@@ -1,4 +1,4 @@
-import { MouseEventHandler, useState } from 'react';
+import { type MouseEventHandler, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 

@@ -123,6 +123,10 @@ class Stack(LayoutComponent):
 
     ```
 
+    Important: when using `For` component with `virtualization` enabled, do not use the Stack `scroll` argument,
+    as it is redundant and will result in unexpected behavior. The `For` component will automatically handle scrolling
+    for you.
+
     :param direction: The direction to stack children, can be 'vertical' or 'horizontal', default is 'vertical'
     :param collapsed: Whether to collapse the stack
     :param justify: How to justify the content of the stack, accepts any flexbox justifications

@@ -1,26 +1,26 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Snapshot, useRecoilCallback } from 'recoil';
+import { type Snapshot, useRecoilCallback } from 'recoil';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 
 // eslint-disable-next-line import/no-cycle
-import { WebSocketClientInterface } from '@/api';
-import { RequestExtras } from '@/api/http';
+import { type WebSocketClientInterface } from '@/api';
+import { type RequestExtras } from '@/api/http';
 import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import {
-    AnyVariable,
-    DataFrame,
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    GlobalTaskContext,
-    ResolvedDataVariable,
-    ResolvedDerivedDataVariable,
-    ResolvedDerivedVariable,
-    Variable,
+    type AnyVariable,
+    type DataFrame,
+    type DataVariable,
+    type DerivedDataVariable,
+    type DerivedVariable,
+    type GlobalTaskContext,
+    type ResolvedDataVariable,
+    type ResolvedDerivedDataVariable,
+    type ResolvedDerivedVariable,
+    type Variable,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,

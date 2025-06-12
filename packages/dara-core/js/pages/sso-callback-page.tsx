@@ -1,7 +1,9 @@
+import * as React from 'react';
+
 /**
  * SSO Auth callback placeholder
  */
-function SSOCallbackPage(): JSX.Element {
+function SSOCallbackPage(): React.ReactNode {
     return null;
 }
 

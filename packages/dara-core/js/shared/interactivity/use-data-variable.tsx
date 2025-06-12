@@ -6,11 +6,11 @@ import { useRecoilValueLoadable } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import { AnyDataVariable, FilterQuery, Pagination, isDataVariable } from '@/types';
+import { type AnyDataVariable, type FilterQuery, type Pagination, isDataVariable } from '@/types';
 
 import {
-    DataResponse,
-    DerivedVariableValueResponse,
+    type DataResponse,
+    type DerivedVariableValueResponse,
     registerDataVariable,
     useDerivedVariable,
     useFetchDataVariable,
@@ -52,10 +52,10 @@ export function useDataVariable(
 
     // Synchronously register subscription to the underlying DV, clean up on unmount
     const variablesContext = useContext(VariableCtx);
-    variablesContext.variables.current.add(variable.uid);
+    variablesContext?.variables.current.add(variable.uid);
     useEffect(() => {
         return () => {
-            variablesContext.variables.current.delete(variable.uid);
+            variablesContext?.variables.current.delete(variable.uid);
         };
     }, []);
 

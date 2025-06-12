@@ -1114,9 +1114,8 @@ class ActionCtx:
 
         ```python
 
-        from dara.core import action, ConfigurationBuilder, DataVariable, DownloadContent
+        from dara.core import action, ConfigurationBuilder, DataVariable
         from dara.components.components import Button, Stack
-
 
         # generate data, alternatively you could load it from a file
         df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
@@ -1126,18 +1125,14 @@ class ActionCtx:
 
         @action
         async def download_csv(ctx: action.Ctx, my_var_value: DataFrame) -> str:
-            # The file can be created and saved dynamically here, it should then return a string with a path to it
-            # To get the component value, e.g. a select component would return the selected value
-            component_value = ctx.input
-
             # Getting the value of data passed as extras to the action
             data = my_var_value
 
             # save the data to csv
             data.to_csv('<PATH_TO_CSV.csv>')
 
-            # Instruct the frontend to download the file
-            await ctx.download_file(path='<PATH_TO_CSV.csv>', cleanup=False)
+            # Instruct the frontend to download the file and clean up afterwards
+            await ctx.download_file(path='<PATH_TO_CSV.csv>', cleanup=True)
 
 
         def test_page():

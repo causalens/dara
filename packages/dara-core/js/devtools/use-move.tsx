@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
+import { type MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
 
 type MoveHandler = (ev: MouseEvent) => void;
 

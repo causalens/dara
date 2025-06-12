@@ -1,7 +1,7 @@
 import isNull from 'lodash/isNull';
 import omitBy from 'lodash/omitBy';
 
-import { DefaultTheme, darkTheme, theme } from '@darajs/styled-components';
+import { type DefaultTheme, darkTheme, theme } from '@darajs/styled-components';
 
 function isTheme(configTheme: string | DefaultTheme): configTheme is DefaultTheme {
     return typeof configTheme !== 'string';
@@ -14,7 +14,7 @@ function isTheme(configTheme: string | DefaultTheme): configTheme is DefaultThem
  * @param configTheme - the config theme structure of the app
  */
 export default function resolveTheme(
-    configTheme: 'light' | 'dark' | DefaultTheme,
+    configTheme: 'light' | 'dark' | DefaultTheme | undefined,
     baseTheme?: 'light' | 'dark'
 ): DefaultTheme {
     if (!configTheme || configTheme === 'light') {

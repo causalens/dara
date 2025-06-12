@@ -5,10 +5,10 @@ import { Subscription } from 'rxjs';
 import styled from '@darajs/styled-components';
 import { ProgressBar } from '@darajs/ui-components';
 
-import { ProgressNotificationMessage } from '@/api/websocket';
+import { type ProgressNotificationMessage } from '@/api/websocket';
 import { useTaskContext } from '@/shared/context/global-task-context';
 import websocketCtx from '@/shared/context/websocket-context';
-import { GlobalTaskContext } from '@/types/core';
+import { type GlobalTaskContext } from '@/types/core';
 
 const POLLING_INTERVAL = 100;
 const FAKE_PROGRESS_INTERVAL = 100;
@@ -69,7 +69,7 @@ function fakeProgressGenerator(
 
         // First we return estimated updates
         while (estimatedProgressUpdates.length > 0) {
-            const update = estimatedProgressUpdates.shift();
+            const update = estimatedProgressUpdates.shift()!;
             startFrom = update;
             yield update;
         }
@@ -113,11 +113,11 @@ const ProgressMessage = styled.span`
  * @param variablesRef
  */
 function findRunningTasks(
-    tasksContext?: GlobalTaskContext,
+    tasksContext: GlobalTaskContext,
     variablesRef?: React.MutableRefObject<Set<string>>
 ): string[] {
     // check if there are variables the component is subscribed to, and there are tasks running
-    if (!(variablesRef?.current?.size > 0 && tasksContext.hasRunningTasks())) {
+    if (!(variablesRef && variablesRef?.current?.size > 0 && tasksContext.hasRunningTasks())) {
         return [];
     }
 
@@ -147,18 +147,24 @@ interface Progress {
  * ProgressTracker component can be used as a placeholder to replace the standard loading spinner.
  * If a task is running, data is captured from the task function and a ProgressBar with live updates in shown.
  */
-function ProgressTracker(props: ProgressTrackerProps): JSX.Element {
+function ProgressTracker(props: ProgressTrackerProps): React.ReactNode {
     const taskContext = useTaskContext();
     const { client: wsClient } = useContext(websocketCtx);
-    const [latestProgressUpdate, setLatestProgressUpdate] = useState<ProgressNotificationMessage['message']>(null); // latest progress message
-    const [progress, setProgress] = useState<Progress>(null);
-    const fakeInterval = useRef<ReturnType<typeof setInterval>>(null);
+    const [latestProgressUpdate, setLatestProgressUpdate] = useState<ProgressNotificationMessage['message'] | null>(
+        null
+    ); // latest progress message
+    const [progress, setProgress] = useState<Progress | null>(null);
+    const fakeInterval = useRef<ReturnType<typeof setInterval> | null>(null);
     const [subscribedTaskIds, setSubscribedTaskIds] = useState<string[]>([]);
 
     const [restartTrigger, setRestartTrigger] = useState(0); // used to trigger a restart of polling for a running task
 
     useEffect(() => {
-        let progressSubscription: Subscription = null;
+        if (!wsClient) {
+            return;
+        }
+
+        let progressSubscription: Subscription | null = null;
 
         // Start polling and looking for running tasks
         const timer = setInterval(() => {
@@ -188,13 +194,17 @@ function ProgressTracker(props: ProgressTrackerProps): JSX.Element {
 
             progressSubscription?.unsubscribe();
         };
-    }, [restartTrigger]);
+    }, [restartTrigger, wsClient]);
 
     /**
      * Handle cancellations of subscribed task ids.
      */
     useEffect(() => {
-        let subscription: Subscription = null;
+        if (!wsClient) {
+            return;
+        }
+
+        let subscription: Subscription | null = null;
 
         if (subscribedTaskIds.length > 0) {
             subscription = wsClient.taskStatusUpdates$(...subscribedTaskIds).subscribe((newStatus) => {
@@ -216,7 +226,7 @@ function ProgressTracker(props: ProgressTrackerProps): JSX.Element {
         return () => {
             subscription?.unsubscribe();
         };
-    }, [subscribedTaskIds]);
+    }, [subscribedTaskIds, wsClient]);
 
     /**
      * Handle progress updates.
@@ -248,20 +258,20 @@ function ProgressTracker(props: ProgressTrackerProps): JSX.Element {
         // Start fake mode and update message to the sent message
         const [, estimatedTime, message] = latestProgressUpdate.message.split('__');
         setProgress({
-            message,
+            message: message!,
             progress: progress?.progress ?? 0,
         });
 
         const progressGenerator = fakeProgressGenerator(
             progress?.progress ?? 0,
             latestProgressUpdate.progress,
-            parseFloat(estimatedTime)
+            parseFloat(estimatedTime!)
         );
         fakeInterval.current = setInterval(() => {
             const nextValue = progressGenerator.next().value as number;
 
             setProgress({
-                message,
+                message: message!,
                 progress: nextValue,
             });
         }, FAKE_PROGRESS_INTERVAL);

@@ -2,7 +2,7 @@
 import * as React from 'react';
 
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
-import { ComponentInstance } from '@/types';
+import { type ComponentInstance } from '@/types';
 
 /**
  * Merge a list of context component definitions into a single component definition
@@ -15,9 +15,9 @@ function mergeContext(contextComponents: Array<ComponentInstance>, children: Rea
     const [component, ...rest] = contextComponents;
 
     return {
-        ...component,
+        ...component!,
         props: {
-            ...component.props,
+            ...component!.props,
             children: rest.length === 0 ? children : <DynamicComponent component={mergeContext(rest, children)} />,
         },
     };

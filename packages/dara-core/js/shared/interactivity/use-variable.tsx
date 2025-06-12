@@ -1,9 +1,16 @@
-import { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react';
+import { type Dispatch, type SetStateAction, useContext, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
-import { Variable, isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types';
+import {
+    type Variable,
+    isDataVariable,
+    isDerivedDataVariable,
+    isDerivedVariable,
+    isUrlVariable,
+    isVariable,
+} from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
 import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
@@ -33,7 +40,7 @@ function warnUpdateOnDerivedState(): void {
 export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Dispatch<SetStateAction<T>>] {
     const extras = useRequestExtras();
 
-    const { client: WsClient } = useContext(WebSocketCtx);
+    const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
     const bus = useEventBus();
@@ -43,10 +50,10 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     // Synchronously register variable subscription, and clean it up on unmount
-    variablesContext.variables.current.add(variable.uid);
+    variablesContext?.variables.current.add(variable.uid);
     useEffect(() => {
         return () => {
-            variablesContext.variables.current.delete(variable.uid);
+            variablesContext?.variables.current.delete(variable.uid);
         };
     }, []);
 
@@ -56,7 +63,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     if (isDerivedVariable(variable)) {
-        const selector = useDerivedVariable(variable, WsClient, taskContext, extras);
+        const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         useEffect(() => {
@@ -71,16 +78,16 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
     }
 
     if (isUrlVariable(variable)) {
-        const [urlValue, setUrlValue] = useUrlVariable(variable);
+        const [urlValue, setUrlValue] = useUrlVariable<T>(variable);
 
         useEffect(() => {
             bus.publish('URL_VARIABLE_LOADED', { variable, value: urlValue });
         }, [urlValue]);
 
-        return [urlValue, setUrlValue];
+        return [urlValue, setUrlValue as Dispatch<SetStateAction<T>>];
     }
 
-    const recoilState = getOrRegisterPlainVariable(variable, WsClient, taskContext, extras);
+    const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);
     if (!isDerivedVariable(variable.default)) {
         const [value, setValue] = useRecoilState(recoilState);
         useEffect(() => {

@@ -1,8 +1,8 @@
-import { RecoilState, RecoilValue } from 'recoil';
+import { type RecoilState, type RecoilValue } from 'recoil';
 
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
-import { AnyVariable, isVariable } from '@/types';
+import { type AnyVariable, isDerivedVariable, isVariable } from '@/types';
 
 /**
  * Selector family type which constructs a selector from a given set of extras.
@@ -31,7 +31,7 @@ export const atomFamilyRegistry = new Map<string, AtomFamily>();
  *
  * Stores all instances of a given atom family, as a map of seriailzed extras to atom.
  */
-export const atomFamilyMembersRegistry = new Map<AtomFamily, Map<string, RecoilState<any>>>();
+export const atomFamilyMembersRegistry = new Map<AtomFamily, Map<string | null, RecoilState<any>>>();
 /**
  * Key -> selector
  */
@@ -45,7 +45,7 @@ export const selectorFamilyRegistry = new Map<string, SelectorFamily>();
  *
  * Stores all instances of a given selector family, as a map of seriailzed extras to selector.
  */
-export const selectorFamilyMembersRegistry = new Map<SelectorFamily, Map<string, RecoilValue<any>>>();
+export const selectorFamilyMembersRegistry = new Map<SelectorFamily, Map<string | null, RecoilValue<any>>>();
 /**
  * Key -> dependencies data for a selector
  */
@@ -53,7 +53,7 @@ export const depsRegistry = new Map<
     string,
     {
         args: any[];
-        cacheKey: string;
+        cacheKey: string | null;
         result: any;
     }
 >();
@@ -72,7 +72,13 @@ type RegistryKeyType = 'selector' | 'derived-selector' | 'trigger' | 'filters';
  * @param type type of the registry entry
  */
 export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyType): string {
-    return `${getUniqueIdentifier(variable)}-${type}`;
+    let extras = '';
+
+    if (isDerivedVariable(variable)) {
+        extras = variable.loop_instance_uid ?? '';
+    }
+
+    return `${getUniqueIdentifier(variable)}-${type}-${extras}`;
 }
 
 /**
@@ -104,13 +110,19 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         return false;
     }
 
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (variable.__typename) {
         case 'Variable': {
             if (atomRegistry.has(variable.uid)) {
                 return true;
             }
             const family = atomFamilyRegistry.get(variable.uid);
-            return atomFamilyMembersRegistry.get(family)?.size > 0;
+
+            if (!family) {
+                return false;
+            }
+
+            return atomFamilyMembersRegistry.get(family)!.size > 0;
         }
 
         case 'UrlVariable':

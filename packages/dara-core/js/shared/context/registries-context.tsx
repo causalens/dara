@@ -1,9 +1,9 @@
-import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
+import { type QueryObserverResult, type RefetchOptions } from '@tanstack/react-query';
 import { createContext } from 'react';
 
 import { RequestError } from '@darajs/ui-utils';
 
-import { ActionDef, Component } from '@/types';
+import { type ActionDef, type Component } from '@/types';
 
 type RegistriesCtx = {
     /**
@@ -25,7 +25,7 @@ type RegistriesCtx = {
 const registriesCtx = createContext<RegistriesCtx>({
     actionRegistry: {},
     componentRegistry: {},
-    refetchComponents: null,
+    refetchComponents: null as any,
 });
 
 export default registriesCtx;

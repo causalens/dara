@@ -54,7 +54,7 @@ export function setNested<T extends Record<string, any>>(obj: T, nested: string[
     const cloned = clone(obj);
 
     // If the key doesn't exist, create an empty object in case we're setting a nested value
-    const [key] = nested;
+    const key = nested[0]!;
     if (!Object.keys(obj).includes(key)) {
         (cloned as any)[key] = {};
     }

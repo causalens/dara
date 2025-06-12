@@ -1,10 +1,10 @@
 import { transparentize } from 'polished';
-import { FallbackProps } from 'react-error-boundary';
+import { type FallbackProps } from 'react-error-boundary';
 
 import styled from '@darajs/styled-components';
 
 import { injectCss, parseRawCss } from '@/shared/utils';
-import { ErrorHandlingConfig } from '@/types/core';
+import { type ErrorHandlingConfig, UserError } from '@/types/core';
 
 const StyledErrorDisplay = styled.div`
     display: flex;
@@ -104,6 +104,9 @@ interface ErrorDisplayProps extends Partial<FallbackProps> {
 function ErrorDisplay(props: ErrorDisplayProps): JSX.Element {
     const [styles, css] = parseRawCss(props.config?.raw_css);
 
+    const defaultMessage =
+        props.error instanceof UserError ? props.error.message : 'Try again or contact the application owner.';
+
     return (
         <ErrorDisplayWrapper $rawCss={css} style={styles}>
             <ContentWrapper>
@@ -114,11 +117,11 @@ function ErrorDisplay(props: ErrorDisplayProps): JSX.Element {
                         </IconWrapper>
                         {props?.config?.title ?? 'Error'}
                     </ErrorTitle>
-                    <ErrorText>{props?.config?.description ?? 'Try again or contact the application owner.'}</ErrorText>
+                    <ErrorText>{props?.config?.description ?? defaultMessage}</ErrorText>
                 </ErrorContent>
             </ContentWrapper>
             {props.resetErrorBoundary && (
-                <RetryButton onClick={() => props.resetErrorBoundary(props.error)} type="button">
+                <RetryButton onClick={() => props.resetErrorBoundary!(props.error)} type="button">
                     <i aria-hidden className="fa-solid fa-rotate fa-xl" />
                 </RetryButton>
             )}

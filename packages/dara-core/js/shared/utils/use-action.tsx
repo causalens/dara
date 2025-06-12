@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { CallbackInterface, useRecoilCallback } from 'recoil';
+import { type CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 
@@ -12,8 +12,15 @@ import { fetchTaskResult } from '@/api/core';
 import { request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
 import { ImportersCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import { Action, ActionContext, ActionDef, ActionHandler, ActionImpl, AnnotatedAction } from '@/types/core';
-import { isActionImpl } from '@/types/utils';
+import {
+    type Action,
+    type ActionContext,
+    type ActionDef,
+    type ActionHandler,
+    type ActionImpl,
+    type AnnotatedAction,
+} from '@/types/core';
+import { isActionImpl, isVariable } from '@/types/utils';
 
 import { useEventBus } from '../event-bus/event-bus';
 import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
@@ -40,12 +47,15 @@ async function invokeAction(
     // resolve kwargs to primitives, this registers variables if not already registered
     const resolvedKwargs = Object.keys(annotatedAction.dynamic_kwargs).reduce(
         (acc, k) => {
-            const value = annotatedAction.dynamic_kwargs[k];
-            acc[k] = resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
-                // This is only called for primitive variables so it should always resolve successfully
-                // hence not using a promise
-                actionCtx.snapshot.getLoadable(v).getValue()
-            );
+            const value = annotatedAction.dynamic_kwargs[k]!;
+            acc[k] =
+                isVariable(value) ?
+                    resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
+                        // This is only called for primitive variables so it should always resolve successfully
+                        // hence not using a promise
+                        actionCtx.snapshot.getLoadable(v).getValue()
+                    )
+                :   value;
             return acc;
         },
         {} as Record<string, any>
@@ -136,7 +146,7 @@ async function resolveActionImpl(
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
         try {
             const actionDef = getAction(actionImpl);
-            const moduleContent = await importers[actionDef.py_module]();
+            const moduleContent = await importers[actionDef.py_module]!();
             actionHandler = moduleContent[actionImpl.name];
 
             // only cache if we successfully resolved a built-in action handler
@@ -151,7 +161,7 @@ async function resolveActionImpl(
             }
         }
     } else {
-        actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name];
+        actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name]!;
     }
 
     return actionHandler;
@@ -243,7 +253,7 @@ async function executeAction(
                             await result;
                         }
                     } catch (error) {
-                        onError(error);
+                        onError(error as Error);
                     } finally {
                         if (activeTasks > 0) {
                             activeTasks -= 1;
@@ -268,7 +278,7 @@ const noop = (): Promise<void> => Promise.resolve();
  * @param action - the action to check the loading state of
  * @returns the loading state of the action
  */
-export function useActionIsLoading(action: Action): boolean {
+export function useActionIsLoading(action: Action | undefined | null): boolean {
     // We allow conditional logic with hooks here under the assumption that the action will never change during the
     // component lifetime. As ActionImpls have no loading variable we return false. As we expect to deprecate array's
     // of actions in the near future as all the functionality then we return false as well due to the complexity of
@@ -297,7 +307,10 @@ interface UseActionOptions {
  * @param action the action passed in
  * @param options optional extra options for the hook
  */
-export default function useAction(action: Action, options?: UseActionOptions): (input?: any) => Promise<void> {
+export default function useAction(
+    action: Action | undefined | null,
+    options?: UseActionOptions
+): (input?: any) => Promise<void> {
     const { client: wsClient } = useContext(WebSocketCtx);
     const importers = useContext(ImportersCtx);
     const { get: getAction } = useActionRegistry();
@@ -309,7 +322,15 @@ export default function useAction(action: Action, options?: UseActionOptions): (
     const eventBus = useEventBus();
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
-    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>();
+    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>({
+        extras,
+        history,
+        location,
+        notificationCtx,
+        taskCtx,
+        wsClient,
+        eventBus,
+    });
     const optionsRef = useRef(options);
 
     useLayoutEffect(() => {
@@ -331,6 +352,10 @@ export default function useAction(action: Action, options?: UseActionOptions): (
 
             // execute actions sequentially
             for (const actionToExecute of actionsToExecute) {
+                if (!actionToExecute) {
+                    continue;
+                }
+
                 const loadingVariable =
                     !isActionImpl(actionToExecute) ?
                         getOrRegisterPlainVariable(actionToExecute.loading, wsClient, taskCtx, extras)

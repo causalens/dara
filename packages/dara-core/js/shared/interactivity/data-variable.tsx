@@ -4,23 +4,23 @@ import { atom } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { WebSocketClientInterface, fetchTaskResult, handleAuthErrors } from '@/api';
-import { RequestExtras, request } from '@/api/http';
+import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors } from '@/api';
+import { type RequestExtras, request } from '@/api/http';
 import {
-    DataFrame,
-    DataVariable,
-    DerivedDataVariable,
-    FilterQuery,
-    GlobalTaskContext,
-    Pagination,
-    ResolvedDataVariable,
+    type DataFrame,
+    type DataVariable,
+    type DerivedDataVariable,
+    type FilterQuery,
+    type GlobalTaskContext,
+    type Pagination,
+    type ResolvedDataVariable,
 } from '@/types';
 
 import { useRequestExtras } from '../context';
 import { useEventBus } from '../event-bus/event-bus';
 import { combineFilters } from './filtering';
 // eslint-disable-next-line import/no-cycle
-import { DerivedVariableValueResponse } from './internal';
+import { type DerivedVariableValueResponse } from './internal';
 import { atomRegistry } from './store';
 
 /**
@@ -75,7 +75,7 @@ function createDataUrl(path: string, pagination?: Pagination): URL {
 export async function fetchDataVariable(
     uid: string,
     extras: RequestExtras,
-    filters?: FilterQuery,
+    filters?: FilterQuery | null,
     pagination?: Pagination
 ): Promise<DataFrame> {
     const url = createDataUrl(`/api/core/data-variable/${uid}`, pagination);
@@ -93,7 +93,7 @@ interface TaskResponse {
 export interface DataResponse {
     data: DataFrame | null;
     totalCount: number;
-    schema: DataFrameSchema;
+    schema?: DataFrameSchema;
 }
 
 type FieldType = {
@@ -126,7 +126,7 @@ export async function fetchDerivedDataVariable(
     extras: RequestExtras,
     cacheKey: string,
     wsChannel: string,
-    filters?: FilterQuery,
+    filters?: FilterQuery | null,
     pagination?: Pagination
 ): Promise<DataFrame | TaskResponse | null> {
     const url = createDataUrl(`/api/core/data-variable/${uid}`, pagination);
@@ -150,7 +150,7 @@ export async function fetchDerivedDataVariable(
 async function fetchDataVariableCount(
     uid: string,
     extras: RequestExtras,
-    filters?: FilterQuery,
+    filters?: FilterQuery | null,
     cacheKey?: string
 ): Promise<number> {
     const response = await request(
@@ -287,7 +287,7 @@ export function useFetchDerivedDataVariable(
                 data = await fetchTaskResult<DataFrame>(taskId, extras);
             } else {
                 // otherwise use response directly
-                data = response as DataFrame | null;
+                data = response;
             }
 
             // For derived data variables count can only be fetched when task is not running so we have to make the request here

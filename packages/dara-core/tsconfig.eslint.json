@@ -1,11 +1,23 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./js/", "./tests/", "./cypress/"],
+  "include": [
+    "./js/",
+    "./tests/",
+    "./cypress/"
+  ],
   "exclude": [],
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "@/*": ["./js/*"]
-    }
+      "@/*": [
+        "./js/*"
+      ]
+    },
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
   }
 }

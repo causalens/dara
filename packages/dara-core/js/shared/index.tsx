@@ -36,6 +36,10 @@ export {
     useAnyVariable,
     resolveValue,
     useVariableValue,
+    useRefreshSelector,
+    useRefreshServerComponent,
+    getRegistryKey,
+    getComponentRegistryKey,
 } from './interactivity';
 export { useEventBus, EventBus, EventCapturer } from './event-bus/event-bus';
 export { default as Wrapper } from './wrapper/wrapper';
