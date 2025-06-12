@@ -285,6 +285,31 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }, [props.component]);
 
+    // Track initial mount to avoid double resolution
+    const isInitialMount = useRef(true);
+
+    // Reset loading state when component changes to re-resolve the component
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        // Try sync resolution first for the new component
+        const SyncResolved = resolveComponentSync(props.component);
+
+        if (SyncResolved) {
+            // Can resolve synchronously
+            setComponent(SyncResolved);
+            setIsLoading(false);
+            setLoadingStarted(false);
+        } else {
+            // Need async resolution
+            setIsLoading(true);
+            setLoadingStarted(false);
+        }
+    }, [props.component]);
+
     // Async loading effect
     useEffect(() => {
         if (!isLoading || loadingStarted) {
