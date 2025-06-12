@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.20
 
 -  Replaced `ignore_current_channel` parameter with `ignore_channel` in `BackendStore.write`. Only sync writes now prevent loopback by default.
 -  Fixed an issue where sequence numbers would get out of sync on the first refresh due to sending a loopback write request.
