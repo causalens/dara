@@ -1,4 +1,4 @@
-import { mapValues } from 'lodash';
+import mapValues from 'lodash/mapValues';
 import React from 'react';
 import { tinykeys } from 'tinykeys';
 import type { KeyBindingMap, KeyBindingOptions } from 'tinykeys';

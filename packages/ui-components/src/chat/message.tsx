@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { format, parseISO } from 'date-fns';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import * as React from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';

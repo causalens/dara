@@ -1,5 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { isArray, isEmpty, isEqual, isNil, isObject } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
+import isNil from 'lodash/isNil';
+import isObject from 'lodash/isObject';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import {
@@ -189,7 +192,9 @@ function Select(props: SelectProps): JSX.Element {
         const onSelect = useCallback(
             (_items: Array<Item>) => {
                 const currentSelection = _items.map((item: Item) => item.value);
-                if (!isEqual(currentSelection, isArray(valueRef.current) ? valueRef.current : [valueRef.current])) {
+                if (
+                    !isEqual(currentSelection, Array.isArray(valueRef.current) ? valueRef.current : [valueRef.current])
+                ) {
                     setValue(currentSelection);
                     onChangeAction(currentSelection);
                     formCtx.updateForm(currentSelection);
@@ -200,7 +205,7 @@ function Select(props: SelectProps): JSX.Element {
 
         const selectedItems = useMemo(() => {
             const found = getMultiselectItems(value, itemArray);
-            const explicitValues = isArray(value) ? value.map(toItem) : value;
+            const explicitValues = Array.isArray(value) ? value.map(toItem) : value;
             return isEmpty(found) ? explicitValues ?? null : found;
         }, [formattedItems, value]);
 

@@ -1,12 +1,19 @@
 import { act, renderHook } from '@testing-library/react';
+import omit from 'lodash/omit';
 import { rest } from 'msw';
 
 import { EventCapturer, combineFilters, useDataVariable } from '../../js/shared';
-import { DaraEventMap, DataVariable, DerivedDataVariable, FilterQuery, Pagination, SingleVariable } from '../../js/types';
+import {
+    DaraEventMap,
+    DataVariable,
+    DerivedDataVariable,
+    FilterQuery,
+    Pagination,
+    SingleVariable,
+} from '../../js/types';
 import { MockWebSocketClient, Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 import { handlers, mockSchema } from './utils/test-server-handlers';
-import { omit } from 'lodash';
 
 // Handler specifically for Derived Data Variable tests
 const ddvHandler = rest.post('/api/core/data-variable/:uid*', async (req, res, ctx) => {
@@ -53,7 +60,6 @@ const ddvHandler = rest.post('/api/core/data-variable/:uid*', async (req, res, c
     );
 });
 
-
 const ddvSchemaHandler = rest.get('/api/core/data-variable/:uid/schema', async (req, res, ctx) => {
     if (req.url.pathname.endsWith('/schema')) {
         const body = await req.json();
@@ -63,7 +69,6 @@ const ddvSchemaHandler = rest.get('/api/core/data-variable/:uid/schema', async (
         return res(ctx.json(mockSchema));
     }
 });
-
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
@@ -109,11 +114,13 @@ describe('useDataVariable', () => {
 
             const { result } = renderHook(() => useDataVariable(dataVariable), {
                 wrapper: (props) => (
-                    <EventCapturer onEvent={(ev) => {
-                        if (ev.type === 'DATA_VARIABLE_LOADED') {
-                            receivedData.push(ev.data);
-                        }
-                    }}>
+                    <EventCapturer
+                        onEvent={(ev) => {
+                            if (ev.type === 'DATA_VARIABLE_LOADED') {
+                                receivedData.push(ev.data);
+                            }
+                        }}
+                    >
                         <Wrapper>{props.children}</Wrapper>
                     </EventCapturer>
                 ),
@@ -227,11 +234,12 @@ describe('useDataVariable', () => {
         beforeEach(() => {
             // Override the handler for this specific test suite
             server.use(
-                ...handlers.filter(handler =>
-                    !(handler.info.path === '/api/core/data-variable/:uid*' && handler.info.method === 'POST')
+                ...handlers.filter(
+                    (handler) =>
+                        !(handler.info.path === '/api/core/data-variable/:uid*' && handler.info.method === 'POST')
                 ),
                 ddvHandler,
-                ddvSchemaHandler,
+                ddvSchemaHandler
             );
         });
 
@@ -272,11 +280,13 @@ describe('useDataVariable', () => {
 
             const { result } = renderHook(() => useDataVariable(dataVariable), {
                 wrapper: (props) => (
-                    <EventCapturer onEvent={(ev) => {
-                        if (ev.type === 'DERIVED_DATA_VARIABLE_LOADED') {
-                            receivedData.push(ev.data);
-                        }
-                    }}>
+                    <EventCapturer
+                        onEvent={(ev) => {
+                            if (ev.type === 'DERIVED_DATA_VARIABLE_LOADED') {
+                                receivedData.push(ev.data);
+                            }
+                        }}
+                    >
                         <Wrapper>{props.children}</Wrapper>
                     </EventCapturer>
                 ),
