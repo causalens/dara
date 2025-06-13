@@ -6,7 +6,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface, fetchTaskResult } from '@/api';
 import { type RequestExtras, request } from '@/api/http';
-import { handleAuthErrors } from '@/auth';
+import { handleAuthErrors } from '@/auth/auth';
 import {
     type DataFrame,
     type DataVariable,

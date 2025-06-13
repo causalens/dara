@@ -31,6 +31,16 @@ describe('DynamicComponent', () => {
         expect(container.firstChild).toBeInstanceOf(HTMLDivElement);
     });
 
+    it('should render nothing if the component is null', async () => {
+        const { container } = wrappedRender(<DynamicComponent component={null} />);
+        await waitFor(() => expect(container.firstChild).toBe(null));
+    });
+
+    it('should render nothing if the component is undefined', async () => {
+        const { container } = wrappedRender(<DynamicComponent component={undefined} />);
+        await waitFor(() => expect(container.firstChild).toBe(null));
+    });
+
     it('should update content when "component" prop changes', async () => {
         const initialComponent = {
             name: 'TestPropsComponent',
@@ -45,9 +55,10 @@ describe('DynamicComponent', () => {
             </div>
         );
         await waitFor(() =>
-            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual(
-                {...initialComponent.props, uid: initialComponent.uid}
-            )
+            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual({
+                ...initialComponent.props,
+                uid: initialComponent.uid,
+            })
         );
 
         const newComponent = {
@@ -65,9 +76,10 @@ describe('DynamicComponent', () => {
         );
 
         await waitFor(() =>
-            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual(
-                { ...newComponent.props, uid: newComponent.uid }
-            )
+            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual({
+                ...newComponent.props,
+                uid: newComponent.uid,
+            })
         );
     });
 
