@@ -4,8 +4,9 @@ import { atom } from 'recoil';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors } from '@/api';
+import { type WebSocketClientInterface, fetchTaskResult } from '@/api';
 import { type RequestExtras, request } from '@/api/http';
+import { handleAuthErrors } from '@/auth';
 import {
     type DataFrame,
     type DataVariable,

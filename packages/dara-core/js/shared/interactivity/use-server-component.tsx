@@ -11,8 +11,9 @@ import {
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { handleAuthErrors } from '@/auth';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
 import {

@@ -100,7 +100,11 @@ export function clearCaches_TEST(): void {
 /**
  * Try resolving component synchronously from cache
  */
-function resolveComponentSync(component: ComponentInstance): JSX.Element | null {
+function resolveComponentSync(component: ComponentInstance | null | undefined): JSX.Element | null {
+    if (!component) {
+        return null;
+    }
+
     if (component?.name === 'RawString') {
         return component.props.content;
     }
@@ -165,10 +169,14 @@ class ComponentLoadError extends Error {
  * Resolve component asynchronously and populate caches
  */
 async function resolveComponentAsync(
-    component: ComponentInstance,
+    component: ComponentInstance | null | undefined,
     getComponent: (component: ComponentInstance) => Promise<any>,
     importers: Record<string, () => Promise<ModuleContent>>
 ): Promise<void> {
+    if (!component) {
+        return;
+    }
+
     // Get component entry from registry
     const entry = await getComponent(component);
 
@@ -224,7 +232,7 @@ async function resolveComponentAsync(
 
 interface DynamicComponentProps {
     /** The component instance to inject */
-    component: ComponentInstance;
+    component: ComponentInstance | null | undefined;
 }
 
 /**
@@ -276,6 +284,9 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     // Sanity check - LoopVariable should NEVER leak into the actual component, should be replaced
     // by the For component. Raise a user-visible error if it does as its a developer error.
     useLayoutEffect(() => {
+        if (!props.component) {
+            return;
+        }
         const markerProp = hasMarkers(props.component);
         if (markerProp) {
             throw new UserError(
@@ -366,6 +377,11 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     const [fallback] = useState(() =>
         getFallbackComponent(props.component?.props?.fallback, props.component?.props?.track_progress, variables)
     );
+
+    // No component provided explicitly, return null
+    if (!props.component) {
+        return null;
+    }
 
     if (isLoading) {
         return fallback;

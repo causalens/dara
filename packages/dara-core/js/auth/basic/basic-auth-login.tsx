@@ -6,7 +6,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { requestSessionToken } from '@/api';
+import { requestSessionToken } from '@/auth';
 import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 
