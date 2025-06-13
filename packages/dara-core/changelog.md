@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  JS: Fixed an issue where passing a nullish component to `DynamicComponent` would cause the component to error out, it will now render `null` instead.
+
 ## 1.16.20
 
 -  Replaced `ignore_current_channel` parameter with `ignore_channel` in `BackendStore.write`. Only sync writes now prevent loopback by default.
