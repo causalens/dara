@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/utils/use-action';
+import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/interactivity/use-action';
 
 import { EventCapturer, useAction, useVariable } from '../../js/shared';
 import {

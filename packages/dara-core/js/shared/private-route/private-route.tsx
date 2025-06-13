@@ -5,7 +5,7 @@ import { Redirect } from 'react-router-dom';
 import { resolveReferrer } from '@/auth/auth';
 import { useSessionToken } from '@/auth/use-session-token';
 import DefaultFallback from '@/components/fallback/default';
-import useAction, { useActionIsLoading } from '@/shared/utils/use-action';
+import useAction, { useActionIsLoading } from '@/shared/interactivity/use-action';
 import useWindowTitle from '@/shared/utils/use-window-title';
 import { type Action } from '@/types';
 

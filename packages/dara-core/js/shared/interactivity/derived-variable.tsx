@@ -15,8 +15,9 @@ import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult, handleAuthErrors, request } from '@/api';
+import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { handleAuthErrors } from '@/auth/auth';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
@@ -202,7 +203,7 @@ async function debouncedFetchDerivedVariable({
  * @param value value to resolve
  * @param getter recoil getter function
  */
-export function resolveValue(
+function resolveValue(
     value: ResolvedDerivedVariable | ResolvedDerivedDataVariable | ResolvedDataVariable | RecoilValue<any>,
     getter: GetRecoilValue
 ): any {

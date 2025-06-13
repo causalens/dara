@@ -6,11 +6,10 @@ import { useHistory, useLocation } from 'react-router-dom';
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { requestSessionToken } from '@/api';
 import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 
-import { verifySessionToken } from '../auth';
+import { requestSessionToken, verifySessionToken } from '../auth';
 import { getSessionToken, setSessionToken } from '../use-session-token';
 
 const Wrapper = styled.div`

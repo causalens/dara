@@ -4,7 +4,6 @@ export { default as cleanSessionCache } from './clean-session-cache';
 export { getToken, getTokenKey, DARA_JWT_TOKEN } from './embed';
 export { default as isJsComponent } from './is-js-component';
 export { default as resolveTheme } from './resolve-theme';
-export { default as useAction, useActionIsLoading } from './use-action';
 export { default as useDeferLoadable } from './use-defer-loadable';
 export { default as useComponentRegistry } from './use-component-registry';
 export { default as useInterval } from './use-interval';

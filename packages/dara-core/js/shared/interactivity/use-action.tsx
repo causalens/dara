@@ -23,11 +23,10 @@ import {
 import { isActionImpl, isVariable } from '@/types/utils';
 
 import { useEventBus } from '../event-bus/event-bus';
-import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
-import { resolveVariable } from '../interactivity/resolve-variable';
-import { useVariable } from '../interactivity/use-variable';
-import { normalizeRequest } from './normalization';
-import useActionRegistry from './use-action-registry';
+import { normalizeRequest } from '../utils/normalization';
+import useActionRegistry from '../utils/use-action-registry';
+import { getOrRegisterPlainVariable, resolveVariable } from './internal';
+import { useVariable } from './use-variable';
 
 /**
  * Invoke a server-side action.

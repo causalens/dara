@@ -6,8 +6,9 @@ import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEff
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { type BackendStorePatchMessage, type WebSocketClientInterface, handleAuthErrors } from '@/api';
+import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
+import { handleAuthErrors } from '@/auth/auth';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
 import { type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
