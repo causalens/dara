@@ -1209,7 +1209,8 @@ class ActionCtx:
         functions from that designated module.
 
         ```python
-        from dara.core import ConfigurationBuilder, TaskProgressUpdate, action, ActionCtx
+        from dara.core import ConfigurationBuilder, TaskProgressUpdate, action, ActionCtx, Variable
+        from dara.components import Text, Stack, Button
         from .my_module import my_task_function
 
         config = ConfigurationBuilder()
