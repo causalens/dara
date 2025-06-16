@@ -17,7 +17,7 @@ limitations under the License.
 
 import inspect
 import math
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union, overload
 
 from anyio import (
     CancelScope,
@@ -70,6 +70,7 @@ class Task(BaseTask):
         notify_channels: Optional[List[str]] = None,
         cache_key: Optional[str] = None,
         task_id: Optional[str] = None,
+        on_progress: Optional[Callable[[TaskProgressUpdate], None | Awaitable[None]]] = None,
     ):
         """
         :param func: The function to execute within the process
@@ -87,6 +88,7 @@ class Task(BaseTask):
         self.notify_channels = notify_channels if notify_channels is not None else []
         self.cache_key = cache_key
         self.reg_entry = reg_entry
+        self.on_progress = on_progress
 
         super().__init__(task_id)
 
@@ -359,6 +361,14 @@ class TaskManager:
         self.ws_manager = ws_manager
         self.store = store
 
+    @overload
+    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any:
+        ...
+
+    @overload
+    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask:
+        ...
+
     async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None):
         """
         Run a task and store it in the tasks dict
@@ -504,6 +514,8 @@ class TaskManager:
                                     'message': message.message,
                                 }
                             )
+                            if isinstance(task, Task) and task.on_progress:
+                                await run_user_handler(task.on_progress, args=(message,))
                         elif isinstance(message, TaskResult):
                             # Resolve the pending task related to the result
                             if message.task_id in self.tasks:

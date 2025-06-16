@@ -52,6 +52,7 @@ from dara.core.base_definitions import (
     AnnotatedAction,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.base_definitions import TaskProgressUpdate
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -1191,6 +1192,69 @@ class ActionCtx:
         :param type: the type of the file to download, defaults to csv
         """
         return await DownloadVariable(variable=variable, file_name=file_name, type=type).execute(self)
+
+    async def run_task(
+        self,
+        func: Callable,
+        args: Union[List[Any], None] = None,
+        kwargs: Union[Dict[str, Any], None] = None,
+        on_progress: Optional[Callable[[TaskProgressUpdate], None | Awaitable[None]]] = None,
+    ):
+        """
+        Run a calculation as a task in a separate process. Recommended for CPU intensive tasks.
+        Returns the result of the task function.
+
+        Note that the function must be defined in a separate module as configured in `task_module` field of the
+        configuration builder. This is because Dara spawns separate worker processes only designed to run
+        functions from that designated module.
+
+        ```python
+        from dara.core import ConfigurationBuilder, TaskProgressUpdate, action, ActionCtx
+        from .my_module import my_task_function
+
+        config = ConfigurationBuilder()
+        config.task_module = 'my_module'
+
+        status = Variable('Not started')
+
+        @action
+        async def my_task(ctx: ActionCtx):
+            async def on_progress(update: TaskProgressUpdate):
+                await ctx.update(status, f'Progress: {update.progress}% - {update.message}')
+
+            try:
+                result = await ctx.run_task(my_task_function, args=[1, 10], on_progress=on_progress)
+                await ctx.update(status, f'Result: {result}')
+            except Exception as e:
+                await ctx.update(status, f'Error: {e}')
+
+        def task_page():
+            return Stack(Text('Status display:'), Text(text=status), Button('Run', onclick=my_task()))
+
+        config.add_page(name='task', content=task_page())
+        ```
+
+        :param func: the function to run as a task
+        :param args: the arguments to pass to the function
+        :param kwargs: the keyword arguments to pass to the function
+        :param on_progress: a callback to receive progress updates
+        """
+        from dara.core.internal.registries import utils_registry
+        from dara.core.internal.tasks import Task, TaskManager
+
+        task_mgr: TaskManager = utils_registry.get('TaskManager')
+
+        task = Task(func=func, args=args, kwargs=kwargs, on_progress=on_progress)
+        pending_task = await task_mgr.run_task(task)
+
+        # Run until completion
+        await pending_task.event.wait()
+
+        # Raise exception if there was one
+        if pending_task.error:
+            raise pending_task.error
+
+        return pending_task.result
 
     async def execute_action(self, action: ActionImpl):
         """

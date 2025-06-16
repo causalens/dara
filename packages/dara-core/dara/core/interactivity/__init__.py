@@ -20,6 +20,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from dara.core.interactivity.actions import (
+    ActionCtx,
     DownloadContent,
     DownloadContentImpl,
     DownloadVariable,
@@ -45,6 +46,7 @@ from dara.core.interactivity.url_variable import UrlVariable
 
 __all__ = [
     'action',
+    'ActionCtx',
     'AnyVariable',
     'AnyDataVariable',
     'DataVariable',
