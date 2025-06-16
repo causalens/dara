@@ -70,7 +70,7 @@ class Task(BaseTask):
         notify_channels: Optional[List[str]] = None,
         cache_key: Optional[str] = None,
         task_id: Optional[str] = None,
-        on_progress: Optional[Callable[[TaskProgressUpdate], None | Awaitable[None]]] = None,
+        on_progress: Optional[Callable[[TaskProgressUpdate], Union[None, Awaitable[None]]]] = None,
     ):
         """
         :param func: The function to execute within the process

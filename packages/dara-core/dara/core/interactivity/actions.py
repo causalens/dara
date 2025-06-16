@@ -1198,7 +1198,7 @@ class ActionCtx:
         func: Callable,
         args: Union[List[Any], None] = None,
         kwargs: Union[Dict[str, Any], None] = None,
-        on_progress: Optional[Callable[[TaskProgressUpdate], None | Awaitable[None]]] = None,
+        on_progress: Optional[Callable[[TaskProgressUpdate], Union[None, Awaitable[None]]]] = None,
     ):
         """
         Run a calculation as a task in a separate process. Recommended for CPU intensive tasks.
