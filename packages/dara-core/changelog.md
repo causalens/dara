@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.21
 
 -  JS: Fixed an issue where passing a nullish component to `DynamicComponent` would cause the component to error out, it will now render `null` instead.
 -  Added a new `run_task` method to `ActionCtx` to imperatively run a task in a separate process.
