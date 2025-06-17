@@ -4,13 +4,13 @@ title: Progress Tracking
 
 It is often beneficial to provide the end-user with live progress updates on a long-running task.
 
-Dara provides a simple API to send progress updates from inside a task and display them in the form of a progress bar while a task is running, rather than displaying a plain loading spinner which is the default. 
+Dara provides a simple API to send progress updates from inside a task and display them in the form of a progress bar while a task is running, rather than displaying a plain loading spinner which is the default.
 
 Sometimes progress is hard to track if your computations are not iterative or are done through a third party library. In this case, you can fake the progress to keep the user assured the app is working.
 
-### Using `ProgressUpdater` 
+### Using `ProgressUpdater`
 
-The example below shows how to setup your task to send progress updates with the `dara.core.progress_updater.ProgressUpdater`. The task itself is simply looping through a range of 0 to 10 adding one each time to the input and returning the output after the loop is complete. Each time you add one, you can send an update and the progress bar will increment. 
+The example below shows how to setup your task to send progress updates with the `dara.core.progress_updater.ProgressUpdater`. The task itself is simply looping through a range of 0 to 10 adding one each time to the input and returning the output after the loop is complete. Each time you add one, you can send an update and the progress bar will increment.
 
 First, wrap your task in the `@track_progress` decorator:
 
@@ -130,4 +130,34 @@ def task_function(some_argument: int, updater: ProgressUpdater):
 
     updater.send_update(100, 'Done')
     return result
+```
+
+### Imperative tasks
+
+Sometimes you may want to run a task upon a specific user action imperatively, rather than declaratively in a DerivedVariable. You can do that using the `run_task` method on `ActionCtx` within [`@action`s](../getting-started/actions#run_task).
+
+Progress updates are then sent in the same way, using the `ProgressUpdater` instance. The difference is that instead of Dara handling displaying and updating a progress tracker component, you are in control of updating the UI in an `on_progres` callback.
+
+```python title=my_app/main.py
+from dara.core import action, ActionCtx, Variable
+from dara.components import Button
+from .tasks import task_function
+
+# variable displaying the current status of the task
+status = Variable('Not started')
+
+@action
+async def run_my_task(ctx: ActionCtx):
+    # whenever a status update is sent from the task, update the status message
+    async def on_progress(update: TaskProgressUpdate):
+        await ctx.update(status, f'Progress: {update.progress}% - {update.message}')
+
+    # Run the task with 5 as kwarg and update the status message with the result or error
+    try:
+        result = await ctx.run_task(task_function, kwargs={'some_argument': 5}, on_progress=on_progress)
+        await ctx.update(status, f'Result: {result}')
+    except Exception as e:
+        await ctx.update(status, f'Error: {e}')
+
+Button('Run Task', onclick=run_my_task())
 ```
