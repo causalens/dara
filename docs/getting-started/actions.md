@@ -402,6 +402,74 @@ def test_page():
 config.add_page(name='Download Variable', content=test_page())
 ```
 
+### `run_task`
+
+The `run_task` action can be used to run a calculation as a task in a separate process. This is recommended for CPU-intensive tasks and requires the task system to be set up in Dara.
+See the [Tasks subsection in the DerivedVariable section](./interactivity#derivedvariable) for details, the following paragraph assumes familiary with the concept.
+
+The `run_task` action lets you imperatively invoke a task calculation within an `@action` function and update your UI based on its results or progress updates.
+
+It takes the following arguments:
+
+- `func`: the function to run as a task - must be defined in the module configured as `task_module` in `ConfigurationBuilder`
+- `args`: the list of arguments to pass to the function
+- `kwargs`: the dict of keyword arguments to pass to the function
+- `on_progress`: a callback invoked when progress updates are sent - see [Progress Tracking](../advanced/progress-tracking) for details
+
+See the following example:
+
+```python title=my_app/tasks.py
+import asyncio
+from dara.core import ProgressUpdater, track_progress
+
+
+@track_progress
+async def increment(x: int, y: int, updater: ProgressUpdater):
+    result = x
+    updater.send_update(0, 'Starting increment')
+
+    for i in range(y):
+        await asyncio.sleep(1)
+        result += 1
+        updater.send_update((i / y) * 100, f'Incrementing {i}')
+
+    updater.send_update(100, 'Done')
+    return result
+
+
+```
+
+```python title=my_app/main.py
+from dara.core import ConfigurationBuilder, TaskProgressUpdate, action, ActionCtx, Variable
+from dara.components import Text, Stack, Button
+from .tasks import my_task_function
+
+config = ConfigurationBuilder()
+config.task_module = 'my_app.tasks'
+
+# variable displaying the current status of the task
+status = Variable('Not started')
+
+@action
+async def my_task(ctx: ActionCtx):
+    # whenever a status update is sent from the task, update the status message
+    async def on_progress(update: TaskProgressUpdate):
+        await ctx.update(status, f'Progress: {update.progress}% - {update.message}')
+
+    # Run the task with [1, 10] as arguments and update the status message with the result or error
+    try:
+        result = await ctx.run_task(my_task_function, args=[1, 10], on_progress=on_progress)
+        await ctx.update(status, f'Result: {result}')
+    except Exception as e:
+        await ctx.update(status, f'Error: {e}')
+
+def task_page():
+    return Stack(Text('Status display:'), Text(text=status), Button('Run', onclick=my_task()))
+
+config.add_page(name='task', content=task_page())
+```
+
+
 ## Shortcut actions
 
 Shortcut actions are convenience methods on variable instances that can be used to perform common actions.

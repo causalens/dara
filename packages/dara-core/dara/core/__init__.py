@@ -34,6 +34,7 @@ __version__ = version('dara-core')
 
 __all__ = [
     'action',
+    'ActionCtx',
     'ConfigurationBuilder',
     'DerivedVariable',
     'DerivedDataVariable',

@@ -1,8 +1,18 @@
 import pytest
+from async_asgi_testclient import TestClient
 from pandas import DataFrame
 
-from dara.core import DownloadContent, DownloadVariable, NavigateTo, SideEffect, UpdateVariable, UrlVariable, Variable
-from dara.core.base_definitions import ActionImpl, AnnotatedAction
+from dara.core import (
+    DownloadContent,
+    DownloadVariable,
+    NavigateTo,
+    SideEffect,
+    UpdateVariable,
+    UrlVariable,
+    Variable,
+)
+from dara.core.base_definitions import ActionImpl, AnnotatedAction, TaskProgressUpdate
+from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity.actions import (
     ACTION_CONTEXT,
     BOUND_PREFIX,
@@ -18,6 +28,9 @@ from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.internal.execute_action import _execute_action
 from dara.core.internal.registries import action_registry, static_kwargs_registry
+from dara.core.main import _start_application
+
+from tests.python.tasks import add, track_task
 
 pytestmark = pytest.mark.anyio
 
@@ -493,3 +506,67 @@ async def test_annotated_action_static_method():
 
     ctx = ActionCtx(None, None)
     assert await _execute_action(act_def.resolver, ctx, {**static_kwargs, 'arg': 1}) == (ctx, var, 'two')
+
+
+async def test_action_run_task_with_args(monkeypatch: pytest.MonkeyPatch):
+    config = ConfigurationBuilder()
+    config.task_module = 'tests.python.tasks'
+    config = config._to_configuration()
+
+    # patch workers to speed up the test
+    monkeypatch.setenv('DARA_POOL_MAX_WORKERS', '1')
+
+    app = _start_application(config)
+
+    # start the app normally, booting up the task pool etc
+    async with TestClient(app) as client:
+        result = None
+
+        async def _raw_test_action(ctx: ActionCtx, x: int, y: int):
+            nonlocal result
+            # test both args and kwargs
+            result = await ctx.run_task(add, args=[x], kwargs={'y': y})
+
+        # Calling decorator manually to have access to raw func
+        test_action = action(_raw_test_action)
+        act_def = action_registry.get(test_action.definition_uid)
+
+        ctx = ActionCtx(None, None)
+        await _execute_action(act_def.resolver, ctx, values={'x': 13, 'y': 7})
+        # result should be the sum
+        assert result == 20
+
+
+async def test_action_run_task_progress(monkeypatch: pytest.MonkeyPatch):
+    config = ConfigurationBuilder()
+    config.task_module = 'tests.python.tasks'
+    config = config._to_configuration()
+
+    # patch workers to speed up the test
+    monkeypatch.setenv('DARA_POOL_MAX_WORKERS', '1')
+
+    app = _start_application(config)
+
+    # start the app normally, booting up the task pool etc
+    async with TestClient(app) as client:
+        updates: list[TaskProgressUpdate] = []
+        result = None
+
+        async def _raw_test_action(ctx: ActionCtx):
+            nonlocal result
+            result = await ctx.run_task(track_task, on_progress=lambda update: updates.append(update))
+
+        # Calling decorator manually to have access to raw func
+        test_action = action(_raw_test_action)
+        act_def = action_registry.get(test_action.definition_uid)
+
+        ctx = ActionCtx(None, None)
+        await _execute_action(act_def.resolver, ctx, values={})
+        # result as defined in the task
+        assert result == 'result'
+
+        assert len(updates) == 5
+
+        # check updates were received in the correct order
+        for i in range(1, 6):
+            assert updates[i - 1].progress == (i / 5) * 100
