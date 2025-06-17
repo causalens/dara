@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.22
 
 -  Added a new `run_task` method to `ActionCtx` to imperatively run a task in a separate process.
 
