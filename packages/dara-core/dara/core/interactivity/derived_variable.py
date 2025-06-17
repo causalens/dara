@@ -90,7 +90,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
     def __init__(
         self,
-        func: Callable[..., VariableType],
+        func: Callable[..., VariableType] | Callable[..., Awaitable[VariableType]],
         variables: List[AnyVariable],
         cache: Optional[CacheArgType] = Cache.Type.GLOBAL,
         run_as_task: bool = False,
