@@ -38,3 +38,4 @@ export { default as useUpdateEffect } from './use-update-effect';
 export { useLatestCallback } from './use-latest-callback';
 export { useLatestRef } from './use-latest-ref';
 export { useTinykeys, useFocusTinykeys } from './use-tinykeys';
+export { default as useIME } from './use-ime';

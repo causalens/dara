@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.16.9-alpha.1
+
+-  Fixed an issue with `CodeEditor`, `Input`, `Select`, `Textarea` components where they would bubble up Enter keypresses when confirming composition using IME input
+
 ## 1.16.6
 
 -  Added a new improved `UiCodeEditor` implementation into this package directly, superseding the old `@darajs/ui-code-editor` package.
