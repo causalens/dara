@@ -16,11 +16,12 @@
  */
 import { autoUpdate, flip, shift, useFloating, useInteractions, useRole } from '@floating-ui/react';
 import { UseMultipleSelectionStateChange, useCombobox, useMultipleSelection } from 'downshift';
-import { useCallback, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import styled from '@darajs/styled-components';
 import { Cross } from '@darajs/ui-icons';
+import { useIME } from '@darajs/ui-utils';
 
 import ChevronButton from '../shared/chevron-button';
 import DropdownList from '../shared/dropdown-list';
@@ -28,7 +29,6 @@ import Tooltip from '../tooltip/tooltip';
 import { InteractiveComponentProps, Item } from '../types';
 import { matchWidthToReference } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
-import { useIME } from '@darajs/ui-utils';
 
 const { stateChangeTypes } = useCombobox;
 
@@ -270,10 +270,9 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
         inputValue,
         itemToString: (item) => item?.label || '',
         items: filteredItems,
-        onStateChange: ({ inputValue: internalInputVal, selectedItem, type }: any) => {
-            if (type === stateChangeTypes.InputChange) {
-                onTermChange(internalInputVal);
-            }
+        onStateChange: ({ selectedItem, type }: any) => {
+            // Note: we're explicitly ignoring InputChange as we're consuming it in a custom onChange handler
+            // see comment below
             if (
                 [stateChangeTypes.InputKeyDownEnter, stateChangeTypes.ItemClick, stateChangeTypes.InputBlur].includes(
                     type
@@ -307,6 +306,11 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
     const inputProps = {
         ...getInputProps(getDropdownProps({ preventKeyAction: isOpen })),
         ...getReferenceProps(),
+        // Override the onChange to bypass downshift's handling, this is due to a bug with IME
+        // see https://github.com/downshift-js/downshift/issues/1452
+        onChange: (ev: ChangeEvent<HTMLInputElement>) => {
+            onTermChange(ev.target.value);
+        },
     };
     const inputHandlers = useIME({
         onKeyDown: inputProps.onKeyDown,
