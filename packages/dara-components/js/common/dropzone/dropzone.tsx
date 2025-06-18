@@ -97,7 +97,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     const onFileDrop = useAction(props.on_drop);
     const extras = useRequestExtras();
 
-    const onDrop = async (acceptedFiles: Array<File>): Promise<void> => {
+    const onDrop = async (acceptedFiles: Array<File>, rejectedFiles?: Array<any>): Promise<void> => {
         if (acceptedFiles.length === 1) {
             setCurrentStatus(status.LOADING);
 
@@ -115,8 +115,19 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
                 throw err;
             }
             onFileDrop(acceptedFiles[0]);
+        } else if (rejectedFiles && rejectedFiles.length === 1) {
+            // Single file rejected due to wrong type
+            // Default types from DROPZONE_ALLOWED_MIME_TYPES in @darajs/ui-components/src/dropzone/dropzone.tsx
+            const acceptedTypes = props.accept || 'CSV and Excel files (.csv, .xlsx, .xls)';
+            setErrorMessage(`Upload failed. Please drop a file of the following type(s): ${acceptedTypes}`);
+            setCurrentStatus(status.FAILED);
+        } else if (rejectedFiles && rejectedFiles.length > 1) {
+            // Multiple files dropped
+            setErrorMessage('Upload failed. Please drop only one file at a time.');
+            setCurrentStatus(status.FAILED);
         } else {
-            setErrorMessage('Upload failed. Please individually drop CSV files');
+            // Fallback case
+            setErrorMessage('Upload failed. Please try again.');
             setCurrentStatus(status.FAILED);
         }
     };

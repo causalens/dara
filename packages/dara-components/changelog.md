@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed `UploadDropzone` error messages to properly distinguish between wrong file types and multiple files.
+
 ## 1.16.17
 
 -  Fixed a regression where outside updates to a `Variable` connected to `Slider` would not be reflected in the slider's value

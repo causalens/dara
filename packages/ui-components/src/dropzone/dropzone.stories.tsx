@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import { Meta } from '@storybook/react';
+import { useState } from 'react';
 
 import { default as DropzoneComponent, UploadDropzoneProps } from './dropzone';
 
@@ -23,4 +24,26 @@ export default {
     title: 'UI Components/Dropzone',
 } as Meta;
 
-export const Dropzone = (props: UploadDropzoneProps): JSX.Element => <DropzoneComponent {...props} />;
+export const Dropzone = (props: UploadDropzoneProps): JSX.Element => {
+    const [files, setFiles] = useState<string[]>([]);
+
+    const handleDrop = (acceptedFiles: Array<File>): void => {
+        setFiles(acceptedFiles.map(f => f.name));
+    };
+
+    return (
+        <div>
+            <DropzoneComponent {...props} onDrop={handleDrop} />
+            {files.length > 0 && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#e8f5e8' }}>
+                    <strong>Files accepted:</strong>
+                    <ul>
+                        {files.map((file, i) => (
+                            <li key={i}>{file}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+};
