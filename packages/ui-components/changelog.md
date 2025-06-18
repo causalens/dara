@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Updated `UploadDropzone` to pass file rejection information to improve error handling in wrapper components.
+
 ## 1.16.15
 
 - Migrated `Tooltip` component to use Floating UI instead of tippy.js.

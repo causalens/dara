@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Fixed an issue with `CodeEditor`, `Input`, `Select`, `Textarea` components where they would bubble up Enter keypresses when confirming composition using IME input
+-  Fixed `UploadDropzone` error messages to properly distinguish between wrong file types and multiple files.
 
 ## 1.16.17
 
