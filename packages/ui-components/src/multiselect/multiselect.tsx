@@ -28,6 +28,7 @@ import Tooltip from '../tooltip/tooltip';
 import { InteractiveComponentProps, Item } from '../types';
 import { matchWidthToReference } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
+import { useIME } from '@darajs/ui-utils';
 
 const { stateChangeTypes } = useCombobox;
 
@@ -303,6 +304,17 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
     const role = useRole(context, { role: 'listbox' });
     const { getReferenceProps, getFloatingProps } = useInteractions([role]);
 
+    const inputProps = {
+        ...getInputProps(getDropdownProps({ preventKeyAction: isOpen })),
+        ...getReferenceProps(),
+    };
+    const inputHandlers = useIME({
+        onKeyDown: inputProps.onKeyDown,
+        onKeyUp: inputProps.onKeyUp,
+        onCompositionStart: inputProps.onCompositionStart,
+        onCompositionEnd: inputProps.onCompositionEnd,
+    });
+
     return (
         <Wrapper
             className={props.className}
@@ -338,8 +350,8 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
                             </Tag>
                         ))}
                         <Input
-                            {...getInputProps(getDropdownProps({ preventKeyAction: isOpen }))}
-                            {...getReferenceProps()}
+                            {...inputProps}
+                            {...inputHandlers}
                             disabled={props.disabled}
                             placeholder={props.placeholder}
                             size={props.size}

@@ -18,6 +18,7 @@ import * as React from 'react';
 import { ForwardedRef, forwardRef } from 'react';
 
 import styled from '@darajs/styled-components';
+import { useIME } from '@darajs/ui-utils';
 
 import { Key } from '../constants';
 import { InteractiveComponentProps } from '../types';
@@ -136,14 +137,22 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             }
         };
 
+        const handlers = useIME({
+            onKeyDown: handleKeyDown,
+            onKeyUp: rest.onKeyUp,
+            onCompositionStart: rest.onCompositionStart,
+            onCompositionEnd: rest.onCompositionEnd,
+        });
+
+        const spreadProps = {...rest, ...handlers};
+
         return (
             <InputWrapper className={className} style={style}>
                 <PrimaryInput
-                    {...rest}
+                    {...spreadProps}
                     defaultValue={initialValue}
                     isErrored={!!errorMsg}
                     onChange={handleChange}
-                    onKeyDown={handleKeyDown}
                     ref={ref}
                     type={type}
                     min={minValue}

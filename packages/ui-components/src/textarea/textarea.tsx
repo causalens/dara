@@ -17,6 +17,7 @@
 import * as React from 'react';
 
 import styled from '@darajs/styled-components';
+import { useIME } from '@darajs/ui-utils';
 
 import { Key } from '../constants';
 import { InteractiveComponentProps } from '../types';
@@ -168,6 +169,10 @@ function TextArea({
         }
     };
 
+    const inputHandlers = useIME({
+        onKeyDown,
+    });
+
     return (
         <div className={className} style={style}>
             <PrimaryTextArea
@@ -179,7 +184,7 @@ function TextArea({
                 onBlur={onBlur}
                 onChange={onChangeText}
                 onClick={onClick}
-                onKeyDown={onKeyDown}
+                {...inputHandlers}
                 placeholder={placeholder}
                 style={{ resize, maxHeight: maxHeight ? `${maxHeight}rem` : 'none' }}
                 value={value}
