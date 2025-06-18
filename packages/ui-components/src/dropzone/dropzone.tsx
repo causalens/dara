@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { type FileRejection, useDropzone } from 'react-dropzone';
 
 import styled from '@darajs/styled-components';
 
@@ -66,7 +66,11 @@ export interface UploadDropzoneProps {
     /** Determines if the paste event listener should be enabled, allowing for direct pasting of text as files. */
     enablePaste?: boolean;
     /** An onDrop handler that is called when a file is dropped or selected from the */
-    onDrop: (acceptedFiles: Array<File>, fileRejections?: Array<any>) => void | Promise<void>;
+    onDrop: (
+        acceptedFiles: Array<File>,
+        fileRejections: Array<FileRejection>,
+        event: DragEvent | Event
+    ) => void | Promise<void>;
     /** Styling property */
     style?: React.CSSProperties;
 }
