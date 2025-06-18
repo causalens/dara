@@ -502,8 +502,54 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
         initialValueRef.current = initialValue ?? '';
     }, [initialValue, initialValueRef, shouldSyncInitialValue]);
 
+    const hasCompositionJustEnded = React.useRef(false);
+
+    const handleKeyDownCapture = React.useCallback(
+        (e: React.KeyboardEvent<HTMLDivElement>): void => {
+            // While composing (IME), stop bubbling all events
+            if (viewRef.current.compositionStarted || viewRef.current.composing) {
+                hasCompositionJustEnded.current = false;
+                e.stopPropagation();
+                e.preventDefault();
+
+                return;
+            }
+
+            // If we have JUST received a 'compositionend' event (empirically only happens on Safari),
+            // we might receive an extra 229 (enter) keypress which we should ignore
+            // See: https://www.stum.de/2016/06/24/handling-ime-events-in-javascript/
+            if (hasCompositionJustEnded.current) {
+                hasCompositionJustEnded.current = false;
+
+                if (e.which === 229) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            rest.onKeyDownCapture?.(e);
+        },
+        [rest]
+    );
+
+    const handleCompositionEndCapture = React.useCallback(
+        (e: React.CompositionEvent<HTMLDivElement>): void => {
+            hasCompositionJustEnded.current = true;
+            rest.onCompositionEndCapture?.(e);
+        },
+        [rest]
+    );
+
     return (
-        <div className={className} style={style} {...rest}>
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <div
+            className={className}
+            style={style}
+            {...rest}
+            onKeyDownCapture={handleKeyDownCapture}
+            onCompositionEndCapture={handleCompositionEndCapture}
+        >
             {/* Wrap this in an extra div otherwise react will crash when removing the node. CodeMirror modifies
             the dom directly based on the tooltip ref and this breaks react when it attempts to unmount
             the component. */}

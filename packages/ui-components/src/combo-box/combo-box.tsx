@@ -20,6 +20,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import styled from '@darajs/styled-components';
+import { useIME } from '@darajs/ui-utils';
 
 import ChevronButton from '../shared/chevron-button';
 import DropdownList from '../shared/dropdown-list';
@@ -257,6 +258,18 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
 
     const role = useRole(context, { role: 'combobox' });
     const { getReferenceProps, getFloatingProps } = useInteractions([role]);
+    const inputProps = {
+        ...getInputProps({
+            disabled: props.disabled,
+        }),
+        ...getReferenceProps(),
+    };
+    const inputHandlers = useIME({
+        onKeyDown: inputProps.onKeyDown,
+        onKeyUp: inputProps.onKeyUp,
+        onCompositionStart: inputProps.onCompositionStart,
+        onCompositionEnd: inputProps.onCompositionEnd,
+    });
 
     return (
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
@@ -269,10 +282,8 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
             >
                 <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
                     <Input
-                        {...getInputProps({
-                            disabled: props.disabled,
-                        })}
-                        {...getReferenceProps()}
+                        {...inputProps}
+                        {...inputHandlers}
                         placeholder={
                             (selectedItem === null ? props.placeholder : selectedItem?.label) ?? props.placeholder
                         }
