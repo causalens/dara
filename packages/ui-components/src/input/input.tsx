@@ -144,7 +144,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             onCompositionEnd: rest.onCompositionEnd,
         });
 
-        const spreadProps = {...rest, ...handlers};
+        const spreadProps = { ...rest, ...handlers };
 
         return (
             <InputWrapper className={className} style={style}>
