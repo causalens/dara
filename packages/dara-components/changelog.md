@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue with `CodeEditor`, `Input`, `Select`, `Textarea` components where they would bubble up Enter keypresses when confirming composition using IME input
+
 ## 1.16.17
 
 -  Fixed a regression where outside updates to a `Variable` connected to `Slider` would not be reflected in the slider's value
