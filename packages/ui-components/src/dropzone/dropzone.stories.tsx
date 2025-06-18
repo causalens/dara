@@ -28,7 +28,7 @@ export const Dropzone = (props: UploadDropzoneProps): JSX.Element => {
     const [files, setFiles] = useState<string[]>([]);
 
     const handleDrop = (acceptedFiles: Array<File>): void => {
-        setFiles(acceptedFiles.map(f => f.name));
+        setFiles(acceptedFiles.map((f) => f.name));
     };
 
     return (
