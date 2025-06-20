@@ -1,8 +1,9 @@
 from fastapi.encoders import jsonable_encoder
 
-from dara.core import CSSProperties, py_component
+from dara.core import Variable, py_component
 from dara.core.definitions import ComponentInstance, StyledComponentInstance
 from dara.core.visual.components import Fallback
+from dara.core.visual.css import CSSProperties
 
 
 def test_base_component_instance():
@@ -13,6 +14,30 @@ def test_base_component_instance():
 
     instance = TestInstance(test_prop='test')
     assert instance.dict() == {'name': 'TestInstance', 'props': {'test_prop': 'test'}, 'uid': instance.uid}
+
+
+def test_css_variable():
+    """Test that ComponentInstance can accept a  variable for raw_css"""
+
+    class TestInstance(ComponentInstance):
+        pass
+
+    css_var = Variable(default='color: red;')
+    instance = TestInstance(raw_css=css_var)
+    assert instance.dict() == {
+        'name': 'TestInstance',
+        'props': {
+            'raw_css': {
+                '__typename': 'Variable',
+                'uid': css_var.uid,
+                'default': 'color: red;',
+                'nested': [],
+                'persist_value': False,
+                'store': None,
+            }
+        },
+        'uid': instance.uid,
+    }
 
 
 def test_children():

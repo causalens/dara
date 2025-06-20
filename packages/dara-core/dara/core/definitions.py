@@ -77,10 +77,15 @@ class ErrorHandlingConfig(BaseModel):
     description: str = DEFAULT_ERROR_DESCRIPTION
     """Description to display in the error boundary"""
 
-    raw_css: Optional[Union[CSSProperties, dict, str]] = None
+    raw_css: Optional[Union[CSSProperties, dict, str, 'NonDataVariable']] = None   # type: ignore
     """Raw styling to apply to the displayed error boundary"""
 
     def model_dump(self, *args, **kwargs):
+        # resolve circular dependency
+        from dara.core.interactivity.non_data_variable import NonDataVariable
+
+        self.model_rebuild()
+
         result = super().model_dump(*args, **kwargs)
 
         # Exclude raw_css if not set
@@ -120,7 +125,7 @@ class ComponentInstance(BaseModel):
     required_routes: ClassVar[List[ApiRoute]] = []
     """List of routes the component depends on. Will be implicitly added to the app if this component is used"""
 
-    raw_css: Optional[Union[CSSProperties, dict, str]] = None
+    raw_css: Optional[Union[CSSProperties, dict, str, 'NonDataVariable']] = None   # type: ignore
     """
     Raw styling to apply to the component.
     Can be an dict/CSSProperties instance representing the `styles` tag, or a string injected directly into the CSS of the wrapping component.
@@ -167,6 +172,15 @@ class ComponentInstance(BaseModel):
 
     This has no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
     """
+
+    def __init__(self, **data):
+        # resolve circular dependency
+        from dara.core.interactivity.non_data_variable import (
+            NonDataVariable,  # pyright: ignore[reportUnusedImport]
+        )
+
+        self.model_rebuild(_types_namespace={**globals(), 'NonDataVariable': NonDataVariable})
+        super().__init__(**data)
 
     def __repr__(self):
         return '__dara__' + json.dumps(jsonable_encoder(self))
@@ -395,9 +409,6 @@ class BaseFallback(StyledComponentInstance):
                 raise ValueError('suspend_render must be a positive integer')
 
         return value
-
-
-ComponentInstance.model_rebuild()
 
 
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
