@@ -128,6 +128,14 @@ export interface LoopVariable {
     nested: string[];
 }
 
+export interface SwitchVariable<T = any> {
+    __typename: 'SwitchVariable';
+    uid: string;
+    value: Condition<T> | Variable<T> | T;
+    value_map: Variable<Record<any, any>> | Record<any, any>;
+    default: Variable<any> | any;
+}
+
 export type DataFrame = Array<{
     [col: string]: any;
 }>;
@@ -139,9 +147,15 @@ export interface DataVariable {
     uid: string;
 }
 
-export type AnyVariable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | DataVariable | DerivedDataVariable;
+export type AnyVariable<T> =
+    | SingleVariable<T>
+    | UrlVariable<T>
+    | DerivedVariable
+    | DataVariable
+    | DerivedDataVariable
+    | SwitchVariable<T>;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
-export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable;
+export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T>;
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;

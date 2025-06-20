@@ -5,15 +5,19 @@ import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITI
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
+    type SwitchVariable,
     type Variable,
+    isCondition,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isSwitchVariable,
     isUrlVariable,
     isVariable,
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
+import { isConditionTrue, useConditionOrVariable } from './condition';
 import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
@@ -28,6 +32,19 @@ import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from '
 function warnUpdateOnDerivedState(): void {
     // eslint-disable-next-line no-console
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
+}
+
+export default function useSwitchVariable<T>(variable: SwitchVariable<T>): any {
+    const value = useConditionOrVariable(variable.value);
+    const [valueMap] = useVariable(variable.value_map);
+    const [defaultValue] = useVariable(variable.default);
+
+    if (isCondition(value)) {
+        const conditionValue = isConditionTrue(value.operator, value.variable, value.other);
+        return valueMap[String(conditionValue)] ?? defaultValue;
+    }
+
+    return valueMap[value] ?? defaultValue;
 }
 
 /**
@@ -100,6 +117,10 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         }, [urlValue]);
 
         return [urlValue, setUrlValue as Dispatch<SetStateAction<T>>];
+    }
+
+    if (isSwitchVariable(variable)) {
+        return [useSwitchVariable(variable), warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);

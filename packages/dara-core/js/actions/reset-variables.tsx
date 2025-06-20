@@ -2,7 +2,14 @@ import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variabl
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
 import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
-import { isDataVariable, isDerivedDataVariable, isDerivedVariable, isUrlVariable, isVariable } from '@/types/utils';
+import {
+    isDataVariable,
+    isDerivedDataVariable,
+    isDerivedVariable,
+    isSwitchVariable,
+    isUrlVariable,
+    isVariable,
+} from '@/types/utils';
 
 /**
  * Front-end handler for ResetVariables action.
@@ -26,6 +33,8 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             ctx.eventBus.publish('URL_VARIABLE_LOADED', { variable, value: variable.default });
         } else if (isDataVariable(variable)) {
             // for data variables this is a noop
+        } else if (isSwitchVariable(variable)) {
+            // cannot reset switch variables
         } else {
             // For plain variables reset them to default values
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);

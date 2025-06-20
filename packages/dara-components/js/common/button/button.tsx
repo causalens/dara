@@ -11,13 +11,12 @@ import {
     useAction,
     useActionIsLoading,
     useComponentStyles,
-    useVariable,
+    useConditionOrVariable,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 import { Button as UiButton } from '@darajs/ui-components';
 
 import { ComponentType } from '../constants';
-import { isConditionTrue } from '../if/if';
 
 type OmitFromMappedType<Type, ToOmit> = {
     [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
@@ -37,23 +36,6 @@ interface ButtonProps extends OmitFromMappedType<StyledComponentProps, 'children
     outline?: boolean;
     /** Preset styling property for the button */
     styling: 'primary' | 'secondary' | 'error' | 'ghost' | 'plain';
-}
-
-/** Check if an object is a condition */
-function isCondition(condition: any): condition is Condition<any> {
-    return condition && !!condition.operator;
-}
-
-// Assume the arg won't change from a variable to a condition
-/* eslint-disable react-hooks/rules-of-hooks */
-/** Accept a condition or variable object and extract the value from it */
-function useConditionOrVariable(arg: boolean | Variable<boolean> | Condition<boolean>): boolean {
-    if (isCondition(arg)) {
-        const value = useVariable(arg.variable)[0];
-        const other = useVariable(arg.other)[0];
-        return isConditionTrue(arg.operator, value, other);
-    }
-    return useVariable(arg)[0];
 }
 
 /** Accept a boolean on whether the button is considerd simple, a simple button is one which has either a string or Text inside of it

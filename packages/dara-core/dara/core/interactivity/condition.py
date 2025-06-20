@@ -20,6 +20,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Union
 
+from pydantic import SerializerFunctionWrapHandler, model_serializer
+
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 # Type-only imports
@@ -46,3 +48,9 @@ class Condition(BaseModel):
     variable: AnyVariable
 
     Operator: ClassVar[OperatorType] = Operator
+
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
+
+        return {**parent_dict, '__typename': 'Condition'}
