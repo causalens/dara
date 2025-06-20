@@ -190,7 +190,7 @@ export type Component = JsComponent | PyComponent;
 
 export interface ErrorHandlingConfig {
     description: string;
-    raw_css?: React.CSSProperties | string;
+    raw_css?: React.CSSProperties | string | Variable<React.CSSProperties | string>;
     title: string;
 }
 

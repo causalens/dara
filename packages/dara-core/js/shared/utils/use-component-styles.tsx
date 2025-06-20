@@ -7,6 +7,8 @@ import { useDeepCompare } from '@darajs/ui-utils';
 import { default as DisplayCtx, type DisplayCtxValue } from '@/shared/context/display-context';
 import { type StyledComponentProps } from '@/types';
 
+import { useVariable } from '../interactivity';
+
 interface FlexProps {
     flexBasis?: string;
     flexGrow?: string;
@@ -83,7 +85,8 @@ export default function useComponentStyles(
     props: StyledComponentProps,
     useDisplayContext = true
 ): [CustomCSSProperties, string] {
-    const [rawStyles, rawCss] = parseRawCss(props.raw_css);
+    const [rawCssValue] = useVariable(props.raw_css);
+    const [rawStyles, rawCss] = parseRawCss(rawCssValue);
     const displayCtx = useContext(DisplayCtx);
     const flexProps = flexStyles(props, displayCtx, useDisplayContext);
     const styles = useMemo(() => {
