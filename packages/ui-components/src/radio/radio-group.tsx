@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 import isEqual from 'lodash/isEqual';
-import { nanoid } from 'nanoid';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { InteractiveComponentProps, Item } from '../types';
+import { InteractiveComponentProps } from '../types';
 
 interface RadioGroupWrapperProps {
     isHorizontal?: boolean;
@@ -141,15 +140,20 @@ const StyledCheckmark = styled.span<StyledCheckmarkProps>`
     }
 `;
 
-export interface RadioGroupProps extends InteractiveComponentProps<Item> {
+export interface RadioItem {
+    value: any;
+    label: React.ReactNode;
+}
+
+export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
     /** An optional value which determines the direction of the radio group components by default is vertical */
     direction?: 'horizontal' | 'vertical';
     /** Whether to show radio in list style */
     isListStyle?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
-    items: Array<Item>;
+    items: Array<RadioItem>;
     /** An optional onChange handler, will be called whenever the state of the checkbox changes */
-    onChange?: (value: Item, e?: React.FormEvent<HTMLInputElement>) => void | Promise<void>;
+    onChange?: (value: RadioItem, e?: React.FormEvent<HTMLInputElement>) => void | Promise<void>;
 }
 
 /**
@@ -158,38 +162,38 @@ export interface RadioGroupProps extends InteractiveComponentProps<Item> {
  * @param {RadioGroupProps} props - the component props
  */
 function RadioGroup(props: RadioGroupProps): JSX.Element {
-    const [currentSelected, setCurrentSelected] = useState(
-        props.items.findIndex((item) =>
-            props.value !== undefined ? isEqual(item.value, props.value) : isEqual(item.value, props.initialValue)
-        )
-    );
-    // radio needs a name that is unique to that radio component, so that more than one radio components on a page don't get mixed inputs
-    const uuid = useRef(null);
+    const isControlled = props.value !== undefined;
 
-    if (uuid.current === null) {
-        uuid.current = nanoid();
-    }
+    const [currentSelected, setCurrentSelected] = useState(() => {
+        if (isControlled) {
+            return props.items.findIndex((item) => isEqual(item.value, props.value));
+        }
+        return props.items.findIndex((item) => isEqual(item.value, props.initialValue));
+    });
+
+    // radio needs a name that is unique to that radio component, so that more than one radio components on a page don't get mixed inputs
+    const uuid = useId();
 
     const onChangeValue = (event: React.FormEvent<HTMLInputElement>): void => {
         const target = event.target as HTMLInputElement;
         const chosenIndex = Number(target.value);
-        // controlled mode
-        if (props.value !== undefined) {
+
+        if (isControlled) {
+            // controlled mode - only call onChange, don't update internal state
             props.onChange?.(props.items[chosenIndex], event);
-            // uncontrolled mode
         } else {
+            // uncontrolled mode - update internal state and call onChange
             setCurrentSelected(chosenIndex);
+            props.onChange?.(props.items[chosenIndex], event);
         }
     };
 
     useEffect(() => {
-        setCurrentSelected(
-            props.items.findIndex((item) =>
-                props.value !== undefined ? isEqual(item.value, props.value) : isEqual(item.value, props.initialValue)
-            )
-        );
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.value]);
+        if (isControlled) {
+            const newIndex = props.items.findIndex((item) => isEqual(item.value, props.value));
+            setCurrentSelected(newIndex);
+        }
+    }, [isControlled, props.value, props.items]);
 
     return (
         <RadioGroupWrapper
@@ -201,9 +205,9 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
                 return (
                     <RadioWrapper aria-disabled={props.disabled} isListStyle={props.isListStyle} key={`item-${index}`}>
                         <RadioButton
-                            checked={isEqual(props.value?.value, item.value) || currentSelected === index}
+                            checked={isControlled ? isEqual(props.value?.value, item.value) : currentSelected === index}
                             disabled={props.disabled}
-                            name={uuid.current}
+                            name={uuid}
                             onChange={(e) => onChangeValue(e)}
                             type="radio"
                             value={index}

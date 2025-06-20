@@ -1,13 +1,26 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
-import { Item, RadioGroup as UiRadio } from '@darajs/ui-components';
+import {
+    ComponentInstance,
+    DynamicComponent,
+    Variable,
+    injectCss,
+    useAction,
+    useComponentStyles,
+    useVariable,
+} from '@darajs/core';
+import { RadioItem as UIRadioItem, RadioGroup as UiRadio } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
 import { FormComponentProps } from '../types';
 
 const StyledRadio = injectCss(UiRadio);
+
+interface RadioItem {
+    value: any;
+    label: ComponentInstance | string;
+}
 
 interface RadioGroupProps extends FormComponentProps {
     /** Pass through the className property */
@@ -15,7 +28,7 @@ interface RadioGroupProps extends FormComponentProps {
     /** An optional value which determines the direction of the radio group components by default is vertical */
     direction?: 'horizontal' | 'vertical';
     /** The list of items to choose from */
-    items: Array<Item> | Variable<Item[]>;
+    items: Array<RadioItem> | Variable<RadioItem[]>;
     /** Whether to show radio in list style */
     list_styling?: boolean;
 }
@@ -29,13 +42,19 @@ interface RadioGroupProps extends FormComponentProps {
  */
 function RadioGroup(props: RadioGroupProps): JSX.Element {
     const formCtx = useFormContext(props);
-    const [items] = useVariable(props.items);
+    const [rawItems] = useVariable(props.items);
+    const items = useMemo<UIRadioItem[]>(() => {
+        return rawItems.map((item) => ({
+            value: item.value,
+            label: typeof item.label === 'string' ? item.label : <DynamicComponent component={item.label} />,
+        }));
+    }, [rawItems]);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue([]));
     const [style, css] = useComponentStyles(props);
     const onChangeAction = useAction(props.onchange);
 
     const onChange = useCallback(
-        (values: Item) => {
+        (values: RadioItem) => {
             setValue(values.value);
             onChangeAction(values.value);
             formCtx.updateForm(values.value);

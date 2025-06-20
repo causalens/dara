@@ -18,12 +18,18 @@ limitations under the License.
 from typing import Any, List, Optional, Union
 
 from pydantic import field_validator
+from typing_extensions import TypedDict
 
 from dara.components.common.base_component import FormComponent
-from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
+from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import NonDataVariable, UrlVariable, Variable
 from dara.core.visual.components.types import Direction
+
+
+class RadioItem(TypedDict):
+    value: Any
+    label: Union[str, ComponentInstance]
 
 
 class RadioGroup(FormComponent):
@@ -76,7 +82,7 @@ class RadioGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[Item], NonDataVariable]
+    items: Union[List[RadioItem], NonDataVariable]
     value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
     list_styling: Optional[bool] = False
     onchange: Optional[Action] = None
@@ -85,11 +91,9 @@ class RadioGroup(FormComponent):
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[Item], NonDataVariable]:
+    def validate_items(cls, items: Any) -> Union[List[RadioItem], NonDataVariable]:
         if isinstance(items, NonDataVariable):
             return items
-        if not isinstance(items, list):
-            raise ValueError('Items must be passed as a list to the RadioGroup component')
         if len(items) == 0:
             raise ValueError('Items list is empty, you must provide at least one item')
-        return [Item.to_item(item) for item in items]
+        return items
