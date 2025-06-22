@@ -20,6 +20,8 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedSwitchVariable,
+    UserError,
     type Variable,
     isDataVariable,
     isDerivedDataVariable,
@@ -27,6 +29,7 @@ import {
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
 
@@ -63,12 +66,17 @@ export function getVariableValue<VV, B extends boolean = false>(
     | ResolvedDataVariable
     | ResolvedDerivedVariable
     | ResolvedDerivedDataVariable
+    | ResolvedSwitchVariable
     | Promise<VV>
     | Promise<DataFrame> {
     // Using loadable since the resolver is only used for simple atoms and shouldn't cause problems
     const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.extras, (v) =>
         ctx.snapshot.getLoadable(v).getValue()
     );
+
+    if (isResolvedSwitchVariable(resolved)) {
+        throw new UserError('Switch variables are not supported in this context');
+    }
 
     // if we're NOT forced to fetch, or if it's not a DV/DDV/data variable, return the resolved value
     // variable is plain/url
@@ -80,7 +88,7 @@ export function getVariableValue<VV, B extends boolean = false>(
     }
 
     // we're forced to fetch but the resolved variable is not a resolved DV/data var, return the resolved value
-    // variable is plain/url
+    // variable is plain/url/switch
     if (
         !isResolvedDerivedVariable(resolved) &&
         !isResolvedDataVariable(resolved) &&

@@ -178,6 +178,15 @@ export interface ResolvedDerivedDataVariable {
     values: Array<any>;
 }
 
+export interface ResolvedSwitchVariable {
+    type: 'switch';
+    uid: string;
+    // either of those can be a variable
+    value: any;
+    value_map: any;
+    default: any;
+}
+
 export type ModuleContent = {
     [componentOrActionName: string]: React.ComponentType<any> | ActionHandler<any>;
 };

@@ -13,6 +13,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedSwitchVariable,
     type SwitchVariable,
     type UrlVariable,
 } from './core';
@@ -140,6 +141,17 @@ export function isResolvedDerivedDataVariable(
         'type' in value &&
         value.type === 'derived-data' &&
         'uid' in value
+    );
+}
+
+export function isResolvedSwitchVariable(value: any | ResolvedSwitchVariable): value is ResolvedSwitchVariable {
+    return (
+        value &&
+        typeof value === 'object' &&
+        'type' in value &&
+        value.type === 'switch' &&
+        'uid' in value &&
+        'value_map' in value
     );
 }
 
