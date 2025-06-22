@@ -19,10 +19,17 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Union
 
-from pydantic import SerializerFunctionWrapHandler, model_serializer
+from fastapi.encoders import jsonable_encoder
+from pydantic import (
+    SerializerFunctionWrapHandler,
+    field_serializer,
+    field_validator,
+    model_serializer,
+)
 
 from dara.core.interactivity.condition import Condition
 from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.logging import dev_logger
 
 
 class SwitchVariable(NonDataVariable):
@@ -130,8 +137,9 @@ class SwitchVariable(NonDataVariable):
     """
 
     value: Optional[Union[Condition, NonDataVariable, Any]] = None
-    value_map: Optional[Dict[Any, Any] | NonDataVariable] = None
-    default: Optional[Any | NonDataVariable] = None
+    # must be typed as any, otherwise pydantic is trying to instantiate the variables incorrectly
+    value_map: Optional[Any] = None
+    default: Optional[Any] = None
 
     def __init__(
         self,
@@ -154,6 +162,18 @@ class SwitchVariable(NonDataVariable):
             value_map=value_map,
             default=default,
         )
+
+    @field_validator('value_map')
+    @classmethod
+    def validate_value_map(cls, v):
+        """Validate that value_map is either a dict or a NonDataVariable."""
+        if v is None:
+            return v
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, NonDataVariable):
+            return v
+        raise ValueError(f'value_map must be a dict or NonDataVariable, got {type(v)}')
 
     @classmethod
     def when(
@@ -247,4 +267,3 @@ class SwitchVariable(NonDataVariable):
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'SwitchVariable', 'uid': str(parent_dict['uid'])}
-

@@ -19,6 +19,7 @@ from typing import Any, List, Literal, Optional, Union
 
 from typing_extensions import TypedDict, TypeGuard
 
+from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store import CacheStore
@@ -75,7 +76,9 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
 
 
 async def resolve_dependency(
-    entry: Union[ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, ResolvedSwitchVariable, Any],
+    entry: Union[
+        ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, ResolvedSwitchVariable, Any
+    ],
     store: CacheStore,
     task_mgr: TaskManager,
 ):
@@ -174,16 +177,38 @@ async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, sto
     :param store: store instance to use for caching
     :param task_mgr: task manager instance
     """
-    # Recursively resolve the constituent parts
+
+    async def _resolve_maybe_task(value: Any) -> Any:
+        if isinstance(value, BaseTask):
+            task_result = await task_mgr.run_task(value)
+            if isinstance(task_result, PendingTask):
+                return await task_result.value()
+            return task_result
+        return value
+
+    # resolve the constituent parts
     resolved_value = await resolve_dependency(switch_variable_entry.get('value'), store, task_mgr)
+    resolved_value = await _resolve_maybe_task(resolved_value)
+
     resolved_value_map = await resolve_dependency(switch_variable_entry.get('value_map'), store, task_mgr)
+    resolved_value_map = await _resolve_maybe_task(resolved_value_map)
+
     resolved_default = await resolve_dependency(switch_variable_entry.get('default'), store, task_mgr)
+    resolved_default = await _resolve_maybe_task(resolved_default)
 
     # The frontend should have already evaluated conditions and sent the resolved value
     # For switch variables, we just need to look up the value in the mapping
     if isinstance(resolved_value_map, dict):
+        # value could be a condition object
+        if isinstance(resolved_value, dict) and resolved_value.get('__typename') == 'Condition':
+            print('CONDITION', resolved_value)
+            # TODO
+        elif isinstance(resolved_value, bool):
+            # bools are serialized as strings
+            resolved_value = str(resolved_value).lower()
+
         # Try to get the value from the mapping, fall back to default
         return resolved_value_map.get(resolved_value, resolved_default)
-    
+
     # If value_map is not a dict (shouldn't happen in normal cases), return default
     return resolved_default

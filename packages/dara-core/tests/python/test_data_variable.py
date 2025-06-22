@@ -511,7 +511,6 @@ async def test_derived_variable_with_data_variable():
         assert response.json()['value'] == 3
         assert func.call_count == 2
 
-
 async def test_derived_variable_with_switch_variable():
     """
     Test that SwitchVariable can be used in a DerivedVariable.variables
@@ -528,7 +527,7 @@ async def test_derived_variable_with_switch_variable():
     def page():
         var1 = Variable(5)
         condition_var = Variable(True)
-        
+
         # Create a switch variable that returns 10 when True, 20 when False
         switch_var = SwitchVariable.when(
             condition=condition_var,
@@ -555,7 +554,7 @@ async def test_derived_variable_with_switch_variable():
             dv.get(),
             {
                 'values': [
-                    5, 
+                    5,
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
@@ -579,7 +578,7 @@ async def test_derived_variable_with_switch_variable():
             dv.get(),
             {
                 'values': [
-                    5, 
+                    5,
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
@@ -603,7 +602,7 @@ async def test_derived_variable_with_switch_variable():
             dv.get(),
             {
                 'values': [
-                    5, 
+                    5,
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
@@ -622,7 +621,7 @@ async def test_derived_variable_with_switch_variable():
         assert func.call_count == 3
 
 
-async def test_py_component_with_derived_variable():
+async def test_py_component_with_data_variable():
     """
     Test that DataVariable can be used in a py_component
     """
