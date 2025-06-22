@@ -50,6 +50,14 @@ class ResolvedDataVariable(TypedDict):
     uid: str
 
 
+class ResolvedSwitchVariable(TypedDict):
+    type: Literal['switch']
+    uid: str
+    value: Any
+    value_map: Any
+    default: Any
+
+
 def is_resolved_derived_variable(obj: Any) -> TypeGuard[ResolvedDerivedVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'derived'
 
@@ -62,8 +70,12 @@ def is_resolved_data_variable(obj: Any) -> TypeGuard[ResolvedDataVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'data'
 
 
+def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
+    return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
+
+
 async def resolve_dependency(
-    entry: Union[ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, Any],
+    entry: Union[ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, ResolvedSwitchVariable, Any],
     store: CacheStore,
     task_mgr: TaskManager,
 ):
@@ -83,6 +95,9 @@ async def resolve_dependency(
 
     if is_resolved_data_variable(entry):
         return await _resolve_data_var(entry, store)
+
+    if is_resolved_switch_variable(entry):
+        return await _resolve_switch_var(entry, store, task_mgr)
 
     return entry
 
@@ -149,3 +164,26 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Ca
     var = await registry_mgr.get(data_variable_registry, str(data_variable_entry.get('uid')))
     result = await DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
     return remove_index(result)
+
+
+async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, store: CacheStore, task_mgr: TaskManager):
+    """
+    Resolve a switch variable by evaluating its constituent parts and returning the appropriate value.
+
+    :param switch_variable_entry: switch variable entry
+    :param store: store instance to use for caching
+    :param task_mgr: task manager instance
+    """
+    # Recursively resolve the constituent parts
+    resolved_value = await resolve_dependency(switch_variable_entry.get('value'), store, task_mgr)
+    resolved_value_map = await resolve_dependency(switch_variable_entry.get('value_map'), store, task_mgr)
+    resolved_default = await resolve_dependency(switch_variable_entry.get('default'), store, task_mgr)
+
+    # The frontend should have already evaluated conditions and sent the resolved value
+    # For switch variables, we just need to look up the value in the mapping
+    if isinstance(resolved_value_map, dict):
+        # Try to get the value from the mapping, fall back to default
+        return resolved_value_map.get(resolved_value, resolved_default)
+    
+    # If value_map is not a dict (shouldn't happen in normal cases), return default
+    return resolved_default
