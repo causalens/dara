@@ -1515,3 +1515,125 @@ async def test_derived_data_variable_with_switch_variable():
         expected_data_3 = calc(1, FINAL_TEST_DATA)
         assert data_third_response.json() == df_convert_to_internal(expected_data_3).to_dict(orient='records')
         assert mock_func.call_count == 3
+
+
+async def test_derived_data_variable_with_switch_variable_condition():
+    """
+    Test that SwitchVariable can be used with Condition objects that compare variables in DerivedDataVariable
+    """
+    from dara.core.interactivity.condition import Condition
+    
+    builder = ConfigurationBuilder()
+
+    ddv = ContextVar('ddv')
+
+    def calc(multiplier: int, data=TEST_DATA):
+        df = data.copy()
+        numeric_cols = [col for col in df if df[col].dtype == 'int64' and col != '__index__']
+        df[numeric_cols] *= multiplier
+        return df
+
+    mock_func = Mock(wraps=calc)
+
+    def page():
+        value_var = Variable(5)
+        threshold_var = Variable(10)
+
+        # Create a condition that compares value_var to threshold_var
+        condition = Condition(
+            variable=value_var,
+            operator=Condition.Operator.GREATER_THAN,
+            other=threshold_var
+        )
+
+        # Create a switch variable that uses the condition
+        switch_var = SwitchVariable.when(
+            condition=condition,
+            true_value=5,  # multiply by 5 if condition is true
+            false_value=2,  # multiply by 2 if condition is false
+            uid='switch_condition_uid'
+        )
+
+        derived = DerivedDataVariable(mock_func, variables=[switch_var], uid='uid')
+        ddv.set(derived)
+        return MockComponent(text=derived)
+
+    builder.add_page('Test', page)
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Test with value=5, threshold=10: 5 > 10 is False, multiplier should be 2
+        response = await _get_derived_variable(
+            client, 
+            ddv.get(), 
+            {
+                'is_data_variable': True, 
+                'values': [
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_condition_uid',
+                        'value': {
+                            '__typename': 'Condition',
+                            'variable': 5,
+                            'operator': 'greater_than',
+                            'other': 10
+                        },
+                        'value_map': {True: 5, False: 2},
+                        'default': 1
+                    }
+                ], 
+                'ws_channel': 'test_channel', 
+                'force': False
+            }
+        )
+        mock_func.assert_called_once()
+        cache_key = response.json()['cache_key']
+
+        data_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+
+        expected_data = calc(2, FINAL_TEST_DATA)  # Should use false_value=2
+        assert data_response.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
+        mock_func.assert_called_once()
+
+        # Test with value=15, threshold=10: 15 > 10 is True, multiplier should be 5
+        second_response = await _get_derived_variable(
+            client, 
+            ddv.get(), 
+            {
+                'is_data_variable': True, 
+                'values': [
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_condition_uid',
+                        'value': {
+                            '__typename': 'Condition',
+                            'variable': 15,
+                            'operator': 'greater_than',
+                            'other': 10
+                        },
+                        'value_map': {True: 5, False: 2},
+                        'default': 1
+                    }
+                ], 
+                'ws_channel': 'test_channel', 
+                'force': False
+            }
+        )
+        assert second_response.json()['cache_key'] != cache_key
+        assert mock_func.call_count == 2
+
+        # Check that calling the data endpoint with new cache key gives the expected result
+        data_second_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': second_response.json()['cache_key'], 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+        expected_data_2 = calc(5, FINAL_TEST_DATA)  # Should use true_value=5
+        assert data_second_response.json() == df_convert_to_internal(expected_data_2).to_dict(orient='records')
+        assert mock_func.call_count == 2

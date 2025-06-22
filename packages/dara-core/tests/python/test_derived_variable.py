@@ -887,6 +887,111 @@ async def test_derived_variable_with_switch_variable():
         assert func.call_count == 3
 
 
+async def test_derived_variable_with_switch_variable_condition():
+    """
+    Test that SwitchVariable can be used with Condition objects that compare variables
+    """
+    from dara.core.interactivity.condition import Condition
+    
+    builder = ConfigurationBuilder()
+
+    dv = ContextVar('dv')
+
+    def calc(a, switch_result):
+        return a + switch_result
+
+    func = Mock(wraps=calc)
+
+    def page():
+        var1 = Variable(5)
+        threshold_var = Variable(10)
+
+        # Create a condition that compares var1 to threshold_var
+        condition = Condition(
+            variable=var1,
+            operator=Condition.Operator.GREATER_THAN,
+            other=threshold_var
+        )
+
+        # Create a switch variable that uses the condition
+        switch_var = SwitchVariable.when(
+            condition=condition, 
+            true_value=100, 
+            false_value=200, 
+            uid='switch_condition_uid'
+        )
+
+        derived = DerivedVariable(func, variables=[var1, switch_var])
+        dv.set(derived)
+        return MockComponent(text=derived)
+
+    builder.add_page('Test', page)
+
+    config = builder._to_configuration()
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # Test with var1=5, threshold=10: 5 > 10 is False, should return 5 + 200 = 205
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_condition_uid',
+                        'value': {
+                            '__typename': 'Condition',
+                            'variable': 5,
+                            'operator': 'greater_than',
+                            'other': 10
+                        },
+                        'value_map': {True: 100, False: 200},
+                        'default': 0,
+                    },
+                ],
+                'ws_channel': 'test_channel',
+                'force': False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 205
+        assert func.call_count == 1
+
+        # Test with var1=15, threshold=10: 15 > 10 is True, should return 15 + 100 = 115
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    15,
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_condition_uid',
+                        'value': {
+                            '__typename': 'Condition',
+                            'variable': 15,
+                            'operator': 'greater_than',
+                            'other': 10
+                        },
+                        'value_map': {True: 100, False: 200},
+                        'default': 0,
+                    },
+                ],
+                'ws_channel': 'test_channel',
+                'force': False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 115
+        assert func.call_count == 2
+
+
 async def test_derived_variable_task_chain_loop():
     """
     Test a scenario where the task chain forms a loop.

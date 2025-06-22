@@ -26,6 +26,7 @@ from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.tasks import TaskManager
+from dara.core.logging import dev_logger
 
 
 class ResolvedDerivedVariable(TypedDict):
@@ -169,6 +170,35 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Ca
     return remove_index(result)
 
 
+def _evaluate_condition(condition: dict) -> bool:
+    """
+    Evaluate a condition object and return the boolean result.
+
+    :param condition: condition dict with 'variable', 'operator', and 'other' keys
+    :return: boolean result of the condition evaluation
+    """
+    variable_value = condition['variable']
+    operator = condition['operator']
+    other_value = condition['other']
+
+    if operator == 'equal':
+        return variable_value == other_value
+    elif operator == 'not_equal':
+        return variable_value != other_value
+    elif operator == 'greater_than':
+        return variable_value > other_value
+    elif operator == 'greater_equal':
+        return variable_value >= other_value
+    elif operator == 'less_than':
+        return variable_value < other_value
+    elif operator == 'less_equal':
+        return variable_value <= other_value
+    elif operator == 'truthy':
+        return bool(variable_value)
+    else:
+        raise ValueError(f'Unknown condition operator: {operator}')
+
+
 async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, store: CacheStore, task_mgr: TaskManager):
     """
     Resolve a switch variable by evaluating its constituent parts and returning the appropriate value.
@@ -201,10 +231,26 @@ async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, sto
     if isinstance(resolved_value_map, dict):
         # value could be a condition object
         if isinstance(resolved_value, dict) and resolved_value.get('__typename') == 'Condition':
-            print('CONDITION', resolved_value)
-            # TODO
-        elif isinstance(resolved_value, bool):
-            # bools are serialized as strings
+            # Evaluate the condition and use the boolean result as the lookup key
+            try:
+                # First, resolve any nested dependencies in the condition's 'other' field
+                condition_copy = resolved_value.copy()
+                condition_copy['other'] = await resolve_dependency(condition_copy.get('other'), store, task_mgr)
+                condition_copy['other'] = await _resolve_maybe_task(condition_copy['other'])
+
+                # Also resolve the variable field in case it's a dependency
+                condition_copy['variable'] = await resolve_dependency(condition_copy.get('variable'), store, task_mgr)
+                condition_copy['variable'] = await _resolve_maybe_task(condition_copy['variable'])
+
+                # Evaluate the condition
+                resolved_value = _evaluate_condition(condition_copy)
+            except Exception as e:
+                # If condition evaluation fails, log and use default
+                dev_logger.error('Error evaluating condition', error=e)
+                return resolved_default
+
+        if isinstance(resolved_value, bool):
+            # bools are serialized as strings, so convert e.g. True to 'true'
             resolved_value = str(resolved_value).lower()
 
         # Try to get the value from the mapping, fall back to default
