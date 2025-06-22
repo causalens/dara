@@ -17,6 +17,7 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import DataVariable, Variable
 from dara.core.interactivity.actions import UpdateVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.switch_variable import SwitchVariable
 from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
@@ -509,6 +510,116 @@ async def test_derived_variable_with_data_variable():
         assert response.status_code == 200
         assert response.json()['value'] == 3
         assert func.call_count == 2
+
+
+async def test_derived_variable_with_switch_variable():
+    """
+    Test that SwitchVariable can be used in a DerivedVariable.variables
+    """
+    builder = ConfigurationBuilder()
+
+    dv = ContextVar('dv')
+
+    def calc(a, switch_result):
+        return a + switch_result
+
+    func = Mock(wraps=calc)
+
+    def page():
+        var1 = Variable(5)
+        condition_var = Variable(True)
+        
+        # Create a switch variable that returns 10 when True, 20 when False
+        switch_var = SwitchVariable.when(
+            condition=condition_var,
+            true_value=10,
+            false_value=20,
+            uid='switch_uid'
+        )
+
+        derived = DerivedVariable(func, variables=[var1, switch_var])
+        dv.set(derived)
+        return MockComponent(text=derived)
+
+    builder.add_page('Test', page)
+
+    config = builder._to_configuration()
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # Test with condition=True, should return 5 + 10 = 15
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5, 
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': True,
+                        'value_map': {True: 10, False: 20},
+                        'default': 0
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force': False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 15
+        assert func.call_count == 1
+
+        # Test with condition=False, should return 5 + 20 = 25
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5, 
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': False,
+                        'value_map': {True: 10, False: 20},
+                        'default': 0
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force': False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 25
+        assert func.call_count == 2
+
+        # Test with unknown value, should use default (0), return 5 + 0 = 5
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5, 
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': 'unknown',
+                        'value_map': {True: 10, False: 20},
+                        'default': 0
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force': False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 5
+        assert func.call_count == 3
 
 
 async def test_py_component_with_derived_variable():

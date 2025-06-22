@@ -23,6 +23,7 @@ from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.filtering import ValueQuery
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.interactivity.switch_variable import SwitchVariable
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.internal.registries import derived_variable_registry, utils_registry
 from dara.core.main import _start_application
@@ -1381,3 +1382,136 @@ async def test_derived_data_variable_cache_eviction():
         assert response3.status_code == 200
         resp_data = DataFrame(response3.json())
         assert all(resp_data['__col__1__col1'] == (TEST_DATA['col1'] + 10))
+
+
+async def test_derived_data_variable_with_switch_variable():
+    """
+    Test that SwitchVariable can be used in a DerivedDataVariable.variables
+    """
+    builder = ConfigurationBuilder()
+
+    ddv = ContextVar('ddv')
+
+    def calc(multiplier: int, data=TEST_DATA):
+        df = data.copy()
+        numeric_cols = [col for col in df if df[col].dtype == 'int64' and col != '__index__']
+        df[numeric_cols] *= multiplier
+        return df
+
+    mock_func = Mock(wraps=calc)
+
+    def page():
+        condition_var = Variable(True)
+        
+        # Create a switch variable that returns 2 when True, 3 when False
+        switch_var = SwitchVariable.when(
+            condition=condition_var,
+            true_value=2,
+            false_value=3,
+            uid='switch_uid'
+        )
+
+        derived = DerivedDataVariable(mock_func, variables=[switch_var], uid='uid')
+        ddv.set(derived)
+        return MockComponent(text=derived)
+
+    builder.add_page('Test', page)
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Test with condition=True, multiplier should be 2
+        response = await _get_derived_variable(
+            client, 
+            ddv.get(), 
+            {
+                'is_data_variable': True, 
+                'values': [
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': True,
+                        'value_map': {True: 2, False: 3},
+                        'default': 1
+                    }
+                ], 
+                'ws_channel': 'test_channel', 
+                'force': False
+            }
+        )
+        mock_func.assert_called_once()
+        cache_key = response.json()['cache_key']
+
+        data_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+
+        expected_data = calc(2, FINAL_TEST_DATA)
+        assert data_response.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
+        mock_func.assert_called_once()
+
+        # Test with condition=False, multiplier should be 3
+        second_response = await _get_derived_variable(
+            client, 
+            ddv.get(), 
+            {
+                'is_data_variable': True, 
+                'values': [
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': False,
+                        'value_map': {True: 2, False: 3},
+                        'default': 1
+                    }
+                ], 
+                'ws_channel': 'test_channel', 
+                'force': False
+            }
+        )
+        assert second_response.json()['cache_key'] != cache_key
+        assert mock_func.call_count == 2
+
+        # Check that calling the data endpoint with new cache key gives the expected result
+        data_second_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': second_response.json()['cache_key'], 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+        expected_data_2 = calc(3, FINAL_TEST_DATA)
+        assert data_second_response.json() == df_convert_to_internal(expected_data_2).to_dict(orient='records')
+        assert mock_func.call_count == 2
+
+        # Test with unknown value, should use default (1)
+        third_response = await _get_derived_variable(
+            client, 
+            ddv.get(), 
+            {
+                'is_data_variable': True, 
+                'values': [
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': 'unknown',
+                        'value_map': {True: 2, False: 3},
+                        'default': 1
+                    }
+                ], 
+                'ws_channel': 'test_channel', 
+                'force': False
+            }
+        )
+        assert mock_func.call_count == 3
+
+        # Check that calling the data endpoint with default value gives the expected result
+        data_third_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={'filters': None, 'cache_key': third_response.json()['cache_key'], 'ws_channel': 'test_channel'},
+            headers=AUTH_HEADERS,
+        )
+        expected_data_3 = calc(1, FINAL_TEST_DATA)
+        assert data_third_response.json() == df_convert_to_internal(expected_data_3).to_dict(orient='records')
+        assert mock_func.call_count == 3
