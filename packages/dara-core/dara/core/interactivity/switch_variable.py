@@ -85,14 +85,6 @@ class SwitchVariable(NonDataVariable):
             false_value='B'
         )
 
-        # Or using mapping for cleaner multi-condition logic
-        grade_mapping = SwitchVariable.match(
-            value=score // 10,  # Convert score to tens digit
-            mapping={
-                10: 'A+', 9: 'A', 8: 'B', 7: 'C', 6: 'D'
-            },
-            default='F'
-        )
         ```
 
         Switching on computed conditions:
@@ -123,15 +115,17 @@ class SwitchVariable(NonDataVariable):
         ```
 
     Note:
-        - All values (conditions, mappings, defaults) can be Variables, raw values, or Conditions
+        - Value can be a condition, raw value, or variable
+        - Value map can be a variable or a dict
+        - Default can be a variable or a raw value
         - The switch evaluation happens reactively when underlying variables change
         - Default values are only used in mapping scenarios when the switch value
           doesn't match any key in the mapping
-        
+
     Key Serialization:
         When using mappings with SwitchVariable, be aware that JavaScript object keys
         are always strings. The system automatically converts lookup keys to strings:
-        - Python: {True: 'admin', False: 'user'} 
+        - Python: {True: 'admin', False: 'user'}
         - JavaScript: {"true": "admin", "false": "user"}
         - Boolean values are converted to lowercase strings ("true"/"false")
         - Other values use standard string conversion to match JavaScript's String() behavior

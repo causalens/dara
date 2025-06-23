@@ -315,6 +315,7 @@ def _start_application(config: Configuration):
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         dev_logger.error(
             'Something went wrong when building application template, there is most likely an issue in the application logic',

@@ -174,12 +174,12 @@ def _normalize_lookup_key(value: Any) -> str:
     """
     Normalize a value to a string key that matches JavaScript object key serialization.
     This ensures consistent lookup between Python backend and JavaScript frontend.
-    
+
     JavaScript's String() conversion rules:
-    - String(true) -> "true", String(false) -> "false"  
+    - String(true) -> "true", String(false) -> "false"
     - String(null) -> "null", String(undefined) -> "undefined"
     - Numbers and other types are converted to their string representation
-    
+
     :param value: The value to normalize as a lookup key
     :return: String representation suitable for object key lookup
     """
@@ -188,7 +188,7 @@ def _normalize_lookup_key(value: Any) -> str:
         return str(value).lower()
     elif value is None:
         # JavaScript String(null) -> "null"
-        return "null"
+        return 'null'
     else:
         # For numbers, strings, and other types, use standard string conversion
         return str(value)
