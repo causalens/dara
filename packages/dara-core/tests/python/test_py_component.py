@@ -1315,3 +1315,106 @@ async def test_py_component_respects_dv_non_empty_deps():
 
         # The DV should've been ran again - cache was purged
         assert counter == 3
+
+
+async def test_switch_variables():
+    """
+    Check that the py_component decorator returns a PyComponentDef when SwitchVariables are passed in and that it
+    processes SwitchVariables correctly when passed back in
+    """
+    from dara.core.interactivity.switch_variable import SwitchVariable
+
+    builder = ConfigurationBuilder()
+
+    condition_var = Variable(True)
+
+    # Create a switch variable that returns 'admin' when True, 'user' when False
+    switch_var = SwitchVariable.when(
+        condition=condition_var,
+        true_value='admin',
+        false_value='user',
+        uid='switch_uid'
+    )
+
+    @py_component
+    def TestBasicComp(input_val: str):
+        return MockComponent(text=input_val)
+
+    builder.add_page('Test', content=TestBasicComp(switch_var))
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+
+        response, status = await _get_template(client)
+
+        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
+        assert 'input_val' in component.get('props').get('dynamic_kwargs')
+
+        # Check that the component can be fetched via the api, with input_val passed in the body
+        # Test with condition=True, should return 'admin'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': True,
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'admin'}, 'uid': 'uid'}
+
+        # Test with condition=False, should return 'user'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': False,
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'user'}, 'uid': 'uid'}
+
+        # Test with unknown value, should return default 'guest'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': 'unknown',
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'guest'}, 'uid': 'uid'}
