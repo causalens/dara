@@ -37,20 +37,6 @@ from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
 from dara.core.persistence import PersistenceStore
 
-
-def _is_subclass_safe(value: type, base: type) -> bool:
-    """
-    Check if a class is a subclass of another class. Returns False if the value is not a class.
-
-    :param value: the class to check
-    :param base: the class to check against
-    """
-    try:
-        return issubclass(value, base)
-    except TypeError:
-        return False
-
-
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
 VariableType = TypeVar('VariableType')
