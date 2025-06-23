@@ -1,5 +1,6 @@
 import type { SwitchVariable } from '@/types/core';
 
+// eslint-disable-next-line import/no-cycle
 import { useConditionOrVariable, useVariable } from './internal';
 
 export function useSwitchVariable<T>(variable: SwitchVariable<T>): any {

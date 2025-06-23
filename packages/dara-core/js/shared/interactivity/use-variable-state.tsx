@@ -13,7 +13,11 @@ import {
 import { resolveVariable } from './resolve-variable';
 import { isRegistered } from './store';
 
-type AnyResolvedVariable = ResolvedDataVariable | ResolvedDerivedDataVariable | ResolvedDerivedVariable | ResolvedSwitchVariable;
+type AnyResolvedVariable =
+    | ResolvedDataVariable
+    | ResolvedDerivedDataVariable
+    | ResolvedDerivedVariable
+    | ResolvedSwitchVariable;
 
 /**
  * Helper hook to get the current state of the variable.

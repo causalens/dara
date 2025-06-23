@@ -15,6 +15,7 @@ import {
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
+// eslint-disable-next-line import/no-cycle
 import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable, useUrlVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
