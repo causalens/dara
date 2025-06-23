@@ -7,7 +7,7 @@ import { useDeepCompare } from '@darajs/ui-utils';
 import { default as DisplayCtx, type DisplayCtxValue } from '@/shared/context/display-context';
 import { type StyledComponentProps } from '@/types';
 
-import { useVariable } from '../interactivity';
+import { useVariable } from '../interactivity/use-variable';
 
 interface FlexProps {
     flexBasis?: string;
