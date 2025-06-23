@@ -132,7 +132,7 @@ export interface SwitchVariable<T = any> {
     __typename: 'SwitchVariable';
     uid: string;
     value: Condition<T> | Variable<T> | T;
-    value_map: Variable<Record<any, any>> | Record<any, any>;
+    value_map: Variable<Record<string, any>> | Record<string, any>;
     default: Variable<any> | any;
 }
 

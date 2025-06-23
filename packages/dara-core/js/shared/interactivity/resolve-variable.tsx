@@ -105,7 +105,7 @@ export function resolveVariable<VariableType>(
 
         const resolvedValueMap =
             isVariable(variable.value_map) ?
-                resolveVariable(variable.value_map, client, taskContext, extras, resolver)
+                resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
             :   variable.value_map;
         const resolvedDefault =
             isVariable(variable.default) ?
