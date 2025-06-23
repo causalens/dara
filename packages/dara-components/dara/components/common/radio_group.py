@@ -43,7 +43,7 @@ class RadioGroup(FormComponent):
 
     ```python
     from dara.core import Variable
-    from dara.components.common import RadioGroup, Item
+    from dara.components import RadioGroup, RadioItem, Text
 
     value_var_str = Variable('first')
 
@@ -55,9 +55,18 @@ class RadioGroup(FormComponent):
 
     value_var_num = Variable(1)
 
-    # or as an `Item` list
+    # or as an `RadioItem` list
     RadioGroup(
-        items=[Item(label='first',value=1), Item(label='second',value=2)],
+        items=[RadioItem(label='first',value=1), Item(label='second',value=2)],
+        value=value_var_num,
+    )
+
+    # or as an `RadioItem` list with arbitrary components
+    RadioGroup(
+        items=[
+            RadioItem(label=Text(text='first', color='red'), value=1),
+            RadioItem(label=Text(text='second', color='blue'), value=2)
+        ],
         value=value_var_num,
     )
     ```
