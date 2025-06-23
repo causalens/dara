@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anthology-meta-package"
-version = "1.16.22"
+version = "1.16.23"
 description = "Anthology Meta Package"
 authors = ["anthology"]
 source = []
@@ -18,7 +18,7 @@ colorama = ">=0.4.6,<0.5.0"
 cookiecutter = ">=2.1.1,<3.0.0"
 croniter = ">=1.0.15,<3.0.0"
 cryptography = ">=42.0.4"
-dara-core = "1.16.22"
+dara-core = "1.16.23"
 dill = ">=0.3.0,<0.4.0"
 exceptiongroup = ">=1.1.3,<2.0.0"
 fastapi = ">=0.115.0,<0.116.0"
@@ -52,11 +52,11 @@ xlrd = "*"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.16.22"
+version = "1.16.23"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.16.22"
+version = "1.16.23"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]

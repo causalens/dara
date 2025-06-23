@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.23
 
 -  Added support for passing a `NonDataVariable` to `raw_css` in any `ComponentInstance`
 

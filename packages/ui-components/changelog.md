@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.16.23
 
 - Updated `UploadDropzone` to pass file rejection information to improve error handling in wrapper components.
 
