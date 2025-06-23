@@ -9,6 +9,7 @@ import {
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
+    isCondition,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
@@ -89,15 +90,27 @@ export function resolveVariable<VariableType>(
     if (isSwitchVariable(variable)) {
         // For switch variables, we need to resolve the constituent parts
         // and return a serialized representation similar to derived variables
-        const resolvedValue = isVariable(variable.value)
-            ? resolveVariable(variable.value, client, taskContext, extras, resolver)
-            : variable.value;
-        const resolvedValueMap = isVariable(variable.value_map)
-            ? resolveVariable(variable.value_map, client, taskContext, extras, resolver)
-            : variable.value_map;
-        const resolvedDefault = isVariable(variable.default)
-            ? resolveVariable(variable.default, client, taskContext, extras, resolver)
-            : variable.default;
+        let resolvedValue =
+            isVariable(variable.value) ?
+                resolveVariable(variable.value, client, taskContext, extras, resolver)
+            :   variable.value;
+
+        // value could be a condition object, resolve its variable
+        if (isCondition(resolvedValue)) {
+            resolvedValue = {
+                ...resolvedValue,
+                variable: resolveVariable(resolvedValue.variable, client, taskContext, extras, resolver) as any,
+            };
+        }
+
+        const resolvedValueMap =
+            isVariable(variable.value_map) ?
+                resolveVariable(variable.value_map, client, taskContext, extras, resolver)
+            :   variable.value_map;
+        const resolvedDefault =
+            isVariable(variable.default) ?
+                resolveVariable(variable.default, client, taskContext, extras, resolver)
+            :   variable.default;
 
         return {
             type: 'switch',

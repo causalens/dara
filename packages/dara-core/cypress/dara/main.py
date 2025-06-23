@@ -9,6 +9,7 @@ import dara.components as dashboarding_components
 config = ConfigurationBuilder()
 config.template = 'default'
 config.task_module = 'cypress.dara.tasks'
+config.static_files_dir = 'cypress_dist'
 
 # Explicitly add all dashboarding components since we're dynamically importing pages, so auto-discovery won't work
 for symbol in dashboarding_components.__dict__.values():

@@ -1,6 +1,4 @@
-import { type Condition, ConditionOperator, type Variable, isCondition } from '@/types';
-
-import { useVariable } from './use-variable';
+import { ConditionOperator } from '@/types';
 
 /**
  * This function takes the operator and both values and performs the appropriate comparison between the two and returns
@@ -33,14 +31,4 @@ export function isConditionTrue(operator: ConditionOperator, value: any, other: 
         return !!value;
     }
     throw new Error(`Unexpected operator ${String(operator)} passed to conditional (If) component`);
-}
-
-/* eslint-disable react-hooks/rules-of-hooks */
-export function useConditionOrVariable<T>(arg: Variable<T> | Condition<T> | T): T {
-    if (isCondition(arg)) {
-        const value = useVariable(arg.variable)[0];
-        const other = useVariable(arg.other)[0];
-        return isConditionTrue(arg.operator, value, other) as T;
-    }
-    return useVariable(arg)[0];
 }

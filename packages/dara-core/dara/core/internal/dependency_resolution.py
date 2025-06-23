@@ -183,20 +183,25 @@ def _evaluate_condition(condition: dict) -> bool:
 
     if operator == 'equal':
         return variable_value == other_value
-    elif operator == 'not_equal':
-        return variable_value != other_value
-    elif operator == 'greater_than':
-        return variable_value > other_value
-    elif operator == 'greater_equal':
-        return variable_value >= other_value
-    elif operator == 'less_than':
-        return variable_value < other_value
-    elif operator == 'less_equal':
-        return variable_value <= other_value
     elif operator == 'truthy':
         return bool(variable_value)
+    elif operator == 'not_equal':
+        return variable_value != other_value
     else:
-        raise ValueError(f'Unknown condition operator: {operator}')
+        # strictly numeric comparisons, ensure they're numbers just in case
+        val_a = float(variable_value)
+        val_b = float(other_value)
+
+        if operator == 'greater_than':
+            return val_a > val_b
+        elif operator == 'greater_equal':
+            return val_a >= val_b
+        elif operator == 'less_than':
+            return val_a < val_b
+        elif operator == 'less_equal':
+            return val_a <= val_b
+        else:
+            raise ValueError(f'Unknown condition operator: {operator}')
 
 
 async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, store: CacheStore, task_mgr: TaskManager):
@@ -250,8 +255,11 @@ async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, sto
                 return resolved_default
 
         if isinstance(resolved_value, bool):
-            # bools are serialized as strings, so convert e.g. True to 'true'
+            # ensure we lowercase e.g. True to 'true'
             resolved_value = str(resolved_value).lower()
+        else:
+            # object keys in JS are always strings, so convert to string
+            resolved_value = str(resolved_value)
 
         # Try to get the value from the mapping, fall back to default
         return resolved_value_map.get(resolved_value, resolved_default)

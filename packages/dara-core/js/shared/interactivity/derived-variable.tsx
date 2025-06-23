@@ -29,6 +29,7 @@ import {
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
+    isCondition,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
@@ -243,6 +244,14 @@ function resolveValue(
 
     if (isResolvedDataVariable(value)) {
         return value;
+    }
+
+    if (isCondition(value)) {
+        return {
+            ...value,
+            // at this point condition would've already resolved a variable to a recoil value
+            variable: resolveValue(value.variable as any as RecoilValue<any>, getter),
+        };
     }
 
     if (isRecoilValue(value)) {

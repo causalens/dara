@@ -5,9 +5,7 @@ import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITI
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
-    type SwitchVariable,
     type Variable,
-    isCondition,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
@@ -17,8 +15,7 @@ import {
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
-import { isConditionTrue, useConditionOrVariable } from './condition';
-import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
+import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable, useUrlVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
 /* eslint-disable react-hooks/rules-of-hooks */
@@ -32,19 +29,6 @@ import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from '
 function warnUpdateOnDerivedState(): void {
     // eslint-disable-next-line no-console
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
-}
-
-export default function useSwitchVariable<T>(variable: SwitchVariable<T>): any {
-    const value = useConditionOrVariable(variable.value);
-    const [valueMap] = useVariable(variable.value_map);
-    const [defaultValue] = useVariable(variable.default);
-
-    if (isCondition(value)) {
-        const conditionValue = isConditionTrue(value.operator, value.variable, value.other);
-        return valueMap[String(conditionValue)] ?? defaultValue;
-    }
-
-    return valueMap[value] ?? defaultValue;
 }
 
 /**

@@ -7,6 +7,8 @@ export { default as useRefreshSelector } from './use-refresh-selector';
 export { default as useVariableState } from './use-variable-state';
 export { default as useAction, useActionIsLoading, clearActionHandlerCache_TEST } from './use-action';
 export * from './condition';
+export * from './condition-or-variable';
+export * from './switch-variable';
 export * from './store';
 export * from './use-server-component';
 export * from './nested';

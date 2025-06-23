@@ -19,17 +19,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Union
 
-from fastapi.encoders import jsonable_encoder
-from pydantic import (
-    SerializerFunctionWrapHandler,
-    field_serializer,
-    field_validator,
-    model_serializer,
-)
+from pydantic import SerializerFunctionWrapHandler, field_validator, model_serializer
 
 from dara.core.interactivity.condition import Condition
 from dara.core.interactivity.non_data_variable import NonDataVariable
-from dara.core.logging import dev_logger
 
 
 class SwitchVariable(NonDataVariable):
