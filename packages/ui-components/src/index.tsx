@@ -51,7 +51,7 @@ export { default as NumericFilter } from './filter/numeric-filter';
 export { default as NumericInput } from './numeric-input/numeric-input';
 export { default as ComponentSelectList } from './component-select-list/component-select-list';
 export { default as ProgressBar } from './progress-bar/progress-bar';
-export { default as RadioGroup } from './radio/radio-group';
+export { default as RadioGroup, RadioItem } from './radio/radio-group';
 export { default as SeachBar } from './search-bar/search-bar';
 export { default as SectionedList, ListItem, ListSection } from './sectioned-list/sectioned-list';
 export { default as Select } from './select/select';

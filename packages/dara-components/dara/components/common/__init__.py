@@ -54,7 +54,7 @@ from dara.components.common.modal import Modal
 from dara.components.common.overlay import Overlay
 from dara.components.common.paragraph import Paragraph
 from dara.components.common.progress_bar import ProgressBar
-from dara.components.common.radio_group import RadioGroup
+from dara.components.common.radio_group import RadioGroup, RadioItem
 from dara.components.common.select import ListSection, Select
 from dara.components.common.slider import Slider
 from dara.components.common.spacer import Spacer
@@ -110,6 +110,7 @@ __all__ = [
     'Stack',
     'Switch',
     'RadioGroup',
+    'RadioItem',
     'Text',
     'Textarea',
     'Tab',
