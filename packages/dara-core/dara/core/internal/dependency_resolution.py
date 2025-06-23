@@ -170,6 +170,30 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Ca
     return remove_index(result)
 
 
+def _normalize_lookup_key(value: Any) -> str:
+    """
+    Normalize a value to a string key that matches JavaScript object key serialization.
+    This ensures consistent lookup between Python backend and JavaScript frontend.
+    
+    JavaScript's String() conversion rules:
+    - String(true) -> "true", String(false) -> "false"  
+    - String(null) -> "null", String(undefined) -> "undefined"
+    - Numbers and other types are converted to their string representation
+    
+    :param value: The value to normalize as a lookup key
+    :return: String representation suitable for object key lookup
+    """
+    if isinstance(value, bool):
+        # JavaScript String(true) -> "true", String(false) -> "false"
+        return str(value).lower()
+    elif value is None:
+        # JavaScript String(null) -> "null"
+        return "null"
+    else:
+        # For numbers, strings, and other types, use standard string conversion
+        return str(value)
+
+
 def _evaluate_condition(condition: dict) -> bool:
     """
     Evaluate a condition object and return the boolean result.
@@ -254,12 +278,8 @@ async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, sto
                 dev_logger.error('Error evaluating condition', error=e)
                 return resolved_default
 
-        if isinstance(resolved_value, bool):
-            # ensure we lowercase e.g. True to 'true'
-            resolved_value = str(resolved_value).lower()
-        else:
-            # object keys in JS are always strings, so convert to string
-            resolved_value = str(resolved_value)
+        # Normalize the lookup key to match JavaScript object key serialization
+        resolved_value = _normalize_lookup_key(resolved_value)
 
         # Try to get the value from the mapping, fall back to default
         return resolved_value_map.get(resolved_value, resolved_default)

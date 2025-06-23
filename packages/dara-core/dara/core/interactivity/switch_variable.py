@@ -127,6 +127,14 @@ class SwitchVariable(NonDataVariable):
         - The switch evaluation happens reactively when underlying variables change
         - Default values are only used in mapping scenarios when the switch value
           doesn't match any key in the mapping
+        
+    Key Serialization:
+        When using mappings with SwitchVariable, be aware that JavaScript object keys
+        are always strings. The system automatically converts lookup keys to strings:
+        - Python: {True: 'admin', False: 'user'} 
+        - JavaScript: {"true": "admin", "false": "user"}
+        - Boolean values are converted to lowercase strings ("true"/"false")
+        - Other values use standard string conversion to match JavaScript's String() behavior
     """
 
     value: Optional[Union[Condition, NonDataVariable, Any]] = None
