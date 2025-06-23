@@ -82,7 +82,7 @@ class RadioGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[RadioItem], NonDataVariable]
+    items: Union[List[RadioItem], List[str], NonDataVariable]
     value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
     list_styling: Optional[bool] = False
     onchange: Optional[Action] = None
@@ -96,4 +96,4 @@ class RadioGroup(FormComponent):
             return items
         if len(items) == 0:
             raise ValueError('Items list is empty, you must provide at least one item')
-        return items
+        return [RadioItem(value=item, label=item) if isinstance(item, str) else item for item in items]
