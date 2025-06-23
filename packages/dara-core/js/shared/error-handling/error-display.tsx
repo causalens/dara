@@ -6,6 +6,8 @@ import styled from '@darajs/styled-components';
 import { injectCss, parseRawCss } from '@/shared/utils';
 import { type ErrorHandlingConfig, UserError } from '@/types/core';
 
+import { useVariable } from '../interactivity';
+
 const StyledErrorDisplay = styled.div`
     display: flex;
     gap: 1rem;
@@ -102,7 +104,8 @@ interface ErrorDisplayProps extends Partial<FallbackProps> {
 }
 
 function ErrorDisplay(props: ErrorDisplayProps): JSX.Element {
-    const [styles, css] = parseRawCss(props.config?.raw_css);
+    const [cssValue] = useVariable(props.config?.raw_css);
+    const [styles, css] = parseRawCss(cssValue);
 
     const defaultMessage =
         props.error instanceof UserError ? props.error.message : 'Try again or contact the application owner.';

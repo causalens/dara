@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added support for passing a `NonDataVariable` to `raw_css` in any `ComponentInstance`
+
 ## 1.16.22
 
 -  Added a new `run_task` method to `ActionCtx` to imperatively run a task in a separate process.

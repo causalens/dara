@@ -70,6 +70,11 @@ DEFAULT_ERROR_TITLE = 'Unexpected error occurred'
 DEFAULT_ERROR_DESCRIPTION = 'Try again or contact the application owner'
 
 
+def _kebab_to_camel(string: str):
+    chunks = string.split('-')
+    return chunks[0] + ''.join([chunk[0].upper() + chunk[1:].lower() for chunk in chunks[1:]])
+
+
 class ErrorHandlingConfig(BaseModel):
     title: str = DEFAULT_ERROR_TITLE
     """Title to display in the error boundary"""
@@ -77,8 +82,27 @@ class ErrorHandlingConfig(BaseModel):
     description: str = DEFAULT_ERROR_DESCRIPTION
     """Description to display in the error boundary"""
 
-    raw_css: Optional[Union[CSSProperties, dict, str]] = None
-    """Raw styling to apply to the displayed error boundary"""
+    raw_css: Optional[Any] = None
+    """
+    Raw styling to apply to the displayed error boundary.
+    Accepts a CSSProperties, dict, str, or NonDataVariable.
+    """
+
+    @field_validator('raw_css', mode='before')
+    @classmethod
+    def validate_raw_css(cls, value):
+        from dara.core.interactivity.non_data_variable import NonDataVariable
+
+        if isinstance(value, str):
+            return str
+        if isinstance(value, dict):
+            return {_kebab_to_camel(k): v for k, v in value.items()}
+        if isinstance(value, NonDataVariable):
+            return value
+        if isinstance(value, CSSProperties):
+            return value
+
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, or NonDataVariable, got {type(value)}')
 
     def model_dump(self, *args, **kwargs):
         result = super().model_dump(*args, **kwargs)
@@ -120,14 +144,15 @@ class ComponentInstance(BaseModel):
     required_routes: ClassVar[List[ApiRoute]] = []
     """List of routes the component depends on. Will be implicitly added to the app if this component is used"""
 
-    raw_css: Optional[Union[CSSProperties, dict, str]] = None
+    raw_css: Optional[Any] = None
     """
     Raw styling to apply to the component.
-    Can be an dict/CSSProperties instance representing the `styles` tag, or a string injected directly into the CSS of the wrapping component.
+    Can be an dict/CSSProperties instance representing the `styles` tag, a string injected directly into the CSS of the wrapping component,
+    or a NonDataVariable resoling to either of the above.
 
     ```python
 
-    from dara.core import CSSProperties
+    from dara.core import CSSProperties, Variable
 
     # `style` - use the class for autocompletion/typesense
     Stack(..., raw_css=CSSProperties(maxWidth='100px'))
@@ -139,6 +164,9 @@ class ComponentInstance(BaseModel):
     Stack(..., raw_css=\"\"\"
     max-width: 100px;
     \"\"\")
+
+    css_var = Variable('color: red;')
+    Stack(..., raw_css=css_var)
 
     ```
     """
@@ -173,17 +201,23 @@ class ComponentInstance(BaseModel):
 
     @field_validator('raw_css', mode='before')
     @classmethod
-    def parse_css(cls, css: Optional[Union[CSSProperties, dict, str]]):
+    def parse_css(cls, css: Optional[Any]):
+        from dara.core.interactivity.non_data_variable import NonDataVariable
+
         # If it's a plain dict, change kebab case to camel case
         if isinstance(css, dict):
+            return {_kebab_to_camel(k): v for k, v in css.items()}
 
-            def kebab_to_camel(string: str):
-                chunks = string.split('-')
-                return chunks[0] + ''.join([chunk[0].upper() + chunk[1:].lower() for chunk in chunks[1:]])
+        if isinstance(css, NonDataVariable):
+            return css
 
-            return {kebab_to_camel(k): v for k, v in css.items()}
+        if isinstance(css, CSSProperties):
+            return css
 
-        return css
+        if isinstance(css, str):
+            return css
+
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, or NonDataVariable, got {type(css)}')
 
     @classmethod
     def isinstance(cls, obj: Any) -> bool:
@@ -398,7 +432,6 @@ class BaseFallback(StyledComponentInstance):
 
 
 ComponentInstance.model_rebuild()
-
 
 ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
 
