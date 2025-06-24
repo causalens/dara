@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 
 import { DisplayCtx, StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
@@ -26,6 +26,9 @@ function Text(props: TextProps): JSX.Element {
     // Add a default to the text color if it's not in a button or anchor
     const color = ['anchor', 'button'].includes(display_ctx.component) ? props.color : props.color || theme.colors.text;
 
+    // In case an object is passed, just stringify it to display raw rather than crashing
+    const displayText = useMemo(() => (typeof text === 'string' ? text.trimEnd() : JSON.stringify(text)), [text]);
+
     if (['anchor', 'paragraph'].includes(display_ctx.component)) {
         return (
             <StyledSpan
@@ -42,7 +45,7 @@ function Text(props: TextProps): JSX.Element {
                     ...style,
                 }}
             >
-                {`${typeof text === 'string' ? text.trimEnd() : text} `}
+                {displayText}
             </StyledSpan>
         );
     }
@@ -60,7 +63,7 @@ function Text(props: TextProps): JSX.Element {
                 ...style,
             }}
         >
-            {text}
+            {displayText}
         </StyledTag>
     );
 }

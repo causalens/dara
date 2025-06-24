@@ -1,4 +1,5 @@
 /* eslint-disable import/prefer-default-export */
+
 /* eslint-disable import/no-extraneous-dependencies */
 import { HttpResponseInterceptor, RouteMatcher, StaticResponse } from 'cypress/types/net-stubbing';
 
@@ -51,3 +52,27 @@ export const loginBeforeRoute = (path: string) => () => {
     cy.visit(path);
     cy.location('pathname').should('contain', path);
 };
+
+/**
+ * Select an option from a Dara Select component (which uses portal'd popups)
+ *
+ * @param optionValue the value/title of the option to select
+ */
+export function selectOption(optionValue: string): void {
+    cy.get('button[role="combobox"]').click();
+
+    // Wait for the dropdown to appear and get the aria-controls attribute
+    cy.get('button[role="combobox"]')
+        .should('have.attr', 'aria-controls')
+        .then((ariaControls) => {
+            // Escape the ID for CSS selector (colons need to be escaped)
+            // @ts-expect-error - ariaControls is a string
+            const escapedId = ariaControls.replace(/:/g, '\\:');
+            cy.document()
+                .its('body')
+                .find(`#${escapedId}`)
+                .within(() => {
+                    cy.get(`[role="option"][title="${optionValue}"]`).click();
+                });
+        });
+}

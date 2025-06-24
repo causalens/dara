@@ -24,6 +24,7 @@ import {
     type TaskResponse,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
 
@@ -113,6 +114,15 @@ export function cleanValue(value: unknown, force: boolean): any {
             ...rest,
             force,
             values: cleanedValues,
+        };
+    }
+
+    if (isResolvedSwitchVariable(value)) {
+        return {
+            ...value,
+            value: cleanValue(value.value, force),
+            value_map: cleanValue(value.value_map, force),
+            default: cleanValue(value.default, force),
         };
     }
 

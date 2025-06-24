@@ -23,7 +23,7 @@
     "clean": "rimraf api assets components shared types *.js.map *.d.ts '!(*.config).js' *.css",
     "cypress:open": "cypress open",
     "lint": "tsc --noemit && eslint js tests cypress --ext .tsx,.ts --max-warnings 0 && stylelint './js/**/*.tsx'",
-    "format": "prettier js --write",
+    "format": "prettier js --write --list-different",
     "format:check": "prettier js --check",
     "lint:fix": "tsc --noemit && eslint js tests cypress --ext .tsx,.ts --max-warnings 0 --fix  && stylelint --fix './js/**/*.tsx'",
     "package": "yarn build && yarn publish --no-git-tag-version",

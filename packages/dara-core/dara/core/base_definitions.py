@@ -428,6 +428,15 @@ class PendingTask(BaseTask):
         """
         self.subscribers -= 1
 
+    async def value(self):
+        """
+        Wait for the task to complete and return the result
+        """
+        await self.event.wait()
+        if self.error:
+            raise self.error
+        return self.result
+
 
 class PendingValue:
     """

@@ -1,4 +1,5 @@
 dist/
+cypress_dist/
 dara/core/umd/
 package-lock.json
 yarn-error.log

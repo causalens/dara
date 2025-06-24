@@ -113,6 +113,199 @@ config.add_page('Url Variable', content=page_content)
 
 `UrlVariable` supports nested dictionary values with the `.get(key)` method just like a normal `Variable`.
 
+### `SwitchVariable`
+
+`dara.core.interactivity.switch_variable.SwitchVariable` provides a powerful way to create conditional logic in your application by switching between different values based on conditions or value mappings. This is particularly useful for implementing if/else logic, status mappings, and dynamic content selection without requiring backend calls.
+
+A `SwitchVariable` evaluates reactively - whenever its input variables change, it automatically recalculates and updates dependent components. This makes it perfect for creating responsive UIs that adapt to user input or application state.
+
+There are two main patterns for creating `SwitchVariable`s:
+
+#### Boolean Conditions with `SwitchVariable.when()`
+
+The `when()` method is ideal for simple if/else logic where you want to switch between two values based on a true/false condition:
+
+```python
+from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+from dara.components import Stack, Text, Button, Card
+
+config = ConfigurationBuilder()
+
+# User authentication state
+is_logged_in = Variable(default=False)
+
+# Switch between different UI messages based on login status
+welcome_message = SwitchVariable.when(
+    condition=is_logged_in,
+    true_value='Welcome back! You are logged in.',
+    false_value='Please log in to continue.'
+)
+
+# Switch between different button text
+button_text = SwitchVariable.when(
+    condition=is_logged_in,
+    true_value='Logout',
+    false_value='Login'
+)
+
+# Complete authentication component
+page_content = Card(
+    Stack(
+        Text(text=welcome_message),
+        Button(text=button_text, onclick=is_logged_in.toggle())
+    ),
+    title='Authentication Demo'
+)
+
+config.add_page('Authentication Demo', content=page_content)
+```
+
+You can also use complex conditions with other variables:
+
+```python
+from dara.core import Variable, SwitchVariable, ConfigurationBuilder
+from dara.components import Stack, Text, Input, Card
+
+config = ConfigurationBuilder()
+
+# Temperature-based clothing advice
+temperature = Variable(default=20)
+advice = SwitchVariable.when(
+    condition=temperature > 25,
+    true_value='Wear light clothes - it\'s warm!',
+    false_value='Wear warm clothes - it\'s cool!'
+)
+
+# Complete weather advice component
+weather_component = Card(
+    Stack(
+        Text('Enter temperature (°C):'),
+        Input(value=temperature, type='number'),
+        Text('Advice:'),
+        Text(text=advice)
+    ),
+    title='Weather Advice'
+)
+
+config.add_page('Weather Demo', content=page_content)
+```
+
+The base variable type overrides the `__eq__` and other comparison operator methods to return a `Condition` object. In the above example we compare the `temperature` variable to the number 25, which returns a `Condition` object that the `SwitchVariable` understands how to evaluate whenever your `Variable` changes.
+
+#### Value Mapping with `SwitchVariable.match()`
+
+The `match()` method is perfect for mapping specific values to corresponding outputs, similar to a switch statement:
+
+```python
+from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+from dara.components import Stack, Text, Select, Item, Card
+
+config = ConfigurationBuilder()
+
+# User role selection
+user_role = Variable(default='guest')
+
+# Map roles to permission descriptions
+permission_text = SwitchVariable.match(
+    value=user_role,
+    mapping={
+        'admin': 'Full access to all features',
+        'editor': 'Can create and edit content',
+        'viewer': 'Read-only access',
+        'guest': 'Limited access to public content'
+    },
+    default='Unknown role - contact administrator'
+)
+
+# Map roles to UI themes
+theme_class = SwitchVariable.match(
+    value=user_role,
+    mapping={
+        'admin': 'admin-theme',
+        'editor': 'editor-theme',
+        'viewer': 'viewer-theme'
+    },
+    default='default-theme'
+)
+
+# Complete role management component
+page_content = Card(
+    Stack(
+        Text('Select your role:'),
+        Select(
+            value=user_role,
+            items=[
+                Item(label='Administrator', value='admin'),
+                Item(label='Editor', value='editor'),
+                Item(label='Viewer', value='viewer'),
+                Item(label='Guest', value='guest')
+            ]
+        ),
+        Text('Permissions:'),
+        Text(text=permission_text),
+        Text('Theme:'),
+        Text(text=theme_class)
+    ),
+    title='Role Management'
+)
+
+config.add_page('Role Demo', content=page_content)
+```
+
+#### Advanced Usage
+
+`SwitchVariable` can work with other variables as mapping sources:
+
+```python
+from dara.core import Variable, SwitchVariable
+from dara.components import Stack, Text, Select, Item, Card
+
+# Dynamic mapping based on another variable
+status_messages = Variable({
+    'loading': 'Please wait...',
+    'success': 'Operation completed successfully!',
+    'error': 'Something went wrong. Please try again.',
+    'idle': 'Ready to start'
+})
+
+current_status = Variable('idle')
+
+# Use a variable as the mapping source
+status_display = SwitchVariable.match(
+    value=current_status,
+    mapping=status_messages,
+    default='Unknown status'
+)
+
+# Complete status display component
+status_component = Card(
+    Stack(
+        Text('Current Status:'),
+        Select(
+            value=current_status,
+            items=[
+                Item(label='Idle', value='idle'),
+                Item(label='Loading', value='loading'),
+                Item(label='Success', value='success'),
+                Item(label='Error', value='error')
+            ]
+        ),
+        Text('Status Message:'),
+        Text(text=status_display)
+    ),
+    title='Dynamic Status Display'
+)
+```
+
+:::tip
+**Key Serialization**: When using mappings with `SwitchVariable`, remember that JSON object keys are always strings. The system automatically converts lookup keys to strings, so `{True: 'admin', False: 'user'}` becomes `{"true": "admin", "false": "user"}` in the frontend. Dara handles the e.g. boolean and number cases for you on a best-effort basis but it's a good thing to keep in mind in case you run into unexpected behaviour.
+:::
+
+:::note
+`SwitchVariable` is read-only like `DerivedVariable`. Its value can only change when the underlying condition or input variables change. You cannot directly update a `SwitchVariable` using actions or component interactions.
+It should be preferred over a `DerivedVariable` as much as possible as it is more performant, avoiding a backend roundtrip.
+:::
+
 ### Interaction Through Components
 
 As mentioned earlier, a `Variable` cannot be written to with traditional Python code. However, `Variable`s can be written to by components that enable interactivity. You were briefly introduced to these in the last section and now you will see how to use them throughout this section.

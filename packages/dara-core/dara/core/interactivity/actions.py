@@ -1247,15 +1247,7 @@ class ActionCtx:
 
         task = Task(func=func, args=args, kwargs=kwargs, on_progress=on_progress)
         pending_task = await task_mgr.run_task(task)
-
-        # Run until completion
-        await pending_task.event.wait()
-
-        # Raise exception if there was one
-        if pending_task.error:
-            raise pending_task.error
-
-        return pending_task.result
+        return await pending_task.value()
 
     async def execute_action(self, action: ActionImpl):
         """

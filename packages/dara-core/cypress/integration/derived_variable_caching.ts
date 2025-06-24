@@ -1,10 +1,10 @@
 import { LOADING_CLASS } from '../support/constants';
 import { loginBeforeRoute } from '../support/utils';
 
-const defaultScenarioText = 'DEFAULT SCENARIO: ';
-const globalScenarioText = 'GLOBAL SCENARIO: ';
-const sessionScenarioText = 'SESSION SCENARIO: ';
-const noneScenarioText = 'NONE SCENARIO: ';
+const defaultScenarioText = 'DEFAULT SCENARIO:';
+const globalScenarioText = 'GLOBAL SCENARIO:';
+const sessionScenarioText = 'SESSION SCENARIO:';
+const noneScenarioText = 'NONE SCENARIO:';
 
 const checkNoLoadingSpinner = (searchText: string) => () => {
     cy.contains('div', searchText).parent().find(LOADING_CLASS).should('not.exist');

@@ -31,6 +31,7 @@ class TestIfComponent(unittest.TestCase):
                     'operator': Operator.EQUAL.value,
                     'other': True,
                     'variable': jsonable_encoder(var, exclude_none=True),
+                    '__typename': 'Condition',
                 },
                 'false_children': [jsonable_encoder(t3, exclude_none=True)],
                 'true_children': [jsonable_encoder(t1, exclude_none=True), jsonable_encoder(t2, exclude_none=True)],

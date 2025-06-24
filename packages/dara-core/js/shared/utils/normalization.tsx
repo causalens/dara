@@ -9,6 +9,7 @@ import {
     isDerivedVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedSwitchVariable,
 } from '@/types';
 
 import { hashObject } from './hashing';
@@ -113,11 +114,17 @@ function normalizeResolvedDerivedVariable(
                 ...lookup,
                 ...nestedLookup,
             };
+        } else if (isResolvedSwitchVariable(val)) {
+            // For switch variables, normalize the constituent parts
+            const varDef = def.variables[key]!;
+            const identifier = getIdentifier(varDef);
+            lookup[identifier] = val;
+            normalizedValues.push({ __ref: identifier });
         } else {
             // Put values into lookup
             const varDef = def.variables[key]!;
             const identifier = getIdentifier(varDef);
-            lookup[identifier] = val;
+            lookup[identifier] = val === undefined ? null : val;
             normalizedValues.push({ __ref: identifier });
         }
     }

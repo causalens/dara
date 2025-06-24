@@ -9,12 +9,14 @@ import {
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isSwitchVariable,
     isUrlVariable,
     isVariable,
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
-import { getOrRegisterPlainVariable, useDerivedVariable, useUrlVariable } from './internal';
+// eslint-disable-next-line import/no-cycle
+import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable, useUrlVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
 /* eslint-disable react-hooks/rules-of-hooks */
@@ -100,6 +102,10 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         }, [urlValue]);
 
         return [urlValue, setUrlValue as Dispatch<SetStateAction<T>>];
+    }
+
+    if (isSwitchVariable(variable)) {
+        return [useSwitchVariable(variable), warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);

@@ -8,10 +8,14 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedSwitchVariable,
+    isCondition,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isSwitchVariable,
     isUrlVariable,
+    isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
@@ -46,6 +50,7 @@ export function resolveVariable<VariableType>(
     | ResolvedDerivedVariable
     | ResolvedDerivedDataVariable
     | ResolvedDataVariable
+    | ResolvedSwitchVariable
     | VariableType {
     if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
         getOrRegisterDerivedVariable(variable, client, taskContext, extras);
@@ -63,7 +68,7 @@ export function resolveVariable<VariableType>(
                 type: 'derived-data',
                 uid: variable.uid,
                 values,
-            } as ResolvedDerivedDataVariable;
+            } satisfies ResolvedDerivedDataVariable;
         }
 
         return {
@@ -71,7 +76,7 @@ export function resolveVariable<VariableType>(
             type: 'derived',
             uid: variable.uid,
             values,
-        } as ResolvedDerivedVariable;
+        } satisfies ResolvedDerivedVariable;
     }
 
     if (isDataVariable(variable)) {
@@ -80,6 +85,40 @@ export function resolveVariable<VariableType>(
 
     if (isUrlVariable(variable)) {
         return resolver(getOrRegisterUrlVariable(variable));
+    }
+
+    if (isSwitchVariable(variable)) {
+        // For switch variables, we need to resolve the constituent parts
+        // and return a serialized representation similar to derived variables
+        let resolvedValue =
+            isVariable(variable.value) ?
+                resolveVariable(variable.value, client, taskContext, extras, resolver)
+            :   variable.value;
+
+        // value could be a condition object, resolve its variable
+        if (isCondition(resolvedValue)) {
+            resolvedValue = {
+                ...resolvedValue,
+                variable: resolveVariable(resolvedValue.variable, client, taskContext, extras, resolver) as any,
+            };
+        }
+
+        const resolvedValueMap =
+            isVariable(variable.value_map) ?
+                resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
+            :   variable.value_map;
+        const resolvedDefault =
+            isVariable(variable.default) ?
+                resolveVariable(variable.default, client, taskContext, extras, resolver)
+            :   variable.default;
+
+        return {
+            type: 'switch',
+            uid: variable.uid,
+            value: resolvedValue,
+            value_map: resolvedValueMap,
+            default: resolvedDefault,
+        } satisfies ResolvedSwitchVariable;
     }
 
     return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));

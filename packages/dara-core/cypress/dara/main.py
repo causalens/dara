@@ -2,9 +2,9 @@ import inspect
 import os
 from importlib import import_module
 
+import dara.components as dashboarding_components
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
-import dara.components as dashboarding_components
 
 config = ConfigurationBuilder()
 config.template = 'default'

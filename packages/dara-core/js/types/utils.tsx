@@ -5,6 +5,7 @@ import {
     type AnnotatedAction,
     type AnyVariable,
     type ComponentInstance,
+    type Condition,
     type DataVariable,
     type DerivedDataVariable,
     type DerivedVariable,
@@ -12,6 +13,8 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedSwitchVariable,
+    type SwitchVariable,
     type UrlVariable,
 } from './core';
 
@@ -82,6 +85,15 @@ export function isLoopVariable(variable: any): variable is LoopVariable {
 }
 
 /**
+ * Check if a value is a switch variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isSwitchVariable<T>(variable: AnyVariable<T> | T): variable is SwitchVariable {
+    return isVariable(variable) && variable.__typename === 'SwitchVariable';
+}
+
+/**
  * Check if a value is a ResolvedDerivedVariable
  *
  * @param value value to check
@@ -132,6 +144,17 @@ export function isResolvedDerivedDataVariable(
     );
 }
 
+export function isResolvedSwitchVariable(value: any | ResolvedSwitchVariable): value is ResolvedSwitchVariable {
+    return (
+        value &&
+        typeof value === 'object' &&
+        'type' in value &&
+        value.type === 'switch' &&
+        'uid' in value &&
+        'value_map' in value
+    );
+}
+
 /**
  * Check if a value is an ActionImpl
  *
@@ -151,3 +174,7 @@ export const isPyComponent = (value: unknown): value is ComponentInstance =>
     isObject(value.props) &&
     'func_name' in value.props &&
     'dynamic_kwargs' in value.props;
+
+export function isCondition(value: any): value is Condition<any> {
+    return value && typeof value === 'object' && value.__typename === 'Condition';
+}

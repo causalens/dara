@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added `SwitchVariable` for frontend-only conditional logic. Use `SwitchVariable.when()` for boolean conditions and `SwitchVariable.match()` for value mappings. Provides better performance than `DerivedVariable` for simple conditional logic by avoiding backend roundtrips.
+
 ## 1.16.23
 
 -  Added support for passing a `NonDataVariable` to `raw_css` in any `ComponentInstance`

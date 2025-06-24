@@ -28,11 +28,14 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedSwitchVariable,
+    isCondition,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
 
@@ -80,6 +83,16 @@ export function formatDerivedVariableRequest(values: Array<any | ResolvedDerived
                 ...rest,
                 force: false,
                 values: formatDerivedVariableRequest(nestedValues),
+            };
+        }
+
+        if (isResolvedSwitchVariable(val)) {
+            // For switch variables, recursively format the constituent parts
+            return {
+                ...val,
+                value: formatDerivedVariableRequest([val.value])[0],
+                value_map: formatDerivedVariableRequest([val.value_map])[0],
+                default: formatDerivedVariableRequest([val.default])[0],
             };
         }
 
@@ -204,7 +217,12 @@ async function debouncedFetchDerivedVariable({
  * @param getter recoil getter function
  */
 function resolveValue(
-    value: ResolvedDerivedVariable | ResolvedDerivedDataVariable | ResolvedDataVariable | RecoilValue<any>,
+    value:
+        | ResolvedDerivedVariable
+        | ResolvedDerivedDataVariable
+        | ResolvedDataVariable
+        | ResolvedSwitchVariable
+        | RecoilValue<any>,
     getter: GetRecoilValue
 ): any {
     if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
@@ -215,8 +233,25 @@ function resolveValue(
             values: resolvedValues,
         };
     }
+    if (isResolvedSwitchVariable(value)) {
+        return {
+            ...value,
+            value: resolveValue(value.value, getter),
+            value_map: resolveValue(value.value_map, getter),
+            default: resolveValue(value.default, getter),
+        };
+    }
+
     if (isResolvedDataVariable(value)) {
         return value;
+    }
+
+    if (isCondition(value)) {
+        return {
+            ...value,
+            // at this point condition would've already resolved a variable to a recoil value
+            variable: resolveValue(value.variable as any as RecoilValue<any>, getter),
+        };
     }
 
     if (isRecoilValue(value)) {
@@ -240,9 +275,16 @@ export function getDeps(values: Array<ResolvedDerivedVariable | any>, deps?: num
             return [];
         }
 
-        return isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val) ?
-                getDeps(val.values, val.deps).flat()
-            :   val;
+        if (isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val)) {
+            return getDeps(val.values, val.deps).flat();
+        }
+
+        if (isResolvedSwitchVariable(val)) {
+            // For switch variables, return the constituent parts as dependencies
+            return getDeps([val.value, val.value_map, val.default], [0, 1, 2]).flat();
+        }
+
+        return val;
     });
 }
 

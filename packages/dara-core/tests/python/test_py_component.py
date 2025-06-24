@@ -28,6 +28,7 @@ from tests.python.utils import (
     _async_ws_connect,
     _get_py_component,
     _get_template,
+    _get_derived_variable,
     create_app,
     get_ws_messages,
 )
@@ -1151,3 +1152,269 @@ async def test_handles_invalid_value():
             )
             assert data['name'] == 'InvalidComponent'
             assert 'did not return a ComponentInstance' in data['props']['error']
+
+async def test_py_component_respects_dv_empty_deps():
+    """
+    Test a scenario where a requested py_component requires a previously calculated DerivedVariable with deps=[].
+    The expected scenario is that the variable is not re-calculated because of deps=[].
+    """
+    builder = ConfigurationBuilder()
+
+    counter = 0
+
+    def mock_inc(x):
+        # Keep track of number of executions
+        nonlocal counter
+        counter += 1
+        return int(x) + 1
+
+    var = Variable(1)
+    dv = DerivedVariable(mock_inc, variables=[var], deps=[])
+
+    @py_component
+    def TestComp(variable: int):
+        return MockComponent(text=str(variable))
+
+    builder.add_page('Test', content=TestComp(dv))
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+
+        # Override the env
+        response, status = await _get_template(client)
+
+        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+
+        # Send a request to calculate the DV once with variable=1 - so it gets cached
+        response = await _get_derived_variable(
+            client, dv, data={'values': [1], 'ws_channel': 'test_channel', 'force': False}
+        )
+        assert response.json()['value'] == 2
+
+        # DV should've been ran once
+        assert counter == 1
+
+        # Request the py_component that depends on the DV with variable=5
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'variable': dv},
+            data={
+                'uid': component.get('uid'),
+                'values': {'variable': {'type': 'derived', 'uid': str(dv.uid), 'values': [5]}},
+                'ws_channel': 'test_channel',
+            },
+        )
+
+        assert data == {'name': 'MockComponent', 'props': {'text': '2'}, 'uid': 'uid'}
+
+        # The DV should've been ran once - should hit cache because updated value was not in deps
+        assert counter == 1
+
+
+async def test_py_component_respects_dv_non_empty_deps():
+    """
+    Test a scenario where a requested py_component requires a previously calculated DerivedVariable with variables=[var1, var2] deps=[var1].
+    The expected scenario is that the variable is not re-calculated because of deps=[var1] if var2 changes.
+    Then the test verifies that if the value present in deps changed, the DV is recalculated.
+    Then we double check that if we change back to a previously cached value, we recalculate again because cache was purged.
+    """
+    builder = ConfigurationBuilder()
+
+    counter = 0
+
+    def mock_sum(x, y):
+        # Keep track of number of executions
+        nonlocal counter
+        counter += 1
+        return int(x) + int(y)
+
+    var1 = Variable(1)
+    var2 = Variable(1)
+    dv = DerivedVariable(mock_sum, variables=[var1, var2], deps=[var1])
+
+    @py_component
+    def TestComp(variable: int):
+        return MockComponent(text=str(variable))
+
+    builder.add_page('Test', content=TestComp(dv))
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+
+        # Override the env
+        response, status = await _get_template(client)
+
+        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+
+        # Send a request to calculate the DV once with var1=1, var2=2 - so it gets cached
+        response = await _get_derived_variable(
+            client, dv, data={'values': [1, 2], 'ws_channel': 'test_channel', 'force': False}
+        )
+        assert response.json()['value'] == 3
+
+        # DV should've been ran once
+        assert counter == 1
+
+        # Request the py_component that depends on the DV with var1=1, var2=3 - non-deps variable changed
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'variable': dv},
+            data={
+                'uid': component.get('uid'),
+                'values': {'variable': {'type': 'derived', 'uid': str(dv.uid), 'values': [1, 3]}},
+                'ws_channel': 'test_channel',
+            },
+        )
+
+        assert data == {'name': 'MockComponent', 'props': {'text': '3'}, 'uid': 'uid'}
+
+        # The DV should've been ran once - should hit cache because updated value was not in deps
+        assert counter == 1
+
+        # Request the py_component that depends on the DV with var1=2,var2=3
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'variable': dv},
+            data={
+                'uid': component.get('uid'),
+                'values': {'variable': {'type': 'derived', 'uid': str(dv.uid), 'values': [2, 3]}},
+                'ws_channel': 'test_channel',
+            },
+        )
+
+        assert data == {'name': 'MockComponent', 'props': {'text': '5'}, 'uid': 'uid'}
+
+        # The DV should've been ran again - variable which changed was in deps
+        assert counter == 2
+
+        # Now request py_component with var1=1,var2=6 - expected scenario is that cache is NOT hit because
+        # it has been purged - to prevent stale cache issues - so result should be accurate
+        # (as oppose to i.e. returning 3 or 4 as these results were cached for dep variable var1=1)
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'variable': dv},
+            data={
+                'uid': component.get('uid'),
+                'values': {'variable': {'type': 'derived', 'uid': str(dv.uid), 'values': [1, 6]}},
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': '7'}, 'uid': 'uid'}
+
+        # The DV should've been ran again - cache was purged
+        assert counter == 3
+
+
+async def test_switch_variables():
+    """
+    Check that the py_component decorator returns a PyComponentDef when SwitchVariables are passed in and that it
+    processes SwitchVariables correctly when passed back in
+    """
+    from dara.core.interactivity.switch_variable import SwitchVariable
+
+    builder = ConfigurationBuilder()
+
+    condition_var = Variable(True)
+
+    # Create a switch variable that returns 'admin' when True, 'user' when False
+    switch_var = SwitchVariable.when(
+        condition=condition_var,
+        true_value='admin',
+        false_value='user',
+        uid='switch_uid'
+    )
+
+    @py_component
+    def TestBasicComp(input_val: str):
+        return MockComponent(text=input_val)
+
+    builder.add_page('Test', content=TestBasicComp(switch_var))
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+
+        response, status = await _get_template(client)
+
+        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
+        assert 'input_val' in component.get('props').get('dynamic_kwargs')
+
+        # Check that the component can be fetched via the api, with input_val passed in the body
+        # Test with condition=True, should return 'admin'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': True,
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'admin'}, 'uid': 'uid'}
+
+        # Test with condition=False, should return 'user'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': False,
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'user'}, 'uid': 'uid'}
+
+        # Test with unknown value, should return default 'guest'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': switch_var},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': 'unknown',
+                        'value_map': {True: 'admin', False: 'user'},
+                        'default': 'guest',
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'guest'}, 'uid': 'uid'}
