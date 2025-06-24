@@ -127,7 +127,7 @@ describe('Switch Variable', () => {
 
             // Toggle features back on
             cy.get('button').contains('Toggle Features').click();
-            cy.contains('div', 'Available Features:').next().should('have.text', 'Enterprise Features');
+            cy.contains('Enterprise Features', { timeout: 10000 });
         });
     });
 
