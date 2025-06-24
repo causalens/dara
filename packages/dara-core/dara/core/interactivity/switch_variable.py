@@ -174,8 +174,8 @@ class SwitchVariable(NonDataVariable):
 
         user_preference = Variable(default='auto')
         mapping_variable = Variable({
-            'auto': 'System Theme', 
-            'light': 'Light Theme', 
+            'auto': 'System Theme',
+            'light': 'Light Theme',
             'dark': 'Dark Theme'
         })
 
@@ -254,7 +254,7 @@ class SwitchVariable(NonDataVariable):
     def validate_value_map(cls, v):
         """
         Validate that value_map is either a dict or a NonDataVariable.
-        
+
         :param v: The value to validate
         :return: The validated value
         :raises ValueError: If value_map is not a dict or NonDataVariable
@@ -408,7 +408,7 @@ class SwitchVariable(NonDataVariable):
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         """
         Serialize the SwitchVariable model with additional metadata.
-        
+
         :param nxt: The next serializer function in the chain
         :return: Serialized dictionary with __typename and uid fields
         """
