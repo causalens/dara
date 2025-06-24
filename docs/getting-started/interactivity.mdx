@@ -298,7 +298,7 @@ status_component = Card(
 ```
 
 :::tip
-**Key Serialization**: When using mappings with `SwitchVariable`, remember that JSON object keys are always strings. The system automatically converts lookup keys to strings, so `{True: 'admin', False: 'user'}` becomes `{"true": "admin", "false": "user"}` in the frontend. Dara handles the boolean case for you but it's a good thing to keep in mind in case you run into unexpected behaviour.
+**Key Serialization**: When using mappings with `SwitchVariable`, remember that JSON object keys are always strings. The system automatically converts lookup keys to strings, so `{True: 'admin', False: 'user'}` becomes `{"true": "admin", "false": "user"}` in the frontend. Dara handles the e.g. boolean and number cases for you on a best-effort basis but it's a good thing to keep in mind in case you run into unexpected behaviour.
 :::
 
 :::note
