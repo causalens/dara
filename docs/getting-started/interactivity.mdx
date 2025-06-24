@@ -126,8 +126,8 @@ There are two main patterns for creating `SwitchVariable`s:
 The `when()` method is ideal for simple if/else logic where you want to switch between two values based on a true/false condition:
 
 ```python
-from dara.core import Variable, SwitchVariable
-from dara.components import Stack, Text, Input, Button
+from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+from dara.components import Stack, Text, Button, Card
 
 config = ConfigurationBuilder()
 
@@ -148,10 +148,13 @@ button_text = SwitchVariable.when(
     false_value='Login'
 )
 
-page_content = Stack(
-    Text(text=welcome_message),
-    # You will learn about actions in the next section
-    Button(text=button_text, onclick=is_logged_in.toggle())
+# Complete authentication component
+page_content = Card(
+    Stack(
+        Text(text=welcome_message),
+        Button(text=button_text, onclick=is_logged_in.toggle())
+    ),
+    title='Authentication Demo'
 )
 
 config.add_page('Authentication Demo', content=page_content)
@@ -160,6 +163,11 @@ config.add_page('Authentication Demo', content=page_content)
 You can also use complex conditions with other variables:
 
 ```python
+from dara.core import Variable, SwitchVariable, ConfigurationBuilder
+from dara.components import Stack, Text, Input, Card
+
+config = ConfigurationBuilder()
+
 # Temperature-based clothing advice
 temperature = Variable(default=20)
 advice = SwitchVariable.when(
@@ -167,6 +175,19 @@ advice = SwitchVariable.when(
     true_value='Wear light clothes - it\'s warm!',
     false_value='Wear warm clothes - it\'s cool!'
 )
+
+# Complete weather advice component
+weather_component = Card(
+    Stack(
+        Text('Enter temperature (°C):'),
+        Input(value=temperature, type='number'),
+        Text('Advice:'),
+        Text(text=advice)
+    ),
+    title='Weather Advice'
+)
+
+config.add_page('Weather Demo', content=page_content)
 ```
 
 The base variable type overrides the `__eq__` and other comparison operator methods to return a `Condition` object. In the above example we compare the `temperature` variable to the number 25, which returns a `Condition` object that the `SwitchVariable` understands how to evaluate whenever your `Variable` changes.
@@ -176,8 +197,10 @@ The base variable type overrides the `__eq__` and other comparison operator meth
 The `match()` method is perfect for mapping specific values to corresponding outputs, similar to a switch statement:
 
 ```python
-from dara.core import Variable, SwitchVariable
-from dara.components import Stack, Text, Select, Item
+from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+from dara.components import Stack, Text, Select, Item, Card
+
+config = ConfigurationBuilder()
 
 # User role selection
 user_role = Variable(default='guest')
@@ -205,19 +228,28 @@ theme_class = SwitchVariable.match(
     default='default-theme'
 )
 
-page_content = Stack(
-    Select(
-        value=user_role,
-        items=[
-            Item(label='Administrator', value='admin'),
-            Item(label='Editor', value='editor'),
-            Item(label='Viewer', value='viewer'),
-            Item(label='Guest', value='guest')
-        ]
+# Complete role management component
+page_content = Card(
+    Stack(
+        Text('Select your role:'),
+        Select(
+            value=user_role,
+            items=[
+                Item(label='Administrator', value='admin'),
+                Item(label='Editor', value='editor'),
+                Item(label='Viewer', value='viewer'),
+                Item(label='Guest', value='guest')
+            ]
+        ),
+        Text('Permissions:'),
+        Text(text=permission_text),
+        Text('Theme:'),
+        Text(text=theme_class)
     ),
-    Text(text=permission_text),
-    Text(text=f'Current theme: {theme_class}')
+    title='Role Management'
 )
+
+config.add_page('Role Demo', content=page_content)
 ```
 
 #### Advanced Usage
@@ -225,6 +257,9 @@ page_content = Stack(
 `SwitchVariable` can work with other variables as mapping sources:
 
 ```python
+from dara.core import Variable, SwitchVariable
+from dara.components import Stack, Text, Select, Item, Card
+
 # Dynamic mapping based on another variable
 status_messages = Variable({
     'loading': 'Please wait...',
@@ -240,6 +275,25 @@ status_display = SwitchVariable.match(
     value=current_status,
     mapping=status_messages,
     default='Unknown status'
+)
+
+# Complete status display component
+status_component = Card(
+    Stack(
+        Text('Current Status:'),
+        Select(
+            value=current_status,
+            items=[
+                Item(label='Idle', value='idle'),
+                Item(label='Loading', value='loading'),
+                Item(label='Success', value='success'),
+                Item(label='Error', value='error')
+            ]
+        ),
+        Text('Status Message:'),
+        Text(text=status_display)
+    ),
+    title='Dynamic Status Display'
 )
 ```
 

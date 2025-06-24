@@ -44,73 +44,164 @@ class SwitchVariable(NonDataVariable):
         Basic boolean switching:
 
         ```python
-        from dara.core import Variable, SwitchVariable
+        from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+        from dara.components import Stack, Text, Button, Card
 
+        config = ConfigurationBuilder()
         is_admin = Variable(default=False)
 
         # Show different UI based on admin status
         ui_mode = SwitchVariable.when(
             condition=is_admin,
-            true_value='admin_panel',
-            false_value='user_panel'
+            true_value='Admin Panel',
+            false_value='User Panel'
         )
+
+        # Complete component usage
+        page_content = Card(
+            Stack(
+                Text('Current Mode:'),
+                Text(text=ui_mode),
+                Button('Toggle Admin', onclick=is_admin.toggle())
+            ),
+            title='Admin Panel Demo'
+        )
+
+        config.add_page('Admin Demo', content=page_content)
         ```
 
         Value mapping with defaults:
 
         ```python
+        from dara.core import ConfigurationBuilder, Variable, SwitchVariable
+        from dara.components import Stack, Text, Select, Item, Card
+
+        config = ConfigurationBuilder()
         user_role = Variable(default='guest')
 
         # Map user roles to permission levels
         permissions = SwitchVariable.match(
             value=user_role,
             mapping={
-                'admin': 'full_access',
-                'editor': 'write_access',
-                'viewer': 'read_access'
+                'admin': 'Full Access',
+                'editor': 'Write Access',
+                'viewer': 'Read Access'
             },
-            default='no_access'  # for unknown roles
+            default='No Access'  # for unknown roles
         )
+
+        # Complete component usage
+        page_content = Card(
+            Stack(
+                Text('Select Role:'),
+                Select(
+                    value=user_role,
+                    items=[
+                        Item(label='Guest', value='guest'),
+                        Item(label='Viewer', value='viewer'),
+                        Item(label='Editor', value='editor'),
+                        Item(label='Admin', value='admin')
+                    ]
+                ),
+                Text('Permissions:'),
+                Text(text=permissions)
+            ),
+            title='Role Permissions'
+        )
+
+        config.add_page('Permissions Demo', content=page_content)
         ```
 
         Complex conditions:
 
         ```python
-        score = Variable(default=0)
+        from dara.core import Variable, SwitchVariable
+        from dara.components import Stack, Text, Input, Card
+
+        score = Variable(default=85)
 
         # Grade based on score ranges
         grade = SwitchVariable.when(
             condition=score >= 90,
-            true_value='A',
-            false_value='B'
+            true_value='A Grade',
+            false_value='B Grade'
         )
 
+        # Complete component usage
+        grade_component = Card(
+            Stack(
+                Text('Enter Score:'),
+                Input(value=score, type='number'),
+                Text('Grade (>=90 = A, <90 = B):'),
+                Text(text=grade)
+            ),
+            title='Grade Calculator'
+        )
         ```
 
         Switching on computed conditions:
 
         ```python
+        from dara.core import Variable, SwitchVariable
+        from dara.components import Stack, Text, Input, Card
+
         temperature = Variable(default=20)
 
         # Weather advice based on temperature
         advice = SwitchVariable.when(
             condition=temperature > 25,
-            true_value='Wear light clothes',
-            false_value='Wear warm clothes'
+            true_value='Wear light clothes - it\'s warm!',
+            false_value='Wear warm clothes - it\'s cool!'
+        )
+
+        # Complete component usage
+        weather_app = Card(
+            Stack(
+                Text('Temperature (°C):'),
+                Input(value=temperature, type='number'),
+                Text('Advice:'),
+                Text(text=advice)
+            ),
+            title='Weather Advisor'
         )
         ```
 
         Using with other variables:
 
         ```python
+        from dara.core import Variable, SwitchVariable
+        from dara.components import Stack, Text, Select, Item, Card
+
         user_preference = Variable(default='auto')
-        mapping_variable = Variable({'auto': 'light', 'light': 'light_theme', 'dark': 'dark_theme'})
+        mapping_variable = Variable({
+            'auto': 'System Theme', 
+            'light': 'Light Theme', 
+            'dark': 'Dark Theme'
+        })
 
         # Theme selection with user preference override
         active_theme = SwitchVariable.match(
             value=user_preference,
             mapping=mapping_variable,
-            default='light_theme'
+            default='Default Theme'
+        )
+
+        # Complete component usage
+        theme_selector = Card(
+            Stack(
+                Text('Theme Preference:'),
+                Select(
+                    value=user_preference,
+                    items=[
+                        Item(label='Auto', value='auto'),
+                        Item(label='Light', value='light'),
+                        Item(label='Dark', value='dark')
+                    ]
+                ),
+                Text('Active Theme:'),
+                Text(text=active_theme)
+            ),
+            title='Theme Selector'
         )
         ```
 
@@ -146,10 +237,10 @@ class SwitchVariable(NonDataVariable):
         """
         Create a SwitchVariable with a mapping of values.
 
-        :value: Variable, condition, or value to switch on
-        :value_map: Dict mapping switch values to return values
-        :default: Default value when switch value not in mapping
-        :uid: Unique identifier for this variable
+        :param value: Variable, condition, or value to switch on
+        :param value_map: Dict mapping switch values to return values
+        :param default: Default value when switch value not in mapping
+        :param uid: Unique identifier for this variable
         """
         super().__init__(
             uid=uid,
@@ -161,7 +252,13 @@ class SwitchVariable(NonDataVariable):
     @field_validator('value_map')
     @classmethod
     def validate_value_map(cls, v):
-        """Validate that value_map is either a dict or a NonDataVariable."""
+        """
+        Validate that value_map is either a dict or a NonDataVariable.
+        
+        :param v: The value to validate
+        :return: The validated value
+        :raises ValueError: If value_map is not a dict or NonDataVariable
+        """
         if v is None:
             return v
         if isinstance(v, dict):
@@ -184,24 +281,59 @@ class SwitchVariable(NonDataVariable):
         This is the most common pattern for simple if/else logic. The condition
         is evaluated and returns true_value if truthy, false_value otherwise.
 
-        Args:
-            condition: Condition to evaluate (Variable, Condition object, or any value)
-            true_value: Value to return when condition evaluates to True
-            false_value: Value to return when condition evaluates to False
-            uid: Unique identifier for this variable
+        :param condition: Condition to evaluate (Variable, Condition object, or any value)
+        :param true_value: Value to return when condition evaluates to True
+        :param false_value: Value to return when condition evaluates to False
+        :param uid: Unique identifier for this variable
+        :return: SwitchVariable configured for boolean switching
 
-        Returns:
-            SwitchVariable configured for boolean switching
-
-        Example:
+        Example with variable condition:
             ```python
+            from dara.core import Variable, SwitchVariable
+            from dara.components import Stack, Text, Button
+
             is_loading = Variable(default=True)
 
             # Show spinner while loading, content when done
-            display = SwitchVariable.condition(
+            display = SwitchVariable.when(
                 condition=is_loading,
                 true_value='Loading...',
                 false_value='Content loaded!'
+            )
+
+            # Use in a complete component
+            page_content = Stack(
+                Text(text=display),
+                Button(
+                    text='Toggle Loading',
+                    onclick=is_loading.toggle()
+                )
+            )
+            ```
+
+            Example with a condition object:
+
+            ```python
+            from dara.core import Variable, SwitchVariable
+            from dara.components import Stack, Text, Input, Card
+
+            # Temperature-based clothing advice
+            temperature = Variable(default=20)
+            advice = SwitchVariable.when(
+                condition=temperature > 25,
+                true_value='Wear light clothes - it\'s warm!',
+                false_value='Wear warm clothes - it\'s cool!'
+            )
+
+            # Complete weather advice component
+            weather_component = Card(
+                Stack(
+                    Text('Enter temperature (°C):'),
+                    Input(value=temperature, type='number'),
+                    Text('Advice:'),
+                    Text(text=advice)
+                ),
+                title='Weather Advice'
             )
             ```
         """
@@ -225,17 +357,17 @@ class SwitchVariable(NonDataVariable):
         This pattern is useful when you have multiple specific values to map to
         different outputs, similar to a switch statement in other languages.
 
-        Args:
-            value: Variable or value to switch on
-            mapping: Dict mapping switch values to return values
-            default: Default value when switch value not found in mapping
-            uid: Unique identifier for this variable
-
-        Returns:
-            SwitchVariable configured with the provided mapping
+        :param value: Variable or value to switch on
+        :param mapping: Dict mapping switch values to return values
+        :param default: Default value when switch value not found in mapping
+        :param uid: Unique identifier for this variable
+        :return: SwitchVariable configured with the provided mapping
 
         Example:
             ```python
+            from dara.core import Variable, SwitchVariable
+            from dara.components import Stack, Text, Select, Item
+
             status = Variable(default='pending')
 
             # Map status codes to user-friendly messages
@@ -249,6 +381,20 @@ class SwitchVariable(NonDataVariable):
                 },
                 default='Unknown status'
             )
+
+            # Use in a complete component
+            page_content = Stack(
+                Select(
+                    value=status,
+                    items=[
+                        Item(label='Pending', value='pending'),
+                        Item(label='Success', value='success'),
+                        Item(label='Error', value='error'),
+                        Item(label='Cancelled', value='cancelled')
+                    ]
+                ),
+                Text(text=message)
+            )
             ```
         """
         return cls(
@@ -260,5 +406,11 @@ class SwitchVariable(NonDataVariable):
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        """
+        Serialize the SwitchVariable model with additional metadata.
+        
+        :param nxt: The next serializer function in the chain
+        :return: Serialized dictionary with __typename and uid fields
+        """
         parent_dict = nxt(self)
         return {**parent_dict, '__typename': 'SwitchVariable', 'uid': str(parent_dict['uid'])}
