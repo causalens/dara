@@ -58,9 +58,7 @@ def switch_variable():
     )
 
     # Create a derived variable that uses the switch variable
-    full_weather_report = DerivedVariable(
-        func=lambda temp, advice: f'Temperature: {temp}°C - {advice}', variables=[temperature, weather_advice]
-    )
+    full_weather_report = DerivedVariable(func=lambda advice: f'{advice}', variables=[weather_advice])
 
     derived_variable_scenario = Stack(
         Text('Temperature (°C):'),

@@ -65,19 +65,19 @@ describe('Switch Variable', () => {
             // Initially temp=20, should show "wear warm clothes"
             cy.contains('div', 'Weather Report:')
                 .next()
-                .should('contain.text', 'Temperature: 20°C - Wear warm clothes');
+                .should('contain.text', 'Wear warm clothes');
 
             // Change temperature to 30 (> 25)
             cy.get('input').clear().type('30');
             cy.contains('div', 'Weather Report:')
                 .next()
-                .should('contain.text', 'Temperature: 30°C - Wear light clothes');
+                .should('contain.text', 'Wear light clothes');
 
             // Change temperature to 15 (< 25)
             cy.get('input').clear().type('15');
             cy.contains('div', 'Weather Report:')
                 .next()
-                .should('contain.text', 'Temperature: 15°C - Wear warm clothes');
+                .should('contain.text', 'Wear warm clothes');
         });
     });
 

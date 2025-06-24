@@ -281,7 +281,7 @@ export function getDeps(values: Array<ResolvedDerivedVariable | any>, deps?: num
 
         if (isResolvedSwitchVariable(val)) {
             // For switch variables, return the constituent parts as dependencies
-            return getDeps([val.value, val.value_map, val.default]).flat();
+            return getDeps([val.value, val.value_map, val.default], [0, 1, 2]).flat();
         }
 
         return val;
