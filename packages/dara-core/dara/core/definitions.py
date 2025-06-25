@@ -93,16 +93,14 @@ class ErrorHandlingConfig(BaseModel):
     def validate_raw_css(cls, value):
         from dara.core.interactivity.non_data_variable import NonDataVariable
 
-        if isinstance(value, str):
-            return str
+        if value is None:
+            return None
+        if isinstance(value, (str, NonDataVariable, CSSProperties)):
+            return value
         if isinstance(value, dict):
             return {_kebab_to_camel(k): v for k, v in value.items()}
-        if isinstance(value, NonDataVariable):
-            return value
-        if isinstance(value, CSSProperties):
-            return value
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, or NonDataVariable, got {type(value)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(value)}')
 
     def model_dump(self, *args, **kwargs):
         result = super().model_dump(*args, **kwargs)
@@ -204,17 +202,14 @@ class ComponentInstance(BaseModel):
     def parse_css(cls, css: Optional[Any]):
         from dara.core.interactivity.non_data_variable import NonDataVariable
 
+        if css is None:
+            return None
+
         # If it's a plain dict, change kebab case to camel case
         if isinstance(css, dict):
             return {_kebab_to_camel(k): v for k, v in css.items()}
 
-        if isinstance(css, NonDataVariable):
-            return css
-
-        if isinstance(css, CSSProperties):
-            return css
-
-        if isinstance(css, str):
+        if isinstance(css, (NonDataVariable, CSSProperties, str)):
             return css
 
         raise ValueError(f'raw_css must be a CSSProperties, dict, str, or NonDataVariable, got {type(css)}')
