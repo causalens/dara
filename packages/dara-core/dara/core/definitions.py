@@ -212,7 +212,7 @@ class ComponentInstance(BaseModel):
         if isinstance(css, (NonDataVariable, CSSProperties, str)):
             return css
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, or NonDataVariable, got {type(css)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(css)}')
 
     @classmethod
     def isinstance(cls, obj: Any) -> bool:
