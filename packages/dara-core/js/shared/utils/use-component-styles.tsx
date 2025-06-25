@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useMemo } from 'react';
 import * as React from 'react';
 
@@ -118,7 +117,8 @@ export default function useComponentStyles(
 
         // Filter out null/undefined values so they don't end up accidentally overriding other style properties
         return Object.fromEntries(Object.entries(stylesObj).filter(([, v]) => v !== null && v !== undefined));
-    }, [useDeepCompare(props)]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [useDeepCompare(props), rawStyles, flexProps]);
 
     return [styles, rawCss];
 }
