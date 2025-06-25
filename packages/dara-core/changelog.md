@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.1
 
 -  Fixed an issue where `ComponentInstance` would fail validation if `raw_css` was explicitly set to `None`
 -  Fixed an issue where setting `raw_css` to a `Variable` with an object value would not update the component's styles
