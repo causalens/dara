@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `ComponentInstance` would fail validation if `raw_css` was explicitly set to `None`
+
 ## 1.17.0
 
 -  Added `SwitchVariable` for frontend-only conditional logic. Use `SwitchVariable.when()` for boolean conditions and `SwitchVariable.match()` for value mappings. Provides better performance than `DerivedVariable` for simple conditional logic by avoiding backend roundtrips.

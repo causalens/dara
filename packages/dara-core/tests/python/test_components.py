@@ -40,6 +40,20 @@ def test_css_variable():
     }
 
 
+def test_none_raw_css():
+    """Test that ComponentInstance can accept None for raw_css"""
+
+    class TestInstance(ComponentInstance):
+        pass
+
+    instance = TestInstance(raw_css=None)
+    assert instance.dict() == {
+        'name': 'TestInstance',
+        'props': {},
+        'uid': instance.uid,
+    }
+
+
 def test_children():
     class TestComponent(StyledComponentInstance):
         foo: str
