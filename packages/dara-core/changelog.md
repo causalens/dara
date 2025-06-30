@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed issue where logging takes into consideration if `entry` is `None` but not if `entry.data` is `None`, causing an error when resetting a DataVariable's value to `None`.
+
 ## 1.17.1
 
 -  Fixed an issue where `ComponentInstance` would fail validation if `raw_css` was explicitly set to `None`
