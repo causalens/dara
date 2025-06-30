@@ -200,7 +200,10 @@ class DataVariable(AnyDataVariable):
         eng_logger.debug(
             f'Data Variable {_uid_short}',
             'retrieved from cache',
-            {'uid': var_entry.uid, 'size': len(entry.data.index) if entry is not None else 0},
+            {
+                'uid': var_entry.uid,
+                'size': len(entry.data.index) if entry is not None and entry.data is not None else 0,
+            },
         )
 
         if entry is None:
