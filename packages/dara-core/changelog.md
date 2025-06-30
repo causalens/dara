@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.2
 
 - Fixed issue where logging takes into consideration if `entry` is `None` but not if `entry.data` is `None`, causing an error when resetting a DataVariable's value to `None`.
 
