@@ -10,7 +10,8 @@ def actions():
     """
     Action functionality test cases
     """
-    dv = DerivedVariable(func=lambda: uuid.uuid4().hex, variables=[])
+    inp = Variable(default="test")
+    dv = DerivedVariable(func=lambda _: uuid.uuid4().hex, variables=[inp])
     target = Variable("null")
 
     @action
@@ -20,6 +21,7 @@ def actions():
     cache_hit_scenario = Stack(
         Text("Input:"),
         Text(dv),
+        Button("Trigger", onclick=dv.trigger()),
         Button("Set", onclick=set_target(dv)),
         Text("Target:"),
         Text(text=target),
