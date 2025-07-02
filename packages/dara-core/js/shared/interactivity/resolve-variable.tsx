@@ -13,6 +13,9 @@ import {
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isResolvedDerivedDataVariable,
+    isResolvedDerivedVariable,
+    isResolvedSwitchVariable,
     isSwitchVariable,
     isUrlVariable,
     isVariable,
@@ -122,4 +125,60 @@ export function resolveVariable<VariableType>(
     }
 
     return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
+}
+
+/**
+ * Claan value to a format understood by the backend.
+ * Removes `deps`, appends `force` to resolved derived(data)variables.
+ *
+ * @param value a value to clean
+ * @param force whether to force a derived variable recalculation
+ */
+export function cleanValue(value: unknown, force: boolean): any {
+    if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
+        const { deps, ...rest } = value;
+        const cleanedValues = value.values.map((v) => cleanValue(v, force));
+
+        return {
+            ...rest,
+            force,
+            values: cleanedValues,
+        };
+    }
+
+    if (isResolvedSwitchVariable(value)) {
+        return {
+            ...value,
+            value: cleanValue(value.value, force),
+            value_map: cleanValue(value.value_map, force),
+            default: cleanValue(value.default, force),
+        };
+    }
+
+    return value;
+}
+
+/**
+ * Claan kwargs to a format understood by the backend.
+ * Removes `deps`, appends `force` to resolved derived(data)variables.
+ */
+export function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string, any> {
+    return Object.keys(kwargs).reduce(
+        (acc, k) => {
+            acc[k] = cleanValue(kwargs[k], force);
+            return acc;
+        },
+        {} as Record<string, any>
+    );
+}
+
+/**
+ * Format values into a shape expected by the backend.
+ * Removes `deps`, appends `force` to resolved derived(data)variables.
+ *
+ * @param values list of values - plain values or ResolvedDerivedVariable constructs with plain values nested inside
+ */
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+export function cleanArgs(values: Array<any | ResolvedDerivedVariable>, force: boolean): any[] {
+    return values.map((val) => cleanValue(val, force));
 }

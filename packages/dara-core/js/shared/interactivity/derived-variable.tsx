@@ -40,7 +40,7 @@ import {
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
+import { cleanArgs, getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
 import {
     type TriggerIndexValue,
     depsRegistry,
@@ -63,41 +63,6 @@ export function isTaskResponse(dvResponse: DerivedVariableResponse<any>): dvResp
 interface DerivedVariableTaskResponse {
     cache_key: string;
     task_id: string;
-}
-
-/**
- * Format values into a shape expected by the backend.
- *
- * @param values list of values - plain values or ResolvedDerivedVariable constructs with plain values nested inside
- */
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function formatDerivedVariableRequest(values: Array<any | ResolvedDerivedVariable>): any[] {
-    return values.map((val) => {
-        if (isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val)) {
-            const { deps, values: nestedValues, ...rest } = val;
-
-            // Recursively remove deps from request
-            // Append force: false - it's sent separately in the request at the top level but we append it recursively
-            // to keep the request shape consistent with the PythonWrapper requests
-            return {
-                ...rest,
-                force: false,
-                values: formatDerivedVariableRequest(nestedValues),
-            };
-        }
-
-        if (isResolvedSwitchVariable(val)) {
-            // For switch variables, recursively format the constituent parts
-            return {
-                ...val,
-                value: formatDerivedVariableRequest([val.value])[0],
-                value_map: formatDerivedVariableRequest([val.value_map])[0],
-                default: formatDerivedVariableRequest([val.default])[0],
-            };
-        }
-
-        return val;
-    });
 }
 
 interface FetchDerivedVariableArgs {
@@ -544,7 +509,7 @@ export function getOrRegisterDerivedVariable(
                                 is_data_variable: isDerivedDataVariable(variable),
                                 selectorKey,
                                 values: normalizeRequest(
-                                    formatDerivedVariableRequest(derivedResult.values),
+                                    cleanArgs(derivedResult.values, false),
                                     variable.variables
                                 ),
                                 variableUid: variable.uid,
