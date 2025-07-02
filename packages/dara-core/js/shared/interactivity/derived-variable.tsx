@@ -508,10 +508,7 @@ export function getOrRegisterDerivedVariable(
                                 force: derivedResult.force,
                                 is_data_variable: isDerivedDataVariable(variable),
                                 selectorKey,
-                                values: normalizeRequest(
-                                    cleanArgs(derivedResult.values, false),
-                                    variable.variables
-                                ),
+                                values: normalizeRequest(cleanArgs(derivedResult.values, false), variable.variables),
                                 variableUid: variable.uid,
                                 wsClient,
                             });
