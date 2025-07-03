@@ -22,9 +22,6 @@ import {
     type GlobalTaskContext,
     type NormalizedPayload,
     type TaskResponse,
-    isResolvedDerivedDataVariable,
-    isResolvedDerivedVariable,
-    isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
 
@@ -32,7 +29,7 @@ import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { resolveDerivedValue } from './derived-variable';
-import { resolveVariable } from './resolve-variable';
+import { cleanKwargs, resolveVariable } from './resolve-variable';
 import {
     type TriggerIndexValue,
     atomRegistry,
@@ -96,47 +93,6 @@ async function fetchFunctionComponent(
     await validateResponse(res, `Failed to fetch the component: ${component}`);
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
     return result;
-}
-
-/**
- * Claan value to a format understood by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
- *
- * @param value a value to clean
- * @param force whether to force a derived variable recalculation
- */
-export function cleanValue(value: unknown, force: boolean): any {
-    if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
-        const { deps, ...rest } = value;
-        const cleanedValues = value.values.map((v) => cleanValue(v, force));
-
-        return {
-            ...rest,
-            force,
-            values: cleanedValues,
-        };
-    }
-
-    if (isResolvedSwitchVariable(value)) {
-        return {
-            ...value,
-            value: cleanValue(value.value, force),
-            value_map: cleanValue(value.value_map, force),
-            default: cleanValue(value.default, force),
-        };
-    }
-
-    return value;
-}
-
-function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string, any> {
-    return Object.keys(kwargs).reduce(
-        (acc, k) => {
-            acc[k] = cleanValue(kwargs[k], force);
-            return acc;
-        },
-        {} as Record<string, any>
-    );
 }
 
 function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string): RecoilState<TriggerIndexValue> {

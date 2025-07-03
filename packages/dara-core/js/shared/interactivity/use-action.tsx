@@ -25,7 +25,7 @@ import { isActionImpl, isVariable } from '@/types/utils';
 import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
 import useActionRegistry from '../utils/use-action-registry';
-import { getOrRegisterPlainVariable, resolveVariable } from './internal';
+import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
 import { useVariable } from './use-variable';
 
 /**
@@ -69,7 +69,7 @@ async function invokeAction(
                 execution_id: executionId,
                 input,
                 uid: annotatedAction.uid,
-                values: normalizeRequest(resolvedKwargs, annotatedAction.dynamic_kwargs),
+                values: normalizeRequest(cleanKwargs(resolvedKwargs, false), annotatedAction.dynamic_kwargs),
                 ws_channel,
             }),
             method: HTTP_METHOD.POST,

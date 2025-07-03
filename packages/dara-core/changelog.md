@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where in some cases actions consuming DerivedVariables would cause extra calculations of the derived variable to be performed even if a cached value was available
+
 ## 1.17.2
 
 - Fixed issue where logging takes into consideration if `entry` is `None` but not if `entry.data` is `None`, causing an error when resetting a DataVariable's value to `None`.

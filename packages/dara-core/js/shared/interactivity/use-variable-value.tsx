@@ -34,10 +34,10 @@ import {
 } from '@/types';
 
 import {
+    cleanArgs,
     fetchDataVariable,
     fetchDerivedDataVariable,
     fetchDerivedVariable,
-    formatDerivedVariableRequest,
     isTaskResponse,
     resolveVariable,
 } from './internal';
@@ -113,7 +113,7 @@ export function getVariableValue<VV, B extends boolean = false>(
         selectorKey: resolved.uid,
 
         values: normalizeRequest(
-            formatDerivedVariableRequest(resolved.values),
+            cleanArgs(resolved.values, false),
             (variable as DerivedVariable | DerivedDataVariable).variables
         ),
         variableUid: resolved.uid,

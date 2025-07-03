@@ -8,7 +8,7 @@ import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/interactivity/use-action';
 
 import { EventCapturer, useAction, useVariable } from '../../js/shared';
-import {
+import type {
     Action,
     ActionImpl,
     AnnotatedAction,

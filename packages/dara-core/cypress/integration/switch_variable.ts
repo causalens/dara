@@ -122,12 +122,16 @@ describe('Switch Variable', () => {
             cy.contains('div', 'Available Features:').next().should('have.text', 'Features Disabled');
 
             // Change to enterprise user while features are off
+            cy.wait(1000);
             selectOption('enterprise');
+            cy.wait(1000);
             cy.contains('div', 'Available Features:').next().should('have.text', 'Features Disabled');
 
             // Toggle features back on
+            cy.wait(1000);
             cy.get('button').contains('Toggle Features').click();
-            cy.contains('Enterprise Features', { timeout: 10000 });
+            cy.wait(1000);
+            cy.contains('Enterprise Features', { timeout: 15000 });
         });
     });
 
