@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.4
 
 - Fixed an issue where `Table`'s filter components would not show when clicking on the filter icon.
 
