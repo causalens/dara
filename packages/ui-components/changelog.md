@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where `Table`'s filter components would not show when clicking on the filter icon.
+
 ## 1.16.23
 
 - Updated `UploadDropzone` to pass file rejection information to improve error handling in wrapper components.
