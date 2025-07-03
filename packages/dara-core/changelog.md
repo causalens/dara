@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.3
 
 -  Fixed an issue where in some cases actions consuming DerivedVariables would cause extra calculations of the derived variable to be performed even if a cached value was available
 
