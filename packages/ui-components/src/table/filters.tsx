@@ -14,6 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {
+    FloatingPortal,
+    autoUpdate,
+    flip,
+    offset,
+    shift,
+    useClick,
+    useDismiss,
+    useFloating,
+    useInteractions,
+    useRole,
+} from '@floating-ui/react';
 import { faFilter } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isAfter, isBefore, isEqual, isWithinInterval, parseISO } from 'date-fns';
@@ -26,7 +38,6 @@ import styled from '@darajs/styled-components';
 import { FilterWrapper, StyledSearchBar } from '../filter/categorical-filter';
 import { FilterResults as DatetimeFilterResults } from '../filter/datetime-filter';
 import { FilterResults as NumericFilterResults } from '../filter/numeric-filter';
-import Tooltip from '../tooltip/tooltip';
 import { Item } from '../types';
 
 const FilterIcon = styled(FontAwesomeIcon)<{ $hasFilter: boolean }>`
@@ -251,9 +262,7 @@ export interface FilterContainerProps {
 }
 
 export function FilterContainer(props: FilterContainerProps): JSX.Element {
-    const [visible, setVisible] = useState(false);
-    const show = (): void => setVisible(true);
-    const hide = (): void => setVisible(false);
+    const [isOpen, setIsOpen] = useState(false);
     const hasFilter = !(
         props.col.filterValue === undefined ||
         props.col.filterValue?.selected === 'None' ||
@@ -266,35 +275,59 @@ export function FilterContainer(props: FilterContainerProps): JSX.Element {
         }
     }, [props.col]);
 
-    // because the select dropdown lives outside of the component we need to pass a ref so that we can check whether the user is clicking within it or outside
+    // Ref to track portal elements for click outside detection
     const portalsRef = useRef<Array<HTMLElement>>([]);
 
-    function onClickOutside(instance: any, event: Event): void {
-        const target = event.target as HTMLInputElement;
+    const { refs, floatingStyles, context } = useFloating({
+        open: isOpen,
+        onOpenChange: setIsOpen,
+        placement: 'bottom-start',
+        middleware: [offset(8), flip(), shift({ padding: 8 })],
+        whileElementsMounted: autoUpdate,
+    });
 
-        // loop through refs if they contain the target then user is clicking within a dropdown
-        for (const portal of portalsRef.current) {
-            if (portal?.contains(target)) {
-                return;
+    const click = useClick(context);
+    const dismiss = useDismiss(context, {
+        outsidePress: (event) => {
+            const target = event.target as HTMLElement;
+
+            // Check if click is within any portal elements
+            for (const portal of portalsRef.current) {
+                if (portal?.contains(target)) {
+                    return false; // Don't dismiss if clicking inside portal
+                }
             }
-        }
-        // user clicked outside so hide
-        hide();
-    }
+            return true; // Dismiss if clicking outside
+        },
+    });
+    const role = useRole(context);
+
+    const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
+
+    const hide = (): void => setIsOpen(false);
 
     return (
-        <Tooltip
-            content={props.col.render('Filter', { items, onChange: hide, portalsRef })}
-            hidden
-            interactive
-            onClickOutside={onClickOutside}
-            visible={visible}
-        >
-            <span>
+        <>
+            <span ref={refs.setReference} {...getReferenceProps()}>
                 <HeaderIconWrapper hasFilter={hasFilter}>
-                    <FilterIcon $hasFilter={hasFilter} icon={faFilter} onClick={show} />
+                    <FilterIcon $hasFilter={hasFilter} icon={faFilter} />
                 </HeaderIconWrapper>
             </span>
-        </Tooltip>
+
+            <FloatingPortal>
+                <div
+                    ref={refs.setFloating}
+                    style={{
+                        ...floatingStyles,
+                        zIndex: 9999,
+                        pointerEvents: 'auto',
+                        display: isOpen ? 'block' : 'none',
+                    }}
+                    {...getFloatingProps()}
+                >
+                    {props.col.render('Filter', { items, onChange: hide, portalsRef })}
+                </div>
+            </FloatingPortal>
+        </>
     );
 }
