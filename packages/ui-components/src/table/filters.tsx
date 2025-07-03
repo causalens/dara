@@ -325,21 +325,20 @@ export function FilterContainer(props: FilterContainerProps): JSX.Element {
                 </HeaderIconWrapper>
             </span>
             
-            {isOpen && (
-                <FloatingPortal>
-                    <div
-                        ref={refs.setFloating}
-                        style={{
-                            ...floatingStyles,
-                            zIndex: 9999,
-                            pointerEvents: 'auto',
-                        }}
-                        {...getFloatingProps()}
-                    >
-                        {props.col.render('Filter', { items, onChange: hide, portalsRef })}
-                    </div>
-                </FloatingPortal>
-            )}
+            <FloatingPortal>
+                <div
+                    ref={refs.setFloating}
+                    style={{
+                        ...floatingStyles,
+                        zIndex: 9999,
+                        pointerEvents: 'auto',
+                        display: isOpen ? 'block' : 'none',
+                    }}
+                    {...getFloatingProps()}
+                >
+                    {props.col.render('Filter', { items, onChange: hide, portalsRef })}
+                </div>
+            </FloatingPortal>
         </>
     );
 }
