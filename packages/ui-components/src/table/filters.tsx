@@ -14,12 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { faFilter } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { isAfter, isBefore, isEqual, isWithinInterval, parseISO } from 'date-fns';
-import { transparentize } from 'polished';
-import { useMemo, useRef, useState } from 'react';
-import { FilterProps, HeaderGroup, Row } from 'react-table';
 import {
     FloatingPortal,
     autoUpdate,
@@ -32,6 +26,12 @@ import {
     useInteractions,
     useRole,
 } from '@floating-ui/react';
+import { faFilter } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { isAfter, isBefore, isEqual, isWithinInterval, parseISO } from 'date-fns';
+import { transparentize } from 'polished';
+import { useMemo, useRef, useState } from 'react';
+import { FilterProps, HeaderGroup, Row } from 'react-table';
 
 import styled from '@darajs/styled-components';
 
@@ -282,11 +282,7 @@ export function FilterContainer(props: FilterContainerProps): JSX.Element {
         open: isOpen,
         onOpenChange: setIsOpen,
         placement: 'bottom-start',
-        middleware: [
-            offset(8),
-            flip(),
-            shift({ padding: 8 }),
-        ],
+        middleware: [offset(8), flip(), shift({ padding: 8 })],
         whileElementsMounted: autoUpdate,
     });
 
@@ -294,7 +290,7 @@ export function FilterContainer(props: FilterContainerProps): JSX.Element {
     const dismiss = useDismiss(context, {
         outsidePress: (event) => {
             const target = event.target as HTMLElement;
-            
+
             // Check if click is within any portal elements
             for (const portal of portalsRef.current) {
                 if (portal?.contains(target)) {
@@ -306,25 +302,18 @@ export function FilterContainer(props: FilterContainerProps): JSX.Element {
     });
     const role = useRole(context);
 
-    const { getReferenceProps, getFloatingProps } = useInteractions([
-        click,
-        dismiss,
-        role,
-    ]);
+    const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
     const hide = (): void => setIsOpen(false);
 
     return (
         <>
-            <span
-                ref={refs.setReference}
-                {...getReferenceProps()}
-            >
+            <span ref={refs.setReference} {...getReferenceProps()}>
                 <HeaderIconWrapper hasFilter={hasFilter}>
                     <FilterIcon $hasFilter={hasFilter} icon={faFilter} />
                 </HeaderIconWrapper>
             </span>
-            
+
             <FloatingPortal>
                 <div
                     ref={refs.setFloating}
