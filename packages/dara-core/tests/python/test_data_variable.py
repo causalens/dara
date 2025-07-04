@@ -475,7 +475,7 @@ async def test_derived_variable_with_data_variable():
             {
                 'values': [2, {'type': 'data', 'uid': 'uid', 'filters': ValueQuery(column='col1', value=1).dict()}],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -490,7 +490,7 @@ async def test_derived_variable_with_data_variable():
             {
                 'values': [2, {'type': 'data', 'uid': 'uid', 'filters': ValueQuery(column='col1', value=1).dict()}],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
         assert response.status_code == 200
@@ -504,7 +504,7 @@ async def test_derived_variable_with_data_variable():
             {
                 'values': [2, {'type': 'data', 'uid': 'uid', 'filters': ValueQuery(column='col1', value=2).dict()}],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
         assert response.status_code == 200
@@ -564,7 +564,7 @@ async def test_derived_variable_with_switch_variable():
                     }
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -588,7 +588,7 @@ async def test_derived_variable_with_switch_variable():
                     }
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -612,7 +612,7 @@ async def test_derived_variable_with_switch_variable():
                     }
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -681,7 +681,7 @@ async def test_py_component_with_data_variable():
                     },
                 },
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 

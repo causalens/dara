@@ -121,7 +121,7 @@ async def test_derived_data_variable_dv_value_not_returned():
     app = _start_application(config)
     async with AsyncClient(app) as client:
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
 
         # Check no actual value is returned when is_data_variable is True
@@ -173,7 +173,7 @@ async def test_derived_data_variable_ws_channel_required():
     async with AsyncClient(app) as client:
 
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
         cache_key = response.json()['cache_key']
 
@@ -204,7 +204,7 @@ async def test_derived_data_variable_must_return_dataframe():
 
     async with AsyncClient(app) as client:
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
         cache_key = response.json()['cache_key']
 
@@ -243,7 +243,7 @@ async def test_derived_data_variable_no_filters():
     async with AsyncClient(app) as client:
 
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
@@ -263,7 +263,7 @@ async def test_derived_data_variable_no_filters():
 
         # Hit the endpoint again to make sure the cache is re-used
         second_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         assert second_response.json()['cache_key'] == cache_key
@@ -288,7 +288,7 @@ async def test_derived_data_variable_no_filters():
 
         # Hit the derived endpoint again with different value, check that the function is called again
         third_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert third_response.json()['cache_key'] != cache_key
         assert mock_func.call_count == 2
@@ -350,7 +350,7 @@ async def test_derived_data_variable_with_filters():
 
     async with AsyncClient(app) as client:
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         cache_key = response.json()['cache_key']
 
@@ -423,14 +423,14 @@ async def test_derived_data_variable_cache_user():
     async with AsyncClient(app) as client:
 
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
 
         # Hit the endpoint again to make sure the cache is re-used
         second_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         assert second_response.json()['cache_key'] == cache_key
@@ -455,7 +455,7 @@ async def test_derived_data_variable_cache_user():
 
         # Hit the derived endpoint again with different value, check that the function is called again
         third_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert third_response.json()['cache_key'] != cache_key
         assert mock_func.call_count == 2
@@ -501,7 +501,7 @@ async def test_derived_data_variable_cache_user():
         response = await _get_derived_variable(
             client,
             derived,
-            {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False},
+            {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None},
             headers=ALT_AUTH_HEADERS,
         )
         assert mock_func.call_count == 3
@@ -535,14 +535,14 @@ async def test_derived_data_variable_cache_session():
     async with AsyncClient(app) as client:
 
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
 
         # Hit the endpoint again to make sure the cache is re-used
         second_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         mock_func.assert_called_once()
         assert second_response.json()['cache_key'] == cache_key
@@ -567,7 +567,7 @@ async def test_derived_data_variable_cache_session():
 
         # Hit the derived endpoint again with different value, check that the function is called again
         third_response = await _get_derived_variable(
-            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': True, 'values': [2], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert third_response.json()['cache_key'] != cache_key
         assert mock_func.call_count == 2
@@ -613,7 +613,7 @@ async def test_derived_data_variable_cache_session():
         response = await _get_derived_variable(
             client,
             derived,
-            {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force': False},
+            {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None},
             headers=ALT_AUTH_HEADERS,
         )
         assert mock_func.call_count == 3
@@ -653,7 +653,7 @@ async def test_derived_data_variable_filter_metatask(cache):
                     'is_data_variable': True,
                     'values': [1],
                     'ws_channel': init.get('message').get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             cache_key = response.json()['cache_key']
@@ -781,7 +781,7 @@ async def test_derived_data_variable_in_derived_variable():
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -837,7 +837,7 @@ async def test_derived_data_variable_run_as_task_in_derived_variable():
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert 'task_id' in response.json()
@@ -872,7 +872,7 @@ async def test_derived_data_variable_run_as_task_in_derived_variable():
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.json()['value'] == 4
@@ -940,7 +940,7 @@ async def test_py_component_with_derived_data_variable():
                     },
                 },
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -1016,7 +1016,7 @@ async def test_py_component_with_derived_data_variable_run_as_task():
                         },
                     },
                     'ws_channel': ws_channel,
-                    'force': False,
+                    'force_key': None,
                 },
             )
 
@@ -1190,7 +1190,7 @@ async def test_derived_data_variable_with_derived_variable():
                 'values': [{'type': 'data', 'uid': 'data'}, {'type': 'derived', 'values': [10], 'uid': 'dv'}],
                 'filters': None,
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
                 'is_data_variable': True,
             },
         )
@@ -1254,7 +1254,7 @@ async def test_derived_data_variable_pending_value():
                 'values': [{'type': 'data', 'uid': 'data'}, 10],
                 'filters': None,
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
                 'is_data_variable': True,
             },
         )
@@ -1279,7 +1279,7 @@ async def test_derived_data_variable_pending_value():
                     'values': [{'type': 'data', 'uid': 'data'}, 10],
                     'filters': None,
                     'ws_channel': 'test_channel',
-                    'force': True,  # force recalculation
+                    'force_key': 'test_force_key',  # force recalculation
                     'is_data_variable': True,
                 },
             )
@@ -1347,7 +1347,7 @@ async def test_derived_data_variable_cache_eviction():
                 'values': [{'type': 'data', 'uid': 'data'}, 10],
                 'filters': None,
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
                 'is_data_variable': True,
             },
         )
@@ -1366,7 +1366,7 @@ async def test_derived_data_variable_cache_eviction():
                 'values': [{'type': 'data', 'uid': 'data'}, 20],
                 'filters': None,
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
                 'is_data_variable': True,
             },
         )
@@ -1437,7 +1437,7 @@ async def test_derived_data_variable_with_switch_variable():
                     }
                 ], 
                 'ws_channel': 'test_channel', 
-                'force': False
+                'force_key': None
             }
         )
         mock_func.assert_called_once()
@@ -1469,7 +1469,7 @@ async def test_derived_data_variable_with_switch_variable():
                     }
                 ], 
                 'ws_channel': 'test_channel', 
-                'force': False
+                'force_key': None
             }
         )
         assert second_response.json()['cache_key'] != cache_key
@@ -1501,7 +1501,7 @@ async def test_derived_data_variable_with_switch_variable():
                     }
                 ], 
                 'ws_channel': 'test_channel', 
-                'force': False
+                'force_key': None
             }
         )
         assert mock_func.call_count == 3
@@ -1585,7 +1585,7 @@ async def test_derived_data_variable_with_switch_variable_condition():
                     }
                 ], 
                 'ws_channel': 'test_channel', 
-                'force': False
+                'force_key': None
             }
         )
         mock_func.assert_called_once()
@@ -1622,7 +1622,7 @@ async def test_derived_data_variable_with_switch_variable_condition():
                     }
                 ], 
                 'ws_channel': 'test_channel', 
-                'force': False
+                'force_key': None
             }
         )
         assert second_response.json()['cache_key'] != cache_key

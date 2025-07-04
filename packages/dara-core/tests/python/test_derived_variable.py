@@ -63,9 +63,10 @@ async def test_fetching_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
 
         assert response.status_code == 200
@@ -74,13 +75,17 @@ async def test_fetching_derived_variable():
 
         # Hit the endpoint again with the same arguments and make sure function hasn't been called again
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         mock_func.assert_called_once()
 
         # Call it with different vars and check the response
         response = await _get_derived_variable(
-            client, derived, {'values': [1, 2], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [1, 2], 'ws_channel': 'test_channel', 'force_key': None},
         )
 
         assert response.status_code == 200
@@ -109,9 +114,10 @@ async def test_fetching_async_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
 
         assert response.status_code == 200
@@ -157,9 +163,10 @@ async def test_restoring_args_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
-            client, derived, {'values': ['5', '10'], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': ['5', '10'], 'ws_channel': 'test_channel', 'force_key': None},
         )
 
         assert response.status_code == 200
@@ -194,9 +201,10 @@ async def test_chained_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
-            client, derived_var_1, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived_var_1,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
 
         assert response.status_code == 200
@@ -207,9 +215,16 @@ async def test_chained_derived_variable():
             client,
             derived_var_2,
             {
-                'values': [{'type': 'derived', 'uid': str(derived_var_1.uid), 'values': [5, 10]}, 10],
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(derived_var_1.uid),
+                        'values': [5, 10],
+                    },
+                    10,
+                ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -240,9 +255,10 @@ async def test_fetching_session_based_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         assert response.status_code == 200
         assert response.json()['value'] == 15
@@ -250,16 +266,21 @@ async def test_fetching_session_based_derived_variable():
 
         # Hit the endpoint again with the same arguments and make sure function hasn't been called again
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         mock_func.assert_called_once()
 
         # Change session and call it again and make sure it gets called again
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "token1", "identity_name": "user", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "token1", "identity_name": "user", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}, alt_auth_headers
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
+            alt_auth_headers,
         )
 
         assert response.status_code == 200
@@ -292,7 +313,9 @@ async def test_fetching_session_based_latest_derived_variable():
 
     async with AsyncClient(app) as client:
         get_value = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         response = await _get_latest_derived_variable(client, derived)
 
@@ -327,7 +350,9 @@ async def test_fetching_global_cache_latest_derived_variable():
 
     async with AsyncClient(app) as client:
         get_value = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         response = await _get_latest_derived_variable(client, derived)
 
@@ -363,7 +388,9 @@ async def test_fetching_user_based_derived_variable():
 
     async with AsyncClient(app) as client:
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         assert response.status_code == 200
         assert response.json()['value'] == 15
@@ -371,16 +398,21 @@ async def test_fetching_user_based_derived_variable():
 
         # Hit the endpoint again with the same arguments and make sure function hasn't been called again
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         mock_func.assert_called_once()
 
         # Change user and call it again and make sure it gets called only once as it is a different user
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_name": "test_user_2", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_name": "test_user_2", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
         response = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}, alt_auth_headers
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
+            alt_auth_headers,
         )
 
         assert response.status_code == 200
@@ -413,7 +445,11 @@ async def test_fetching_derived_variable_run_as_task():
             response = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             assert response.status_code == 200
             task_id = response.json().get('task_id')
@@ -421,7 +457,10 @@ async def test_fetching_derived_variable_run_as_task():
 
             # Listen on the websocket channel for the notification of task completion
             data = await websocket.receive_json()
-            assert data == {'message': {'status': 'COMPLETE', 'task_id': str(task_id)}, 'type': 'message'}
+            assert data == {
+                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+                'type': 'message',
+            }
 
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
@@ -432,7 +471,11 @@ async def test_fetching_derived_variable_run_as_task():
             response = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             assert response.json()['value'] == '15'
 
@@ -462,7 +505,11 @@ async def test_cancel_derived_variable_run_as_task():
             response = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             assert response.status_code == 200
             task_id = response.json().get('task_id')
@@ -473,9 +520,15 @@ async def test_cancel_derived_variable_run_as_task():
             # Listen on the websocket channel for ws messages
             messages = await get_ws_messages(websocket, 3)
             # There should be a cancellation notif
-            assert {'message': {'status': 'CANCELED', 'task_id': str(task_id)}, 'type': 'message'} in messages
+            assert {
+                'message': {'status': 'CANCELED', 'task_id': str(task_id)},
+                'type': 'message',
+            } in messages
             # There shouldn't be a completion
-            assert {'message': {'status': 'COMPLETE', 'task_id': str(task_id)}, 'type': 'message'} not in messages
+            assert {
+                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+                'type': 'message',
+            } not in messages
 
 
 async def test_fetching_latest_derived_variable_value_run_as_task():
@@ -503,7 +556,11 @@ async def test_fetching_latest_derived_variable_value_run_as_task():
             get_value = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
 
             response = await _get_latest_derived_variable(client, derived)
@@ -514,7 +571,11 @@ async def test_fetching_latest_derived_variable_value_run_as_task():
             get_value = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             response = await _get_latest_derived_variable(client, derived)
             assert response.json() == '15'
@@ -548,14 +609,21 @@ async def test_fetching_derived_variable_that_returns_task():
             response = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             assert response.status_code == 200
             task_id = response.json().get('task_id')
 
             # Listen on the websocket channel for the notification of task completion
             data = await websocket.receive_json()
-            assert data == {'message': {'status': 'COMPLETE', 'task_id': str(task_id)}, 'type': 'message'}
+            assert data == {
+                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+                'type': 'message',
+            }
 
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
@@ -566,7 +634,11 @@ async def test_fetching_derived_variable_that_returns_task():
             response = await _get_derived_variable(
                 client,
                 derived,
-                {'values': [5, 10], 'ws_channel': init.get('message', {}).get('channel'), 'force': False},
+                {
+                    'values': [5, 10],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
             )
             assert response.json()['value'] == '15'
 
@@ -601,9 +673,16 @@ async def test_chaining_derived_variable_run_as_task():
                 client,
                 derived_var_2,
                 {
-                    'values': [{'type': 'derived', 'uid': str(derived_var_1.uid), 'values': [5, 10]}, 10],
+                    'values': [
+                        {
+                            'type': 'derived',
+                            'uid': str(derived_var_1.uid),
+                            'values': [5, 10],
+                        },
+                        10,
+                    ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.status_code == 200
@@ -614,7 +693,10 @@ async def test_chaining_derived_variable_run_as_task():
             messages = await get_ws_messages(websocket)
             assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
-            assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in messages
+            assert {
+                'message': {'status': 'COMPLETE', 'task_id': task_id},
+                'type': 'message',
+            } in messages
 
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
@@ -626,9 +708,16 @@ async def test_chaining_derived_variable_run_as_task():
                 client,
                 derived_var_2,
                 {
-                    'values': [{'type': 'derived', 'uid': str(derived_var_1.uid), 'values': [5, 10]}, 10],
+                    'values': [
+                        {
+                            'type': 'derived',
+                            'uid': str(derived_var_1.uid),
+                            'values': [5, 10],
+                        },
+                        10,
+                    ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.json()['value'] == '25'
@@ -667,11 +756,18 @@ async def test_chaining_derived_variable_all_run_as_task():
                         {
                             'type': 'derived',
                             'uid': str(derived_var_2.uid),
-                            'values': [{'type': 'derived', 'uid': str(derived_var_1.uid), 'values': [5, 10]}, 10],
+                            'values': [
+                                {
+                                    'type': 'derived',
+                                    'uid': str(derived_var_1.uid),
+                                    'values': [5, 10],
+                                },
+                                10,
+                            ],
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.status_code == 200
@@ -682,7 +778,10 @@ async def test_chaining_derived_variable_all_run_as_task():
             messages = await get_ws_messages(websocket)
             assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
-            assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in messages
+            assert {
+                'message': {'status': 'COMPLETE', 'task_id': task_id},
+                'type': 'message',
+            } in messages
 
             # Try to fetch the result via the rest api
             result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
@@ -699,11 +798,18 @@ async def test_chaining_derived_variable_all_run_as_task():
                         {
                             'type': 'derived',
                             'uid': str(derived_var_2.uid),
-                            'values': [{'type': 'derived', 'uid': str(derived_var_1.uid), 'values': [5, 10]}, 10],
+                            'values': [
+                                {
+                                    'type': 'derived',
+                                    'uid': str(derived_var_1.uid),
+                                    'values': [5, 10],
+                                },
+                                10,
+                            ],
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.json()['value'] == '30'
@@ -737,7 +843,9 @@ async def test_fetch_latest_derived_variable():
     async with AsyncClient(app) as client:
         # Checks value is correctly registered for one user
         get_value = await _get_derived_variable(
-            client, derived, {'values': [5, 10], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [5, 10], 'ws_channel': 'test_channel', 'force_key': None},
         )
         response = await _get_latest_derived_variable(client, derived)
         assert get_value.status_code == 200
@@ -747,7 +855,7 @@ async def test_fetch_latest_derived_variable():
 
         # Check it returns None if there is no latest value for an user
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess","identity_name": "test_user_1", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_name": "test_user_1", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
 
         response = await _get_latest_derived_variable(client, derived, alt_auth_headers)
@@ -758,7 +866,10 @@ async def test_fetch_latest_derived_variable():
 
         # checks another user can add their value to the registry
         get_value = await _get_derived_variable(
-            client, derived, {'values': [2, 6], 'ws_channel': 'test_channel', 'force': False}, alt_auth_headers
+            client,
+            derived,
+            {'values': [2, 6], 'ws_channel': 'test_channel', 'force_key': None},
+            alt_auth_headers,
         )
         response = await _get_latest_derived_variable(client, derived, alt_auth_headers)
 
@@ -774,7 +885,9 @@ async def test_fetch_latest_derived_variable():
 
         # checks entries are overwritten if there is a new latest value
         get_value = await _get_derived_variable(
-            client, derived, {'values': [7, 4], 'ws_channel': 'test_channel', 'force': False}
+            client,
+            derived,
+            {'values': [7, 4], 'ws_channel': 'test_channel', 'force_key': None},
         )
         response = await _get_latest_derived_variable(client, derived)
 
@@ -830,7 +943,7 @@ async def test_derived_variable_with_switch_variable():
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -854,7 +967,7 @@ async def test_derived_variable_with_switch_variable():
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -878,7 +991,7 @@ async def test_derived_variable_with_switch_variable():
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -892,7 +1005,7 @@ async def test_derived_variable_with_switch_variable_condition():
     Test that SwitchVariable can be used with Condition objects that compare variables
     """
     from dara.core.interactivity.condition import Condition
-    
+
     builder = ConfigurationBuilder()
 
     dv = ContextVar('dv')
@@ -907,18 +1020,14 @@ async def test_derived_variable_with_switch_variable_condition():
         threshold_var = Variable(10)
 
         # Create a condition that compares var1 to threshold_var
-        condition = Condition(
-            variable=var1,
-            operator=Condition.Operator.GREATER_THAN,
-            other=threshold_var
-        )
+        condition = Condition(variable=var1, operator=Condition.Operator.GREATER_THAN, other=threshold_var)
 
         # Create a switch variable that uses the condition
         switch_var = SwitchVariable.when(
-            condition=condition, 
-            true_value=100, 
-            false_value=200, 
-            uid='switch_condition_uid'
+            condition=condition,
+            true_value=100,
+            false_value=200,
+            uid='switch_condition_uid',
         )
 
         derived = DerivedVariable(func, variables=[var1, switch_var])
@@ -947,14 +1056,14 @@ async def test_derived_variable_with_switch_variable_condition():
                             '__typename': 'Condition',
                             'variable': 5,
                             'operator': 'greater_than',
-                            'other': 10
+                            'other': 10,
                         },
                         'value_map': {True: 100, False: 200},
                         'default': 0,
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -976,14 +1085,14 @@ async def test_derived_variable_with_switch_variable_condition():
                             '__typename': 'Condition',
                             'variable': 15,
                             'operator': 'greater_than',
-                            'other': 10
+                            'other': 10,
                         },
                         'value_map': {True: 100, False: 200},
                         'default': 0,
                     },
                 ],
                 'ws_channel': 'test_channel',
-                'force': False,
+                'force_key': None,
             },
         )
 
@@ -1001,10 +1110,10 @@ async def test_derived_variable_task_chain_loop():
 
     var1 = Variable(1)
     var2 = Variable(2)
-    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)   # 3
-    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])   # 5
-    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])   # 8
-    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])   # 11
+    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)  # 3
+    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])  # 5
+    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])  # 8
+    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])  # 11
 
     builder.add_page('Test', content=MockComponent(text=parent_var))
 
@@ -1046,7 +1155,7 @@ async def test_derived_variable_task_chain_loop():
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1097,7 +1206,7 @@ async def test_derived_variable_task_chain_loop():
                         },
                     ],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1146,7 +1255,7 @@ async def test_task_error_later_reuse():
                 {
                     'values': [],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1167,7 +1276,7 @@ async def test_task_error_later_reuse():
                 {
                     'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1225,7 +1334,7 @@ async def test_task_error_immediate_reuse():
                 {
                     'values': [],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response.status_code == 200
@@ -1239,7 +1348,7 @@ async def test_task_error_immediate_reuse():
                 {
                     'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
             )
             assert response_2.status_code == 200
@@ -1296,7 +1405,7 @@ async def test_non_task_later_reuse():
                     {
                         'values': [],
                         'ws_channel': init.get('message', {}).get('channel'),
-                        'force': False,
+                        'force_key': None,
                     },
                     expect_success=False,
                 )
@@ -1309,7 +1418,7 @@ async def test_non_task_later_reuse():
                     {
                         'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
                         'ws_channel': init.get('message', {}).get('channel'),
-                        'force': False,
+                        'force_key': None,
                     },
                     expect_success=False,
                 )
@@ -1356,7 +1465,7 @@ async def test_non_task_immediate_reuse():
                 {
                     'values': [],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1367,7 +1476,7 @@ async def test_non_task_immediate_reuse():
                 {
                     'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
                     'ws_channel': init.get('message', {}).get('channel'),
-                    'force': False,
+                    'force_key': None,
                 },
                 expect_success=False,
             )
@@ -1391,3 +1500,79 @@ async def test_non_task_immediate_reuse():
             assert 'test exception' in str(results['response_1'])
             assert isinstance(results['response_2'], Exception)
             assert 'test exception' in str(results['response_2'])
+
+
+async def test_force_key_prevents_double_execution():
+    """
+    Test that using the same force key prevents double execution of the same DerivedVariable.
+    """
+    import time
+
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Track execution count
+    execution_count = {'count': 0}
+
+    def slow_calc(a, b):
+        execution_count['count'] += 1
+        time.sleep(0.1)  # Simulate slow computation
+        return a + b
+
+    mock_func = Mock(wraps=slow_calc)
+    derived_var = DerivedVariable(mock_func, variables=[var1, var2])
+
+    builder.add_page('Test', content=MockComponent(text=derived_var))
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call with a specific force_key
+        response1 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [5, 10],
+                'ws_channel': 'test_channel',
+                'force_key': 'unique_force_key_456',
+            },
+        )
+
+        assert response1.status_code == 200
+        assert response1.json()['value'] == 15
+        assert execution_count['count'] == 1
+
+        # Second call with the same force_key should NOT force execution again
+        response2 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [5, 10],
+                'ws_channel': 'test_channel',
+                'force_key': 'unique_force_key_456',  # Same key
+            },
+        )
+
+        assert response2.status_code == 200
+        assert response2.json()['value'] == 15
+        # Should still be 1 because the force key was already seen
+        assert execution_count['count'] == 1, f'Expected 1 execution, got {execution_count["count"]}'
+
+        # Third call with a different force_key should force execution
+        response3 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [5, 10],
+                'ws_channel': 'test_channel',
+                'force_key': 'different_force_key_789',  # Different key
+            },
+        )
+
+        assert response3.status_code == 200
+        assert response3.json()['value'] == 15
+        # Should be 2 now because we used a different force key
+        assert execution_count['count'] == 2, f'Expected 2 executions, got {execution_count["count"]}'

@@ -2,18 +2,18 @@ from dara.core import DerivedVariable
 
 
 def test_ignores_key_order():
-    first_args = [0, {'type': 'derived', 'force': False, 'values': [{'value': 0, 'force': False}]}, 'null']
+    first_args = [0, {'type': 'derived', 'force_key': None, 'values': [{'value': 0, 'force_key': None}]}, 'null']
     second_args = [
         0,
         {
             'type': 'derived',
             'values': [
                 {
-                    'force': False,
+                    'force_key': None,
                     'value': 0,
                 }
             ],
-            'force': False,
+            'force_key': None,
         },
         'null',
     ]

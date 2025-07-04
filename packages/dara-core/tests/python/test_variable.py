@@ -144,7 +144,7 @@ async def test_derived_variables_with_df_nan():
     async with AsyncClient(app) as client:
         # Check that the component can be fetched via the api, with input_val passed in the body
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert response.status_code == 200
         assert response.json()['value'] == {

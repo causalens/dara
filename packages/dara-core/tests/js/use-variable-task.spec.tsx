@@ -53,7 +53,7 @@ const mockTaskResponse = (varAValue: number): void => {
             return res(
                 ctx.json(
                     JSON.parse(
-                        `{"force":false,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
+                        `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
                     )
                 )
             );
@@ -80,7 +80,7 @@ async function initComponent(
     await waitFor(() => expect(getByTestId('c')).toBeVisible());
     const result = getByTestId('c').innerHTML;
     expect(result).toContain(
-        `{"force":false,"values":{"data":[{"__ref":"${getIdentifier(varA)}"}],"lookup":{"${getIdentifier(
+        `{"force_key":null,"values":{"data":[{"__ref":"${getIdentifier(varA)}"}],"lookup":{"${getIdentifier(
             varA
         )}":1}},"ws_channel":"uid","task_id":"t_${derivedVar.uid}"}`
     );
@@ -143,7 +143,7 @@ describe('useVariableRunAsTask', () => {
 
         const result = await updateInput('a', 2, getter);
         expect(result).toEqual({
-            force: false,
+            force_key: null,
             task_id: 't_none',
             values: { data: [{ __ref: 'Variable:a' }], lookup: { 'Variable:a': 2 } },
             ws_channel: 'uid',

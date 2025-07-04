@@ -68,7 +68,7 @@ interface DerivedVariableTaskResponse {
 interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
     extras: RequestExtras;
-    force: boolean;
+    force_key: string | null;
     is_data_variable?: boolean;
     /**
      * selector instance key  - each selector's requests should be treated separately
@@ -95,7 +95,7 @@ interface FetchDerivedVariableArgs {
  */
 export async function fetchDerivedVariable<T>({
     cache,
-    force,
+    force_key,
     extras,
     variableUid,
     values,
@@ -113,7 +113,7 @@ export async function fetchDerivedVariable<T>({
     const res = await request(
         `/api/core/derived-variable/${variableUid}`,
         {
-            body: JSON.stringify({ force, is_data_variable, values, ws_channel }),
+            body: JSON.stringify({ force_key, is_data_variable, values, ws_channel }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
@@ -141,7 +141,7 @@ async function debouncedFetchDerivedVariable({
     selectorKey,
     values,
     wsClient,
-    force,
+    force_key,
     extras,
     cache,
     is_data_variable = false,
@@ -161,7 +161,7 @@ async function debouncedFetchDerivedVariable({
     debouncedFetchSubjects[selectorKey].next({
         cache,
         extras,
-        force,
+        force_key,
         is_data_variable,
         selectorKey,
         values,
@@ -285,9 +285,9 @@ interface PreviousResult {
  */
 interface CurrentResult {
     /**
-     * Whether the refetch should be forcing
+     * Force key from the trigger that caused the recalculation, null if not forcing
      */
-    force: boolean;
+    force_key: string | null;
     /**
      * List of new 'relevant' values which should be used to update the depsRegistry entry if refetch was successful
      */
@@ -369,7 +369,7 @@ export async function resolveDerivedValue(
         return acc.set(getUniqueIdentifier(v), depsValues[idx]);
     }, new Map<string, any>());
 
-    let recalculateForced = false; // whether the recalculation was forced or not (by calling trigger with force=true)
+    let forceKey: string | null = null; // the force key from the trigger that caused the recalculation
     let wasTriggered = false; // whether a trigger caused the selector execution
     let wasTriggeredItself = false; // whether the variable's own trigger caused the selector execution
 
@@ -409,7 +409,7 @@ export async function resolveDerivedValue(
              *  update whether it was called with a `force` flag or not - based on the trigger that changed
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                recalculateForced = triggerValue.force;
+                forceKey = triggerValue.force_key;
 
                 // Record whether its own trigger was the one that caused the change
                 if (idx === 0) {
@@ -428,7 +428,7 @@ export async function resolveDerivedValue(
     }
 
     return {
-        force: recalculateForced,
+        force_key: forceKey,
         relevantValues,
         type: 'current',
         values,
@@ -505,7 +505,7 @@ export function getOrRegisterDerivedVariable(
                             variableResponse = await debouncedFetchDerivedVariable({
                                 cache: variable.cache,
                                 extras,
-                                force: derivedResult.force,
+                                force_key: derivedResult.force_key,
                                 is_data_variable: isDerivedDataVariable(variable),
                                 selectorKey,
                                 values: normalizeRequest(cleanArgs(derivedResult.values, false), variable.variables),
@@ -687,7 +687,10 @@ export function useDerivedVariable(
     // Creating a setter function for triggerIndex
     const triggerUpdates = useSetRecoilState(triggerIndex);
     const trigger = useCallback(
-        (force = true) => triggerUpdates((val) => ({ force, inc: val.inc + 1 })),
+        (force = true) => triggerUpdates((val) => ({ 
+            force_key: force ? nanoid() : null,
+            inc: val.inc + 1 
+        })),
         [triggerUpdates]
     );
 

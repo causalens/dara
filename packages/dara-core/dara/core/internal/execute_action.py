@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -146,9 +147,7 @@ async def execute_action(
         annotations = action.__annotations__
 
         for key, value in values.items():
-            # Override `force` property to be false
-            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
-                value['force'] = False
+            # No need to override force_key for actions - they should not force execution
 
             typ = annotations.get(key)
             val = await resolve_dependency(value, store, task_mgr)
