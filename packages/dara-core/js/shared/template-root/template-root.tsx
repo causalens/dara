@@ -104,10 +104,6 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
 
         const newWsClient = setupWebsocket(token, config.live_reload);
         setWsClient(newWsClient);
-
-        return () => {
-            newWsClient.close();
-        };
     }, [token, config?.live_reload]);
 
     if (templateLoading || actionsLoading || componentsLoading || !wsClient) {
