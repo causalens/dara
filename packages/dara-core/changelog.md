@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue with websockets being force closed on token refresh. This would cause certain elements of the application to hang until the page was refreshed.
+
 ## 1.17.3
 
 -  Fixed an issue where in some cases actions consuming DerivedVariables would cause extra calculations of the derived variable to be performed even if a cached value was available
