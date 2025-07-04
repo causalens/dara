@@ -825,10 +825,12 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
+    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
+        ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
+    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
+        ...
 
     async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
@@ -1387,7 +1389,8 @@ class action:
         return bound_f
 
     @overload
-    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any: ...
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
+        ...
 
     @overload
     def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore
