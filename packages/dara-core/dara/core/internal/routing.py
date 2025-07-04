@@ -113,7 +113,7 @@ def create_router(config: Configuration):
     core_api_router = APIRouter()
 
     @core_api_router.get('/actions', dependencies=[Depends(verify_session)])
-    async def get_actions():   # pylint: disable=unused-variable
+    async def get_actions():  # pylint: disable=unused-variable
         return action_def_registry.get_all().items()
 
     class ActionRequestBody(BaseModel):
@@ -150,7 +150,14 @@ def create_router(config: Configuration):
 
         # Execute the action - kick off a background task to run the handler
         response = await action_def.execute_action(
-            action_def, body.input, values, static_kwargs, body.execution_id, body.ws_channel, store, task_mgr
+            action_def,
+            body.input,
+            values,
+            static_kwargs,
+            body.execution_id,
+            body.ws_channel,
+            store,
+            task_mgr,
         )
 
         if isinstance(response, BaseTask):
@@ -160,7 +167,7 @@ def create_router(config: Configuration):
         return {'execution_id': response}
 
     @core_api_router.get('/download')
-    async def get_download(code: str):   # pylint: disable=unused-variable
+    async def get_download(code: str):  # pylint: disable=unused-variable
         store: CacheStore = utils_registry.get('Store')
 
         try:
@@ -306,7 +313,7 @@ def create_router(config: Configuration):
         limit: Optional[int] = None,
         order_by: Optional[str] = None,
         index: Optional[str] = None,
-    ):   # pylint: disable=unused-variable
+    ):  # pylint: disable=unused-variable
         try:
             store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
@@ -318,11 +325,15 @@ def create_router(config: Configuration):
 
             if data_variable_entry.type == 'derived':
                 if body.cache_key is None:
-                    raise HTTPException(status_code=400, detail='Cache key is required for derived data variables')
+                    raise HTTPException(
+                        status_code=400,
+                        detail='Cache key is required for derived data variables',
+                    )
 
                 if body.ws_channel is None:
                     raise HTTPException(
-                        status_code=400, detail='Websocket channel is required for derived data variables'
+                        status_code=400,
+                        detail='Websocket channel is required for derived data variables',
                     )
 
                 derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
@@ -351,7 +362,10 @@ def create_router(config: Configuration):
             dev_logger.debug(
                 f'DataVariable {data_variable_entry.uid[:3]}..{data_variable_entry.uid[-3:]}',
                 'return value',
-                {'value': data.describe() if isinstance(data, pandas.DataFrame) else None, 'uid': uid},  # type: ignore
+                {
+                    'value': data.describe() if isinstance(data, pandas.DataFrame) else None,
+                    'uid': uid,
+                },  # type: ignore
             )
 
             if data is None:
@@ -360,8 +374,9 @@ def create_router(config: Configuration):
             # Explicitly convert to JSON to avoid implicit serialization;
             # return as records as that makes more sense in a JSON structure
             return Response(
-                content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data, media_type='application/json'
-            )   # type: ignore
+                content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data,
+                media_type='application/json',
+            )  # type: ignore
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -383,7 +398,8 @@ def create_router(config: Configuration):
 
             if body is None or body.cache_key is None:
                 raise HTTPException(
-                    status_code=400, detail="Cache key is required when requesting DerivedDataVariable's count"
+                    status_code=400,
+                    detail="Cache key is required when requesting DerivedDataVariable's count",
                 )
 
             return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
@@ -402,7 +418,8 @@ def create_router(config: Configuration):
 
             if cache_key is None:
                 raise HTTPException(
-                    status_code=400, detail='Cache key is required when requesting DerivedDataVariable schema'
+                    status_code=400,
+                    detail='Cache key is required when requesting DerivedDataVariable schema',
                 )
 
             # Use the other registry for derived variables
@@ -427,7 +444,10 @@ def create_router(config: Configuration):
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
         if data_uid is None and resolver_id is None:
-            raise HTTPException(400, 'Neither resolver_id or data_uid specified, at least one of them is required')
+            raise HTTPException(
+                400,
+                'Neither resolver_id or data_uid specified, at least one of them is required',
+            )
 
         try:
             # If resolver id is provided, run the custom
@@ -444,7 +464,7 @@ def create_router(config: Configuration):
 
     class DerivedStateRequestBody(BaseModel):
         values: NormalizedPayload[List[Any]]
-        force: bool
+        force_key: Optional[str] = None
         ws_channel: str
         is_data_variable: Optional[bool] = False
 
@@ -457,7 +477,7 @@ def create_router(config: Configuration):
 
         values = denormalize(body.values.data, body.values.lookup)
 
-        result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force)
+        result = await variable_def.get_value(variable_def, store, task_mgr, values, body.force_key)
 
         response: Any = result
 
@@ -466,7 +486,10 @@ def create_router(config: Configuration):
         if isinstance(result['value'], BaseTask):
             # Kick off the task
             await task_mgr.run_task(result['value'], body.ws_channel)
-            response = {'task_id': result['value'].task_id, 'cache_key': result['cache_key']}
+            response = {
+                'task_id': result['value'].task_id,
+                'cache_key': result['cache_key'],
+            }
 
         dev_logger.debug(
             f'DerivedVariable {variable_def.uid[:3]}..{variable_def.uid[-3:]}',
@@ -512,7 +535,7 @@ def create_router(config: Configuration):
                 tg.start_soon(_write, store_uid, value)
 
     @core_api_router.get('/tasks/{task_id}', dependencies=[Depends(verify_session)])
-    async def get_task_result(task_id: str):   # pylint: disable=unused-variable
+    async def get_task_result(task_id: str):  # pylint: disable=unused-variable
         try:
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             res = await task_mgr.get_result(task_id)
@@ -532,12 +555,15 @@ def create_router(config: Configuration):
             raise ValueError(f'The result for task id {task_id} could not be found').with_traceback(e.__traceback__)
 
     @core_api_router.delete('/tasks/{task_id}', dependencies=[Depends(verify_session)])
-    async def cancel_task(task_id: str):   # pylint: disable=unused-variable
+    async def cancel_task(task_id: str):  # pylint: disable=unused-variable
         try:
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             return await task_mgr.cancel_task(task_id)
         except TaskManagerError as e:
-            dev_logger.error(f'The task id {task_id} could not be found, it may have already been cancelled', e)
+            dev_logger.error(
+                f'The task id {task_id} could not be found, it may have already been cancelled',
+                e,
+            )
 
     @core_api_router.get('/template/{template}', dependencies=[Depends(verify_session)])
     async def get_template(template: str):  # pylint: disable=unused-variable

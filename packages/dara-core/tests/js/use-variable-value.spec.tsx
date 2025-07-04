@@ -146,12 +146,12 @@ describe('getVariableValue', () => {
         expect(typeof resolved === 'object' && typeof resolved.then === 'function').toBe(true);
         const res = await resolved;
         expect(res).toEqual({
-            force: false,
+            force_key: null,
             is_data_variable: false,
             values: {
                 data: [
                     {
-                        force: false,
+                        force_key: null,
                         type: 'derived',
                         uid: 'nested-derived',
                         values: [

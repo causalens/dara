@@ -1,4 +1,5 @@
 import { type RecoilState, atom, useRecoilValue } from 'recoil';
+import { nanoid } from 'nanoid';
 
 import { type WebSocketClientInterface } from '@/api';
 import {
@@ -26,9 +27,9 @@ export function getOrRegisterTrigger(variable: DerivedVariable | DerivedDataVari
             triggerKey,
             atom({
                 default: {
-                    force: false,
+                    force_key: null,
                     inc: 0,
-                },
+                } as TriggerIndexValue,
                 key: triggerKey,
             })
         );
@@ -51,9 +52,9 @@ export function getOrRegisterDataVariableTrigger(
             key,
             atom({
                 default: {
-                    force: true as boolean,
+                    force_key: nanoid(),
                     inc: 0,
-                },
+                } as TriggerIndexValue,
                 effects: [
                     // synchronize with server triggers - increment when the variable is triggered on the server side
                     ({ setSelf }) => {
@@ -61,12 +62,12 @@ export function getOrRegisterDataVariableTrigger(
                             setSelf((v) => {
                                 if (typeof v === 'object' && 'inc' in v) {
                                     return {
-                                        force: true,
+                                        force_key: nanoid(),
                                         inc: v.inc + 1,
                                     };
                                 }
                                 return {
-                                    force: true,
+                                    force_key: nanoid(),
                                     inc: 1,
                                 };
                             });

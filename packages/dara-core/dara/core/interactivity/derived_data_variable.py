@@ -185,7 +185,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
-        force: bool = False,
+        force_key: Optional[str] = None,
     ) -> DerivedVariableResult:
         """
         Update the underlying derived variable.
@@ -201,7 +201,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         eng_logger.info(
             f'Derived Data Variable {_uid_short} calling superclass get_value', {'uid': var_entry.uid, 'args': args}
         )
-        value = await super().get_value(var_entry, store, task_mgr, args, force)
+        value = await super().get_value(var_entry, store, task_mgr, args, force_key)
 
         # Pin the value in the store until it's read by get data
         await asyncio.gather(
@@ -339,8 +339,8 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
-        force: bool,
         filters: Optional[Union[FilterQuery, dict]] = None,
+        force_key: Optional[str] = None,
     ):
         """
         Helper method to resolve the filtered value of a derived data variable.
@@ -351,11 +351,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         :param store: the store instance to check for cached values
         :param task_mgr: task manager instance
         :param args: the arguments to call the underlying function with
-        :param force: whether to ignore cache
         :param filters: the filters to apply to the data
+        :param force_key: unique key for forced execution, if provided forces cache bypass
         :param pagination: the pagination to apply to the data
         """
-        dv_result = await cls.get_value(dv_entry, store, task_mgr, args, force)
+        dv_result = await cls.get_value(dv_entry, store, task_mgr, args, force_key)
 
         # If the intermediate result was a task/metatask, we need to run it
         # get_data will then pick up the result from the pending task for it

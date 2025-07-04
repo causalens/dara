@@ -59,7 +59,7 @@ export const depsRegistry = new Map<
 >();
 
 export type TriggerIndexValue = {
-    force: boolean;
+    force_key: string | null;
     inc: number;
 };
 

@@ -97,7 +97,7 @@ class ComponentActionContext(ActionContext):
     ActionContext for actions that only require component value
     """
 
-    inputs: ComponentActionInputs   # type: ignore
+    inputs: ComponentActionInputs  # type: ignore
 
 
 class UpdateVariableImpl(ActionImpl):
@@ -162,7 +162,7 @@ class UpdateVariableInputs(ActionInputs):
 
 
 class UpdateVariableContext(ActionContext):
-    inputs: UpdateVariableInputs   # type: ignore
+    inputs: UpdateVariableInputs  # type: ignore
 
 
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
@@ -254,8 +254,8 @@ class UpdateVariable(AnnotatedAction):
         :param extras: any extra variables to resolve and pass to the resolution function context
         """
 
-        async def _update(ctx: action.Ctx, **kwargs):   # type: ignore
-            ctx = cast(ActionCtx, ctx)   # type: ignore
+        async def _update(ctx: action.Ctx, **kwargs):  # type: ignore
+            ctx = cast(ActionCtx, ctx)  # type: ignore
             old = kwargs.pop('old')
             extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
             old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
@@ -271,7 +271,7 @@ class UpdateVariable(AnnotatedAction):
                 for idx in range(len(extras or []))
             ],
         ]
-        _update.__signature__ = inspect.Signature(params)   # type: ignore
+        _update.__signature__ = inspect.Signature(params)  # type: ignore
 
         # Pass in variable and extras as kwargs
         kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -428,11 +428,11 @@ def NavigateTo(
         return NavigateToImpl(url=url, new_tab=new_tab)
 
     # Otherwise create a new @action with the provided resolver
-    async def _navigate(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _navigate(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
-        result = await run_user_handler(url, args=(old_ctx,))   # type: ignore
+        result = await run_user_handler(url, args=(old_ctx,))  # type: ignore
         # Navigate to resulting url
         await ctx.navigate(result, new_tab)
 
@@ -444,14 +444,14 @@ def NavigateTo(
             for idx in range(len(extras or []))
         ],
     ]
-    _navigate.__signature__ = inspect.Signature(params)   # type: ignore
+    _navigate.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in variable and extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
     return action(_navigate)(**kwargs)
 
 
-NavigateTo.Ctx = ComponentActionContext   # type: ignore
+NavigateTo.Ctx = ComponentActionContext  # type: ignore
 
 
 def Logout():
@@ -663,8 +663,8 @@ def DownloadContent(
     ```
     """
 
-    async def _download(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _download(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(resolver, args=(old_ctx,))
@@ -678,7 +678,7 @@ def DownloadContent(
             for idx in range(len(extras or []))
         ],
     ]
-    _download.__signature__ = inspect.Signature(params)   # type: ignore
+    _download.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -686,7 +686,7 @@ def DownloadContent(
     return action(_download)(**kwargs)
 
 
-DownloadContent.Ctx = ComponentActionContext   # type: ignore
+DownloadContent.Ctx = ComponentActionContext  # type: ignore
 """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
@@ -769,8 +769,8 @@ def SideEffect(
     ```
     """
 
-    async def _effect(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _effect(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         # Simply run the user handler
@@ -784,7 +784,7 @@ def SideEffect(
             for idx in range(len(extras or []))
         ],
     ]
-    _effect.__signature__ = inspect.Signature(params)   # type: ignore
+    _effect.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -792,7 +792,7 @@ def SideEffect(
     return action(_effect)(**kwargs)
 
 
-SideEffect.Ctx = ComponentActionContext   # type: ignore
+SideEffect.Ctx = ComponentActionContext  # type: ignore
 """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 VariableT = TypeVar('VariableT')
@@ -825,12 +825,10 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
-        ...
+    async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
-        ...
+    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
 
     async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
@@ -1389,11 +1387,10 @@ class action:
         return bound_f
 
     @overload
-    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any: ...
 
     @overload
-    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:   # type: ignore
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:

@@ -814,10 +814,10 @@ async def test_chain_derived_var_with_run_as_task_flag():
                                             'type': 'derived',
                                             'uid': str(dv_root.uid),
                                             'values': [1],
-                                            'force': False,
+                                            'force_key': None,
                                         }
                                     ],
-                                    'force': False,
+                                    'force_key': None,
                                 },
                                 {
                                     'type': 'derived',
@@ -831,16 +831,16 @@ async def test_chain_derived_var_with_run_as_task_flag():
                                                     'type': 'derived',
                                                     'uid': str(dv_root.uid),
                                                     'values': [1],
-                                                    'force': False,
+                                                    'force_key': None,
                                                 }
                                             ],
-                                            'force': False,
+                                            'force_key': None,
                                         }
                                     ],
-                                    'force': False,
+                                    'force_key': None,
                                 },
                             ],
-                            'force': False,
+                            'force_key': None,
                         }
                     },
                     'ws_channel': init.get('message', {}).get('channel'),
@@ -1191,7 +1191,7 @@ async def test_py_component_respects_dv_empty_deps():
 
         # Send a request to calculate the DV once with variable=1 - so it gets cached
         response = await _get_derived_variable(
-            client, dv, data={'values': [1], 'ws_channel': 'test_channel', 'force': False}
+            client, dv, data={'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert response.json()['value'] == 2
 
@@ -1257,7 +1257,7 @@ async def test_py_component_respects_dv_non_empty_deps():
 
         # Send a request to calculate the DV once with var1=1, var2=2 - so it gets cached
         response = await _get_derived_variable(
-            client, dv, data={'values': [1, 2], 'ws_channel': 'test_channel', 'force': False}
+            client, dv, data={'values': [1, 2], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert response.json()['value'] == 3
 

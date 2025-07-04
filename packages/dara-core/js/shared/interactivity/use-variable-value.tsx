@@ -106,7 +106,7 @@ export function getVariableValue<VV, B extends boolean = false>(
     return fetchDerivedVariable({
         cache: (variable as DerivedVariable | DerivedDataVariable).cache,
         extras: ctx.extras,
-        force: false,
+        force_key: null,
         /**
          * In this case we're not concerned about different selectors fetching the value so just use the uid
          */
