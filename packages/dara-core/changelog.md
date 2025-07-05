@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue with the handleAuthErrors function when it's used with a non-json, streaming response.
+
 ## 1.17.5
 
 -  Fixed an issue with websockets being force closed on token refresh. This would cause certain elements of the application to hang until the page was refreshed.
