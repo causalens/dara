@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.6
 
 -  Fixed an issue with the handleAuthErrors function when it's used with a non-json, streaming response.
 
