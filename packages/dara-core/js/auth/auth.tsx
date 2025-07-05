@@ -156,6 +156,12 @@ export async function handleAuthErrors(
     toLogin = false,
     ignoreErrors: Array<AuthenticationErrorReason> | null = null
 ): Promise<boolean> {
+    // Bail out if the response is not an auth error, if we don't then non json responses can cause the following
+    // code to hang.
+    if (res.status >= 500 || res.status < 400) {
+        return false;
+    }
+
     const content = await res.clone().json();
 
     if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
