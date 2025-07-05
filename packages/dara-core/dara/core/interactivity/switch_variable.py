@@ -216,8 +216,8 @@ class SwitchVariable(NonDataVariable):
     Key Serialization:
         When using mappings with SwitchVariable, be aware that JavaScript object keys
         are always strings. The system automatically converts lookup keys to strings:
-        - Python: {True: 'admin', False: 'user'}
-        - JavaScript: {"true": "admin", "false": "user"}
+        - Python: `{True: 'admin', False: 'user'}`
+        - JavaScript: `{"true": "admin", "false": "user"}`
         - Boolean values are converted to lowercase strings ("true"/"false")
         - Other values use standard string conversion to match JavaScript's String() behavior
     """
