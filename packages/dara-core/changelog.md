@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.17.5
 
 -  Fixed an issue with websockets being force closed on token refresh. This would cause certain elements of the application to hang until the page was refreshed.
 
