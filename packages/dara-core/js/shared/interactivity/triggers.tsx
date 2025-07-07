@@ -120,9 +120,10 @@ export function buildTriggerList(variables: any[]): Array<TriggerInfo> {
                 walk(variable.variables, [...varPath, 'values']);
             }
             if (isDataVariable(variable)) {
-                const varPath = [...path, String(idx)];
+                // Store the path as path to the parent DV instead
+                // to force it
                 triggers.push({
-                    path: varPath,
+                    path: path.length > 0 ? path.slice(0, -1) : [],
                     variable,
                 });
             }

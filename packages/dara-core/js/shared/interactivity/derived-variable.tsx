@@ -421,7 +421,14 @@ export function resolveDerivedValue(
                     // shift index back by 1 if we prepended a self trigger
                     const valueIndex = selfTrigger ? idx - 1 : idx;
                     const triggerInfo = triggerList[valueIndex]!;
-                    set(values, [...triggerInfo.path, 'force_key'], triggerValue.force_key);
+
+                    // If the trigger path is empty, it means we need to force the DV itself
+                    // This can happen when e.g. a dependant DataVariable is triggered
+                    if (triggerInfo.path.length === 0) {
+                        selfTriggerForceKey = triggerValue.force_key;
+                    } else {
+                        set(values, [...triggerInfo.path, 'force_key'], triggerValue.force_key);
+                    }
                 }
                 break;
             }
