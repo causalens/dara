@@ -7,14 +7,14 @@ import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
 
 import { getVariableValue } from '../../js/shared/interactivity';
-import {
+import type {
     DataVariable,
     DerivedDataVariable,
     DerivedVariable,
     SingleVariable,
     Variable,
-    isVariable,
 } from '../../js/types';
+import { isVariable } from '../../js/types';
 import { Wrapper, server } from './utils';
 
 /**
@@ -146,7 +146,6 @@ describe('getVariableValue', () => {
         expect(typeof resolved === 'object' && typeof resolved.then === 'function').toBe(true);
         const res = await resolved;
         expect(res).toEqual({
-            force_key: null,
             is_data_variable: false,
             values: {
                 data: [
@@ -183,9 +182,11 @@ describe('getVariableValue', () => {
 
         const derivedDataVariable: DerivedDataVariable = {
             __typename: 'DerivedDataVariable',
+            cache: { policy: 'default', cache_type: 'session' },
             deps: [variable],
             filters: {
                 column: 'col1',
+                operator: 'EQ',
                 value: 'val1',
             },
             uid: 'derived',
@@ -220,9 +221,11 @@ describe('getVariableValue', () => {
 
         const derivedDataVariable: DerivedDataVariable = {
             __typename: 'DerivedDataVariable',
+            cache: { policy: 'default', cache_type: 'session' },
             deps: [variable],
             filters: {
                 column: 'col1',
+                operator: 'EQ',
                 value: 'val1',
             },
             uid: 'derived',

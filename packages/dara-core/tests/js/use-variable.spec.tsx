@@ -53,11 +53,11 @@ async function initComponent(
     await waitFor(() => expect(getByTestId('c')).toBeVisible());
     const result = getByTestId('c').innerHTML;
     expect(result).toEqual(
-        `{"force_key":null,"is_data_variable":false,"values":{"data":[{"__ref":"${getIdentifier(
+        `{\"is_data_variable\":false,\"values\":{\"data\":[{\"__ref\":\"${getIdentifier(
             varA
-        )}"},{"__ref":"${getIdentifier(varB)}"}],"lookup":{"${getIdentifier(varA)}":1,"${getIdentifier(
+        )}\"},{\"__ref\":\"${getIdentifier(varB)}\"}],\"lookup\":{\"${getIdentifier(varA)}\":1,\"${getIdentifier(
             varB
-        )}":2}},"ws_channel":"uid"}`
+        )}\":2}},\"ws_channel\":\"uid\"}`
     );
     return getByTestId;
 }
@@ -651,7 +651,6 @@ describe('useVariable', () => {
             );
             await waitFor(() => {
                 expect(result.current[0]).toStrictEqual({
-                    force_key: null,
                     is_data_variable: false,
                     values: {
                         data: [{ __ref: 'Variable:dep1' }, { __ref: 'Variable:dep2' }],
@@ -758,7 +757,6 @@ describe('useVariable', () => {
             );
             await waitFor(() => {
                 expect(result.current[0]).toStrictEqual({
-                    force_key: null,
                     is_data_variable: false,
                     values: {
                         data: [
@@ -821,7 +819,6 @@ describe('useVariable', () => {
             // Updating both inputs should update the derived var
             let result = await updateInput('a', 2, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -831,7 +828,6 @@ describe('useVariable', () => {
             });
             result = await updateInput('b', 3, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -855,7 +851,6 @@ describe('useVariable', () => {
             // Updating either of the inputs should NOT update the derived var
             let result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -865,7 +860,6 @@ describe('useVariable', () => {
             });
             result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -889,7 +883,6 @@ describe('useVariable', () => {
             // Updating b should not update the result
             let result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -901,7 +894,6 @@ describe('useVariable', () => {
             // Updating a should update the result
             result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -974,7 +966,6 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
@@ -986,7 +977,6 @@ describe('useVariable', () => {
             // Updating A should not update result
             result = await updateInput('a', 5, getByTestId);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
@@ -998,7 +988,6 @@ describe('useVariable', () => {
             // Updating nested.second should not update result
             result = await updateInput('b.second', 5, getByTestId);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
@@ -1010,7 +999,6 @@ describe('useVariable', () => {
             // Updating nested.first should update result
             result = await updateInput('b.first', 5, getByTestId);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
@@ -1071,12 +1059,11 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('result')).toBeVisible());
             let result = JSON.parse(getByTestId('result').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1091,12 +1078,11 @@ describe('useVariable', () => {
             // Updating C should not update result
             result = await updateInput('c', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1111,12 +1097,11 @@ describe('useVariable', () => {
             // Updating B should not update result
             result = await updateInput('b', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1131,12 +1116,11 @@ describe('useVariable', () => {
             // Updating A should update result as it's a dependency of intermediateVariable which is in deps
             result = await updateInput('a', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1206,7 +1190,6 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1220,7 +1203,6 @@ describe('useVariable', () => {
             await updateInput('b', 7, getByTestId);
             result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1311,12 +1293,11 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1331,12 +1312,11 @@ describe('useVariable', () => {
             await updateInput('a', 6, getByTestId);
             result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1358,7 +1338,7 @@ describe('useVariable', () => {
                     values: {
                         data: [
                             {
-                                force_key: null,
+
                                 type: 'derived',
                                 uid: 'intermediate_variable',
                                 values: [{ __ref: 'Variable:base_variable' }],
@@ -1369,6 +1349,128 @@ describe('useVariable', () => {
                     ws_channel: 'uid',
                 })
             );
+        });
+
+        it('should embed force key only in triggered variable, not parent derived variable', async () => {
+            const baseVariable: Variable<number> = {
+                __typename: 'Variable',
+                default: 10,
+                nested: [],
+                uid: 'base_variable',
+            };
+
+            const intermediateVariable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'intermediate_variable',
+                variables: [baseVariable],
+            };
+
+            const finalVariable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [intermediateVariable],
+                nested: [],
+                uid: 'final_variable',
+                variables: [intermediateVariable],
+            };
+
+            // Trigger action that forces the intermediate variable
+            const triggerAction: TriggerVariableImpl = {
+                __typename: 'ActionImpl',
+                force: true,
+                name: 'TriggerVariable',
+                variable: intermediateVariable,
+            };
+
+            const MockComponentForceKeyTest = (props: {
+                action: Action;
+                finalVar: DerivedVariable;
+                baseVar: Variable<any>;
+            }): JSX.Element => {
+                const [base, setBase] = useVariable(props.baseVar);
+                const [final] = useVariable(props.finalVar);
+                const callAction = useAction(props.action);
+
+                return (
+                    <div>
+                        <input data-testid="base" onChange={(e) => setBase(Number(e.target.value))} value={base} />
+                        <span data-testid="final">{JSON.stringify(final)}</span>
+                        <button
+                            data-testid="trigger"
+                            onClick={(e) => {
+                                callAction(e);
+                            }}
+                            type="button"
+                        >
+                            trigger intermediate
+                        </button>
+                    </div>
+                );
+            };
+
+            const { getByTestId } = render(
+                <MockComponentForceKeyTest
+                    action={triggerAction}
+                    finalVar={finalVariable}
+                    baseVar={baseVariable}
+                />,
+                { wrapper: Wrapper }
+            );
+
+            // Wait for initial render
+            await waitFor(() => expect(getByTestId('final')).toBeVisible());
+
+            // Verify initial state - no force keys
+            const result = JSON.parse(getByTestId('final').innerHTML);
+            expect(result).toEqual({
+                is_data_variable: false,
+                values: {
+                    data: [
+                        {
+                            force_key: null, // Initially no force key
+                            type: 'derived',
+                            uid: 'intermediate_variable',
+                            values: [{ __ref: 'Variable:base_variable' }],
+                        },
+                    ],
+                    lookup: { 'Variable:base_variable': 10 },
+                },
+                ws_channel: 'uid',
+            });
+
+            // Trigger the intermediate variable with force=true
+            fireEvent.click(getByTestId('trigger'));
+
+            // Wait for the update and verify force key embedding
+            await waitFor(() => {
+                const updatedResult = JSON.parse(getByTestId('final').innerHTML);
+
+                // The key insight: intermediate variable should have force_key, but final variable should NOT
+                expect(updatedResult).toEqual({
+                    is_data_variable: false,
+                    values: {
+                        data: [
+                            {
+                                force_key: expect.any(String), // intermediate variable gets force key
+                                type: 'derived',
+                                uid: 'intermediate_variable',
+                                values: [{ __ref: 'Variable:base_variable' }],
+                            },
+                        ],
+                        lookup: { 'Variable:base_variable': 10 },
+                    },
+                    ws_channel: 'uid',
+                });
+
+                // Verify that the final variable itself does NOT have a top-level force_key
+                expect(updatedResult).not.toHaveProperty('force_key');
+
+                // Verify that the intermediate variable DOES have a force_key
+                expect(updatedResult.values.data[0]).toHaveProperty('force_key');
+                expect(typeof updatedResult.values.data[0].force_key).toBe('string');
+                expect(updatedResult.values.data[0].force_key).not.toBeNull();
+            });
         });
 
         it('should respect `nested` inside deps array', async () => {
@@ -1400,7 +1502,6 @@ describe('useVariable', () => {
             // Updating B should not update derived variable
             let result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:nested-variable:a' }, { __ref: 'Variable:nested-variable:b' }],
@@ -1412,7 +1513,6 @@ describe('useVariable', () => {
             // Updating A should update derived variable
             result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force_key: null,
                 is_data_variable: false,
                 values: {
                     data: [{ __ref: 'Variable:nested-variable:a' }, { __ref: 'Variable:nested-variable:b' }],
@@ -1552,7 +1652,6 @@ describe('useVariable', () => {
             await waitFor(() => {
                 const expectedHash = `DataVariable:dep2:${hash(dataVariable.filters, { unorderedArrays: true })}`;
                 expect(result.current[0]).toStrictEqual({
-                    force_key: null,
                     is_data_variable: false,
                     values: {
                         data: [{ __ref: 'Variable:dep1' }, { __ref: expectedHash }],
@@ -1630,7 +1729,7 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('data')).toBeVisible());
             const result1 = JSON.parse(getByTestId('data').innerHTML);
             expect(result1).toEqual({
-                force_key: null,
+
                 is_data_variable: false,
                 values: {
                     data: [
@@ -1739,12 +1838,12 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('data')).toBeVisible());
             const result1 = JSON.parse(getByTestId('data').innerHTML);
             expect(result1).toEqual({
-                force_key: null,
+
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'uid',
                             values: [
@@ -1847,7 +1946,7 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('data')).toBeVisible());
             const result1 = JSON.parse(getByTestId('data').innerHTML);
             expect(result1).toEqual({
-                force_key: null,
+
                 is_data_variable: false,
                 values: {
                     data: [
@@ -1956,12 +2055,12 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('data')).toBeVisible());
             const result1 = JSON.parse(getByTestId('data').innerHTML);
             expect(result1).toEqual({
-                force_key: null,
+
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'uid',
                             values: [
@@ -2073,12 +2172,12 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('data')).toBeVisible());
             const result1 = JSON.parse(getByTestId('data').innerHTML);
             expect(result1).toEqual({
-                force_key: null,
+
                 is_data_variable: false,
                 values: {
                     data: [
                         {
-                            force_key: null,
+
                             type: 'derived',
                             uid: 'uid',
                             values: [

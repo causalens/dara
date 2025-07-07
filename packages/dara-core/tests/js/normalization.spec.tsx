@@ -98,7 +98,6 @@ describe('Normalization', () => {
         const denormalizedData = {
             [templateData.var_1_name]: undefined,
             [templateData.var_2_name]: {
-                force_key: null,
                 type: 'derived',
                 uid: templateData.var_2_uid,
                 values: [1],

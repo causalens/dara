@@ -299,7 +299,7 @@ type DerivedResult = PreviousResult | CurrentResult;
 /**
  * Count the number of triggers a variable contributes (including nested variables)
  */
-function countTriggersForVariable(variable: DerivedVariable | DerivedDataVariable): number {
+export function countTriggersForVariable(variable: DerivedVariable | DerivedDataVariable): number {
     let count = 1; // The variable itself
 
     // Add triggers from nested variables
@@ -318,7 +318,7 @@ function countTriggersForVariable(variable: DerivedVariable | DerivedDataVariabl
 /**
  * Embed force_key into a resolved variable object
  */
-function embedForceKeyInResolvedVariable(resolvedValue: any, forceKey: string): void {
+export function embedForceKeyInResolvedVariable(resolvedValue: any, forceKey: string): void {
     if (isResolvedDerivedVariable(resolvedValue) || isResolvedDerivedDataVariable(resolvedValue)) {
         resolvedValue.force_key = forceKey;
     }
@@ -334,7 +334,7 @@ function embedForceKeyInResolvedVariable(resolvedValue: any, forceKey: string): 
  * @param triggerIndex Index of the trigger that was activated
  * @param selfTriggerOffset Offset to account for self trigger being prepended
  */
-function embedForceKeyInValues(
+export function embedForceKeyInValues(
     values: any[],
     variables: any[],
     forceKey: string | null,
