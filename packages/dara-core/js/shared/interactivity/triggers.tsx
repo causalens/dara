@@ -116,7 +116,8 @@ export function buildTriggerList(variables: any[]): Array<TriggerInfo> {
                 });
 
                 // register triggers for nested variables
-                walk(variable.variables, varPath);
+                // NOTE: path will be values since we map into ResolvedXVariables
+                walk(variable.variables, [...varPath, 'values']);
             }
             if (isDataVariable(variable)) {
                 const varPath = [...path, String(idx)];

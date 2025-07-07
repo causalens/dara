@@ -111,17 +111,11 @@ export async function fetchDerivedVariable<T>({
         :   undefined;
 
     const ws_channel = await wsClient.getChannel();
-    const requestBody: any = { is_data_variable, values, ws_channel };
-
-    // Add global force flag if force_key is provided (for self-triggers like polling)
-    if (force_key) {
-        requestBody.force = true;
-    }
 
     const res = await request(
         `/api/core/derived-variable/${variableUid}`,
         {
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({ is_data_variable, values, ws_channel, force_key: force_key ?? null }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
