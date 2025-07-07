@@ -1698,3 +1698,72 @@ async def test_force_key_only_busts_nested_dv():
         assert execution_count['derived'] == 2
         # Nested reuses cache
         assert execution_count['nested'] == 2
+
+
+async def test_none_value_is_valid():
+    """
+    Test that None is a valid value for a derived variable and isn't interpreted as a cache
+    miss.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Track execution count
+    execution_count = {'count': 0}
+
+    def slow_calc(a, b):
+        execution_count['count'] += 1
+        return None
+
+    mock_func = Mock(wraps=slow_calc)
+    derived_var = DerivedVariable(mock_func, variables=[var1, var2])
+
+    builder.add_page('Test', content=MockComponent(text=derived_var))
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call with 10, 20
+        response1 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [10, 20],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response1.status_code == 200
+        assert response1.json()['value'] == None
+        assert execution_count['count'] == 1
+
+        # call with 5, 6
+        response2 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [5, 6],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()['value'] == None
+        assert execution_count['count'] == 2
+
+        # call with 10, 20 again, should reuse the cached None value
+        response3 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [10, 20],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response3.status_code == 200
+        assert response3.json()['value'] == None
+        assert execution_count['count'] == 2

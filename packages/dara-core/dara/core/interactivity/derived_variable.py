@@ -403,6 +403,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 {'uid': var_entry.uid},
             )
 
+            # Start with a sentinel value to indicate that the value is missing
+            # from cache, this lets us distinguish between a cache miss and a
+            # value that is None
             value = VALUE_MISSING
 
             ignore_cache = (
