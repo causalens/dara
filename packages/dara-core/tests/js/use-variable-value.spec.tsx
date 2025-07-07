@@ -7,13 +7,7 @@ import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
 
 import { getVariableValue } from '../../js/shared/interactivity';
-import type {
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    SingleVariable,
-    Variable,
-} from '../../js/types';
+import type { DataVariable, DerivedDataVariable, DerivedVariable, SingleVariable, Variable } from '../../js/types';
 import { isVariable } from '../../js/types';
 import { Wrapper, server } from './utils';
 
@@ -42,7 +36,7 @@ function useVariableValue<VV, B extends boolean = false>(
                     search,
                     snapshot,
                     taskContext,
-                    extras
+                    extras,
                 });
             };
         },
@@ -147,6 +141,7 @@ describe('getVariableValue', () => {
         const res = await resolved;
         expect(res).toEqual({
             is_data_variable: false,
+            force_key: null,
             values: {
                 data: [
                     {
@@ -236,7 +231,7 @@ describe('getVariableValue', () => {
 
         expect(result.current()).toEqual({
             deps: [0],
-            filters: { column: 'col1', value: 'val1' },
+            filters: { column: 'col1', value: 'val1', operator: 'EQ' },
             type: 'derived-data',
             uid: 'derived',
             values: [5],

@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
