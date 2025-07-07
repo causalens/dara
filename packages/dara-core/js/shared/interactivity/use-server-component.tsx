@@ -202,8 +202,7 @@ function getOrRegisterServerComponent({
                                     return acc;
                                 },
                                 {} as Record<string, any>
-                            ),
-                            derivedResult.force_key
+                            )
                         );
 
                         let result = null;

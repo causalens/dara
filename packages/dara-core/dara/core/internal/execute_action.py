@@ -147,10 +147,6 @@ async def execute_action(
         annotations = action.__annotations__
 
         for key, value in values.items():
-            # Override `force_key` property to be None - actions do not force execution
-            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
-                value['force_key'] = None
-
             typ = annotations.get(key)
             val = await resolve_dependency(value, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)

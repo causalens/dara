@@ -30,6 +30,7 @@ import {
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
     isCondition,
+    isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
@@ -68,7 +69,6 @@ interface DerivedVariableTaskResponse {
 interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
     extras: RequestExtras;
-    force_key: string | null;
     is_data_variable?: boolean;
     /**
      * selector instance key  - each selector's requests should be treated separately
@@ -87,7 +87,6 @@ interface FetchDerivedVariableArgs {
  *
  * @param input Function inputs
  * - `cache`, the cache option for the derived variable.
- * - `force`, send force=true in the request body
  * - `extras`, request extras to be merged into the options
  * - `uid`, the uid of the derived variable
  * - `values`, values to pass in the request
@@ -95,7 +94,6 @@ interface FetchDerivedVariableArgs {
  */
 export async function fetchDerivedVariable<T>({
     cache,
-    force_key,
     extras,
     variableUid,
     values,
@@ -113,7 +111,7 @@ export async function fetchDerivedVariable<T>({
     const res = await request(
         `/api/core/derived-variable/${variableUid}`,
         {
-            body: JSON.stringify({ force_key, is_data_variable, values, ws_channel }),
+            body: JSON.stringify({ is_data_variable, values, ws_channel }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
@@ -141,7 +139,6 @@ async function debouncedFetchDerivedVariable({
     selectorKey,
     values,
     wsClient,
-    force_key,
     extras,
     cache,
     is_data_variable = false,
@@ -161,7 +158,6 @@ async function debouncedFetchDerivedVariable({
     debouncedFetchSubjects[selectorKey].next({
         cache,
         extras,
-        force_key,
         is_data_variable,
         selectorKey,
         values,
@@ -285,16 +281,12 @@ interface PreviousResult {
  */
 interface CurrentResult {
     /**
-     * Force key from the trigger that caused the recalculation, null if not forcing
-     */
-    force_key: string | null;
-    /**
      * List of new 'relevant' values which should be used to update the depsRegistry entry if refetch was successful
      */
     relevantValues: any[];
     type: 'current';
     /**
-     * List of values to use in the refetch request
+     * List of values to use in the refetch request (force_key is now embedded directly in the values)
      */
     values: any[];
 }
@@ -303,6 +295,95 @@ interface CurrentResult {
  * Represents the result of a derived variable resolution.
  */
 type DerivedResult = PreviousResult | CurrentResult;
+
+/**
+ * Count the number of triggers a variable contributes (including nested variables)
+ */
+function countTriggersForVariable(variable: DerivedVariable | DerivedDataVariable): number {
+    let count = 1; // The variable itself
+
+    // Add triggers from nested variables
+    variable.variables.forEach((v) => {
+        if (isDerivedVariable(v) || isDerivedDataVariable(v)) {
+            count += countTriggersForVariable(v);
+        }
+        if (isDataVariable(v)) {
+            count += 1;
+        }
+    });
+
+    return count;
+}
+
+/**
+ * Embed force_key into a resolved variable object
+ */
+function embedForceKeyInResolvedVariable(resolvedValue: any, forceKey: string): void {
+    if (isResolvedDerivedVariable(resolvedValue) || isResolvedDerivedDataVariable(resolvedValue)) {
+        resolvedValue.force_key = forceKey;
+    }
+}
+
+/**
+ * Embed force_key into the values array at the correct level based on which trigger was activated.
+ * This ensures that only the specific variable that was triggered gets the force_key, not all variables.
+ *
+ * @param values Array of resolved values
+ * @param variables Array of original variables (to map triggers to variables)
+ * @param forceKey The force key to embed
+ * @param triggerIndex Index of the trigger that was activated
+ * @param selfTriggerOffset Offset to account for self trigger being prepended
+ */
+function embedForceKeyInValues(
+    values: any[],
+    variables: any[],
+    forceKey: string | null,
+    triggerIndex: number,
+    selfTriggerOffset: number
+): void {
+    if (forceKey === null) {
+        return;
+    }
+
+    // If this is the self trigger (index 0 when selfTrigger exists), don't embed in any specific variable
+    if (selfTriggerOffset > 0 && triggerIndex === 0) {
+        return;
+    }
+
+    // Adjust trigger index to account for self trigger offset
+    const adjustedTriggerIndex = triggerIndex - selfTriggerOffset;
+
+    // Find the variable that corresponds to this trigger
+    // We need to map from the flat trigger array back to the variable that owns this trigger
+    let currentTriggerIndex = 0;
+
+    for (let i = 0; i < variables.length; i++) {
+        const variable = variables[i];
+
+        if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+            // Count how many triggers this variable contributes
+            const triggerCount = countTriggersForVariable(variable);
+
+            if (
+                adjustedTriggerIndex >= currentTriggerIndex &&
+                adjustedTriggerIndex < currentTriggerIndex + triggerCount
+            ) {
+                // This trigger belongs to this variable, embed force_key in its resolved form
+                embedForceKeyInResolvedVariable(values[i], forceKey);
+                return;
+            }
+
+            currentTriggerIndex += triggerCount;
+        } else if (isDataVariable(variable)) {
+            if (adjustedTriggerIndex === currentTriggerIndex) {
+                // This trigger belongs to this data variable
+                // Data variables don't have resolved forms to embed in, so we skip
+                return;
+            }
+            currentTriggerIndex += 1;
+        }
+    }
+}
 
 /**
  * Resolve a derived value from a list of dependant variables and their resolved values.
@@ -369,8 +450,6 @@ export function resolveDerivedValue(
         return acc.set(getUniqueIdentifier(v), depsValues[idx]);
     }, new Map<string, any>());
 
-    let forceKey: string | null = null; // the force key from the trigger that caused the recalculation
-
     /**
      * Deps handling
      */
@@ -401,20 +480,21 @@ export function resolveDerivedValue(
             previousEntry.args.length - triggers.length
         ) as number[];
 
+        // Find which trigger changed and embed force_key in the corresponding variable
         for (const [idx, triggerValue] of triggers.entries()) {
             /**
              *  If any of the nested trigger value has changed (this execution was caused by a trigger)
-             *  update whether it was called with a `force` flag or not - based on the trigger that changed
+             *  embed the force_key directly into the corresponding variable's resolved form
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                forceKey = triggerValue.force_key;
+                // Embed force_key into the values at the correct level
+                embedForceKeyInValues(values, variables, triggerValue.force_key, idx, selfTrigger ? 1 : 0);
                 break;
             }
         }
     }
 
     return {
-        force_key: forceKey,
         relevantValues,
         type: 'current',
         values,
@@ -491,7 +571,6 @@ export function getOrRegisterDerivedVariable(
                             variableResponse = await debouncedFetchDerivedVariable({
                                 cache: variable.cache,
                                 extras,
-                                force_key: derivedResult.force_key,
                                 is_data_variable: isDerivedDataVariable(variable),
                                 selectorKey,
                                 values: normalizeRequest(cleanArgs(derivedResult.values), variable.variables),

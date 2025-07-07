@@ -113,7 +113,7 @@ export function getVariableValue<VV, B extends boolean = false>(
         selectorKey: resolved.uid,
 
         values: normalizeRequest(
-            cleanArgs(resolved.values, false),
+            cleanArgs(resolved.values),
             (variable as DerivedVariable | DerivedDataVariable).variables
         ),
         variableUid: resolved.uid,

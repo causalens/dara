@@ -328,10 +328,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             values = []
 
             # dynamic import due to circular import
-            from dara.core.internal.dependency_resolution import (
-                is_resolved_derived_variable,
-                resolve_dependency,
-            )
+            from dara.core.internal.dependency_resolution import resolve_dependency
 
             eng_logger.info(
                 f'Derived Variable {_uid_short} get_value',
@@ -339,10 +336,6 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             )
 
             for val in args:
-                # Don't force nested DVs
-                if is_resolved_derived_variable(val):
-                    val['force_key'] = None
-
                 var_value = await resolve_dependency(val, store, task_mgr)
                 values.append(var_value)
 
