@@ -2,7 +2,9 @@ import {
     countTriggersForVariable,
     embedForceKeyInResolvedVariable,
     embedForceKeyInValues,
+    embedForceKeyInValuesWithMap,
 } from '../../js/shared/interactivity/derived-variable';
+import { buildTriggerMap } from '../../js/shared/interactivity/triggers';
 import type { DataVariable, DerivedDataVariable, DerivedVariable, SingleVariable } from '../../js/types';
 
 describe('Force Key Utility Functions', () => {
@@ -435,15 +437,11 @@ describe('Force Key Utility Functions', () => {
 
         it('should handle derived data variables correctly', () => {
             const values = [
-                {
-                    __typename: 'ResolvedDerivedDataVariable',
-                    type: 'derived-data',
-                    uid: 'derived-data-var',
-                    filters: null,
-                    values: [],
-                },
+                { __typename: 'ResolvedDerivedDataVariable', type: 'derived-data', uid: 'derived-data-var', filters: null, values: [] },
             ];
-            const variables = [{ __typename: 'DerivedDataVariable', uid: 'derived-data-var', variables: [] }];
+            const variables = [
+                { __typename: 'DerivedDataVariable', uid: 'derived-data-var', variables: [] },
+            ];
 
             embedForceKeyInValues(values, variables, 'test-force-key', 0, 0);
 
@@ -455,6 +453,181 @@ describe('Force Key Utility Functions', () => {
                 filters: null,
                 values: [],
             });
+        });
+    });
+
+    describe('buildTriggerMap', () => {
+        it('should build correct trigger map for simple derived variable', () => {
+            const variables = [
+                { __typename: 'DerivedVariable', uid: 'var1', variables: [] },
+            ];
+
+            const triggerMap = buildTriggerMap(variables);
+
+            expect(triggerMap.size).toBe(1);
+            expect(triggerMap.get(0)).toEqual({
+                index: 0,
+                variableIndex: 0,
+                variable: variables[0],
+            });
+        });
+
+        it('should build correct trigger map for nested structure', () => {
+            const dataVar: DataVariable = {
+                __typename: 'DataVariable',
+                cache: { policy: 'default', cache_type: 'session' },
+                filters: null,
+                uid: 'data-var',
+            };
+
+            const nestedDerived: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'nested-derived',
+                variables: [dataVar],
+            };
+
+            const variables = [nestedDerived];
+            const triggerMap = buildTriggerMap(variables);
+
+            expect(triggerMap.size).toBe(2);
+            
+            // First trigger: the nested derived variable itself
+            expect(triggerMap.get(0)).toEqual({
+                index: 0,
+                variableIndex: 0,
+                variable: nestedDerived,
+            });
+            
+            // Second trigger: the data variable within the nested derived
+            expect(triggerMap.get(1)).toEqual({
+                index: 1,
+                variableIndex: 0, // Should point to the parent derived variable
+                variable: dataVar,
+            });
+        });
+
+        it('should build correct trigger map for multiple variables', () => {
+            const variables = [
+                { __typename: 'DerivedVariable', uid: 'var1', variables: [] },
+                { __typename: 'DerivedVariable', uid: 'var2', variables: [] },
+                { __typename: 'DerivedVariable', uid: 'var3', variables: [] },
+            ];
+
+            const triggerMap = buildTriggerMap(variables);
+
+            expect(triggerMap.size).toBe(3);
+            expect(triggerMap.get(0)?.variableIndex).toBe(0);
+            expect(triggerMap.get(1)?.variableIndex).toBe(1);
+            expect(triggerMap.get(2)?.variableIndex).toBe(2);
+        });
+    });
+
+    describe('embedForceKeyInValuesWithMap', () => {
+        it('should embed force key using trigger map efficiently', () => {
+            const values = [
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'var1', values: [] },
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'var2', values: [] },
+            ];
+            const variables = [
+                { __typename: 'DerivedVariable', uid: 'var1', variables: [] },
+                { __typename: 'DerivedVariable', uid: 'var2', variables: [] },
+            ];
+
+            const triggerMap = buildTriggerMap(variables);
+            embedForceKeyInValuesWithMap(values, triggerMap, 'test-force-key', 1, 0);
+
+            expect(values[0]).toEqual({
+                __typename: 'ResolvedDerivedVariable',
+                type: 'derived',
+                uid: 'var1',
+                values: [],
+            });
+            expect(values[1]).toEqual({
+                __typename: 'ResolvedDerivedVariable',
+                force_key: 'test-force-key',
+                type: 'derived',
+                uid: 'var2',
+                values: [],
+            });
+        });
+
+        it('should handle null force key gracefully', () => {
+            const values = [
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'var1', values: [] },
+            ];
+            const variables = [
+                { __typename: 'DerivedVariable', uid: 'var1', variables: [] },
+            ];
+
+            const triggerMap = buildTriggerMap(variables);
+            const originalValues = JSON.parse(JSON.stringify(values));
+            
+            embedForceKeyInValuesWithMap(values, triggerMap, null, 0, 0);
+
+            expect(values).toEqual(originalValues);
+        });
+
+        it('should handle self trigger offset correctly', () => {
+            const values = [
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'var1', values: [] },
+            ];
+            const variables = [
+                { __typename: 'DerivedVariable', uid: 'var1', variables: [] },
+            ];
+
+            const triggerMap = buildTriggerMap(variables);
+            const originalValues = JSON.parse(JSON.stringify(values));
+            
+            // When selfTriggerOffset > 0 and triggerIndex === 0, should not embed
+            embedForceKeyInValuesWithMap(values, triggerMap, 'test-force-key', 0, 1);
+
+            expect(values).toEqual(originalValues);
+        });
+    });
+
+    describe('Trigger Map vs Original Implementation Consistency', () => {
+        it('should produce identical results for complex nested structure', () => {
+            const singleVar: SingleVariable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'single-var',
+            };
+
+            const dataVar: DataVariable = {
+                __typename: 'DataVariable',
+                cache: { policy: 'default', cache_type: 'session' },
+                filters: null,
+                uid: 'data-var',
+            };
+
+            const nestedDerived: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'nested-derived',
+                variables: [singleVar, dataVar],
+            };
+
+            const variables = [nestedDerived];
+            
+            // Test with original implementation
+            const valuesOriginal = [
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'nested-derived', values: [] },
+            ];
+            embedForceKeyInValues(valuesOriginal, variables, 'test-force-key', 1, 0);
+
+            // Test with trigger map implementation
+            const valuesWithMap = [
+                { __typename: 'ResolvedDerivedVariable', type: 'derived', uid: 'nested-derived', values: [] },
+            ];
+            const triggerMap = buildTriggerMap(variables);
+            embedForceKeyInValuesWithMap(valuesWithMap, triggerMap, 'test-force-key', 1, 0);
+
+            // Results should be identical
+            expect(valuesWithMap).toEqual(valuesOriginal);
         });
     });
 });
