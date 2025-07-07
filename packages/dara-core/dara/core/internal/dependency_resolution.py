@@ -78,6 +78,19 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
+def clean_force_key(value: Any) -> Any:
+    """
+    Clean an argument to a value to remove force keys
+    """
+    if isinstance(value, dict):
+        # Remove force key from the value
+        value = value.pop('force_key', None)
+        return {k: clean_force_key(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [clean_force_key(v) for v in value]
+    return value
+
+
 async def resolve_dependency(
     entry: Union[
         ResolvedDerivedDataVariable,

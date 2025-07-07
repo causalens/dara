@@ -141,7 +141,7 @@ export function cleanValue(value: unknown, forceKeyOverride?: string | null): an
 
         return {
             ...rest,
-            // Use the embedded force_key from the resolved variable, not the global parameter
+            // Use override if provided, otherwise use the embedded force_key from the resolved variable
             force_key: forceKeyOverride ?? (value.force_key || null),
             values: cleanedValues,
         };

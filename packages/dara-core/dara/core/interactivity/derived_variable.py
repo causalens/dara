@@ -56,6 +56,7 @@ from dara.core.interactivity.actions import TriggerVariable, assert_no_context
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
+from dara.core.internal.dependency_resolution import clean_force_key
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
@@ -222,6 +223,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         filtered_args = [arg for idx, arg in enumerate(args) if idx in deps] if deps is not None else args
 
         for arg in filtered_args:
+            # remove force keys from the arg to not cause extra cache misses
+            arg = clean_force_key(arg)
+
             if isinstance(arg, dict):
                 key = f'{key}:{json.dumps(arg, sort_keys=True, default=str)}'
             else:
