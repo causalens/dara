@@ -132,16 +132,16 @@ export function resolveVariable<VariableType>(
  * Removes `deps`, appends `force` to resolved derived(data)variables.
  *
  * @param value a value to clean
- * @param force whether to force a derived variable recalculation
+ * @param forceKey unique key set when we should force a derived variable recalculation
  */
-export function cleanValue(value: unknown, force: boolean): any {
+export function cleanValue(value: unknown, forceKey: string | null): any {
     if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
         const { deps, ...rest } = value;
-        const cleanedValues = value.values.map((v) => cleanValue(v, force));
+        const cleanedValues = value.values.map((v) => cleanValue(v, forceKey));
 
         return {
             ...rest,
-            force,
+            force_key: forceKey,
             values: cleanedValues,
         };
     }
@@ -149,9 +149,9 @@ export function cleanValue(value: unknown, force: boolean): any {
     if (isResolvedSwitchVariable(value)) {
         return {
             ...value,
-            value: cleanValue(value.value, force),
-            value_map: cleanValue(value.value_map, force),
-            default: cleanValue(value.default, force),
+            value: cleanValue(value.value, forceKey),
+            value_map: cleanValue(value.value_map, forceKey),
+            default: cleanValue(value.default, forceKey),
         };
     }
 
@@ -160,12 +160,12 @@ export function cleanValue(value: unknown, force: boolean): any {
 
 /**
  * Claan kwargs to a format understood by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
+ * Removes `deps`, appends `force_key` to resolved derived(data)variables.
  */
-export function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string, any> {
+export function cleanKwargs(kwargs: Record<string, any>, forceKey: string | null =  null): Record<string, any> {
     return Object.keys(kwargs).reduce(
         (acc, k) => {
-            acc[k] = cleanValue(kwargs[k], force);
+            acc[k] = cleanValue(kwargs[k], forceKey);
             return acc;
         },
         {} as Record<string, any>
@@ -174,11 +174,11 @@ export function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record
 
 /**
  * Format values into a shape expected by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
+ * Removes `deps`, appends `force_key` to resolved derived(data)variables.
  *
  * @param values list of values - plain values or ResolvedDerivedVariable constructs with plain values nested inside
  */
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function cleanArgs(values: Array<any | ResolvedDerivedVariable>, force: boolean): any[] {
-    return values.map((val) => cleanValue(val, force));
+export function cleanArgs(values: Array<any | ResolvedDerivedVariable>, forceKey: string | null = null): any[] {
+    return values.map((val) => cleanValue(val, forceKey));
 }

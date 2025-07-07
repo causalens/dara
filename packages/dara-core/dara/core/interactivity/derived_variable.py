@@ -341,8 +341,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             for val in args:
                 # Don't force nested DVs
                 if is_resolved_derived_variable(val):
-                    if force_key is not None:
-                        val['force_key'] = None
+                    val['force_key'] = None
 
                 var_value = await resolve_dependency(val, store, task_mgr)
                 values.append(var_value)
@@ -425,14 +424,14 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     effective_force = False
                     eng_logger.debug(
                         f'DerivedVariable {_uid_short} force key already seen, using cached value',
-                        {'uid': var_entry.uid, 'force_key': force_key},
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
                     )
                 else:
                     # First time seeing this force key, add it to the set
                     _force_keys_seen.add(force_key)
                     eng_logger.debug(
                         f'DerivedVariable {_uid_short} new force key, will force recalculation',
-                        {'uid': var_entry.uid, 'force_key': force_key},
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
                     )
 
             # If there is a value that is not pending then we have the result so return it

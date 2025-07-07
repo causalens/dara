@@ -59,6 +59,7 @@ export const depsRegistry = new Map<
 >();
 
 export type TriggerIndexValue = {
+    /** Set to a unique key if force=True was set by the user */
     force_key: string | null;
     inc: number;
 };

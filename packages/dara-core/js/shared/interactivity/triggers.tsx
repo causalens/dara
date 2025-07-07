@@ -1,5 +1,5 @@
-import { type RecoilState, atom, useRecoilValue } from 'recoil';
 import { nanoid } from 'nanoid';
+import { type RecoilState, atom, useRecoilValue } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import {
@@ -29,7 +29,7 @@ export function getOrRegisterTrigger(variable: DerivedVariable | DerivedDataVari
                 default: {
                     force_key: null,
                     inc: 0,
-                } as TriggerIndexValue,
+                } satisfies TriggerIndexValue,
                 key: triggerKey,
             })
         );
@@ -52,11 +52,12 @@ export function getOrRegisterDataVariableTrigger(
             key,
             atom({
                 default: {
-                    force_key: nanoid(),
+                    force_key: null,
                     inc: 0,
                 } as TriggerIndexValue,
                 effects: [
                     // synchronize with server triggers - increment when the variable is triggered on the server side
+                    // In the DataVariable case we always force so new key is generated
                     ({ setSelf }) => {
                         const subscription = wsClient.serverTriggers$(variable.uid).subscribe(() => {
                             setSelf((v) => {

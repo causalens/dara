@@ -321,7 +321,7 @@ type DerivedResult = PreviousResult | CurrentResult;
  * @param get getter function to resolve atoms to values
  * @param selfTrigger additional trigger index value to register as a dependency
  */
-export async function resolveDerivedValue(
+export function resolveDerivedValue(
     key: string,
     variables: any[], // variable or primitive
     deps: any[], // variable or primitive
@@ -329,7 +329,7 @@ export async function resolveDerivedValue(
     wsClient: WebSocketClientInterface,
     get: GetRecoilValue,
     selfTrigger?: TriggerIndexValue
-): Promise<DerivedResult> {
+): DerivedResult {
     // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
     const triggers = registerChildTriggers(variables, wsClient, get);
 
@@ -370,8 +370,6 @@ export async function resolveDerivedValue(
     }, new Map<string, any>());
 
     let forceKey: string | null = null; // the force key from the trigger that caused the recalculation
-    let wasTriggered = false; // whether a trigger caused the selector execution
-    let wasTriggeredItself = false; // whether the variable's own trigger caused the selector execution
 
     /**
      * Deps handling
@@ -410,21 +408,9 @@ export async function resolveDerivedValue(
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
                 forceKey = triggerValue.force_key;
-
-                // Record whether its own trigger was the one that caused the change
-                if (idx === 0) {
-                    wasTriggeredItself = true;
-                }
-
-                wasTriggered = true;
                 break;
             }
         }
-    }
-
-    // if it was triggered but not by its own trigger, wait 50ms to let the triggered variable run first
-    if (wasTriggered && !wasTriggeredItself) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     return {
@@ -485,7 +471,7 @@ export function getOrRegisterDerivedVariable(
 
                         // for deps use a different key for each selector instance rather than one per family
                         const selectorKey = key + extrasSerializable.toJSON();
-                        const derivedResult = await resolveDerivedValue(
+                        const derivedResult = resolveDerivedValue(
                             selectorKey,
                             variable.variables,
                             variable.deps,
@@ -508,7 +494,7 @@ export function getOrRegisterDerivedVariable(
                                 force_key: derivedResult.force_key,
                                 is_data_variable: isDerivedDataVariable(variable),
                                 selectorKey,
-                                values: normalizeRequest(cleanArgs(derivedResult.values, false), variable.variables),
+                                values: normalizeRequest(cleanArgs(derivedResult.values), variable.variables),
                                 variableUid: variable.uid,
                                 wsClient,
                             });
@@ -687,10 +673,11 @@ export function useDerivedVariable(
     // Creating a setter function for triggerIndex
     const triggerUpdates = useSetRecoilState(triggerIndex);
     const trigger = useCallback(
-        (force = true) => triggerUpdates((val) => ({ 
-            force_key: force ? nanoid() : null,
-            inc: val.inc + 1 
-        })),
+        (force = true) =>
+            triggerUpdates((val) => ({
+                force_key: force ? nanoid() : null,
+                inc: val.inc + 1,
+            })),
         [triggerUpdates]
     );
 

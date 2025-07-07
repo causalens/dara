@@ -69,7 +69,7 @@ async function invokeAction(
                 execution_id: executionId,
                 input,
                 uid: annotatedAction.uid,
-                values: normalizeRequest(cleanKwargs(resolvedKwargs, false), annotatedAction.dynamic_kwargs),
+                values: normalizeRequest(cleanKwargs(resolvedKwargs), annotatedAction.dynamic_kwargs),
                 ws_channel,
             }),
             method: HTTP_METHOD.POST,

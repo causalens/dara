@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+import { nanoid } from 'nanoid';
 import { useContext, useEffect } from 'react';
 import {
     type RecoilState,
@@ -103,9 +104,9 @@ function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string):
             triggerKey,
             atom({
                 default: {
-                    force: false,
+                    force_key: null,
                     inc: 0,
-                },
+                } satisfies TriggerIndexValue,
                 key: triggerKey,
             })
         );
@@ -176,7 +177,7 @@ function getOrRegisterServerComponent({
 
                         const { extras } = extrasSerializable;
 
-                        const derivedResult = await resolveDerivedValue(
+                        const derivedResult = resolveDerivedValue(
                             key,
                             kwargsList,
                             kwargsList, // pass deps=kwargs
@@ -202,7 +203,7 @@ function getOrRegisterServerComponent({
                                 },
                                 {} as Record<string, any>
                             ),
-                            derivedResult.force
+                            derivedResult.force_key
                         );
 
                         let result = null;
@@ -346,7 +347,7 @@ export function useRefreshServerComponent(uid: string, loop_instance_uid?: strin
                 const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
 
                 set(triggerAtom, (triggerIndexValue) => ({
-                    force: false,
+                    force_key: nanoid(),
                     inc: triggerIndexValue.inc + 1,
                 }));
             },
