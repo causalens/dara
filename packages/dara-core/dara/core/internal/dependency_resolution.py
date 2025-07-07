@@ -147,13 +147,13 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: C
     input_values: List[Any] = entry.get('values', [])
 
     result = await DerivedDataVariable.resolve_value(
-        data_var,
-        dv_var,
-        store,
-        task_mgr,
-        input_values,
-        entry.get('filters', None),
-        entry.get('force_key'),
+        data_entry=data_var,
+        dv_entry=dv_var,
+        store=store,
+        task_mgr=task_mgr,
+        args=input_values,
+        filters=entry.get('filters', None),
+        force_key=entry.get('force_key'),
     )
     return remove_index(result)
 
@@ -177,11 +177,11 @@ async def _resolve_derived_var(
     var = await registry_mgr.get(derived_variable_registry, str(derived_variable_entry.get('uid')))
     input_values: List[Any] = derived_variable_entry.get('values', [])
     result = await DerivedVariable.get_value(
-        var,
-        store,
-        task_mgr,
-        input_values,
-        derived_variable_entry.get('force_key'),
+        var_entry=var,
+        store=store,
+        task_mgr=task_mgr,
+        args=input_values,
+        force_key=derived_variable_entry.get('force_key'),
     )
     return result['value']
 

@@ -70,6 +70,9 @@ VariableType = TypeVar('VariableType')
 _force_keys_seen = LRUCache(maxsize=2048)
 
 VALUE_MISSING = object()
+"""
+Sentinel value to indicate that a value is missing from the cache
+"""
 
 
 class DerivedVariableResult(TypedDict):
@@ -428,7 +431,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         'no value found in cache',
                         {'uid': var_entry.uid},
                     )
-                    # key error means on entry found;
+                    # key error means no entry found;
                     # this lets us distinguish from a None value stored and not found
                     pass
 
