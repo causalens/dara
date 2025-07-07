@@ -27,12 +27,12 @@ from typing import (
     Generic,
     List,
     Optional,
-    Set,
     TypeVar,
     Union,
     cast,
 )
 
+from cachetools import LRUCache
 from pydantic import (
     ConfigDict,
     Field,
@@ -65,7 +65,9 @@ from dara.core.metrics import RUNTIME_METRICS_TRACKER
 VariableType = TypeVar('VariableType')
 
 # Global set to track force keys that have been encountered
-_force_keys_seen: Set[str] = set()
+# LRU with 2048 entries should be sufficient to not drop in-progress force keys
+# but also not have to worry about memory leaks
+_force_keys_seen = LRUCache(maxsize=2048)
 
 
 class DerivedVariableResult(TypedDict):
@@ -426,7 +428,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     )
                 else:
                     # First time seeing this force key, add it to the set
-                    _force_keys_seen.add(force_key)
+                    _force_keys_seen[force_key] = True
                     eng_logger.debug(
                         f'DerivedVariable {_uid_short} new force key, will force recalculation',
                         extra={'uid': var_entry.uid, 'force_key': force_key},
