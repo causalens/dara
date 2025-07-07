@@ -67,7 +67,7 @@ VariableType = TypeVar('VariableType')
 # Global set to track force keys that have been encountered
 # LRU with 2048 entries should be sufficient to not drop in-progress force keys
 # but also not have to worry about memory leaks
-_force_keys_seen = LRUCache(maxsize=2048)
+_force_keys_seen: LRUCache[str, bool] = LRUCache(maxsize=2048)
 
 VALUE_MISSING = object()
 """
@@ -433,7 +433,6 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     )
                     # key error means no entry found;
                     # this lets us distinguish from a None value stored and not found
-                    pass
 
             # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
             if isinstance(value, PendingTask):

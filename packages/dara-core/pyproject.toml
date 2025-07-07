@@ -102,5 +102,8 @@ docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 [tool.poetry.scripts]
 dara = "dara.core.cli:cli"
 
+[tool.poetry.group.dev.dependencies]
+types-cachetools = "^6.0.0.20250525"
+
 [tool.pytest.ini_options]
 timeout = 300

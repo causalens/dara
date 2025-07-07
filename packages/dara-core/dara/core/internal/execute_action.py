@@ -31,11 +31,7 @@ from dara.core.interactivity.actions import (
     ActionImpl,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.dependency_resolution import (
-    is_resolved_derived_data_variable,
-    is_resolved_derived_variable,
-    resolve_dependency,
-)
+from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
