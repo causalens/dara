@@ -69,6 +69,8 @@ VariableType = TypeVar('VariableType')
 # but also not have to worry about memory leaks
 _force_keys_seen = LRUCache(maxsize=2048)
 
+VALUE_MISSING = object()
+
 
 class DerivedVariableResult(TypedDict):
     cache_key: str
@@ -370,6 +372,24 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
             cache_type = var_entry.cache
 
+            # Handle force key tracking to prevent double execution
+            effective_force = force_key is not None
+            if force_key is not None:
+                if force_key in _force_keys_seen:
+                    # This force key has been seen before, don't force again
+                    effective_force = False
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} force key already seen, using cached value',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
+                    )
+                else:
+                    # First time seeing this force key, add it to the set
+                    _force_keys_seen[force_key] = True
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} new force key, will force recalculation',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
+                    )
+
             # If deps is not None, force session use
             # Note: this is temporarily commented out as no tests were broken by removing it;
             # once we find what scenario this fixes, we should add a test to cover that scenario and move this snippet
@@ -383,18 +403,31 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 {'uid': var_entry.uid},
             )
 
+            value = VALUE_MISSING
+
             ignore_cache = (
                 var_entry.cache is None
                 or var_entry.polling_interval
                 or DerivedVariable.check_polling(var_entry.variables)
+                or effective_force
             )
-            value = await store.get(var_entry, key=cache_key) if not ignore_cache else None
-
-            eng_logger.debug(
-                f'DerivedVariable {_uid_short}',
-                'retrieved value from cache',
-                {'uid': var_entry.uid, 'cached_value': value},
-            )
+            if not ignore_cache:
+                try:
+                    value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short}',
+                        'retrieved value from cache',
+                        {'uid': var_entry.uid, 'cached_value': value},
+                    )
+                except KeyError:
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short}',
+                        'no value found in cache',
+                        {'uid': var_entry.uid},
+                    )
+                    # key error means on entry found;
+                    # this lets us distinguish from a None value stored and not found
+                    pass
 
             # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
             if isinstance(value, PendingTask):
@@ -416,27 +449,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     'value': await store.get_or_wait(var_entry, key=cache_key),
                 }
 
-            # Handle force key tracking to prevent double execution
-            effective_force = force_key is not None
-            if force_key is not None:
-                if force_key in _force_keys_seen:
-                    # This force key has been seen before, don't force again
-                    effective_force = False
-                    eng_logger.debug(
-                        f'DerivedVariable {_uid_short} force key already seen, using cached value',
-                        extra={'uid': var_entry.uid, 'force_key': force_key},
-                    )
-                else:
-                    # First time seeing this force key, add it to the set
-                    _force_keys_seen[force_key] = True
-                    eng_logger.debug(
-                        f'DerivedVariable {_uid_short} new force key, will force recalculation',
-                        extra={'uid': var_entry.uid, 'force_key': force_key},
-                    )
-
-            # If there is a value that is not pending then we have the result so return it
-            # If force_key is provided, don't return even if value is found and recalculate
-            if not effective_force and value is not None:
+            # We retrieved an actual value from the cache, return it
+            if not ignore_cache and value is not VALUE_MISSING:
                 eng_logger.info(
                     f'DerivedVariable {_uid_short} returning cached value directly',
                     {'uid': var_entry.uid, 'cached_value': value},

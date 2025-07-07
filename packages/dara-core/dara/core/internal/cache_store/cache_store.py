@@ -62,21 +62,24 @@ class CacheScopeStore(Generic[PolicyT]):
 
         return await cache.delete(key)
 
-    async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
         """
         Retrieve an entry from the cache.
 
         :param key: The key of the entry to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         """
         scope = get_cache_scope(self.policy.cache_type)
         cache = self.caches.get(scope)
 
         # No cache for this scope yet
         if cache is None:
+            if raise_for_missing:
+                raise KeyError(f'No cache found for {scope}')
             return None
 
-        return await cache.get(key, unpin=unpin)
+        return await cache.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
 
     async def set(self, key: str, value: Any, pin: bool = False):
         """
@@ -150,21 +153,30 @@ class CacheStore:
 
         return prev_entry
 
-    async def get(self, registry_entry: CachedRegistryEntry, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(
+        self,
+        registry_entry: CachedRegistryEntry,
+        key: str,
+        unpin: bool = False,
+        raise_for_missing: bool = False,
+    ) -> Optional[Any]:
         """
         Retrieve an entry from the cache for the given registry entry and cache key.
 
         :param registry_entry: The registry entry to retrieve the value for.
         :param key: The key of the entry to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         """
         registry_store = self.registry_stores.get(registry_entry.to_store_key())
 
         # No store for this entry yet
         if registry_store is None:
+            if raise_for_missing:
+                raise KeyError(f'No cache store found for {registry_entry.to_store_key()}')
             return None
 
-        return await registry_store.get(key, unpin=unpin)
+        return await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
 
     async def get_or_wait(self, registry_entry: CachedRegistryEntry, key: str):
         """

@@ -88,12 +88,13 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
             self.cache.pop(key, None)
             return node.value
 
-    async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
         """
         Retrieve a value from the cache.
 
         :param key: The key of the value to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         :return: The value associated with the key, or None if the key is not in the cache.
         """
         async with self.lock:
@@ -103,6 +104,9 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                     node.pin = False
                 self._move_to_front(node)
                 return node.value
+
+        if raise_for_missing:
+            raise KeyError(f'No cache entry found for {key}')
         return None
 
     async def set(self, key: str, value: Any, pin: bool = False) -> None:
