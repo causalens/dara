@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import json
 import uuid
 from contextvars import ContextVar
@@ -31,6 +32,7 @@ from typing import (
     overload,
 )
 
+import anyio
 from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import BaseTask
@@ -87,7 +89,7 @@ def py_component(
     fallback: Optional[BaseFallback] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
-) -> Union[Callable[..., PyComponentInstance], Callable[[Callable], Callable[..., PyComponentInstance]]]:
+) -> Union[Callable[..., PyComponentInstance], Callable[[Callable], Callable[..., PyComponentInstance]],]:
     """
     A decorator that can be used to trigger a component function to be rerun whenever a give variable changes. It should be
     called with a list of Variables and will call the wrapped function with the current values of each.
@@ -114,7 +116,12 @@ def py_component(
         def _inner_func(*args, **kwargs) -> PyComponentInstance:
             # Handle errors explicitly so they are clear for the end user
             min_args = len(
-                list(filter(lambda param: param.default != Parameter.empty, old_signature.parameters.values()))
+                list(
+                    filter(
+                        lambda param: param.default != Parameter.empty,
+                        old_signature.parameters.values(),
+                    )
+                )
             )
             max_args = len(old_signature.parameters)
             passed_args = len(args) + len(kwargs)
@@ -201,17 +208,22 @@ def py_component(
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
                 new_type = Union[
-                    typ, Variable[typ], DerivedVariable[typ], UrlVariable[typ], AnyDataVariable  # type: ignore
+                    typ,
+                    Variable[typ],
+                    DerivedVariable[typ],
+                    UrlVariable[typ],
+                    AnyDataVariable,  # type: ignore
                 ]
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)
                 new_annotations[var_name] = new_type
 
         _inner_func.__signature__ = Signature(  # type: ignore
-            parameters=list(params.values()), return_annotation=old_signature.return_annotation
+            parameters=list(params.values()),
+            return_annotation=old_signature.return_annotation,
         )
-        _inner_func.__wrapped_by__ = py_component   # type: ignore
-        return _inner_func   # type: ignore
+        _inner_func.__wrapped_by__ = py_component  # type: ignore
+        return _inner_func  # type: ignore
 
     # If decorator is called with no optional argument then the function is passed as first argument
     if function:
@@ -251,17 +263,22 @@ async def render_component(
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}
 
-        for key, value in values.items():
-            val = await resolve_dependency(value, store, task_mgr)
+        async def _resolve_kwarg(val: Any, key: str) -> None:
+            val = await resolve_dependency(val, store, task_mgr)
             typ = annotations.get(key)
-
             resolved_dyn_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}
 
         dev_logger.debug(
-            f'PyComponent {definition.func.__name__}', 'rendering', {'uid': definition.name, 'kwargs': resolved_kwargs}
+            f'PyComponent {definition.func.__name__}',
+            'rendering',
+            {'uid': definition.name, 'kwargs': resolved_kwargs},
         )
 
         # Check if there are any Tasks to be run in the args
@@ -288,7 +305,8 @@ async def render_component(
             )
 
             eng_logger.info(
-                f'PyComponent {definition.func.__name__} returning task', {'uid': definition.name, 'task_id': task}
+                f'PyComponent {definition.func.__name__} returning task',
+                {'uid': definition.name, 'task_id': task},
             )
 
             return task
@@ -296,7 +314,8 @@ async def render_component(
         result = await renderer(**resolved_kwargs)
 
         eng_logger.info(
-            f'PyComponent {definition.func.__name__} returning result', {'uid': definition.name, 'result': result}
+            f'PyComponent {definition.func.__name__} returning result',
+            {'uid': definition.name, 'result': result},
         )
 
         return result
@@ -311,7 +330,9 @@ def _make_render_safe(handler: Callable):
     :param handler: the user handler to wrap
     """
 
-    async def _render_safe(**kwargs: Dict[str, Any]) -> NormalizedPayload[Optional[ComponentInstance]]:
+    async def _render_safe(
+        **kwargs: Dict[str, Any],
+    ) -> NormalizedPayload[Optional[ComponentInstance]]:
         result = await run_user_handler(handler, kwargs=kwargs)
         safe_result: Optional[ComponentInstance] = None
 
