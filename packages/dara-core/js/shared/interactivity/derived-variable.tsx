@@ -23,7 +23,6 @@ import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
 import {
-    type DataVariable,
     type DerivedDataVariable,
     type DerivedVariable,
     type GlobalTaskContext,
@@ -32,7 +31,6 @@ import {
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
     isCondition,
-    isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
     isResolvedDataVariable,
@@ -51,7 +49,7 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
-import { type TriggerInfo, buildTriggerList, registerChildTriggers } from './triggers';
+import { buildTriggerList, registerChildTriggers } from './triggers';
 
 export interface DerivedVariableValueResponse<T> {
     cache_key: string;
