@@ -82,9 +82,12 @@ def clean_force_key(value: Any) -> Any:
     """
     Clean an argument to a value to remove force keys
     """
+    if value is None:
+        return value
+
     if isinstance(value, dict):
         # Remove force key from the value
-        value = value.pop('force_key', None)
+        value.pop('force_key', None)
         return {k: clean_force_key(v) for k, v in value.items()}
     if isinstance(value, list):
         return [clean_force_key(v) for v in value]

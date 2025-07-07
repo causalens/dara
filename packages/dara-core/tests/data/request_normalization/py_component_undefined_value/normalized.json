@@ -3,6 +3,7 @@
     "__ref": "Variable:{{var_1_uid}}"
   },
   "{{var_2_name}}": {
+    "force_key": null,
     "type": "derived",
     "uid": "{{var_2_uid}}",
     "values": [
