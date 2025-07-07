@@ -7,6 +7,10 @@ title: Changelog
 -  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
 -  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables
 
+## 1.17.6
+
+-  Fixed an issue with the handleAuthErrors function when it's used with a non-json, streaming response.
+
 ## 1.17.5
 
 -  Fixed an issue with websockets being force closed on token refresh. This would cause certain elements of the application to hang until the page was refreshed.
