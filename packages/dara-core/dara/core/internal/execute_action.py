@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -145,14 +146,18 @@ async def execute_action(
     if values is not None:
         annotations = action.__annotations__
 
-        for key, value in values.items():
+        async def _resolve_kwarg(val: Any, key: str) -> None:
             # Override `force` property to be false
-            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
-                value['force'] = False
+            if is_resolved_derived_variable(val) or is_resolved_derived_data_variable(val):
+                val['force'] = False
 
             typ = annotations.get(key)
-            val = await resolve_dependency(value, store, task_mgr)
+            val = await resolve_dependency(val, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}
@@ -178,7 +183,10 @@ async def execute_action(
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
         return MetaTask(
-            process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
+            process_result=_stream_action,
+            args=[action, ctx],
+            kwargs=resolved_kwargs,
+            notify_channels=notify_channels,
         )
 
     # No tasks - run directly as an asyncio task and return the execution id

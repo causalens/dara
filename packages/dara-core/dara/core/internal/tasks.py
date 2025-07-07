@@ -397,6 +397,11 @@ class TaskManager:
         # Create and store the pending task
         pending_task = PendingTask(task.task_id, task, ws_channel)
         if task.cache_key is not None and task.reg_entry is not None:
+            # Check if we already happen to be running a task for this exact same cache key
+            # If so, we can just return the existing pending task
+            existing_pending_task = await self.store.get(task.reg_entry, key=task.cache_key)
+            if existing_pending_task is not None and isinstance(existing_pending_task, PendingTask):
+                return existing_pending_task
             await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
 
         self.tasks[task.task_id] = pending_task
