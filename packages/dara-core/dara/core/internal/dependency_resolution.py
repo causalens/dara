@@ -30,7 +30,6 @@ from dara.core.logging import dev_logger
 
 
 class ResolvedDerivedVariable(TypedDict):
-    deps: List[int]
     type: Literal['derived']
     uid: str
     values: List[Any]
@@ -38,7 +37,6 @@ class ResolvedDerivedVariable(TypedDict):
 
 
 class ResolvedDerivedDataVariable(TypedDict):
-    deps: List[int]
     type: Literal['derived-data']
     uid: str
     values: List[Any]

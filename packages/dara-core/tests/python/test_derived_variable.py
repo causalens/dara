@@ -3,6 +3,7 @@ import datetime
 from contextvars import ContextVar
 from typing import Union
 from unittest.mock import Mock
+from uuid import uuid4
 
 import jwt
 import pytest
@@ -16,6 +17,7 @@ from dara.core.base_definitions import CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.switch_variable import SwitchVariable
+from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
 from dara.core.internal.tasks import Task
 from dara.core.main import _start_application
 
@@ -1576,3 +1578,123 @@ async def test_force_key_prevents_double_execution():
         assert response3.json()['value'] == 15
         # Should be 2 now because we used a different force key
         assert execution_count['count'] == 2, f'Expected 2 executions, got {execution_count["count"]}'
+
+        # Fourth call without the force key should reuse the cache
+        response4 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [5, 10],
+                'ws_channel': 'test_channel',
+                'force_key': None,  # no force key
+            },
+        )
+        assert response4.status_code == 200
+        assert response4.json()['value'] == 15
+        # Should still be 2
+        assert execution_count['count'] == 2, f'Expected 2 executions, got {execution_count["count"]}'
+
+
+async def test_force_key_only_busts_nested_dv():
+    """
+    Test that when including a force_key in a nested derived variable,
+    only the nested dv is forced to re-execute.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Track execution count
+    execution_count = {'derived': 0, 'nested': 0}
+
+    def nested_calc(a, b):
+        execution_count['nested'] += 1
+        return a + b
+
+    def derived_calc(a):
+        execution_count['derived'] += 1
+        return a * a
+
+    mock_nested_func = Mock(wraps=nested_calc)
+    mock_derived_func = Mock(wraps=derived_calc)
+    # var1,var2 -> nested -> derived chain
+    nested_var = DerivedVariable(mock_nested_func, variables=[var1, var2])
+    derived_var = DerivedVariable(mock_derived_func, variables=[nested_var])
+
+    builder.add_page('Test', content=MockComponent(text=derived_var))
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call normally
+        response1 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(nested_var.uid),
+                        force_key=None,
+                        values=[5, 10],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response1.status_code == 200
+        assert response1.json()['value'] == (5 + 10) ** 2
+        assert execution_count['derived'] == 1
+        assert execution_count['nested'] == 1
+
+        # Force the nested dv to re-execute
+        response2 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(nested_var.uid),
+                        force_key=str(uuid4()),
+                        values=[5, 10],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()['value'] == (5 + 10) ** 2
+        # Should still be 1, as the nested dv was not forced
+        assert execution_count['derived'] == 1
+        # nested has been forced
+        assert execution_count['nested'] == 2
+
+        # Now force the top-level dv to re-execute
+        response3 = await _get_derived_variable(
+            client,
+            derived_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(nested_var.uid),
+                        force_key=None,
+                        values=[5, 10],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': str(uuid4()),
+            },
+        )
+        assert response3.status_code == 200
+        assert response3.json()['value'] == (5 + 10) ** 2
+        # Top-level dv should have been forced, +1
+        assert execution_count['derived'] == 2
+        # Nested reuses cache
+        assert execution_count['nested'] == 2
