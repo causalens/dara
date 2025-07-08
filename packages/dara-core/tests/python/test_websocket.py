@@ -350,6 +350,7 @@ async def test_action_handler_error():
 
     def resolver(ctx: UpdateVariable.Ctx):
         # Force an error, using zero division for simplicity
+        y = 2 / 0
         return f'{ctx.inputs.new}_{ctx.inputs.old}_{ctx.extras[0]}'
 
     var = Variable()
