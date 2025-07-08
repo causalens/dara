@@ -1,0 +1,8 @@
+{
+  "exclude": [".venv", "**/node_modules", "**/__pycache__", "dist", "**/dist", "**/.git"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "useLibraryCodeForTypes": true
+}
+
