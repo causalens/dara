@@ -54,7 +54,7 @@ class Text(ContentComponent):
     """
 
     text: Union[str, NonDataVariable]
-    align: Union[str | None] = 'left'  # type: ignore # this is actually textAlign not align-items
+    align: Union[str, None] = 'left'  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False
 
     @field_validator('text')
