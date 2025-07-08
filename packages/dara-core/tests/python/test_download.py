@@ -104,36 +104,35 @@ async def test_download_content_extras(_uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_uid'
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_uid'
 
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'kwarg_0': './test.txt',
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+        await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'kwarg_0': './test.txt',
                 },
-            )
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
 
-            action_results = await get_action_results(websocket, exec_uid)
+        action_results = await get_action_results(websocket, exec_uid)
 
-            assert len(action_results) == 1
-            # Returned action is NavigateTo the download url with the code embedded
-            url = action_results[0].get('url')
-            code = url.split('?code=')[1]
+        assert len(action_results) == 1
+        # Returned action is NavigateTo the download url with the code embedded
+        url = action_results[0].get('url')
+        code = url.split('?code=')[1]
 
-            # Assert the entry is in store by the returned key
-            entry = await utils_registry.get('Store').get(DownloadRegistryEntry, key=code)
-            assert entry is not None
-            assert entry.file_path == './test.txt'
-            assert entry.cleanup_file is True
+        # Assert the entry is in store by the returned key
+        entry = await utils_registry.get('Store').get(DownloadRegistryEntry, key=code)
+        assert entry is not None
+        assert entry.file_path == './test.txt'
+        assert entry.cleanup_file is True
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -160,33 +159,32 @@ async def test_file_not_found(_uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_uid'
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'kwarg_0': './test.txt',
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_uid'
+        await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'kwarg_0': './test.txt',
                 },
-            )
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
 
-            action_results = await get_action_results(websocket, exec_uid)
+        action_results = await get_action_results(websocket, exec_uid)
 
-            assert len(action_results) == 1
-            assert isinstance(action_results[0]['url'], str)
+        assert len(action_results) == 1
+        assert isinstance(action_results[0]['url'], str)
 
-            with pytest.raises((BaseExceptionGroup, FileNotFoundError)) as err:
-                call_main = await client.get(action_results[0]['url'])
+        with pytest.raises((BaseExceptionGroup, FileNotFoundError)) as err:
+            await client.get(action_results[0]['url'])
 
-            error_msg = str(err.value.exceptions[0]) if isinstance(err.value, BaseExceptionGroup) else str(err.value)
-            assert "No such file or directory: './test.txt'" in error_msg
+        error_msg = str(err.value.exceptions[0]) if isinstance(err.value, BaseExceptionGroup) else str(err.value)
+        assert "No such file or directory: './test.txt'" in error_msg
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -216,35 +214,34 @@ async def test_file_cleanup(_uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_uid'
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'kwarg_0': 'Some content for the file',
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_uid'
+        await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'kwarg_0': 'Some content for the file',
                 },
-            )
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
 
-            action_results = await get_action_results(websocket, exec_uid)
-            assert len(action_results) == 1
-            url = action_results[0]['url']
+        action_results = await get_action_results(websocket, exec_uid)
+        assert len(action_results) == 1
+        url = action_results[0]['url']
 
-            response2 = await client.get(url)
+        response2 = await client.get(url)
 
-            # Checks if request successful
-            assert response2.content == b'Some content for the file'
-            assert response2.headers.get('Content-Disposition') == 'attachment; filename=test_download_content.txt'
+        # Checks if request successful
+        assert response2.content == b'Some content for the file'
+        assert response2.headers.get('Content-Disposition') == 'attachment; filename=test_download_content.txt'
 
-            # Checks if file is cleaned up after
-            assert not os.path.exists('./test_download_content.txt')
+        # Checks if file is cleaned up after
+        assert not os.path.exists('./test_download_content.txt')
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -274,36 +271,35 @@ async def test_file_cleanup_false(_uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_uid'
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_uid'
 
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'kwarg_0': 'Some content for the file',
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+        await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'kwarg_0': 'Some content for the file',
                 },
-            )
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
 
-            action_results = await get_action_results(websocket, exec_uid)
-            assert len(action_results) == 1
-            url = action_results[0]['url']
+        action_results = await get_action_results(websocket, exec_uid)
+        assert len(action_results) == 1
+        url = action_results[0]['url']
 
-            response2 = await client.get(url)
+        response2 = await client.get(url)
 
-            # Checks if request successful
-            assert response2.content == b'Some content for the file'
-            assert response2.headers.get('Content-Disposition') == 'attachment; filename=test_download_content.txt'
+        # Checks if request successful
+        assert response2.content == b'Some content for the file'
+        assert response2.headers.get('Content-Disposition') == 'attachment; filename=test_download_content.txt'
 
-            # Checks if still exists:
-            assert os.path.exists('./test_download_content.txt')
-            # Manual cleanup
-            os.remove('./test_download_content.txt')
-            assert not os.path.exists('./test_download_content.txt')
+        # Checks if still exists:
+        assert os.path.exists('./test_download_content.txt')
+        # Manual cleanup
+        os.remove('./test_download_content.txt')
+        assert not os.path.exists('./test_download_content.txt')

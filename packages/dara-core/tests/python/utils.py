@@ -325,7 +325,7 @@ async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], tim
     result = condition()
     if inspect.iscoroutine(result):
         result = await result
-    assert result == True
+    assert result
 
 
 async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict]:

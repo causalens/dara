@@ -99,7 +99,7 @@ def test_serialization_deserialization(type_, value, raise_):
     if value is df_with_datetime_index:
         # DF with datetime index like 2023-10-04 will be encoded and decoded to 2023-10-04T00:00:00
         pass
-    elif isinstance(value, pandas.Series) or isinstance(value, pandas.Index):
+    elif isinstance(value, (pandas.Series, pandas.Index)):
         assert value.equals(deserialized)
     # Handle pandas arrays
     elif isinstance(value, ExtensionArray):
@@ -155,7 +155,7 @@ def test_deserialize_UNION_type():
 
 
 def test_deserialize_optional():
-    assert deserialize(None, Optional[int]) == None
+    assert deserialize(None, Optional[int]) is None
     assert deserialize('123', Optional[int]) == 123
     assert deserialize('123', Union[int, None]) == 123
     assert deserialize('123', Union[None, int]) == 123

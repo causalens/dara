@@ -202,7 +202,7 @@ def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]
     # Whole object is a placeholder
     if _is_placeholder(normalized_obj):
         ref = normalized_obj['__ref']
-        referrable = lookup[ref] if ref in lookup else None
+        referrable = lookup.get(ref, None)
 
         if isinstance(referrable, (list, dict)):
             return denormalize(referrable, lookup)

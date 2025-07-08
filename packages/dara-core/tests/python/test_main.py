@@ -98,7 +98,7 @@ async def test_components_route():
         assert response.status_code == 200
         res = response.json()
         assert len(res.keys()) > 1  # Loose test so it doesn't break each time we add a default component
-        assert 'LocalJsComponent' in res.keys()
+        assert 'LocalJsComponent' in res
         assert res['LocalJsComponent'] == {
             'js_component': None,
             'js_module': None,
@@ -165,16 +165,15 @@ async def test_websocket_connection(uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Check that the init method is sent correctly
-            data = await websocket.receive_json()
-            assert data == {'message': {'channel': 'uid'}, 'type': 'init'}
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Check that the init method is sent correctly
+        data = await websocket.receive_json()
+        assert data == {'message': {'channel': 'uid'}, 'type': 'init'}
 
-            # Check that a ping message is replied to with a pong
-            await websocket.send_json({'type': 'ping'})
-            data = await websocket.receive_json()
-            assert data == {'message': None, 'type': 'pong'}
+        # Check that a ping message is replied to with a pong
+        await websocket.send_json({'type': 'ping'})
+        data = await websocket.receive_json()
+        assert data == {'message': None, 'type': 'pong'}
 
 
 @patch('dara.core.internal.websocket.uuid.uuid4', return_value='uid')
@@ -190,14 +189,13 @@ async def test_app_to_socket_send(uid):
         await ws_mgr.send_message('uid', {'test': 'msg'})
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        await websocket.receive_json()
 
-            await send()
-            data = await websocket.receive_json()
-            assert data == {'message': {'test': 'msg'}, 'type': 'message'}
+        await send()
+        data = await websocket.receive_json()
+        assert data == {'message': {'test': 'msg'}, 'type': 'message'}
 
 
 @patch('dara.core.internal.websocket.uuid.uuid4', return_value='uid')
@@ -208,35 +206,34 @@ async def test_socket_to_app_send(uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        await websocket.receive_json()
 
-            async with create_task_group() as tg:
+        async with create_task_group() as tg:
 
-                async def send_msg(*args, **kwargs):
-                    """
+            async def send_msg(*args, **kwargs):
+                """
                     Receive a message from the server and send a response
                     """
-                    server_msg = await websocket.receive_json()
-                    await websocket.send_json(
-                        {'channel': server_msg.get('message').get('__rchan'), 'message': 'test_msg', 'type': 'message'}
-                    )
+                server_msg = await websocket.receive_json()
+                await websocket.send_json(
+                    {'channel': server_msg.get('message').get('__rchan'), 'message': 'test_msg', 'type': 'message'}
+                )
 
-                async def check_msg(*args, task_status: TaskStatus):
-                    """
+            async def check_msg(*args, task_status: TaskStatus):
+                """
                     Send a message to the client and assert the response is what's expected
                     """
-                    from dara.core.internal.registries import utils_registry
+                from dara.core.internal.registries import utils_registry
 
-                    ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-                    task_status.started()
-                    data = await ws_mgr.send_and_wait('uid', {'test': 'msg'})
-                    assert data == 'test_msg'
+                ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+                task_status.started()
+                data = await ws_mgr.send_and_wait('uid', {'test': 'msg'})
+                assert data == 'test_msg'
 
-                await tg.start(check_msg)
-                tg.start_soon(send_msg)
+            await tg.start(check_msg)
+            tg.start_soon(send_msg)
 
 
 async def test_add_custom_middlewares():

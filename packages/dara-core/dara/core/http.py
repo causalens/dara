@@ -54,7 +54,9 @@ def _get_config_instances(annotations: Dict[str, type]) -> Dict[str, EndpointCon
 def _method_decorator(method: HttpMethod):
     """Create a decorator for a given HTTP method"""
 
-    def _decorator(url: str, dependencies: List[DependsType] = [], authenticated: bool = True):
+    def _decorator(url: str, dependencies: List[DependsType] = None, authenticated: bool = True):
+        if dependencies is None:
+            dependencies = []
         def _inner(func: Callable):
             # Make sure we're using a copy of the dependencies list
             final_dependencies = dependencies[:]

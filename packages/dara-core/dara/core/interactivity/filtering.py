@@ -175,10 +175,7 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
             return series.isin(value)
         # Converts date passed from frontend to the right format to compare with pandas
         if col_type == ColumnType.DATETIME:
-            if isinstance(value, List):
-                value = [parseISO(value[0]), parseISO(value[1])]
-            else:
-                value = parseISO(value)
+            value = [parseISO(value[0]), parseISO(value[1])] if isinstance(value, List) else parseISO(value)
         elif col_type == ColumnType.CATEGORICAL:
             value = str(value)
         elif isinstance(value, List):
@@ -221,15 +218,9 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Serie
 
             if resolved_clause is not None:
                 if query.combinator == QueryCombinator.AND:
-                    if filters is None:
-                        filters = resolved_clause
-                    else:
-                        filters = filters & resolved_clause
+                    filters = resolved_clause if filters is None else filters & resolved_clause
                 elif query.combinator == QueryCombinator.OR:
-                    if filters is None:
-                        filters = resolved_clause
-                    else:
-                        filters = filters | resolved_clause
+                    filters = resolved_clause if filters is None else filters | resolved_clause
                 else:
                     raise ValueError(f'Unknown combinator {query.combinator}')
 

@@ -103,7 +103,7 @@ class TaskPool:
             try:
                 await wait_while(
                     lambda: self.status != PoolStatus.RUNNING
-                    or not len(self.workers) == self.desired_workers
+                    or len(self.workers) != self.desired_workers
                     or not all(w.status == WorkerStatus.IDLE for w in self.workers.values()),
                     timeout=timeout,
                 )
@@ -112,7 +112,7 @@ class TaskPool:
         else:
             raise RuntimeError('Pool already started')
 
-    def submit(self, task_uid: str, function_name: str, args: tuple = (), kwargs: dict = {}) -> TaskDefinition:
+    def submit(self, task_uid: str, function_name: str, args: tuple = (), kwargs: dict = None) -> TaskDefinition:
         """
         Submit a new task to the pool
 
@@ -121,6 +121,8 @@ class TaskPool:
         :param args: list of arguments to pass to the function
         :param kwargs: dict of kwargs to pass to the function
         """
+        if kwargs is None:
+            kwargs = {}
         self._check_pool_state()
 
         # Create a task definition to keep track of its progress
@@ -464,9 +466,8 @@ class TaskPool:
                 )
         elif is_log(worker_msg):
             dev_logger.info(f'Task: {worker_msg["task_uid"]}', {'logs': worker_msg['log']})
-        elif is_progress(worker_msg):
-            if worker_msg['task_uid'] in self._progress_subscribers:
-                await self._progress_subscribers[worker_msg['task_uid']](worker_msg['progress'], worker_msg['message'])
+        elif is_progress(worker_msg) and worker_msg['task_uid'] in self._progress_subscribers:
+            await self._progress_subscribers[worker_msg['task_uid']](worker_msg['progress'], worker_msg['message'])
 
     async def _wait_queue_depletion(self, timeout: Optional[float] = None):
         """

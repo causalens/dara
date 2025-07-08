@@ -77,7 +77,7 @@ def get_cache_scope(cache_type: Optional[CacheType]) -> CacheScope:
     return 'global'
 
 
-async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict = {}):
+async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict = None):
     """
     Run a user-defined handler function. Runs sync functions in a threadpool.
     Handles SystemExits cleanly.
@@ -86,6 +86,8 @@ async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict 
     :param args: list of arguments to pass to the function
     :param kwargs: dict of kwargs to past to the function
     """
+    if kwargs is None:
+        kwargs = {}
     with handle_system_exit('User defined function quit unexpectedly'):
         if inspect.iscoroutinefunction(handler):
             return await handler(*args, **kwargs)
@@ -226,8 +228,7 @@ def resolve_exception_group(error: Any):
 
     :param error: The error to resolve
     """
-    if isinstance(error, ExceptionGroup):
-        if len(error.exceptions) == 1:
-            return resolve_exception_group(error.exceptions[0])
+    if isinstance(error, ExceptionGroup) and len(error.exceptions) == 1:
+        return resolve_exception_group(error.exceptions[0])
 
     return error

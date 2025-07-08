@@ -439,47 +439,46 @@ async def test_fetching_derived_variable_run_as_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            # mock_func.assert_called_once()
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        # mock_func.assert_called_once()
 
-            # Listen on the websocket channel for the notification of task completion
-            data = await websocket.receive_json()
-            assert data == {
-                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
-                'type': 'message',
-            }
+        # Listen on the websocket channel for the notification of task completion
+        data = await websocket.receive_json()
+        assert data == {
+            'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+            'type': 'message',
+        }
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '15'
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == '15'
 
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.json()['value'] == '15'
+        # Hit the endpoint again with the same arguments and make sure the result is returned directly
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.json()['value'] == '15'
 
 
 async def test_cancel_derived_variable_run_as_task():
@@ -499,38 +498,37 @@ async def test_cancel_derived_variable_run_as_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
 
-            # Cancel the task
-            response = await client.delete(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        # Cancel the task
+        response = await client.delete(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
 
-            # Listen on the websocket channel for ws messages
-            messages = await get_ws_messages(websocket, 3)
-            # There should be a cancellation notif
-            assert {
-                'message': {'status': 'CANCELED', 'task_id': str(task_id)},
-                'type': 'message',
-            } in messages
-            # There shouldn't be a completion
-            assert {
-                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
-                'type': 'message',
-            } not in messages
+        # Listen on the websocket channel for ws messages
+        messages = await get_ws_messages(websocket, 3)
+        # There should be a cancellation notif
+        assert {
+            'message': {'status': 'CANCELED', 'task_id': str(task_id)},
+            'type': 'message',
+        } in messages
+        # There shouldn't be a completion
+        assert {
+            'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+            'type': 'message',
+        } not in messages
 
 
 async def test_fetching_latest_derived_variable_value_run_as_task():
@@ -550,37 +548,36 @@ async def test_fetching_latest_derived_variable_value_run_as_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            get_value = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
+        get_value = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
 
-            response = await _get_latest_derived_variable(client, derived)
-            assert get_value.status_code == 200
-            assert response.json() == '15'
+        response = await _get_latest_derived_variable(client, derived)
+        assert get_value.status_code == 200
+        assert response.json() == '15'
 
-            # Hit the endpoint again with the same arguments and make sure the result is passed to latest value registry
-            get_value = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            response = await _get_latest_derived_variable(client, derived)
-            assert response.json() == '15'
+        # Hit the endpoint again with the same arguments and make sure the result is passed to latest value registry
+        get_value = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        response = await _get_latest_derived_variable(client, derived)
+        assert response.json() == '15'
 
 
 async def test_fetching_derived_variable_that_returns_task():
@@ -603,46 +600,45 @@ async def test_fetching_derived_variable_that_returns_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
 
-            # Listen on the websocket channel for the notification of task completion
-            data = await websocket.receive_json()
-            assert data == {
-                'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
-                'type': 'message',
-            }
+        # Listen on the websocket channel for the notification of task completion
+        data = await websocket.receive_json()
+        assert data == {
+            'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
+            'type': 'message',
+        }
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '15'
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == '15'
 
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'values': [5, 10],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.json()['value'] == '15'
+        # Hit the endpoint again with the same arguments and make sure the result is returned directly
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'values': [5, 10],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.json()['value'] == '15'
 
 
 async def test_chaining_derived_variable_run_as_task():
@@ -666,63 +662,62 @@ async def test_chaining_derived_variable_run_as_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived_var_2,
-                {
-                    'values': [
-                        {
-                            'type': 'derived',
-                            'uid': str(derived_var_1.uid),
-                            'values': [5, 10],
-                        },
-                        10,
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            assert task_id is not None
+        response = await _get_derived_variable(
+            client,
+            derived_var_2,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(derived_var_1.uid),
+                        'values': [5, 10],
+                    },
+                    10,
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        assert task_id is not None
 
-            # Listen on the websocket channel for the notification of task completion
-            messages = await get_ws_messages(websocket)
-            assert all(data['message']['status'] == 'COMPLETE' for data in messages)
+        # Listen on the websocket channel for the notification of task completion
+        messages = await get_ws_messages(websocket)
+        assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
-            assert {
-                'message': {'status': 'COMPLETE', 'task_id': task_id},
-                'type': 'message',
-            } in messages
+        assert {
+            'message': {'status': 'COMPLETE', 'task_id': task_id},
+            'type': 'message',
+        } in messages
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '25'
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == '25'
 
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _get_derived_variable(
-                client,
-                derived_var_2,
-                {
-                    'values': [
-                        {
-                            'type': 'derived',
-                            'uid': str(derived_var_1.uid),
-                            'values': [5, 10],
-                        },
-                        10,
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.json()['value'] == '25'
+        # Hit the endpoint again with the same arguments and make sure the result is returned directly
+        response = await _get_derived_variable(
+            client,
+            derived_var_2,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(derived_var_1.uid),
+                        'values': [5, 10],
+                    },
+                    10,
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.json()['value'] == '25'
 
 
 async def test_chaining_derived_variable_all_run_as_task():
@@ -744,77 +739,76 @@ async def test_chaining_derived_variable_all_run_as_task():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived_var_3,
-                {
-                    'values': [
-                        5,
-                        {
-                            'type': 'derived',
-                            'uid': str(derived_var_2.uid),
-                            'values': [
-                                {
-                                    'type': 'derived',
-                                    'uid': str(derived_var_1.uid),
-                                    'values': [5, 10],
-                                },
-                                10,
-                            ],
-                        },
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            assert task_id is not None
+        response = await _get_derived_variable(
+            client,
+            derived_var_3,
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'derived',
+                        'uid': str(derived_var_2.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(derived_var_1.uid),
+                                'values': [5, 10],
+                            },
+                            10,
+                        ],
+                    },
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        assert task_id is not None
 
-            # Listen on the websocket channel for the notification of task completion
-            messages = await get_ws_messages(websocket)
-            assert all(data['message']['status'] == 'COMPLETE' for data in messages)
+        # Listen on the websocket channel for the notification of task completion
+        messages = await get_ws_messages(websocket)
+        assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
-            assert {
-                'message': {'status': 'COMPLETE', 'task_id': task_id},
-                'type': 'message',
-            } in messages
+        assert {
+            'message': {'status': 'COMPLETE', 'task_id': task_id},
+            'type': 'message',
+        } in messages
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == '30'
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == '30'
 
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _get_derived_variable(
-                client,
-                derived_var_3,
-                {
-                    'values': [
-                        5,
-                        {
-                            'type': 'derived',
-                            'uid': str(derived_var_2.uid),
-                            'values': [
-                                {
-                                    'type': 'derived',
-                                    'uid': str(derived_var_1.uid),
-                                    'values': [5, 10],
-                                },
-                                10,
-                            ],
-                        },
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.json()['value'] == '30'
+        # Hit the endpoint again with the same arguments and make sure the result is returned directly
+        response = await _get_derived_variable(
+            client,
+            derived_var_3,
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'derived',
+                        'uid': str(derived_var_2.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(derived_var_1.uid),
+                                'values': [5, 10],
+                            },
+                            10,
+                        ],
+                    },
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.json()['value'] == '30'
 
 
 async def test_fetch_latest_derived_variable():
@@ -863,7 +857,7 @@ async def test_fetch_latest_derived_variable():
         response = await _get_latest_derived_variable(client, derived, alt_auth_headers)
 
         assert response.status_code == 200
-        assert response.json() == None
+        assert response.json() is None
         mock_func.assert_called_once()
 
         # checks another user can add their value to the registry
@@ -1124,95 +1118,94 @@ async def test_derived_variable_task_chain_loop():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as ws:
-            init = await ws.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as ws:
+        init = await ws.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                parent_var,
-                data={
-                    'values': [
-                        {
-                            'type': 'derived',
-                            'uid': str(meta_dv_1.uid),
-                            'values': [
-                                {
-                                    'type': 'derived',
-                                    'uid': str(meta_dv_2.uid),
-                                    'values': [
-                                        {
-                                            'type': 'derived',
-                                            'uid': str(task_var.uid),
-                                            'values': [1, 2],
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            'type': 'derived',
-                            'uid': str(task_var.uid),
-                            'values': [1, 2],
-                        },
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
+        response = await _get_derived_variable(
+            client,
+            parent_var,
+            data={
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(meta_dv_1.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(meta_dv_2.uid),
+                                'values': [
+                                    {
+                                        'type': 'derived',
+                                        'uid': str(task_var.uid),
+                                        'values': [1, 2],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        'type': 'derived',
+                        'uid': str(task_var.uid),
+                        'values': [1, 2],
+                    },
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
 
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            assert task_id is not None
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        assert task_id is not None
 
-            # Wait for all websocket messages to come in
-            messages = await get_ws_messages(ws)
-            assert all(data['message']['status'] == 'COMPLETE' for data in messages)
-            assert any(
-                data['message']['task_id'] == task_id and data['message']['status'] == 'COMPLETE' for data in messages
-            )
+        # Wait for all websocket messages to come in
+        messages = await get_ws_messages(ws)
+        assert all(data['message']['status'] == 'COMPLETE' for data in messages)
+        assert any(
+            data['message']['task_id'] == task_id and data['message']['status'] == 'COMPLETE' for data in messages
+        )
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == 11
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == 11
 
-            # Hit the endpoint again with the same arguments and make sure the result is returned directly
-            response = await _get_derived_variable(
-                client,
-                parent_var,
-                data={
-                    'values': [
-                        {
-                            'type': 'derived',
-                            'uid': str(meta_dv_1.uid),
-                            'values': [
-                                {
-                                    'type': 'derived',
-                                    'uid': str(meta_dv_2.uid),
-                                    'values': [
-                                        {
-                                            'type': 'derived',
-                                            'uid': str(task_var.uid),
-                                            'values': [1, 2],
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            'type': 'derived',
-                            'uid': str(task_var.uid),
-                            'values': [1, 2],
-                        },
-                    ],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
-            assert response.json()['value'] == 11
+        # Hit the endpoint again with the same arguments and make sure the result is returned directly
+        response = await _get_derived_variable(
+            client,
+            parent_var,
+            data={
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(meta_dv_1.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(meta_dv_2.uid),
+                                'values': [
+                                    {
+                                        'type': 'derived',
+                                        'uid': str(task_var.uid),
+                                        'values': [1, 2],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        'type': 'derived',
+                        'uid': str(task_var.uid),
+                        'values': [1, 2],
+                    },
+                ],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
+        assert response.json()['value'] == 11
 
 
 async def test_task_error_later_reuse():
@@ -1246,51 +1239,50 @@ async def test_task_error_later_reuse():
 
     loop.set_exception_handler(handler)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as ws:
-            init = await ws.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as ws:
+        init = await ws.receive_json()
 
-            # First request the erroring task
-            response = await _get_derived_variable(
-                client,
-                exc_dv,
-                {
-                    'values': [],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            assert task_id is not None
+        # First request the erroring task
+        response = await _get_derived_variable(
+            client,
+            exc_dv,
+            {
+                'values': [],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        assert task_id is not None
 
-            # Wait until the first task fails
-            messages = await get_ws_messages(ws)
-            assert any(
-                data['message']['task_id'] == task_id and data['message']['status'] == 'ERROR' for data in messages
-            )
+        # Wait until the first task fails
+        messages = await get_ws_messages(ws)
+        assert any(
+            data['message']['task_id'] == task_id and data['message']['status'] == 'ERROR' for data in messages
+        )
 
-            # Then request the metatask
-            response_2 = await _get_derived_variable(
-                client,
-                meta_task,
-                {
-                    'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
-            assert response_2.status_code == 200
-            task_id_2 = response_2.json().get('task_id')
-            assert task_id_2 is not None
+        # Then request the metatask
+        response_2 = await _get_derived_variable(
+            client,
+            meta_task,
+            {
+                'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
+        assert response_2.status_code == 200
+        task_id_2 = response_2.json().get('task_id')
+        assert task_id_2 is not None
 
-            # one of the two messages should be about the second task failing
-            messages = await get_ws_messages(ws)
-            assert any(
-                data['message']['task_id'] == task_id_2 and data['message']['status'] == 'ERROR' for data in messages
-            )
+        # one of the two messages should be about the second task failing
+        messages = await get_ws_messages(ws)
+        assert any(
+            data['message']['task_id'] == task_id_2 and data['message']['status'] == 'ERROR' for data in messages
+        )
 
 
 async def test_task_error_immediate_reuse():
@@ -1324,43 +1316,42 @@ async def test_task_error_immediate_reuse():
 
     loop.set_exception_handler(handler)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # First request the erroring task
-            response = await _get_derived_variable(
-                client,
-                exc_dv,
-                {
-                    'values': [],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response.status_code == 200
-            task_id = response.json().get('task_id')
-            assert task_id is not None
+        # First request the erroring task
+        response = await _get_derived_variable(
+            client,
+            exc_dv,
+            {
+                'values': [],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response.status_code == 200
+        task_id = response.json().get('task_id')
+        assert task_id is not None
 
-            # Immediately request the metatask so it should use the underlying DV as a pending task
-            response_2 = await _get_derived_variable(
-                client,
-                meta_task,
-                {
-                    'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-            )
-            assert response_2.status_code == 200
-            task_id_2 = response_2.json().get('task_id')
-            assert task_id_2 is not None
+        # Immediately request the metatask so it should use the underlying DV as a pending task
+        response_2 = await _get_derived_variable(
+            client,
+            meta_task,
+            {
+                'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+        )
+        assert response_2.status_code == 200
+        task_id_2 = response_2.json().get('task_id')
+        assert task_id_2 is not None
 
-            # There should be an error ws message for both of the task_ids
-            messages = await get_ws_messages(websocket)
-            failed_tasks = [msg['message']['task_id'] for msg in messages if msg['message'].get('status') == 'ERROR']
-            assert set(failed_tasks) == {task_id, task_id_2}
+        # There should be an error ws message for both of the task_ids
+        messages = await get_ws_messages(websocket)
+        failed_tasks = [msg['message']['task_id'] for msg in messages if msg['message'].get('status') == 'ERROR']
+        assert set(failed_tasks) == {task_id, task_id_2}
 
 
 async def test_non_task_later_reuse():
@@ -1394,36 +1385,35 @@ async def test_non_task_later_reuse():
 
     loop.set_exception_handler(handler)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # First request the erroring DV, should error (500)
-            with pytest.raises(Exception):
-                response = await _get_derived_variable(
-                    client,
-                    exc_dv,
-                    {
-                        'values': [],
-                        'ws_channel': init.get('message', {}).get('channel'),
-                        'force_key': None,
-                    },
-                    expect_success=False,
-                )
+        # First request the erroring DV, should error (500)
+        with pytest.raises(Exception):
+            await _get_derived_variable(
+                client,
+                exc_dv,
+                {
+                    'values': [],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
+                expect_success=False,
+            )
 
-            # Then request the wrapping DV, should also error (500)
-            with pytest.raises(Exception):
-                response_2 = await _get_derived_variable(
-                    client,
-                    meta_task,
-                    {
-                        'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
-                        'ws_channel': init.get('message', {}).get('channel'),
-                        'force_key': None,
-                    },
-                    expect_success=False,
-                )
+        # Then request the wrapping DV, should also error (500)
+        with pytest.raises(Exception):
+            await _get_derived_variable(
+                client,
+                meta_task,
+                {
+                    'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
+                    'ws_channel': init.get('message', {}).get('channel'),
+                    'force_key': None,
+                },
+                expect_success=False,
+            )
 
 
 async def test_non_task_immediate_reuse():
@@ -1457,51 +1447,50 @@ async def test_non_task_immediate_reuse():
 
     loop.set_exception_handler(handler)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as ws:
-            init = await ws.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as ws:
+        init = await ws.receive_json()
 
-            response_1_coro = _get_derived_variable(
-                client,
-                exc_dv,
-                {
-                    'values': [],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
+        response_1_coro = _get_derived_variable(
+            client,
+            exc_dv,
+            {
+                'values': [],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
 
-            response_2_coro = _get_derived_variable(
-                client,
-                meta_task,
-                {
-                    'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'force_key': None,
-                },
-                expect_success=False,
-            )
+        response_2_coro = _get_derived_variable(
+            client,
+            meta_task,
+            {
+                'values': [{'type': 'derived', 'uid': str(exc_dv.uid), 'values': []}],
+                'ws_channel': init.get('message', {}).get('channel'),
+                'force_key': None,
+            },
+            expect_success=False,
+        )
 
-            results = {}
+        results = {}
 
-            async def run_coro_until_result(coro, key: str, **kwargs):
-                try:
-                    if 'task_status' in kwargs:
-                        kwargs['task_status'].started()
-                    results[key] = await coro
-                except BaseException as e:
-                    results[key] = e
+        async def run_coro_until_result(coro, key: str, **kwargs):
+            try:
+                if 'task_status' in kwargs:
+                    kwargs['task_status'].started()
+                results[key] = await coro
+            except BaseException as e:
+                results[key] = e
 
-            async with create_task_group() as tg:
-                # Make sure first request runs first
-                await tg.start(run_coro_until_result, response_1_coro, 'response_1')
-                tg.start_soon(run_coro_until_result, response_2_coro, 'response_2')
+        async with create_task_group() as tg:
+            # Make sure first request runs first
+            await tg.start(run_coro_until_result, response_1_coro, 'response_1')
+            tg.start_soon(run_coro_until_result, response_2_coro, 'response_2')
 
-            assert isinstance(results['response_1'], Exception)
-            assert 'test exception' in str(results['response_1'])
-            assert isinstance(results['response_2'], Exception)
-            assert 'test exception' in str(results['response_2'])
+        assert isinstance(results['response_1'], Exception)
+        assert 'test exception' in str(results['response_1'])
+        assert isinstance(results['response_2'], Exception)
+        assert 'test exception' in str(results['response_2'])
 
 
 async def test_force_key_prevents_double_execution():
@@ -1736,7 +1725,7 @@ async def test_none_value_is_valid():
             },
         )
         assert response1.status_code == 200
-        assert response1.json()['value'] == None
+        assert response1.json()['value'] is None
         assert execution_count['count'] == 1
 
         # call with 5, 6
@@ -1750,7 +1739,7 @@ async def test_none_value_is_valid():
             },
         )
         assert response2.status_code == 200
-        assert response2.json()['value'] == None
+        assert response2.json()['value'] is None
         assert execution_count['count'] == 2
 
         # call with 10, 20 again, should reuse the cached None value
@@ -1764,5 +1753,5 @@ async def test_none_value_is_valid():
             },
         )
         assert response3.status_code == 200
-        assert response3.json()['value'] == None
+        assert response3.json()['value'] is None
         assert execution_count['count'] == 2

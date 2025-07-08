@@ -38,7 +38,9 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: CustomRegistryLookup = {}):
+    def __init__(self, handlers: CustomRegistryLookup = None):
+        if handlers is None:
+            handlers = {}
         self.handlers = handlers
 
     @async_dedupe

@@ -93,8 +93,8 @@ class TestVariables(unittest.TestCase):
         second_derived_variable = DerivedVariable(test_resolve, variables=[variable], uid='test_another_derived_var')
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):
@@ -110,8 +110,8 @@ class TestVariables(unittest.TestCase):
         )
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import importlib
 import json
 import os
@@ -236,10 +237,8 @@ class BuildCache(BaseModel):
 
         # Create a symlink from the custom js folder into the static files directory
         new_path = os.path.abspath(os.path.join(self.static_files_dir, self.build_config.js_config.local_entry))
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(new_path)
-        except FileNotFoundError:
-            pass
         os.symlink(absolute_path, new_path)
 
         # Create a symlink for the node modules in the custom_js folder
@@ -247,10 +246,8 @@ class BuildCache(BaseModel):
         new_node_modules_path = os.path.abspath(
             os.path.join(os.getcwd(), self.build_config.js_config.local_entry, 'node_modules')
         )
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(new_node_modules_path)
-        except FileNotFoundError:
-            pass
         os.symlink(node_modules_path, new_node_modules_path)
 
     def get_importers(self) -> Dict[str, str]:
@@ -274,7 +271,7 @@ class BuildCache(BaseModel):
         """
         py_modules = set()
 
-        for module in self.package_map.keys():
+        for module in self.package_map:
             py_modules.add(module)
 
         if 'dara.core' in py_modules:

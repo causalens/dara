@@ -417,9 +417,8 @@ class BaseFallback(StyledComponentInstance):
     @field_validator('suspend_render')
     @classmethod
     def validate_suspend_render(cls, value):
-        if isinstance(value, int):
-            if value < 0:
-                raise ValueError('suspend_render must be a positive integer')
+        if isinstance(value, int) and value < 0:
+            raise ValueError('suspend_render must be a positive integer')
 
         return value
 

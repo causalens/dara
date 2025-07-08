@@ -387,7 +387,7 @@ class ConfigurationBuilder:
         icon: Optional[str] = None,
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
-        reset_vars_on_load: Optional[List[AnyVariable]] = [],
+        reset_vars_on_load: Optional[List[AnyVariable]] = None,
         on_load: Optional[Action] = None,
     ):
         """
@@ -403,6 +403,8 @@ class ConfigurationBuilder:
         :param on_load: optional action to execute upon visiting the page
         """
         # Backwards compatibility - deprecated
+        if reset_vars_on_load is None:
+            reset_vars_on_load = []
         if reset_vars_on_load is not None and len(reset_vars_on_load) > 0:
             if on_load is not None:
                 raise ValueError('reset_vars_on_load and on_load cannot be used together')

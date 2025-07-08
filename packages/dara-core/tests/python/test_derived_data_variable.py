@@ -127,7 +127,7 @@ async def test_derived_data_variable_dv_value_not_returned():
         )
 
         # Check no actual value is returned when is_data_variable is True
-        assert response.json()['value'] == True
+        assert response.json()['value']
 
 
 async def test_derived_data_variable_cache_key_required():
@@ -639,103 +639,102 @@ async def test_derived_data_variable_filter_metatask(cache):
         df[['col1', 'col2']] += x
         return df
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
 
-            response = await _get_derived_variable(
-                client,
-                derived,
-                {
-                    'is_data_variable': True,
-                    'values': [1],
-                    'ws_channel': init.get('message').get('channel'),
-                    'force_key': None,
-                },
-            )
-            cache_key = response.json()['cache_key']
-            assert 'task_id' in response.json()
+        response = await _get_derived_variable(
+            client,
+            derived,
+            {
+                'is_data_variable': True,
+                'values': [1],
+                'ws_channel': init.get('message').get('channel'),
+                'force_key': None,
+            },
+        )
+        cache_key = response.json()['cache_key']
+        assert 'task_id' in response.json()
 
-            # Hit the data endpoint
-            data_response = await client.post(
-                '/api/core/data-variable/uid',
-                json={
-                    'filters': {'column': 'col1', 'value': 2},
-                    'cache_key': cache_key,
-                    'ws_channel': init.get('message').get('channel'),
-                },
-                headers=AUTH_HEADERS,
-            )
+        # Hit the data endpoint
+        data_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={
+                'filters': {'column': 'col1', 'value': 2},
+                'cache_key': cache_key,
+                'ws_channel': init.get('message').get('channel'),
+            },
+            headers=AUTH_HEADERS,
+        )
 
-            # Since underlying DV returned a task we should get a task_id in the response as well
-            assert 'task_id' in data_response.json()
+        # Since underlying DV returned a task we should get a task_id in the response as well
+        assert 'task_id' in data_response.json()
 
-            # Requesting count while task is running should result in an error - count is not cached yet
-            count_response = await client.post(
-                '/api/core/data-variable/uid/count',
-                json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key},
-                headers=AUTH_HEADERS,
-            )
-            assert count_response.status_code == 400
+        # Requesting count while task is running should result in an error - count is not cached yet
+        count_response = await client.post(
+            '/api/core/data-variable/uid/count',
+            json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key},
+            headers=AUTH_HEADERS,
+        )
+        assert count_response.status_code == 400
 
-            # # Hit the data endpoint again to check that we get the same task id (via a pending task)
-            second_data_response = await client.post(
-                '/api/core/data-variable/uid',
-                json={
-                    'filters': {'column': 'col1', 'value': 2},
-                    'cache_key': cache_key,
-                    'ws_channel': init.get('message').get('channel'),
-                },
-                headers=AUTH_HEADERS,
-            )
-            assert second_data_response.json()['task_id'] == data_response.json()['task_id']
+        # # Hit the data endpoint again to check that we get the same task id (via a pending task)
+        second_data_response = await client.post(
+            '/api/core/data-variable/uid',
+            json={
+                'filters': {'column': 'col1', 'value': 2},
+                'cache_key': cache_key,
+                'ws_channel': init.get('message').get('channel'),
+            },
+            headers=AUTH_HEADERS,
+        )
+        assert second_data_response.json()['task_id'] == data_response.json()['task_id']
 
-            raw_messages = await get_ws_messages(websocket, timeout=6)
-            assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)
-            messages = set(data['message']['task_id'] for data in raw_messages)
+        raw_messages = await get_ws_messages(websocket, timeout=6)
+        assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)
+        messages = set(data['message']['task_id'] for data in raw_messages)
 
-            # check we received messages for the underlying task and the filter metatask
-            expected_messages = ['uid_Task', 'uid_Filter_MetaTask']
-            assert len(messages) == len(expected_messages)
-            task_id = None
-            meta_task_id = None
-            for msg in messages:
-                if msg.startswith(expected_messages[0]):
-                    task_id = msg
-                elif msg.startswith(expected_messages[1]):
-                    meta_task_id = msg
-                assert any(msg.startswith(x) for x in expected_messages)
+        # check we received messages for the underlying task and the filter metatask
+        expected_messages = ['uid_Task', 'uid_Filter_MetaTask']
+        assert len(messages) == len(expected_messages)
+        task_id = None
+        meta_task_id = None
+        for msg in messages:
+            if msg.startswith(expected_messages[0]):
+                task_id = msg
+            elif msg.startswith(expected_messages[1]):
+                meta_task_id = msg
+            assert any(msg.startswith(x) for x in expected_messages)
 
-            # Check we can get the result of the underlying task
-            underlying_data = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert underlying_data.json() == df_convert_to_internal(get_expected_data(1)).to_dict(orient='records')
+        # Check we can get the result of the underlying task
+        underlying_data = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert underlying_data.json() == df_convert_to_internal(get_expected_data(1)).to_dict(orient='records')
 
-            # Check we can get the result of the filter metatask
-            filter_data = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
-            expected_data = get_expected_data(1, FINAL_TEST_DATA)
-            expected_data = expected_data[expected_data['col1'] == 2]
-            assert filter_data.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
+        # Check we can get the result of the filter metatask
+        filter_data = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
+        expected_data = get_expected_data(1, FINAL_TEST_DATA)
+        expected_data = expected_data[expected_data['col1'] == 2]
+        assert filter_data.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
 
-            # Check we can request the same filtered data again and receive the result directly
-            response = await client.post(
-                '/api/core/data-variable/uid',
-                json={
-                    'filters': {'column': 'col1', 'value': 2},
-                    'cache_key': cache_key,
-                    'ws_channel': init.get('message').get('channel'),
-                },
-                headers=AUTH_HEADERS,
-            )
-            assert response.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
+        # Check we can request the same filtered data again and receive the result directly
+        response = await client.post(
+            '/api/core/data-variable/uid',
+            json={
+                'filters': {'column': 'col1', 'value': 2},
+                'cache_key': cache_key,
+                'ws_channel': init.get('message').get('channel'),
+            },
+            headers=AUTH_HEADERS,
+        )
+        assert response.json() == df_convert_to_internal(expected_data).to_dict(orient='records')
 
-            # Check we can get count correctly now that task is finished
-            count_response = await client.post(
-                '/api/core/data-variable/uid/count',
-                json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key},
-                headers=AUTH_HEADERS,
-            )
-            assert count_response.status_code == 200
-            assert count_response.json() == len(expected_data.index)
+        # Check we can get count correctly now that task is finished
+        count_response = await client.post(
+            '/api/core/data-variable/uid/count',
+            json={'filters': {'column': 'col1', 'value': 2}, 'cache_key': cache_key},
+            headers=AUTH_HEADERS,
+        )
+        assert count_response.status_code == 200
+        assert count_response.json() == len(expected_data.index)
 
 
 async def test_derived_data_variable_in_derived_variable():
@@ -972,66 +971,65 @@ async def test_py_component_with_derived_data_variable_run_as_task():
 
     # Run the app so the component is initialized
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            ws_channel = init.get('message', {}).get('channel')
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        ws_channel = init.get('message', {}).get('channel')
 
-            response, status = await _get_template(client)
-            component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client)
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-            response = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={'input_val': data_v.get(), 'input_val_2': dv.get()},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {
-                        'input_val': {
-                            # Returns 2 rows
-                            'type': 'derived-data',
-                            'values': [1],
-                            'uid': 'uid_data',
-                            'filters': ValueQuery(column='col1', value=2).dict(),
-                        },
-                        'input_val_2': {
-                            'type': 'derived',
-                            'uid': 'uid_derived',
-                            'values': [
-                                2,
-                                {
-                                    # returns 1 row
-                                    'type': 'derived-data',
-                                    'values': [1],
-                                    'uid': 'uid_data',
-                                    'filters': ValueQuery(column='col1', value=3).dict(),
-                                },
-                            ],
-                        },
+        response = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': data_v.get(), 'input_val_2': dv.get()},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        # Returns 2 rows
+                        'type': 'derived-data',
+                        'values': [1],
+                        'uid': 'uid_data',
+                        'filters': ValueQuery(column='col1', value=2).dict(),
                     },
-                    'ws_channel': ws_channel,
-                    'force_key': None,
+                    'input_val_2': {
+                        'type': 'derived',
+                        'uid': 'uid_derived',
+                        'values': [
+                            2,
+                            {
+                                # returns 1 row
+                                'type': 'derived-data',
+                                'values': [1],
+                                'uid': 'uid_data',
+                                'filters': ValueQuery(column='col1', value=3).dict(),
+                            },
+                        ],
+                    },
                 },
-            )
+                'ws_channel': ws_channel,
+                'force_key': None,
+            },
+        )
 
-            assert 'task_id' in response
-            task_id = response.get('task_id')
+        assert 'task_id' in response
+        task_id = response.get('task_id')
 
-            raw_messages = await get_ws_messages(websocket, timeout=6)
-            assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)
-            messages = set(data['message']['task_id'] for data in raw_messages)
+        raw_messages = await get_ws_messages(websocket, timeout=6)
+        assert all(data['message']['status'] == 'COMPLETE' for data in raw_messages)
+        messages = set(data['message']['task_id'] for data in raw_messages)
 
-            assert task_id in messages
+        assert task_id in messages
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
 
-            # Should return (2 + len(df, where df.col1=2)) + len(df, where df.col1=3), so (2 + 2 + 1) = 5
-            assert result.json() == {
-                'data': {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'},
-                'lookup': {},
-            }
+        # Should return (2 + len(df, where df.col1=2)) + len(df, where df.col1=3), so (2 + 2 + 1) = 5
+        assert result.json() == {
+            'data': {'name': 'MockComponent', 'props': {'text': '5', 'action': None}, 'uid': 'uid'},
+            'lookup': {},
+        }
 
 
 async def test_update_variable_extras_derived_data_variable_run_as_task():
@@ -1057,40 +1055,39 @@ async def test_update_variable_extras_derived_data_variable_run_as_task():
     config = create_app(builder, use_tasks=True)
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            act = action.get()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        act = action.get()
 
-            exec_uid = 'exec_uid'
-            response = await _call_action(
-                client,
-                act,
-                data={
-                    'input': None,
-                    'values': {
-                        'old': None,
-                        'kwarg_0': {
-                            # Returns 2 rows
-                            'type': 'derived-data',
-                            'values': [1],
-                            'uid': 'data_uid',
-                            'filters': ValueQuery(column='col1', value=2).dict(),
-                        },
+        exec_uid = 'exec_uid'
+        response = await _call_action(
+            client,
+            act,
+            data={
+                'input': None,
+                'values': {
+                    'old': None,
+                    'kwarg_0': {
+                        # Returns 2 rows
+                        'type': 'derived-data',
+                        'values': [1],
+                        'uid': 'data_uid',
+                        'filters': ValueQuery(column='col1', value=2).dict(),
                     },
-                    'execution_id': exec_uid,
-                    'ws_channel': init.get('message', {}).get('channel'),
                 },
-            )
-            assert 'task_id' in response.json()
+                'execution_id': exec_uid,
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        assert 'task_id' in response.json()
 
-            # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
-            # if all went well
-            actions = await get_action_results(websocket, exec_uid, timeout=6)
+        # We can just wait for action results, assuming the task will finish and then actions will be immediately sent
+        # if all went well
+        actions = await get_action_results(websocket, exec_uid, timeout=6)
 
-            assert len(actions) == 1
-            assert actions[0]['value'] == 2  #  2 rows
-            assert actions[0]['name'] == 'UpdateVariable'
+        assert len(actions) == 1
+        assert actions[0]['value'] == 2  #  2 rows
+        assert actions[0]['name'] == 'UpdateVariable'
 
 
 async def test_update_variable_extras_derived_data_variable():
@@ -1114,34 +1111,33 @@ async def test_update_variable_extras_derived_data_variable():
     config = create_app(builder)
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_uid'
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'old': None,
-                        'kwarg_0': {
-                            'type': 'derived-data',
-                            'values': [],
-                            'uid': 'data_uid',
-                            'filters': ValueQuery(column='col1', value=1).dict(),
-                        },
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_uid'
+        response = await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'old': None,
+                    'kwarg_0': {
+                        'type': 'derived-data',
+                        'values': [],
+                        'uid': 'data_uid',
+                        'filters': ValueQuery(column='col1', value=1).dict(),
                     },
-                    'execution_id': exec_uid,
-                    'ws_channel': init.get('message', {}).get('channel'),
                 },
-            )
-            assert response.json()['execution_id'] == exec_uid
-            actions = await get_action_results(websocket, exec_uid)
+                'execution_id': exec_uid,
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        assert response.json()['execution_id'] == exec_uid
+        actions = await get_action_results(websocket, exec_uid)
 
-            assert len(actions) == 1
-            assert actions[0]['value'] == 2  #  2 rows
-            assert actions[0]['name'] == 'UpdateVariable'
+        assert len(actions) == 1
+        assert actions[0]['value'] == 2  #  2 rows
+        assert actions[0]['name'] == 'UpdateVariable'
 
 
 async def test_derived_data_variable_with_derived_variable():
@@ -1189,7 +1185,7 @@ async def test_derived_data_variable_with_derived_variable():
         )
 
         assert response.status_code == 200
-        assert response.json()['value'] == True
+        assert response.json()['value']
         cache_key = response.json()['cache_key']
 
         response = await client.post(
@@ -1214,7 +1210,7 @@ async def test_derived_data_variable_pending_value():
     dv = ContextVar('dv')
 
     async def calc(a: DataFrame, b: int):
-        for i in range(16):
+        for _i in range(16):
             await anyio.sleep(0.25)
         assert '__index__' not in a.columns
         cp = a.copy()
@@ -1253,7 +1249,7 @@ async def test_derived_data_variable_pending_value():
         )
 
         assert response.status_code == 200
-        assert response.json()['value'] == True
+        assert response.json()['value']
         cache_key = response.json()['cache_key']
 
         # wait until ~halfway through the calculation
@@ -1307,7 +1303,7 @@ async def test_derived_data_variable_cache_eviction():
     dv = ContextVar('dv')
 
     async def calc(a: DataFrame, b: int):
-        for i in range(16):
+        for _i in range(16):
             await anyio.sleep(0.25)
         assert '__index__' not in a.columns
         cp = a.copy()
@@ -1346,11 +1342,11 @@ async def test_derived_data_variable_cache_eviction():
         )
 
         assert response.status_code == 200
-        assert response.json()['value'] == True
+        assert response.json()['value']
         cache_key = response.json()['cache_key']
 
         # invoke again with different input
-        res2 = await _get_derived_variable(
+        await _get_derived_variable(
             client,
             dv.get(),
             {

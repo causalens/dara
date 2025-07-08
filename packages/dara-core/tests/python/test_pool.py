@@ -306,7 +306,7 @@ async def test_worker_multiple_tasks():
     await wait_assert(lambda: assert_task_result(channel, task_def.uid, 3), timeout=3)
 
     # TASK 2
-    assert channel.pool_api.get_worker_message() == None  # no new messages, errors for now
+    assert channel.pool_api.get_worker_message() is None  # no new messages, errors for now
     assert worker.process.pid == initial_pid
     assert len(active_children()) == 1
 

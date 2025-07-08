@@ -22,12 +22,11 @@ async def setup_pool():
 
     await utils_registry.get('Store').clear()
 
-    async with create_task_group() as tg:
-        async with TaskPool(
-            task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2
-        ) as pool:
-            utils_registry.set('TaskPool', pool)
-            yield
+    async with create_task_group() as tg, TaskPool(
+        task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2
+    ) as pool:
+        utils_registry.set('TaskPool', pool)
+        yield
 
 
 async def test_async_creating_task_with_function():
@@ -56,7 +55,7 @@ async def test_task_manager_run_task(_uid):
         pending_task = await task_manager.run_task(task, return_channel)
 
         # Task is pending
-        assert pending_task.event.is_set() == False
+        assert not pending_task.event.is_set()
 
         # No messages sent to websocket
         assert handler.receive_stream.statistics().current_buffer_used == 0
@@ -68,7 +67,7 @@ async def test_task_manager_run_task(_uid):
         result = await pending_task.run()
 
         assert result == '3'
-        assert pending_task.event.is_set() == True
+        assert pending_task.event.is_set()
 
         # Check the result is stored
         assert await task_manager.get_result('uid') == '3'

@@ -260,7 +260,7 @@ async def test_refresh_token_live_ws_connection():
         # create two WS connections
         async with _async_ws_connect(client, token=old_token) as ws1:
             # check initial ws1 context
-            chan1 = await ws1.receive_json()
+            await ws1.receive_json()
             await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
             ws1_message = await ws1.receive_json()
             assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}

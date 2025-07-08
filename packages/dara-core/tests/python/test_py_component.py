@@ -449,7 +449,7 @@ async def test_compatibility_with_polling():
         components = response.get('layout').get('props').get('content').get('props').get('routes')
         assert len(components) == 2
         assert components[0].get('content').get('props').get('polling_interval') == 2
-        assert components[1].get('content').get('props').get('polling_interval') == None
+        assert components[1].get('content').get('props').get('polling_interval') is None
 
 
 async def test_derived_variables_restore_base_models():
@@ -680,7 +680,7 @@ async def test_placeholder():
             components[0].get('content').get('props').get('fallback')
             == MockFallbackComponent(text='test placeholder').dict()
         )
-        assert components[1].get('content').get('props').get('fallback') == None
+        assert components[1].get('content').get('props').get('fallback') is None
 
 
 async def test_derive_var_with_run_as_task_flag():
@@ -707,46 +707,45 @@ async def test_derive_var_with_run_as_task_flag():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response, status = await _get_template(client)
-            component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        # Request the template and extract the component
+        response, status = await _get_template(client)
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-            # Check that the fetching the component returns a task_id response
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={'var': derived},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {'var': {'type': 'derived', 'uid': str(derived.uid), 'values': [5, 10]}},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                },
-            )
-            task_id = data.get('task_id')
-            assert task_id is not None
+        # Check that the fetching the component returns a task_id response
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'var': derived},
+            data={
+                'uid': component.get('uid'),
+                'values': {'var': {'type': 'derived', 'uid': str(derived.uid), 'values': [5, 10]}},
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        task_id = data.get('task_id')
+        assert task_id is not None
 
-            # Listen on the websocket channel for the notification of task completion
-            messages = await get_ws_messages(websocket)
+        # Listen on the websocket channel for the notification of task completion
+        messages = await get_ws_messages(websocket)
 
-            # There should be only success notifications
-            assert all(
-                [isinstance(message, dict) and message['message']['status'] == 'COMPLETE' for message in messages]
-            )
-            # One of them should be the task we just created
-            assert any([message['message']['task_id'] == task_id for message in messages])
+        # There should be only success notifications
+        assert all(
+            [isinstance(message, dict) and message['message']['status'] == 'COMPLETE' for message in messages]
+        )
+        # One of them should be the task we just created
+        assert any([message['message']['task_id'] == task_id for message in messages])
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == {
-                'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'},
-                'lookup': {},
-            }
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == {
+            'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'},
+            'lookup': {},
+        }
 
 
 async def test_chain_derived_var_with_run_as_task_flag():
@@ -772,83 +771,82 @@ async def test_chain_derived_var_with_run_as_task_flag():
 
     # Run the app so the component is initialized
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response, status = await _get_template(client)
-            component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        # Request the template and extract the component
+        response, status = await _get_template(client)
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-            # Check that the fetching the component returns a task_id response
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={'var': dv_top},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {
-                        'var': {
-                            'type': 'derived',
-                            'uid': str(dv_top.uid),
-                            'values': [
-                                {
-                                    'type': 'derived',
-                                    'uid': str(dv_leaf_1.uid),
-                                    'values': [
-                                        {
-                                            'type': 'derived',
-                                            'uid': str(dv_root.uid),
-                                            'values': [1],
-                                            'force_key': None,
-                                        }
-                                    ],
-                                    'force_key': None,
-                                },
-                                {
-                                    'type': 'derived',
-                                    'uid': str(dv_leaf_2.uid),
-                                    'values': [
-                                        {
-                                            'type': 'derived',
-                                            'uid': str(dv_leaf_1.uid),
-                                            'values': [
-                                                {
-                                                    'type': 'derived',
-                                                    'uid': str(dv_root.uid),
-                                                    'values': [1],
-                                                    'force_key': None,
-                                                }
-                                            ],
-                                            'force_key': None,
-                                        }
-                                    ],
-                                    'force_key': None,
-                                },
-                            ],
-                            'force_key': None,
-                        }
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
+        # Check that the fetching the component returns a task_id response
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'var': dv_top},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'var': {
+                        'type': 'derived',
+                        'uid': str(dv_top.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(dv_leaf_1.uid),
+                                'values': [
+                                    {
+                                        'type': 'derived',
+                                        'uid': str(dv_root.uid),
+                                        'values': [1],
+                                        'force_key': None,
+                                    }
+                                ],
+                                'force_key': None,
+                            },
+                            {
+                                'type': 'derived',
+                                'uid': str(dv_leaf_2.uid),
+                                'values': [
+                                    {
+                                        'type': 'derived',
+                                        'uid': str(dv_leaf_1.uid),
+                                        'values': [
+                                            {
+                                                'type': 'derived',
+                                                'uid': str(dv_root.uid),
+                                                'values': [1],
+                                                'force_key': None,
+                                            }
+                                        ],
+                                        'force_key': None,
+                                    }
+                                ],
+                                'force_key': None,
+                            },
+                        ],
+                        'force_key': None,
+                    }
                 },
-            )
-            task_id = data.get('task_id')
-            assert task_id is not None
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        task_id = data.get('task_id')
+        assert task_id is not None
 
-            # Listen on the websocket channel for messages
-            updates = await get_ws_messages(websocket)
+        # Listen on the websocket channel for messages
+        updates = await get_ws_messages(websocket)
 
-            # Last should be the py_component task completing
-            assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in updates
+        # Last should be the py_component task completing
+        assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in updates
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == {
-                'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'},
-                'lookup': {},
-            }
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == {
+            'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'},
+            'lookup': {},
+        }
 
 
 async def test_single_dv_track_progress():
@@ -873,56 +871,55 @@ async def test_single_dv_track_progress():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response, status = await _get_template(client)
-            component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        # Request the template and extract the component
+        response, status = await _get_template(client)
+        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
-            # Check that the fetching the component returns a task_id response
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={'var': derived},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {'var': {'type': 'derived', 'uid': str(derived.uid), 'values': []}},
-                    'ws_channel': init.get('message', {}).get('channel'),
+        # Check that the fetching the component returns a task_id response
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'var': derived},
+            data={
+                'uid': component.get('uid'),
+                'values': {'var': {'type': 'derived', 'uid': str(derived.uid), 'values': []}},
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        task_id = data.get('task_id')
+        assert task_id is not None
+
+        # Expect 5 progress updates in order
+        for i in range(1, 6):
+            progress_update = await websocket.receive_json()
+            assert progress_update == {
+                'message': {
+                    'progress': (i / 5) * 100,
+                    'message': f'Track1 step {i}',
+                    'status': 'PROGRESS',
+                    'task_id': task_id,
                 },
-            )
-            task_id = data.get('task_id')
-            assert task_id is not None
-
-            # Expect 5 progress updates in order
-            for i in range(1, 6):
-                progress_update = await websocket.receive_json()
-                assert progress_update == {
-                    'message': {
-                        'progress': (i / 5) * 100,
-                        'message': f'Track1 step {i}',
-                        'status': 'PROGRESS',
-                        'task_id': task_id,
-                    },
-                    'type': 'message',
-                }
-
-            # Listen on the websocket channel for two notifications of underlying DV task completion
-            complete_messages = await get_ws_messages(websocket)
-            # All of them should be completions at this point
-            assert all([m['message']['status'] == 'COMPLETE' for m in complete_messages])
-            # One of them should be the py_component task completing
-            assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in complete_messages
-
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == {
-                'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'},
-                'lookup': {},
+                'type': 'message',
             }
+
+        # Listen on the websocket channel for two notifications of underlying DV task completion
+        complete_messages = await get_ws_messages(websocket)
+        # All of them should be completions at this point
+        assert all([m['message']['status'] == 'COMPLETE' for m in complete_messages])
+        # One of them should be the py_component task completing
+        assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in complete_messages
+
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == {
+            'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'},
+            'lookup': {},
+        }
 
 
 async def test_multiple_dv_track_progress():
@@ -947,63 +944,62 @@ async def test_multiple_dv_track_progress():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-            res = response.json()
-            template_data = denormalize(res['data'], res['lookup'])
-            component = (
-                template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-            )
+        # Request the template and extract the component
+        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
+        res = response.json()
+        template_data = denormalize(res['data'], res['lookup'])
+        component = (
+            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        )
 
-            # Check that the fetching the component returns a task_id response
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={'var1': derived, 'var2': derived_2},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {
-                        'var1': {'type': 'derived', 'uid': str(derived.uid), 'values': []},
-                        'var2': {'type': 'derived', 'uid': str(derived_2.uid), 'values': []},
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
+        # Check that the fetching the component returns a task_id response
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'var1': derived, 'var2': derived_2},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'var1': {'type': 'derived', 'uid': str(derived.uid), 'values': []},
+                    'var2': {'type': 'derived', 'uid': str(derived_2.uid), 'values': []},
                 },
-            )
-            task_id = data.get('task_id')
-            assert task_id is not None
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        task_id = data.get('task_id')
+        assert task_id is not None
 
-            messages = await get_ws_messages(websocket)
-            progress_updates = [
-                x.get('message').get('message') for x in messages if x.get('message').get('status') == 'PROGRESS'
-            ]
-            completion_messages = [
-                x.get('message').get('task_id') for x in messages if x.get('message').get('status') == 'COMPLETE'
-            ]
+        messages = await get_ws_messages(websocket)
+        progress_updates = [
+            x.get('message').get('message') for x in messages if x.get('message').get('status') == 'PROGRESS'
+        ]
+        completion_messages = [
+            x.get('message').get('task_id') for x in messages if x.get('message').get('status') == 'COMPLETE'
+        ]
 
-            # We can't check their order since they are concurrent so just check all progress updates arrived
-            for i in range(1, 6):
-                assert f'Track1 step {i}' in progress_updates
-                assert f'Track2 step {i}' in progress_updates
+        # We can't check their order since they are concurrent so just check all progress updates arrived
+        for i in range(1, 6):
+            assert f'Track1 step {i}' in progress_updates
+            assert f'Track2 step {i}' in progress_updates
 
-            #  task_id should be completed
-            assert task_id in completion_messages
+        #  task_id should be completed
+        assert task_id in completion_messages
 
-            # Try to fetch the result via the rest api
-            result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
-            assert result.status_code == 200
-            assert result.json() == {
-                'data': {
-                    'name': 'MockComponentTwo',
-                    'props': {'text': 'result', 'text2': 'result2'},
-                    'uid': 'uid',
-                },
-                'lookup': {},
-            }
+        # Try to fetch the result via the rest api
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        assert result.status_code == 200
+        assert result.json() == {
+            'data': {
+                'name': 'MockComponentTwo',
+                'props': {'text': 'result', 'text2': 'result2'},
+                'uid': 'uid',
+            },
+            'lookup': {},
+        }
 
 
 @pytest.mark.parametrize('primitive', [(True), (False), (1), (-2.5), ('test_string')])
@@ -1024,32 +1020,31 @@ async def test_handles_primitives(primitive):
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-            res = response.json()
-            template_data = denormalize(res['data'], res['lookup'])
-            component = (
-                template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-            )
+        # Request the template and extract the component
+        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
+        res = response.json()
+        template_data = denormalize(res['data'], res['lookup'])
+        component = (
+            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        )
 
-            # Check that the fetching the component returns a RawString with the primitive value
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                },
-            )
-            assert data['props']['content'] == str(primitive)
-            assert data['name'] == 'RawString'
+        # Check that the fetching the component returns a RawString with the primitive value
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={},
+            data={
+                'uid': component.get('uid'),
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        assert data['props']['content'] == str(primitive)
+        assert data['name'] == 'RawString'
 
 
 async def test_handles_none():
@@ -1069,31 +1064,30 @@ async def test_handles_none():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-            res = response.json()
-            template_data = denormalize(res['data'], res['lookup'])
-            component = (
-                template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-            )
+        # Request the template and extract the component
+        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
+        res = response.json()
+        template_data = denormalize(res['data'], res['lookup'])
+        component = (
+            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        )
 
-            # Check that the fetching the component returns None
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                },
-            )
-            assert data == None
+        # Check that the fetching the component returns None
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={},
+            data={
+                'uid': component.get('uid'),
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        assert data is None
 
 
 async def test_handles_invalid_value():
@@ -1113,32 +1107,31 @@ async def test_handles_invalid_value():
     # Run the app so the component is initialized
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Request the template and extract the component
-            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-            res = response.json()
-            template_data = denormalize(res['data'], res['lookup'])
-            component = (
-                template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-            )
+        # Request the template and extract the component
+        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
+        res = response.json()
+        template_data = denormalize(res['data'], res['lookup'])
+        component = (
+            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        )
 
-            # Check that the fetching the component returns an InvalidComponent
-            data = await _get_py_component(
-                client,
-                component.get('name'),
-                kwargs={},
-                data={
-                    'uid': component.get('uid'),
-                    'values': {},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                },
-            )
-            assert data['name'] == 'InvalidComponent'
-            assert 'did not return a ComponentInstance' in data['props']['error']
+        # Check that the fetching the component returns an InvalidComponent
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={},
+            data={
+                'uid': component.get('uid'),
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+            },
+        )
+        assert data['name'] == 'InvalidComponent'
+        assert 'did not return a ComponentInstance' in data['props']['error']
 
 
 async def test_py_component_respects_dv_empty_deps():

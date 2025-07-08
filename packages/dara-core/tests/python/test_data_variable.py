@@ -219,31 +219,30 @@ async def test_update_variable_extras_data_variable(_uid):
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as ws:
-            exec_uid = 'execution_id'
-            response = await _call_action(
-                client,
-                action.get(),
-                data={
-                    'input': None,
-                    'values': {
-                        'old': None,
-                        'kwarg_0': {
-                            'type': 'data',
-                            'uid': 'data_uid',
-                            'filters': ValueQuery(column='col1', value=1).dict(),
-                        },
+    async with AsyncClient(app) as client, _async_ws_connect(client) as ws:
+        exec_uid = 'execution_id'
+        await _call_action(
+            client,
+            action.get(),
+            data={
+                'input': None,
+                'values': {
+                    'old': None,
+                    'kwarg_0': {
+                        'type': 'data',
+                        'uid': 'data_uid',
+                        'filters': ValueQuery(column='col1', value=1).dict(),
                     },
-                    'ws_channel': 'uid',
-                    'execution_id': exec_uid,
                 },
-            )
-            actions = await get_action_results(ws, exec_uid)
-            assert len(actions) == 1
-            assert actions[0]['value'] == 2
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['variable']['uid'] == 'uid'
+                'ws_channel': 'uid',
+                'execution_id': exec_uid,
+            },
+        )
+        actions = await get_action_results(ws, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['value'] == 2
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['variable']['uid'] == 'uid'
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -285,7 +284,7 @@ async def test_update_variable_session_data_variable(_uid1, _uid2):
         )
 
         assert response.status_code == 200
-        assert response.json() == None
+        assert response.json() is None
 
         # Update variable for user1
         response = await _call_action(
@@ -332,7 +331,7 @@ async def test_update_variable_session_data_variable(_uid1, _uid2):
             headers={'Authorization': f'Bearer {another_token}'},
         )
         assert response.status_code == 200
-        assert response.json() == None
+        assert response.json() is None
 
         # Check count is updated to 0 because we called the data endpoint above
         count_response = await client.post(
@@ -382,7 +381,7 @@ async def test_update_variable_user_data_variable(_uid1, _uid2):
         )
 
         assert response.status_code == 200
-        assert response.json() == None
+        assert response.json() is None
 
         # Update variable for user1
         response = await _call_action(
@@ -429,7 +428,7 @@ async def test_update_variable_user_data_variable(_uid1, _uid2):
             headers={'Authorization': f'Bearer {another_token}'},
         )
         assert response.status_code == 200
-        assert response.json() == None
+        assert response.json() is None
 
         # Check count is 0 because we just called the data endpoint
         count_response = await client.post(
