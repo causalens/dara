@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.0
 
 -  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
 -  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables

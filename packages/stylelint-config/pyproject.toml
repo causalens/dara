@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "stylelint-config"
-version = "1.17.6"
+version = "1.18.0"
