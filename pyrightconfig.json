@@ -3,6 +3,7 @@
   "venvPath": ".",
   "venv": ".venv",
   "typeCheckingMode": "standard",
-  "useLibraryCodeForTypes": true
+  "useLibraryCodeForTypes": true,
+  "pythonVersion" : "3.9"
 }
 
