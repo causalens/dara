@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import ClassVar
 
-from dara.core.definitions import BaseFallback, JsComponentDef
+from dara.core.definitions import BaseFallback, JsComponentDef, StyledComponentInstance
 
 DefaultFallbackDef = JsComponentDef(name='DefaultFallback', js_module='@darajs/core', py_module='dara.core')
 RowFallbackDef = JsComponentDef(name='RowFallback', js_module='@darajs/core', py_module='dara.core')
@@ -73,3 +73,29 @@ class Fallback:
         """
 
         py_component: ClassVar[str] = 'RowFallback'
+
+    class Custom(BaseFallback):
+        """
+        Custom placeholder for a row of content.
+        Accepts any other Dara component in `component` prop.
+
+        :param component: The component to render in place of the actual UI if it has not finished loading.
+        :param suspend_render: bool or int, optional
+
+        Determines the suspense behavior of the component during state updates.
+
+        - If True, the component will always use suspense during state updates.
+          This means the component will suspend rendering and show a fallback UI until the new state is ready.
+
+        - If False, the component will always show the previous state while loading the new state.
+          This means the component will never suspend during state updates. The fallback UI will only
+          be shown on the first render.
+
+        - If a positive integer (default is 200), this denotes the threshold in milliseconds.
+          The component will show the previous state while loading the new state,
+          but will suspend and show a fallback UI after the given timeout if the new state is not ready.
+        """
+
+        py_component: ClassVar[str] = 'CustomFallback'
+
+        component: StyledComponentInstance
