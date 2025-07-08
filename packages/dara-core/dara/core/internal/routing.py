@@ -168,7 +168,7 @@ def create_router(config: Configuration):
 
         return {'execution_id': response}
 
-    @core_api_router.get('/download') # explicitly unauthenticated
+    @core_api_router.get('/download')  # explicitly unauthenticated
     async def get_download(code: str):
         store: CacheStore = utils_registry.get('Store')
 
@@ -204,7 +204,7 @@ def create_router(config: Configuration):
                 background=BackgroundTask(cleanup),
             )
 
-        except Exception as e:
+        except (KeyError, ValueError) as e:
             raise ValueError('Invalid or expired download code') from e
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
