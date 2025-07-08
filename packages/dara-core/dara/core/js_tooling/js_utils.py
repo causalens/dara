@@ -431,7 +431,7 @@ def _get_module_file(module: str) -> str:
         return cast(str, imported_module.__file__)
 
 
-def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None):
+def rebuild_js(build_cache: BuildCache, build_diff: Union[BuildCacheDiff, None] = None):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
 
