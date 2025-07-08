@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from collections.abc import Coroutine
-from typing import Callable, Dict, Literal
+from typing import Callable, Dict, Literal, Union
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -38,7 +38,7 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: CustomRegistryLookup = None):
+    def __init__(self, handlers: Union[CustomRegistryLookup, None] = None):
         if handlers is None:
             handlers = {}
         self.handlers = handlers

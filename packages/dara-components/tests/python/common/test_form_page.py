@@ -33,5 +33,5 @@ class TestFormPageComponent(unittest.TestCase):
         """Test the component validates children correctly"""
         page_nested = FormPage()
 
-        with self.assertRaises(TypeError) as cm:
+        with self.assertRaises(TypeError):
             FormPage(page_nested)

@@ -40,5 +40,5 @@ class TestLabelComponent(unittest.TestCase):
         Label(input1, value='test label')
 
         # Multiple components is not allowed
-        with self.assertRaises(TypeError) as cm:
+        with self.assertRaises(TypeError):
             Label(input1, input2, value='test label')

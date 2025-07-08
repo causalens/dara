@@ -5,7 +5,7 @@ requires = ["poetry-core>=1.0.0"]
 [tool.anthology.scripts]
 format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
-lint = "poetry run pyright ./dara && poetry run ruff check ."
+lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit dara -r -ll -i"

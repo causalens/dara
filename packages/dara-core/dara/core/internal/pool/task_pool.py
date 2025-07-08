@@ -20,7 +20,7 @@ from collections.abc import Coroutine
 from contextlib import contextmanager
 from datetime import datetime
 from multiprocessing import active_children
-from typing import Any, Callable, Dict, Optional, cast
+from typing import Any, Callable, Dict, Optional, Union, cast
 
 import anyio
 from anyio.abc import TaskGroup
@@ -112,7 +112,9 @@ class TaskPool:
         else:
             raise RuntimeError('Pool already started')
 
-    def submit(self, task_uid: str, function_name: str, args: tuple = (), kwargs: dict = None) -> TaskDefinition:
+    def submit(
+        self, task_uid: str, function_name: str, args: Union[tuple, None] = None, kwargs: Union[dict, None] = None
+    ) -> TaskDefinition:
         """
         Submit a new task to the pool
 
@@ -121,6 +123,8 @@ class TaskPool:
         :param args: list of arguments to pass to the function
         :param kwargs: dict of kwargs to pass to the function
         """
+        if args is None:
+            args = ()
         if kwargs is None:
             kwargs = {}
         self._check_pool_state()

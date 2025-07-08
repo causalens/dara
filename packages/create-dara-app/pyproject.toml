@@ -8,7 +8,7 @@ line-length = 120
 [tool.anthology.scripts]
 format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
-lint = "poetry run pyright ./dara && poetry run ruff check ."
+lint = "poetry run pyright ./create_dara_app/ && poetry run ruff check ./create_dara_app"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit create_dara_app -ll -i"

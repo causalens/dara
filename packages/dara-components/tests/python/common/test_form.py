@@ -44,5 +44,5 @@ class TestFormComponent(unittest.TestCase):
         Form(fs3, value=form_state)
 
         # A mix is not allowed
-        with self.assertRaises(TypeError) as cm:
+        with self.assertRaises(TypeError):
             Form(FormPage(fs1), fs3, FormPage(fs2), value=form_state)

@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import ast
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 DEFAULT_WHITELIST = [
     # Inbuilts
@@ -106,7 +106,7 @@ class ScriptVisitor(ast.NodeVisitor):
         raise SyntaxError(f'Imports are not allowed: {node.names}')
 
 
-def run_script(script: str, injections: dict = None, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
+def run_script(script: str, injections: Union[dict, None] = None, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
     """
     Run a given script in a "sandbox".
     Disallows imports, most globals except whitelisted ones.
