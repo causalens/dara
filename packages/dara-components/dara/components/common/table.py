@@ -406,9 +406,8 @@ class Column(BaseModel):
             )
         if formatter_type in (TableFormatterType.NUMBER, TableFormatterType.PERCENT):
             precision = formatter.get('precision')
-            if precision is not None:
-                if not isinstance(precision, int) or precision <= 0:
-                    raise ValueError(f'Invalid precision value: {precision}, must be positive integer')
+            if precision is not None and (not isinstance(precision, int) or precision <= 0):
+                raise ValueError(f'Invalid precision value: {precision}, must be positive integer')
         elif formatter_type == TableFormatterType.NUMBER_INTL:
             locales = formatter.get('locales')
             if not isinstance(locales, str) or not (
@@ -442,9 +441,9 @@ class Column(BaseModel):
                     )
                 lower_bound = threshold.get('bounds')[0]
                 upper_bound = threshold.get('bounds')[1]
-                if not (isinstance(lower_bound, int) or isinstance(lower_bound, float)):
+                if not (isinstance(lower_bound, (int, float))):
                     raise ValueError(f'Invalid bound type: {lower_bound}, must be int or float')
-                if not (isinstance(upper_bound, int) or isinstance(upper_bound, float)):
+                if not (isinstance(upper_bound, (int, float))):
                     raise ValueError(f'Invalid bound type: {upper_bound}, must be int or float')
         elif formatter_type == TableFormatterType.BADGE:
             badges = formatter.get('badges')

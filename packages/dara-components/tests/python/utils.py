@@ -1,4 +1,3 @@
-
 from dara.components.common.base_component import ContentComponent
 
 

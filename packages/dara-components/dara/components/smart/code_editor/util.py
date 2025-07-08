@@ -106,7 +106,7 @@ class ScriptVisitor(ast.NodeVisitor):
         raise SyntaxError(f'Imports are not allowed: {node.names}')
 
 
-def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
+def run_script(script: str, injections: dict = None, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
     """
     Run a given script in a "sandbox".
     Disallows imports, most globals except whitelisted ones.
@@ -131,6 +131,8 @@ def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAUL
 
     """
     # Validate that the script is safe
+    if injections is None:
+        injections = {}
     module: ast.Module = ast.parse(script)
     visitor = ScriptVisitor([*whitelist, *injections.keys()])
     visitor.visit(module)

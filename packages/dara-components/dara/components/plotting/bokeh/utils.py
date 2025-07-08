@@ -35,12 +35,14 @@ def figure_events(fig: figure):
         :param
         """
 
-        def generate_event(args: dict = {}):
+        def generate_event(args: dict = None):
             """
             Generate a CustomJS event with the code, event name and arguments provided
 
             :param args: The arguments to provide to the JS code
             """
+            if args is None:
+                args = {}
             return CustomJS(
                 args=args,
                 code=f"""

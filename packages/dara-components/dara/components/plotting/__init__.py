@@ -14,8 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+# ruff: noqa: F401, F403
 
-import dara.components.plotting.palettes as PALETTES  # noqa: F401
+import dara.components.plotting.palettes as PALETTES
 from dara.components.plotting.bokeh import *
 from dara.components.plotting.matplotlib import *
 from dara.components.plotting.plotly import *
