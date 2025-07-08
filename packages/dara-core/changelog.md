@@ -6,6 +6,7 @@ title: Changelog
 
 -  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
 -  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables
+-  Internal: added `RegistryLookup` key for `DOWNLOAD_CODE` to allow overriding the download code logic
 
 ## 1.17.6
 

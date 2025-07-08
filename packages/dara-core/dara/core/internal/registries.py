@@ -32,6 +32,7 @@ from dara.core.interactivity.derived_variable import (
     DerivedVariableRegistryEntry,
     LatestValueRegistryEntry,
 )
+from dara.core.internal.download import DownloadDataEntry
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
 from dara.core.persistence import BackendStoreEntry
@@ -70,3 +71,6 @@ custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload
 
 backend_store_registry = Registry[BackendStoreEntry](RegistryType.BACKEND_STORE, allow_duplicates=False)
 """map of store uid -> store instance"""
+
+download_code_registry = Registry[DownloadDataEntry](RegistryType.DOWNLOAD_CODE, allow_duplicates=False)
+"""map of download codes -> download data entry, used only to allow overriding download code behaviour via RegistryLookup"""

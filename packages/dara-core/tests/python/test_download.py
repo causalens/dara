@@ -1,7 +1,8 @@
 import inspect
 import os
 from contextvars import ContextVar
-from typing import Optional, Union
+from tempfile import TemporaryDirectory
+from typing import Awaitable, Callable, Optional, Tuple, Union
 from unittest.mock import patch
 
 import anyio
@@ -16,8 +17,9 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import DownloadContent
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.download import DownloadRegistryEntry, download, generate_download_code
+from dara.core.internal.download import DownloadDataEntry, DownloadRegistryEntry, download, generate_download_code
 from dara.core.internal.registries import utils_registry
+from dara.core.internal.registry import RegistryType
 from dara.core.main import _start_application
 
 from tests.python.utils import _async_ws_connect, _call_action, get_action_results
@@ -303,3 +305,57 @@ async def test_file_cleanup_false(_uid):
         # Manual cleanup
         os.remove('./test_download_content.txt')
         assert not os.path.exists('./test_download_content.txt')
+
+
+async def test_download_override():
+    """
+    Test download override
+    """
+    code = 'foo'
+
+    store: CacheStore = utils_registry.get('Store')
+
+    data_entry = await store.get(DownloadRegistryEntry, key=code)
+    assert data_entry is None, 'Entry should not exist'
+
+    with TemporaryDirectory() as tmpdir:
+        # write a file
+        with open(os.path.join(tmpdir, 'test.txt'), 'w') as f:
+            f.write('test')
+
+        custom_download_called = False
+        code_override_called = False
+
+        async def custom_download(entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Callable[..., Awaitable]]:
+            nonlocal custom_download_called
+            custom_download_called = True
+
+            aiofile = await anyio.open_file(os.path.join(tmpdir, 'test.txt'), mode='rb')
+
+            async def noop():
+                pass
+
+            return aiofile, noop
+
+        async def code_override(code_to_find: str) -> DownloadDataEntry:
+            nonlocal code_override_called
+            code_override_called = True
+            if code_to_find == code:
+                return entry
+            raise ValueError('NOT FOUND')
+
+        # make an entry but don't put it in the store
+        entry = DownloadDataEntry(uid=code, file_path='test.txt', cleanup_file=True, download=custom_download)
+
+        builder = ConfigurationBuilder()
+        builder.add_registry_lookup({RegistryType.DOWNLOAD_CODE: code_override})
+        config = builder._to_configuration()
+        app = _start_application(config)
+
+        # call the download endpoint directly
+        async with AsyncClient(app) as client:
+            response = await client.get(f'/api/core/download?code={code}')
+            assert response.status_code == 200
+            assert response.content == b'test'
+            assert custom_download_called
+            assert code_override_called

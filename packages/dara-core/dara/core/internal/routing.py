@@ -58,6 +58,7 @@ from dara.core.internal.registries import (
     component_registry,
     data_variable_registry,
     derived_variable_registry,
+    download_code_registry,
     latest_value_registry,
     static_kwargs_registry,
     template_registry,
@@ -167,15 +168,22 @@ def create_router(config: Configuration):
 
         return {'execution_id': response}
 
-    @core_api_router.get('/download')
+    @core_api_router.get('/download')  # explicitly unauthenticated
     async def get_download(code: str):
         store: CacheStore = utils_registry.get('Store')
 
         try:
             data_entry = await store.get(DownloadRegistryEntry, key=code)
 
+            # If not found directly in the store, use the override registry
+            # to check if we can get the download entry from there
             if data_entry is None:
-                raise ValueError('Invalid or expired download code')
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+                # NOTE: This will throw a Value/KeyError if the code is not found so no need to rethrow
+                data_entry = await registry_mgr.get(download_code_registry, code)
+                # We managed to find one from the lookup,
+                # remove it from the registry immediately because it's one time use
+                download_code_registry.remove(code)
 
             async_file, cleanup = await data_entry.download(data_entry)
 
@@ -196,8 +204,8 @@ def create_router(config: Configuration):
                 background=BackgroundTask(cleanup),
             )
 
-        except KeyError as err:
-            raise ValueError('Invalid or expired download code') from err
+        except (KeyError, ValueError) as e:
+            raise ValueError('Invalid or expired download code') from e
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
     async def get_config():
