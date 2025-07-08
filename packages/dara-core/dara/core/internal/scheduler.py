@@ -283,7 +283,9 @@ class Scheduler:
     def _weekday(self, weekday: int):
         # The job must execute on a weekly interval
         return ScheduledJobFactory(
-            interval=self.interval * 604800, run_once=self._run_once, weekday=str(weekday)  # type: ignore
+            interval=self.interval * 604800,
+            run_once=self._run_once,
+            weekday=str(weekday),  # type: ignore
         )
 
     def monday(self) -> ScheduledJobFactory:

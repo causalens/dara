@@ -189,12 +189,12 @@ def apply_date_filter(from_date: str, to_date: str, column: 'Series[numpy.dateti
 
     if from_date != '':
         from_timestamp = parseISO(from_date)
-        from_date_filter = column.gt(from_timestamp)   # type: ignore
+        from_date_filter = column.gt(from_timestamp)  # type: ignore
         final_date_filter = from_date_filter
 
     if to_date != '':
         to_timestamp = parseISO(to_date)
-        to_date_filter = column.lt(to_timestamp)   # type: ignore
+        to_date_filter = column.lt(to_timestamp)  # type: ignore
         final_date_filter = final_date_filter & to_date_filter if final_date_filter is not None else to_date_filter
 
     return final_date_filter

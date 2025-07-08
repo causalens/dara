@@ -93,9 +93,9 @@ CORE_ACTIONS: Dict[str, ActionDef] = {
     Notify.__name__: NotifyDef,
 }
 
+
 # Define a default layout template
 def default_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -107,7 +107,6 @@ def default_template(config: Configuration) -> Template:
 
 # Define a blank template
 def blank_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -119,7 +118,6 @@ def blank_template(config: Configuration) -> Template:
 
 # Define a top layout template
 def top_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -131,7 +129,6 @@ def top_template(config: Configuration) -> Template:
 
 # Define a top layout template with menu
 def top_menu_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))

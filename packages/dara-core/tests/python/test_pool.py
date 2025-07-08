@@ -280,7 +280,7 @@ async def test_worker_task_exception():
 
     # Error trying to run the task
     exc = get_task_result(channel, task_def.uid)
-    assert str(exc.unwrap()) == 'test exception'   # exception thrown within the task
+    assert str(exc.unwrap()) == 'test exception'  # exception thrown within the task
 
     # Worker should not quit after an exception within the worker itself
     assert len(active_children()) == 1
@@ -306,7 +306,7 @@ async def test_worker_multiple_tasks():
     await wait_assert(lambda: assert_task_result(channel, task_def.uid, 3), timeout=3)
 
     # TASK 2
-    assert channel.pool_api.get_worker_message() == None   # no new messages, errors for now
+    assert channel.pool_api.get_worker_message() == None  # no new messages, errors for now
     assert worker.process.pid == initial_pid
     assert len(active_children()) == 1
 
@@ -389,7 +389,7 @@ async def test_pool_task_large_dataset():
         async with TaskPool(task_group=tg, max_workers=2, worker_parameters=WORKER_PARAMS) as pool:
             await wait_assert(lambda: assert_workers_started(pool, 1), timeout=3)
 
-            input_data = 'a' * 1098 * 1024 * 10   # 10MB
+            input_data = 'a' * 1098 * 1024 * 10  # 10MB
             task = pool.submit('test', 'identity_task', (input_data,))
             result = await task
             assert result == input_data

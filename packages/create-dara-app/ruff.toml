@@ -1,0 +1,3 @@
+extend = "../../ruff.toml"
+exclude = ["create_dara_app/templates/"]
+

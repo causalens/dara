@@ -126,12 +126,12 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
     elif file_type == '.xlsx':
         file_object_xlsx = io.BytesIO(content)
         content = pandas.read_excel(file_object_xlsx, index_col=None)
-        content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
+        content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)  # type: ignore
     else:
         # default to csv
         file_object_csv = io.StringIO(content.decode('utf-8'))
         content = pandas.read_csv(file_object_csv, index_col=0)
-        content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)   # type: ignore
+        content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)  # type: ignore
 
     # If a data variable is provided, update it with the new content
     if variable:

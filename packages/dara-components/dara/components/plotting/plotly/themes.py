@@ -141,4 +141,4 @@ dark_theme = {
             },
         },
     },
-}   # type: Dict[str, Dict[str, Any]]
+}  # type: Dict[str, Dict[str, Any]]

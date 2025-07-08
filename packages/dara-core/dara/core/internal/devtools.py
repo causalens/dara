@@ -36,7 +36,7 @@ def print_stacktrace():
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)   # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)  # pylint:disable=bad-str-strip-call
     else:
         stackstr += '   Exception'
 

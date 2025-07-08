@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import asyncio
 import os
 import sys
@@ -169,7 +170,7 @@ def _start_application(config: Configuration):
                     worker_parameters={'task_module': config.task_module},
                     max_workers=max_workers,
                 )
-                await task_pool.start(60)   # timeout after 60s
+                await task_pool.start(60)  # timeout after 60s
                 utils_registry.set('TaskPool', task_pool)
                 dev_logger.info('Task pool initialized')
 

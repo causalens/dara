@@ -43,7 +43,7 @@ class DownloadDataEntry(BaseModel):
 
 DownloadRegistryEntry = CachedRegistryEntry(
     uid='_dara_download', cache=Cache.Policy.TTL(ttl=60 * 10)
-)   # expire the codes after 10 minutes
+)  # expire the codes after 10 minutes
 
 
 async def download(data_entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Callable[..., Awaitable]]:

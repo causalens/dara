@@ -2,10 +2,10 @@ import pytest
 from freezegun import freeze_time
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.internal.cache_store.cache_store import CacheStore
-from dara.core.internal.cache_store.ttl import TTLCache
-from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.base_definitions import Cache, CachedRegistryEntry
+from dara.core.internal.cache_store.cache_store import CacheStore
+from dara.core.internal.cache_store.lru import LRUCache
+from dara.core.internal.cache_store.ttl import TTLCache
 
 pytestmark = pytest.mark.anyio
 
@@ -73,8 +73,8 @@ async def test_lru_cache_pinning():
     assert await lru_cache.get('e') == 5
 
     # Test get without unpin
-    await lru_cache.set('a', 1, pin=True)   # should be a,d,e
-    await lru_cache.get('a', unpin=False)   # get but do not unpin
+    await lru_cache.set('a', 1, pin=True)  # should be a,d,e
+    await lru_cache.get('a', unpin=False)  # get but do not unpin
     await lru_cache.set('b', 2)
     assert await lru_cache.get('a') == 1  # "a" should not be evicted since it's still pinned
 
@@ -94,7 +94,7 @@ async def test_most_recent_cache():
     assert await cache.get('a') == 1
     await cache.set('b', 2)
     assert await cache.get('a') == 1  # "a" should still be in the cache since it's pinned
-    assert await cache.get('b') is None   # "b" will immediately be evicted since it overflows the cache
+    assert await cache.get('b') is None  # "b" will immediately be evicted since it overflows the cache
 
     # here both a and b are pinned, both are kept even though they overflow
     await cache.set('b', 2, pin=True)

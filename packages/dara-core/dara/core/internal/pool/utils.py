@@ -89,9 +89,7 @@ def read_from_shared_memory(pointer: SharedMemoryPointer) -> Any:
         data = shared_mem.buf[:data_size]
 
         # Unpickle and deepcopy
-        decoded_payload_shared = pickle.loads(
-            shared_mem.buf
-        )   # nosec B301 # we trust the shared memory pointer passed by the pool
+        decoded_payload_shared = pickle.loads(shared_mem.buf)  # nosec B301 # we trust the shared memory pointer passed by the pool
         decoded_payload = copy.deepcopy(decoded_payload_shared)
 
         # Cleanup

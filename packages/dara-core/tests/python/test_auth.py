@@ -72,13 +72,11 @@ async def test_verify_session():
 
 
 async def test_basic_auth():
-
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
     app = _start_application(config._to_configuration())
     async with AsyncClient(app) as client:
-
         # This should work
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
         assert response.status_code == 200
@@ -89,13 +87,11 @@ async def test_basic_auth():
 
 
 async def test_multi_basic_auth():
-
     config = ConfigurationBuilder()
     config.add_auth(MultiBasicAuthConfig({'test': 'test', 'cl': 'pass'}))
 
     app = _start_application(config._to_configuration())
     async with AsyncClient(app) as client:
-
         # This should work
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
         assert response.status_code == 200

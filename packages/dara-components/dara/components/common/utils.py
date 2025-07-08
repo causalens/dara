@@ -116,7 +116,6 @@ class CarouselItem(BaseModel):
         image_height: Optional[str] = None,
         image_width: Optional[str] = None,
     ):
-
         super().__init__(
             title=title,
             subtitle=subtitle,

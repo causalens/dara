@@ -52,11 +52,14 @@ config = create_app(builder)
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
+
 @pytest.fixture(autouse=True)
 async def cleanup_registry():
     from dara.core.internal.registries import custom_ws_handlers_registry
+
     yield
     custom_ws_handlers_registry.replace({})
+
 
 async def _send_task(handler: WebSocketHandler, messages: list):
     """
@@ -97,7 +100,9 @@ async def test_websocket_receive_custom_sync_response():
     custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
 
     result = ws_handler.process_client_message(
-        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+        CustomClientMessage(
+            message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL')
+        )
     )
     assert inspect.iscoroutine(result)
     await result
@@ -107,6 +112,7 @@ async def test_websocket_receive_custom_sync_response():
     assert result_message['message']['kind'] == 'CUSTOM_KIND'
     assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
     assert result_message['message']['data'] == 'INPUT'
+
 
 async def test_websocket_receive_custom_async_response():
     """
@@ -123,7 +129,9 @@ async def test_websocket_receive_custom_async_response():
     custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
 
     result = ws_handler.process_client_message(
-        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+        CustomClientMessage(
+            message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL')
+        )
     )
     assert result is None
 
@@ -135,6 +143,7 @@ async def test_websocket_receive_custom_async_response():
     assert result_message['message']['kind'] == 'CUSTOM_KIND'
     assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
     assert result_message['message']['data'] == 'INPUT'
+
 
 async def test_websocket_send_and_wait():
     """
@@ -276,7 +285,9 @@ async def test_websocket_send_to_user():
                     assert messages1_2[0].get('message') == {'message': 'broadcast message'}
 
                     # Send a message to user 'test' while setting ignore_channel to one of the channel_ids
-                    await ws_mgr.send_message_to_user('test', {'message': 'broadcast message new'}, ignore_channel=channel_1)
+                    await ws_mgr.send_message_to_user(
+                        'test', {'message': 'broadcast message new'}, ignore_channel=channel_1
+                    )
 
                     messages1 = await get_ws_messages(ws1, timeout=1)
                     messages1_2 = await get_ws_messages(ws1_2, timeout=1)
@@ -287,7 +298,6 @@ async def test_websocket_send_to_user():
                     assert len(messages1_2) == 1
                     assert len(messages2) == 0
                     assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
-
 
 
 async def test_websocket_token_required():

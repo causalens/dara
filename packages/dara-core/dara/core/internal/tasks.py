@@ -362,12 +362,10 @@ class TaskManager:
         self.store = store
 
     @overload
-    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any:
-        ...
+    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any: ...
 
     @overload
-    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask:
-        ...
+    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask: ...
 
     async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None):
         """

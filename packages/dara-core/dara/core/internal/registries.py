@@ -35,11 +35,11 @@ from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
 from dara.core.persistence import BackendStoreEntry
 
-action_def_registry = Registry[ActionDef](RegistryType.ACTION_DEF, CORE_ACTIONS)   # all registered actions
-action_registry = Registry[ActionResolverDef](RegistryType.ACTION)   # functions for actions requiring backend calls
+action_def_registry = Registry[ActionDef](RegistryType.ACTION_DEF, CORE_ACTIONS)  # all registered actions
+action_registry = Registry[ActionResolverDef](RegistryType.ACTION)  # functions for actions requiring backend calls
 upload_resolver_registry = Registry[UploadResolverDef](
     RegistryType.UPLOAD_RESOLVER
-)   # functions for upload resolvers requiring backend calls
+)  # functions for upload resolvers requiring backend calls
 component_registry = Registry[ComponentTypeAnnotation](RegistryType.COMPONENTS, CORE_COMPONENTS)
 config_registry = Registry[EndpointConfiguration](RegistryType.ENDPOINT_CONFIG)
 data_variable_registry = Registry[DataVariableRegistryEntry](RegistryType.DATA_VARIABLE, allow_duplicates=False)

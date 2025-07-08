@@ -1,5 +1,5 @@
-from dara.core.interactivity import UrlVariable
 from dara.components import Card, Stack, Tab, TabbedCard, Text
+from dara.core.interactivity import UrlVariable
 
 
 def url_variable():

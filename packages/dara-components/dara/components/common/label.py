@@ -72,7 +72,6 @@ class Label(ContentComponent):
     @field_validator('children')
     @classmethod
     def validate_only_one_child(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
-
         if len(children) > 1:
             raise TypeError(
                 'More than one component was passed to the Label component. Label accepts only one child component'

@@ -544,7 +544,7 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
 
     cwd = os.getcwd()
     os.chdir(build_cache.static_files_dir)
-    exit_code = os.system(f'{package_manager} install')   # nosec B605 # package_manager is validated
+    exit_code = os.system(f'{package_manager} install')  # nosec B605 # package_manager is validated
     if exit_code > 0:
         raise SystemError(
             "Failed to install the JS dependencies - there's likely a connection issue or a broken package"
@@ -574,7 +574,7 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
         dev_logger.warning('App is in DEV mode, running `dara dev` CLI command alongside this process is required')
     else:
         # Run build pointed at the generated entry file
-        exit_code = os.system(f'{package_manager} run build')   # nosec B605 # package_manager is validated
+        exit_code = os.system(f'{package_manager} run build')  # nosec B605 # package_manager is validated
         if exit_code > 0:
             raise SystemError('Failed to build the JS part of the project')
 

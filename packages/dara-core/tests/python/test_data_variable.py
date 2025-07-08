@@ -17,9 +17,9 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import DataVariable, Variable
 from dara.core.interactivity.actions import UpdateVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.switch_variable import SwitchVariable
 from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.interactivity.switch_variable import SwitchVariable
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.main import _start_application
 from dara.core.visual.dynamic_component import py_component
@@ -189,7 +189,7 @@ async def test_fetching_global_data_variable_filters():
             json={'filters': query.dict()},
         )
         assert count_response.status_code == 200
-        assert count_response.json() == 4   # filtered count
+        assert count_response.json() == 4  # filtered count
 
 
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
@@ -511,6 +511,7 @@ async def test_derived_variable_with_data_variable():
         assert response.json()['value'] == 3
         assert func.call_count == 2
 
+
 async def test_derived_variable_with_switch_variable():
     """
     Test that SwitchVariable can be used in a DerivedVariable.variables
@@ -529,12 +530,7 @@ async def test_derived_variable_with_switch_variable():
         condition_var = Variable(True)
 
         # Create a switch variable that returns 10 when True, 20 when False
-        switch_var = SwitchVariable.when(
-            condition=condition_var,
-            true_value=10,
-            false_value=20,
-            uid='switch_uid'
-        )
+        switch_var = SwitchVariable.when(condition=condition_var, true_value=10, false_value=20, uid='switch_uid')
 
         derived = DerivedVariable(func, variables=[var1, switch_var])
         dv.set(derived)
@@ -560,8 +556,8 @@ async def test_derived_variable_with_switch_variable():
                         'uid': 'switch_uid',
                         'value': True,
                         'value_map': {True: 10, False: 20},
-                        'default': 0
-                    }
+                        'default': 0,
+                    },
                 ],
                 'ws_channel': 'test_channel',
                 'force_key': None,
@@ -584,8 +580,8 @@ async def test_derived_variable_with_switch_variable():
                         'uid': 'switch_uid',
                         'value': False,
                         'value_map': {True: 10, False: 20},
-                        'default': 0
-                    }
+                        'default': 0,
+                    },
                 ],
                 'ws_channel': 'test_channel',
                 'force_key': None,
@@ -608,8 +604,8 @@ async def test_derived_variable_with_switch_variable():
                         'uid': 'switch_uid',
                         'value': 'unknown',
                         'value_map': {True: 10, False: 20},
-                        'default': 0
-                    }
+                        'default': 0,
+                    },
                 ],
                 'ws_channel': 'test_channel',
                 'force_key': None,

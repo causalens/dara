@@ -43,7 +43,7 @@ def _plot_x_numerical(dataset: DataFrame, x: str, **kwargs):
         sizing_mode='stretch_both',
         **kwargs,
     )
-    p.toolbar.logo = None   # type: ignore
+    p.toolbar.logo = None  # type: ignore
 
     pdf = gaussian_kde(df[x].dropna())
     y = pdf(lin)
@@ -76,7 +76,7 @@ def _plot_x_categorical(dataset: DataFrame, x: str, **kwargs):
 
     p.vbar(x=values_counts.index, top=values_counts.values, width=0.5, color=BLUE)
 
-    p.toolbar.logo = None   # type: ignore
+    p.toolbar.logo = None  # type: ignore
 
     p.xgrid.grid_line_color = None
 

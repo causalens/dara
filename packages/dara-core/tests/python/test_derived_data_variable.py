@@ -14,7 +14,7 @@ from pandas import DataFrame
 
 from dara.core.auth.basic import BasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import Action, CacheType, PendingValue, Cache
+from dara.core.base_definitions import Action, Cache, CacheType, PendingValue
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import UpdateVariable
@@ -99,7 +99,9 @@ class MockComponent(ComponentInstance):
     ):
         super().__init__(text=text, uid='uid', action=action)
 
+
 MockComponent.model_rebuild()
+
 
 async def test_derived_data_variable_dv_value_not_returned():
     builder = ConfigurationBuilder()
@@ -147,7 +149,6 @@ async def test_derived_data_variable_cache_key_required():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         data_response = await client.post('/api/core/data-variable/uid', json={'filters': None}, headers=AUTH_HEADERS)
         assert data_response.status_code == 400
 
@@ -171,7 +172,6 @@ async def test_derived_data_variable_ws_channel_required():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client, derived, {'is_data_variable': True, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
@@ -241,7 +241,6 @@ async def test_derived_data_variable_no_filters():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
@@ -310,7 +309,7 @@ async def test_derived_data_variable_no_filters():
         )
         assert count_response.status_code == 200
         assert count_response.json() == 5
-        assert mock_func.call_count == 2   # not called again
+        assert mock_func.call_count == 2  # not called again
 
         # Check schema can be returned correctly
         schema_response = await client.get(
@@ -392,7 +391,7 @@ async def test_derived_data_variable_with_filters():
         )
         assert count_response.status_code == 200
         assert count_response.json() == len(unfiltered[unfiltered['col1'] == 2].index)
-        assert mock_func.call_count == 1   # not called again
+        assert mock_func.call_count == 1  # not called again
 
 
 async def test_derived_data_variable_cache_user():
@@ -421,7 +420,6 @@ async def test_derived_data_variable_cache_user():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
@@ -477,7 +475,7 @@ async def test_derived_data_variable_cache_user():
         )
         assert count_response.status_code == 200
         assert count_response.json() == 5
-        assert mock_func.call_count == 2   # not called again
+        assert mock_func.call_count == 2  # not called again
 
         # Test different user, count cannot be fetched and function is re-ran again
         ALT_TOKEN = jwt.encode(
@@ -533,7 +531,6 @@ async def test_derived_data_variable_cache_session():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client, derived, {'is_data_variable': True, 'values': [1], 'ws_channel': 'test_channel', 'force_key': None}
         )
@@ -589,7 +586,7 @@ async def test_derived_data_variable_cache_session():
         )
         assert count_response.status_code == 200
         assert count_response.json() == 5
-        assert mock_func.call_count == 2   # not called again
+        assert mock_func.call_count == 2  # not called again
 
         # Test different session, count cannot be fetched and function is re-ran again
         ALT_TOKEN = jwt.encode(
@@ -766,7 +763,6 @@ async def test_derived_data_variable_in_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client,
             dv.get(),
@@ -815,7 +811,6 @@ async def test_derived_data_variable_run_as_task_in_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         # Wait for the websocket task finish message to be returned
         async with _async_ws_connect(client) as websocket:
             init = await websocket.receive_json()
@@ -908,7 +903,6 @@ async def test_py_component_with_derived_data_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
@@ -1095,7 +1089,7 @@ async def test_update_variable_extras_derived_data_variable_run_as_task():
             actions = await get_action_results(websocket, exec_uid, timeout=6)
 
             assert len(actions) == 1
-            assert actions[0]['value'] == 2   #  2 rows
+            assert actions[0]['value'] == 2  #  2 rows
             assert actions[0]['name'] == 'UpdateVariable'
 
 
@@ -1146,7 +1140,7 @@ async def test_update_variable_extras_derived_data_variable():
             actions = await get_action_results(websocket, exec_uid)
 
             assert len(actions) == 1
-            assert actions[0]['value'] == 2   #  2 rows
+            assert actions[0]['value'] == 2  #  2 rows
             assert actions[0]['name'] == 'UpdateVariable'
 
 
@@ -1167,7 +1161,7 @@ async def test_derived_data_variable_with_derived_variable():
 
     def page():
         var1 = Variable(10)
-        derived = DerivedVariable(lambda x: x, variables=[var1], uid='dv')   # identity
+        derived = DerivedVariable(lambda x: x, variables=[var1], uid='dv')  # identity
         data = DataVariable(TEST_DATA, uid='data')
         data_var = DerivedDataVariable(calc, uid='uid', variables=[data, derived])
 
@@ -1180,7 +1174,6 @@ async def test_derived_data_variable_with_derived_variable():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response = await _get_derived_variable(
             client,
             dv.get(),
@@ -1402,14 +1395,9 @@ async def test_derived_data_variable_with_switch_variable():
 
     def page():
         condition_var = Variable(True)
-        
+
         # Create a switch variable that returns 2 when True, 3 when False
-        switch_var = SwitchVariable.when(
-            condition=condition_var,
-            true_value=2,
-            false_value=3,
-            uid='switch_uid'
-        )
+        switch_var = SwitchVariable.when(condition=condition_var, true_value=2, false_value=3, uid='switch_uid')
 
         derived = DerivedDataVariable(mock_func, variables=[switch_var], uid='uid')
         ddv.set(derived)
@@ -1423,22 +1411,22 @@ async def test_derived_data_variable_with_switch_variable():
     async with AsyncClient(app) as client:
         # Test with condition=True, multiplier should be 2
         response = await _get_derived_variable(
-            client, 
-            ddv.get(), 
+            client,
+            ddv.get(),
             {
-                'is_data_variable': True, 
+                'is_data_variable': True,
                 'values': [
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
                         'value': True,
                         'value_map': {True: 2, False: 3},
-                        'default': 1
+                        'default': 1,
                     }
-                ], 
-                'ws_channel': 'test_channel', 
-                'force_key': None
-            }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
         )
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
@@ -1455,22 +1443,22 @@ async def test_derived_data_variable_with_switch_variable():
 
         # Test with condition=False, multiplier should be 3
         second_response = await _get_derived_variable(
-            client, 
-            ddv.get(), 
+            client,
+            ddv.get(),
             {
-                'is_data_variable': True, 
+                'is_data_variable': True,
                 'values': [
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
                         'value': False,
                         'value_map': {True: 2, False: 3},
-                        'default': 1
+                        'default': 1,
                     }
-                ], 
-                'ws_channel': 'test_channel', 
-                'force_key': None
-            }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
         )
         assert second_response.json()['cache_key'] != cache_key
         assert mock_func.call_count == 2
@@ -1487,22 +1475,22 @@ async def test_derived_data_variable_with_switch_variable():
 
         # Test with unknown value, should use default (1)
         third_response = await _get_derived_variable(
-            client, 
-            ddv.get(), 
+            client,
+            ddv.get(),
             {
-                'is_data_variable': True, 
+                'is_data_variable': True,
                 'values': [
                     {
                         'type': 'switch',
                         'uid': 'switch_uid',
                         'value': 'unknown',
                         'value_map': {True: 2, False: 3},
-                        'default': 1
+                        'default': 1,
                     }
-                ], 
-                'ws_channel': 'test_channel', 
-                'force_key': None
-            }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
         )
         assert mock_func.call_count == 3
 
@@ -1522,7 +1510,7 @@ async def test_derived_data_variable_with_switch_variable_condition():
     Test that SwitchVariable can be used with Condition objects that compare variables in DerivedDataVariable
     """
     from dara.core.interactivity.condition import Condition
-    
+
     builder = ConfigurationBuilder()
 
     ddv = ContextVar('ddv')
@@ -1540,18 +1528,14 @@ async def test_derived_data_variable_with_switch_variable_condition():
         threshold_var = Variable(10)
 
         # Create a condition that compares value_var to threshold_var
-        condition = Condition(
-            variable=value_var,
-            operator=Condition.Operator.GREATER_THAN,
-            other=threshold_var
-        )
+        condition = Condition(variable=value_var, operator=Condition.Operator.GREATER_THAN, other=threshold_var)
 
         # Create a switch variable that uses the condition
         switch_var = SwitchVariable.when(
             condition=condition,
             true_value=5,  # multiply by 5 if condition is true
             false_value=2,  # multiply by 2 if condition is false
-            uid='switch_condition_uid'
+            uid='switch_condition_uid',
         )
 
         derived = DerivedDataVariable(mock_func, variables=[switch_var], uid='uid')
@@ -1566,27 +1550,22 @@ async def test_derived_data_variable_with_switch_variable_condition():
     async with AsyncClient(app) as client:
         # Test with value=5, threshold=10: 5 > 10 is False, multiplier should be 2
         response = await _get_derived_variable(
-            client, 
-            ddv.get(), 
+            client,
+            ddv.get(),
             {
-                'is_data_variable': True, 
+                'is_data_variable': True,
                 'values': [
                     {
                         'type': 'switch',
                         'uid': 'switch_condition_uid',
-                        'value': {
-                            '__typename': 'Condition',
-                            'variable': 5,
-                            'operator': 'greater_than',
-                            'other': 10
-                        },
+                        'value': {'__typename': 'Condition', 'variable': 5, 'operator': 'greater_than', 'other': 10},
                         'value_map': {True: 5, False: 2},
-                        'default': 1
+                        'default': 1,
                     }
-                ], 
-                'ws_channel': 'test_channel', 
-                'force_key': None
-            }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
         )
         mock_func.assert_called_once()
         cache_key = response.json()['cache_key']
@@ -1603,27 +1582,22 @@ async def test_derived_data_variable_with_switch_variable_condition():
 
         # Test with value=15, threshold=10: 15 > 10 is True, multiplier should be 5
         second_response = await _get_derived_variable(
-            client, 
-            ddv.get(), 
+            client,
+            ddv.get(),
             {
-                'is_data_variable': True, 
+                'is_data_variable': True,
                 'values': [
                     {
                         'type': 'switch',
                         'uid': 'switch_condition_uid',
-                        'value': {
-                            '__typename': 'Condition',
-                            'variable': 15,
-                            'operator': 'greater_than',
-                            'other': 10
-                        },
+                        'value': {'__typename': 'Condition', 'variable': 15, 'operator': 'greater_than', 'other': 10},
                         'value_map': {True: 5, False: 2},
-                        'default': 1
+                        'default': 1,
                     }
-                ], 
-                'ws_channel': 'test_channel', 
-                'force_key': None
-            }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
         )
         assert second_response.json()['cache_key'] != cache_key
         assert mock_func.call_count == 2

@@ -1,7 +1,7 @@
 from random import random
 
-from dara.core.interactivity import DerivedVariable, Variable
 from dara.components import Card, Input, Stack, Text
+from dara.core.interactivity import DerivedVariable, Variable
 
 
 def rand_func(x):

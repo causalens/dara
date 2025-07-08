@@ -92,15 +92,15 @@ class LayoutComponent(BaseDashboardComponent):
         if ComponentInstance.isinstance(component) is False:
             name = self.__class__.__name__
             raise TypeError(f'You may only append other components to a {name} component. Not: {component}')
-        self.children.append(component)   # type: ignore
+        self.children.append(component)  # type: ignore
 
     def pop(self):
         """
         Pops the last child from the list of children and returns it. Raises an IndexError if the parent is empty
         """
-        if len(self.children) == 0:   # type: ignore
+        if len(self.children) == 0:  # type: ignore
             raise IndexError(f'{self.__class__.__name__} is empty')
-        return self.children.pop()   # type: ignore
+        return self.children.pop()  # type: ignore
 
 
 class ContentComponent(BaseDashboardComponent):
@@ -114,8 +114,8 @@ class ContentComponent(BaseDashboardComponent):
         super().__init__(*args, **kwargs)
 
         cmp_name = self.__class__.__name__
-        if len(self.children) != 0:   # type: ignore
-            for child in self.children:   # type: ignore # pylint: disable=not-an-iterable
+        if len(self.children) != 0:  # type: ignore
+            for child in self.children:  # type: ignore # pylint: disable=not-an-iterable
                 if isinstance(child, LayoutComponent):
                     raise LayoutError(f'A {child.__class__.__name__} component cannot be nested inside a {cmp_name}')
 

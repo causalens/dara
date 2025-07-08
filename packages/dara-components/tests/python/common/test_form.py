@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from dara.core.interactivity import Variable
 from dara.components.common import Form, FormPage, Switch
+from dara.core.interactivity import Variable
 
 test_uid = uuid.uuid4()
 

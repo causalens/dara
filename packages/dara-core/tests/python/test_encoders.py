@@ -1,16 +1,16 @@
-from inspect import Parameter
 import json
+from inspect import Parameter
 from typing import Optional, Union
-from dara.core.base_definitions import PendingTask
-from dara.core.internal.tasks import Task
 
 import numpy
 import pandas
-from pydantic import BaseModel
 import pytest
 from pandas.core.arrays.base import ExtensionArray
+from pydantic import BaseModel
 
+from dara.core.base_definitions import PendingTask
 from dara.core.internal.encoder_registry import deserialize, encoder_registry
+from dara.core.internal.tasks import Task
 
 dates = pandas.date_range(start='2021-01-01', end='2021-01-02', freq='D')
 timestamp = pandas.Timestamp('2023-10-04')

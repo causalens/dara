@@ -30,9 +30,8 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import ConfigDict
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
@@ -204,7 +203,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         for session, channels in session_channels.items():
             for ws in channels:
-
                 raw_result = raw_results[ws]
                 # Skip values from clients where the variable is not registered
                 if raw_result == NOT_REGISTERED:
@@ -282,7 +280,6 @@ class AnyVariable(BaseModel, abc.ABC):
     uid: str
 
     def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
-
         new_uid = uid
         if new_uid is None:
             new_uid = str(uuid.uuid4())

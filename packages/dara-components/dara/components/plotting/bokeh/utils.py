@@ -44,12 +44,12 @@ def figure_events(fig: figure):
             return CustomJS(
                 args=args,
                 code=f"""
-                function {event_name.replace(' ','')+'__'+fig.id}(cb_obj, args) {{
+                function {event_name.replace(' ', '') + '__' + fig.id}(cb_obj, args) {{
                     {code}
                 }}
 
                 document.dispatchEvent(
-                    new CustomEvent("BOKEH_FIGURE_{event_name}_{fig.id}", {{ detail: {event_name.replace(' ','')+'__'+fig.id}(cb_obj, {{{','.join(args.keys())}}}) }})
+                    new CustomEvent("BOKEH_FIGURE_{event_name}_{fig.id}", {{ detail: {event_name.replace(' ', '') + '__' + fig.id}(cb_obj, {{{','.join(args.keys())}}}) }})
                 )
                 """,
             )

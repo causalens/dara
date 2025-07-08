@@ -135,6 +135,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # This is required so that requesting the body content doesn't hang the request
             if request.headers.get('Content-Type') == 'application/json' and content_length < one_mb:
                 old_recieve = request._receive
+
                 # Add the debug logging into a new receive call that wraps the old one. This is required to make
                 # streaming requests and responses work as streaming sends further messages to trigger
                 # sending/receiving further data
@@ -192,7 +193,7 @@ def _print_stacktrace():
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)   # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)  # pylint:disable=bad-str-strip-call
     return stackstr
 
 
@@ -204,9 +205,7 @@ class DaraProdFormatter(logging.Formatter):
 
     @staticmethod
     def _get_payload(record: logging.LogRecord) -> Dict[str, JsonSerializable]:
-        timestamp = time.strftime(
-            '%Y-%m-%dT%H:%M:%S', time.localtime(record.created)
-        ) + '.%s' % int(  # pylint:disable=consider-using-f-string
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(  # pylint:disable=consider-using-f-string
             record.msecs
         )
         if isinstance(record.msg, dict):

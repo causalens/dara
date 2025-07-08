@@ -104,7 +104,8 @@ def _method_decorator(method: HttpMethod):
 
             new_handler.__annotations__ = new_annotations
             new_handler.__signature__ = inspect.Signature(  # type: ignore
-                parameters=list(params.values()), return_annotation=sig.return_annotation  # type: ignore
+                parameters=list(params.values()),
+                return_annotation=sig.return_annotation,  # type: ignore
             )
 
             return ApiRoute(

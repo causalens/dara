@@ -2,8 +2,8 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from dara.core.interactivity import Variable
 from dara.components.smart.hierarchy import HierarchySelector, Node
+from dara.core.interactivity import Variable
 
 test_uid = uuid.uuid4()
 

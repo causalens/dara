@@ -383,11 +383,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`animation-name`** CSS property specifies the names of one or more `@keyframes` at-rules describing the animation or animations to apply to the element.\n\n**Syntax**: `[ none | <keyframes-name> ]#`\n\n**Initial value**: `none`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **43**  | **16**  |  **9**  | **12** | **10** |\n| 3 _-x-_ | 5 _-x-_ | 4 _-x-_ |        |        |',
     )
-    animationPlayState: Literal[
-        '-moz-initial', 'inherit', 'initial', 'paused', 'revert', 'running', 'unset', None
-    ] = Field(
-        default=None,
-        description='The **`animation-play-state`** CSS property sets whether an animation is running or paused.\n\n**Syntax**: `<single-animation-play-state>#`\n\n**Initial value**: `running`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **43**  | **16**  |  **9**  | **12** | **10** |\n| 3 _-x-_ | 5 _-x-_ | 4 _-x-_ |        |        |',
+    animationPlayState: Literal['-moz-initial', 'inherit', 'initial', 'paused', 'revert', 'running', 'unset', None] = (
+        Field(
+            default=None,
+            description='The **`animation-play-state`** CSS property sets whether an animation is running or paused.\n\n**Syntax**: `<single-animation-play-state>#`\n\n**Initial value**: `running`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **43**  | **16**  |  **9**  | **12** | **10** |\n| 3 _-x-_ | 5 _-x-_ | 4 _-x-_ |        |        |',
+        )
     )
     animationTimingFunction: Literal[
         '-moz-initial',
@@ -3507,11 +3507,11 @@ class CSSProperties(DaraBaseModel):
     )
     colorInterpolation: Optional[Property.ColorInterpolation] = None
     colorRendering: Optional[Property.ColorRendering] = None
-    colorScheme: Literal[
-        '-moz-initial', 'dark', 'inherit', 'initial', 'light', 'normal', 'revert', 'unset', None
-    ] = Field(
-        default=None,
-        description='The **`color-scheme`** CSS property allows an element to indicate which color schemes it can comfortably be rendered in.\n\n**Syntax**: `normal | [ light | dark | <custom-ident> ]+`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **81** |   No    | **13** | **81** | No  |',
+    colorScheme: Literal['-moz-initial', 'dark', 'inherit', 'initial', 'light', 'normal', 'revert', 'unset', None] = (
+        Field(
+            default=None,
+            description='The **`color-scheme`** CSS property allows an element to indicate which color schemes it can comfortably be rendered in.\n\n**Syntax**: `normal | [ light | dark | <custom-ident> ]+`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **81** |   No    | **13** | **81** | No  |',
+        )
     )
     columnCount: Literal['-moz-initial', 'auto', 'inherit', 'initial', 'revert', 'unset', None] = Field(
         default=None,
@@ -4422,11 +4422,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-stretch`** CSS property selects a normal, condensed, or expanded face from a font.\n\n**Syntax**: `<font-stretch-absolute>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **60** |  **9**  | **11** | **12** | **9** |',
     )
-    fontStyle: Literal[
-        '-moz-initial', 'inherit', 'initial', 'italic', 'normal', 'oblique', 'revert', 'unset', None
-    ] = Field(
-        default=None,
-        description='The **`font-style`** CSS property sets whether a font should be styled with a normal, italic, or oblique face from its `font-family`.\n\n**Syntax**: `normal | italic | oblique <angle>?`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
+    fontStyle: Literal['-moz-initial', 'inherit', 'initial', 'italic', 'normal', 'oblique', 'revert', 'unset', None] = (
+        Field(
+            default=None,
+            description='The **`font-style`** CSS property sets whether a font should be styled with a normal, italic, or oblique face from its `font-family`.\n\n**Syntax**: `normal | italic | oblique <angle>?`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
+        )
     )
     fontSynthesis: Literal[
         '-moz-initial', 'inherit', 'initial', 'none', 'revert', 'small-caps', 'style', 'unset', 'weight', None
@@ -4586,11 +4586,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-auto-columns`** CSS property specifies the size of an implicitly-created grid column track or pattern of tracks.\n\n**Syntax**: `<track-size>+`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  |             IE              |\n| :----: | :-----: | :------: | :----: | :-------------------------: |\n| **57** | **70**  | **10.1** | **16** | **10** _(-ms-grid-columns)_ |',
     )
-    gridAutoFlow: Literal[
-        '-moz-initial', 'column', 'dense', 'inherit', 'initial', 'revert', 'row', 'unset', None
-    ] = Field(
-        default=None,
-        description='The **`grid-auto-flow`** CSS property controls how the auto-placement algorithm works, specifying exactly how auto-placed items get flowed into the grid.\n\n**Syntax**: `[ row | column ] || dense`\n\n**Initial value**: `row`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
+    gridAutoFlow: Literal['-moz-initial', 'column', 'dense', 'inherit', 'initial', 'revert', 'row', 'unset', None] = (
+        Field(
+            default=None,
+            description='The **`grid-auto-flow`** CSS property controls how the auto-placement algorithm works, specifying exactly how auto-placed items get flowed into the grid.\n\n**Syntax**: `[ row | column ] || dense`\n\n**Initial value**: `row`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
+        )
     )
     gridAutoRows: Optional[Union[float_, str]] = Field(
         default=None,
@@ -4662,11 +4662,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`hyphens`** CSS property specifies how words should be hyphenated when text wraps across multiple lines. It can prevent hyphenation entirely, hyphenate at manually-specified points within the text, or let the browser automatically insert hyphens where appropriate.\n\n**Syntax**: `none | manual | auto`\n\n**Initial value**: `manual`\n\n|  Chrome  | Firefox |    Safari     |  Edge  |      IE      |\n| :------: | :-----: | :-----------: | :----: | :----------: |\n|  **55**  | **43**  | **5.1** _-x-_ | **79** | **10** _-x-_ |\n| 13 _-x-_ | 6 _-x-_ |               |        |              |',
     )
-    imageOrientation: Literal[
-        '-moz-initial', 'flip', 'from-image', 'inherit', 'initial', 'revert', 'unset', None
-    ] = Field(
-        default=None,
-        description='The **`image-orientation`** CSS property specifies a layout-independent correction to the orientation of an image. It should _not_ be used for any other orientation adjustments; instead, the `transform` property should be used with the `rotate` `<transform-function>`.\n\n**Syntax**: `from-image | <angle> | [ <angle>? flip ]`\n\n**Initial value**: `from-image`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **81** | **26**  | **13.1** | **81** | No  |',
+    imageOrientation: Literal['-moz-initial', 'flip', 'from-image', 'inherit', 'initial', 'revert', 'unset', None] = (
+        Field(
+            default=None,
+            description='The **`image-orientation`** CSS property specifies a layout-independent correction to the orientation of an image. It should _not_ be used for any other orientation adjustments; instead, the `transform` property should be used with the `rotate` `<transform-function>`.\n\n**Syntax**: `from-image | <angle> | [ <angle>? flip ]`\n\n**Initial value**: `from-image`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **81** | **26**  | **13.1** | **81** | No  |',
+        )
     )
     imageRendering: Optional[Property.ImageRendering] = Field(
         default=None,
@@ -5024,11 +5024,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`line-height-step`** CSS property sets the step unit for line box heights. When the property is set, line box heights are rounded up to the closest multiple of the unit.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|  n/a   |   No    |   No   | n/a  | No  |',
     )
-    listStyle: Literal[
-        '-moz-initial', 'inherit', 'initial', 'inside', 'none', 'outside', 'revert', 'unset', None
-    ] = Field(
-        default=None,
-        description="The **`list-style`** CSS shorthand property allows you set all the list style properties at once.\n\n**Syntax**: `<'list-style-type'> || <'list-style-position'> || <'list-style-image'>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
+    listStyle: Literal['-moz-initial', 'inherit', 'initial', 'inside', 'none', 'outside', 'revert', 'unset', None] = (
+        Field(
+            default=None,
+            description="The **`list-style`** CSS shorthand property allows you set all the list style properties at once.\n\n**Syntax**: `<'list-style-type'> || <'list-style-position'> || <'list-style-image'>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
+        )
     )
     listStyleImage: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = Field(
         default=None,

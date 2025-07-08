@@ -255,7 +255,6 @@ def test_annotated_action_no_params_static():
 
 
 def test_annotated_action_missing_ctx():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -269,7 +268,6 @@ def test_annotated_action_missing_ctx():
 
 
 def test_annotated_action_missing_ctx_instance():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -284,7 +282,6 @@ def test_annotated_action_missing_ctx_instance():
 
 
 def test_annotated_action_missing_ctx_class():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -300,7 +297,6 @@ def test_annotated_action_missing_ctx_class():
 
 
 def test_annotated_action_missing_ctx_static():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -725,7 +721,7 @@ async def test_calling_annotated_action():
             assert len(actions) == 2
 
             assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+            assert actions[0]['value'] == 26  # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
 
             assert actions[1]['name'] == 'ResetVariables'
             assert actions[1]['variables'] == [var.dict()]
@@ -780,11 +776,11 @@ async def test_calling_annotated_action_execute_arbitrary_impl():
             assert len(actions) == 2
 
             assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+            assert actions[0]['value'] == 26  # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
 
             assert actions[1]['name'] == 'CustomImpl'
             assert actions[1]['foo'] == 'bar'
-            assert custom_exec_called_with == 5   # called with input=5
+            assert custom_exec_called_with == 5  # called with input=5
 
 
 async def test_calling_action_restores_args():
@@ -990,10 +986,10 @@ async def test_calling_an_action_returns_task_loop():
 
     var1 = Variable(1)
     var2 = Variable(2)
-    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)   # 3
-    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])   # 5
-    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])   # 8
-    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])   # 11
+    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)  # 3
+    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])  # 5
+    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])  # 8
+    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])  # 11
 
     result = Variable()
     action = UpdateVariable(lambda ctx: ctx.extras[0], variable=result, extras=[parent_var])

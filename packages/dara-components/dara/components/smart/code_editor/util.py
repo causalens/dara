@@ -137,7 +137,5 @@ def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAUL
 
     # Run the script
     loc: dict = {}
-    exec(
-        script, injections, loc
-    )   # nosec B102 # this is unsafe but we make best effort with the above to make it as safe as possible
+    exec(script, injections, loc)  # nosec B102 # this is unsafe but we make best effort with the above to make it as safe as possible
     return loc.get('return_val', None)

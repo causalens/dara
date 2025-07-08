@@ -1,7 +1,7 @@
 import random
 
-from dara.core.interactivity import DerivedVariable, Variable
 from dara.components import Card, Input, Stack, Text
+from dara.core.interactivity import DerivedVariable, Variable
 
 
 def derived_variable_caching():

@@ -2,14 +2,14 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import anyio
-from fastapi.encoders import jsonable_encoder
 import pytest
 from anyio import create_task_group
+from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import Cache
-from dara.core.internal.pool import TaskPool
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.tasks import Task, TaskManager, TaskResultEntry, CachedRegistryEntry
+from dara.core.internal.pool import TaskPool
+from dara.core.internal.tasks import CachedRegistryEntry, Task, TaskManager, TaskResultEntry
 from dara.core.internal.websocket import WebsocketManager
 
 from tests.python.tasks import calc_task, track_task
@@ -157,7 +157,10 @@ async def test_task_manager_cancel_task(_uid):
 
         assert 'cancel' in str(e.value)
 
-        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
+            'status': 'CANCELED',
+            'task_id': 'uid',
+        }
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
@@ -199,7 +202,10 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         assert 'cancel' in str(e.value)
 
         # Now the task should be canceled
-        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
+            'status': 'CANCELED',
+            'task_id': 'uid',
+        }
 
         # Check that now the pending task should be removed
         assert await store.get(reg_entry, 'cache_key') is None

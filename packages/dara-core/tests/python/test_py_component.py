@@ -26,9 +26,9 @@ from tests.python.tasks import (
 from tests.python.utils import (
     AUTH_HEADERS,
     _async_ws_connect,
+    _get_derived_variable,
     _get_py_component,
     _get_template,
-    _get_derived_variable,
     create_app,
     get_ws_messages,
 )
@@ -121,7 +121,6 @@ async def test_variables():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
@@ -157,7 +156,6 @@ async def test_async_py_comp():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
@@ -205,7 +203,6 @@ async def test_derived_variables():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
@@ -280,7 +277,6 @@ async def test_mixed_inputs():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
@@ -318,7 +314,6 @@ async def test_default_arguments():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         # Get the components ID from the template
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
@@ -376,7 +371,6 @@ async def test_base_model_args_are_restored():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         # Get the components ID from the template
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
@@ -410,7 +404,6 @@ async def test_base_model_not_restored_when_already_instance():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         # Get the components ID from the template
         response, status = await _get_template(client)
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
@@ -450,7 +443,6 @@ async def test_compatibility_with_polling():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that two components have been generated and polling_interval is correctly set
@@ -491,7 +483,6 @@ async def test_derived_variables_restore_base_models():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Retrieve the component from the response
@@ -539,7 +530,6 @@ async def test_derived_variables_with_args():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Retrieve the component from the response
@@ -587,15 +577,15 @@ async def test_derived_variables_with_polling():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Retrieve the component from the response and check polling_interval and cache
         component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval') == 2
-        assert component.get('props').get('dynamic_kwargs').get('input_val').get('cache') == Cache.Policy.from_arg(
-            'global'
-        ).model_dump()
+        assert (
+            component.get('props').get('dynamic_kwargs').get('input_val').get('cache')
+            == Cache.Policy.from_arg('global').model_dump()
+        )
 
 
 async def test_chained_derived_variables():
@@ -623,7 +613,6 @@ async def test_chained_derived_variables():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Retrieve the component from the response
@@ -670,7 +659,6 @@ async def test_placeholder():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that two components have been generated and inserted instead of the MockComponent
@@ -767,10 +755,10 @@ async def test_chain_derived_var_with_run_as_task_flag():
     """
     input = Variable(1)
 
-    dv_root = DerivedVariable(root, variables=[input], run_as_task=True)   # 1 + 1 = 2
-    dv_leaf_1 = DerivedVariable(leaf_1, variables=[dv_root])   # 2 + 2 = 4
-    dv_leaf_2 = DerivedVariable(leaf_2, variables=[dv_leaf_1])   # 4 + 3 = 7
-    dv_top = DerivedVariable(add, variables=[dv_leaf_1, dv_leaf_2])   # 4 + 7 = 11 - RESULT
+    dv_root = DerivedVariable(root, variables=[input], run_as_task=True)  # 1 + 1 = 2
+    dv_leaf_1 = DerivedVariable(leaf_1, variables=[dv_root])  # 2 + 2 = 4
+    dv_leaf_2 = DerivedVariable(leaf_2, variables=[dv_leaf_1])  # 4 + 3 = 7
+    dv_top = DerivedVariable(add, variables=[dv_leaf_1, dv_leaf_2])  # 4 + 7 = 11 - RESULT
 
     builder = ConfigurationBuilder()
 
@@ -785,7 +773,6 @@ async def test_chain_derived_var_with_run_as_task_flag():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         async with _async_ws_connect(client) as websocket:
             # Receive the init message
             init = await websocket.receive_json()
@@ -1153,6 +1140,7 @@ async def test_handles_invalid_value():
             assert data['name'] == 'InvalidComponent'
             assert 'did not return a ComponentInstance' in data['props']['error']
 
+
 async def test_py_component_respects_dv_empty_deps():
     """
     Test a scenario where a requested py_component requires a previously calculated DerivedVariable with deps=[].
@@ -1182,7 +1170,6 @@ async def test_py_component_respects_dv_empty_deps():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-
         # Override the env
         response, status = await _get_template(client)
 
@@ -1248,7 +1235,6 @@ async def test_py_component_respects_dv_non_empty_deps():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-
         # Override the env
         response, status = await _get_template(client)
 
@@ -1329,12 +1315,7 @@ async def test_switch_variables():
     condition_var = Variable(True)
 
     # Create a switch variable that returns 'admin' when True, 'user' when False
-    switch_var = SwitchVariable.when(
-        condition=condition_var,
-        true_value='admin',
-        false_value='user',
-        uid='switch_uid'
-    )
+    switch_var = SwitchVariable.when(condition=condition_var, true_value='admin', false_value='user', uid='switch_uid')
 
     @py_component
     def TestBasicComp(input_val: str):
@@ -1347,7 +1328,6 @@ async def test_switch_variables():
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-
         response, status = await _get_template(client)
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent

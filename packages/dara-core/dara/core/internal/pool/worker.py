@@ -164,7 +164,7 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
 
         # Redirect logs via the channel
         stdout_logger = StdoutLogger(task_uid, channel)
-        sys.stdout = stdout_logger   # type: ignore
+        sys.stdout = stdout_logger  # type: ignore
 
         try:
             payload_pointer = task['payload']

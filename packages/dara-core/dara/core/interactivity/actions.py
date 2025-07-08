@@ -50,9 +50,9 @@ from dara.core.base_definitions import (
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
+    TaskProgressUpdate,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import TaskProgressUpdate
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -825,12 +825,10 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
-        ...
+    async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
-        ...
+    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
 
     async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
@@ -1389,8 +1387,7 @@ class action:
         return bound_f
 
     @overload
-    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any: ...
 
     @overload
     def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore

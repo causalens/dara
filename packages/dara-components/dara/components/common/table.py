@@ -376,7 +376,7 @@ class Column(BaseModel):
     unique_items: Optional[List[str]] = None
     filter: Optional[TableFilter] = None
     formatter: Optional[dict] = None
-    label: Optional[str] = Field(default=None, validate_default=True)   # mimics always=True in pydantic v1
+    label: Optional[str] = Field(default=None, validate_default=True)  # mimics always=True in pydantic v1
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
@@ -402,7 +402,7 @@ class Column(BaseModel):
         formatter_type = formatter.get('type')
         if formatter_type not in TableFormatterType:
             raise ValueError(
-                f"Invalid formatter type: {formatter.get('type')}, accepted values {list(TableFormatterType)}"
+                f'Invalid formatter type: {formatter.get("type")}, accepted values {list(TableFormatterType)}'
             )
         if formatter_type in (TableFormatterType.NUMBER, TableFormatterType.PERCENT):
             precision = formatter.get('precision')
@@ -461,7 +461,7 @@ class Column(BaseModel):
                     )
                 if not isinstance(badges[badge].get('color'), str):
                     raise ValueError(
-                        f"Invalid color: {badges[badge].get('color')} for badge: {badges[badge]}, must be a string"
+                        f'Invalid color: {badges[badge].get("color")} for badge: {badges[badge]}, must be a string'
                     )
         return formatter
 

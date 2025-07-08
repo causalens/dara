@@ -264,8 +264,7 @@ class CallableClassComponent(Protocol):
     Callable class component protocol. Describes any class with a __call__ instance method returning a component instance.
     """
 
-    def __call__(self) -> ComponentInstance:
-        ...
+    def __call__(self) -> ComponentInstance: ...
 
 
 DiscoverTarget = Union[Callable[..., ComponentInstance], ComponentInstance, Type[CallableClassComponent]]
@@ -279,7 +278,7 @@ def discover(outer_obj: DiscoverT) -> DiscoverT:
     Will make sure to statically register all encountered dependencies of marked functional component or component class.
     Should not be necessary in most cases, mainly useful when creating component libraries.
     """
-    outer_obj.__wrapped_by__ = discover   # type: ignore
+    outer_obj.__wrapped_by__ = discover  # type: ignore
     return outer_obj
 
 
