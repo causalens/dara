@@ -42,7 +42,6 @@ seaborn = ">=0.11.0"
 [tool.poetry.dev-dependencies]
 ruff = ">=0.12.2"
 bandit = "^1.7.5"
-pylint = "3.2.3"
 pytest = "^7.0.0"
 pyright = "^1.1.400"
 

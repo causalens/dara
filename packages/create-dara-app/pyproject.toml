@@ -35,8 +35,6 @@ python = ">=3.9.0, <3.13.0"
 ruff = ">=0.12.2"
 pyright = "^1.1.400"
 bandit = "^1.7.5"
-pylint = "3.2.3"
-pytest = "^7.0.0"
 types-requests = "^2.28.1"
 
 [tool.poetry.scripts]
