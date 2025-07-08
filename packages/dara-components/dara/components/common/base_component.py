@@ -78,7 +78,7 @@ class LayoutComponent(BaseDashboardComponent):
     :param align: the align-items value to be passed to the component
     """
 
-    position: str = 'relative'
+    position: Union[str, None] = 'relative'
 
     justify: Optional[JustifyContent] = None
 

@@ -137,7 +137,7 @@ class Stack(LayoutComponent):
 
     collapsed: Union[Variable[bool], bool] = False
     direction: Direction = Direction.VERTICAL
-    hug: bool = False
+    hug: Union[bool, None] = False
     scroll: bool = False
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types

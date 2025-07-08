@@ -2,8 +2,6 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
-
 from dara.components.common import FormPage, Switch
 
 test_uid = uuid.uuid4()

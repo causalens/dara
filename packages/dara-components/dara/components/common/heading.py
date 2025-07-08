@@ -74,6 +74,8 @@ class Heading(ContentComponent):
 
     @property
     def anchor_name(self):
+        if isinstance(self.heading, NonDataVariable):
+            raise ValueError('Heading anchor name cannot be accessed directly from a variable')
         return re.sub(r'\s+', '-', self.heading.lower())
 
     def __init__(self, heading: Union[str, NonDataVariable], **kwargs):

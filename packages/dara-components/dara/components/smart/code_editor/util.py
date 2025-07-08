@@ -63,9 +63,9 @@ class ScriptVisitor(ast.NodeVisitor):
                 self.declared_vars.append(target.id)
         self.generic_visit(node)
 
-    def visit_Attribute(self, attr):
-        self._check_dunder(attr, attr.attr)
-        self.generic_visit(attr)
+    def visit_Attribute(self, node):
+        self._check_dunder(node, node.attr)
+        self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
         self._check_dunder(node, node.name)
@@ -138,4 +138,4 @@ def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAUL
     # Run the script
     loc: dict = {}
     exec(script, injections, loc)  # nosec B102 # this is unsafe but we make best effort with the above to make it as safe as possible
-    return loc.get('return_val', None)
+    return loc.get('return_val')

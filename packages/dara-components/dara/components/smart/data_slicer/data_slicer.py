@@ -57,7 +57,7 @@ NO_RESULTS_FOUND = Stack(Text('No results found'))
 TABLE_ROWS = 5
 
 
-def increment(ctx: UpdateVariable.Ctx):
+def increment(ctx: UpdateVariable.Ctx):  # type: ignore
     return ctx.inputs.old + 1
 
 

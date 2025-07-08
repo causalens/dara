@@ -21,9 +21,11 @@ from dara.components.plotting.palettes import CategoricalDark10, CategoricalLigh
 from dara.core.visual.themes import dark, light
 
 light_colors = light.Light.colors
+assert light_colors is not None
 dark_colors = dark.Dark.colors
+assert dark_colors is not None
 
-light_theme = {
+light_theme: Dict[str, Dict[str, Any]] = {
     'layout': {
         'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
         'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
@@ -81,9 +83,9 @@ light_theme = {
             },
         },
     },
-}  # type: Dict[str, Dict[str, Any]]
+}
 
-dark_theme = {
+dark_theme: Dict[str, Dict[str, Any]] = {
     'layout': {
         'paper_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot
         'plot_bgcolor': 'rgba(255,255,255,0)',  # Set the background color of the plot area
@@ -141,4 +143,4 @@ dark_theme = {
             },
         },
     },
-}  # type: Dict[str, Dict[str, Any]]
+}

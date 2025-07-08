@@ -1,6 +1,5 @@
 from fastapi.encoders import jsonable_encoder
 
-from cai_causal_graph import CausalGraph
 from cai_causal_graph.graph_components import Node
 from dara.components.graphs import VisualEdgeEncoder
 from dara.core import Variable

@@ -1,4 +1,3 @@
-from enum import Enum
 
 from dara.components.common.base_component import ContentComponent
 

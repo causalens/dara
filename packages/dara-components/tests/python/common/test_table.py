@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 
-import pandas
 from fastapi.encoders import jsonable_encoder
 
 from dara.components.common import Table
