@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.1
 
 -  Fixed missing `cachetools` dependency
 
