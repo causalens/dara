@@ -15,8 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Callable, Mapping, Set
+from typing import Any, Callable, Set
 
 from dara.core.auth import BaseAuthConfig
 from dara.core.base_definitions import ActionDef, ActionResolverDef, UploadResolverDef

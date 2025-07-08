@@ -1715,7 +1715,6 @@ async def test_none_value_is_valid():
 
     def slow_calc(a, b):
         execution_count['count'] += 1
-        return None
 
     mock_func = Mock(wraps=slow_calc)
     derived_var = DerivedVariable(mock_func, variables=[var1, var2])

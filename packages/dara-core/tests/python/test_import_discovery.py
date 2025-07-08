@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-from dara.core.definitions import ComponentInstance
 from dara.core.internal.import_discovery import run_discovery
 
 dynamic_modules = []

@@ -17,7 +17,8 @@ limitations under the License.
 
 import inspect
 import math
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union, overload
+from collections.abc import Awaitable
+from typing import Any, Callable, Dict, List, Optional, Union, overload
 
 from anyio import (
     CancelScope,

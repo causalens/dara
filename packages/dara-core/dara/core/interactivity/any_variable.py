@@ -236,12 +236,12 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         # If we're returning multiple values, in Jupyter environments print an explainer
         try:
-            from IPython import get_ipython
+            from IPython import get_ipython  # pyright: ignore[reportMissingImports]
         except ImportError:
             pass
         else:
             if get_ipython() is not None:
-                from IPython.display import HTML, display
+                from IPython.display import HTML, display  # pyright: ignore[reportMissingImports]
 
                 display(
                     HTML(

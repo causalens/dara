@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Mapping
 from typing import (
     Any,
     Generic,
     List,
-    Mapping,
     Optional,
     Tuple,
     TypeVar,

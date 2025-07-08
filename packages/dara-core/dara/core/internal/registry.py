@@ -16,8 +16,9 @@ limitations under the License.
 """
 
 import copy
+from collections.abc import MutableMapping
 from enum import Enum
-from typing import Generic, MutableMapping, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 

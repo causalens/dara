@@ -16,12 +16,12 @@ limitations under the License.
 """
 
 # pylint: disable=unnecessary-lambda
+from collections.abc import MutableMapping
 from inspect import Parameter, isclass
 from typing import (
     Any,
     Callable,
     Dict,
-    MutableMapping,
     Optional,
     Type,
     Union,
@@ -100,7 +100,7 @@ def _tuple_key_deserialize(d):
         if isinstance(key, str) and key.startswith('__tuple__'):
             key_list = []
             for each in key[10:-1].split(', '):
-                if (each.startswith("'") and each.endswith(("'"))) or (each.startswith('"') and each.endswith(('"'))):
+                if (each.startswith("'") and each.endswith("'")) or (each.startswith('"') and each.endswith('"')):
                     key_list.append(each[1:-1])
                 else:
                     key_list.append(each)

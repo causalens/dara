@@ -15,7 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Coroutine, Dict, Literal
+from collections.abc import Coroutine
+from typing import Callable, Dict, Literal
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe

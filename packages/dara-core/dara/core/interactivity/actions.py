@@ -20,13 +20,13 @@ from __future__ import annotations
 import inspect
 import math
 import uuid
+from collections.abc import Awaitable
 from contextvars import ContextVar
 from enum import Enum
 from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     Dict,

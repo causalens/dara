@@ -20,7 +20,7 @@ from datetime import datetime
 from multiprocessing import get_context
 from multiprocessing.process import BaseProcess
 from pickle import PicklingError
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, cast
 
 from croniter import croniter
 from pydantic import BaseModel, field_validator
@@ -67,14 +67,17 @@ class ScheduledJob(BaseModel):
 
     def _refresh_timer(self, func, args):
         while self.continue_running and not (self.run_once and not self.first_execution):
-            interval = self.interval
+            interval: int
             # If there's more than one interval to wait, i.e. this is a weekday process
-            if type(interval) == list:
+            if isinstance(self.interval, list):
                 # Wait the first interval if this is the first execution of the job
                 interval = self.interval[0] if self.first_execution else self.interval[1]
+            else:
+                interval = self.interval
+
             self.first_execution = False
             # Wait the interval and then run the job
-            time.sleep(interval)
+            time.sleep(cast(int, interval))
             func(*args)
 
 

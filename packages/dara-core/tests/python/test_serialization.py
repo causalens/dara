@@ -1,6 +1,5 @@
-from typing import Dict, List, Mapping, Optional, Tuple, Union
-
-from pydantic import BaseModel
+from collections.abc import Mapping
+from typing import Dict, List, Optional, Tuple, Union
 
 from dara.core.base_definitions import annotation_has_base_model
 from dara.core.definitions import ComponentInstance

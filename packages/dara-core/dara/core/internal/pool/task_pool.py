@@ -16,10 +16,11 @@ limitations under the License.
 """
 
 import atexit
+from collections.abc import Coroutine
 from contextlib import contextmanager
 from datetime import datetime
 from multiprocessing import active_children
-from typing import Any, Callable, Coroutine, Dict, Optional, cast
+from typing import Any, Callable, Dict, Optional, cast
 
 import anyio
 from anyio.abc import TaskGroup

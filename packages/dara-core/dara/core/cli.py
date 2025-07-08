@@ -214,10 +214,11 @@ def dev():
         stderr=subprocess.STDOUT,
         shell=True,
     ) as vite_process:
-        for line in vite_process.stdout:
-            decoded_line = line.decode('utf-8').strip()
-            if decoded_line != '':
-                print(decoded_line)  # pylint: disable=bad-builtin
+        if vite_process.stdout is not None:
+            for line in vite_process.stdout:
+                decoded_line = line.decode('utf-8').strip()
+                if decoded_line != '':
+                    print(decoded_line)  # pylint: disable=bad-builtin
 
 
 @cli.command()

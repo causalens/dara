@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import dara.components.plotting.palettes as PALETTES  # pylint: disable=unused-import
+import dara.components.plotting.palettes as PALETTES  # noqa: F401
 from dara.components.plotting.bokeh import *
 from dara.components.plotting.matplotlib import *
 from dara.components.plotting.plotly import *

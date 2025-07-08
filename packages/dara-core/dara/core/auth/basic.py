@@ -121,7 +121,7 @@ class DefaultAuthConfig(BaseAuthConfig):
         logout=BasicAuthLogout,
     )
 
-    def get_token(self, _: SessionRequestBody) -> TokenResponse:
+    def get_token(self, body: SessionRequestBody) -> TokenResponse:
         """
         Get a session token.
 

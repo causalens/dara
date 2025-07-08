@@ -10,7 +10,6 @@ from pydantic import BaseModel
 
 from dara.core.base_definitions import PendingTask
 from dara.core.internal.encoder_registry import deserialize, encoder_registry
-from dara.core.internal.tasks import Task
 
 dates = pandas.date_range(start='2021-01-01', end='2021-01-02', freq='D')
 timestamp = pandas.Timestamp('2023-10-04')

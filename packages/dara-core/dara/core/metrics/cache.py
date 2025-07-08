@@ -47,7 +47,7 @@ def format_bytes(num: Union[int, float]) -> str:
             # We only shrink the number if we HAVEN'T reached the last unit.
             num /= unit_step
 
-    return f'{num:.2f} {unit}'
+    return f'{num:.2f} {unit}'  # type: ignore
 
 
 class CacheMetricsTracker(BaseModel):

@@ -18,9 +18,10 @@ limitations under the License.
 import inspect
 import json
 import os
+from collections.abc import Mapping
 from functools import wraps
 from importlib.metadata import version
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import anyio
 import pandas

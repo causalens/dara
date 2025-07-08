@@ -19,15 +19,14 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Awaitable, Mapping
 from enum import Enum
 from typing import (
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
     Type,
@@ -504,7 +503,7 @@ class Page(BaseModel):
     icon: Optional[str] = None
     content: ComponentInstanceType
     name: str
-    sub_pages: Optional[List['Page']] = []
+    sub_pages: Optional[List[Page]] = []
     url_safe_name: str
     include_in_menu: Optional[bool] = None
     on_load: Optional[Action] = None

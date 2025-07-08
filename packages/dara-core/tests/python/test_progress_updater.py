@@ -83,5 +83,5 @@ def test_track_progress_metadata():
         return arg
 
     # Should attach reference to function and decorator - required to later check if a function has been wrapped by track_progress
-    assert getattr(test_function, '__wrapped_by__') == track_progress
-    assert getattr(test_function, '__wrapped__').__name__ == 'test_function'
+    assert test_function.__wrapped_by__ == track_progress
+    assert test_function.__wrapped__.__name__ == 'test_function'

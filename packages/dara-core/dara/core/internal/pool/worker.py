@@ -57,7 +57,8 @@ class StdoutLogger:
             self.channel.worker_api.log(self.task_uid, msg)
 
     def flush(self):
-        sys.__stdout__.flush()
+        if sys.__stdout__:
+            sys.__stdout__.flush()
 
 
 def execute_function(func: Callable, args: tuple, kwargs: dict):

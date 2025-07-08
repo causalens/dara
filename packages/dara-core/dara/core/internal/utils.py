@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
+from collections.abc import Awaitable, Coroutine, Sequence
 from functools import wraps
 from importlib import import_module
 from importlib.util import find_spec
@@ -27,13 +28,10 @@ from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
-    Coroutine,
     Dict,
     Literal,
     Optional,
-    Sequence,
     Tuple,
     Union,
 )
@@ -164,7 +162,7 @@ def enforce_sso(conf: ConfigurationBuilder):
     Raises if SSO is not used
     """
     try:
-        from dara.enterprise import SSOAuthConfig
+        from dara.enterprise import SSOAuthConfig  # pyright: ignore[reportMissingImports]
 
         if conf.auth_config is None or not isinstance(conf.auth_config, SSOAuthConfig):
             raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')

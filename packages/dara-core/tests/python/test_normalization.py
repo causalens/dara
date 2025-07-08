@@ -1,5 +1,6 @@
 import os
-from typing import List, Mapping, Union
+from collections.abc import Mapping
+from typing import List, Union
 
 from fastapi.encoders import jsonable_encoder
 

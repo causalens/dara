@@ -1,5 +1,3 @@
-import os
-import shutil
 
 import pytest
 from fastapi.middleware import Middleware

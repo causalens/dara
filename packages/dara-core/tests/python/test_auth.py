@@ -63,7 +63,7 @@ async def test_verify_session():
         assert response.status_code == 400
 
         # Test wrong scheme
-        response = await client.get('/api/test-ext/test', headers={'Authorization': f'Basic user:pw'})
+        response = await client.get('/api/test-ext/test', headers={'Authorization': 'Basic user:pw'})
         assert response.status_code == 400
 
         # Test invalid token

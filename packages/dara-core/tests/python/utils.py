@@ -1,14 +1,13 @@
 import datetime
 import inspect
 import json
+from collections.abc import Awaitable, Mapping
 from contextlib import asynccontextmanager
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Dict,
     List,
-    Mapping,
     Tuple,
     TypeVar,
     Union,
@@ -76,7 +75,7 @@ def read_template_json(path: str, data: dict) -> dict:
     :param path: path to JSON file
     :param data: data to use for replacements
     """
-    with open(path, 'r', encoding='utf-8') as fp:
+    with open(path, encoding='utf-8') as fp:
         json_string = fp.read()
 
         for key in data:

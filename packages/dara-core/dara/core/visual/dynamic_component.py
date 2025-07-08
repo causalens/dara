@@ -17,6 +17,8 @@ limitations under the License.
 
 import json
 import uuid
+from collections import OrderedDict
+from collections.abc import Mapping
 from contextvars import ContextVar
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
@@ -25,9 +27,7 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Mapping,
     Optional,
-    OrderedDict,
     Union,
     overload,
 )

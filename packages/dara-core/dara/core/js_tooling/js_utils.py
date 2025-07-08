@@ -551,9 +551,9 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
         )
 
     # Load entry template as a string
-    with open(entry_template, 'r', encoding='utf-8') as f:
+    with open(entry_template, encoding='utf-8') as f:
         entry_template_str = f.read()
-    with open(vite_template, 'r', encoding='utf-8') as f:
+    with open(vite_template, encoding='utf-8') as f:
         vite_template_str = f.read()
 
     # Convert importers dict to a string for injection into the template
@@ -640,7 +640,7 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
     """
     settings = get_settings()
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
-    with open(entry_template, 'r', encoding='utf-8') as f:
+    with open(entry_template, encoding='utf-8') as f:
         entry_template_str = f.read()
 
     importers_dict = build_cache.get_importers()

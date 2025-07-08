@@ -18,7 +18,8 @@ limitations under the License.
 import abc
 import io
 import os
-from typing import Any, Awaitable, Callable, Literal, Optional, TypedDict, Union, cast
+from collections.abc import Awaitable
+from typing import Any, Callable, Literal, Optional, TypedDict, Union, cast
 
 import pandas
 from fastapi import UploadFile

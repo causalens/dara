@@ -1,7 +1,8 @@
 import inspect
 import json
 import tempfile
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable
+from typing import Any, Callable, Dict
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -323,7 +324,7 @@ async def test_file_backend_existing_value_not_overwritten():
         tmpfile.flush()
 
         # sanity check that the file contains the expected value
-        with open(tmpfile.name, 'r') as f:
+        with open(tmpfile.name) as f:
             assert json.load(f) == init_data
 
         backend = FileBackend(path=tmpfile.name)
@@ -345,7 +346,7 @@ async def test_file_backend_user_scope_existing_value_not_overwritten():
         tmpfile.flush()
 
         # sanity check that the file contains the expected value
-        with open(tmpfile.name, 'r') as f:
+        with open(tmpfile.name) as f:
             assert json.load(f) == init_data
 
         backend = FileBackend(path=tmpfile.name)

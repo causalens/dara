@@ -1,5 +1,4 @@
-import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import anyio
 import pytest
@@ -9,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from dara.core.base_definitions import Cache
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.tasks import CachedRegistryEntry, Task, TaskManager, TaskResultEntry
+from dara.core.internal.tasks import CachedRegistryEntry, Task, TaskManager
 from dara.core.internal.websocket import WebsocketManager
 
 from tests.python.tasks import calc_task, track_task

@@ -1,5 +1,5 @@
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import anyio
 import pytest
@@ -953,7 +953,7 @@ async def test_multiple_dv_track_progress():
             init = await websocket.receive_json()
 
             # Request the template and extract the component
-            response = await client.get(f'/api/core/template/default', headers=AUTH_HEADERS)
+            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
             res = response.json()
             template_data = denormalize(res['data'], res['lookup'])
             component = (
@@ -1030,7 +1030,7 @@ async def test_handles_primitives(primitive):
             init = await websocket.receive_json()
 
             # Request the template and extract the component
-            response = await client.get(f'/api/core/template/default', headers=AUTH_HEADERS)
+            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
             res = response.json()
             template_data = denormalize(res['data'], res['lookup'])
             component = (
@@ -1075,7 +1075,7 @@ async def test_handles_none():
             init = await websocket.receive_json()
 
             # Request the template and extract the component
-            response = await client.get(f'/api/core/template/default', headers=AUTH_HEADERS)
+            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
             res = response.json()
             template_data = denormalize(res['data'], res['lookup'])
             component = (
@@ -1119,7 +1119,7 @@ async def test_handles_invalid_value():
             init = await websocket.receive_json()
 
             # Request the template and extract the component
-            response = await client.get(f'/api/core/template/default', headers=AUTH_HEADERS)
+            response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
             res = response.json()
             template_data = denormalize(res['data'], res['lookup'])
             component = (
