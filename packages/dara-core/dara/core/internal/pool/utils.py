@@ -139,8 +139,8 @@ async def stop_process_async(process: BaseProcess, timeout: float = 3):
         try:
             os.kill(process.pid, signal.SIGKILL)
             await wait_while(process.is_alive, timeout)
-        except OSError:
-            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+        except OSError as e:
+            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
 
     # If it's still alive raise an exception
     if process.is_alive():
@@ -169,8 +169,8 @@ def stop_process(process: BaseProcess, timeout: float = 3):
         try:
             os.kill(process.pid, signal.SIGKILL)
             process.join(timeout)
-        except OSError:
-            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+        except OSError as e:
+            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
 
     # If it's still alive raise an exception
     if process.is_alive():

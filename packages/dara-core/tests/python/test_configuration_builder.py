@@ -1,4 +1,3 @@
-
 import pytest
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware

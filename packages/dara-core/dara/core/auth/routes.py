@@ -75,13 +75,13 @@ async def verify_session(
             return SESSION_ID.get()
         except jwt.ExpiredSignatureError as e:
             dev_logger.error('Expired Token Signature', error=e)
-            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR)
+            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR) from e
         except jwt.PyJWTError as e:
             dev_logger.error('Invalid Token', error=e)
-            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR) from e
         except AuthError as err:
             dev_logger.error('Auth Error', error=err)
-            raise HTTPException(status_code=err.code, detail=err.detail)
+            raise HTTPException(status_code=err.code, detail=err.detail) from err
     raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No auth credentials passed'))
 
 
@@ -162,11 +162,11 @@ async def handle_refresh_token(
         # Explicitly handle expired signature error
         if isinstance(e, jwt.ExpiredSignatureError):
             dev_logger.error('Expired Token Signature', error=e)
-            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR, headers=headers)
+            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR, headers=headers) from e
 
         # Otherwise show a generic invalid token error
         dev_logger.error('Invalid Token', error=cast(Exception, e))
-        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers)
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers) from e
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.

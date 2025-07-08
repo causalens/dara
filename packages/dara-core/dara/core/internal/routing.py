@@ -87,7 +87,7 @@ def error_decorator(handler: Callable[..., Any]):
                 if isinstance(err, HTTPException):
                     raise err
                 dev_logger.error('Unhandled error', error=err)
-                raise HTTPException(status_code=500, detail=str(err))
+                raise HTTPException(status_code=500, detail=str(err)) from err
 
         return _async_inner_func
 
@@ -100,7 +100,7 @@ def error_decorator(handler: Callable[..., Any]):
             if isinstance(err, HTTPException):
                 raise err
             dev_logger.error('Unhandled error', error=err)
-            raise HTTPException(status_code=500, detail=str(err))
+            raise HTTPException(status_code=500, detail=str(err)) from err
 
     return _inner_func
 
@@ -196,8 +196,8 @@ def create_router(config: Configuration):
                 background=BackgroundTask(cleanup),
             )
 
-        except KeyError:
-            raise ValueError('Invalid or expired download code')
+        except KeyError as err:
+            raise ValueError('Invalid or expired download code') from err
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
     async def get_config():  # pylint: disable=unused-variable
@@ -297,9 +297,7 @@ def create_router(config: Configuration):
             return latest_value
 
         except KeyError as err:
-            raise ValueError(f'Could not find latest value for derived variable with uid: {uid}').with_traceback(
-                err.__traceback__
-            )
+            raise ValueError(f'Could not find latest value for derived variable with uid: {uid}') from err
 
     class DataVariableRequestBody(BaseModel):
         filters: Optional[FilterQuery] = None
@@ -379,7 +377,7 @@ def create_router(config: Configuration):
                 media_type='application/json',
             )  # type: ignore
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     class DataVariableCountRequestBody(BaseModel):
         cache_key: Optional[str] = None
@@ -405,7 +403,7 @@ def create_router(config: Configuration):
 
             return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
     async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
@@ -429,7 +427,7 @@ def create_router(config: Configuration):
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
             return Response(content=content, media_type='application/json')
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(
@@ -461,7 +459,7 @@ def create_router(config: Configuration):
 
             return {'status': 'SUCCESS'}
         except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     class DerivedStateRequestBody(BaseModel):
         values: NormalizedPayload[List[Any]]
@@ -552,8 +550,8 @@ def create_router(config: Configuration):
                 return Response(df_to_json(res))
 
             return res
-        except Exception as e:
-            raise ValueError(f'The result for task id {task_id} could not be found').with_traceback(e.__traceback__)
+        except Exception as err:
+            raise ValueError(f'The result for task id {task_id} could not be found') from err
 
     @core_api_router.delete('/tasks/{task_id}', dependencies=[Depends(verify_session)])
     async def cancel_task(task_id: str):  # pylint: disable=unused-variable
@@ -572,8 +570,8 @@ def create_router(config: Configuration):
             selected_template = template_registry.get(template)
             normalized_template, lookup = normalize(jsonable_encoder(selected_template))
             return {'data': normalized_template, 'lookup': lookup}
-        except KeyError:
-            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry')
+        except KeyError as err:
+            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry') from err
         except Exception as e:
             dev_logger.error('Something went wrong while trying to get the template', e)
 

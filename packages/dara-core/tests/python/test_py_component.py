@@ -733,9 +733,7 @@ async def test_derive_var_with_run_as_task_flag():
         messages = await get_ws_messages(websocket)
 
         # There should be only success notifications
-        assert all(
-            [isinstance(message, dict) and message['message']['status'] == 'COMPLETE' for message in messages]
-        )
+        assert all([isinstance(message, dict) and message['message']['status'] == 'COMPLETE' for message in messages])
         # One of them should be the task we just created
         assert any([message['message']['task_id'] == task_id for message in messages])
 
@@ -952,9 +950,7 @@ async def test_multiple_dv_track_progress():
         response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
         res = response.json()
         template_data = denormalize(res['data'], res['lookup'])
-        component = (
-            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-        )
+        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the fetching the component returns a task_id response
         data = await _get_py_component(
@@ -1028,9 +1024,7 @@ async def test_handles_primitives(primitive):
         response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
         res = response.json()
         template_data = denormalize(res['data'], res['lookup'])
-        component = (
-            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-        )
+        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the fetching the component returns a RawString with the primitive value
         data = await _get_py_component(
@@ -1072,9 +1066,7 @@ async def test_handles_none():
         response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
         res = response.json()
         template_data = denormalize(res['data'], res['lookup'])
-        component = (
-            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-        )
+        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the fetching the component returns None
         data = await _get_py_component(
@@ -1115,9 +1107,7 @@ async def test_handles_invalid_value():
         response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
         res = response.json()
         template_data = denormalize(res['data'], res['lookup'])
-        component = (
-            template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
-        )
+        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
 
         # Check that the fetching the component returns an InvalidComponent
         data = await _get_py_component(

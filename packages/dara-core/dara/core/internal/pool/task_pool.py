@@ -107,8 +107,8 @@ class TaskPool:
                     or not all(w.status == WorkerStatus.IDLE for w in self.workers.values()),
                     timeout=timeout,
                 )
-            except TimeoutError:
-                raise RuntimeError('Failed to start pool')
+            except TimeoutError as e:
+                raise RuntimeError('Failed to start pool') from e
         else:
             raise RuntimeError('Pool already started')
 
@@ -480,8 +480,8 @@ class TaskPool:
                 condition=lambda: self.status in (PoolStatus.CLOSED, PoolStatus.RUNNING) and len(self.tasks) > 0,
                 timeout=timeout,
             )
-        except TimeoutError:
-            raise TimeoutError('Tasks are still being executed')
+        except TimeoutError as e:
+            raise TimeoutError('Tasks are still being executed') from e
 
     async def _core_loop(self):
         """

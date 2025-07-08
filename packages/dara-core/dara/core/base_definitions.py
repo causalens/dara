@@ -66,7 +66,7 @@ def annotation_has_base_model(typ: Any) -> bool:
         type_args = get_args(typ)
         if len(type_args) > 0:
             return any(annotation_has_base_model(arg) for arg in type_args)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except # noqa: E722
         # canot get arguments, should be a simple type
         pass
 
@@ -253,10 +253,8 @@ class Cache:
             if isinstance(arg, Cache.Type):
                 return LruCachePolicy(cache_type=arg)
 
-            if isinstance(arg, str):
-                # Check that the string is one of allowed cache members
-                if typ := Cache.Type.get_member(arg):
-                    return LruCachePolicy(cache_type=typ)
+            if isinstance(arg, str) and (typ := Cache.Type.get_member(arg)):
+                return LruCachePolicy(cache_type=typ)
 
             raise ValueError(
                 f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members'
@@ -500,7 +498,7 @@ class AnnotatedAction(BaseModel):
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
 
-    loading: Variable  # type: ignore
+    loading: Variable  # type: ignore # noqa: F821
     """Loading Variable instance"""
 
     def __init__(self, **data):

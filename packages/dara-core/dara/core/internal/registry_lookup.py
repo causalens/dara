@@ -65,4 +65,4 @@ class RegistryLookup:
                 return entry
             raise ValueError(
                 f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
-            ).with_traceback(e.__traceback__)
+            ) from e

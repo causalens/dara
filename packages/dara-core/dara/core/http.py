@@ -57,6 +57,7 @@ def _method_decorator(method: HttpMethod):
     def _decorator(url: str, dependencies: List[DependsType] = None, authenticated: bool = True):
         if dependencies is None:
             dependencies = []
+
         def _inner(func: Callable):
             # Make sure we're using a copy of the dependencies list
             final_dependencies = dependencies[:]

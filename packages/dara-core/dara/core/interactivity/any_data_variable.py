@@ -106,8 +106,8 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
     if data_uid is not None:
         try:
             variable = await registry_mgr.get(data_variable_registry, data_uid)
-        except KeyError:
-            raise ValueError(f'Data Variable {data_uid} does not exist')
+        except KeyError as e:
+            raise ValueError(f'Data Variable {data_uid} does not exist') from e
 
         if variable.type == 'derived':
             raise ValueError('Cannot upload data to DerivedDataVariable')

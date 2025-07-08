@@ -104,7 +104,7 @@ def _tuple_key_deserialize(d):
                     key_list.append(each[1:-1])
                 else:
                     key_list.append(each)
-            encoded_key = encoded_key = tuple(key_list)
+            encoded_key = tuple(key_list)
         else:
             encoded_key = key
 
@@ -241,14 +241,14 @@ def deserialize(value: Any, typ: Optional[Type]):
         return value
 
     # Already matches type
-    if type(value) == typ:
+    if type(value) is typ:
         return value
 
     # Handle Optional[foo] / Union[foo, None] -> call deserialize(value, foo)
     if get_origin(typ) == Union:
         args = get_args(typ)
         if len(args) == 2 and type(None) in args:
-            not_none_arg = args[0] if args[0] != type(None) else args[1]
+            not_none_arg = args[0] if args[0] is not type(None) else args[1]
             return deserialize(value, not_none_arg)
 
     try:

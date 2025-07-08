@@ -1259,9 +1259,7 @@ async def test_task_error_later_reuse():
 
         # Wait until the first task fails
         messages = await get_ws_messages(ws)
-        assert any(
-            data['message']['task_id'] == task_id and data['message']['status'] == 'ERROR' for data in messages
-        )
+        assert any(data['message']['task_id'] == task_id and data['message']['status'] == 'ERROR' for data in messages)
 
         # Then request the metatask
         response_2 = await _get_derived_variable(

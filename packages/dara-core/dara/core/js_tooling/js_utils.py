@@ -431,13 +431,16 @@ def _get_module_file(module: str) -> str:
         return cast(str, imported_module.__file__)
 
 
-def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheDiff.full_diff()):
+def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
 
     :param build_cache: current build configuration cache
     :param build_diff: the difference between the current build cache and the previous build cache
     """
+    if build_diff is None:
+        build_diff = BuildCacheDiff.full_diff()
+
     # If we are in docker mode, skip the JS build
     if os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE':
         dev_logger.debug('Docker mode, skipping JS build')
@@ -482,17 +485,16 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     :param copy_js: whether to copy JS instead of symlinking it
     """
     # If custom JS is present, symlink it
-    if build_cache.build_config.js_config is not None:
-        if os.path.isdir(build_cache.build_config.js_config.local_entry):
-            if copy_js:
-                # Just move the directory to output
-                js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
-                shutil.copytree(
-                    build_cache.build_config.js_config.local_entry,
-                    os.path.join(build_cache.static_files_dir, js_folder_name),
-                )
-            else:
-                build_cache.symlink_js()
+    if build_cache.build_config.js_config is not None and os.path.isdir(build_cache.build_config.js_config.local_entry):
+        if copy_js:
+            # Just move the directory to output
+            js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
+            shutil.copytree(
+                build_cache.build_config.js_config.local_entry,
+                os.path.join(build_cache.static_files_dir, js_folder_name),
+            )
+        else:
+            build_cache.symlink_js()
 
     # Determine template paths
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry.template.tsx')

@@ -209,7 +209,9 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Serie
     Resolve a FilterQuery to a Series[bool] for filtering. Strips the internal column index from the query.
     """
     if isinstance(query, ValueQuery):
-        return _filter_to_series(data, re.sub(COLUMN_PREFIX_REGEX, '', query.column, 1), query.operator, query.value)
+        return _filter_to_series(
+            data, re.sub(COLUMN_PREFIX_REGEX, repl='', string=query.column, count=1), query.operator, query.value
+        )
     elif isinstance(query, ClauseQuery):
         filters = None
 

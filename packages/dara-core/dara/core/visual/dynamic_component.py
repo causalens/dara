@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import json
 import uuid
 from collections import OrderedDict
@@ -158,11 +159,9 @@ def py_component(
             # Verify types are correct
             for key, value in all_kwargs.items():
                 if key in func.__annotations__:
-                    valid_value = True
-                    try:
+                    # The type is either not set or something tricky to verify, e.g. union
+                    with contextlib.suppress(Exception):
                         valid_value = isinstance(value, (func.__annotations__[key], AnyVariable))
-                    except Exception:
-                        pass  # The type is either not set or something tricky to verify, e.g. union
                     if not valid_value:
                         raise TypeError(
                             f'Argument: {key} was passed as a {type(value)}, but it should be '

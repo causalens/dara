@@ -109,7 +109,7 @@ def _start_application(config: Configuration):
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', 8))))
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8'))))
 
     is_production = os.environ.get('DARA_DOCKER_MODE') == 'TRUE'
 
@@ -339,12 +339,12 @@ def _start_application(config: Configuration):
 
     # Start metrics server in a daemon thread
     if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        port = int(os.environ.get('DARA_METRICS_PORT', 10000))
+        port = int(os.environ.get('DARA_METRICS_PORT', '10000'))
         start_http_server(port)
 
     # Start profiling server in a daemon thread if explicitly enabled (only works on linux)
     if os.environ.get('DARA_PYPPROF_PORT', None) is not None:
-        profiling_port = int(os.environ.get('DARA_PYPPROF_PORT', 10001))
+        profiling_port = int(os.environ.get('DARA_PYPPROF_PORT', '10001'))
         dev_logger.warning('Starting cpu/memory profiling server', extra={'port': profiling_port})
 
         from pypprof.net_http import start_pprof_server  # pyright: ignore[reportMissingImports]

@@ -214,8 +214,8 @@ async def test_socket_to_app_send(uid):
 
             async def send_msg(*args, **kwargs):
                 """
-                    Receive a message from the server and send a response
-                    """
+                Receive a message from the server and send a response
+                """
                 server_msg = await websocket.receive_json()
                 await websocket.send_json(
                     {'channel': server_msg.get('message').get('__rchan'), 'message': 'test_msg', 'type': 'message'}
@@ -223,8 +223,8 @@ async def test_socket_to_app_send(uid):
 
             async def check_msg(*args, task_status: TaskStatus):
                 """
-                    Send a message to the client and assert the response is what's expected
-                    """
+                Send a message to the client and assert the response is what's expected
+                """
                 from dara.core.internal.registries import utils_registry
 
                 ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')

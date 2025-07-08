@@ -56,14 +56,14 @@ class ScheduledJob(BaseModel):
             job_process = ctx.Process(target=self._refresh_timer, args=(func, args), daemon=True)
             job_process.start()
             return job_process
-        except PicklingError:
+        except PicklingError as err:
             raise PicklingError(
                 """
             Unable to pickle scheduled function. Please ensure that the function you are trying
             to schedule is not in the same file as the ConfigurationBuilder is defined and that
             the function is not a lambda.
             """
-            )
+            ) from err
 
     def _refresh_timer(self, func, args):
         while self.continue_running and not (self.run_once and not self.first_execution):

@@ -56,8 +56,10 @@ def reset_context():
 
 async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
+
     def test_function(x):
         return x * x
+
     var = Variable(0)
     action = SideEffect(function=test_function, extras=[var])
 

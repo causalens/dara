@@ -230,9 +230,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         filtered_args = [arg for idx, arg in enumerate(args) if idx in deps] if deps is not None else args
 
-        for arg in filtered_args:
+        for raw_arg in filtered_args:
             # remove force keys from the arg to not cause extra cache misses
-            arg = clean_force_key(arg)
+            arg = clean_force_key(raw_arg)
 
             key = f'{key}:{json.dumps(arg, sort_keys=True, default=str)}' if isinstance(arg, dict) else f'{key}:{arg}'
         return key

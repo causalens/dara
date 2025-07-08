@@ -52,7 +52,7 @@ def handle_system_exit(error_msg: str):
     try:
         yield
     except SystemExit as e:
-        raise InterruptedError(error_msg).with_traceback(e.__traceback__)
+        raise InterruptedError(error_msg) from e
 
 
 def get_error_for_channel() -> dict:

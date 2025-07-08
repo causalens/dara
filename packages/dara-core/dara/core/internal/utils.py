@@ -168,10 +168,10 @@ def enforce_sso(conf: ConfigurationBuilder):
 
         if conf.auth_config is None or not isinstance(conf.auth_config, SSOAuthConfig):
             raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')
-    except ImportError:
+    except ImportError as err:
         raise ValueError(
             'SSO is not enabled. Please install the dara_enterprise package and configure SSO to use this feature.'
-        )
+        ) from err
 
 
 def async_dedupe(fn: Callable[..., Awaitable]):

@@ -22,9 +22,10 @@ async def setup_pool():
 
     await utils_registry.get('Store').clear()
 
-    async with create_task_group() as tg, TaskPool(
-        task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2
-    ) as pool:
+    async with (
+        create_task_group() as tg,
+        TaskPool(task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2) as pool,
+    ):
         utils_registry.set('TaskPool', pool)
         yield
 

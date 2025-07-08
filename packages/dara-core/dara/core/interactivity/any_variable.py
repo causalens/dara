@@ -270,7 +270,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         return results
 
 
-class AnyVariable(BaseModel, abc.ABC):
+class AnyVariable(BaseModel, abc.ABC):  # noqa: PLW1641 # we override equals to create conditions, otherwise we should define hash
     """
     Base class for all variables. Used for typing to specify that any variable can be provided.
     """
