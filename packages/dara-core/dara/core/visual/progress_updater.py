@@ -16,9 +16,10 @@ limitations under the License.
 """
 
 import inspect
+from collections import OrderedDict
 from functools import wraps
 from inspect import Signature, signature
-from typing import Callable, OrderedDict
+from typing import Callable
 
 
 class ProgressUpdater:
@@ -145,13 +146,13 @@ def track_progress(func=None):
 
         _inner_func = _sync_inner_func
 
-    _inner_func.__signature__ = Signature(
+    _inner_func.__signature__ = Signature(  # type: ignore
         parameters=list(params.values()),
         return_annotation=old_signature.return_annotation,
     )
 
     # Store metadata on the wrapped function - keep a reference to the function wrapped and the decorator itself
     _inner_func.__wrapped__ = func
-    _inner_func.__wrapped_by__ = track_progress
+    _inner_func.__wrapped_by__ = track_progress  # type: ignore
 
     return _inner_func

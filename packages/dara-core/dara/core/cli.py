@@ -21,10 +21,10 @@ import pathlib
 import subprocess
 from typing import List, Optional
 
-import click
 import uvicorn
-from click.exceptions import UsageError
 
+import click
+from click.exceptions import UsageError
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
 from dara.core.internal.utils import find_module_path
@@ -52,7 +52,7 @@ def cli():
 @click.option('--port', help='The port to run on', type=int)
 @click.option('--metrics-port', help='The port for the metrics server to run on', type=int)
 @click.option('--disable-metrics', is_flag=True, help='Whether to disable the metrics server')
-@click.option('--host', default='0.0.0.0', help='The host to run on')   # nosec B104 # default for local dev
+@click.option('--host', default='0.0.0.0', help='The host to run on')  # nosec B104 # default for local dev
 @click.option('--rebuild', is_flag=True, help='Whether to force a rebuild of the app')
 @click.option('--require-sso', is_flag=True, help='Whether to enforce that an SSO auth config is used')
 @click.option('--docker', is_flag=True, help='Whether to run in Docker mode - assumes assets are prebuilt')
@@ -214,10 +214,11 @@ def dev():
         stderr=subprocess.STDOUT,
         shell=True,
     ) as vite_process:
-        for line in vite_process.stdout:
-            decoded_line = line.decode('utf-8').strip()
-            if decoded_line != '':
-                print(decoded_line)   # pylint: disable=bad-builtin
+        if vite_process.stdout is not None:
+            for line in vite_process.stdout:
+                decoded_line = line.decode('utf-8').strip()
+                if decoded_line != '':
+                    print(decoded_line)
 
 
 @cli.command()

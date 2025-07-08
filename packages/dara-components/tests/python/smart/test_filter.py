@@ -1,8 +1,9 @@
 from datetime import datetime
 from os import path
 from pathlib import Path
-import pandas
+
 import numpy
+import pandas
 
 from dara.components.smart.data_slicer.extension.data_slicer_filter import FilterInstance
 from dara.components.smart.data_slicer.utils.core import apply_filters

@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 from dara.components.common.base_component import LayoutComponent
 from dara.components.common.text import Text
@@ -134,4 +134,4 @@ class Button(LayoutComponent):
         if not styling and isinstance(children, ComponentInstance) and not isinstance(children, Text):
             style = ButtonStyle.PLAIN
 
-        super().__init__(child, styling=style, **kwargs)
+        super().__init__(cast(ComponentInstance, child), styling=style, **kwargs)

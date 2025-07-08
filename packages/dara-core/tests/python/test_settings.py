@@ -28,7 +28,7 @@ def unset_env_file():
     try:
         # load existing content of cwd/.env
         if os.path.exists('.env'):
-            with open('.env', 'r', encoding='utf-8') as f:
+            with open('.env', encoding='utf-8') as f:
                 env_content = f.read()
             os.remove('.env')
         yield

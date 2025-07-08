@@ -72,27 +72,27 @@ class TestSlider(unittest.TestCase):
 
         # Test with large integer domain - not a valid range
         with self.assertRaises(ValueError):
-            slider = Slider(domain=[12344, 38756], value=var)
+            Slider(domain=[12344, 38756], value=var)
         # Still check the inference logic, for this range (26412), the inferred step should be 1000
         self.assertEqual(compute_step(Decimal('26412')), Decimal('1000'))
 
         # Test with small decimal domain
-        slider = Slider(domain=[0.0025, 0.0075], value=var)
+        Slider(domain=[0.0025, 0.0075], value=var)
         # For this range (0.005), the inferred step should be 0.0001
         self.assertEqual(compute_step(Decimal('0.005')), Decimal('0.0001'))
 
         # Test with negative domain
-        slider = Slider(domain=[-5000, -1000], value=var)
+        Slider(domain=[-5000, -1000], value=var)
         # For this range (4000), the inferred step should be 100
         self.assertEqual(compute_step(Decimal('4000')), Decimal('100'))
 
         # Test with very large domain
-        slider = Slider(domain=[1000000, 9000000], value=var)
+        Slider(domain=[1000000, 9000000], value=var)
         # For this range (8000000), the inferred step should be 100000
         self.assertEqual(compute_step(Decimal('8000000')), Decimal('100000'))
 
         # Test with very small domain
-        slider = Slider(domain=[0.000001, 0.000009], value=var)
+        Slider(domain=[0.000001, 0.000009], value=var)
         # For this range (0.000008), the inferred step should be 0.0000001
         self.assertEqual(compute_step(Decimal('0.000008')), Decimal('0.0000001'))
 

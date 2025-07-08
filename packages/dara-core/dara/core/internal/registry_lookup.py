@@ -15,7 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Coroutine, Dict, Literal
+from collections.abc import Coroutine
+from typing import Callable, Dict, Literal, Union
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -37,7 +38,9 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: CustomRegistryLookup = {}):
+    def __init__(self, handlers: Union[CustomRegistryLookup, None] = None):
+        if handlers is None:
+            handlers = {}
         self.handlers = handlers
 
     @async_dedupe
@@ -62,4 +65,4 @@ class RegistryLookup:
                 return entry
             raise ValueError(
                 f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
-            ).with_traceback(e.__traceback__)
+            ) from e

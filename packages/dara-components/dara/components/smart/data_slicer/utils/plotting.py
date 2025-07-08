@@ -15,9 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import cast
+
 import numpy
 from bokeh.plotting import figure
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from scipy.stats import gaussian_kde
 
 from dara.components.common import Stack, Text
@@ -43,9 +45,9 @@ def _plot_x_numerical(dataset: DataFrame, x: str, **kwargs):
         sizing_mode='stretch_both',
         **kwargs,
     )
-    p.toolbar.logo = None   # type: ignore
+    p.toolbar.logo = None  # type: ignore
 
-    pdf = gaussian_kde(df[x].dropna())
+    pdf = gaussian_kde(cast(DataFrame, df[x]).dropna())
     y = pdf(lin)
     p.line(
         lin,
@@ -63,10 +65,10 @@ def _plot_x_categorical(dataset: DataFrame, x: str, **kwargs):
     df = dataset.copy()
     df = df[[x]].dropna().astype(str)
 
-    values_counts = df[x].value_counts()
+    values_counts = cast(Series, df[x]).value_counts()
 
     p = figure(
-        x_range=sorted(list(df[x].unique())),
+        x_range=sorted(list(cast(Series, df[x]).unique())),
         title=f'Histogram - {x}',
         toolbar_location=None,
         tools='',
@@ -76,7 +78,7 @@ def _plot_x_categorical(dataset: DataFrame, x: str, **kwargs):
 
     p.vbar(x=values_counts.index, top=values_counts.values, width=0.5, color=BLUE)
 
-    p.toolbar.logo = None   # type: ignore
+    p.toolbar.logo = None  # type: ignore
 
     p.xgrid.grid_line_color = None
 

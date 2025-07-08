@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import importlib
 import json
 import os
@@ -236,10 +237,8 @@ class BuildCache(BaseModel):
 
         # Create a symlink from the custom js folder into the static files directory
         new_path = os.path.abspath(os.path.join(self.static_files_dir, self.build_config.js_config.local_entry))
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(new_path)
-        except FileNotFoundError:
-            pass
         os.symlink(absolute_path, new_path)
 
         # Create a symlink for the node modules in the custom_js folder
@@ -247,10 +246,8 @@ class BuildCache(BaseModel):
         new_node_modules_path = os.path.abspath(
             os.path.join(os.getcwd(), self.build_config.js_config.local_entry, 'node_modules')
         )
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(new_node_modules_path)
-        except FileNotFoundError:
-            pass
         os.symlink(node_modules_path, new_node_modules_path)
 
     def get_importers(self) -> Dict[str, str]:
@@ -274,7 +271,7 @@ class BuildCache(BaseModel):
         """
         py_modules = set()
 
-        for module in self.package_map.keys():
+        for module in self.package_map:
             py_modules.add(module)
 
         if 'dara.core' in py_modules:
@@ -434,13 +431,16 @@ def _get_module_file(module: str) -> str:
         return cast(str, imported_module.__file__)
 
 
-def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff = BuildCacheDiff.full_diff()):
+def rebuild_js(build_cache: BuildCache, build_diff: Union[BuildCacheDiff, None] = None):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
 
     :param build_cache: current build configuration cache
     :param build_diff: the difference between the current build cache and the previous build cache
     """
+    if build_diff is None:
+        build_diff = BuildCacheDiff.full_diff()
+
     # If we are in docker mode, skip the JS build
     if os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE':
         dev_logger.debug('Docker mode, skipping JS build')
@@ -485,17 +485,16 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     :param copy_js: whether to copy JS instead of symlinking it
     """
     # If custom JS is present, symlink it
-    if build_cache.build_config.js_config is not None:
-        if os.path.isdir(build_cache.build_config.js_config.local_entry):
-            if copy_js:
-                # Just move the directory to output
-                js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
-                shutil.copytree(
-                    build_cache.build_config.js_config.local_entry,
-                    os.path.join(build_cache.static_files_dir, js_folder_name),
-                )
-            else:
-                build_cache.symlink_js()
+    if build_cache.build_config.js_config is not None and os.path.isdir(build_cache.build_config.js_config.local_entry):
+        if copy_js:
+            # Just move the directory to output
+            js_folder_name = os.path.basename(build_cache.build_config.js_config.local_entry)
+            shutil.copytree(
+                build_cache.build_config.js_config.local_entry,
+                os.path.join(build_cache.static_files_dir, js_folder_name),
+            )
+        else:
+            build_cache.symlink_js()
 
     # Determine template paths
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry.template.tsx')
@@ -544,16 +543,16 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
 
     cwd = os.getcwd()
     os.chdir(build_cache.static_files_dir)
-    exit_code = os.system(f'{package_manager} install')   # nosec B605 # package_manager is validated
+    exit_code = os.system(f'{package_manager} install')  # nosec B605 # package_manager is validated
     if exit_code > 0:
         raise SystemError(
             "Failed to install the JS dependencies - there's likely a connection issue or a broken package"
         )
 
     # Load entry template as a string
-    with open(entry_template, 'r', encoding='utf-8') as f:
+    with open(entry_template, encoding='utf-8') as f:
         entry_template_str = f.read()
-    with open(vite_template, 'r', encoding='utf-8') as f:
+    with open(vite_template, encoding='utf-8') as f:
         vite_template_str = f.read()
 
     # Convert importers dict to a string for injection into the template
@@ -574,7 +573,7 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
         dev_logger.warning('App is in DEV mode, running `dara dev` CLI command alongside this process is required')
     else:
         # Run build pointed at the generated entry file
-        exit_code = os.system(f'{package_manager} run build')   # nosec B605 # package_manager is validated
+        exit_code = os.system(f'{package_manager} run build')  # nosec B605 # package_manager is validated
         if exit_code > 0:
             raise SystemError('Failed to build the JS part of the project')
 
@@ -640,7 +639,7 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
     """
     settings = get_settings()
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
-    with open(entry_template, 'r', encoding='utf-8') as f:
+    with open(entry_template, encoding='utf-8') as f:
         entry_template_str = f.read()
 
     importers_dict = build_cache.get_importers()

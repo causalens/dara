@@ -22,7 +22,7 @@ class TestIfComponent(unittest.TestCase):
         t1 = MockComponent(test_id='t1')
         t2 = MockComponent(test_id='t2')
         t3 = MockComponent(test_id='t3')
-        cmp = If(var == True, [t1, t2], t3)
+        cmp = If(var == True, [t1, t2], t3)  # noqa: E712
         expected_dict = {
             'name': 'If',
             'props': {

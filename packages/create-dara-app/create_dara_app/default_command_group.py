@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+# ruff: noqa
+
 import click
 
 
@@ -44,7 +46,7 @@ class DefaultCommandGroup(click.Group):
     def get_command(self, ctx, cmd_name):
         if cmd_name not in self.commands:
             # No command name matched.
-            ctx.arg0 = cmd_name
+            ctx.arg0 = cmd_name  # pyright: ignore
             cmd_name = self.default_cmd_name
         return super().get_command(ctx, cmd_name)
 
@@ -52,15 +54,15 @@ class DefaultCommandGroup(click.Group):
         base = super()
         cmd_name, cmd, args = base.resolve_command(ctx, args)
         if hasattr(ctx, 'arg0'):
-            args.insert(0, ctx.arg0)
-            cmd_name = cmd.name
+            args.insert(0, ctx.arg0)  # pyright: ignore
+            cmd_name = cmd.name  # pyright: ignore
         return cmd_name, cmd, args
 
     def format_commands(self, ctx, formatter):
         formatter = DefaultCommandFormatter(self, formatter, mark='*')
-        return super().format_commands(ctx, formatter)
+        return super().format_commands(ctx, formatter)  # pyright: ignore
 
-    def command(self, *args, **kwargs):
+    def command(self, *args, **kwargs):  # pyright: ignore
         default = kwargs.pop('default', False)
         decorator = super().command(*args, **kwargs)
         if not default:

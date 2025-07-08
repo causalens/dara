@@ -14,13 +14,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-# pylint: disable=unnecessary-lambda
+
+from collections.abc import MutableMapping
 from inspect import Parameter, isclass
 from typing import (
     Any,
     Callable,
     Dict,
-    MutableMapping,
     Optional,
     Type,
     Union,
@@ -99,11 +99,11 @@ def _tuple_key_deserialize(d):
         if isinstance(key, str) and key.startswith('__tuple__'):
             key_list = []
             for each in key[10:-1].split(', '):
-                if (each.startswith("'") and each.endswith(("'"))) or (each.startswith('"') and each.endswith(('"'))):
+                if (each.startswith("'") and each.endswith("'")) or (each.startswith('"') and each.endswith('"')):
                     key_list.append(each[1:-1])
                 else:
                     key_list.append(each)
-            encoded_key = encoded_key = tuple(key_list)
+            encoded_key = tuple(key_list)
         else:
             encoded_key = key
 
@@ -112,7 +112,7 @@ def _tuple_key_deserialize(d):
     return encoded_dict
 
 
-def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
+def _df_deserialize(x):
     """
     A function to deserialize data into a DataFrame
 
@@ -240,14 +240,14 @@ def deserialize(value: Any, typ: Optional[Type]):
         return value
 
     # Already matches type
-    if type(value) == typ:
+    if type(value) is typ:
         return value
 
     # Handle Optional[foo] / Union[foo, None] -> call deserialize(value, foo)
     if get_origin(typ) == Union:
         args = get_args(typ)
         if len(args) == 2 and type(None) in args:
-            not_none_arg = args[0] if args[0] != type(None) else args[1]
+            not_none_arg = args[0] if args[0] is not type(None) else args[1]
             return deserialize(value, not_none_arg)
 
     try:

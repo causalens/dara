@@ -1,7 +1,7 @@
-from dara.core.interactivity import DerivedVariable, UpdateVariable, Variable
-from dara.components import Button, Card, Stack, Text
-
 from cypress.dara.tasks import add_one, add_two
+
+from dara.components import Button, Card, Stack, Text
+from dara.core.interactivity import DerivedVariable, UpdateVariable, Variable
 
 
 def update_variable():

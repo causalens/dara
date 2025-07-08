@@ -78,11 +78,11 @@ class Item(BaseModel):
         try:
             label = str(item)
             return Item(label=label, value=item)
-        except Exception:
+        except Exception as e:
             raise ValueError(
                 f'Item: {item} could not be parsed correctly. If your item is a complex structure please pass in an '
                 f'Item class, with a string label defined'
-            )
+            ) from e
 
 
 class CarouselItem(BaseModel):
@@ -116,7 +116,6 @@ class CarouselItem(BaseModel):
         image_height: Optional[str] = None,
         image_width: Optional[str] = None,
     ):
-
         super().__init__(
             title=title,
             subtitle=subtitle,
@@ -149,8 +148,8 @@ class CarouselItem(BaseModel):
         try:
             title = str(item)
             return CarouselItem(title=title)
-        except Exception:
+        except Exception as e:
             raise ValueError(
                 f'CarouselItem: {item} could not be parsed correctly. If your item is a complex structure please pass in an '
                 f'CarouselItem class'
-            )
+            ) from e

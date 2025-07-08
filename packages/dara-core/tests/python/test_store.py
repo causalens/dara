@@ -1,7 +1,7 @@
 import pytest
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import CacheType, PendingTask
+from dara.core.base_definitions import CacheType
 from dara.core.internal.store import Store
 
 pytestmark = pytest.mark.anyio

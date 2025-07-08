@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
+from collections.abc import Awaitable, Coroutine, Sequence
 from functools import wraps
 from importlib import import_module
 from importlib.util import find_spec
@@ -27,13 +28,10 @@ from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
-    Coroutine,
     Dict,
     Literal,
     Optional,
-    Sequence,
     Tuple,
     Union,
 )
@@ -79,7 +77,7 @@ def get_cache_scope(cache_type: Optional[CacheType]) -> CacheScope:
     return 'global'
 
 
-async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict = {}):
+async def run_user_handler(handler: Callable, args: Union[Sequence, None] = None, kwargs: Union[dict, None] = None):
     """
     Run a user-defined handler function. Runs sync functions in a threadpool.
     Handles SystemExits cleanly.
@@ -88,6 +86,10 @@ async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict 
     :param args: list of arguments to pass to the function
     :param kwargs: dict of kwargs to past to the function
     """
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     with handle_system_exit('User defined function quit unexpectedly'):
         if inspect.iscoroutinefunction(handler):
             return await handler(*args, **kwargs)
@@ -164,14 +166,14 @@ def enforce_sso(conf: ConfigurationBuilder):
     Raises if SSO is not used
     """
     try:
-        from dara.enterprise import SSOAuthConfig
+        from dara.enterprise import SSOAuthConfig  # pyright: ignore[reportMissingImports]
 
         if conf.auth_config is None or not isinstance(conf.auth_config, SSOAuthConfig):
             raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')
-    except ImportError:
+    except ImportError as err:
         raise ValueError(
             'SSO is not enabled. Please install the dara_enterprise package and configure SSO to use this feature.'
-        )
+        ) from err
 
 
 def async_dedupe(fn: Callable[..., Awaitable]):
@@ -228,8 +230,7 @@ def resolve_exception_group(error: Any):
 
     :param error: The error to resolve
     """
-    if isinstance(error, ExceptionGroup):
-        if len(error.exceptions) == 1:
-            return resolve_exception_group(error.exceptions[0])
+    if isinstance(error, ExceptionGroup) and len(error.exceptions) == 1:
+        return resolve_exception_group(error.exceptions[0])
 
     return error

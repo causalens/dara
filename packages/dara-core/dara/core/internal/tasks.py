@@ -15,9 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import inspect
 import math
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union, overload
+from collections.abc import Awaitable
+from typing import Any, Callable, Dict, List, Optional, Union, overload
 
 from anyio import (
     CancelScope,
@@ -137,14 +139,12 @@ class Task(BaseTask):
 
             async def on_progress(progress: float, msg: str):
                 if send_stream is not None:
-                    try:
+                    with contextlib.suppress(ClosedResourceError):
                         await send_stream.send(TaskProgressUpdate(task_id=self.task_id, progress=progress, message=msg))
-                    except ClosedResourceError:
-                        pass
 
             async def on_result(result: Any):
                 if send_stream is not None:
-                    try:
+                    with contextlib.suppress(ClosedResourceError):
                         await send_stream.send(
                             TaskResult(
                                 task_id=self.task_id,
@@ -153,19 +153,15 @@ class Task(BaseTask):
                                 reg_entry=self.reg_entry,
                             )
                         )
-                    except ClosedResourceError:
-                        pass
 
             async def on_error(exc: BaseException):
                 if send_stream is not None:
-                    try:
+                    with contextlib.suppress(ClosedResourceError):
                         await send_stream.send(
                             TaskError(
                                 task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry
                             )
                         )
-                    except ClosedResourceError:
-                        pass
 
             with pool.on_progress(self.task_id, on_progress):
                 pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
@@ -362,12 +358,10 @@ class TaskManager:
         self.store = store
 
     @overload
-    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any:
-        ...
+    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any: ...
 
     @overload
-    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask:
-        ...
+    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask: ...
 
     async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None):
         """

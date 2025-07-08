@@ -16,11 +16,11 @@ limitations under the License.
 """
 
 from inspect import isclass
-from typing import Optional  # needed for model_rebuild
+from typing import Optional  # needed for model_rebuild # noqa: F401
 
 from pydantic import BaseModel
 
-from dara.core.interactivity import Variable  # needed for model_rebuild
+from dara.core.interactivity import Variable  # needed for model_rebuild # noqa: F401
 from dara.core.visual.components.dynamic_component import (
     DynamicComponent,
     DynamicComponentDef,

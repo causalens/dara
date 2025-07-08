@@ -81,7 +81,7 @@ class UploadDropzone(StyledComponentInstance):
         on_drop: Optional[Action] = None,
         accept: Optional[str] = None,
         enable_paste: Optional[bool] = False,
-        **kwargs
+        **kwargs,
     ):
         from dara.core.interactivity.any_data_variable import upload
         from dara.core.internal.registries import upload_resolver_registry

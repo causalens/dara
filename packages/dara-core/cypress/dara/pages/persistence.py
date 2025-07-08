@@ -1,5 +1,5 @@
-from dara.core.interactivity import Variable
 from dara.components import Card, Input, Stack, Text
+from dara.core.interactivity import Variable
 
 
 def persistence():

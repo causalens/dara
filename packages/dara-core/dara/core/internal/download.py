@@ -18,7 +18,8 @@ limitations under the License.
 from __future__ import annotations
 
 import os
-from typing import Awaitable, Callable, Optional, Tuple
+from collections.abc import Awaitable
+from typing import Callable, Optional, Tuple
 from uuid import uuid4
 
 import anyio
@@ -37,13 +38,13 @@ class DownloadDataEntry(BaseModel):
     file_path: str
     cleanup_file: bool
     identity_name: Optional[str] = None
-    download: Callable[['DownloadDataEntry'], Awaitable[Tuple[anyio.AsyncFile, Callable[..., Awaitable]]]]
+    download: Callable[[DownloadDataEntry], Awaitable[Tuple[anyio.AsyncFile, Callable[..., Awaitable]]]]
     """Handler for getting the file from the entry"""
 
 
 DownloadRegistryEntry = CachedRegistryEntry(
     uid='_dara_download', cache=Cache.Policy.TTL(ttl=60 * 10)
-)   # expire the codes after 10 minutes
+)  # expire the codes after 10 minutes
 
 
 async def download(data_entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Callable[..., Awaitable]]:

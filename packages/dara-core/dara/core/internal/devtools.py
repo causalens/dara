@@ -36,7 +36,7 @@ def print_stacktrace():
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)   # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)
     else:
         stackstr += '   Exception'
 
@@ -52,7 +52,7 @@ def handle_system_exit(error_msg: str):
     try:
         yield
     except SystemExit as e:
-        raise InterruptedError(error_msg).with_traceback(e.__traceback__)
+        raise InterruptedError(error_msg) from e
 
 
 def get_error_for_channel() -> dict:

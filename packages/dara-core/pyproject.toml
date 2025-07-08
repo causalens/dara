@@ -1,21 +1,15 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-[tool.blue]
-line-length = 120
+
 [tool.anthology.scripts]
-format = "poetry run isort dara && poetry run blue dara"
-format-check = "poetry run isort --check dara && poetry run blue --check dara"
-lint = "poetry run mypy --ignore-missing-imports -p dara.core && poetry run pylint dara"
+format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
+format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
+lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit dara -r -ll -i"
 test = "DARA_TEST_FLAG=true poetry run pytest ./tests"
-
-[tool.isort]
-known_causalens = ["dara"]
-profile = "black"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALFOLDER"]
 
 [tool.poetry]
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
@@ -81,11 +75,9 @@ version = ">=0.23.1"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
-blue = "^0.9.1"
 freezegun = "^1.2.2"
-isort = "^5.10.1"
-mypy = "^1.6.0"
-pylint = "3.2.3"
+ruff = ">=0.12.2"
+pyright = "^1.1.400"
 pytest = "^7.0.0"
 pytest-timeout = "^2.1.0"
 requests = ">=2.25.1, <3.0.0"

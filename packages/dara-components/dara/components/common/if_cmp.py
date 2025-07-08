@@ -95,5 +95,7 @@ class If(ModifierComponent):
             condition = Condition(operator=Operator.TRUTHY, other=None, variable=condition)
 
         super().__init__(
-            condition=condition, true_children=cast_list(true_children), false_children=cast_list(false_children)  # type: ignore
+            condition=condition,
+            true_children=cast_list(true_children),
+            false_children=cast_list(false_children),  # type: ignore
         )

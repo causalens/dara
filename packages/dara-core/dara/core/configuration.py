@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import os
 import pathlib
 from inspect import isclass, isfunction
@@ -386,7 +387,7 @@ class ConfigurationBuilder:
         icon: Optional[str] = None,
         route: Optional[str] = None,
         include_in_menu: Optional[bool] = True,
-        reset_vars_on_load: Optional[List[AnyVariable]] = [],
+        reset_vars_on_load: Optional[List[AnyVariable]] = None,
         on_load: Optional[Action] = None,
     ):
         """
@@ -402,6 +403,8 @@ class ConfigurationBuilder:
         :param on_load: optional action to execute upon visiting the page
         """
         # Backwards compatibility - deprecated
+        if reset_vars_on_load is None:
+            reset_vars_on_load = []
         if reset_vars_on_load is not None and len(reset_vars_on_load) > 0:
             if on_load is not None:
                 raise ValueError('reset_vars_on_load and on_load cannot be used together')
@@ -485,7 +488,7 @@ class ConfigurationBuilder:
             if len(options) > 0:
                 dev_logger.warning(f'Options provided for a function middleware {middleware}, but they will be ignored')
         elif isclass(middleware):
-            constructed_middleware = Middleware(middleware, **options)   # type: ignore
+            constructed_middleware = Middleware(middleware, **options)  # type: ignore
         else:
             raise ValueError(f'Invalid middleware type: {type(middleware)}')
 

@@ -93,12 +93,12 @@ class TestVariables(unittest.TestCase):
         second_derived_variable = DerivedVariable(test_resolve, variables=[variable], uid='test_another_derived_var')
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):
-            DerivedVariable(test_resolve, variables=[variable], uid='test_derived_var'),
+            (DerivedVariable(test_resolve, variables=[variable], uid='test_derived_var'),)
 
     def test_derived_variable_uid_run_as_task(self):
         """Test that when giving derived variables uid and running as task, that you can't have two with the same name"""
@@ -110,15 +110,15 @@ class TestVariables(unittest.TestCase):
         )
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):
-            DerivedVariable(root, variables=[variable], uid='test_task_var', run_as_task=True),
+            (DerivedVariable(root, variables=[variable], uid='test_task_var', run_as_task=True),)
 
         with self.assertRaises(ValueError):
-            DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),
+            (DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),)
 
 
 async def test_derived_variables_with_df_nan():

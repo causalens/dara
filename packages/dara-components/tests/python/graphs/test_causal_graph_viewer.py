@@ -1,6 +1,6 @@
-from cai_causal_graph import CausalGraph
 from fastapi.encoders import jsonable_encoder
 
+from cai_causal_graph import CausalGraph
 from dara.components.graphs import CausalGraphViewer
 from dara.core import Variable
 

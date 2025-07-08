@@ -2,8 +2,8 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from dara.core.interactivity import Variable
 from dara.components.common import Modal
+from dara.core.interactivity import Variable
 
 from tests.python.utils import MockComponent
 

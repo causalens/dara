@@ -18,7 +18,7 @@ limitations under the License.
 import inspect
 from collections import OrderedDict
 from functools import wraps
-from typing import Callable, Dict, List, Type
+from typing import Callable, Dict, List, Type, Union
 
 from fastapi import Depends
 from fastapi.params import Depends as DependsType
@@ -54,7 +54,10 @@ def _get_config_instances(annotations: Dict[str, type]) -> Dict[str, EndpointCon
 def _method_decorator(method: HttpMethod):
     """Create a decorator for a given HTTP method"""
 
-    def _decorator(url: str, dependencies: List[DependsType] = [], authenticated: bool = True):
+    def _decorator(url: str, dependencies: Union[List[DependsType], None] = None, authenticated: bool = True):
+        if dependencies is None:
+            dependencies = []
+
         def _inner(func: Callable):
             # Make sure we're using a copy of the dependencies list
             final_dependencies = dependencies[:]
@@ -104,7 +107,8 @@ def _method_decorator(method: HttpMethod):
 
             new_handler.__annotations__ = new_annotations
             new_handler.__signature__ = inspect.Signature(  # type: ignore
-                parameters=list(params.values()), return_annotation=sig.return_annotation  # type: ignore
+                parameters=list(params.values()),
+                return_annotation=sig.return_annotation,  # type: ignore
             )
 
             return ApiRoute(

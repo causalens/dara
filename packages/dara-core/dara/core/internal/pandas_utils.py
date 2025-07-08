@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, cast
 
 from pandas import DataFrame, MultiIndex
 
@@ -31,7 +31,7 @@ def append_index(df: Optional[DataFrame]) -> Optional[DataFrame]:
 
     if INDEX not in df.columns:
         new_df = df.copy()
-        new_df.insert(0, INDEX, range(0, len(df.index)))
+        new_df.insert(0, INDEX, range(0, len(df.index)))  # type: ignore
         return new_df
 
     return df
@@ -47,7 +47,7 @@ def remove_index(value: value_type) -> value_type:
     Otherwise return same value untouched.
     """
     if isinstance(value, DataFrame):
-        return value.drop(columns=['__index__'], inplace=False, errors='ignore')
+        return cast(value_type, value.drop(columns=['__index__'], inplace=False, errors='ignore'))
 
     return value
 

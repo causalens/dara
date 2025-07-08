@@ -1,11 +1,12 @@
 import unittest
 import uuid
 from unittest.mock import patch
+
 from fastapi.encoders import jsonable_encoder
 
-from dara.core.interactivity.actions import NavigateTo
 from dara.components.common import Button, Text
 from dara.components.common.button import ButtonStyle
+from dara.core.interactivity.actions import NavigateTo
 
 test_uid = uuid.uuid4()
 

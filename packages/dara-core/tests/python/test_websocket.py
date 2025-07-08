@@ -52,11 +52,14 @@ config = create_app(builder)
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
+
 @pytest.fixture(autouse=True)
 async def cleanup_registry():
     from dara.core.internal.registries import custom_ws_handlers_registry
+
     yield
     custom_ws_handlers_registry.replace({})
+
 
 async def _send_task(handler: WebSocketHandler, messages: list):
     """
@@ -97,7 +100,9 @@ async def test_websocket_receive_custom_sync_response():
     custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
 
     result = ws_handler.process_client_message(
-        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+        CustomClientMessage(
+            message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL')
+        )
     )
     assert inspect.iscoroutine(result)
     await result
@@ -107,6 +112,7 @@ async def test_websocket_receive_custom_sync_response():
     assert result_message['message']['kind'] == 'CUSTOM_KIND'
     assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
     assert result_message['message']['data'] == 'INPUT'
+
 
 async def test_websocket_receive_custom_async_response():
     """
@@ -123,7 +129,9 @@ async def test_websocket_receive_custom_async_response():
     custom_ws_handlers_registry.register('CUSTOM_KIND', custom_handler)
 
     result = ws_handler.process_client_message(
-        CustomClientMessage(message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL'))
+        CustomClientMessage(
+            message=CustomClientMessagePayload(kind='CUSTOM_KIND', data='INPUT', __rchan='RESPONSE_CHANNEL')
+        )
     )
     assert result is None
 
@@ -135,6 +143,7 @@ async def test_websocket_receive_custom_async_response():
     assert result_message['message']['kind'] == 'CUSTOM_KIND'
     assert result_message['message']['__response_for'] == 'RESPONSE_CHANNEL'
     assert result_message['message']['data'] == 'INPUT'
+
 
 async def test_websocket_send_and_wait():
     """
@@ -193,46 +202,45 @@ async def test_websocket_broadcast():
     token1_2 = basic_auth.get_token(SessionRequestBody(username='test', password='test')).get('token')
     token2 = basic_auth.get_token(SessionRequestBody(username='test2', password='test2')).get('token')
 
-    async with AsyncTestClient(app) as client:
-        async with _async_ws_connect(client, token1) as ws1:
-            init1 = await ws1.receive_json()
-            channel_1 = init1['message']['channel']
+    async with AsyncTestClient(app) as client, _async_ws_connect(client, token1) as ws1:
+        init1 = await ws1.receive_json()
+        channel_1 = init1['message']['channel']
 
-            async with _async_ws_connect(client, token1_2) as ws1_2:
-                init1_2 = await ws1_2.receive_json()
-                async with _async_ws_connect(client, token2) as ws2:
-                    init_2 = await ws2.receive_json()
+        async with _async_ws_connect(client, token1_2) as ws1_2:
+            await ws1_2.receive_json()
+            async with _async_ws_connect(client, token2) as ws2:
+                await ws2.receive_json()
 
-                    # Broadcast a message
-                    ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-                    await ws_mgr.broadcast({'message': 'broadcast message'})
+                # Broadcast a message
+                ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+                await ws_mgr.broadcast({'message': 'broadcast message'})
 
-                    # Check all websockets received the message
-                    messages1 = await get_ws_messages(ws1, timeout=1)
-                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
-                    messages2 = await get_ws_messages(ws2, timeout=1)
+                # Check all websockets received the message
+                messages1 = await get_ws_messages(ws1, timeout=1)
+                messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                messages2 = await get_ws_messages(ws2, timeout=1)
 
-                    assert len(messages1) == 1
-                    assert len(messages1_2) == 1
-                    assert len(messages2) == 1
+                assert len(messages1) == 1
+                assert len(messages1_2) == 1
+                assert len(messages2) == 1
 
-                    assert messages1[0].get('message') == {'message': 'broadcast message'}
-                    assert messages1_2[0].get('message') == {'message': 'broadcast message'}
-                    assert messages2[0].get('message') == {'message': 'broadcast message'}
+                assert messages1[0].get('message') == {'message': 'broadcast message'}
+                assert messages1_2[0].get('message') == {'message': 'broadcast message'}
+                assert messages2[0].get('message') == {'message': 'broadcast message'}
 
-                    # Broadcast a message while setting ignore_channel to one of the channel_ids
-                    await ws_mgr.broadcast({'message': 'broadcast message new'}, ignore_channel=channel_1)
+                # Broadcast a message while setting ignore_channel to one of the channel_ids
+                await ws_mgr.broadcast({'message': 'broadcast message new'}, ignore_channel=channel_1)
 
-                    messages1 = await get_ws_messages(ws1, timeout=1)
-                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
-                    messages2 = await get_ws_messages(ws2, timeout=1)
+                messages1 = await get_ws_messages(ws1, timeout=1)
+                messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                messages2 = await get_ws_messages(ws2, timeout=1)
 
-                    # Check that the message was sent only to the OTHER test user channel and the test2 user channel
-                    assert len(messages1) == 0
-                    assert len(messages1_2) == 1
-                    assert len(messages2) == 1
-                    assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
-                    assert messages2[0].get('message') == {'message': 'broadcast message new'}
+                # Check that the message was sent only to the OTHER test user channel and the test2 user channel
+                assert len(messages1) == 0
+                assert len(messages1_2) == 1
+                assert len(messages2) == 1
+                assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
+                assert messages2[0].get('message') == {'message': 'broadcast message new'}
 
 
 async def test_websocket_send_to_user():
@@ -249,51 +257,51 @@ async def test_websocket_send_to_user():
     token1_2 = basic_auth.get_token(SessionRequestBody(username='test', password='test')).get('token')
     token2 = basic_auth.get_token(SessionRequestBody(username='test2', password='test2')).get('token')
 
-    async with AsyncTestClient(app) as client:
-        async with _async_ws_connect(client, token1) as ws1:
-            init1 = await ws1.receive_json()
-            channel_1 = init1['message']['channel']
+    async with AsyncTestClient(app) as client, _async_ws_connect(client, token1) as ws1:
+        init1 = await ws1.receive_json()
+        channel_1 = init1['message']['channel']
 
-            async with _async_ws_connect(client, token1_2) as ws1_2:
-                init1_2 = await ws1_2.receive_json()
-                async with _async_ws_connect(client, token2) as ws2:
-                    init_2 = await ws2.receive_json()
+        async with _async_ws_connect(client, token1_2) as ws1_2:
+            await ws1_2.receive_json()
+            async with _async_ws_connect(client, token2) as ws2:
+                await ws2.receive_json()
 
-                    # Send a message to user 'test'
-                    ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
-                    await ws_mgr.send_message_to_user('test', {'message': 'broadcast message'})
+                # Send a message to user 'test'
+                ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+                await ws_mgr.send_message_to_user('test', {'message': 'broadcast message'})
 
-                    # Check only user1 websockets received the message
-                    messages1 = await get_ws_messages(ws1, timeout=1)
-                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
-                    messages2 = await get_ws_messages(ws2, timeout=1)
+                # Check only user1 websockets received the message
+                messages1 = await get_ws_messages(ws1, timeout=1)
+                messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                messages2 = await get_ws_messages(ws2, timeout=1)
 
-                    assert len(messages1) == 1
-                    assert len(messages1_2) == 1
-                    assert len(messages2) == 0
+                assert len(messages1) == 1
+                assert len(messages1_2) == 1
+                assert len(messages2) == 0
 
-                    assert messages1[0].get('message') == {'message': 'broadcast message'}
-                    assert messages1_2[0].get('message') == {'message': 'broadcast message'}
+                assert messages1[0].get('message') == {'message': 'broadcast message'}
+                assert messages1_2[0].get('message') == {'message': 'broadcast message'}
 
-                    # Send a message to user 'test' while setting ignore_channel to one of the channel_ids
-                    await ws_mgr.send_message_to_user('test', {'message': 'broadcast message new'}, ignore_channel=channel_1)
+                # Send a message to user 'test' while setting ignore_channel to one of the channel_ids
+                await ws_mgr.send_message_to_user(
+                    'test', {'message': 'broadcast message new'}, ignore_channel=channel_1
+                )
 
-                    messages1 = await get_ws_messages(ws1, timeout=1)
-                    messages1_2 = await get_ws_messages(ws1_2, timeout=1)
-                    messages2 = await get_ws_messages(ws2, timeout=1)
+                messages1 = await get_ws_messages(ws1, timeout=1)
+                messages1_2 = await get_ws_messages(ws1_2, timeout=1)
+                messages2 = await get_ws_messages(ws2, timeout=1)
 
-                    # Check that the message was sent only to the OTHER test user channel
-                    assert len(messages1) == 0
-                    assert len(messages1_2) == 1
-                    assert len(messages2) == 0
-                    assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
-
+                # Check that the message was sent only to the OTHER test user channel
+                assert len(messages1) == 0
+                assert len(messages1_2) == 1
+                assert len(messages2) == 0
+                assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
 
 
 async def test_websocket_token_required():
     app = _start_application(config)
     async with AsyncTestClient(app) as client:
-        with pytest.raises(Exception) as e:
+        with pytest.raises(Exception):
             session = client.websocket_connect('/api/core/ws')
             await session.connect()
 
@@ -302,7 +310,7 @@ async def test_websocket_invalid_token():
     app = _start_application(config)
 
     async with AsyncTestClient(app) as client:
-        with pytest.raises(Exception) as e:
+        with pytest.raises(Exception):
             session = client.websocket_connect('/api/core/ws?token=random_token')
             await session.connect()
 
@@ -318,23 +326,22 @@ async def test_custom_ws_handler():
     config = create_app(builder)
     app = _start_application(config)
 
-    async with AsyncTestClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            # Receive the init message
-            init = await websocket.receive_json()
+    async with AsyncTestClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
 
-            # Send a message with our custom kind
-            await websocket.send_json({'type': 'custom', 'message': {'kind': 'my_custom_kind', 'data': 'test'}})
+        # Send a message with our custom kind
+        await websocket.send_json({'type': 'custom', 'message': {'kind': 'my_custom_kind', 'data': 'test'}})
 
-            # Should receive the message back
-            msg = await websocket.receive_json()
-            assert msg == {
-                'type': 'custom',
-                'message': {
-                    'kind': 'my_custom_kind',
-                    'data': {'channel': init.get('message').get('channel'), 'message': 'test', 'response': 'response'},
-                },
-            }
+        # Should receive the message back
+        msg = await websocket.receive_json()
+        assert msg == {
+            'type': 'custom',
+            'message': {
+                'kind': 'my_custom_kind',
+                'data': {'channel': init.get('message').get('channel'), 'message': 'test', 'response': 'response'},
+            },
+        }
 
 
 async def test_action_handler_error():
@@ -353,26 +360,25 @@ async def test_action_handler_error():
 
     app = _start_application(config)
 
-    async with AsyncTestClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            ws_channel = init.get('message').get('channel')
+    async with AsyncTestClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        ws_channel = init.get('message').get('channel')
 
-            # The error will be send as a websocket message
-            await _call_action(
-                client,
-                action,
-                {'ws_channel': ws_channel, 'input': 'test', 'values': {'old': 'current', 'kwarg_0': 'val2'}},
-            )
+        # The error will be send as a websocket message
+        await _call_action(
+            client,
+            action,
+            {'ws_channel': ws_channel, 'input': 'test', 'values': {'old': 'current', 'kwarg_0': 'val2'}},
+        )
 
-            # Websocket should receive a Notify action about the error
-            msg = await websocket.receive_json()
+        # Websocket should receive a Notify action about the error
+        msg = await websocket.receive_json()
 
-            assert 'action' in msg.get('message')
-            action = msg.get('message').get('action')
+        assert 'action' in msg.get('message')
+        action = msg.get('message').get('action')
 
-            assert action.get('name') == 'Notify'
-            assert action.get('status') == 'ERROR'
+        assert action.get('name') == 'Notify'
+        assert action.get('status') == 'ERROR'
 
 
 async def test_action_task_error():
@@ -440,383 +446,378 @@ async def test_action_task_error():
 async def test_two_websockets_both_with_values_with_set_ws_channel():
     app, token = setup_two_websocket_tests()
 
-    async with AsyncTestClient(app) as testclient:
-        async with _async_ws_connect(testclient, token) as websocket:
-            # get the init message
-            await websocket.receive_json()
-            variable = Variable(default='current')
-            expected_return_value = 'return_value'
-            var_value = None
+    async with AsyncTestClient(app) as testclient, _async_ws_connect(testclient, token) as websocket:
+        # get the init message
+        await websocket.receive_json()
+        variable = Variable(default='current')
+        expected_return_value = 'return_value'
+        var_value = None
 
-            async def server():
-                nonlocal var_value
-                var_value = await variable.get_current_value()
+        async def server():
+            nonlocal var_value
+            var_value = await variable.get_current_value()
 
-            async def client():
+        async def client():
+            # get msg from server
+            websocket_msg = await websocket.receive_json()
+
+            # Assert that the request is correct
+            assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+            assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+            # send a response back for the first websocket
+            await websocket.send_json(
+                {
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value,
+                }
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(client)
+            tg.start_soon(server)
+
+        async with _async_ws_connect(testclient, token) as second_ws:
+            second_init = await second_ws.receive_json()
+
+            ## Make sure the websocket channel is set correctly
+            WS_CHANNEL.set(second_init.get('message').get('channel'))
+
+            second_var_expected_value = 'second_var_expected_value'
+            second_var_value = None
+
+            async def second_server():
+                nonlocal second_var_value
+                second_var_value = await variable.get_current_value()
+
+            async def second_client():
                 # get msg from server
-                websocket_msg = await websocket.receive_json()
+                second_ws_message = await second_ws.receive_json()
 
                 # Assert that the request is correct
-                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
-                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+                assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                assert second_ws_message.get('message').get('variable').get('default') == 'current'
 
-                # send a response back for the first websocket
-                await websocket.send_json(
+                # send a response back for the second websocket
+                await second_ws.send_json(
                     {
                         'type': 'message',
-                        'channel': websocket_msg.get('message').get('__rchan'),
-                        'message': expected_return_value,
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': second_var_expected_value,
                     }
                 )
 
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(client)
-                tg.start_soon(server)
+            async with anyio.create_task_group() as tg_second:
+                ## run the first client again to return two values
+                tg_second.start_soon(second_client)
+                tg_second.start_soon(second_server)
 
-            async with _async_ws_connect(testclient, token) as second_ws:
-                second_init = await second_ws.receive_json()
+            # Assert that the second variable is correctly set based on the second response because of the WS_CHANNEL
+            assert second_var_value == second_var_expected_value
 
-                ## Make sure the websocket channel is set correctly
-                WS_CHANNEL.set(second_init.get('message').get('channel'))
-
-                second_var_expected_value = 'second_var_expected_value'
-                second_var_value = None
-
-                async def second_server():
-                    nonlocal second_var_value
-                    second_var_value = await variable.get_current_value()
-
-                async def second_client():
-                    # get msg from server
-                    second_ws_message = await second_ws.receive_json()
-
-                    # Assert that the request is correct
-                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
-                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
-
-                    # send a response back for the second websocket
-                    await second_ws.send_json(
-                        {
-                            'type': 'message',
-                            'channel': second_ws_message.get('message').get('__rchan'),
-                            'message': second_var_expected_value,
-                        }
-                    )
-
-                async with anyio.create_task_group() as tg_second:
-                    ## run the first client again to return two values
-                    tg_second.start_soon(second_client)
-                    tg_second.start_soon(second_server)
-
-                # Assert that the second variable is correctly set based on the second response because of the WS_CHANNEL
-                assert second_var_value == second_var_expected_value
-
-            # Assert that the first value remains unaffected by the second value
-            assert var_value == expected_return_value
+        # Assert that the first value remains unaffected by the second value
+        assert var_value == expected_return_value
 
 
 async def test_two_websockets_both_with_values_with_stale_ws_channel():
     app, token = setup_two_websocket_tests()
 
-    async with AsyncTestClient(app) as testclient:
-        async with _async_ws_connect(testclient, token) as websocket:
-            # get the init message
-            await websocket.receive_json()
-            variable = Variable(default='current')
-            expected_return_value = 'return_value'
-            var_value = None
+    async with AsyncTestClient(app) as testclient, _async_ws_connect(testclient, token) as websocket:
+        # get the init message
+        await websocket.receive_json()
+        variable = Variable(default='current')
+        expected_return_value = 'return_value'
+        var_value = None
 
-            async def server():
-                nonlocal var_value
-                var_value = await variable.get_current_value()
+        async def server():
+            nonlocal var_value
+            var_value = await variable.get_current_value()
 
-            async def client():
+        async def client():
+            # get msg from server
+            websocket_msg = await websocket.receive_json()
+
+            # Assert that the request is correct
+            assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+            assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+            # send a response back for the first websocket
+            await websocket.send_json(
+                {
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value,
+                }
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(client)
+            tg.start_soon(server)
+
+        async with _async_ws_connect(testclient, token) as second_ws:
+            second_init = await second_ws.receive_json()
+
+            ## Set the WS_CHANNEL to a stale value to make sure it is correctly ignored
+            WS_CHANNEL.set('STALE_CHANNEL')
+
+            second_var_expected_value = 'second_var_expected_value'
+            second_var_value = None
+
+            async def second_server():
+                nonlocal second_var_value
+                second_var_value = await variable.get_current_value()
+
+            async def second_client():
                 # get msg from server
-                websocket_msg = await websocket.receive_json()
+                second_ws_message = await second_ws.receive_json()
 
                 # Assert that the request is correct
-                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
-                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+                assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                assert second_ws_message.get('message').get('variable').get('default') == 'current'
 
-                # send a response back for the first websocket
-                await websocket.send_json(
+                # send a response back for the second websocket
+                await second_ws.send_json(
                     {
                         'type': 'message',
-                        'channel': websocket_msg.get('message').get('__rchan'),
-                        'message': expected_return_value,
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': second_var_expected_value,
                     }
                 )
 
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(client)
-                tg.start_soon(server)
+            async with anyio.create_task_group() as tg_second:
+                ## run the first client again to return two values
+                tg_second.start_soon(second_client)
+                tg_second.start_soon(second_server)
 
-            async with _async_ws_connect(testclient, token) as second_ws:
-                second_init = await second_ws.receive_json()
+            # Assert that the second variable is correctly set based on the second response because of the WS_CHANNEL
+            assert second_var_value[second_init.get('message').get('channel')] == second_var_expected_value
 
-                ## Set the WS_CHANNEL to a stale value to make sure it is correctly ignored
-                WS_CHANNEL.set('STALE_CHANNEL')
-
-                second_var_expected_value = 'second_var_expected_value'
-                second_var_value = None
-
-                async def second_server():
-                    nonlocal second_var_value
-                    second_var_value = await variable.get_current_value()
-
-                async def second_client():
-                    # get msg from server
-                    second_ws_message = await second_ws.receive_json()
-
-                    # Assert that the request is correct
-                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
-                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
-
-                    # send a response back for the second websocket
-                    await second_ws.send_json(
-                        {
-                            'type': 'message',
-                            'channel': second_ws_message.get('message').get('__rchan'),
-                            'message': second_var_expected_value,
-                        }
-                    )
-
-                async with anyio.create_task_group() as tg_second:
-                    ## run the first client again to return two values
-                    tg_second.start_soon(second_client)
-                    tg_second.start_soon(second_server)
-
-                # Assert that the second variable is correctly set based on the second response because of the WS_CHANNEL
-                assert second_var_value[second_init.get('message').get('channel')] == second_var_expected_value
-
-            # Assert that the first value remains unaffected by the second value
-            assert var_value == expected_return_value
+        # Assert that the first value remains unaffected by the second value
+        assert var_value == expected_return_value
 
 
 async def test_two_websockets_both_with_values_without_set_ws_channel():
     app, token = setup_two_websocket_tests()
 
-    async with AsyncTestClient(app) as testclient:
-        async with _async_ws_connect(testclient, token) as websocket:
-            # get the init message
-            init = await websocket.receive_json()
-            variable = Variable(default='current')
-            expected_return_value = 'return_value'
-            var_value = None
+    async with AsyncTestClient(app) as testclient, _async_ws_connect(testclient, token) as websocket:
+        # get the init message
+        init = await websocket.receive_json()
+        variable = Variable(default='current')
+        expected_return_value = 'return_value'
+        var_value = None
 
-            async def server():
-                nonlocal var_value
-                var_value = await variable.get_current_value()
+        async def server():
+            nonlocal var_value
+            var_value = await variable.get_current_value()
 
-            async def client():
+        async def client():
+            # get msg from server
+            websocket_msg = await websocket.receive_json()
+
+            # Assert that the request is correct
+            assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+            assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+            # send a response back for the first websocket
+            await websocket.send_json(
+                {
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value,
+                }
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(client)
+            tg.start_soon(server)
+
+        async with _async_ws_connect(testclient, token) as second_ws:
+            second_init = await second_ws.receive_json()
+
+            second_var_expected_value = 'second_var_expected_value'
+            second_var_value = None
+
+            async def second_server():
+                nonlocal second_var_value
+                second_var_value = await variable.get_current_value()
+
+            async def second_client():
                 # get msg from server
-                websocket_msg = await websocket.receive_json()
+                second_ws_message = await second_ws.receive_json()
 
                 # Assert that the request is correct
-                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
-                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+                assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                assert second_ws_message.get('message').get('variable').get('default') == 'current'
 
-                # send a response back for the first websocket
-                await websocket.send_json(
+                # send a response back for the second websocket
+                await second_ws.send_json(
                     {
                         'type': 'message',
-                        'channel': websocket_msg.get('message').get('__rchan'),
-                        'message': expected_return_value,
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': second_var_expected_value,
                     }
                 )
 
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(client)
-                tg.start_soon(server)
+            async with anyio.create_task_group() as tg_second:
+                ## run the first client again to return two values
+                tg_second.start_soon(client)
 
-            async with _async_ws_connect(testclient, token) as second_ws:
-                second_init = await second_ws.receive_json()
+                tg_second.start_soon(second_client)
+                tg_second.start_soon(second_server)
 
-                second_var_expected_value = 'second_var_expected_value'
-                second_var_value = None
+            # Assert that the second variable is a dict of both the first and second values because WS_CHANNEL is not set
+            assert second_var_value == {
+                second_init.get('message').get('channel'): second_var_expected_value,
+                init.get('message').get('channel'): expected_return_value,
+            }
 
-                async def second_server():
-                    nonlocal second_var_value
-                    second_var_value = await variable.get_current_value()
-
-                async def second_client():
-                    # get msg from server
-                    second_ws_message = await second_ws.receive_json()
-
-                    # Assert that the request is correct
-                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
-                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
-
-                    # send a response back for the second websocket
-                    await second_ws.send_json(
-                        {
-                            'type': 'message',
-                            'channel': second_ws_message.get('message').get('__rchan'),
-                            'message': second_var_expected_value,
-                        }
-                    )
-
-                async with anyio.create_task_group() as tg_second:
-                    ## run the first client again to return two values
-                    tg_second.start_soon(client)
-
-                    tg_second.start_soon(second_client)
-                    tg_second.start_soon(second_server)
-
-                # Assert that the second variable is a dict of both the first and second values because WS_CHANNEL is not set
-                assert second_var_value == {
-                    second_init.get('message').get('channel'): second_var_expected_value,
-                    init.get('message').get('channel'): expected_return_value,
-                }
-
-            # Assert that the first value remains unaffected by the second value
-            assert var_value == expected_return_value
+        # Assert that the first value remains unaffected by the second value
+        assert var_value == expected_return_value
 
 
 async def test_two_websockets_only_one_with_value():
     app, token = setup_two_websocket_tests()
 
-    async with AsyncTestClient(app) as testclient:
-        async with _async_ws_connect(testclient, token) as websocket:
-            init = await websocket.receive_json()
-            variable = Variable(default='current')
-            expected_return_value = 'return_value'
-            var_value = None
+    async with AsyncTestClient(app) as testclient, _async_ws_connect(testclient, token) as websocket:
+        await websocket.receive_json()
+        variable = Variable(default='current')
+        expected_return_value = 'return_value'
+        var_value = None
 
-            async def server():
-                nonlocal var_value
-                var_value = await variable.get_current_value()
+        async def server():
+            nonlocal var_value
+            var_value = await variable.get_current_value()
 
-            async def client():
+        async def client():
+            # get msg from server
+            websocket_msg = await websocket.receive_json()
+
+            # Assert that the request is correct
+            assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+            assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+            # send a response back
+            await websocket.send_json(
+                {
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value,
+                }
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(client)
+            tg.start_soon(server)
+
+        async with _async_ws_connect(testclient, token) as second_websocket:
+            await second_websocket.receive_json()
+            second_var_value = None
+
+            async def second_server():
+                nonlocal second_var_value
+                second_var_value = await variable.get_current_value()
+
+            async def second_client():
                 # get msg from server
-                websocket_msg = await websocket.receive_json()
+                second_ws_message = await second_websocket.receive_json()
 
                 # Assert that the request is correct
-                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
-                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+                assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                assert second_ws_message.get('message').get('variable').get('default') == 'current'
 
                 # send a response back
-                await websocket.send_json(
+                await second_websocket.send_json(
                     {
                         'type': 'message',
-                        'channel': websocket_msg.get('message').get('__rchan'),
-                        'message': expected_return_value,
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': NOT_REGISTERED,
                     }
                 )
 
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(client)
-                tg.start_soon(server)
+            async with anyio.create_task_group() as tg_second:
+                tg_second.start_soon(client)
+                tg_second.start_soon(second_client)
+                tg_second.start_soon(second_server)
 
-            async with _async_ws_connect(testclient, token) as second_websocket:
-                init = await second_websocket.receive_json()
-                second_var_value = None
+            # Assert that the second variable is correctly set based on the original value as the second value is not registered
+            assert second_var_value == expected_return_value
 
-                async def second_server():
-                    nonlocal second_var_value
-                    second_var_value = await variable.get_current_value()
-
-                async def second_client():
-                    # get msg from server
-                    second_ws_message = await second_websocket.receive_json()
-
-                    # Assert that the request is correct
-                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
-                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
-
-                    # send a response back
-                    await second_websocket.send_json(
-                        {
-                            'type': 'message',
-                            'channel': second_ws_message.get('message').get('__rchan'),
-                            'message': NOT_REGISTERED,
-                        }
-                    )
-
-                async with anyio.create_task_group() as tg_second:
-                    tg_second.start_soon(client)
-                    tg_second.start_soon(second_client)
-                    tg_second.start_soon(second_server)
-
-                # Assert that the second variable is correctly set based on the original value as the second value is not registered
-                assert second_var_value == expected_return_value
-
-            # Assert that the first value remains unaffected by the second value
-            assert var_value == expected_return_value
+        # Assert that the first value remains unaffected by the second value
+        assert var_value == expected_return_value
 
 
 async def test_two_websockets_only_one_with_value_return_exact():
     app, token = setup_two_websocket_tests()
 
-    async with AsyncTestClient(app) as testclient:
-        async with _async_ws_connect(testclient, token) as websocket:
-            init = await websocket.receive_json()
-            variable = Variable(default='current')
-            expected_return_value = 'return_value'
-            var_value = None
+    async with AsyncTestClient(app) as testclient, _async_ws_connect(testclient, token) as websocket:
+        await websocket.receive_json()
+        variable = Variable(default='current')
+        expected_return_value = 'return_value'
+        var_value = None
 
-            async def server():
-                nonlocal var_value
-                var_value = await variable.get_current_value()
+        async def server():
+            nonlocal var_value
+            var_value = await variable.get_current_value()
 
-            async def client():
+        async def client():
+            # get msg from server
+            websocket_msg = await websocket.receive_json()
+
+            # Assert that the request is correct
+            assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
+            assert websocket_msg.get('message').get('variable').get('default') == 'current'
+
+            # send a response back
+            await websocket.send_json(
+                {
+                    'type': 'message',
+                    'channel': websocket_msg.get('message').get('__rchan'),
+                    'message': expected_return_value,
+                }
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(client)
+            tg.start_soon(server)
+
+        async with _async_ws_connect(testclient, token) as second_websocket:
+            second_init = await second_websocket.receive_json()
+            second_var_value = None
+
+            async def second_server():
+                nonlocal second_var_value
+                second_var_value = await variable.get_current_value()
+
+            ## Make sure the websocket channel is set correctly
+            WS_CHANNEL.set(second_init.get('message').get('channel'))
+
+            async def second_client():
                 # get msg from server
-                websocket_msg = await websocket.receive_json()
+                second_ws_message = await second_websocket.receive_json()
 
                 # Assert that the request is correct
-                assert websocket_msg.get('message').get('variable').get('__typename') == 'Variable'
-                assert websocket_msg.get('message').get('variable').get('default') == 'current'
+                assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
+                assert second_ws_message.get('message').get('variable').get('default') == 'current'
 
                 # send a response back
-                await websocket.send_json(
+                await second_websocket.send_json(
                     {
                         'type': 'message',
-                        'channel': websocket_msg.get('message').get('__rchan'),
-                        'message': expected_return_value,
+                        'channel': second_ws_message.get('message').get('__rchan'),
+                        'message': NOT_REGISTERED,
                     }
                 )
 
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(client)
-                tg.start_soon(server)
+            async with anyio.create_task_group() as tg_second:
+                tg_second.start_soon(second_client)
+                tg_second.start_soon(second_server)
 
-            async with _async_ws_connect(testclient, token) as second_websocket:
-                second_init = await second_websocket.receive_json()
-                second_var_value = None
+            # Assert that the second variable is none -- this is due to the fact that we specified the channel and it should pull value in that channel
+            assert second_var_value is None
 
-                async def second_server():
-                    nonlocal second_var_value
-                    second_var_value = await variable.get_current_value()
-
-                ## Make sure the websocket channel is set correctly
-                WS_CHANNEL.set(second_init.get('message').get('channel'))
-
-                async def second_client():
-                    # get msg from server
-                    second_ws_message = await second_websocket.receive_json()
-
-                    # Assert that the request is correct
-                    assert second_ws_message.get('message').get('variable').get('__typename') == 'Variable'
-                    assert second_ws_message.get('message').get('variable').get('default') == 'current'
-
-                    # send a response back
-                    await second_websocket.send_json(
-                        {
-                            'type': 'message',
-                            'channel': second_ws_message.get('message').get('__rchan'),
-                            'message': NOT_REGISTERED,
-                        }
-                    )
-
-                async with anyio.create_task_group() as tg_second:
-                    tg_second.start_soon(second_client)
-                    tg_second.start_soon(second_server)
-
-                # Assert that the second variable is none -- this is due to the fact that we specified the channel and it should pull value in that channel
-                assert second_var_value is None
-
-            # Assert that the first value remains unaffected by the second value
-            assert var_value == expected_return_value
+        # Assert that the first value remains unaffected by the second value
+        assert var_value == expected_return_value
 
 
 def setup_two_websocket_tests():

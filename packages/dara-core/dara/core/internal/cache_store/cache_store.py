@@ -23,7 +23,7 @@ def cache_impl_for_policy(policy: PolicyT) -> CacheStoreImpl[PolicyT]:
     """
     impl: Optional[CacheStoreImpl] = None
 
-    if isinstance(policy, LruCachePolicy) or isinstance(policy, MostRecentCachePolicy):
+    if isinstance(policy, (LruCachePolicy, MostRecentCachePolicy)):
         impl = LRUCache(policy)
     elif isinstance(policy, TTLCachePolicy):
         impl = TTLCache(policy)

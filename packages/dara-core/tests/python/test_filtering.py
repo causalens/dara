@@ -58,7 +58,7 @@ def test_pagination(test_input, expected):
     paginated, count = apply_filters(data=TEST_DATA, pagination=Pagination(offset=offset, limit=limit))
     assert paginated is not None
     assert paginated.index.tolist() == expected
-    assert count == len(TEST_DATA)   # count pre-pagination
+    assert count == len(TEST_DATA)  # count pre-pagination
 
 
 @pytest.mark.parametrize(

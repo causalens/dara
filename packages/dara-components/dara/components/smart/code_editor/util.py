@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import ast
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 DEFAULT_WHITELIST = [
     # Inbuilts
@@ -63,9 +63,9 @@ class ScriptVisitor(ast.NodeVisitor):
                 self.declared_vars.append(target.id)
         self.generic_visit(node)
 
-    def visit_Attribute(self, attr):
-        self._check_dunder(attr, attr.attr)
-        self.generic_visit(attr)
+    def visit_Attribute(self, node):
+        self._check_dunder(node, node.attr)
+        self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
         self._check_dunder(node, node.name)
@@ -106,7 +106,7 @@ class ScriptVisitor(ast.NodeVisitor):
         raise SyntaxError(f'Imports are not allowed: {node.names}')
 
 
-def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
+def run_script(script: str, injections: Union[dict, None] = None, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
     """
     Run a given script in a "sandbox".
     Disallows imports, most globals except whitelisted ones.
@@ -131,13 +131,13 @@ def run_script(script: str, injections: dict = {}, whitelist: List[str] = DEFAUL
 
     """
     # Validate that the script is safe
+    if injections is None:
+        injections = {}
     module: ast.Module = ast.parse(script)
     visitor = ScriptVisitor([*whitelist, *injections.keys()])
     visitor.visit(module)
 
     # Run the script
     loc: dict = {}
-    exec(
-        script, injections, loc
-    )   # nosec B102 # this is unsafe but we make best effort with the above to make it as safe as possible
-    return loc.get('return_val', None)
+    exec(script, injections, loc)  # nosec B102 # this is unsafe but we make best effort with the above to make it as safe as possible
+    return loc.get('return_val')

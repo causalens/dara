@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from dara.components import Anchor, Stack, LayoutError
+from dara.components import Anchor, LayoutError, Stack
 
 from tests.python.utils import MockComponent
 

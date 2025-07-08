@@ -84,7 +84,7 @@ class Tooltip(ModifierComponent):
         content: Union[str, ComponentInstance, Variable[str], DerivedVariable[str]],
         placement: str = 'auto',
         styling: str = 'default',
-        **kwargs
+        **kwargs,
     ):
         # Unless there's one component and it's Stack, wrap components in Stack
         if not (len(components) == 1 and isinstance(components[0], Stack)):
