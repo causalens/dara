@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
+-  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables
+
 ## 1.17.6
 
 -  Fixed an issue with the handleAuthErrors function when it's used with a non-json, streaming response.

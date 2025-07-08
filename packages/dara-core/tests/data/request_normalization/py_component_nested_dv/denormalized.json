@@ -6,12 +6,10 @@
       {
         "type": "derived",
         "uid": "{{var_2_uid}}",
-        "values": [
-          1
-        ],
-        "force": false
+        "values": [1],
+        "force_key": null
       }
     ],
-    "force": false
+    "force_key": null
   }
 }

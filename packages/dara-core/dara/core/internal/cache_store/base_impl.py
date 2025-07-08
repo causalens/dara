@@ -19,12 +19,13 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         """
 
     @abc.abstractmethod
-    async def get(self, key: str, unpin: bool = False) -> Any:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any:
         """
         Retrieve an entry from the cache.
 
         :param key: The key of the entry to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         """
 
     @abc.abstractmethod

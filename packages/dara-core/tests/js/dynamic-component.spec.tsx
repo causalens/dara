@@ -55,7 +55,7 @@ describe('DynamicComponent', () => {
             </div>
         );
         await waitFor(() =>
-            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual({
+            expect(JSON.parse(getByTestId('wrapper').firstChild!.textContent!)).toEqual({
                 ...initialComponent.props,
                 uid: initialComponent.uid,
             })
@@ -76,7 +76,7 @@ describe('DynamicComponent', () => {
         );
 
         await waitFor(() =>
-            expect(JSON.parse(getByTestId('wrapper').firstChild.textContent)).toEqual({
+            expect(JSON.parse(getByTestId('wrapper').firstChild!.textContent!)).toEqual({
                 ...newComponent.props,
                 uid: newComponent.uid,
             })
@@ -87,7 +87,7 @@ describe('DynamicComponent', () => {
         function Harness(): JSX.Element {
             const fallback = React.useContext(FallbackCtx);
 
-            return <div data-testid="fallback">{fallback.suspend}</div>;
+            return <div data-testid="fallback">{fallback!.suspend}</div>;
         }
 
         const testSuspend = 999;
@@ -343,7 +343,7 @@ describe('DynamicComponent', () => {
                 values: {
                     data: {
                         test: {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'uid',
                             values: [{ __ref: 'Variable:dep1' }, { __ref: 'Variable:dep2' }],
@@ -401,7 +401,7 @@ describe('DynamicComponent', () => {
                                 column: 'col1',
                                 value: 'val1',
                             },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'uid',
                             values: [{ __ref: 'Variable:dep1' }, { __ref: 'Variable:dep2' }],
@@ -467,7 +467,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
             );
         });
 
@@ -479,7 +479,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
             );
         });
 
@@ -491,7 +491,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":5,"Variable:b":5}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"result","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":5,"Variable:b":5}},"ws_channel":"uid"}'
             );
         });
     });
@@ -568,7 +568,7 @@ describe('DynamicComponent', () => {
         await waitForElementToBeRemoved(() => getByTestId('LOADING'));
 
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
+            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
         );
 
         // Updating b shouldn't update output
@@ -578,7 +578,7 @@ describe('DynamicComponent', () => {
         });
         await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
+            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
         );
 
         // Updating a shouldn't update output
@@ -588,7 +588,7 @@ describe('DynamicComponent', () => {
         });
         await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
+            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
         );
 
         // Trigger should update the dynamic component output
@@ -598,7 +598,7 @@ describe('DynamicComponent', () => {
         await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() =>
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false}},"lookup":{"Variable:a":5,"Variable:b":5}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":5,"Variable:b":5}},"ws_channel":"uid"}'
             )
         );
     });
@@ -675,29 +675,90 @@ describe('DynamicComponent', () => {
         await waitFor(() => expect(getByTestId('dynamic-wrapper').innerHTML).not.toBe(''));
         await waitForElementToBeRemoved(() => getByTestId('LOADING'));
 
-        expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final_variable","values":[{"type":"derived","uid":"intermediate_variable","values":[{"__ref":"Variable:base_variable"}],"force":false}],"force":false}},"lookup":{"Variable:base_variable":5}},"ws_channel":"uid"}'
-        );
+        const getContent = (): object =>
+            JSON.parse(getByTestId('dynamic-wrapper').innerHTML.replace('TestComponent2: ', ''));
+
+        expect(getContent()).toEqual({
+            uid: 'uid',
+            values: {
+                data: {
+                    test: {
+                        type: 'derived',
+                        uid: 'final_variable',
+                        values: [
+                            {
+                                type: 'derived',
+                                uid: 'intermediate_variable',
+                                values: [{ __ref: 'Variable:base_variable' }],
+                                force_key: null,
+                            },
+                        ],
+                        force_key: null,
+                    },
+                },
+                lookup: { 'Variable:base_variable': 5 },
+            },
+            ws_channel: 'uid',
+        });
 
         // Updating a shouldn't update output
-        act(() => {
-            const input = getByTestId('a');
-            fireEvent.change(input, { target: { value: 10 } });
-        });
+        const input = getByTestId('a');
+        fireEvent.change(input, { target: { value: 10 } });
+
         await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
-        expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-            'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final_variable","values":[{"type":"derived","uid":"intermediate_variable","values":[{"__ref":"Variable:base_variable"}],"force":false}],"force":false}},"lookup":{"Variable:base_variable":5}},"ws_channel":"uid"}'
-        );
+
+        expect(getContent()).toEqual({
+            uid: 'uid',
+            values: {
+                data: {
+                    test: {
+                        type: 'derived',
+                        uid: 'final_variable',
+                        values: [
+                            {
+                                type: 'derived',
+                                uid: 'intermediate_variable',
+                                values: [{ __ref: 'Variable:base_variable' }],
+                                force_key: null,
+                            },
+                        ],
+                        force_key: null,
+                    },
+                },
+                lookup: { 'Variable:base_variable': 5 },
+            },
+            ws_channel: 'uid',
+        });
 
         // Trigger should update the dynamic component output
-        act(() => {
-            fireEvent.click(getByTestId('trigger'));
-        });
+        fireEvent.click(getByTestId('trigger'));
+
         await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() =>
-            expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final_variable","values":[{"type":"derived","uid":"intermediate_variable","values":[{"__ref":"Variable:base_variable"}],"force":true}],"force":true}},"lookup":{"Variable:base_variable":10}},"ws_channel":"uid"}'
-            )
+            expect(getContent()).toEqual({
+                uid: 'uid',
+                values: {
+                    data: {
+                        test: {
+                            type: 'derived',
+                            uid: 'final_variable',
+                            values: [
+                                {
+                                    type: 'derived',
+                                    uid: 'intermediate_variable',
+                                    values: [{ __ref: 'Variable:base_variable' }],
+                                    // intermediate var is forced
+                                    force_key: expect.any(String),
+                                },
+                            ],
+                            // top-level var is not forced
+                            force_key: null,
+                        },
+                    },
+                    lookup: { 'Variable:base_variable': 10 },
+                },
+                ws_channel: 'uid',
+            })
         );
     });
 
@@ -757,7 +818,7 @@ describe('DynamicComponent', () => {
         // Note: nested variables are denormalized separately
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force":false}},"lookup":{"Variable:nested-variable:a":1,"Variable:nested-variable:b":2}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force_key":null}},"lookup":{"Variable:nested-variable:a":1,"Variable:nested-variable:b":2}},"ws_channel":"uid"}'
             );
         });
 
@@ -768,7 +829,7 @@ describe('DynamicComponent', () => {
         });
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force":false}},"lookup":{"Variable:nested-variable:a":1,"Variable:nested-variable:b":2}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force_key":null}},"lookup":{"Variable:nested-variable:a":1,"Variable:nested-variable:b":2}},"ws_channel":"uid"}'
             );
         });
 
@@ -779,7 +840,7 @@ describe('DynamicComponent', () => {
         });
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force":false}},"lookup":{"Variable:nested-variable:a":5,"Variable:nested-variable:b":5}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"derived-variable","values":[{"__ref":"Variable:nested-variable:a"},{"__ref":"Variable:nested-variable:b"}],"force_key":null}},"lookup":{"Variable:nested-variable:a":5,"Variable:nested-variable:b":5}},"ws_channel":"uid"}'
             );
         });
     });
@@ -859,7 +920,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false},{"__ref":"Variable:c"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null},{"__ref":"Variable:c"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
             );
         });
 
@@ -871,7 +932,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false},{"__ref":"Variable:c"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null},{"__ref":"Variable:c"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
             );
         });
 
@@ -883,7 +944,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false},{"__ref":"Variable:c"}],"force":false}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null},{"__ref":"Variable:c"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2,"Variable:c":3}},"ws_channel":"uid"}'
             );
         });
 
@@ -895,7 +956,7 @@ describe('DynamicComponent', () => {
 
         await waitFor(() => {
             expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
-                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force":false},{"__ref":"Variable:c"}],"force":false}},"lookup":{"Variable:a":5,"Variable:b":5,"Variable:c":5}},"ws_channel":"uid"}'
+                'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"final","values":[{"type":"derived","uid":"intermediate","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null},{"__ref":"Variable:c"}],"force_key":null}},"lookup":{"Variable:a":5,"Variable:b":5,"Variable:c":5}},"ws_channel":"uid"}'
             );
         });
     });
@@ -1003,13 +1064,13 @@ describe('DynamicComponent', () => {
                     data: {
                         test: {
                             filters: { column: 'col1', operator: 'EQ', value: 'val1' },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'final',
                             values: [
                                 {
                                     filters: { column: 'col2', operator: 'EQ', value: 'val2' },
-                                    force: false,
+                                    force_key: null,
                                     type: 'derived-data',
                                     uid: 'intermediate',
                                     values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1037,13 +1098,13 @@ describe('DynamicComponent', () => {
                     data: {
                         test: {
                             filters: { column: 'col1', operator: 'EQ', value: 'val1' },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'final',
                             values: [
                                 {
                                     filters: { column: 'col2', operator: 'EQ', value: 'val2' },
-                                    force: false,
+                                    force_key: null,
                                     type: 'derived-data',
                                     uid: 'intermediate',
                                     values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1071,13 +1132,13 @@ describe('DynamicComponent', () => {
                     data: {
                         test: {
                             filters: { column: 'col1', operator: 'EQ', value: 'val1' },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'final',
                             values: [
                                 {
                                     filters: { column: 'col2', operator: 'EQ', value: 'val2' },
-                                    force: false,
+                                    force_key: null,
                                     type: 'derived-data',
                                     uid: 'intermediate',
                                     values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1105,13 +1166,13 @@ describe('DynamicComponent', () => {
                     data: {
                         test: {
                             filters: { column: 'col1', operator: 'EQ', value: 'val1' },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'final',
                             values: [
                                 {
                                     filters: { column: 'col2', operator: 'EQ', value: 'val2' },
-                                    force: false,
+                                    force_key: null,
                                     type: 'derived-data',
                                     uid: 'intermediate',
                                     values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1212,7 +1273,7 @@ describe('DynamicComponent', () => {
                             operator: 'EQ',
                             value: 'val1',
                         },
-                        force: false,
+                        force_key: null,
                         type: 'derived-data',
                         uid: 'empty',
                         values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1239,7 +1300,7 @@ describe('DynamicComponent', () => {
                             operator: 'EQ',
                             value: 'val1',
                         },
-                        force: false,
+                        force_key: null,
                         type: 'derived-data',
                         uid: 'empty',
                         values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1266,7 +1327,7 @@ describe('DynamicComponent', () => {
                             operator: 'EQ',
                             value: 'val1',
                         },
-                        force: false,
+                        force_key: null,
                         type: 'derived-data',
                         uid: 'empty',
                         values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1293,7 +1354,7 @@ describe('DynamicComponent', () => {
                                 operator: 'EQ',
                                 value: 'val1',
                             },
-                            force: false,
+                            force_key: null,
                             type: 'derived-data',
                             uid: 'empty',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],

@@ -30,20 +30,18 @@ from dara.core.logging import dev_logger
 
 
 class ResolvedDerivedVariable(TypedDict):
-    deps: List[int]
     type: Literal['derived']
     uid: str
     values: List[Any]
-    force: bool
+    force_key: Optional[str]
 
 
 class ResolvedDerivedDataVariable(TypedDict):
-    deps: List[int]
     type: Literal['derived-data']
     uid: str
     values: List[Any]
     filters: Optional[Union[FilterQuery, dict]]
-    force: bool
+    force_key: Optional[str]
 
 
 class ResolvedDataVariable(TypedDict):
@@ -64,7 +62,9 @@ def is_resolved_derived_variable(obj: Any) -> TypeGuard[ResolvedDerivedVariable]
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'derived'
 
 
-def is_resolved_derived_data_variable(obj: Any) -> TypeGuard[ResolvedDerivedDataVariable]:
+def is_resolved_derived_data_variable(
+    obj: Any,
+) -> TypeGuard[ResolvedDerivedDataVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'derived-data'
 
 
@@ -76,9 +76,29 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
+def clean_force_key(value: Any) -> Any:
+    """
+    Clean an argument to a value to remove force keys
+    """
+    if value is None:
+        return value
+
+    if isinstance(value, dict):
+        # Remove force key from the value
+        value.pop('force_key', None)
+        return {k: clean_force_key(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [clean_force_key(v) for v in value]
+    return value
+
+
 async def resolve_dependency(
     entry: Union[
-        ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, ResolvedSwitchVariable, Any
+        ResolvedDerivedDataVariable,
+        ResolvedDataVariable,
+        ResolvedDerivedVariable,
+        ResolvedSwitchVariable,
+        Any,
     ],
     store: CacheStore,
     task_mgr: TaskManager,
@@ -127,13 +147,21 @@ async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: C
     input_values: List[Any] = entry.get('values', [])
 
     result = await DerivedDataVariable.resolve_value(
-        data_var, dv_var, store, task_mgr, input_values, entry.get('force', False), entry.get('filters', None)
+        data_entry=data_var,
+        dv_entry=dv_var,
+        store=store,
+        task_mgr=task_mgr,
+        args=input_values,
+        filters=entry.get('filters', None),
+        force_key=entry.get('force_key'),
     )
     return remove_index(result)
 
 
 async def _resolve_derived_var(
-    derived_variable_entry: ResolvedDerivedVariable, store: CacheStore, task_mgr: TaskManager
+    derived_variable_entry: ResolvedDerivedVariable,
+    store: CacheStore,
+    task_mgr: TaskManager,
 ):
     """
     Resolve a derived variable from the registry and get it's new value based on the dynamic variable mapping passed
@@ -149,7 +177,11 @@ async def _resolve_derived_var(
     var = await registry_mgr.get(derived_variable_registry, str(derived_variable_entry.get('uid')))
     input_values: List[Any] = derived_variable_entry.get('values', [])
     result = await DerivedVariable.get_value(
-        var, store, task_mgr, input_values, derived_variable_entry.get('force', False)
+        var_entry=var,
+        store=store,
+        task_mgr=task_mgr,
+        args=input_values,
+        force_key=derived_variable_entry.get('force_key'),
     )
     return result['value']
 
@@ -228,7 +260,11 @@ def _evaluate_condition(condition: dict) -> bool:
             raise ValueError(f'Unknown condition operator: {operator}')
 
 
-async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, store: CacheStore, task_mgr: TaskManager):
+async def _resolve_switch_var(
+    switch_variable_entry: ResolvedSwitchVariable,
+    store: CacheStore,
+    task_mgr: TaskManager,
+):
     """
     Resolve a switch variable by evaluating its constituent parts and returning the appropriate value.
 

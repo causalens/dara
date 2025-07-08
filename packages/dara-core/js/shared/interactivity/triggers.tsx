@@ -1,8 +1,8 @@
+import { nanoid } from 'nanoid';
 import { type RecoilState, atom, useRecoilValue } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import {
-    type AnyVariable,
     type DataVariable,
     type DerivedDataVariable,
     type DerivedVariable,
@@ -12,6 +12,16 @@ import {
 } from '@/types';
 
 import { type TriggerIndexValue, atomRegistry, dataRegistry, getRegistryKey } from './store';
+
+/**
+ * Information about a trigger in the variable tree
+ */
+export interface TriggerInfo {
+    /** Path to the variable that owns this trigger */
+    path: string[];
+    /** The variable that owns this trigger */
+    variable: DerivedVariable | DerivedDataVariable | DataVariable;
+}
 
 /**
  * Get a trigger index for a variable from the atom registry, registering it if not already registered
@@ -26,9 +36,9 @@ export function getOrRegisterTrigger(variable: DerivedVariable | DerivedDataVari
             triggerKey,
             atom({
                 default: {
-                    force: false,
+                    force_key: null,
                     inc: 0,
-                },
+                } satisfies TriggerIndexValue,
                 key: triggerKey,
             })
         );
@@ -51,22 +61,23 @@ export function getOrRegisterDataVariableTrigger(
             key,
             atom({
                 default: {
-                    force: true as boolean,
+                    force_key: null,
                     inc: 0,
-                },
+                } as TriggerIndexValue,
                 effects: [
                     // synchronize with server triggers - increment when the variable is triggered on the server side
+                    // In the DataVariable case we always force so new key is generated
                     ({ setSelf }) => {
                         const subscription = wsClient.serverTriggers$(variable.uid).subscribe(() => {
                             setSelf((v) => {
                                 if (typeof v === 'object' && 'inc' in v) {
                                     return {
-                                        force: true,
+                                        force_key: nanoid(),
                                         inc: v.inc + 1,
                                     };
                                 }
                                 return {
-                                    force: true,
+                                    force_key: nanoid(),
                                     inc: 1,
                                 };
                             });
@@ -86,60 +97,66 @@ export function getOrRegisterDataVariableTrigger(
 }
 
 /**
- * Recursively register triggers as dependencies by calling the registerFunc on all nested derived variables
+ * Built a flat list of triggers, preserving information about the position of each trigger in the variable tree
  *
- * @param variable variable to register triggers for
- * @param wsClient websocket client
- * @param registerFunc register function to run
+ * @param variables Array of variables to analyze
+ * @returns list of triggers, with information about the variable that owns each trigger
  */
-export function registerTriggers(
-    variable: DerivedVariable | DerivedDataVariable,
-    wsClient: WebSocketClientInterface,
-    registerFunc: (state: RecoilState<any>) => TriggerIndexValue = useRecoilValue
-): Array<TriggerIndexValue> {
-    const triggers: TriggerIndexValue[] = [];
+export function buildTriggerList(variables: any[]): Array<TriggerInfo> {
+    const triggers: TriggerInfo[] = [];
 
-    // Register the variable itself
-    const triggerIndex = getOrRegisterTrigger(variable);
-    triggers.push(registerFunc(triggerIndex));
+    function walk(vars: any[], path: string[]): void {
+        for (const [idx, variable] of vars.entries()) {
+            if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+                const varPath = [...path, String(idx)];
+                // register trigger itself
+                triggers.push({
+                    path: varPath,
+                    variable,
+                });
 
-    // Register nested derived and data variables triggers recursively
-    variable.variables.forEach((v) => {
-        if (isDerivedVariable(v) || isDerivedDataVariable(v)) {
-            triggers.push(...registerTriggers(v, wsClient, registerFunc));
+                // register triggers for nested variables
+                // NOTE: path will be values since we map into ResolvedXVariables
+                walk(variable.variables, [...varPath, 'values']);
+            }
+            if (isDataVariable(variable)) {
+                // Store the path as path to the parent DV instead
+                // to force it
+                triggers.push({
+                    path: path.length > 0 ? path.slice(0, -1) : [],
+                    variable,
+                });
+            }
         }
-        if (isDataVariable(v)) {
-            const serverTrigger = getOrRegisterDataVariableTrigger(v, wsClient);
-            triggers.push(registerFunc(serverTrigger));
-        }
-    });
+    }
+
+    walk(variables, []);
 
     return triggers;
 }
 
 /**
- * Recursively register triggers in the list of dependant variables
+ * Recursively register triggers in the list of dependant variables using a pre-built trigger list
  *
- * @param variable variable to register triggers for
+ * @param triggerList flat list of triggers to register
  * @param wsClient websocket client
  * @param registerFunc register function to run
+ * @param triggerMap optional pre-built trigger map for efficiency
  */
 export function registerChildTriggers(
-    variables: AnyVariable<any>[],
+    triggerList: Array<TriggerInfo>,
     wsClient: WebSocketClientInterface,
     registerFunc: (state: RecoilState<any>) => TriggerIndexValue = useRecoilValue
 ): Array<TriggerIndexValue> {
-    const triggers: TriggerIndexValue[] = [];
-
-    variables.forEach((v) => {
-        if (isDerivedVariable(v) || isDerivedDataVariable(v)) {
-            triggers.push(...registerTriggers(v, wsClient, registerFunc));
+    return triggerList.map((triggerInfo) => {
+        if (isDerivedVariable(triggerInfo.variable) || isDerivedDataVariable(triggerInfo.variable)) {
+            const triggerIndex = getOrRegisterTrigger(triggerInfo.variable);
+            return registerFunc(triggerIndex);
         }
-        if (isDataVariable(v)) {
-            const serverTrigger = getOrRegisterDataVariableTrigger(v, wsClient);
-            triggers.push(registerFunc(serverTrigger));
+        if (isDataVariable(triggerInfo.variable)) {
+            const serverTrigger = getOrRegisterDataVariableTrigger(triggerInfo.variable, wsClient);
+            return registerFunc(serverTrigger);
         }
+        throw new Error('Invalid trigger variable type');
     });
-
-    return triggers;
 }

@@ -159,6 +159,7 @@ export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable |
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;
+    force_key?: string | null;
     type: 'derived';
     uid: string;
     values: Array<any>;
@@ -173,6 +174,7 @@ export interface ResolvedDataVariable {
 export interface ResolvedDerivedDataVariable {
     deps: Array<number>;
     filters: FilterQuery | null;
+    force_key?: string | null;
     type: 'derived-data';
     uid: string;
     values: Array<any>;

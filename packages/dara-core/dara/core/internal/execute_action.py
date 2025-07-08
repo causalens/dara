@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -30,11 +31,7 @@ from dara.core.interactivity.actions import (
     ActionImpl,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.dependency_resolution import (
-    is_resolved_derived_data_variable,
-    is_resolved_derived_variable,
-    resolve_dependency,
-)
+from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
@@ -146,10 +143,6 @@ async def execute_action(
         annotations = action.__annotations__
 
         for key, value in values.items():
-            # Override `force` property to be false
-            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
-                value['force'] = False
-
             typ = annotations.get(key)
             val = await resolve_dependency(value, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)

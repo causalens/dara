@@ -7,14 +7,8 @@ import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
 
 import { getVariableValue } from '../../js/shared/interactivity';
-import {
-    DataVariable,
-    DerivedDataVariable,
-    DerivedVariable,
-    SingleVariable,
-    Variable,
-    isVariable,
-} from '../../js/types';
+import type { DataVariable, DerivedDataVariable, DerivedVariable, SingleVariable, Variable } from '../../js/types';
+import { isVariable } from '../../js/types';
 import { Wrapper, server } from './utils';
 
 /**
@@ -42,7 +36,7 @@ function useVariableValue<VV, B extends boolean = false>(
                     search,
                     snapshot,
                     taskContext,
-                    extras
+                    extras,
                 });
             };
         },
@@ -146,12 +140,12 @@ describe('getVariableValue', () => {
         expect(typeof resolved === 'object' && typeof resolved.then === 'function').toBe(true);
         const res = await resolved;
         expect(res).toEqual({
-            force: false,
             is_data_variable: false,
+            force_key: null,
             values: {
                 data: [
                     {
-                        force: false,
+                        force_key: null,
                         type: 'derived',
                         uid: 'nested-derived',
                         values: [
@@ -183,9 +177,11 @@ describe('getVariableValue', () => {
 
         const derivedDataVariable: DerivedDataVariable = {
             __typename: 'DerivedDataVariable',
+            cache: { policy: 'default', cache_type: 'session' },
             deps: [variable],
             filters: {
                 column: 'col1',
+                operator: 'EQ',
                 value: 'val1',
             },
             uid: 'derived',
@@ -220,9 +216,11 @@ describe('getVariableValue', () => {
 
         const derivedDataVariable: DerivedDataVariable = {
             __typename: 'DerivedDataVariable',
+            cache: { policy: 'default', cache_type: 'session' },
             deps: [variable],
             filters: {
                 column: 'col1',
+                operator: 'EQ',
                 value: 'val1',
             },
             uid: 'derived',
@@ -233,7 +231,7 @@ describe('getVariableValue', () => {
 
         expect(result.current()).toEqual({
             deps: [0],
-            filters: { column: 'col1', value: 'val1' },
+            filters: { column: 'col1', value: 'val1', operator: 'EQ' },
             type: 'derived-data',
             uid: 'derived',
             values: [5],

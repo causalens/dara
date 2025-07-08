@@ -73,7 +73,7 @@ def test_normalizes_components_with_no_variables():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_no_variables'
     assert lookup_map == lookup_data
     assert jsonable_encoder(denormalize(normalized_layout, lookup_map)) == denormalized_data
 
@@ -105,7 +105,7 @@ def test_normalizes_components_with_data_variable():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_data_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert jsonable_encoder(denormalize(normalized_layout, lookup_map)) == denormalized_data
 
@@ -128,7 +128,7 @@ def test_normalizes_components_with_plain_variable():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_plain_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert denormalize(normalized_layout, lookup_map) == denormalized_data
 
@@ -154,7 +154,7 @@ def test_normalizes_components_with_derived_variable():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_derived_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert_dict_equal(denormalize(normalized_layout, lookup_map), denormalized_data)
 
@@ -184,7 +184,7 @@ def test_normalizes_components_with_nested_derived_variables():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_nested_derived_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert_dict_equal(denormalize(normalized_layout, lookup_map), denormalized_data)
 
@@ -219,7 +219,7 @@ def test_normalizes_components_with_nested_derived_data_variables():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_layout == normalized_data
+    assert normalized_layout == normalized_data, 'Failed for component_nested_derived_data_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert_dict_equal(denormalize(normalized_layout, lookup_map), denormalized_data)
 
@@ -247,7 +247,7 @@ def test_normalizes_nested_derived_variables():
     normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
     denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
 
-    assert normalized_var == normalized_data
+    assert normalized_var == normalized_data, 'Failed for nested_derived_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert_dict_equal(denormalize(normalized_var, lookup_map), denormalized_data)
 
@@ -274,4 +274,4 @@ def test_denormalizes_request_data():
         normalized_data = read_template_json(os.path.join(data_path, 'normalized.json'), replacement_data)
         denormalized_data = read_template_json(os.path.join(data_path, 'denormalized.json'), replacement_data)
 
-        assert denormalize(normalized_data, lookup_data) == denormalized_data
+        assert denormalize(normalized_data, lookup_data) == denormalized_data, f'Failed for {data_dir}'

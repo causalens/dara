@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid';
+
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
@@ -22,7 +24,7 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             const triggerAtom = getOrRegisterTrigger(variable);
 
             ctx.set(triggerAtom, (triggerIndexValue) => ({
-                force: true,
+                force_key: nanoid(),
                 inc: triggerIndexValue.inc + 1,
             }));
         } else if (isUrlVariable(variable)) {

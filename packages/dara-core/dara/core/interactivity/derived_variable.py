@@ -32,6 +32,7 @@ from typing import (
     cast,
 )
 
+from cachetools import LRUCache
 from pydantic import (
     ConfigDict,
     Field,
@@ -62,6 +63,16 @@ from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 
 VariableType = TypeVar('VariableType')
+
+# Global set to track force keys that have been encountered
+# LRU with 2048 entries should be sufficient to not drop in-progress force keys
+# but also not have to worry about memory leaks
+_force_keys_seen: LRUCache[str, bool] = LRUCache(maxsize=2048)
+
+VALUE_MISSING = object()
+"""
+Sentinel value to indicate that a value is missing from the cache
+"""
 
 
 class DerivedVariableResult(TypedDict):
@@ -146,7 +157,12 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     raise RuntimeError('run_as_task is not supported within a Jupyter environment')
 
         super().__init__(
-            cache=cache, uid=uid, variables=variables, polling_interval=polling_interval, deps=deps, nested=nested
+            cache=cache,
+            uid=uid,
+            variables=variables,
+            polling_interval=polling_interval,
+            deps=deps,
+            nested=nested,
         )
 
         # Import the registry of variables and register the function at import
@@ -208,11 +224,16 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         :param uid: uid of a DerivedVariable
         :param deps: list of indexes of dependencies
         """
+        from dara.core.internal.dependency_resolution import clean_force_key
+
         key = f'{uid}'
 
         filtered_args = [arg for idx, arg in enumerate(args) if idx in deps] if deps is not None else args
 
         for arg in filtered_args:
+            # remove force keys from the arg to not cause extra cache misses
+            arg = clean_force_key(arg)
+
             if isinstance(arg, dict):
                 key = f'{key}:{json.dumps(arg, sort_keys=True, default=str)}'
             else:
@@ -269,7 +290,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if not latest_value_registry.has(var_entry.uid):
             # Keep latest entry per scope (user,session); if cache_type is None, use GLOBAL
             reg_entry = LatestValueRegistryEntry(
-                uid=var_entry.uid, cache=Cache.Policy.MostRecent(cache_type=cache_type or Cache.Type.GLOBAL)
+                uid=var_entry.uid,
+                cache=Cache.Policy.MostRecent(cache_type=cache_type or Cache.Type.GLOBAL),
             )
             latest_value_registry.register(var_entry.uid, reg_entry)
         else:
@@ -285,7 +307,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         store: CacheStore,
         task_mgr: TaskManager,
         args: List[Any],
-        force: bool = False,
+        force_key: Optional[str] = None,
     ) -> DerivedVariableResult:
         """
         Get the value of this DerivedVariable. This method will check the main app store for an appropriate response
@@ -296,7 +318,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         :param store: the store instance to check for cached values
         :param task_mgr: task manager instance
         :param args: the arguments to call the underlying function with
-        :param force: whether to ignore cache
+        :param force_key: unique key for forced execution, if provided forces cache bypass
         """
         assert var_entry.func is not None, 'DerivedVariable function is not defined'
 
@@ -318,30 +340,32 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             values = []
 
             # dynamic import due to circular import
-            from dara.core.internal.dependency_resolution import (
-                is_resolved_derived_variable,
-                resolve_dependency,
+            from dara.core.internal.dependency_resolution import resolve_dependency
+
+            eng_logger.info(
+                f'Derived Variable {_uid_short} get_value',
+                {'uid': var_entry.uid, 'args': args},
             )
 
-            eng_logger.info(f'Derived Variable {_uid_short} get_value', {'uid': var_entry.uid, 'args': args})
-
             for val in args:
-                # Don't force nested DVs
-                if is_resolved_derived_variable(val):
-                    val['force'] = False
-
                 var_value = await resolve_dependency(val, store, task_mgr)
                 values.append(var_value)
 
             eng_logger.debug(
-                f'DerivedVariable {_uid_short}', 'resolved arguments', {'values': values, 'uid': var_entry.uid}
+                f'DerivedVariable {_uid_short}',
+                'resolved arguments',
+                {'values': values, 'uid': var_entry.uid},
             )
 
             # Loop over the passed arguments and if the expected type is a BaseModel and arg is a dict then convert the dict
             # to an instance of the BaseModel class.
             parsed_args = DerivedVariable._restore_pydantic_models(var_entry.func, *values)
 
-            dev_logger.debug(f'DerivedVariable {_uid_short}', 'executing', {'args': parsed_args, 'uid': var_entry.uid})
+            dev_logger.debug(
+                f'DerivedVariable {_uid_short}',
+                'executing',
+                {'args': parsed_args, 'uid': var_entry.uid},
+            )
 
             # Check if there are any Tasks to be run in the args
             has_tasks = any(isinstance(arg, BaseTask) for arg in parsed_args)
@@ -350,6 +374,24 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             await DerivedVariable.add_latest_value(store, var_entry, cache_key)
 
             cache_type = var_entry.cache
+
+            # Handle force key tracking to prevent double execution
+            effective_force = force_key is not None
+            if force_key is not None:
+                if force_key in _force_keys_seen:
+                    # This force key has been seen before, don't force again
+                    effective_force = False
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} force key already seen, using cached value',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
+                    )
+                else:
+                    # First time seeing this force key, add it to the set
+                    _force_keys_seen[force_key] = True
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} new force key, will force recalculation',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
+                    )
 
             # If deps is not None, force session use
             # Note: this is temporarily commented out as no tests were broken by removing it;
@@ -364,18 +406,33 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 {'uid': var_entry.uid},
             )
 
+            # Start with a sentinel value to indicate that the value is missing
+            # from cache, this lets us distinguish between a cache miss and a
+            # value that is None
+            value = VALUE_MISSING
+
             ignore_cache = (
                 var_entry.cache is None
                 or var_entry.polling_interval
                 or DerivedVariable.check_polling(var_entry.variables)
+                or effective_force
             )
-            value = await store.get(var_entry, key=cache_key) if not ignore_cache else None
-
-            eng_logger.debug(
-                f'DerivedVariable {_uid_short}',
-                'retrieved value from cache',
-                {'uid': var_entry.uid, 'cached_value': value},
-            )
+            if not ignore_cache:
+                try:
+                    value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short}',
+                        'retrieved value from cache',
+                        {'uid': var_entry.uid, 'cached_value': value},
+                    )
+                except KeyError:
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short}',
+                        'no value found in cache',
+                        {'uid': var_entry.uid},
+                    )
+                    # key error means no entry found;
+                    # this lets us distinguish from a None value stored and not found
 
             # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
             if isinstance(value, PendingTask):
@@ -392,11 +449,13 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                     f'DerivedVariable {_uid_short} waiting for pending value',
                     {'uid': var_entry.uid, 'pending_value': value},
                 )
-                return {'cache_key': cache_key, 'value': await store.get_or_wait(var_entry, key=cache_key)}
+                return {
+                    'cache_key': cache_key,
+                    'value': await store.get_or_wait(var_entry, key=cache_key),
+                }
 
-            # If there is a value that is not pending then we have the result so return it
-            # If force is True, don't return even if value is found and recalculate
-            if not force and value is not None:
+            # We retrieved an actual value from the cache, return it
+            if not ignore_cache and value is not VALUE_MISSING:
                 eng_logger.info(
                     f'DerivedVariable {_uid_short} returning cached value directly',
                     {'uid': var_entry.uid, 'cached_value': value},
@@ -492,7 +551,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         parent_dict = nxt(self)
-        return {**parent_dict, '__typename': 'DerivedVariable', 'uid': str(parent_dict['uid'])}
+        return {
+            **parent_dict,
+            '__typename': 'DerivedVariable',
+            'uid': str(parent_dict['uid']),
+        }
 
 
 class DerivedVariableRegistryEntry(CachedRegistryEntry):

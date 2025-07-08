@@ -128,20 +128,21 @@ export function resolveVariable<VariableType>(
 }
 
 /**
- * Claan value to a format understood by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
+ * Clean value to a format understood by the backend.
+ * Removes `deps`, preserves embedded `force_key` from resolved derived(data)variables.
  *
  * @param value a value to clean
- * @param force whether to force a derived variable recalculation
+ * @param forceKeyOverride optional force key to use instead of the one embedded in the resolved variable
  */
-export function cleanValue(value: unknown, force: boolean): any {
+export function cleanValue(value: unknown, forceKeyOverride?: string | null): any {
     if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
         const { deps, ...rest } = value;
-        const cleanedValues = value.values.map((v) => cleanValue(v, force));
+        const cleanedValues = value.values.map((v) => cleanValue(v));
 
         return {
             ...rest,
-            force,
+            // Use override if provided, otherwise use the embedded force_key from the resolved variable
+            force_key: forceKeyOverride ?? (value.force_key || null),
             values: cleanedValues,
         };
     }
@@ -149,9 +150,9 @@ export function cleanValue(value: unknown, force: boolean): any {
     if (isResolvedSwitchVariable(value)) {
         return {
             ...value,
-            value: cleanValue(value.value, force),
-            value_map: cleanValue(value.value_map, force),
-            default: cleanValue(value.default, force),
+            value: cleanValue(value.value, forceKeyOverride),
+            value_map: cleanValue(value.value_map, forceKeyOverride),
+            default: cleanValue(value.default, forceKeyOverride),
         };
     }
 
@@ -159,13 +160,16 @@ export function cleanValue(value: unknown, force: boolean): any {
 }
 
 /**
- * Claan kwargs to a format understood by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
+ * Clean kwargs to a format understood by the backend.
+ * Removes `deps`, preserves embedded `force_key` from resolved derived(data)variables.
+ *
+ * @param kwargs kwargs to clean
+ * @param forceKeyOverride optional force key to use instead of the one embedded in the resolved variable
  */
-export function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record<string, any> {
+export function cleanKwargs(kwargs: Record<string, any>, forceKeyOverride?: string | null): Record<string, any> {
     return Object.keys(kwargs).reduce(
         (acc, k) => {
-            acc[k] = cleanValue(kwargs[k], force);
+            acc[k] = cleanValue(kwargs[k], forceKeyOverride);
             return acc;
         },
         {} as Record<string, any>
@@ -174,11 +178,12 @@ export function cleanKwargs(kwargs: Record<string, any>, force: boolean): Record
 
 /**
  * Format values into a shape expected by the backend.
- * Removes `deps`, appends `force` to resolved derived(data)variables.
+ * Removes `deps`, preserves embedded `force_key` from resolved derived(data)variables.
  *
  * @param values list of values - plain values or ResolvedDerivedVariable constructs with plain values nested inside
+ * @param forceKeyOverride optional force key to use instead of the one embedded in the resolved variable
  */
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function cleanArgs(values: Array<any | ResolvedDerivedVariable>, force: boolean): any[] {
-    return values.map((val) => cleanValue(val, force));
+export function cleanArgs(values: Array<any | ResolvedDerivedVariable>, forceKeyOverride?: string | null): any[] {
+    return values.map((val) => cleanValue(val, forceKeyOverride));
 }
