@@ -115,7 +115,7 @@ class ContentComponent(BaseDashboardComponent):
 
         cmp_name = self.__class__.__name__
         if len(self.children) != 0:  # type: ignore
-            for child in self.children:  # type: ignore # pylint: disable=not-an-iterable
+            for child in self.children:  # type: ignore
                 if isinstance(child, LayoutComponent):
                     raise LayoutError(f'A {child.__class__.__name__} component cannot be nested inside a {cmp_name}')
 

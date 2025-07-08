@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# pylint: disable=unnecessary-lambda
 from collections.abc import MutableMapping
 from inspect import Parameter, isclass
 from typing import (
@@ -113,7 +112,7 @@ def _tuple_key_deserialize(d):
     return encoded_dict
 
 
-def _df_deserialize(x):  # pylint: disable=inconsistent-return-statements
+def _df_deserialize(x):
     """
     A function to deserialize data into a DataFrame
 

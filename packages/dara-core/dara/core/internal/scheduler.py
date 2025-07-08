@@ -179,7 +179,7 @@ class ScheduledJobFactory(BaseModel):
 
     @field_validator('weekday', mode='before')
     @classmethod
-    def validate_weekday(cls, weekday: Any) -> datetime:  # pylint: disable=E0213
+    def validate_weekday(cls, weekday: Any) -> datetime:
         if isinstance(weekday, datetime):
             return weekday
         if isinstance(weekday, str):

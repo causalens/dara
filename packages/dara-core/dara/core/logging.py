@@ -193,7 +193,7 @@ def _print_stacktrace():
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)  # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)
     return stackstr
 
 
@@ -205,9 +205,7 @@ class DaraProdFormatter(logging.Formatter):
 
     @staticmethod
     def _get_payload(record: logging.LogRecord) -> Dict[str, JsonSerializable]:
-        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(  # pylint:disable=consider-using-f-string
-            record.msecs
-        )
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(record.msecs)
         if isinstance(record.msg, dict):
             payload: Dict[str, JsonSerializable] = {
                 'timestamp': timestamp,

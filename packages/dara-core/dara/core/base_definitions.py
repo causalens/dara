@@ -66,7 +66,7 @@ def annotation_has_base_model(typ: Any) -> bool:
         type_args = get_args(typ)
         if len(type_args) > 0:
             return any(annotation_has_base_model(arg) for arg in type_args)
-    except:  # pylint: disable=bare-except # noqa: E722
+    except:  # noqa: E722
         # canot get arguments, should be a simple type
         pass
 
@@ -78,7 +78,7 @@ def annotation_has_base_model(typ: Any) -> bool:
 # It works by adding SerializeAsAny to all fields of the model.
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
-    def __new__(cls, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs):  # pylint: disable=bad-mcs-classmethod-argument
+    def __new__(cls, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs):
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
         for base in bases:
@@ -503,7 +503,6 @@ class AnnotatedAction(BaseModel):
 
     def __init__(self, **data):
         # Resolve the circular dependency to add a loading Variable to the model upon creation
-        # pylint: disable-next=import-error, import-outside-toplevel
         from dara.core.interactivity.plain_variable import Variable
 
         self.model_rebuild()

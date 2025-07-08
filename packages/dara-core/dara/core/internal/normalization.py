@@ -48,7 +48,7 @@ class Placeholder(TypedDict):
     Placeholder object 'Referrable' objects are replaced with
     """
 
-    __ref: str  # pylint: disable=unused-private-member
+    __ref: str
 
 
 class Referrable(TypedDict):
@@ -56,7 +56,7 @@ class Referrable(TypedDict):
     Describes an object which can be replaced by a Placeholder.
     """
 
-    __typename: str  # pylint: disable=unused-private-member
+    __typename: str
     uid: str
 
 

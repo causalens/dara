@@ -360,7 +360,7 @@ def _start_application(config: Configuration):
     app.include_router(core_api_router, prefix='/api/core')
 
     @app.get('/api/{rest_of_path:path}')
-    async def not_found():  # pylint: disable=unused-variable
+    async def not_found():
         raise HTTPException(status_code=404, detail='API endpoint not found')
 
     if len(config.pages) > 0:
@@ -379,14 +379,14 @@ def _start_application(config: Configuration):
             template = build_autojs_template(template, build_cache, config)
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
-            async def serve_app(request: Request):  # pylint: disable=unused-variable # pyright: ignore[reportRedeclaration]
+            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
                 return HTMLResponse(template)
 
         else:
             # Otherwise serve the Vite template
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
-            async def serve_app(request: Request):  # pylint: disable=unused-variable # pyright: ignore[reportRedeclaration]
+            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
                 return jinja_templates.TemplateResponse(request, 'index.html')  # type: ignore
 
     return app
