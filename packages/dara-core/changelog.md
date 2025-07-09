@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.2
 
 -  Internal: added `GENERATE_CODE_OVERRIDE` context variable to allow overriding the download code generation logic
 
