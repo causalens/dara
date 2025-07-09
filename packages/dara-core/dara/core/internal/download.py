@@ -96,10 +96,7 @@ async def generate_download_code(file_path: str, cleanup_file: bool) -> str:
     user = USER.get()
 
     # Unique download id
-    if override := GENERATE_CODE_OVERRIDE.get():
-        uid = override(file_path)
-    else:
-        uid = str(uuid4())
+    uid = override(file_path) if (override := GENERATE_CODE_OVERRIDE.get()) else str(uuid4())
 
     # Put it in the store under the registry entry with TTL configured
     await store.set(
