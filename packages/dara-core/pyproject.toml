@@ -9,7 +9,7 @@ lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit dara -r -ll -i"
-test = "DARA_TEST_FLAG=true poetry run pytest ./tests"
+test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests"
 
 [tool.poetry]
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
