@@ -80,6 +80,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+            packages/*/dara/*/umd
           key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
@@ -129,6 +130,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+            packages/*/dara/*/umd
           key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
@@ -182,6 +184,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+            packages/*/dara/*/umd
           key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
@@ -245,6 +248,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+            packages/*/dara/*/umd
           key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
@@ -296,6 +300,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+            packages/*/dara/*/umd
           key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
