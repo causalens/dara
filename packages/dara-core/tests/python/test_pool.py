@@ -25,7 +25,7 @@ from dara.core.internal.pool.worker import WorkerProcess
 
 from tests.python.utils import sleep_for, wait_assert, wait_for
 
-pytestmark = pytest.mark.anyio
+pytestmark = [pytest.mark.anyio, pytest.mark.xdist_group(name='pool')]
 
 WORKER_PARAMS: WorkerParameters = {'task_module': 'tests.python.tasks'}
 
