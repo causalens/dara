@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import ClassVar, Optional, Union  # noqa: F401
 
-from dara.core.definitions import BaseFallback, JsComponentDef, StyledComponentInstance
+from dara.core.definitions import BaseFallback, ComponentInstance, JsComponentDef, StyledComponentInstance  # noqa: F401
 
 DefaultFallbackDef = JsComponentDef(name='DefaultFallback', js_module='@darajs/core', py_module='dara.core')
 RowFallbackDef = JsComponentDef(name='RowFallback', js_module='@darajs/core', py_module='dara.core')

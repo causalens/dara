@@ -174,7 +174,7 @@ class ComponentInstance(BaseModel):
     error_handler: Optional[ErrorHandlingConfig] = None
     """Configure the error handling for the component"""
 
-    fallback: Optional[BaseFallback] = None
+    fallback: Optional[BaseFallback | ComponentInstance] = None
     """
     Fallback component to render in place of the actual UI if it has not finished loading
     """
@@ -195,6 +195,19 @@ class ComponentInstance(BaseModel):
 
     def __repr__(self):
         return '__dara__' + json.dumps(jsonable_encoder(self))
+
+    @field_validator('fallback', mode='before')
+    @classmethod
+    def validate_fallback(cls, fallback):
+        if isinstance(fallback, BaseFallback):
+            return fallback
+
+        # wrap custom component in fallback.custom
+        if isinstance(fallback, ComponentInstance):
+            from dara.core.visual.components.fallback import Fallback
+            return Fallback.Custom(component=fallback)
+
+        raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
 
     @field_validator('raw_css', mode='before')
     @classmethod
@@ -458,12 +471,25 @@ class PyComponentDef(BaseModel):
     func: Optional[Callable[..., Any]] = None
     name: str
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
-    fallback: Optional[BaseFallback] = None
+    fallback: Optional[BaseFallback | ComponentInstance] = None
     polling_interval: Optional[int] = None
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 
     type: Literal[ComponentType.PY] = ComponentType.PY
+
+    @field_validator('fallback', mode='before')
+    @classmethod
+    def validate_fallback(cls, fallback):
+        if isinstance(fallback, BaseFallback):
+            return fallback
+
+        # wrap custom component in fallback.custom
+        if isinstance(fallback, ComponentInstance):
+            from dara.core.visual.components.fallback import Fallback
+            return Fallback.Custom(component=fallback)
+
+        raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
 
 
 # Helper type annotation for working with components

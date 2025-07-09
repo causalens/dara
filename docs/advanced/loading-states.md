@@ -63,6 +63,17 @@ def my_component(name: str):
     return f'Hello World, {name}'
 ```
 
+As a shorthand, you can also pass a non-fallback component directly to the `fallback` prop if you don't need to customize the `suspend_render` settings:
+
+```python
+from dara.core import py_component
+from dara.components import Text
+
+@py_component(fallback=Text('Loading...'))
+def my_component(name: str):
+    return f'Hello World, {name}'
+```
+
 ## Suspend Render
 
 The `suspend_render`prop determines how the component behaves when it's waiting for new data to process and update its display. The behavior varies based on the value provided to the `suspend_render` prop:
