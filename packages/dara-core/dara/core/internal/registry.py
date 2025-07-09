@@ -16,8 +16,9 @@ limitations under the License.
 """
 
 import copy
+from collections.abc import MutableMapping
 from enum import Enum
-from typing import Generic, MutableMapping, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
@@ -43,6 +44,7 @@ class RegistryType(str, Enum):
     PENDING_TOKENS = 'Pending tokens'
     CUSTOM_WS_HANDLERS = 'Custom WS handlers'
     BACKEND_STORE = 'Backend Store'
+    DOWNLOAD_CODE = 'Download Code'
 
 
 class Registry(Generic[T]):

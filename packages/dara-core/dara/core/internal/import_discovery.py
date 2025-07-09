@@ -93,10 +93,9 @@ def run_discovery(
     # If module root is passed through, use it
     if 'module_root' in kwargs:
         root = kwargs.get('module_root')
-    else:
-        # Try to infer from module_name
-        if module_name is not None:
-            root = module_name.split('.')[0]
+    # Try to infer from module_name
+    elif module_name is not None:
+        root = module_name.split('.')[0]
 
     for k, v in global_symbols.items():
         # Ignore already encountered functions

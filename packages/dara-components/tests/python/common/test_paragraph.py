@@ -1,8 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from dara.components.common import LayoutError
-from dara.components.common import Code, Paragraph, Text
+from dara.components.common import Code, LayoutError, Paragraph, Text
 
 
 class TestParagraphComponent(unittest.TestCase):

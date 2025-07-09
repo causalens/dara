@@ -91,10 +91,10 @@ class BaseBasicAuthConfig(BaseAuthConfig):
                 )
             )
             return decoded
-        except jwt.ExpiredSignatureError:
-            raise AuthError(EXPIRED_TOKEN_ERROR, 401)
-        except jwt.DecodeError:
-            raise AuthError(INVALID_TOKEN_ERROR, 401)
+        except jwt.ExpiredSignatureError as e:
+            raise AuthError(EXPIRED_TOKEN_ERROR, 401) from e
+        except jwt.DecodeError as e:
+            raise AuthError(INVALID_TOKEN_ERROR, 401) from e
 
 
 class BasicAuthConfig(BaseBasicAuthConfig):
@@ -121,7 +121,7 @@ class DefaultAuthConfig(BaseAuthConfig):
         logout=BasicAuthLogout,
     )
 
-    def get_token(self, _: SessionRequestBody) -> TokenResponse:
+    def get_token(self, body: SessionRequestBody) -> TokenResponse:
         """
         Get a session token.
 
@@ -142,7 +142,7 @@ class DefaultAuthConfig(BaseAuthConfig):
             decoded = jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGO])
             SESSION_ID.set(decoded.get('session_id'))
             return TokenData.parse_obj(decoded)
-        except jwt.ExpiredSignatureError:
-            raise AuthError(EXPIRED_TOKEN_ERROR, 401)
-        except jwt.DecodeError:
-            raise AuthError(INVALID_TOKEN_ERROR, 401)
+        except jwt.ExpiredSignatureError as e:
+            raise AuthError(EXPIRED_TOKEN_ERROR, 401) from e
+        except jwt.DecodeError as e:
+            raise AuthError(INVALID_TOKEN_ERROR, 401) from e

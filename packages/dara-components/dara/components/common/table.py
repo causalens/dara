@@ -376,7 +376,7 @@ class Column(BaseModel):
     unique_items: Optional[List[str]] = None
     filter: Optional[TableFilter] = None
     formatter: Optional[dict] = None
-    label: Optional[str] = Field(default=None, validate_default=True)   # mimics always=True in pydantic v1
+    label: Optional[str] = Field(default=None, validate_default=True)  # mimics always=True in pydantic v1
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
@@ -402,13 +402,12 @@ class Column(BaseModel):
         formatter_type = formatter.get('type')
         if formatter_type not in TableFormatterType:
             raise ValueError(
-                f"Invalid formatter type: {formatter.get('type')}, accepted values {list(TableFormatterType)}"
+                f'Invalid formatter type: {formatter.get("type")}, accepted values {list(TableFormatterType)}'
             )
         if formatter_type in (TableFormatterType.NUMBER, TableFormatterType.PERCENT):
             precision = formatter.get('precision')
-            if precision is not None:
-                if not isinstance(precision, int) or precision <= 0:
-                    raise ValueError(f'Invalid precision value: {precision}, must be positive integer')
+            if precision is not None and (not isinstance(precision, int) or precision <= 0):
+                raise ValueError(f'Invalid precision value: {precision}, must be positive integer')
         elif formatter_type == TableFormatterType.NUMBER_INTL:
             locales = formatter.get('locales')
             if not isinstance(locales, str) or not (
@@ -442,9 +441,9 @@ class Column(BaseModel):
                     )
                 lower_bound = threshold.get('bounds')[0]
                 upper_bound = threshold.get('bounds')[1]
-                if not (isinstance(lower_bound, int) or isinstance(lower_bound, float)):
+                if not (isinstance(lower_bound, (int, float))):
                     raise ValueError(f'Invalid bound type: {lower_bound}, must be int or float')
-                if not (isinstance(upper_bound, int) or isinstance(upper_bound, float)):
+                if not (isinstance(upper_bound, (int, float))):
                     raise ValueError(f'Invalid bound type: {upper_bound}, must be int or float')
         elif formatter_type == TableFormatterType.BADGE:
             badges = formatter.get('badges')
@@ -461,7 +460,7 @@ class Column(BaseModel):
                     )
                 if not isinstance(badges[badge].get('color'), str):
                     raise ValueError(
-                        f"Invalid color: {badges[badge].get('color')} for badge: {badges[badge]}, must be a string"
+                        f'Invalid color: {badges[badge].get("color")} for badge: {badges[badge]}, must be a string'
                     )
         return formatter
 

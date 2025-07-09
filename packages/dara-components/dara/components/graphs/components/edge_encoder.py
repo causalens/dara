@@ -17,8 +17,6 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from cai_causal_graph.graph_components import Node
-from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
     ConfigDict,
@@ -28,6 +26,8 @@ from pydantic import (
 )
 from typing_extensions import TypedDict
 
+from cai_causal_graph.graph_components import Node
+from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
 from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
 from dara.components.graphs.graph_layout import (
     GraphLayout,

@@ -274,7 +274,7 @@ class SwitchVariable(NonDataVariable):
         true_value: Union[Any, NonDataVariable],
         false_value: Union[Any, NonDataVariable],
         uid: Optional[str] = None,
-    ) -> 'SwitchVariable':
+    ) -> SwitchVariable:
         """
         Create a SwitchVariable for boolean conditions.
 
@@ -350,7 +350,7 @@ class SwitchVariable(NonDataVariable):
         mapping: Union[Dict[Any, Any], NonDataVariable],
         default: Optional[Union[Any, NonDataVariable]] = None,
         uid: Optional[str] = None,
-    ) -> 'SwitchVariable':
+    ) -> SwitchVariable:
         """
         Create a SwitchVariable with a custom mapping.
 

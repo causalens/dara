@@ -17,16 +17,17 @@ limitations under the License.
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import math
 import uuid
+from collections.abc import Awaitable
 from contextvars import ContextVar
 from enum import Enum
 from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     Dict,
@@ -50,9 +51,9 @@ from dara.core.base_definitions import (
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
+    TaskProgressUpdate,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import TaskProgressUpdate
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -825,12 +826,10 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
-        ...
+    async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
-        ...
+    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
 
     async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
         """
@@ -1389,8 +1388,7 @@ class action:
         return bound_f
 
     @overload
-    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any: ...
 
     @overload
     def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore
@@ -1444,10 +1442,10 @@ class action:
         for key, value in all_kwargs.items():
             if key in self.func.__annotations__:
                 valid_value = True
-                try:
+                # The type is either not set or something tricky to verify, e.g. union
+                with contextlib.suppress(Exception):
                     valid_value = isinstance(value, (self.func.__annotations__[key], AnyVariable))
-                except Exception:
-                    pass  # The type is either not set or something tricky to verify, e.g. union
+
                 if not valid_value:
                     raise TypeError(
                         f'Argument: {key} was passed as a {type(value)}, but it should be '

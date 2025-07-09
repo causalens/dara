@@ -31,7 +31,7 @@ SETTINGS = {'THEME': light_theme}
 
 # We need to set the default theme for plotly so that plotly express when setting traces is able to pick up dara theme colors
 base_template = pio.templates['plotly']
-dara_theme = base_template.layout.update(SETTINGS['THEME']['layout'])   # type: ignore
+dara_theme = base_template.layout.update(SETTINGS['THEME']['layout'])  # type: ignore
 dara_template = go.layout.Template(layout=dara_theme)
 # Set the default theme for plotly
 pio.templates['dara_theme'] = dara_template
@@ -133,7 +133,6 @@ class Plotly(StyledComponentInstance):
         events: Optional[List[PlotlyEvent]] = None,
         **kwargs,
     ):
-
         if theme is None and figure is not None:
             figure.update_layout(template=theme if theme is not None else SETTINGS['THEME'])
 

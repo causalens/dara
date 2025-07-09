@@ -1,5 +1,4 @@
 # This file contains some dummy tasks that can be run in tests and pass the task validation logic
-import sys
 import time
 
 import anyio

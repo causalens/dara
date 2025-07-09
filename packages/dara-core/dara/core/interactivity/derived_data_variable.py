@@ -18,7 +18,8 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable, Coroutine, List, Optional, Union, cast
+from collections.abc import Coroutine
+from typing import Any, Callable, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame

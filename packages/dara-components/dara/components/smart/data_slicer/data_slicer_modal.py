@@ -30,11 +30,11 @@ from dara.core.definitions import ComponentInstance, discover
 from dara.core.interactivity import AnyDataVariable, DerivedVariable, Variable
 
 
-def toggle_variable(ctx: UpdateVariable.Ctx):
+def toggle_variable(ctx: UpdateVariable.Ctx):  # type: ignore
     return not ctx.inputs.old
 
 
-def increment(ctx: UpdateVariable.Ctx):
+def increment(ctx: UpdateVariable.Ctx):  # type: ignore
     return ctx.inputs.old + 1
 
 

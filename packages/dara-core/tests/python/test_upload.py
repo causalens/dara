@@ -1,4 +1,3 @@
-import base64
 import io
 import os
 import re
@@ -6,21 +5,20 @@ from typing import Optional, Union
 
 import numpy
 import pytest
+from async_asgi_testclient import TestClient
+from async_asgi_testclient.multipart import encode_multipart_formdata
+from pandas import DataFrame, Timestamp, read_csv, read_excel, to_datetime
+
 from dara.core.auth import BasicAuthConfig
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DataVariable
+from dara.core.interactivity import DataVariable, Variable  # noqa: F401
 from dara.core.interactivity.any_data_variable import upload as upload_impl
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.main import _start_application
-from async_asgi_testclient import TestClient
-from async_asgi_testclient.multipart import encode_multipart_formdata
 
-
-from pandas import DataFrame, read_csv, read_excel, to_datetime, Timestamp
-
-pytestmark = pytest.mark.anyio
+pytestmark = [pytest.mark.anyio, pytest.mark.xdist_group(name='upload')]
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
@@ -57,6 +55,9 @@ class MockComponent(ComponentInstance):
 
     def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
         super().__init__(text=text, uid='uid', action=action)
+
+
+MockComponent.model_rebuild()
 
 
 async def test_upload_data_variable_default_csv():

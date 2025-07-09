@@ -89,9 +89,7 @@ def read_from_shared_memory(pointer: SharedMemoryPointer) -> Any:
         data = shared_mem.buf[:data_size]
 
         # Unpickle and deepcopy
-        decoded_payload_shared = pickle.loads(
-            shared_mem.buf
-        )   # nosec B301 # we trust the shared memory pointer passed by the pool
+        decoded_payload_shared = pickle.loads(shared_mem.buf)  # nosec B301 # we trust the shared memory pointer passed by the pool
         decoded_payload = copy.deepcopy(decoded_payload_shared)
 
         # Cleanup
@@ -141,8 +139,8 @@ async def stop_process_async(process: BaseProcess, timeout: float = 3):
         try:
             os.kill(process.pid, signal.SIGKILL)
             await wait_while(process.is_alive, timeout)
-        except OSError:
-            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+        except OSError as e:
+            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
 
     # If it's still alive raise an exception
     if process.is_alive():
@@ -171,8 +169,8 @@ def stop_process(process: BaseProcess, timeout: float = 3):
         try:
             os.kill(process.pid, signal.SIGKILL)
             process.join(timeout)
-        except OSError:
-            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+        except OSError as e:
+            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
 
     # If it's still alive raise an exception
     if process.is_alive():

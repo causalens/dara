@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar
+from typing import ClassVar, Union
 
 from dara.core.definitions import BaseFallback, JsComponentDef, StyledComponentInstance
 
@@ -47,7 +47,7 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[str] = 'DefaultFallback'
+        py_component: ClassVar[Union[str, None]] = 'DefaultFallback'
 
     class Row(BaseFallback):
         """
@@ -72,7 +72,7 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[str] = 'RowFallback'
+        py_component: ClassVar[Union[str, None]] = 'RowFallback'
 
     class Custom(BaseFallback):
         """
@@ -96,6 +96,5 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[str] = 'CustomFallback'
-
+        py_component: ClassVar[Union[str, None]] = 'CustomFallback'
         component: StyledComponentInstance

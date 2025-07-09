@@ -42,6 +42,7 @@ VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_
 VariableType = TypeVar('VariableType')
 PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceStore, covariant=True)
 
+
 # TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
 class Variable(NonDataVariable, Generic[VariableType]):
     """
@@ -84,7 +85,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 
-        super().__init__(**kwargs)   # type: ignore
+        super().__init__(**kwargs)  # type: ignore
 
         if self.store:
             call_async(self.store.init, self)
@@ -257,7 +258,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
                 'Cannot create a Variable from a DerivedDataVariable, only standard DerivedVariables are allowed'
             )
 
-        return cls(default=other)   # type: ignore
+        return cls(default=other)  # type: ignore
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:

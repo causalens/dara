@@ -9,7 +9,7 @@ exclude = ["*.ipynb"]
 select = [
     "E",   # pycodestyle
     "F",   # Pyflakes
-    "UP",  # pyupgrade
+    # "UP",  # pyupgrade - TODO: enable once we're on python 3.11
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
     "I",   # isort
@@ -37,6 +37,6 @@ section-order = ["future", "standard-library", "third-party", "causalens", "firs
 sections = { causalens = ["cl*", "cai*", "dara*"] }
 
 [lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.File", "fastapi.Body", "fastapi.Header", "fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]
+extend-immutable-calls = ["fastapi.File", "fastapi.Body", "fastapi.Header", "fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query", "fastapi.security.http.HTTPBearer", "fastapi.security.HTTPBearer"]
 
 

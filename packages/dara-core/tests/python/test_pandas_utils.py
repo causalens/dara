@@ -1,9 +1,11 @@
-from dara.core.internal.pandas_utils import df_to_json
-import pytest
-import pandas as pd
-import numpy as np
-from pandas.testing import assert_frame_equal
 import json
+
+import numpy as np
+import pandas as pd
+import pytest
+from pandas.testing import assert_frame_equal
+
+from dara.core.internal.pandas_utils import df_to_json
 
 
 @pytest.fixture
@@ -105,9 +107,9 @@ def test_mixed_dtypes():
     assert df_result['__col__1__B'].dtype == 'object', f'Expected object dtype, got {df_result["__col__1__B"].dtype}'
     assert df_result['__col__2__C'].dtype == 'float64', f'Expected float64 dtype, got {df_result["__col__2__C"].dtype}'
     assert df_result['__col__3__D'].dtype == 'bool', f'Expected bool dtype, got {df_result["__col__3__D"].dtype}'
-    assert (
-        df_result['__col__4__E'].dtype == 'int64'
-    ), f'Expected datetime64 dtype, got {df_result["__col__4__E"].dtype}'  # Datetime is sent as Unix timestamp
+    assert df_result['__col__4__E'].dtype == 'int64', (
+        f'Expected datetime64 dtype, got {df_result["__col__4__E"].dtype}'
+    )  # Datetime is sent as Unix timestamp
 
 
 def test_null_values():

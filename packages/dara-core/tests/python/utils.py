@@ -1,14 +1,13 @@
 import datetime
 import inspect
 import json
+from collections.abc import Awaitable, Mapping
 from contextlib import asynccontextmanager
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Dict,
     List,
-    Mapping,
     Tuple,
     TypeVar,
     Union,
@@ -76,11 +75,11 @@ def read_template_json(path: str, data: dict) -> dict:
     :param path: path to JSON file
     :param data: data to use for replacements
     """
-    with open(path, 'r', encoding='utf-8') as fp:
+    with open(path, encoding='utf-8') as fp:
         json_string = fp.read()
 
-        for key in data:
-            json_string = json_string.replace('{{' + key + '}}', data[key])
+        for key, val in data.items():
+            json_string = json_string.replace('{{' + key + '}}', val)
 
         return json.loads(json_string)
 
@@ -119,10 +118,10 @@ def _normalize_resolved_dv(resolved_dv: dict, definition: DerivedVariable[Any]) 
     return {**resolved_dv, 'values': normalized_values}, lookup
 
 
-def _get_at_index(l: List, idx: int):
+def _get_at_index(arr: List, idx: int):
     try:
-        return l[idx]
-    except:
+        return arr[idx]
+    except:  # noqa: E722
         return None
 
 
@@ -134,9 +133,7 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
     data: Union[Mapping, List[Any]] = {} if isinstance(values, dict) else [None for x in range(len(values))]
     lookup = {}
 
-    i = 0
-
-    for key, value in _loop(values):
+    for i, (key, value) in enumerate(_loop(values)):
         nested_def = cast(
             Union[DerivedVariable, DataVariable],
             definitions.get(key, None) if isinstance(definitions, dict) else _get_at_index(definitions, i),
@@ -158,8 +155,6 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
             data[key] = {'__ref': identifier}
         else:
             data[key] = value
-
-        i += 1
 
     return data, lookup
 
@@ -326,7 +321,7 @@ async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], tim
     result = condition()
     if inspect.iscoroutine(result):
         result = await result
-    assert result == True
+    assert result
 
 
 async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict]:
@@ -356,14 +351,12 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
         with anyio.move_on_after(timeout) as scope:
             msg = await ws.receive_json()
             # Valid message
-            if 'message' in msg:
-                # Action message
-                if 'action' in msg['message'] and msg['message']['uid'] == execution_id:
-                    # Sentinel to end listening
-                    if (action := msg['message']['action']) is None:
-                        break
-                    else:
-                        actions.append(action)
+            if 'message' in msg and 'action' in msg['message'] and msg['message']['uid'] == execution_id:
+                # Sentinel to end listening
+                if (action := msg['message']['action']) is None:
+                    break
+                else:
+                    actions.append(action)
 
         if scope.cancel_called:
             break

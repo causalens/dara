@@ -21,17 +21,16 @@ from __future__ import annotations
 # between other parts of the framework
 import abc
 import uuid
+from collections.abc import Awaitable, Mapping
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     Dict,
     List,
-    Mapping,
     Optional,
     Tuple,
     Union,
@@ -67,7 +66,7 @@ def annotation_has_base_model(typ: Any) -> bool:
         type_args = get_args(typ)
         if len(type_args) > 0:
             return any(annotation_has_base_model(arg) for arg in type_args)
-    except:   # pylint: disable=bare-except
+    except:  # noqa: E722
         # canot get arguments, should be a simple type
         pass
 
@@ -79,9 +78,7 @@ def annotation_has_base_model(typ: Any) -> bool:
 # It works by adding SerializeAsAny to all fields of the model.
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
-    def __new__(
-        self, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs
-    ):   # pylint: disable=bad-mcs-classmethod-argument
+    def __new__(cls, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs):
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
         for base in bases:
@@ -97,11 +94,11 @@ class SerializeAsAnyMeta(ModelMetaclass):
                 if isinstance(annotation, str) or annotation is ClassVar:
                     continue
                 if annotation_has_base_model(annotation):
-                    annotations[field] = SerializeAsAny[annotation]   # type: ignore
+                    annotations[field] = SerializeAsAny[annotation]  # type: ignore
 
         namespaces['__annotations__'] = annotations
 
-        return super().__new__(self, name, bases, namespaces, **kwargs)
+        return super().__new__(cls, name, bases, namespaces, **kwargs)
 
 
 class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
@@ -135,16 +132,17 @@ class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
                 and annotation_has_base_model(field_info.annotation)
             ):
                 # Skip if it has metadata that is already annotated with SerializeAsAny
-                if any(isinstance(x, SerializeAsAny) for x in field_info.metadata):   # type: ignore
+                if any(isinstance(x, SerializeAsAny) for x in field_info.metadata):  # type: ignore
                     continue
                 # Skip if the type is already annotated with SerializeAsAny
                 if get_origin(field_info.annotation) is Annotated and any(
-                    isinstance(arg, SerializeAsAny) for arg in field_info.annotation.__metadata__  # type: ignore
+                    isinstance(arg, SerializeAsAny)  # pyright: ignore[reportArgumentType]
+                    for arg in field_info.annotation.__metadata__  # type: ignore
                 ):
                     continue
 
-                field_info.annotation = SerializeAsAny[field_info.annotation]   # type: ignore
-                field_info.metadata = list(field_info.annotation.__metadata__)   # type: ignore
+                field_info.annotation = SerializeAsAny[field_info.annotation]  # type: ignore
+                field_info.metadata = list(field_info.annotation.__metadata__)  # type: ignore
 
         # Rebuild again with force to ensure we rebuild the schema with new annotations
         return super().model_rebuild(
@@ -255,10 +253,8 @@ class Cache:
             if isinstance(arg, Cache.Type):
                 return LruCachePolicy(cache_type=arg)
 
-            if isinstance(arg, str):
-                # Check that the string is one of allowed cache members
-                if typ := Cache.Type.get_member(arg):
-                    return LruCachePolicy(cache_type=typ)
+            if isinstance(arg, str) and (typ := Cache.Type.get_member(arg)):
+                return LruCachePolicy(cache_type=typ)
 
             raise ValueError(
                 f'Invalid cache argument: {arg}. Please provide a Cache.Policy object or one of Cache.Type members'
@@ -349,12 +345,10 @@ class BaseTask(abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None) -> Any:
-        ...
+    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None) -> Any: ...
 
     @abc.abstractmethod
-    async def cancel(self):
-        ...
+    async def cancel(self): ...
 
 
 class PendingTask(BaseTask):
@@ -504,12 +498,11 @@ class AnnotatedAction(BaseModel):
     dynamic_kwargs: Mapping[str, Any]
     """Dynamic kwargs of the action; uid -> variable instance"""
 
-    loading: 'Variable'   # type: ignore
+    loading: Variable  # type: ignore # noqa: F821
     """Loading Variable instance"""
 
     def __init__(self, **data):
         # Resolve the circular dependency to add a loading Variable to the model upon creation
-        # pylint: disable-next=import-error, import-outside-toplevel
         from dara.core.interactivity.plain_variable import Variable
 
         self.model_rebuild()

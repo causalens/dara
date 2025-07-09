@@ -44,10 +44,10 @@ def decode_token(token: str, **kwargs) -> TokenData:
     """
     try:
         return TokenData.parse_obj(jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGO], **kwargs))
-    except jwt.ExpiredSignatureError:
-        raise AuthError(code=401, detail=EXPIRED_TOKEN_ERROR)
-    except jwt.DecodeError:
-        raise AuthError(code=401, detail=INVALID_TOKEN_ERROR)
+    except jwt.ExpiredSignatureError as e:
+        raise AuthError(code=401, detail=EXPIRED_TOKEN_ERROR) from e
+    except jwt.DecodeError as e:
+        raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
 
 
 def sign_jwt(

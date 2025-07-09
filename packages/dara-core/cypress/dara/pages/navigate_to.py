@@ -1,5 +1,5 @@
-from dara.core.interactivity.actions import NavigateTo
 from dara.components import Button, Card, Stack
+from dara.core.interactivity.actions import NavigateTo
 
 
 def navigate_to():

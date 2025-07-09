@@ -1,5 +1,5 @@
-from dara.core import py_component
 from dara.components import Card, Stack, Text
+from dara.core import py_component
 
 
 # These py_components are defined dynamically inside other py_components

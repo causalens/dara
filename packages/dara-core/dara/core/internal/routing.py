@@ -18,9 +18,10 @@ limitations under the License.
 import inspect
 import json
 import os
+from collections.abc import Mapping
 from functools import wraps
 from importlib.metadata import version
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import anyio
 import pandas
@@ -57,6 +58,7 @@ from dara.core.internal.registries import (
     component_registry,
     data_variable_registry,
     derived_variable_registry,
+    download_code_registry,
     latest_value_registry,
     static_kwargs_registry,
     template_registry,
@@ -86,7 +88,7 @@ def error_decorator(handler: Callable[..., Any]):
                 if isinstance(err, HTTPException):
                     raise err
                 dev_logger.error('Unhandled error', error=err)
-                raise HTTPException(status_code=500, detail=str(err))
+                raise HTTPException(status_code=500, detail=str(err)) from err
 
         return _async_inner_func
 
@@ -99,7 +101,7 @@ def error_decorator(handler: Callable[..., Any]):
             if isinstance(err, HTTPException):
                 raise err
             dev_logger.error('Unhandled error', error=err)
-            raise HTTPException(status_code=500, detail=str(err))
+            raise HTTPException(status_code=500, detail=str(err)) from err
 
     return _inner_func
 
@@ -113,7 +115,7 @@ def create_router(config: Configuration):
     core_api_router = APIRouter()
 
     @core_api_router.get('/actions', dependencies=[Depends(verify_session)])
-    async def get_actions():  # pylint: disable=unused-variable
+    async def get_actions():
         return action_def_registry.get_all().items()
 
     class ActionRequestBody(BaseModel):
@@ -133,7 +135,7 @@ def create_router(config: Configuration):
         """Execution id, unique to this request"""
 
     @core_api_router.post('/action/{uid}', dependencies=[Depends(verify_session)])
-    async def get_action(uid: str, body: ActionRequestBody):  # pylint: disable=unused-variable
+    async def get_action(uid: str, body: ActionRequestBody):
         store: CacheStore = utils_registry.get('Store')
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -166,15 +168,22 @@ def create_router(config: Configuration):
 
         return {'execution_id': response}
 
-    @core_api_router.get('/download')
-    async def get_download(code: str):  # pylint: disable=unused-variable
+    @core_api_router.get('/download')  # explicitly unauthenticated
+    async def get_download(code: str):
         store: CacheStore = utils_registry.get('Store')
 
         try:
             data_entry = await store.get(DownloadRegistryEntry, key=code)
 
+            # If not found directly in the store, use the override registry
+            # to check if we can get the download entry from there
             if data_entry is None:
-                raise ValueError('Invalid or expired download code')
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+                # NOTE: This will throw a Value/KeyError if the code is not found so no need to rethrow
+                data_entry = await registry_mgr.get(download_code_registry, code)
+                # We managed to find one from the lookup,
+                # remove it from the registry immediately because it's one time use
+                download_code_registry.remove(code)
 
             async_file, cleanup = await data_entry.download(data_entry)
 
@@ -195,11 +204,11 @@ def create_router(config: Configuration):
                 background=BackgroundTask(cleanup),
             )
 
-        except KeyError:
-            raise ValueError('Invalid or expired download code')
+        except (KeyError, ValueError) as e:
+            raise ValueError('Invalid or expired download code') from e
 
     @core_api_router.get('/config', dependencies=[Depends(verify_session)])
-    async def get_config():  # pylint: disable=unused-variable
+    async def get_config():
         return {
             **config.model_dump(
                 include={
@@ -216,13 +225,13 @@ def create_router(config: Configuration):
         }
 
     @core_api_router.get('/auth-config')
-    async def get_auth_config():  # pylint: disable=unused-variable
+    async def get_auth_config():
         return {
             'auth_components': config.auth_config.component_config.model_dump(),
         }
 
     @core_api_router.get('/components', dependencies=[Depends(verify_session)])
-    async def get_components(name: Optional[str] = None):  # pylint: disable=unused-variable
+    async def get_components(name: Optional[str] = None):
         """
         If name is passed, will try to register the component
 
@@ -243,7 +252,7 @@ def create_router(config: Configuration):
         ws_channel: str
 
     @core_api_router.post('/components/{component}', dependencies=[Depends(verify_session)])
-    async def get_component(component: str, body: ComponentRequestBody):  # pylint: disable=unused-variable
+    async def get_component(component: str, body: ComponentRequestBody):
         CURRENT_COMPONENT_ID.set(body.uid)
         WS_CHANNEL.set(body.ws_channel)
         store: CacheStore = utils_registry.get('Store')
@@ -272,7 +281,7 @@ def create_router(config: Configuration):
         raise HTTPException(status_code=400, detail='Requesting this type of component is not supported')
 
     @core_api_router.get('/derived-variable/{uid}/latest', dependencies=[Depends(verify_session)])
-    async def get_latest_derived_variable(uid: str):  # pylint: disable=unused-variable
+    async def get_latest_derived_variable(uid: str):
         try:
             store: CacheStore = utils_registry.get('Store')
             latest_value_entry = latest_value_registry.get(uid)
@@ -296,9 +305,7 @@ def create_router(config: Configuration):
             return latest_value
 
         except KeyError as err:
-            raise ValueError(f'Could not find latest value for derived variable with uid: {uid}').with_traceback(
-                err.__traceback__
-            )
+            raise ValueError(f'Could not find latest value for derived variable with uid: {uid}') from err
 
     class DataVariableRequestBody(BaseModel):
         filters: Optional[FilterQuery] = None
@@ -313,7 +320,7 @@ def create_router(config: Configuration):
         limit: Optional[int] = None,
         order_by: Optional[str] = None,
         index: Optional[str] = None,
-    ):  # pylint: disable=unused-variable
+    ):
         try:
             store: CacheStore = utils_registry.get('Store')
             task_mgr: TaskManager = utils_registry.get('TaskManager')
@@ -378,7 +385,7 @@ def create_router(config: Configuration):
                 media_type='application/json',
             )  # type: ignore
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     class DataVariableCountRequestBody(BaseModel):
         cache_key: Optional[str] = None
@@ -404,7 +411,7 @@ def create_router(config: Configuration):
 
             return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
     async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
@@ -428,7 +435,7 @@ def create_router(config: Configuration):
             content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
             return Response(content=content, media_type='application/json')
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(
@@ -460,7 +467,7 @@ def create_router(config: Configuration):
 
             return {'status': 'SUCCESS'}
         except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     class DerivedStateRequestBody(BaseModel):
         values: NormalizedPayload[List[Any]]
@@ -469,7 +476,7 @@ def create_router(config: Configuration):
         is_data_variable: Optional[bool] = False
 
     @core_api_router.post('/derived-variable/{uid}', dependencies=[Depends(verify_session)])
-    async def get_derived_variable(uid: str, body: DerivedStateRequestBody):  # pylint: disable=unused-variable
+    async def get_derived_variable(uid: str, body: DerivedStateRequestBody):
         task_mgr: TaskManager = utils_registry.get('TaskManager')
         store: CacheStore = utils_registry.get('Store')
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
@@ -535,7 +542,7 @@ def create_router(config: Configuration):
                 tg.start_soon(_write, store_uid, value)
 
     @core_api_router.get('/tasks/{task_id}', dependencies=[Depends(verify_session)])
-    async def get_task_result(task_id: str):  # pylint: disable=unused-variable
+    async def get_task_result(task_id: str):
         try:
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             res = await task_mgr.get_result(task_id)
@@ -551,11 +558,11 @@ def create_router(config: Configuration):
                 return Response(df_to_json(res))
 
             return res
-        except Exception as e:
-            raise ValueError(f'The result for task id {task_id} could not be found').with_traceback(e.__traceback__)
+        except Exception as err:
+            raise ValueError(f'The result for task id {task_id} could not be found') from err
 
     @core_api_router.delete('/tasks/{task_id}', dependencies=[Depends(verify_session)])
-    async def cancel_task(task_id: str):  # pylint: disable=unused-variable
+    async def cancel_task(task_id: str):
         try:
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             return await task_mgr.cancel_task(task_id)
@@ -566,13 +573,13 @@ def create_router(config: Configuration):
             )
 
     @core_api_router.get('/template/{template}', dependencies=[Depends(verify_session)])
-    async def get_template(template: str):  # pylint: disable=unused-variable
+    async def get_template(template: str):
         try:
             selected_template = template_registry.get(template)
             normalized_template, lookup = normalize(jsonable_encoder(selected_template))
             return {'data': normalized_template, 'lookup': lookup}
-        except KeyError:
-            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry')
+        except KeyError as err:
+            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry') from err
         except Exception as e:
             dev_logger.error('Something went wrong while trying to get the template', e)
 

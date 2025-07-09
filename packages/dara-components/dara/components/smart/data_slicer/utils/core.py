@@ -17,7 +17,7 @@ limitations under the License.
 
 import re
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, cast
 
 import numpy
 from pandas import DataFrame, Series
@@ -83,7 +83,7 @@ def isnumber(*values: Union[str, float]):
     return True
 
 
-def apply_range_filter(range_filter: str, column: Series) -> Optional['Series[bool]']:
+def apply_range_filter(range_filter: str, column: Series) -> Optional['Series']:
     """
     Apply a 'range' filter on a column
 
@@ -126,7 +126,7 @@ def apply_range_filter(range_filter: str, column: Series) -> Optional['Series[bo
     return final_range_filter
 
 
-def apply_values_filter(values_filter: str, column: Series, col_type: ColumnType) -> Optional['Series[bool]']:
+def apply_values_filter(values_filter: str, column: Series, col_type: ColumnType) -> Optional['Series']:
     """
     Apply a 'values' filter on a column
 
@@ -177,7 +177,7 @@ def parseISO(date: str) -> numpy.datetime64:
     return numpy.datetime64(d)
 
 
-def apply_date_filter(from_date: str, to_date: str, column: 'Series[numpy.datetime64]') -> Optional['Series[bool]']:
+def apply_date_filter(from_date: str, to_date: str, column: 'Series') -> Optional['Series']:
     """
     Apply a 'from_date' and 'to_date' filters to a column
 
@@ -189,12 +189,12 @@ def apply_date_filter(from_date: str, to_date: str, column: 'Series[numpy.dateti
 
     if from_date != '':
         from_timestamp = parseISO(from_date)
-        from_date_filter = column.gt(from_timestamp)   # type: ignore
+        from_date_filter = column.gt(from_timestamp)  # type: ignore
         final_date_filter = from_date_filter
 
     if to_date != '':
         to_timestamp = parseISO(to_date)
-        to_date_filter = column.lt(to_timestamp)   # type: ignore
+        to_date_filter = column.lt(to_timestamp)  # type: ignore
         final_date_filter = final_date_filter & to_date_filter if final_date_filter is not None else to_date_filter
 
     return final_date_filter
@@ -212,9 +212,9 @@ def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> Da
     for fil in variable_filters:
         var = fil['column']
 
-        values_filter: Optional['Series[bool]'] = None
-        range_filter: Optional['Series[bool]'] = None
-        date_filter: Optional['Series[bool]'] = None
+        values_filter: Optional['Series'] = None
+        range_filter: Optional['Series'] = None
+        date_filter: Optional['Series'] = None
 
         if var is None or var.strip() == '':
             continue
@@ -223,14 +223,14 @@ def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> Da
 
         # Range filter
         if fil['range'] != '' and 'range' in ALLOWED_FILTERS[column_type]:
-            range_filter = apply_range_filter(fil['range'], data[var])
+            range_filter = apply_range_filter(fil['range'], cast(Series, data[var]))
 
         # Values filter
         if fil['values'] != '' and 'values' in ALLOWED_FILTERS[column_type]:
-            values_filter = apply_values_filter(fil['values'], data[var], column_type)
+            values_filter = apply_values_filter(fil['values'], cast(Series, data[var]), column_type)
 
         if (fil['from_date'] != '' or fil['to_date'] != '') and ('from_date' in ALLOWED_FILTERS[column_type]):
-            date_filter = apply_date_filter(fil['from_date'], fil['to_date'], data[var])
+            date_filter = apply_date_filter(fil['from_date'], fil['to_date'], cast(Series, data[var]))
 
         # OR all of the defined filters together
         final_filter = None
@@ -242,7 +242,7 @@ def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> Da
         if final_filter is not None:
             output = output[final_filter]
 
-    return output
+    return cast(DataFrame, output)
 
 
 def get_filter_stats(input_data: DataFrame, output_data: DataFrame, filters: List[FilterInstance]) -> FilterStats:

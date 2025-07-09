@@ -168,10 +168,7 @@ class Slider(FormComponent):
         # If step is not provided, run inference to check if the
         # client-side computed step is compatible with the domain range.
         # The actual step is computed in the client-side but we check it here to fail early.
-        if v is None:
-            step = compute_step(domain_range)
-        else:
-            step = Decimal(str(v))
+        step = compute_step(domain_range) if v is None else Decimal(str(v))
 
         # Not divisible
         if domain_range % step != 0:

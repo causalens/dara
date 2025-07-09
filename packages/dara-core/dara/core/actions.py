@@ -16,8 +16,7 @@ limitations under the License.
 """
 
 # Re-export actions so users can import from dara.core.actions instead of dara_core.interactivity
-# pylint: disable=unused-import
-from dara.core.interactivity import (
+from dara.core.interactivity import (  # noqa: F401
     DownloadContent,
     DownloadContentImpl,
     DownloadVariable,

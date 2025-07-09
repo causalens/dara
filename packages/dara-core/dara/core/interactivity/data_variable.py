@@ -312,7 +312,7 @@ class DataVariable(AnyDataVariable):
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         parent_dict = nxt(self)
         if 'data' in parent_dict:
-            parent_dict.pop('data')   # make sure data is not included in the serialised dict
+            parent_dict.pop('data')  # make sure data is not included in the serialised dict
         return {**parent_dict, '__typename': 'DataVariable', 'uid': str(parent_dict['uid'])}
 
 

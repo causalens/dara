@@ -2,8 +2,6 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
-
 from dara.components.common import Input, Label
 from dara.core.visual.components.types import Direction
 
@@ -42,5 +40,5 @@ class TestLabelComponent(unittest.TestCase):
         Label(input1, value='test label')
 
         # Multiple components is not allowed
-        with self.assertRaises(TypeError) as cm:
+        with self.assertRaises(TypeError):
             Label(input1, input2, value='test label')

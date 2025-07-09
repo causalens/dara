@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Awaitable
 from inspect import Parameter, signature
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Generic,
     List,
@@ -230,14 +230,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
         filtered_args = [arg for idx, arg in enumerate(args) if idx in deps] if deps is not None else args
 
-        for arg in filtered_args:
+        for raw_arg in filtered_args:
             # remove force keys from the arg to not cause extra cache misses
-            arg = clean_force_key(arg)
+            arg = clean_force_key(raw_arg)
 
-            if isinstance(arg, dict):
-                key = f'{key}:{json.dumps(arg, sort_keys=True, default=str)}'
-            else:
-                key = f'{key}:{arg}'
+            key = f'{key}:{json.dumps(arg, sort_keys=True, default=str)}' if isinstance(arg, dict) else f'{key}:{arg}'
         return key
 
     @staticmethod

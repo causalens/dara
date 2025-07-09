@@ -14,8 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
+import contextlib
 import json
 import uuid
+from collections import OrderedDict
+from collections.abc import Mapping
 from contextvars import ContextVar
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
@@ -24,9 +28,7 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Mapping,
     Optional,
-    OrderedDict,
     Union,
     overload,
 )
@@ -63,8 +65,7 @@ class PyComponentInstance(ComponentInstance):
 
 # sync/async simple
 @overload
-def py_component(function: Callable) -> Callable[..., PyComponentInstance]:
-    ...
+def py_component(function: Callable) -> Callable[..., PyComponentInstance]: ...
 
 
 # sync/async with args
@@ -76,8 +77,7 @@ def py_component(
     fallback: Optional[BaseFallback] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
-) -> Callable[[Callable], Callable[..., PyComponentInstance]]:
-    ...
+) -> Callable[[Callable], Callable[..., PyComponentInstance]]: ...
 
 
 def py_component(
@@ -160,10 +160,9 @@ def py_component(
             for key, value in all_kwargs.items():
                 if key in func.__annotations__:
                     valid_value = True
-                    try:
+                    # The type is either not set or something tricky to verify, e.g. union
+                    with contextlib.suppress(Exception):
                         valid_value = isinstance(value, (func.__annotations__[key], AnyVariable))
-                    except Exception:
-                        pass  # The type is either not set or something tricky to verify, e.g. union
                     if not valid_value:
                         raise TypeError(
                             f'Argument: {key} was passed as a {type(value)}, but it should be '
@@ -210,8 +209,8 @@ def py_component(
         _inner_func.__signature__ = Signature(  # type: ignore
             parameters=list(params.values()), return_annotation=old_signature.return_annotation
         )
-        _inner_func.__wrapped_by__ = py_component   # type: ignore
-        return _inner_func   # type: ignore
+        _inner_func.__wrapped_by__ = py_component  # type: ignore
+        return _inner_func  # type: ignore
 
     # If decorator is called with no optional argument then the function is passed as first argument
     if function:

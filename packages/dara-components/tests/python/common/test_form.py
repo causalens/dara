@@ -2,10 +2,8 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pydantic import ValidationError
-
-from dara.core.interactivity import Variable
 from dara.components.common import Form, FormPage, Switch
+from dara.core.interactivity import Variable
 
 test_uid = uuid.uuid4()
 
@@ -46,5 +44,5 @@ class TestFormComponent(unittest.TestCase):
         Form(fs3, value=form_state)
 
         # A mix is not allowed
-        with self.assertRaises(TypeError) as cm:
+        with self.assertRaises(TypeError):
             Form(FormPage(fs1), fs3, FormPage(fs2), value=form_state)

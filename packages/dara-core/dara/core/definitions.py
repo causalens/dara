@@ -19,15 +19,14 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Awaitable, Mapping
 from enum import Enum
 from typing import (
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
     Type,
@@ -264,8 +263,7 @@ class CallableClassComponent(Protocol):
     Callable class component protocol. Describes any class with a __call__ instance method returning a component instance.
     """
 
-    def __call__(self) -> ComponentInstance:
-        ...
+    def __call__(self) -> ComponentInstance: ...
 
 
 DiscoverTarget = Union[Callable[..., ComponentInstance], ComponentInstance, Type[CallableClassComponent]]
@@ -279,7 +277,7 @@ def discover(outer_obj: DiscoverT) -> DiscoverT:
     Will make sure to statically register all encountered dependencies of marked functional component or component class.
     Should not be necessary in most cases, mainly useful when creating component libraries.
     """
-    outer_obj.__wrapped_by__ = discover   # type: ignore
+    outer_obj.__wrapped_by__ = discover  # type: ignore
     return outer_obj
 
 
@@ -419,9 +417,8 @@ class BaseFallback(StyledComponentInstance):
     @field_validator('suspend_render')
     @classmethod
     def validate_suspend_render(cls, value):
-        if isinstance(value, int):
-            if value < 0:
-                raise ValueError('suspend_render must be a positive integer')
+        if isinstance(value, int) and value < 0:
+            raise ValueError('suspend_render must be a positive integer')
 
         return value
 
@@ -505,7 +502,7 @@ class Page(BaseModel):
     icon: Optional[str] = None
     content: ComponentInstanceType
     name: str
-    sub_pages: Optional[List['Page']] = []
+    sub_pages: Optional[List[Page]] = []
     url_safe_name: str
     include_in_menu: Optional[bool] = None
     on_load: Optional[Action] = None

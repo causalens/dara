@@ -1,6 +1,3 @@
-import os
-import shutil
-
 import pytest
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -158,7 +155,7 @@ def test_add_local_action():
     assert isinstance(action, ActionDef)
     assert action.name == 'TestAction'
     assert action.py_module == 'LOCAL'
-    assert action.js_module == None
+    assert action.js_module is None
 
 
 def test_add_nonlocal_action():
@@ -209,7 +206,7 @@ def test_add_local_component():
     assert isinstance(component, JsComponentDef)
     assert component.name == 'Test'
     assert component.py_module == 'LOCAL'
-    assert component.js_module == None
+    assert component.js_module is None
 
 
 def test_add_nonlocal_component():

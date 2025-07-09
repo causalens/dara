@@ -116,7 +116,7 @@ class FileStore(BaseModel):
         if not os.path.exists(file_path):
             return None
 
-        return io.open(file_path, 'rb')
+        return open(file_path, 'rb')
 
     def write_file(self, cache_type: CacheType, name: str) -> io.BufferedWriter:
         """
@@ -130,7 +130,7 @@ class FileStore(BaseModel):
         """
         scope_path = self.get_scoped_path(cache_type)
         os.makedirs(scope_path, exist_ok=True)
-        return io.open(os.path.join(scope_path, name), 'wb')
+        return open(os.path.join(scope_path, name), 'wb')
 
     def delete_file(self, cache_type: CacheType, name: str) -> None:
         """

@@ -1,15 +1,14 @@
-import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import anyio
-from fastapi.encoders import jsonable_encoder
 import pytest
 from anyio import create_task_group
+from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import Cache
-from dara.core.internal.pool import TaskPool
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.tasks import Task, TaskManager, TaskResultEntry, CachedRegistryEntry
+from dara.core.internal.pool import TaskPool
+from dara.core.internal.tasks import CachedRegistryEntry, Task, TaskManager
 from dara.core.internal.websocket import WebsocketManager
 
 from tests.python.tasks import calc_task, track_task
@@ -23,12 +22,12 @@ async def setup_pool():
 
     await utils_registry.get('Store').clear()
 
-    async with create_task_group() as tg:
-        async with TaskPool(
-            task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2
-        ) as pool:
-            utils_registry.set('TaskPool', pool)
-            yield
+    async with (
+        create_task_group() as tg,
+        TaskPool(task_group=tg, worker_parameters={'task_module': 'tests.python.tasks'}, max_workers=2) as pool,
+    ):
+        utils_registry.set('TaskPool', pool)
+        yield
 
 
 async def test_async_creating_task_with_function():
@@ -57,7 +56,7 @@ async def test_task_manager_run_task(_uid):
         pending_task = await task_manager.run_task(task, return_channel)
 
         # Task is pending
-        assert pending_task.event.is_set() == False
+        assert not pending_task.event.is_set()
 
         # No messages sent to websocket
         assert handler.receive_stream.statistics().current_buffer_used == 0
@@ -69,7 +68,7 @@ async def test_task_manager_run_task(_uid):
         result = await pending_task.run()
 
         assert result == '3'
-        assert pending_task.event.is_set() == True
+        assert pending_task.event.is_set()
 
         # Check the result is stored
         assert await task_manager.get_result('uid') == '3'
@@ -157,7 +156,10 @@ async def test_task_manager_cancel_task(_uid):
 
         assert 'cancel' in str(e.value)
 
-        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
+            'status': 'CANCELED',
+            'task_id': 'uid',
+        }
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
@@ -199,7 +201,10 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         assert 'cancel' in str(e.value)
 
         # Now the task should be canceled
-        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {'status': 'CANCELED', 'task_id': 'uid'}
+        assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
+            'status': 'CANCELED',
+            'task_id': 'uid',
+        }
 
         # Check that now the pending task should be removed
         assert await store.get(reg_entry, 'cache_key') is None

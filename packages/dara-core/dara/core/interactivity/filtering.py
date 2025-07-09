@@ -20,10 +20,10 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, cast
 
 import numpy
-from pandas import DataFrame, Series  # pylint: disable=unused-import
+from pandas import DataFrame, Series  # noqa: F401
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger
@@ -157,11 +157,11 @@ def infer_column_type(series: Series) -> ColumnType:
         return ColumnType.CATEGORICAL
 
 
-def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, value: Any) -> Optional['Series[bool]']:
+def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, value: Any) -> Optional[Series]:
     """
     Convert a single filter to a Series[bool] for filtering
     """
-    series = data[column]
+    series = cast(Series, data[column])
 
     # Contains is a special case, we always treat the column as a string
     if operator == QueryOperator.CONTAINS:
@@ -175,19 +175,15 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
             return series.isin(value)
         # Converts date passed from frontend to the right format to compare with pandas
         if col_type == ColumnType.DATETIME:
-            if isinstance(value, List):
-                value = [parseISO(value[0]), parseISO(value[1])]
-            else:
-                value = parseISO(value)
+            value = [parseISO(value[0]), parseISO(value[1])] if isinstance(value, List) else parseISO(value)
         elif col_type == ColumnType.CATEGORICAL:
             value = str(value)
+        elif isinstance(value, List):
+            lower_bound = float(value[0]) if '.' in str(value[0]) else int(value[0])
+            upper_bound = float(value[1]) if '.' in str(value[1]) else int(value[1])
+            value = [lower_bound, upper_bound]
         else:
-            if isinstance(value, List):
-                lower_bound = float(value[0]) if '.' in str(value[0]) else int(value[0])
-                upper_bound = float(value[1]) if '.' in str(value[1]) else int(value[1])
-                value = [lower_bound, upper_bound]
-            else:
-                value = float(value) if '.' in str(value) else int(value)
+            value = float(value) if '.' in str(value) else int(value)
 
         if operator == QueryOperator.GT:
             return series > value
@@ -208,12 +204,14 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
         return None
 
 
-def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> 'Optional[Series[bool]]':
+def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Series]:
     """
     Resolve a FilterQuery to a Series[bool] for filtering. Strips the internal column index from the query.
     """
     if isinstance(query, ValueQuery):
-        return _filter_to_series(data, re.sub(COLUMN_PREFIX_REGEX, '', query.column, 1), query.operator, query.value)
+        return _filter_to_series(
+            data, re.sub(COLUMN_PREFIX_REGEX, repl='', string=query.column, count=1), query.operator, query.value
+        )
     elif isinstance(query, ClauseQuery):
         filters = None
 
@@ -222,15 +220,9 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> 'Optional[Seri
 
             if resolved_clause is not None:
                 if query.combinator == QueryCombinator.AND:
-                    if filters is None:
-                        filters = resolved_clause
-                    else:
-                        filters = filters & resolved_clause
+                    filters = resolved_clause if filters is None else filters & resolved_clause
                 elif query.combinator == QueryCombinator.OR:
-                    if filters is None:
-                        filters = resolved_clause
-                    else:
-                        filters = filters | resolved_clause
+                    filters = resolved_clause if filters is None else filters | resolved_clause
                 else:
                     raise ValueError(f'Unknown combinator {query.combinator}')
 
@@ -262,7 +254,7 @@ def apply_filters(
     if pagination is not None:
         # ON FETCHING SPECIFIC ROW
         if pagination.index is not None:
-            return data[int(pagination.index) : int(pagination.index) + 1], total_count
+            return cast(DataFrame, data[int(pagination.index) : int(pagination.index) + 1]), total_count
 
         # SORT
         if pagination.orderBy is not None:
@@ -278,7 +270,7 @@ def apply_filters(
             if col == 'index':
                 new_data = new_data.sort_index(ascending=ascending, inplace=False)
             else:
-                new_data = new_data.sort_values(by=col, ascending=ascending, inplace=False)
+                new_data = new_data.sort_values(by=col, ascending=ascending, inplace=False)  # type: ignore
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0
@@ -286,4 +278,4 @@ def apply_filters(
 
         new_data = new_data.iloc[start_index:stop_index]
 
-    return new_data, total_count
+    return cast(DataFrame, new_data), total_count

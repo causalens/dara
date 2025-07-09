@@ -4,8 +4,21 @@ title: Changelog
 
 ## NEXT
 
+-  Fixed an issue where `UrlVariable` would be wiped in some cases. The variable now doesn't sync the default value to query params by default
+
+## 1.18.2
+
+-  Internal: added `GENERATE_CODE_OVERRIDE` context variable to allow overriding the download code generation logic
+
+## 1.18.1
+
+-  Fixed missing `cachetools` dependency
+
+## 1.18.0
+
 -  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
 -  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables
+-  Internal: added `RegistryLookup` key for `DOWNLOAD_CODE` to allow overriding the download code logic
 
 ## 1.17.6
 

@@ -63,7 +63,7 @@ async def test_verify_session():
         assert response.status_code == 400
 
         # Test wrong scheme
-        response = await client.get('/api/test-ext/test', headers={'Authorization': f'Basic user:pw'})
+        response = await client.get('/api/test-ext/test', headers={'Authorization': 'Basic user:pw'})
         assert response.status_code == 400
 
         # Test invalid token
@@ -72,13 +72,11 @@ async def test_verify_session():
 
 
 async def test_basic_auth():
-
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
     app = _start_application(config._to_configuration())
     async with AsyncClient(app) as client:
-
         # This should work
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
         assert response.status_code == 200
@@ -89,13 +87,11 @@ async def test_basic_auth():
 
 
 async def test_multi_basic_auth():
-
     config = ConfigurationBuilder()
     config.add_auth(MultiBasicAuthConfig({'test': 'test', 'cl': 'pass'}))
 
     app = _start_application(config._to_configuration())
     async with AsyncClient(app) as client:
-
         # This should work
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
         assert response.status_code == 200
@@ -264,7 +260,7 @@ async def test_refresh_token_live_ws_connection():
         # create two WS connections
         async with _async_ws_connect(client, token=old_token) as ws1:
             # check initial ws1 context
-            chan1 = await ws1.receive_json()
+            await ws1.receive_json()
             await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
             ws1_message = await ws1.receive_json()
             assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}

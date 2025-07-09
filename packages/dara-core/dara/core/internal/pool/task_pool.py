@@ -16,10 +16,11 @@ limitations under the License.
 """
 
 import atexit
+from collections.abc import Coroutine
 from contextlib import contextmanager
 from datetime import datetime
 from multiprocessing import active_children
-from typing import Any, Callable, Coroutine, Dict, Optional, cast
+from typing import Any, Callable, Dict, Optional, Union, cast
 
 import anyio
 from anyio.abc import TaskGroup
@@ -102,16 +103,18 @@ class TaskPool:
             try:
                 await wait_while(
                     lambda: self.status != PoolStatus.RUNNING
-                    or not len(self.workers) == self.desired_workers
+                    or len(self.workers) != self.desired_workers
                     or not all(w.status == WorkerStatus.IDLE for w in self.workers.values()),
                     timeout=timeout,
                 )
-            except TimeoutError:
-                raise RuntimeError('Failed to start pool')
+            except TimeoutError as e:
+                raise RuntimeError('Failed to start pool') from e
         else:
             raise RuntimeError('Pool already started')
 
-    def submit(self, task_uid: str, function_name: str, args: tuple = (), kwargs: dict = {}) -> TaskDefinition:
+    def submit(
+        self, task_uid: str, function_name: str, args: Union[tuple, None] = None, kwargs: Union[dict, None] = None
+    ) -> TaskDefinition:
         """
         Submit a new task to the pool
 
@@ -120,6 +123,10 @@ class TaskPool:
         :param args: list of arguments to pass to the function
         :param kwargs: dict of kwargs to pass to the function
         """
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
         self._check_pool_state()
 
         # Create a task definition to keep track of its progress
@@ -463,9 +470,8 @@ class TaskPool:
                 )
         elif is_log(worker_msg):
             dev_logger.info(f'Task: {worker_msg["task_uid"]}', {'logs': worker_msg['log']})
-        elif is_progress(worker_msg):
-            if worker_msg['task_uid'] in self._progress_subscribers:
-                await self._progress_subscribers[worker_msg['task_uid']](worker_msg['progress'], worker_msg['message'])
+        elif is_progress(worker_msg) and worker_msg['task_uid'] in self._progress_subscribers:
+            await self._progress_subscribers[worker_msg['task_uid']](worker_msg['progress'], worker_msg['message'])
 
     async def _wait_queue_depletion(self, timeout: Optional[float] = None):
         """
@@ -478,8 +484,8 @@ class TaskPool:
                 condition=lambda: self.status in (PoolStatus.CLOSED, PoolStatus.RUNNING) and len(self.tasks) > 0,
                 timeout=timeout,
             )
-        except TimeoutError:
-            raise TimeoutError('Tasks are still being executed')
+        except TimeoutError as e:
+            raise TimeoutError('Tasks are still being executed') from e
 
     async def _core_loop(self):
         """

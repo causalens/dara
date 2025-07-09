@@ -69,7 +69,6 @@ class Bokeh(StyledComponentInstance):
         :param document: the document to display
         """
         if figure is not None:
-
             doc = Document()
             doc.theme = _get_theme(theme)
             doc.add_root(figure)
