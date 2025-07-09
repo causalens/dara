@@ -174,7 +174,7 @@ class ComponentInstance(BaseModel):
     error_handler: Optional[ErrorHandlingConfig] = None
     """Configure the error handling for the component"""
 
-    fallback: Optional[BaseFallback | ComponentInstance] = None
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
     """
     Fallback component to render in place of the actual UI if it has not finished loading
     """
@@ -472,7 +472,7 @@ class PyComponentDef(BaseModel):
     func: Optional[Callable[..., Any]] = None
     name: str
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
-    fallback: Optional[BaseFallback | ComponentInstance] = None
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
     polling_interval: Optional[int] = None
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
