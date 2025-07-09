@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Awaitable
+from contextvars import ContextVar
 from typing import Callable, Optional, Tuple
 from uuid import uuid4
 
@@ -73,6 +74,13 @@ async def download(data_entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Call
     return (async_file, cleanup)
 
 
+GENERATE_CODE_OVERRIDE = ContextVar[Optional[Callable[[str], str]]]('GENERATE_CODE_OVERRIDE', default=None)
+"""
+Optional context variable which can be used to override the default behaviour of code generation.
+Invoked with the file path to generate a download code for.
+"""
+
+
 async def generate_download_code(file_path: str, cleanup_file: bool) -> str:
     """
     Generate a one-time download code for a given dataset.
@@ -88,7 +96,7 @@ async def generate_download_code(file_path: str, cleanup_file: bool) -> str:
     user = USER.get()
 
     # Unique download id
-    uid = str(uuid4())
+    uid = override(file_path) if (override := GENERATE_CODE_OVERRIDE.get()) else str(uuid4())
 
     # Put it in the store under the registry entry with TTL configured
     await store.set(

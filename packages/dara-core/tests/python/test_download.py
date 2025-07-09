@@ -17,7 +17,13 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import DownloadContent
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.download import DownloadDataEntry, DownloadRegistryEntry, download, generate_download_code
+from dara.core.internal.download import (
+    GENERATE_CODE_OVERRIDE,
+    DownloadDataEntry,
+    DownloadRegistryEntry,
+    download,
+    generate_download_code,
+)
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.registry import RegistryType
 from dara.core.main import _start_application
@@ -359,3 +365,10 @@ async def test_download_override():
             assert response.content == b'test'
             assert custom_download_called
             assert code_override_called
+
+
+async def test_download_code_override():
+    GENERATE_CODE_OVERRIDE.set(lambda x: f'{x}_override')
+
+    code = await generate_download_code('test_download.txt', cleanup_file=True)
+    assert code == 'test_download.txt_override'

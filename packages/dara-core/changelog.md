@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Internal: added `GENERATE_CODE_OVERRIDE` context variable to allow overriding the download code generation logic
+
 ## 1.18.1
 
 -  Fixed missing `cachetools` dependency
