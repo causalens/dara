@@ -199,6 +199,9 @@ class ComponentInstance(BaseModel):
     @field_validator('fallback', mode='before')
     @classmethod
     def validate_fallback(cls, fallback):
+        if fallback is None:
+            return None
+
         if isinstance(fallback, BaseFallback):
             return fallback
 
@@ -482,6 +485,9 @@ class PyComponentDef(BaseModel):
     @field_validator('fallback', mode='before')
     @classmethod
     def validate_fallback(cls, fallback):
+        if fallback is None:
+            return None
+
         if isinstance(fallback, BaseFallback):
             return fallback
 
