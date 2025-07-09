@@ -258,6 +258,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+        id: setup-python
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology
+      - name: Restore Python cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Link venvs
+        run: make link
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
