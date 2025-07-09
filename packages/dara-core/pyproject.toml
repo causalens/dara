@@ -9,7 +9,8 @@ lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit dara -r -ll -i"
-test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto -v"
+# Pool tests are ran after because they don't work well with parallelization
+test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto -v -m 'not pool' && poetry run pytest ./tests/python/test_pool.py -v"
 
 [tool.poetry]
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
@@ -99,3 +100,6 @@ dara = "dara.core.cli:cli"
 
 [tool.pytest.ini_options]
 timeout = 300
+markers = [
+    "pool: worker pool tests, should not be used with xdist"
+]
