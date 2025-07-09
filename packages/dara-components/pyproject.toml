@@ -44,7 +44,5 @@ ruff = ">=0.12.2"
 bandit = "^1.7.5"
 pytest = "^7.0.0"
 pyright = "^1.1.400"
-
-[tool.poetry.group.dev.dependencies]
 pytest-xdist = "^3.8.0"
 
