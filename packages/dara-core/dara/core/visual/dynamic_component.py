@@ -73,8 +73,8 @@ def py_component(function: Callable) -> Callable[..., PyComponentInstance]: ...
 def py_component(
     function: None = None,
     *,
-    placeholder: Optional[BaseFallback] = None,
-    fallback: Optional[BaseFallback] = None,
+    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
 ) -> Callable[[Callable], Callable[..., PyComponentInstance]]: ...
@@ -83,8 +83,8 @@ def py_component(
 def py_component(
     function: Optional[Callable] = None,
     *,
-    placeholder: Optional[BaseFallback] = None,
-    fallback: Optional[BaseFallback] = None,
+    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
 ) -> Union[Callable[..., PyComponentInstance], Callable[[Callable], Callable[..., PyComponentInstance]]]:

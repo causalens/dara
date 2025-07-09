@@ -4,6 +4,10 @@ title: Changelog
 
 ## 1.18.3
 
+-  Added a new `Fallback.Custom` option which allows you to specify a custom component to render when while suspended. The `fallback=` props for components now also supports passing any non-fallback component directly which implicitly wraps it in `Fallback.Custom`
+
+## 1.18.3
+
 -  Fixed an issue where `UrlVariable` would be wiped in some cases. The variable now doesn't sync the default value to query params by default
 
 ## 1.18.2
