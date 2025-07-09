@@ -20,6 +20,7 @@ interface VirtualizationConfig {
 interface ForProps {
     items: AnyVariable<Array<any>>;
     renderer: ComponentInstance;
+    empty: ComponentInstance | null;
     key_accessor: string | null;
     virtualization: VirtualizationConfig | null;
 }
@@ -101,6 +102,14 @@ function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNo
         },
         [props.virtualization, items]
     );
+
+    if (items.length === 0) {
+        if (!props.empty) {
+            return null;
+        }
+
+        return <DynamicComponent component={props.empty} />;
+    }
 
     if (props.virtualization === null) {
         // reapply the parent suspend setting

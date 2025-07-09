@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added an `empty` prop to the `For` component which allows you to specify a component to render when the data source is empty
+
 ## 1.18.3
 
 -  Fixed an issue where `UrlVariable` would be wiped in some cases. The variable now doesn't sync the default value to query params by default
