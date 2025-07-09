@@ -7,11 +7,14 @@ on:
   pull_request:
 
 jobs:
-  lint-and-tests:
+  setup:
     concurrency:
       group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
+    outputs:
+      cypress-version: ${{ steps.set-cypress.outputs.cypress }}
+      pnpm-store-path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,6 +27,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+        id: setup-python
       - uses: snok/install-poetry@v1
         with:
           version: 1.8.3
@@ -35,7 +39,6 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry anthology install
@@ -61,16 +64,180 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
       - name: Detect Cypress version used
         id: set-cypress
         run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"
+      - name: Install JS project dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+  lint-and-format:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+        id: setup-python
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology
+      - name: Restore Python cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Link venvs
+        run: make link
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.pnpm-store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install JS dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Run linting
+        run: make lint
+      - name: Run format check
+        run: make format-check
+
+  security-scans:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+        id: setup-python
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology
+      - name: Restore Python cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Link venvs
+        run: make link
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.pnpm-store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install JS dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Run Python security - Bandit
+        run: make security-scan
+      - name: Run JS security - Bearer
+        run: make bearer
+
+  python-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+        id: setup-python
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        run: poetry self add anthology
+      - name: Restore Python cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Link venvs
+        run: make link
+      - name: Run Python tests
+        run: poetry anthology run test
+
+  js-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.pnpm-store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install JS dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Run JS tests
+        run: pnpm lerna run test
+
+  e2e-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.pnpm-store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install JS dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Build JS packages for E2E
+        run: make prepare
       - name: Cache Cypress binary
         uses: actions/cache@v4
-        # This attempts to restore cached Cypress; if not found and job is successful, creates new cache
         with:
           path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-cypress-${{ steps.set-cypress.outputs.cypress }}
+          key: cypress-${{ runner.os }}-cypress-${{ needs.setup.outputs.cypress-version }}
           restore-keys: |
             cypress-${{ runner.os }}-cypress-
       - name: Install system deps
@@ -79,38 +246,26 @@ jobs:
         uses: awalsh128/cache-apt-pkgs-action@v1.4.3
         with:
           packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
-          version: cypress-${{ runner.os }}-${{ steps.set-cypress.outputs.cypress }}
-      - name: Install JS project dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Prepare resources required for testing
-        run: make prepare
-      - name: Run linting
-        run: make lint
-      - name: Run format check
-        run: make format-check
-      - name: Run Python security - Bandit
-        run: make security-scan
-      - name: Run JS security - Bearer
-        run: make bearer
-      - name: Run tests
-        run: make test
+          version: cypress-${{ runner.os }}-${{ needs.setup.outputs.cypress-version }}
       - name: Run Cypress E2E tests
         run: |
           cd packages/dara-core
           pnpm run test:e2e
         env:
-          # Override default setting to save screenshots in CI
           CYPRESS_SCREENSHOT_ON_RUN_FAILURE: true
       - name: Upload Cypress screenshots
-        # Uploads screenshots if Cypress tests failed
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: packages/dara-core/cypress/screenshots
           retention-days: 30
+
+  notify:
+    needs: [lint-and-format, security-scans, python-tests, js-tests, e2e-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
       - uses: 8398a7/action-slack@v3
         with:
           status: custom
@@ -119,8 +274,8 @@ jobs:
             {
               username: 'action-slack',
               attachments: [{
-                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-                text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} ${{ job.status }} in ${process.env.AS_TOOK}`,
+                color: '${{ contains(needs.*.result, 'failure') }}' === 'true' ? 'danger' : '${{ contains(needs.*.result, 'cancelled') }}' === 'true' ? 'warning' : 'good',
+                text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} ${{ contains(needs.*.result, 'failure') && 'failed' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'succeeded' }} in ${process.env.AS_TOOK}`,
               }]
             }
         env:
