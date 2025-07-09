@@ -205,6 +205,7 @@ class ComponentInstance(BaseModel):
         # wrap custom component in fallback.custom
         if isinstance(fallback, ComponentInstance):
             from dara.core.visual.components.fallback import Fallback
+
             return Fallback.Custom(component=fallback)
 
         raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
@@ -487,6 +488,7 @@ class PyComponentDef(BaseModel):
         # wrap custom component in fallback.custom
         if isinstance(fallback, ComponentInstance):
             from dara.core.visual.components.fallback import Fallback
+
             return Fallback.Custom(component=fallback)
 
         raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
