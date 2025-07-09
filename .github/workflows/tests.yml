@@ -6,11 +6,12 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   setup:
-    concurrency:
-      group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     runs-on: ubuntu-latest
     outputs:
       cypress-version: ${{ steps.set-cypress.outputs.cypress }}
