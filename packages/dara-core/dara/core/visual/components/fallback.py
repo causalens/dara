@@ -15,12 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar, Union
+from typing import ClassVar, Optional, Union  # noqa: F401
 
 from dara.core.definitions import BaseFallback, JsComponentDef, StyledComponentInstance
 
 DefaultFallbackDef = JsComponentDef(name='DefaultFallback', js_module='@darajs/core', py_module='dara.core')
 RowFallbackDef = JsComponentDef(name='RowFallback', js_module='@darajs/core', py_module='dara.core')
+CustomFallbackDef = JsComponentDef(name='CustomFallback', js_module='@darajs/core', py_module='dara.core')
 
 
 class Fallback:

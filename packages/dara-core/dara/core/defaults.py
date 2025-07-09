@@ -53,6 +53,7 @@ from dara.core.visual.components import (
     TopBarFrame,
     TopBarFrameDef,
 )
+from dara.core.visual.components.fallback import CustomFallbackDef
 from dara.core.visual.template import TemplateBuilder
 
 if TYPE_CHECKING:
@@ -79,6 +80,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     TopBarFrame.__name__: TopBarFrameDef,
     cast(str, Fallback.Default.py_component): DefaultFallbackDef,
     cast(str, Fallback.Row.py_component): RowFallbackDef,
+    cast(str, Fallback.Custom.py_component): CustomFallbackDef,
     For.__name__: ForDef,
 }
 

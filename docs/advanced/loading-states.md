@@ -12,11 +12,13 @@ Every component undergoes a "loading" state while it's fetching data or performi
 
 By default, every component, or the `@py_component` decorator, has the `Fallback.Default` component assigned to its `fallback` prop. This prop is optional – if you don't specify it, the default value is used.
 
-The `fallback` prop can currently take one of two fallback components: `Fallback.Default` and `Fallback.Row`.
+The `fallback` prop can currently take one of three fallback components: `Fallback.Default`, `Fallback.Row` and `Fallback.Custom`.
 
 - `Fallback.Default`: This fallback component is the default option. It occupies the entire height of the component's reserved space by default, maintaining the layout consistency while the component is loading data.
 
 - `Fallback.Row`: This fallback component is designed to be the height of a single line of content, resembling the height of an input component, by default.
+
+- `Fallback.Custom`: This fallback component accepts any other Dara component as its `component` prop. This allows you to specify a custom component to render while the component is loading data.
 
 Both `Fallback.Default` and `Fallback.Row` can be styled [like any other component](./styling-components.md). This gives you the flexibility to customize the appearance of your component during its loading state, including tweaking their sizing and other styles.
 
@@ -46,6 +48,17 @@ Text(derived_text, fallback=Fallback.Row(width='20ch'))
 
 # Also works for a py_component
 @py_component(fallback=Fallback.Row())
+def my_component(name: str):
+    return f'Hello World, {name}'
+```
+
+Alternatively, you can use the `Fallback.Custom` component to pass in a custom component:
+
+```python
+from dara.core import Fallback, py_component
+from dara.components import Text
+
+@py_component(fallback=Fallback.Custom(component=Text('Loading...')))
 def my_component(name: str):
     return f'Hello World, {name}'
 ```
