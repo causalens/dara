@@ -86,7 +86,7 @@ jobs:
           restore-keys: |
             js-build-${{ runner.os }}-
 
-  lint-and-format:
+  python-lint:
     needs: setup
     runs-on: ubuntu-latest
     steps:
@@ -109,89 +109,51 @@ jobs:
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Link venvs
         run: make link
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Restore pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.pnpm-store-path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      - name: Install JS dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Restore built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
-      - name: Run linting
-        run: make lint
-      - name: Run format check
-        run: make format-check
-
-  security-scans:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-        id: setup-python
-      - uses: snok/install-poetry@v1
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Restore Python cache
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Link venvs
-        run: make link
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Restore pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.pnpm-store-path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      - name: Install JS dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Restore built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
-      - name: Run Python security - Bandit
+      - name: Run Python linting
+        run: poetry anthology run lint
+      - name: Run Python format check
+        run: poetry anthology run format-check
+      - name: Run Python security scan
         run: make security-scan
-      - name: Run JS security - Bearer
+
+  js-lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.pnpm-store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install JS dependencies
+        run: make deps-project
+        env:
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      - name: Restore built JS packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/*/lib
+            packages/*/build
+            packages/*/dara/*/umd
+          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
+          restore-keys: |
+            js-build-${{ runner.os }}-
+      - name: Run JS linting
+        run: pnpm lerna run lint
+      - name: Run JS format check
+        run: pnpm lerna run format:check
+      - name: Run JS security scan
         run: make bearer
 
   python-tests:
@@ -334,7 +296,7 @@ jobs:
           retention-days: 30
 
   notify:
-    needs: [lint-and-format, security-scans, python-tests, js-tests, e2e-tests]
+    needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
