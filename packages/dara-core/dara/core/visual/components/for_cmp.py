@@ -40,7 +40,7 @@ class For(ComponentInstance):
     For(
         items=my_list,
         renderer=Text(text=my_list.list_item),
-        empty=Text('No items') # fallback component to render if the data source is empty
+        placeholder=Text('No items') # fallback component to render if the data source is empty
     )
     ```
 
@@ -140,7 +140,7 @@ class For(ComponentInstance):
 
     :param items: The data source to render the template component for.
     :param renderer: The template component to render for each item in the data source.
-    :param empty: The component to render if the data source is empty, i.e. there are no items.
+    :param placeholder: The component to render if the data source is empty, i.e. there are no items.
     :param key_accessor: The key accessor to use for the data source. If not provided, the key will be the index of the item in the data source.
     Can be a dotted path to access a nested path in the list item.
     :param virtualization: The virtualization configuration for the component. If provided, the component will be virtualized.
@@ -148,6 +148,6 @@ class For(ComponentInstance):
 
     items: AnyVariable
     renderer: ComponentInstance
-    empty: Optional[ComponentInstance] = None
+    placeholder: Optional[ComponentInstance] = None
     key_accessor: Optional[str] = None
     virtualization: Optional[VirtualizationConfig] = None

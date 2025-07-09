@@ -20,7 +20,7 @@ interface VirtualizationConfig {
 interface ForProps {
     items: AnyVariable<Array<any>>;
     renderer: ComponentInstance;
-    empty: ComponentInstance | null;
+    placeholder: ComponentInstance | null;
     key_accessor: string | null;
     virtualization: VirtualizationConfig | null;
 }
@@ -104,11 +104,11 @@ function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNo
     );
 
     if (items.length === 0) {
-        if (!props.empty) {
+        if (!props.placeholder) {
             return null;
         }
 
-        return <DynamicComponent component={props.empty} />;
+        return <DynamicComponent component={props.placeholder} />;
     }
 
     if (props.virtualization === null) {
