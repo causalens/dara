@@ -1,6 +1,6 @@
 {
   "name": "@darajs/styled-components",
-  "version": "1.18.2",
+  "version": "1.18.3",
   "description": "CL wrapper around styled components so everything gets the same instance",
   "main": "dist/index.js",
   "license": "Apache-2.0",
@@ -13,9 +13,9 @@
   },
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.18.2",
-    "@darajs/prettier-config": "1.18.2",
-    "@darajs/stylelint-config": "1.18.2",
+    "@darajs/eslint-config": "1.18.3",
+    "@darajs/prettier-config": "1.18.3",
+    "@darajs/stylelint-config": "1.18.3",
     "@types/styled-components": "^5.1.26",
     "eslint": "^8.57.1",
     "prettier": "^3.0.0",
