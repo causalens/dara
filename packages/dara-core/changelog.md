@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `UrlVariable` would be wiped in some cases. The variable now doesn't sync the default value to query params by default
+
 ## 1.18.2
 
 -  Internal: added `GENERATE_CODE_OVERRIDE` context variable to allow overriding the download code generation logic

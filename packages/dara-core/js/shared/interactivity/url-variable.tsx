@@ -20,7 +20,11 @@ export function getOrRegisterUrlVariable<T>(variable: UrlVariable<T>): RecoilSta
             atom({
                 default: variable.default,
                 effects: [
-                    urlSyncEffect({ history: 'push', itemKey: variable.query, refine: mixed(), syncDefault: true }),
+                    urlSyncEffect({
+                        history: 'push',
+                        itemKey: variable.query,
+                        refine: mixed(),
+                    }),
                 ],
                 key: variable.uid,
             })
