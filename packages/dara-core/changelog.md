@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.4
 
 -  Added a `placeholder` prop to the `For` component which allows you to specify a component to render when the data source is empty
 
