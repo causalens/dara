@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added a `placeholder` prop to the `For` component which allows you to specify a component to render when the data source is empty
+
 ## 1.18.3
 
 -  Added a new `Fallback.Custom` option which allows you to specify a custom component to render when while suspended. The `fallback=` props for components now also supports passing any non-fallback component directly which implicitly wraps it in `Fallback.Custom`
