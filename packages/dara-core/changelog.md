@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Unlock `packaging` dependency in `dara-core`
+
 ## 1.18.5
 
 -  Fixed an issue where WS_CHANNEL context var wasn't set within the websocket handler itself
