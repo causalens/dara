@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where WS_CHANNEL context var wasn't set within the websocket handler itself
+
 ## 1.18.4
 
 -  Added a `placeholder` prop to the `For` component which allows you to specify a component to render when the data source is empty
