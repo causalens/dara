@@ -344,6 +344,43 @@ async def test_custom_ws_handler():
         }
 
 
+async def test_custom_ws_handler_access_ws_channel():
+    """
+    Test that a custom WS handler can access the WS_CHANNEL context var
+    """
+    builder = ConfigurationBuilder()
+
+    def custom_handler(channel: str, msg):
+        return {'channel': channel, 'ws_channel': WS_CHANNEL.get(), 'message': msg}
+
+    builder.add_ws_handler(kind='my_custom_kind', handler=custom_handler)
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncTestClient(app) as client, _async_ws_connect(client) as websocket:
+        # Receive the init message
+        init = await websocket.receive_json()
+
+        # Send a message with our custom kind
+        await websocket.send_json({'type': 'custom', 'message': {'kind': 'my_custom_kind', 'data': 'test'}})
+
+        # Should receive the message back
+        msg = await websocket.receive_json()
+        assert msg == {
+            'type': 'custom',
+            'message': {
+                'kind': 'my_custom_kind',
+                'data': {
+                    # The channel passed as argument should be the same as the WS_CHANNEL context var
+                    'channel': init.get('message').get('channel'),
+                    'ws_channel': init.get('message').get('channel'),
+                    'message': 'test',
+                },
+            },
+        }
+
+
 async def test_action_handler_error():
     builder = ConfigurationBuilder()
     config = create_app(builder)

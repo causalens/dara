@@ -496,6 +496,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
         SESSION_ID.set(token_data.session_id)
         ID_TOKEN.set(token_data.id_token)
 
+    WS_CHANNEL.set(channel)
+
     # Set initial Auth context vars for the WS connection
     update_context(token_content)
 
