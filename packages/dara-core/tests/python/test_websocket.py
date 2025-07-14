@@ -351,7 +351,6 @@ async def test_custom_ws_handler_access_ws_channel():
     builder = ConfigurationBuilder()
 
     def custom_handler(channel: str, msg):
-        print('ws channel?', WS_CHANNEL.get())
         return {'channel': channel, 'ws_channel': WS_CHANNEL.get(), 'message': msg}
 
     builder.add_ws_handler(kind='my_custom_kind', handler=custom_handler)
