@@ -8,9 +8,6 @@ export default defineConfig({
             jsxRuntime: 'automatic',
         }),
     ],
-    // define: {
-    //     'process.env.NODE_ENV': '"production"',
-    // },
     optimizeDeps: {
         esbuildOptions: {
             target: 'esnext',
