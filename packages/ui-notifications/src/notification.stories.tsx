@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
 
 import { Status } from '@darajs/ui-utils';
 
-import { default as NotificationComponent, NotificationProps } from './notification';
-import { NotificationPayload } from './notification-payload';
+import { default as NotificationComponent, type NotificationProps } from './notification';
+import { type NotificationPayload } from './notification-payload';
 
 export default {
     component: NotificationComponent,
