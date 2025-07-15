@@ -10,7 +10,11 @@ export default defineConfig({
         }),
         // Some package we're pulling requires node polyfills for stream
         nodePolyfills({
-            include: ['stream'],
+            globals: {
+                process: true,
+                Buffer: true,
+                global: true,
+            },
         }),
     ],
     define: {
@@ -37,6 +41,7 @@ export default defineConfig({
             cssFileName: 'style',
         },
         outDir: 'dist/umd',
+        emptyOutDir: false,
     },
     worker: {
         format: 'es',

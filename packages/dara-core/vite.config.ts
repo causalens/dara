@@ -34,6 +34,7 @@ export default defineConfig({
             cssFileName: 'style',
         },
         outDir: 'dist/umd',
+        emptyOutDir: false,
     },
     resolve: {
         alias: [{ find: '@', replacement: fileURLToPath(new URL('./js', import.meta.url)) }],
