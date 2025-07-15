@@ -3,7 +3,14 @@ import type * as BokehLib from '@bokeh/bokehjs/build/js/lib';
 import type { DocJson } from '@bokeh/bokehjs/build/js/lib/document';
 import { useEffect, useId, useMemo, useState } from 'react';
 
-import { type Action, DefaultFallback, type StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
+import {
+    type Action,
+    DefaultFallback,
+    type StyledComponentProps,
+    injectCss,
+    useAction,
+    useComponentStyles,
+} from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 const BOKEH_LIBRARIES = [
