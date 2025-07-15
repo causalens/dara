@@ -6,7 +6,6 @@ settings:
 
 overrides:
   headers-polyfill: 3.1.2
-  webpack: ^5.0.0
 
 packageExtensionsChecksum: 06dabbf5eaefc0936daec70d7eb8bad3
 
@@ -738,9 +737,6 @@ importers:
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
-      react-docgen-typescript-plugin:
-        specifier: ^1.0.5
-        version: 1.0.8(typescript@5.8.2)(webpack@5.96.1(esbuild@0.25.6))
       react-test-renderer:
         specifier: ^17.0
         version: 17.0.2(react@18.3.1)
@@ -949,9 +945,6 @@ importers:
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
-      react-docgen-typescript-plugin:
-        specifier: ^1.0.5
-        version: 1.0.8(typescript@5.8.2)(webpack@5.96.1)
       react-test-renderer:
         specifier: ^17.0
         version: 17.0.2(react@18.3.1)
@@ -4784,7 +4777,7 @@ packages:
     engines: {node: '>= 8.9'}
     peerDependencies:
       '@babel/core': ^7.0.0
-      webpack: ^5.0.0
+      webpack: '>=2'
 
   babel-plugin-istanbul@6.1.1:
     resolution: {integrity: sha512-Y1IQok9821cC9onCx5otgFfRm7Lm+I+wwxOx738M/WLPZ9Q42m4IG5W0FNX8WLL2gYMZo3JkuXIH2DOpWM+qwA==}
@@ -9260,12 +9253,6 @@ packages:
       '@types/react':
         optional: true
 
-  react-docgen-typescript-plugin@1.0.8:
-    resolution: {integrity: sha512-r+dUkpm/dmiVvvrfOTYbbg0g7bmaeXTodQFIru8ZzCx/HNUAUNSmh1C0seXzDSLqDSXm5EiOAiJZVs4gqAZqzA==}
-    peerDependencies:
-      typescript: '>= 4.x'
-      webpack: ^5.0.0
-
   react-docgen-typescript@2.2.2:
     resolution: {integrity: sha512-tvg2ZtOpOi6QDwsb3GZhOjDkkX0h8Z2gipvTg6OVMUyoYoURhEiRNePT8NZItTVCDh39JJHnLdfCOkzoLbFnTg==}
     peerDependencies:
@@ -10228,7 +10215,7 @@ packages:
       '@swc/core': '*'
       esbuild: '*'
       uglify-js: '*'
-      webpack: ^5.0.0
+      webpack: ^5.1.0
     peerDependenciesMeta:
       '@swc/core':
         optional: true
@@ -21792,32 +21779,6 @@ snapshots:
       '@types/hoist-non-react-statics': 3.3.5
       '@types/node': 24.0.14
       '@types/react': 18.2.60
-
-  react-docgen-typescript-plugin@1.0.8(typescript@5.8.2)(webpack@5.96.1(esbuild@0.25.6)):
-    dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
-      find-cache-dir: 3.3.2
-      flat-cache: 3.2.0
-      micromatch: 4.0.8
-      react-docgen-typescript: 2.2.2(typescript@5.8.2)
-      tslib: 2.8.1
-      typescript: 5.8.2
-      webpack: 5.96.1(esbuild@0.25.6)
-    transitivePeerDependencies:
-      - supports-color
-
-  react-docgen-typescript-plugin@1.0.8(typescript@5.8.2)(webpack@5.96.1):
-    dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
-      find-cache-dir: 3.3.2
-      flat-cache: 3.2.0
-      micromatch: 4.0.8
-      react-docgen-typescript: 2.2.2(typescript@5.8.2)
-      tslib: 2.8.1
-      typescript: 5.8.2
-      webpack: 5.96.1
-    transitivePeerDependencies:
-      - supports-color
 
   react-docgen-typescript@2.2.2(typescript@5.8.2):
     dependencies:
