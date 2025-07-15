@@ -1,0 +1,22 @@
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+
+// Create two separate configs - one for the library and one for the trace viewer
+export default defineConfig({
+    plugins: [
+        react({
+            jsxRuntime: 'automatic',
+        }),
+    ],
+    // define: {
+    //     'process.env.NODE_ENV': '"production"',
+    // },
+    optimizeDeps: {
+        esbuildOptions: {
+            target: 'esnext',
+            supported: {
+                bigint: true
+            },
+        },
+    },
+});

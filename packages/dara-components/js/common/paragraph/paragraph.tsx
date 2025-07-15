@@ -1,8 +1,8 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
+    type StyledComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';

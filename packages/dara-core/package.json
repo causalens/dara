@@ -59,7 +59,7 @@
     "@types/recoil": "^0.0.9",
     "@types/styled-components": "^5.1.23",
     "@types/whatwg-fetch": "^0.0.33",
-    "@vitejs/plugin-react": "2.1.0",
+    "@vitejs/plugin-react": "4.6.0",
     "babel-jest": "^29.5.0",
     "concurrently": "^8.0.1",
     "cypress": "9.5.3",
@@ -75,7 +75,7 @@
     "start-server-and-test": "^1.14.0",
     "stylelint": "^15.0.0",
     "tsc-alias": "^1.8.5",
-    "vite": "3.1.8",
+    "vite": "7.0.4",
     "whatwg-fetch": "^3.6.2"
   },
   "dependencies": {

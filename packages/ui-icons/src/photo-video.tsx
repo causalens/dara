@@ -16,7 +16,7 @@
  */
 import { faPhotoVideo } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PhotoVideo icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faWifi3 } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Wifi3 icon from FontAwesome

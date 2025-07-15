@@ -16,7 +16,7 @@
  */
 import { faImage } from '@fortawesome/free-regular-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Image regular icon from FontAwesome

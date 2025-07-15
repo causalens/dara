@@ -16,7 +16,7 @@
  */
 import { faX } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * charX icon from FontAwesome

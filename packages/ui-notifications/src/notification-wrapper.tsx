@@ -23,7 +23,7 @@ import styled from '@darajs/styled-components';
 import { useSubscription } from '@darajs/ui-utils';
 
 import Notification from './notification';
-import { NotificationPayload } from './notification-payload';
+import { type NotificationPayload } from './notification-payload';
 
 const Container = styled.div`
     pointer-events: none;

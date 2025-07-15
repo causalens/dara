@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import styled from '@darajs/styled-components';
 import { ChevronLeft, ChevronRight, Circle } from '@darajs/ui-icons';
 
-import { CarouselItem } from '../types';
+import { type CarouselItem } from '../types';
 
 const CarouselComponent = styled.div`
     position: relative;

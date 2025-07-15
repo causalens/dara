@@ -16,7 +16,7 @@
  */
 import { faYen } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Yen icon from FontAwesome

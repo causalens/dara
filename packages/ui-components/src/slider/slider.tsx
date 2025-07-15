@@ -25,7 +25,7 @@ import { SwapHorizontal } from '@darajs/ui-icons';
 
 import Button from '../button/button';
 import Tooltip from '../tooltip/tooltip';
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 import SliderInputField from './slider-input-field';
 
 /**

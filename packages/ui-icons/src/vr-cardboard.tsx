@@ -16,7 +16,7 @@
  */
 import { faVrCardboard } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * VrCardboard icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faPuzzlePiece } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PuzzlePiece icon from FontAwesome

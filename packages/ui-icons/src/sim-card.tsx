@@ -16,7 +16,7 @@
  */
 import { faSimCard } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * SimCard icon from FontAwesome

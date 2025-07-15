@@ -16,7 +16,7 @@
  */
 import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * UserPlus icon from FontAwesome

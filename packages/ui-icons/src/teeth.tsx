@@ -16,7 +16,7 @@
  */
 import { faTeeth } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Teeth icon from FontAwesome

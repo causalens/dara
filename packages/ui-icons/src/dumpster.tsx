@@ -16,7 +16,7 @@
  */
 import { faDumpster } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Dumpster icon from FontAwesome

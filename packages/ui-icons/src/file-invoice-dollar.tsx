@@ -16,7 +16,7 @@
  */
 import { faFileInvoiceDollar } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * FileInvoiceDollar icon from FontAwesome

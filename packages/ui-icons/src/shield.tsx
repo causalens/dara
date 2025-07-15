@@ -16,7 +16,7 @@
  */
 import { faShield } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Shield icon from FontAwesome

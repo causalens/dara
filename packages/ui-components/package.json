@@ -13,8 +13,8 @@
     "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
     "test-watch": "jest --watch",
     "test": "jest",
-    "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
@@ -27,15 +27,7 @@
     "@darajs/eslint-config": "1.18.5",
     "@darajs/prettier-config": "1.18.5",
     "@darajs/stylelint-config": "1.18.5",
-    "@storybook/addon-a11y": "^6.5.16",
-    "@storybook/addon-actions": "^6.5.16",
-    "@storybook/addon-essentials": "^6.5.16",
-    "@storybook/addon-links": "^6.5.16",
-    "@storybook/addon-styling": "^0.3.2",
-    "@storybook/builder-webpack5": "^6.5.16",
-    "@storybook/manager-webpack5": "^6.5.16",
-    "@storybook/react": "^6.5.16",
-    "@storybook/theming": "^6.5.16",
+    "@storybook/react-vite": "^9.0.17",
     "@testing-library/dom": "^9.3.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
@@ -63,9 +55,11 @@
     "react-docgen-typescript-plugin": "^1.0.5",
     "react-test-renderer": "^17.0",
     "rimraf": "^3.0.2",
-    "storybook-dark-mode": "^2.1.1",
+    "storybook": "^9.0.17",
     "stylelint": "^15.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vite": "7.0.4",
+    "eslint-plugin-storybook": "9.0.17"
   },
   "dependencies": {
     "@darajs/styled-components": "1.18.5",

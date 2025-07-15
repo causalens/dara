@@ -17,7 +17,7 @@
 import styled from '@darajs/styled-components';
 import { Button, Modal } from '@darajs/ui-components';
 
-import { ConfirmationModalProps } from './confirmation-modal-props';
+import { type ConfirmationModalProps } from './confirmation-modal-props';
 import useConfirmationModal from './use-confirmation-modal';
 
 const Wrapper = styled.div`

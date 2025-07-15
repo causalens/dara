@@ -16,7 +16,7 @@
  */
 import { faThList } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ThList icon from FontAwesome

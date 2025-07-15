@@ -20,11 +20,11 @@ export * as PathUtils from './path-utils';
 export { default as getStatusColor } from './get-status-color';
 export {
     chunkedFileUpload,
-    FilterRule,
+    type FilterRule,
     getQueryStr,
-    RequestOptions,
+    type RequestOptions,
     RequestError,
-    SortingRule,
+    type SortingRule,
     validateResponse,
 } from './request-utils';
 export { useSubscription } from './rx-utils';

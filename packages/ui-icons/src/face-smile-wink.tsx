@@ -16,7 +16,7 @@
  */
 import { faFaceSmileWink } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * FaceSmileWink icon from FontAwesome

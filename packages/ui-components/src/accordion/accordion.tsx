@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { AccordionItemType } from '../types';
+import { type AccordionItemType } from '../types';
 import AccordionItem from './accordion-item';
 
 const AccordionWrapper = styled.dl`

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { type FileRejection } from 'react-dropzone';
 
 import {
-    Action,
+    type Action,
     Center,
-    DataVariable,
+    type DataVariable,
     DefaultFallback,
-    RequestExtras,
-    StyledComponentProps,
+    type RequestExtras,
+    type StyledComponentProps,
     handleAuthErrors,
     injectCss,
     request,

@@ -16,7 +16,7 @@
  */
 import { faChessPawn } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ChessPawn icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faHotTubPerson } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * HotTubPerson icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faFaceGrinBeam } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * FaceGrinBeam icon from FontAwesome

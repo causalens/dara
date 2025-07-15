@@ -16,7 +16,7 @@
  */
 import { faFloppyDisk } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * FloppyDisk icon from FontAwesome

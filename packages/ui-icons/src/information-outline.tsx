@@ -16,7 +16,7 @@
  */
 import { mdiInformationOutline } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A InformationOutline icon from Material Design

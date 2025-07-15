@@ -16,7 +16,7 @@
  */
 import { faK } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * charK icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faPython } from '@fortawesome/free-brands-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * A Python icon from FontAwesome

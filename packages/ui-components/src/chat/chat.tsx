@@ -23,7 +23,7 @@ import { PaperPlane, Xmark } from '@darajs/ui-icons';
 
 import Button from '../button/button';
 import TextArea from '../textarea/textarea';
-import { InteractiveComponentProps, Message, UserData } from '../types';
+import { type InteractiveComponentProps, type Message, type UserData } from '../types';
 import { default as MessageComponent } from './message';
 
 const ChatWrapper = styled.div<{ $isPopup: boolean }>`

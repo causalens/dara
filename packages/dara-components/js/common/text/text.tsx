@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 
-import { DisplayCtx, StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { DisplayCtx, type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
 
 interface TextProps extends StyledComponentProps {

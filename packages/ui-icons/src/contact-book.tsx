@@ -16,7 +16,7 @@
  */
 import { faContactBook } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ContactBook icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faMuseum } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Museum icon from FontAwesome

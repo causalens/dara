@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ColumnInterface, Renderer } from 'react-table';
+import { type ColumnInterface, type Renderer } from 'react-table';
 
-import { ActionCol } from './cells/action-cell';
+import { type ActionCol } from './cells/action-cell';
 
 export interface TableColumn extends ColumnInterface<Record<string, unknown>> {
     // These are vague as the type we use doesn't exactly match the react-table type, we inject a few

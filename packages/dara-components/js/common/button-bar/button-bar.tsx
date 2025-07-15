@@ -1,11 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
-import { Item, ButtonBar as UiButtonBar } from '@darajs/ui-components';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Item, ButtonBar as UiButtonBar } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 interface ButtonBarProps extends FormComponentProps {
     /** Passthrough the className property */

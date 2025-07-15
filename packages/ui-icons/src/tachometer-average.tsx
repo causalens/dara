@@ -16,7 +16,7 @@
  */
 import { faTachometerAverage } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TachometerAverage icon from FontAwesome

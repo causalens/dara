@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import * as React from 'react';
 
-import { DisplayCtx, StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
+import { DisplayCtx, type StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 interface SpacerProps extends StyledComponentProps {

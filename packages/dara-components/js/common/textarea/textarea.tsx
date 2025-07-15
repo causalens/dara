@@ -2,11 +2,11 @@
 import _debounce from 'lodash/debounce';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Textarea as UITextarea } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 interface TextareaProps extends FormComponentProps {
     /** If true, cursor will start in the textarea */

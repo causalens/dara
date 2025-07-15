@@ -16,7 +16,7 @@
  */
 import { faSubscript } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Subscript icon from FontAwesome

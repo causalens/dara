@@ -16,7 +16,7 @@
  */
 import { faDragon } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Dragon icon from FontAwesome

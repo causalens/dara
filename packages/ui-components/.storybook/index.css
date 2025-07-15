@@ -9,7 +9,7 @@
 html,
 body,
 #root,
-#cldp_root {
+#storybook-root {
     display: flex;
 
     width: 100%;
@@ -95,3 +95,4 @@ select {
         animation-iteration-count: 1 !important;
     }
 }
+

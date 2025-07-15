@@ -16,7 +16,7 @@
  */
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ChevronDown icon from FontAwesome

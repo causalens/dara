@@ -1,4 +1,4 @@
-import { ComponentInstance, DynamicComponent, StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
+import { type ComponentInstance, DynamicComponent, type StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 const PageWrapper = styled.section`

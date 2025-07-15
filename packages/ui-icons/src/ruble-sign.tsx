@@ -16,7 +16,7 @@
  */
 import { faRubleSign } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * RubleSign icon from FontAwesome

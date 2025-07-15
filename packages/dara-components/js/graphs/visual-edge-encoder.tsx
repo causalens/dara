@@ -2,10 +2,10 @@
 import { useMemo } from 'react';
 
 import {
-    Action,
+    type Action,
     Notifications,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
@@ -13,18 +13,18 @@ import {
 } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
 import {
-    CausalGraph,
-    CausalGraphEdge,
-    CausalGraphNode,
+    type CausalGraph,
+    type CausalGraphEdge,
+    type CausalGraphNode,
     CausalGraphViewer,
-    EdgeConstraint,
+    type EdgeConstraint,
     EdgeType,
     EditorMode,
-    GraphLegendDefinition,
-    ZoomThresholds,
+    type GraphLegendDefinition,
+    type ZoomThresholds,
 } from '@darajs/ui-causal-graph-editor';
 
-import { GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
+import { type GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
 import { transformLegendColor } from './utils';
 
 interface VisualEdgeEncoderProps extends StyledComponentProps {

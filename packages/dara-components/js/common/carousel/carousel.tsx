@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
 
 import {
-    Action,
-    ComponentInstance,
+    type Action,
+    type ComponentInstance,
     DynamicComponent,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
-import { Carousel as UICarousel, CarouselItem as UICarouselItem } from '@darajs/ui-components';
+import { Carousel as UICarousel, type CarouselItem as UICarouselItem } from '@darajs/ui-components';
 
 interface CarouselItem extends Omit<UICarouselItem, 'component'> {
     component?: ComponentInstance;

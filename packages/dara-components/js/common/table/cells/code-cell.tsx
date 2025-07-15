@@ -1,4 +1,4 @@
-import Highlight, { Language, defaultProps } from 'prism-react-renderer';
+import Highlight, { type Language, defaultProps } from 'prism-react-renderer';
 
 interface CodeCellProps {
     value: any;

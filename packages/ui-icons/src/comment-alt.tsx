@@ -16,7 +16,7 @@
  */
 import { faCommentAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CommentAlt icon from FontAwesome

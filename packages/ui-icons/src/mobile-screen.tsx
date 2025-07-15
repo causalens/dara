@@ -16,7 +16,7 @@
  */
 import { faMobileScreen } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * MobileScreen icon from FontAwesome

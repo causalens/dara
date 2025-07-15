@@ -20,7 +20,7 @@ import ReactDOM from 'react-dom';
 
 import { Key } from '../constants';
 import DropdownList from '../shared/dropdown-list';
-import { Item } from '../types';
+import { type Item } from '../types';
 
 export interface MenuAction {
     action: () => void;

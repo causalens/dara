@@ -16,7 +16,7 @@
  */
 import { faAd } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Ad icon from FontAwesome

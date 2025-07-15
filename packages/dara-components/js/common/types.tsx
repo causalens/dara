@@ -1,4 +1,4 @@
-import { Action, ComponentInstance, StyledComponentProps, Variable } from '@darajs/core';
+import { type Action, type ComponentInstance, type StyledComponentProps, type Variable } from '@darajs/core';
 
 export interface ComponentItem {
     component: ComponentInstance;

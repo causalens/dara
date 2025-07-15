@@ -2,18 +2,18 @@
 import { useCallback, useMemo } from 'react';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DynamicComponent,
-    Variable,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
-import { RadioItem as UIRadioItem, RadioGroup as UiRadio } from '@darajs/ui-components';
+import { type RadioItem as UIRadioItem, RadioGroup as UiRadio } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 const StyledRadio = injectCss(UiRadio);
 

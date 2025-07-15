@@ -1,24 +1,24 @@
 import {
-    BeforePlotEvent,
-    ClickAnnotationEvent,
-    FrameAnimationEvent,
-    LegendClickEvent,
-    PlotDatum,
-    PlotHoverEvent,
-    PlotMouseEvent,
-    PlotRelayoutEvent,
-    PlotRestyleEvent,
-    PlotSelectionEvent,
-    SliderChangeEvent,
-    SliderEndEvent,
-    SliderStartEvent,
-    SunburstClickEvent,
+    type BeforePlotEvent,
+    type ClickAnnotationEvent,
+    type FrameAnimationEvent,
+    type LegendClickEvent,
+    type PlotDatum,
+    type PlotHoverEvent,
+    type PlotMouseEvent,
+    type PlotRelayoutEvent,
+    type PlotRestyleEvent,
+    type PlotSelectionEvent,
+    type SliderChangeEvent,
+    type SliderEndEvent,
+    type SliderStartEvent,
+    type SunburstClickEvent,
 } from 'plotly.js';
 import { useState } from 'react';
-import Plot, { PlotParams } from 'react-plotly.js';
+import Plot, { type PlotParams } from 'react-plotly.js';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
-import { Action, StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
+import { type Action, type StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
 
 /**
  * Names defined by plotly.js, this is what Python will send us

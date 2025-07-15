@@ -16,7 +16,7 @@
  */
 import { faPlaneUp } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PlaneUp icon from FontAwesome

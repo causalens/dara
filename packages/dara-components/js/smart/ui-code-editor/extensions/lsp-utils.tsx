@@ -10,7 +10,7 @@ import type {
     LspSignatureHelpResponse,
     WsClient,
 } from '../types';
-import { ErrorResponse, LSP_MESSAGE_KIND, isErrorResponse } from '../types';
+import { type ErrorResponse, LSP_MESSAGE_KIND, isErrorResponse } from '../types';
 
 const LSP_CODEMIRROR_TYPE_MAP = Object.fromEntries(
     Object.entries(CompletionItemKind).map(([key, value]) => [value, key])

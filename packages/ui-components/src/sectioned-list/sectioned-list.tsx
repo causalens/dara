@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 import { autoUpdate, flip, shift, useFloating, useInteractions, useRole } from '@floating-ui/react';
-import { UseComboboxState, UseComboboxStateChangeTypes, useCombobox } from 'downshift';
+import { type UseComboboxState, UseComboboxStateChangeTypes, useCombobox } from 'downshift';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 
-import styled, { DefaultTheme, useTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme, useTheme } from '@darajs/styled-components';
 
 import Badge from '../badge/badge';
 import { Input, InputWrapper, Wrapper } from '../combo-box/combo-box';
 import ChevronButton from '../shared/chevron-button';
 import DropdownList from '../shared/dropdown-list';
 import ListItem, { StyledListItem } from '../shared/list-item';
-import { InteractiveComponentProps, Item } from '../types';
+import { type InteractiveComponentProps, type Item } from '../types';
 import { matchWidthToReference } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
 

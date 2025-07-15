@@ -16,7 +16,7 @@
  */
 import { faBroom } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Broom icon from FontAwesome

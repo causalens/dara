@@ -16,7 +16,7 @@
  */
 import { faFireFlameSimple } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * FireFlameSimple icon from FontAwesome

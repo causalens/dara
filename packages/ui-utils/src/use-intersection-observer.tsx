@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { MutableRefObject, useEffect, useState } from 'react';
+import { type MutableRefObject, useEffect, useState } from 'react';
 
 /**
  * The useIntersectionObserver hook allows a component to track whether an element is intersecting with an ancestor

@@ -1,5 +1,5 @@
-import { DefaultTheme } from '@darajs/styled-components';
-import { GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
+import { type DefaultTheme } from '@darajs/styled-components';
+import { type GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
 
 /**
  * Based on a color string, return the color from the theme if it starts with 'theme.'

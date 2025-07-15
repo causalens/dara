@@ -1,5 +1,5 @@
-import { Action, StyledComponentProps, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
-import { HierarchyNode, HierarchyViewer as UiHierarchyViewer } from '@darajs/ui-hierarchy-viewer';
+import { type Action, type StyledComponentProps, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type HierarchyNode, HierarchyViewer as UiHierarchyViewer } from '@darajs/ui-hierarchy-viewer';
 
 interface HierarchyViewerProps extends StyledComponentProps {
     allow_leaf_click: boolean;

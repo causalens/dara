@@ -16,7 +16,7 @@
  */
 import { faRotateBackward } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * RotateBackward icon from FontAwesome

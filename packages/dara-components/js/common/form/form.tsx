@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import {
-    Action,
-    ComponentInstance,
+    type Action,
+    type ComponentInstance,
     DynamicComponent,
-    LayoutComponentProps,
-    Variable,
+    type LayoutComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,

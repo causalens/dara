@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 
 interface CheckboxWrapperProps {
     disabled: boolean;

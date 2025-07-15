@@ -1,10 +1,14 @@
-import { GetPropsCommonOptions, UseComboboxGetItemPropsOptions, UseComboboxGetMenuPropsOptions } from 'downshift';
+import {
+    type GetPropsCommonOptions,
+    type UseComboboxGetItemPropsOptions,
+    type UseComboboxGetMenuPropsOptions,
+} from 'downshift';
 import isEmpty from 'lodash/isEmpty';
 import React from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { Item } from '../types';
+import { type Item } from '../types';
 import { List, NoItemsLabel } from '../utils/list-styles';
 import ListItem from './list-item';
 

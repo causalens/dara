@@ -16,7 +16,7 @@
  */
 import { faPenRuler } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PenRuler icon from FontAwesome
