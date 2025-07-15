@@ -1,11 +1,16 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
     plugins: [
         react({
             jsxRuntime: 'classic',
+        }),
+        // Some package we're pulling requires node polyfills for stream
+        nodePolyfills({
+            include: ['stream'],
         }),
     ],
     define: {
@@ -29,7 +34,7 @@ export default defineConfig({
             name: 'dara.components',
             formats: ['umd'],
             fileName: 'dara.components',
-            cssFileName: 'style.css',
+            cssFileName: 'style',
         },
         outDir: 'dist/umd',
     },
