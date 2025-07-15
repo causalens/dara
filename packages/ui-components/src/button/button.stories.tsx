@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as ButtonComponent, ButtonProps } from './button';
+import { default as ButtonComponent, type ButtonProps } from './button';
 
-export default {
-    component: ButtonComponent,
+const meta: Meta<ButtonProps> = {
     title: 'UI Components/Button',
-} as Meta;
+    component: ButtonComponent,
+};
 
-export const Button = (args: ButtonProps): JSX.Element => <ButtonComponent {...args} />;
-Button.args = {
-    children: ['Button'],
-    outline: false,
-    styling: 'primary',
+export default meta;
+type Story = StoryObj<ButtonProps>;
+
+export const Button: Story = {
+    args: {
+        children: ['Button'],
+        outline: false,
+        styling: 'primary',
+    },
 };

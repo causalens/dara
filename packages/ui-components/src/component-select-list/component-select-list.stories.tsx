@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { default as ComponentSelectListComponent, ComponentSelectListProps } from './component-select-list';
+import { default as ComponentSelectListComponent, type ComponentSelectListProps } from './component-select-list';
 
-export default {
-    component: ComponentSelectListComponent,
+const meta: Meta<ComponentSelectListProps> = {
     title: 'UI Components/ComponentSelectList',
-} as Meta;
+    component: ComponentSelectListComponent,
+};
+
+export default meta;
+type Story = StoryObj<ComponentSelectListProps>;
 
 const exampleItems = [
     { component: <div>Test A</div>, subtitle: 'Subtitle', title: 'Title for A' },
@@ -29,9 +33,8 @@ const exampleItems = [
     { component: <div>Test C</div>, subtitle: 'Subtitle', title: 'Title for C' },
 ];
 
-export const ComponentSelectList = (args: ComponentSelectListProps): JSX.Element => (
-    <ComponentSelectListComponent {...args} />
-);
-ComponentSelectList.args = {
-    items: exampleItems,
+export const ComponentSelectList: Story = {
+    args: {
+        items: exampleItems,
+    },
 };

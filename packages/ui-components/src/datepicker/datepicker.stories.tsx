@@ -14,29 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 
-import { Item } from '../types';
-import { DatePickerProps, default as DatepickerComponent } from './datepicker';
-import { default as DatepickerSelectComponent, SelectProps } from './datepicker-select';
+import { type Item } from '../types';
+import { type DatePickerProps, default as DatepickerComponent } from './datepicker';
+import { default as DatepickerSelectComponent, type SelectProps } from './datepicker-select';
 
-export default {
+const meta: Meta<DatePickerProps> = {
     component: DatepickerComponent,
     title: 'UI Components/Datepicker',
-} as Meta;
-
-export const PlainDatepicker = (args: DatePickerProps): JSX.Element => <DatepickerComponent {...args} />;
-PlainDatepicker.args = {
-    initialValue: new Date(),
-    shouldCloseOnSelect: false,
 };
 
-export const DateConstraintDatepicker = (args: DatePickerProps): JSX.Element => <DatepickerComponent {...args} />;
-DateConstraintDatepicker.args = {
-    maxDate: new Date('1995-12-19T00:00:00'),
-    minDate: new Date('1995-12-17T00:00:00'),
-    shouldCloseOnSelect: false,
+export default meta;
+type Story = StoryObj<DatePickerProps>;
+
+export const PlainDatepicker: Story = {
+    args: {
+        initialValue: new Date(),
+        shouldCloseOnSelect: false,
+    },
+};
+
+export const DateConstraintDatepicker: Story = {
+    args: {
+        maxDate: new Date('1995-12-19T00:00:00'),
+        minDate: new Date('1995-12-17T00:00:00'),
+        shouldCloseOnSelect: false,
+    },
 };
 
 export const DatepickerWithTime = (args: DatePickerProps): JSX.Element => <DatepickerComponent {...args} />;

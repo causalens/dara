@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { autoUpdate, flip, shift, useFloating, useInteractions, useRole } from '@floating-ui/react';
-import { type UseComboboxState, UseComboboxStateChangeTypes, useCombobox } from 'downshift';
+import { type UseComboboxState, type UseComboboxStateChangeTypes, useCombobox } from 'downshift';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 

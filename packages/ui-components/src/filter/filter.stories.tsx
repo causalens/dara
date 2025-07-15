@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
+import React from 'react';
 
-import { Item } from '../types';
-import { default as CategoricalFilterComponent, CategoricalFilterProps } from './categorical-filter';
-import { default as DatetimeFilterComponent, DatetimeFilterProps } from './datetime-filter';
-import { default as NumericFilterComponent, NumericFilterProps } from './numeric-filter';
+import type { Item } from '../types';
+import { default as CategoricalFilterComponent, type CategoricalFilterProps } from './categorical-filter';
+import { default as DatetimeFilterComponent, type DatetimeFilterProps } from './datetime-filter';
+import { default as NumericFilterComponent, type NumericFilterProps } from './numeric-filter';
 
-export default {
-    component: CategoricalFilterComponent,
+const meta: Meta<CategoricalFilterProps> = {
     title: 'UI Components/Filters',
-} as Meta;
+    component: CategoricalFilterComponent,
+};
+
+export default meta;
 
 const simpleItems: Item[] = [
     {

@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { Item } from '../types';
-import { default as ButtonBarComponent, ButtonProps } from './button-bar';
+import { type Item } from '../types';
+import { default as ButtonBarComponent, type ButtonProps } from './button-bar';
 
-export default {
-    component: ButtonBarComponent,
+const meta: Meta<ButtonProps> = {
     title: 'UI Components/Button Bar',
-} as Meta;
+    component: ButtonBarComponent,
+};
+
+export default meta;
+type Story = StoryObj<ButtonProps>;
 
 const simpleItems: Item[] = [
     {
@@ -39,12 +42,13 @@ const simpleItems: Item[] = [
     },
 ];
 
-export const ButtonBar = (args: ButtonProps): JSX.Element => <ButtonBarComponent {...args} />;
-ButtonBar.args = {
-    disabled: false,
-    initialValue: {
-        label: 'One',
-        value: 1,
+export const ButtonBar: Story = {
+    args: {
+        disabled: false,
+        initialValue: {
+            label: 'One',
+            value: 1,
+        },
+        items: simpleItems,
     },
-    items: simpleItems,
 };
