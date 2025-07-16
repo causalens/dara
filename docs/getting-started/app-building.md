@@ -1,5 +1,7 @@
 ---
 title: App Building
+description: Learn about the fundamental parts of a Dara app including configuration, plugins, and pages
+boost: 1.5
 ---
 
 This section will run you through the fundamental parts of a Dara app.

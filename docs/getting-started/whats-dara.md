@@ -1,7 +1,7 @@
 ---
 title: What's Dara?
 description: Learn about the guiding principles of the Dara framework and how it differs from other frameworks
-boost: 1.5
+boost: 2
 ---
 
 Welcome to the documentation for building interactive applications, for this you will be using the Dara framework. These pages will give you an introduction to the low-code application framework and help you along your first steps to making beautiful apps in no time at all.

@@ -1,5 +1,7 @@
 ---
 title: "App Structure: Putting It All Together"
+description: Build a more complex Dara app that demonstrates pages, interactivity, components, and data visualization
+boost: 1.5
 ---
 
 Below you will construct a very simple app that calculates and visualizes some simple statistics within a small dataset. The goal is to use the concepts outlined in the previous pages such as registering extensions, adding pages, enabling user interactivity, and reusing components, to build an app.

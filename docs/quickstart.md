@@ -1,5 +1,6 @@
 ---
 title: Your First App
+description: Build a Dara app from start to finish with exploratory data analysis and classification models
 ---
 
 This page will help you build an app from start to finish. The use case is simple, using `sklearn`'s iris dataset you will do some simple exploratory data analysis (EDA) and build a simple classifier and explore its results.

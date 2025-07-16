@@ -1,5 +1,7 @@
 ---
 title: Actions
+description: Learn how to add interactivity to your Dara app with `@action`s that respond to user interactions
+boost: 1.5
 ---
 
 Actions are a way to add interactivity to your Dara app in response to some user interaction. Components accept actions as arguments to their callbacks annotated with type `Action`, usually named `onclick`, `onchange` or similar. Actions can be used to update variables, trigger notifications, navigate to a different page, and more.
