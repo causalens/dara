@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { ListItem, default as SectionedListComponent, SectionedListProps } from './sectioned-list';
+import { type ListItem, default as SectionedListComponent, type SectionedListProps } from './sectioned-list';
 
-export default {
-    component: SectionedListComponent,
+const meta: Meta<SectionedListProps> = {
     title: 'UI Components/Sectioned List',
-} as Meta;
+    component: SectionedListComponent,
+    decorators: [
+        (Story) => (
+            <div style={{ width: '50%' }}>
+                <Story />
+            </div>
+        ),
+    ],
+};
 
-export const SectionedList = (args: SectionedListProps): JSX.Element => (
-    <div style={{ width: '50%' }}>
-        <SectionedListComponent {...args} />
-    </div>
-);
+export default meta;
+type Story = StoryObj<SectionedListProps>;
+
+export const SectionedList: Story = {
+    args: {},
+};
 
 const sampleListItems = (header: string): Array<ListItem> => [
     {

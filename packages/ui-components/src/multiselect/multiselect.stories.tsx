@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import isEqual from 'lodash/isEqual';
-import { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
-import { Item } from '../types';
-import { default as MultiSelectComponent, MultiSelectProps } from './multiselect';
+import { type Item } from '../types';
+import { default as MultiSelectComponent, type MultiSelectProps } from './multiselect';
 
-export default {
+const meta: Meta<MultiSelectProps> = {
     component: MultiSelectComponent,
     title: 'UI Components/Multi Select',
-} as Meta;
+};
+
+export default meta;
+type Story = StoryObj<MultiSelectProps>;
 
 const sampleItems = [
     {
@@ -69,15 +72,15 @@ const sampleItems = [
     },
 ];
 
-export const MultiSelect = (args: MultiSelectProps): JSX.Element => <MultiSelectComponent {...args} />;
-
-MultiSelect.args = {
-    items: sampleItems,
-    maxRows: 3,
-    maxWidth: '20rem',
-    onTermChange: undefined,
-    size: 1,
-} as MultiSelectProps;
+export const MultiSelect: Story = {
+    args: {
+        items: sampleItems,
+        maxRows: 3,
+        maxWidth: '20rem',
+        onTermChange: undefined,
+        size: 1,
+    },
+};
 
 /**
  * Multiple MultiSelects with different error states for tooltip testing

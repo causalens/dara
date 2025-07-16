@@ -16,7 +16,7 @@
  */
 import { useState } from 'react';
 
-import { ConfirmationModalProps } from './confirmation-modal-props';
+import { type ConfirmationModalProps } from './confirmation-modal-props';
 
 interface ConfirmationModalHook<T> {
     /** The props for the modal component, should be spread onto it */

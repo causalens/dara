@@ -313,8 +313,9 @@ class BuildCache(BaseModel):
         # Append core deps required for building/dev mode
         pkg_json['dependencies'] = {
             **deps,
-            '@vitejs/plugin-react': '2.1.0',
-            'vite': '3.1.8',
+            '@vitejs/plugin-react': '4.6.0',
+            'vite': '7.0.4',
+            'vite-plugin-node-polyfills': '0.24.0',
         }
 
         return pkg_json

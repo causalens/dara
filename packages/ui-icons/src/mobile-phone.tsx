@@ -16,7 +16,7 @@
  */
 import { faMobilePhone } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * MobilePhone icon from FontAwesome

@@ -6,9 +6,9 @@ import isObject from 'lodash/isObject';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import {
-    SingleVariable,
-    UrlVariable,
-    Variable,
+    type SingleVariable,
+    type UrlVariable,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
@@ -16,16 +16,16 @@ import {
 } from '@darajs/core';
 import {
     ComboBox,
-    Item,
-    ListItem,
-    ListSection,
+    type Item,
+    type ListItem,
+    type ListSection,
     MultiSelect,
     SectionedList,
     Select as UiSelect,
 } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 // Type guard for primitive values to avoid "[object Object]" string conversion
 const isPrimitive = (val: unknown): val is string | number | boolean | null | undefined => isNil(val) || !isObject(val);

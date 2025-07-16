@@ -16,7 +16,7 @@
  */
 import { faCashRegister } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CashRegister icon from FontAwesome

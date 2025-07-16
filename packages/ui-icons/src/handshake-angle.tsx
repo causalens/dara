@@ -16,7 +16,7 @@
  */
 import { faHandshakeAngle } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * HandshakeAngle icon from FontAwesome

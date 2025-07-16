@@ -16,7 +16,7 @@
  */
 import { faTrainSubway } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TrainSubway icon from FontAwesome

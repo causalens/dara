@@ -16,7 +16,7 @@
  */
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Cross icon from FontAwesome

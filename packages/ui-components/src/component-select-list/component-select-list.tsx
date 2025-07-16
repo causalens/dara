@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import styled from '@darajs/styled-components';
 import { CheckSquare } from '@darajs/ui-icons';
 
-import { ComponentSelectItem } from '../types';
+import { type ComponentSelectItem } from '../types';
 
 interface WrapperProps {
     itemsPerRow?: number;

@@ -16,7 +16,7 @@
  */
 import { faArrowDown19 } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ArrowDown19 icon from FontAwesome

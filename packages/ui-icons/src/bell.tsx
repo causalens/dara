@@ -16,7 +16,7 @@
  */
 import { faBell } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Bell icon from FontAwesome

@@ -1,8 +1,8 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DynamicComponent,
-    LayoutComponentProps,
-    Variable,
+    type LayoutComponentProps,
+    type Variable,
     injectCss,
     useComponentStyles,
     useVariable,

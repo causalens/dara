@@ -19,7 +19,7 @@ import { forwardRef, useEffect, useMemo, useState } from 'react';
 import styled from '@darajs/styled-components';
 import { Moon } from '@darajs/ui-icons';
 
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 import Sun from './sun-icon';
 
 interface EnabledProp {

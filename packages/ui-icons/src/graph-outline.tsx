@@ -16,7 +16,7 @@
  */
 import { mdiGraphOutline } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A GraphOutline icon from Material Design

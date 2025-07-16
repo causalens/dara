@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import styled from '@darajs/styled-components';
 
 import Input from '../../input/input';
-import { EditCellProps } from './edit-cell-utils';
+import { type EditCellProps } from './edit-cell-utils';
 
 const InputWrapper = styled.div`
     display: flex;

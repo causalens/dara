@@ -21,7 +21,7 @@ import enGB from 'date-fns/locale/en-GB';
 import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactDatePicker, { ReactDatePickerProps } from 'react-datepicker';
+import ReactDatePicker, { type ReactDatePickerProps } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 import styled from '@darajs/styled-components';
@@ -30,7 +30,7 @@ import { ChevronLeft, ChevronRight } from '@darajs/ui-icons';
 import Button from '../button/button';
 import Input from '../input/input';
 import Tooltip from '../tooltip/tooltip';
-import { InteractiveComponentProps, Item } from '../types';
+import { type InteractiveComponentProps, type Item } from '../types';
 import DatepickerSelect from './datepicker-select';
 
 /**

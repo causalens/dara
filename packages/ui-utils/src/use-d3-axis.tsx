@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ScaleLinear, ScaleTime, scaleLinear, scaleTime } from 'd3-scale';
+import { type ScaleLinear, type ScaleTime, scaleLinear, scaleTime } from 'd3-scale';
 import { useCallback, useMemo } from 'react';
 
 import useDeepCompare from './use-deep-compare';

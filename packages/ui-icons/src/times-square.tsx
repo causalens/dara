@@ -16,7 +16,7 @@
  */
 import { faTimesSquare } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TimesSquare icon from FontAwesome

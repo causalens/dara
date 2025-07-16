@@ -25,7 +25,7 @@ import Button from '../button/button';
 import Markdown from '../markdown/markdown';
 import TextArea from '../textarea/textarea';
 import Tooltip from '../tooltip/tooltip';
-import { InteractiveComponentProps, Message } from '../types';
+import { type InteractiveComponentProps, type Message } from '../types';
 
 const InteractiveIcons = styled.div`
     position: absolute;

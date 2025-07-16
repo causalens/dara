@@ -20,7 +20,7 @@ import * as React from 'react';
 import styled, { useTheme } from '@darajs/styled-components';
 
 import { Chevron } from '../utils';
-import Branch, { Cell, CircleIcon, HierarchyNode, NodeWrapper } from './node/branch';
+import Branch, { Cell, CircleIcon, type HierarchyNode, NodeWrapper } from './node/branch';
 
 const Wrapper = styled.div`
     overflow: scroll;
@@ -120,5 +120,5 @@ function HierarchySelector(props: HierarchySelectorProps): JSX.Element {
         </Wrapper>
     );
 }
-export { HierarchyNode };
+export { type HierarchyNode };
 export default HierarchySelector;

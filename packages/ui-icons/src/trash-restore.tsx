@@ -16,7 +16,7 @@
  */
 import { faTrashRestore } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TrashRestore icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faMitten } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Mitten icon from FontAwesome

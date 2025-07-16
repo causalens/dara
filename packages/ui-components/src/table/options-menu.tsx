@@ -26,14 +26,14 @@ import {
 } from '@floating-ui/react';
 import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { FunctionComponent, useCallback, useMemo, useState } from 'react';
+import { type FunctionComponent, useCallback, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { ColumnInstance, Filters } from 'react-table';
+import { type ColumnInstance, type Filters } from 'react-table';
 
 import styled from '@darajs/styled-components';
 
-import SectionedList, { ListSection } from '../sectioned-list/sectioned-list';
-import { Item } from '../types';
+import SectionedList, { type ListSection } from '../sectioned-list/sectioned-list';
+import { type Item } from '../types';
 import { List } from '../utils';
 
 const HeaderOptionsIcon = styled(FontAwesomeIcon)`

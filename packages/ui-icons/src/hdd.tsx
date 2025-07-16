@@ -16,7 +16,7 @@
  */
 import { faHdd } from '@fortawesome/free-regular-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Hdd icon from FontAwesome

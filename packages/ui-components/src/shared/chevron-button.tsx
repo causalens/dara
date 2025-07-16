@@ -1,4 +1,4 @@
-import { GetPropsCommonOptions, UseSelectGetToggleButtonPropsOptions } from 'downshift';
+import { type GetPropsCommonOptions, type UseSelectGetToggleButtonPropsOptions } from 'downshift';
 import React from 'react';
 
 import styled from '@darajs/styled-components';

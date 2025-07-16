@@ -1,8 +1,8 @@
 import { createContext, useContext, useRef } from 'react';
 
-import { Variable } from '@darajs/core';
+import { type Variable } from '@darajs/core';
 
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 export interface FormContextValue {
     /** current form values in the format id: component value */

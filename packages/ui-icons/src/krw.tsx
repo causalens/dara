@@ -16,7 +16,7 @@
  */
 import { faKrw } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Krw icon from FontAwesome

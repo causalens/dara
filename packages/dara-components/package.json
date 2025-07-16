@@ -43,13 +43,14 @@
     "@types/react-window": "^1.8.2",
     "@types/react-window-infinite-loader": "^1.0.3",
     "@types/styled-components": "^5.1.0",
-    "@vitejs/plugin-react": "2.1.0",
+    "@vitejs/plugin-react": "4.6.0",
     "prettier": "^3.0.0",
     "react-test-renderer": "^17.0",
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
     "typescript": "^5.0.4",
-    "vite": "3.1.8"
+    "vite": "7.0.4",
+    "vite-plugin-node-polyfills": "^0.24.0"
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",

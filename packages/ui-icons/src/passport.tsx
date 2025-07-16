@@ -16,7 +16,7 @@
  */
 import { faPassport } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Passport icon from FontAwesome

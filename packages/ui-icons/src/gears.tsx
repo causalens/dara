@@ -16,7 +16,7 @@
  */
 import { faGears } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Gears icon from FontAwesome

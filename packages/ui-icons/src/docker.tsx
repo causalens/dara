@@ -16,7 +16,7 @@
  */
 import { faDocker } from '@fortawesome/free-brands-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * A Docker icon from FontAwesome

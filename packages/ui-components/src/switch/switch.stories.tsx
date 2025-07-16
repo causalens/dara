@@ -14,28 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
 import { Cow, Hippo } from '@darajs/ui-icons';
 
-import { default as SwitchComponent, SwitchProps } from './switch';
+import { default as SwitchComponent, type SwitchProps } from './switch';
 
-export default {
+const meta: Meta<SwitchProps> = {
     component: SwitchComponent,
     title: 'UI Components/Switch',
-} as Meta;
+};
 
-export const TextLabelsScenario = (args: SwitchProps): JSX.Element => <SwitchComponent {...args} />;
+export default meta;
+type Story = StoryObj<SwitchProps>;
 
-// test containing text
-TextLabelsScenario.args = { initialValue: true, labels: { off: 'OFF', on: 'ON' } };
+export const TextLabelsScenario: Story = {
+    // test containing text
+    args: { initialValue: true, labels: { off: 'OFF', on: 'ON' } },
+};
 
-export const IconLabelsScenario = (args: SwitchProps): JSX.Element => <SwitchComponent {...args} />;
+export const IconLabelsScenario: Story = {
+    // test containing icons
+    args: { initialValue: true, labels: { off: <Hippo />, on: <Cow size="lg" /> } },
+};
 
-// test containing icons
-IconLabelsScenario.args = { initialValue: true, labels: { off: <Hippo />, on: <Cow size="lg" /> } };
-
-export const LightDarkScenario = (args: SwitchProps): JSX.Element => <SwitchComponent {...args} />;
-
-// test containing icons
-LightDarkScenario.args = { initialValue: true, lightDark: true };
+export const LightDarkScenario: Story = {
+    // test containing icons
+    args: { initialValue: true, lightDark: true },
+};

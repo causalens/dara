@@ -16,13 +16,13 @@
  */
 import isEqual from 'lodash/isEqual';
 import { useState } from 'react';
-import { FilterProps } from 'react-table';
+import { type FilterProps } from 'react-table';
 
 import styled from '@darajs/styled-components';
 
 import CheckboxGroup from '../checkbox/checkbox-group';
 import SearchBar from '../search-bar/search-bar';
-import { Item } from '../types';
+import { type Item } from '../types';
 
 export const FilterWrapper = styled.div`
     display: flex;

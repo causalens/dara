@@ -14,34 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as AccordionComponent, AccordionProps } from './accordion';
+import { default as Accordion, type AccordionProps } from './accordion';
 
 export default {
-    component: AccordionComponent,
+    component: Accordion,
     title: 'UI Components/Accordion',
-} as Meta;
+    parameters: {
+        layout: 'fullscreen',
+    },
+} satisfies Meta<AccordionProps>;
 
-export const Accordion = (args: AccordionProps): JSX.Element => <AccordionComponent {...args} />;
-Accordion.args = {
-    initialOpenItems: [1],
-    items: [
-        {
-            content:
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
-            label: 'First item',
-        },
-        {
-            content:
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
-            label: 'Second item',
-        },
-        {
-            content:
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
-            label: 'Third item',
-        },
-    ],
-    multi: false,
+type Story = StoryObj<AccordionProps>;
+
+export const Default: Story = {
+    args: {
+        initialOpenItems: [1],
+        items: [
+            {
+                content:
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
+                label: 'First item',
+            },
+            {
+                content:
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
+                label: 'Second item',
+            },
+            {
+                content:
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer metus turpis, auctor sed posuere id, dignissim ac augue. Nam tincidunt a odio quis consectetur. Etiam molestie nulla lectus, at volutpat nisi malesuada eget. Nullam eu velit vitae augue pellentesque scelerisque at a massa. Quisque sollicitudin tellus vel fermentum pulvinar.',
+                label: 'Third item',
+            },
+        ],
+        multi: false,
+    },
 };

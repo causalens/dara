@@ -16,7 +16,7 @@
  */
 import { faCropAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CropAlt icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faPeoplePulling } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PeoplePulling icon from FontAwesome

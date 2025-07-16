@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Internal: upgraded production build to use Vite v7. The minimum version of Node required for production builds is now 20.19.0
+
 ## 1.18.5
 
 -  Fixed an issue where WS_CHANNEL context var wasn't set within the websocket handler itself

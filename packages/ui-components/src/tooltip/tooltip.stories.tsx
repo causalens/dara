@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { default as TooltipComponent, TooltipProps } from './tooltip';
+import { default as TooltipComponent, type TooltipProps } from './tooltip';
 
-export default {
+const meta: Meta<TooltipProps> = {
     component: TooltipComponent,
     title: 'UI Components/Tooltip',
-} as Meta;
+};
 
-export const Tooltip = (args: TooltipProps): JSX.Element => (
-    <div style={{ alignItems: 'center', display: 'flex', height: '100%', justifyContent: 'center', width: '100%' }}>
-        <TooltipComponent {...args} />
-    </div>
-);
+export default meta;
+type Story = StoryObj<TooltipProps>;
 
-Tooltip.args = {
-    children: <div>Hover over me</div>,
-    content: <div>This is a tooltip!</div>,
-    placement: 'top',
-    styling: 'default',
+export const Tooltip: Story = {
+    args: {
+        children: <div>Hover over me</div>,
+        content: <div>This is a tooltip!</div>,
+        placement: 'top',
+        styling: 'default',
+    },
+    render: (args: TooltipProps): JSX.Element => (
+        <div style={{ alignItems: 'center', display: 'flex', height: '100%', justifyContent: 'center', width: '100%' }}>
+            <TooltipComponent {...args} />
+        </div>
+    ),
 };

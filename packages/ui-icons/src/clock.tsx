@@ -16,7 +16,7 @@
  */
 import { faClock } from '@fortawesome/free-regular-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Clock icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faTrashArrowUp } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TrashArrowUp icon from FontAwesome

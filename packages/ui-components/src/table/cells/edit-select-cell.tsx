@@ -19,8 +19,8 @@ import isEqual from 'lodash/isEqual';
 import styled from '@darajs/styled-components';
 
 import Select from '../../select/select';
-import { Item } from '../../types';
-import { EditCellProps } from './edit-cell-utils';
+import { type Item } from '../../types';
+import { type EditCellProps } from './edit-cell-utils';
 
 const SelectWrapper = styled.div`
     display: flex;

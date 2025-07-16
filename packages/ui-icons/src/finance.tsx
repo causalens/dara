@@ -16,7 +16,7 @@
  */
 import { mdiFinance } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A Finance icon from Material Design

@@ -1,12 +1,12 @@
 import { formatISO, parseISO } from 'date-fns';
 import { useEffect, useMemo, useRef } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
 import { DatePicker as UIDatePicker } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 const DatepickerDiv = styled.div`
     display: flex;

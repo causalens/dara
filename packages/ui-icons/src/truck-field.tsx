@@ -16,7 +16,7 @@
  */
 import { faTruckField } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TruckField icon from FontAwesome

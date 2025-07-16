@@ -16,7 +16,7 @@
  */
 import { faCalculator } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Calculator icon from FontAwesome

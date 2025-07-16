@@ -16,7 +16,7 @@
  */
 import { faTintSlash } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * TintSlash icon from FontAwesome

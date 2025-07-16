@@ -14,35 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { Item } from '../types';
-import { default as CheckboxComponent, CheckboxProps } from './checkbox';
-import { default as CheckboxGroupComponent, CheckboxGroupProps } from './checkbox-group';
-import { default as TriStateCheckboxComponent, CheckboxProps as TriStateCheckboxProps } from './tri-state-checkbox';
+import { type Item } from '../types';
+import { default as CheckboxComponent, type CheckboxProps } from './checkbox';
+import { default as CheckboxGroupComponent, type CheckboxGroupProps } from './checkbox-group';
+import {
+    default as TriStateCheckboxComponent,
+    type CheckboxProps as TriStateCheckboxProps,
+} from './tri-state-checkbox';
 
-export default {
-    component: CheckboxComponent,
+const meta: Meta<CheckboxProps> = {
     title: 'UI Components/Checkbox',
-} as Meta;
-
-export const Checkbox = (props: CheckboxProps): JSX.Element => <CheckboxComponent {...props} />;
-Checkbox.args = {
-    intialValue: true,
-    label: 'Test',
+    component: CheckboxComponent,
 };
 
-export const ListCheckbox = (props: CheckboxProps): JSX.Element => <CheckboxComponent {...props} />;
-ListCheckbox.args = {
-    isListStyle: true,
-    label: 'Test',
-    selected: false,
+export default meta;
+type Story = StoryObj<CheckboxProps>;
+type TriStateStory = StoryObj<TriStateCheckboxProps>;
+type GroupStory = StoryObj<CheckboxGroupProps>;
+
+export const Checkbox: Story = {
+    args: {
+        initialValue: true,
+        label: 'Test',
+    },
 };
 
-export const TriStateCheckbox = (props: TriStateCheckboxProps): JSX.Element => <TriStateCheckboxComponent {...props} />;
-TriStateCheckbox.args = {
-    allSelected: false,
-    noneSelected: false,
+export const ListCheckbox: Story = {
+    args: {
+        isListStyle: true,
+        label: 'Test',
+        selected: false,
+    },
 };
 
 const simpleItems: Item[] = [
@@ -75,17 +80,29 @@ const val: Item[] = [
     },
 ];
 
-export const CheckboxGroup = (props: CheckboxGroupProps): JSX.Element => <CheckboxGroupComponent {...props} />;
-CheckboxGroup.args = {
-    items: simpleItems,
-    selectMax: 4,
-    selectMin: 2,
-    values: val,
+export const TriStateCheckbox: TriStateStory = {
+    render: (args) => <TriStateCheckboxComponent {...args} />,
+    args: {
+        allSelected: false,
+        noneSelected: false,
+    },
 };
 
-export const ListCheckboxGroup = (props: CheckboxGroupProps): JSX.Element => <CheckboxGroupComponent {...props} />;
-ListCheckboxGroup.args = {
-    isListStyle: true,
-    items: simpleItems,
-    values: val,
+export const CheckboxGroup: GroupStory = {
+    render: (args) => <CheckboxGroupComponent {...args} />,
+    args: {
+        items: simpleItems,
+        selectMax: 4,
+        selectMin: 2,
+        values: val,
+    },
+};
+
+export const ListCheckboxGroup: GroupStory = {
+    render: (args) => <CheckboxGroupComponent {...args} />,
+    args: {
+        isListStyle: true,
+        items: simpleItems,
+        values: val,
+    },
 };

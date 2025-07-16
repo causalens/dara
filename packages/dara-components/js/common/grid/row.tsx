@@ -2,17 +2,17 @@
 import { useMemo } from 'react';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    LayoutComponentProps,
+    type LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
-import { Breakpoints } from '../types';
-import { ColumnProps } from './column';
+import { type Breakpoints } from '../types';
+import { type ColumnProps } from './column';
 
 /* eslint-disable react/no-unused-prop-types */
 interface RowProps extends LayoutComponentProps {

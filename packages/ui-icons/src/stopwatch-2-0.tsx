@@ -16,7 +16,7 @@
  */
 import { faStopwatch20 } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Stopwatch20 icon from FontAwesome

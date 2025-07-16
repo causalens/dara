@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 import { useMemo, useState } from 'react';
-import { FilterProps } from 'react-table';
+import { type FilterProps } from 'react-table';
 
 import styled from '@darajs/styled-components';
 
 import Input from '../input/input';
 import Select from '../select/select';
-import { Item } from '../types';
+import { type Item } from '../types';
 import { ApplyButton, FilterWrapper } from './categorical-filter';
 
 const StyledSelect = styled(Select)`

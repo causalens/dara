@@ -16,7 +16,7 @@
  */
 import { faLungs } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Lungs icon from FontAwesome

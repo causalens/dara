@@ -16,7 +16,7 @@
  */
 import { mdiArrowLeftBold } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * An ArrowLeftBold icon from Material Design

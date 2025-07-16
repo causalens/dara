@@ -14,36 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 
-import { default as DropzoneComponent, UploadDropzoneProps } from './dropzone';
+import { default as DropzoneComponent, type UploadDropzoneProps } from './dropzone';
 
-export default {
+const meta: Meta<UploadDropzoneProps> = {
     component: DropzoneComponent,
     title: 'UI Components/Dropzone',
-} as Meta;
+};
 
-export const Dropzone = (props: UploadDropzoneProps): JSX.Element => {
-    const [files, setFiles] = useState<string[]>([]);
+export default meta;
+type Story = StoryObj<UploadDropzoneProps>;
 
-    const handleDrop = (acceptedFiles: Array<File>): void => {
-        setFiles(acceptedFiles.map((f) => f.name));
-    };
+export const Dropzone: Story = {
+    render: (props: UploadDropzoneProps): JSX.Element => {
+        const [files, setFiles] = useState<string[]>([]);
 
-    return (
-        <div>
-            <DropzoneComponent {...props} onDrop={handleDrop} />
-            {files.length > 0 && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#e8f5e8' }}>
-                    <strong>Files accepted:</strong>
-                    <ul>
-                        {files.map((file, i) => (
-                            <li key={i}>{file}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
+        const handleDrop = (acceptedFiles: Array<File>): void => {
+            setFiles(acceptedFiles.map((f) => f.name));
+        };
+
+        return (
+            <div>
+                <DropzoneComponent {...props} onDrop={handleDrop} />
+                {files.length > 0 && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#e8f5e8' }}>
+                        <strong>Files accepted:</strong>
+                        <ul>
+                            {files.map((file, i) => (
+                                <li key={i}>{file}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        );
+    },
 };

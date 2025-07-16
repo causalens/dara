@@ -7,9 +7,9 @@ import debounce from 'lodash/debounce';
 import { nanoid } from 'nanoid';
 import { useMemo } from 'react';
 
-import { Variable, useVariable } from '@darajs/core';
+import { type Variable, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
-import { Button, DatePicker, Input, Item, Select } from '@darajs/ui-components';
+import { Button, DatePicker, Input, type Item, Select } from '@darajs/ui-components';
 import { Cross, Plus } from '@darajs/ui-icons';
 
 enum ColumnType {

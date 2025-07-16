@@ -1,4 +1,4 @@
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
 import { ProgressBar as UiProgressBar } from '@darajs/ui-components';
 

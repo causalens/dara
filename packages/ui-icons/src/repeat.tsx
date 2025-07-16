@@ -16,7 +16,7 @@
  */
 import { faRepeat } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Repeat icon from FontAwesome
