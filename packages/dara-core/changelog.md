@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Internal: upgraded production build to use Vite v7. The minimum version of Node required for production builds is now 20.19.0
+-  Docs: Improve documentation metadata for all Getting Started guides
 
 ## 1.18.5
 
