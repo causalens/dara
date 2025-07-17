@@ -19,7 +19,7 @@ import React from 'react';
 
 import styled, { theme } from '@darajs/styled-components';
 
-import ContextMenu, { type MenuAction } from './context-menu';
+import ContextMenu, { type MenuAction, useContextMenu } from './context-menu';
 
 const ResultItem = ContextMenu<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>('div');
 
@@ -47,11 +47,63 @@ const actions: MenuAction[] = [
 
 export const ContextMenuItem = (): JSX.Element => (
     <div>
-        <StyledResult actions={actions} />;
-        <StyledResult actions={actions} />;
-        <StyledResult actions={actions} />;
+        <StyledResult actions={actions} />
+        <StyledResult actions={actions} />
+        <StyledResult actions={actions} />
     </div>
 );
+
+// New render prop pattern usage with onClick handler
+export const WithRenderProp = (): JSX.Element => {
+    const { onContextMenu, contextMenu } = useContextMenu({
+        menuItems: [
+            [
+                { label: 'Copy', icon: '📋' },
+                { label: 'Paste', icon: '📄' },
+            ],
+            [
+                { label: 'Delete', icon: '🗑️' },
+            ],
+        ],
+        onClick: (item, index) => {
+            // eslint-disable-next-line no-console
+            console.log('Clicked:', item.label, 'at index:', index);
+            // Handle the click based on the item
+            if (item.label === 'Copy') {
+                // eslint-disable-next-line no-alert
+                alert('Copy clicked!');
+            } else if (item.label === 'Paste') {
+                // eslint-disable-next-line no-alert
+                alert('Paste clicked!');
+            } else if (item.label === 'Delete') {
+                // eslint-disable-next-line no-alert
+                alert('Delete clicked!');
+            }
+        },
+    });
+
+    return (
+        <div>
+            <div 
+                onContextMenu={onContextMenu} 
+                style={{ 
+                    width: '200px',
+                    height: '100px',
+                    padding: '20px', 
+                    border: '2px dashed #ccc',
+                    margin: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.colors.blue1
+                }}
+            >
+                Right click me for new API context menu!
+            </div>
+            {contextMenu}
+        </div>
+    );
+};
 
 const meta: Meta<typeof ContextMenuItem> = {
     title: 'UI Components/ContextMenu',

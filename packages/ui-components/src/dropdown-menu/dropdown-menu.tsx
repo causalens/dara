@@ -126,6 +126,7 @@ export type MenuItem = {
     preventClose?: boolean;
     before?: React.ReactNode;
     after?: React.ReactNode;
+    title?: string;
 };
 
 export type DropdownMenuProps = {
@@ -179,6 +180,7 @@ export const Dropdown = (props: DropdownProps): JSX.Element => {
                                     }}
                                     role="menuitem"
                                     style={item.style}
+                                    title={item.title}
                                 >
                                     {item.before}
                                     <ItemLabel>

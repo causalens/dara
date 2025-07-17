@@ -37,6 +37,20 @@ export interface ContextMenuProps<T> {
     elementProps?: T;
 }
 
+export interface UseContextMenuProps {
+    /** Menu items to display in the context menu */
+    menuItems: MenuItem[][];
+    /** Optional click handler for menu items */
+    onClick: (item: MenuItem, index: [number, number]) => void;
+}
+
+export interface UseContextMenuReturn {
+    /** The onContextMenu handler to pass to your component */
+    onContextMenu: (e: React.MouseEvent) => void;
+    /** The context menu element to render */
+    contextMenu: React.ReactNode;
+}
+
 /**
  * Simple synchronization mechanism to close all context menus when one is opened.
  * This is necessary as context menus capture the right click event which prevents us from using
@@ -61,6 +75,124 @@ const Sync$ = {
 };
 
 /**
+ * Hook-like component that provides context menu functionality via render prop pattern.
+ * Returns an onContextMenu handler and the context menu element to render.
+ */
+export function useContextMenu(props: UseContextMenuProps): UseContextMenuReturn {
+    const { menuItems, onClick: onItemClick } = props;
+
+    const uid = React.useId();
+
+    const menuRefs = React.useRef<ExtendedRefs<HTMLElement> | null>(null);
+    const setShowRef = React.useRef<(show: boolean) => void>();
+
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    const showMenu = React.useCallback(() => {
+        setIsOpen(true);
+        setShowRef.current?.(true);
+    }, []);
+
+    const hideMenu = React.useCallback(() => {
+        setIsOpen(false);
+        setShowRef.current?.(false);
+    }, []);
+
+    // close the context menu when clicking outside of it
+    useOutsideClick(
+        () => menuRefs.current?.floating ?? document.body,
+        () => {
+            hideMenu();
+        }
+    );
+
+    /**
+     * Runs on initial render of the context menu. This is used to store the refs and setShow function,
+     * as exposed by the Float.Virtual component.
+     */
+    const onInitial = React.useCallback(({ refs, setShow }: FloatVirtualInitialProps) => {
+        menuRefs.current = refs;
+        setShowRef.current = setShow;
+    }, []);
+
+    function onClick(item: MenuItem, index: [number, number]): void {
+        onItemClick(item, index);
+        hideMenu();
+    }
+
+    const onContextMenu = React.useCallback((e: React.MouseEvent) => {
+        if (menuRefs.current && setShowRef.current) {
+            // dispatch event of a right click to close other context menu in the page
+            document.dispatchEvent(new Event('contextmenu'));
+
+            // close other context menus
+            Sync$.next(uid);
+
+            // set position of the menu to match cursor position
+            menuRefs.current.setPositionReference({
+                getBoundingClientRect: () => ({
+                    width: 0,
+                    height: 0,
+                    x: e.clientX,
+                    y: e.clientY,
+                    top: e.clientY,
+                    left: e.clientX,
+                    right: e.clientX,
+                    bottom: e.clientY,
+                }),
+            });
+            showMenu();
+        }
+
+        // prevent bubbling (otherwise nested context menu components would fire all parent context menus)
+        e.stopPropagation();
+        // prevent browser context menu
+        e.preventDefault();
+    }, [showMenu, uid]);
+
+    React.useEffect(() => {
+        const unsub = Sync$.subscribe((msg) => {
+            if (msg !== uid) {
+                hideMenu();
+            }
+        });
+
+        return () => {
+            unsub();
+        };
+    }, [hideMenu, uid]);
+
+    const contextMenu = (
+        <Float.Virtual
+            enter="enter"
+            enterFrom="enter-from"
+            enterTo="enter-to"
+            flip
+            leave="leave"
+            leaveFrom="leave-from"
+            onInitial={onInitial}
+            leaveTo="leave-to"
+            offset={4}
+            placement="bottom-start"
+            portal
+            shift
+            show={isOpen}
+        >
+            <Menu>
+                <Menu.Items as={StyledDropdown} static>
+                    <Dropdown menuItems={menuItems} onClick={onClick} />
+                </Menu.Items>
+            </Menu>
+        </Float.Virtual>
+    );
+
+    return {
+        onContextMenu,
+        contextMenu,
+    };
+}
+
+/**
  * The ContextMenu is a higher order component that wraps another react component and overrides its context menu to be a
  * custom list of actions, defined by the actions prop.
  *
@@ -68,130 +200,38 @@ const Sync$ = {
  */
 function ContextMenu<T>(Component: React.ComponentType<T> | string): (props: ContextMenuProps<T>) => JSX.Element {
     function WrappedContextMenu(props: ContextMenuProps<T>): JSX.Element {
-        const items = React.useMemo<MenuItem[][]>(() => {
+        const menuItems = React.useMemo<MenuItem[][]>(() => {
             return [
                 props.actions.map(
                     (act) =>
                         ({
                             label: act.label,
+                            title: act.label,
                         }) satisfies MenuItem
                 ),
             ];
         }, [props.actions]);
 
-        const uid = React.useId();
-
-        const menuRefs = React.useRef<ExtendedRefs<HTMLElement> | null>(null);
-        const setShowRef = React.useRef<(show: boolean) => void>();
-
-        /**
-         * Remember which actions are currently showing in the context menu.
-         * These should be set once context menu is being opened.
-         * This is to prevent actions from changing while the menu is being closed and transitioning out.
-         */
-        const [itemsShowing, setItemsShowing] = React.useState<MenuItem[][]>([]);
-
-        const show = React.useCallback(() => {
-            setItemsShowing(items);
-            setShowRef.current?.(true);
-        }, [items]);
-
-        const hide = React.useCallback(() => {
-            setShowRef.current?.(false);
-        }, []);
-
-        React.useEffect(() => {
-            const unsub = Sync$.subscribe((msg) => {
-                if (msg !== uid) {
-                    hide();
-                }
-            });
-
-            return () => {
-                unsub();
-            };
-        }, [hide, uid]);
-
-        // close the context menu when clicking outside of it
-        useOutsideClick(
-            () => menuRefs.current?.floating ?? document.body,
-            () => {
-                hide();
+        const handleClick = React.useCallback((_item: MenuItem, index: [number, number]) => {
+            const [, itemIndex] = index;
+            // Since we only have one section in the HOC case, use itemIndex to get the action
+            const action = props.actions[itemIndex];
+            if (action) {
+                action.action();
             }
-        );
+        }, [props.actions]);
 
-        /**
-         * Runs on initial render of the context menu. This is used to store the refs and setShow function,
-         * as exposed by the Float.Virtual component.
-         */
-        const onInitial = React.useCallback(({ refs, setShow }: FloatVirtualInitialProps) => {
-            menuRefs.current = refs;
-            setShowRef.current = setShow;
-        }, []);
-
-        function onClick(item: MenuItem, index: [number, number]): void {
-            const actionIndex = index[1];
-            props.actions[actionIndex].action();
-            hide();
-        }
+        const { onContextMenu, contextMenu } = useContextMenu({
+            menuItems,
+            onClick: handleClick,
+        });
 
         return (
             <>
-                <Component
-                    {...props.elementProps}
-                    className={props.className}
-                    onContextMenu={(e: React.MouseEvent) => {
-                        if (menuRefs.current && setShowRef.current) {
-                            // dispatch event of a right click to close other context menu in the page
-                            document.dispatchEvent(new Event('contextmenu'));
-
-                            // close other context menus
-                            Sync$.next(uid);
-
-                            // set position of the menu to match cursor position
-                            menuRefs.current.setPositionReference({
-                                getBoundingClientRect: () => ({
-                                    width: 0,
-                                    height: 0,
-                                    x: e.clientX,
-                                    y: e.clientY,
-                                    top: e.clientY,
-                                    left: e.clientX,
-                                    right: e.clientX,
-                                    bottom: e.clientY,
-                                }),
-                            });
-                            show();
-                        }
-
-                        // prevent bubbling (otherwise nested context menu components would fire all parent context menus)
-                        e.stopPropagation();
-                        // prevent browser context menu
-                        e.preventDefault();
-                    }}
-                >
+                <Component {...props.elementProps} className={props.className} onContextMenu={onContextMenu}>
                     {props.children}
                 </Component>
-                <Float.Virtual
-                    enter="enter"
-                    enterFrom="enter-from"
-                    enterTo="enter-to"
-                    flip
-                    leave="leave"
-                    leaveFrom="leave-from"
-                    onInitial={onInitial}
-                    leaveTo="leave-to"
-                    offset={4}
-                    placement="bottom-start"
-                    portal
-                    shift
-                >
-                    <Menu>
-                        <Menu.Items as={StyledDropdown} static>
-                            <Dropdown menuItems={itemsShowing} onClick={onClick} />
-                        </Menu.Items>
-                    </Menu>
-                </Float.Virtual>
+                {contextMenu}
             </>
         );
     }
