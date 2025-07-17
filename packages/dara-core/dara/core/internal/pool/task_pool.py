@@ -499,11 +499,14 @@ class TaskPool:
             while self.status not in (PoolStatus.ERROR, PoolStatus.STOPPED):
                 await anyio.sleep(0.1)
 
-                self._handle_excess_workers()
-                self._handle_orphaned_workers()
-                self._handle_dead_workers()
-                self._create_workers()
-                await self._process_next_worker_message()
+                try:
+                    self._handle_excess_workers()
+                    self._handle_orphaned_workers()
+                    self._handle_dead_workers()
+                    self._create_workers()
+                    await self._process_next_worker_message()
+                except Exception as e:
+                    dev_logger.error('Error in task pool', e)
         finally:
             self.loop_stopped.set()
 
