@@ -4,14 +4,18 @@ import * as React from 'react';
 
 import styled from '@darajs/styled-components';
 
-export const StyledDropdownMenuItems = styled(Menu.Items)`
+export const StyledDropdown = styled.div`
+    outline: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+
     background-color: ${(props) => props.theme.colors.blue1};
+    border-radius: 4px;
+    box-shadow: rgb(0 0 0 / 10%) 0 2px 5px;
 
     & > button:first-child {
-        border-radius: 8px;
+        border-radius: 4px;
     }
 
     &.enter {
@@ -92,11 +96,6 @@ export const StyledDropdownMenuItem = styled.button`
 
 const DropdownMenu = styled.div`
     padding: 4px;
-
-    background-color: ${(props) => props.theme.colors.blue1};
-    border-radius: 8px;
-    outline: none;
-    box-shadow: rgb(0 0 0 / 10%) 0 2px 5px;
 `;
 
 export const HorizontalDivider = styled.hr`
@@ -150,7 +149,7 @@ interface DropdownProps {
     /**
      * The callback to call when the dropdown menu option is picked
      */
-    onClick?: (menuItem: MenuItem) => void;
+    onClick?: (menuItem: MenuItem, index: [number, number]) => void;
     /**
      * Any extra content to display in the dropdown.
      * This is useful for displaying additional information in the dropdown.
@@ -158,48 +157,46 @@ interface DropdownProps {
     extra?: React.ReactNode;
 }
 
-export const Dropdown = React.forwardRef((props: DropdownProps, ref: React.ForwardedRef<any>) => {
+export const Dropdown = (props: DropdownProps): JSX.Element => {
     const { menuItems, onClick } = props;
 
     return (
-        <DropdownMenu ref={ref}>
-            <Menu.Items as={StyledDropdownMenuItems}>
-                {menuItems.map((section: MenuItem[], index) => (
-                    <StyledDropdownMenuItems key={`dropdown-section-${index}`}>
-                        {section.map((item: MenuItem) => (
-                            <Menu.Item key={typeof item.label === 'string' ? item.label : item.label.key}>
-                                {({ close: headlessClose }) => (
-                                    <StyledDropdownMenuItem
-                                        disabled={item.disabled}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            onClick?.(item);
-                                            if (!item.preventClose) {
-                                                headlessClose();
-                                            }
-                                        }}
-                                        role="menuitem"
-                                        style={item.style}
-                                    >
-                                        {item.before}
-                                        <ItemLabel>
-                                            {item.icon}
-                                            {item.label}
-                                        </ItemLabel>
-                                        {item.after}
-                                    </StyledDropdownMenuItem>
-                                )}
-                            </Menu.Item>
-                        ))}
-                        {index < menuItems.length - 1 && <HorizontalDivider />}
-                    </StyledDropdownMenuItems>
-                ))}
-                {props.extra}
-            </Menu.Items>
+        <DropdownMenu>
+            {menuItems.map((section: MenuItem[], index) => (
+                <React.Fragment key={`dropdown-section-${index}`}>
+                    {section.map((item: MenuItem, itemIndex) => (
+                        <Menu.Item key={typeof item.label === 'string' ? item.label : (item.label as any).key}>
+                            {({ close: headlessClose }) => (
+                                <StyledDropdownMenuItem
+                                    disabled={item.disabled}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        onClick?.(item, [index, itemIndex]);
+                                        if (!item.preventClose) {
+                                            headlessClose();
+                                        }
+                                    }}
+                                    role="menuitem"
+                                    style={item.style}
+                                >
+                                    {item.before}
+                                    <ItemLabel>
+                                        {item.icon}
+                                        {item.label}
+                                    </ItemLabel>
+                                    {item.after}
+                                </StyledDropdownMenuItem>
+                            )}
+                        </Menu.Item>
+                    ))}
+                    {index < menuItems.length - 1 && <HorizontalDivider />}
+                </React.Fragment>
+            ))}
+            {props.extra}
         </DropdownMenu>
     );
-});
+};
 
 function MenuDropdown(props: DropdownMenuProps): JSX.Element {
     return (
@@ -219,7 +216,9 @@ function MenuDropdown(props: DropdownMenuProps): JSX.Element {
                     zIndex={9997}
                 >
                     <Menu.Button as={React.Fragment}>{props.button}</Menu.Button>
-                    <Dropdown {...props} />
+                    <Menu.Items as={StyledDropdown}>
+                        <Dropdown {...props} />
+                    </Menu.Items>
                 </Float>
             )}
         </Menu>
