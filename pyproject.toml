@@ -117,6 +117,10 @@ develop = true
 path = "packages/create-dara-app"
 develop = true
 
+[tool.poetry.dev-dependencies.decision_app]
+path = "packages/decision-app"
+develop = true
+
 [tool.poetry.dev-dependencies.ui-notification]
 path = "packages/ui-notifications"
 develop = true

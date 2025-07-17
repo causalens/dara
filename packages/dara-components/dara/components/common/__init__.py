@@ -30,6 +30,7 @@ from dara.components.common.base_component import (
 from dara.components.common.bullet_list import BulletList
 from dara.components.common.button import Button, ButtonStyle
 from dara.components.common.button_bar import ButtonBar, ButtonBarStyle
+from dara.components.common.dropdown_menu import DropdownMenu
 from dara.components.common.card import Card
 from dara.components.common.carousel import Carousel
 from dara.components.common.checkbox_group import CheckboxGroup
@@ -87,6 +88,7 @@ __all__ = [
     'ComponentItem',
     'Datepicker',
     'Direction',
+    'DropdownMenu',
     'Form',
     'FormPage',
     'Grid',

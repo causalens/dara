@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added a new `Dropdown` and `DropdownMenu` components which now match the rest of the UI kit
+- Visual upgrade to `ContextMenu` to use the new `Dropdown` component
+- Added `useContextMenu` hook for non-HOC usage of `ContextMenu`
+
 ## 1.17.4
 
 - Fixed an issue where `Table`'s filter components would not show when clicking on the filter icon.
