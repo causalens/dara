@@ -4,6 +4,10 @@ title: Changelog
 
 ## NEXT
 
+-  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
+
+## 1.18.5
+
 -  Fixed an issue where WS_CHANNEL context var wasn't set within the websocket handler itself
 
 ## 1.18.4
