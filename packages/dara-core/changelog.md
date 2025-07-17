@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.6
 
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
 
