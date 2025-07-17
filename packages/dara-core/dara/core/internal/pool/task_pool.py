@@ -504,6 +504,8 @@ class TaskPool:
                 self._handle_dead_workers()
                 self._create_workers()
                 await self._process_next_worker_message()
+        except Exception as e:
+            dev_logger.error('Error in task pool', e)
         finally:
             self.loop_stopped.set()
 
