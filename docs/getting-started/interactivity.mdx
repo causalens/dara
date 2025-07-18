@@ -678,9 +678,9 @@ In addition to the cache `type`, you can also specify the `policy` to use, which
 cache with a maximum size of 10 items (globally, or per user/session depending on the `CacheType` set). For a detailed explanation of the available cache policies and how to use them,
 refer to [Cache Policies Documentation](../advanced/cache-policies.mdx).
 
-#### State Tracking with `StateVariable`
+#### State Tracking
 
-`DerivedVariable`s provide three built-in state tracking properties that return `StateVariable` instances to help you monitor the execution state of your derived calculations:
+`DerivedVariable`s provide three built-in state tracking properties (that return internal `StateVariable` instances) to help you monitor the execution state of your derived calculations:
 
 - `is_loading`: Returns `True` when the `DerivedVariable` is currently calculating, `False` otherwise
 - `has_error`: Returns `True` when the `DerivedVariable` calculation resulted in an error, `False` otherwise
@@ -741,8 +741,9 @@ page_content = Stack(
 ```
 
 :::note
-`StateVariable` instances are read-only and automatically managed by their parent `DerivedVariable`.
-They also cannot be used as inputs to other `DerivedVariable`s to prevent complex dependency cycles.
+The `StateVariable` instances are read-only and automatically managed by their parent `DerivedVariable`.
+They also cannot be used as inputs to other `DerivedVariable`s to prevent complex dependency cycles. They should mostly be used directly
+within `If` components or via `SwitchVariable`s.
 :::
 
 ## `py_component`

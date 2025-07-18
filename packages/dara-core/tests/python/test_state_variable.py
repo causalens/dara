@@ -15,9 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
+
 import pytest
 
-from dara.core import DerivedVariable, StateVariable
+from dara.core import DerivedVariable, StateVariable, Variable
 
 
 def test_derived_variable_is_loading_property():
@@ -26,13 +28,20 @@ def test_derived_variable_is_loading_property():
     def dummy_func(x):
         return x * 2
 
-    dv = DerivedVariable(dummy_func, variables=[])
+    dv = DerivedVariable(dummy_func, variables=[Variable(5)])
     loading_var = dv.is_loading
 
     assert isinstance(loading_var, StateVariable)
     assert loading_var.parent_variable == dv
     assert loading_var.property_name == 'loading'
     assert loading_var.uid is not None
+
+    # check serialization
+    serialized = loading_var.model_dump()
+    dv_serialized = dv.model_dump()
+
+    serialized_parent = serialized['parent_variable']
+    assert json.dumps(serialized_parent) == json.dumps(dv_serialized)
 
 
 def test_derived_variable_has_error_property():
