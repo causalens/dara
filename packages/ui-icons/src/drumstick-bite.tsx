@@ -16,7 +16,7 @@
  */
 import { faDrumstickBite } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * DrumstickBite icon from FontAwesome

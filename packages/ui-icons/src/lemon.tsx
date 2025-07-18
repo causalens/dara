@@ -16,7 +16,7 @@
  */
 import { faLemon } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Lemon icon from FontAwesome

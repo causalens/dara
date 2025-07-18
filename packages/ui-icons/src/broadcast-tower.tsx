@@ -16,7 +16,7 @@
  */
 import { faBroadcastTower } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BroadcastTower icon from FontAwesome

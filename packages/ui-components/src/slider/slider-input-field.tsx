@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { FunctionComponent, useContext } from 'react';
+import { type FunctionComponent, useContext } from 'react';
 import { SliderStateContext } from 'react-aria-components';
 
 import styled from '@darajs/styled-components';

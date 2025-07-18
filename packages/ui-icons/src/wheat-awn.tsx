@@ -16,7 +16,7 @@
  */
 import { faWheatAwn } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * WheatAwn icon from FontAwesome

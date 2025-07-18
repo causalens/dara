@@ -16,7 +16,7 @@
  */
 import { mdiChartBellCurveCumulative } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * ChartLine icon from Material Design

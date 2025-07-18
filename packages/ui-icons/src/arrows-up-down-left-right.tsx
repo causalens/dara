@@ -16,7 +16,7 @@
  */
 import { faArrowsUpDownLeftRight } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ArrowsUpDownLeftRight icon from FontAwesome

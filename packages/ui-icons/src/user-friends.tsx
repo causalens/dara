@@ -16,7 +16,7 @@
  */
 import { faUserFriends } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * UserFriends icon from FontAwesome

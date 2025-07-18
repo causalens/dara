@@ -16,7 +16,7 @@
  */
 import { mdiArrowDecision } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A ArrowDecision icon from Material Design

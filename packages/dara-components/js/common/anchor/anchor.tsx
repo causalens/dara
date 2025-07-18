@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
     ReactRouter,
-    StyledComponentProps,
+    type StyledComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
-import styled, { DefaultTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme } from '@darajs/styled-components';
 
 import { ComponentType } from '../constants';
 

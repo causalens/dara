@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { FunctionComponent } from 'react';
+import { type FunctionComponent } from 'react';
 
 import styled from '@darajs/styled-components';
 import { ChevronDown, ChevronUp } from '@darajs/ui-icons';

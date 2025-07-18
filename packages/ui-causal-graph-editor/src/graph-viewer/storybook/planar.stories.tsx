@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
 import * as React from 'react';
 
 import { SHIPPED_UNITS } from '../../../tests/mocks/graphs';
 import { PlanarLayout } from '../../shared/graph-layout';
-import type { CausalGraph } from '../../types';
-import { EdgeType, LayeringAlgorithm } from '../../types';
+import { type CausalGraph, EdgeType, PlanarLayeringAlgorithm } from '../../types';
 import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, causalGraph, nodeTiersCausalGraph, planarLayoutCausalGraph } from './stories-utils';
@@ -46,10 +45,10 @@ PlanarHorizontal.args = {
 
 export const PlanarLayoutAlgos = (): JSX.Element => {
     const planarSimplex = PlanarLayout.Builder.build();
-    planarSimplex.layeringAlgorithm = LayeringAlgorithm.SIMPLEX;
+    planarSimplex.layeringAlgorithm = PlanarLayeringAlgorithm.SIMPLEX;
 
     const planarLongestPath = PlanarLayout.Builder.build();
-    planarLongestPath.layeringAlgorithm = LayeringAlgorithm.LONGEST_PATH;
+    planarLongestPath.layeringAlgorithm = PlanarLayeringAlgorithm.LONGEST_PATH;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

@@ -16,7 +16,7 @@
  */
 import { faEnvelopeOpen } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * EnvelopeOpen icon from FontAwesome

@@ -19,7 +19,7 @@ import { useEffect, useId, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 
 interface RadioGroupWrapperProps {
     isHorizontal?: boolean;

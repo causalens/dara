@@ -16,7 +16,7 @@
  */
 import { faUserAstronaut } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * UserAstronaut icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faTicket } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Ticket icon from FontAwesome

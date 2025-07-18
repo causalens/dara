@@ -14,16 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import * as React from 'react';
 
-import { Item } from '../types';
-import { default as ComboBoxComponent, ComboBoxProps } from './combo-box';
+import { type Item } from '../types';
+import { default as ComboBoxComponent, type ComboBoxProps } from './combo-box';
 
-export default {
-    component: ComboBoxComponent,
+const meta: Meta<ComboBoxProps> = {
     title: 'UI Components/Combo Box',
-} as Meta;
+    component: ComboBoxComponent,
+    decorators: [
+        (Story) => (
+            <div style={{ width: '12.5em' }}>
+                <Story />
+            </div>
+        ),
+    ],
+};
+
+export default meta;
+type Story = StoryObj<ComboBoxProps>;
 
 const simpleItems: Item[] = [
     {
@@ -56,31 +66,23 @@ const simpleItems: Item[] = [
     },
 ];
 
-export const ComboBox = (props: ComboBoxProps): JSX.Element => (
-    <div style={{ width: '12.5em' }}>
-        <ComboBoxComponent {...props} />
-    </div>
-);
-ComboBox.args = {
-    items: simpleItems,
-    placeholder: 'Select an item',
-    size: 1,
+export const ComboBox: Story = {
+    args: {
+        items: simpleItems,
+        placeholder: 'Select an item',
+        size: 1,
+    },
 };
 
-export const ControlledComboBox = (props: ComboBoxProps): JSX.Element => {
-    const [selectedItem, setSelectedItem] = React.useState<Item>(props.selectedItem);
+export const ControlledComboBox: Story = {
+    render: (props) => {
+        const [selectedItem, setSelectedItem] = React.useState<Item | undefined>(props.selectedItem);
 
-    return (
-        <div style={{ width: '12.5em' }}>
-            <ComboBoxComponent {...props} onSelect={(item) => setSelectedItem(item)} selectedItem={selectedItem} />
-            <button onClick={() => setSelectedItem(null)} type="button">
-                Reset
-            </button>
-        </div>
-    );
-};
-ControlledComboBox.args = {
-    ...ComboBox.args,
-    placeholder: 'Select an item',
-    selectedItem: simpleItems[6],
+        return <ComboBoxComponent {...props} onSelect={(item) => setSelectedItem(item)} selectedItem={selectedItem} />;
+    },
+    args: {
+        items: simpleItems,
+        placeholder: 'Select an item',
+        selectedItem: simpleItems[6],
+    },
 };

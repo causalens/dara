@@ -16,7 +16,7 @@
  */
 import { mdiFormDropdown } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A FormDropdown icon from Material Design

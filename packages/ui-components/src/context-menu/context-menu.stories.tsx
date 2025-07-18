@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
+import React from 'react';
 
 import styled, { theme } from '@darajs/styled-components';
 
-import ContextMenu, { MenuAction } from './context-menu';
+import ContextMenu, { type MenuAction } from './context-menu';
 
 const ResultItem = ContextMenu<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>('div');
 
@@ -52,9 +53,9 @@ export const ContextMenuItem = (): JSX.Element => (
     </div>
 );
 
-const meta = {
-    component: ContextMenuItem,
+const meta: Meta<typeof ContextMenuItem> = {
     title: 'UI Components/ContextMenu',
-} as Meta;
+    component: ContextMenuItem,
+};
 
 export default meta;

@@ -16,7 +16,7 @@
  */
 import { mdiSwapHorizontal } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * A SwapHorizontal Icon from Material Design

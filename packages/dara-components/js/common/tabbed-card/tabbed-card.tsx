@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';

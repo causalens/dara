@@ -16,7 +16,7 @@
  */
 import { faPersonBiking } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PersonBiking icon from FontAwesome

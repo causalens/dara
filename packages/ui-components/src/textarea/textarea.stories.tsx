@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as TextAreaComponent, TextAreaProps } from './textarea';
+import { default as TextAreaComponent, type TextAreaProps } from './textarea';
 
-export default {
+const meta: Meta<TextAreaProps> = {
     component: TextAreaComponent,
     title: 'UI Components/Textarea',
-} as Meta;
+};
 
-export const Textarea = (props: TextAreaProps): JSX.Element => <TextAreaComponent {...props} />;
+export default meta;
+type Story = StoryObj<TextAreaProps>;
 
-Textarea.args = {
-    resize: 'horizontal',
-    style: { height: '50%', width: '300px' },
+export const Textarea: Story = {
+    args: {
+        resize: 'horizontal',
+        style: { height: '50%', width: '300px' },
+    },
 };

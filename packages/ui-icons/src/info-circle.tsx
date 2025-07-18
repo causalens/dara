@@ -16,7 +16,7 @@
  */
 import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * InfoCircle icon from FontAwesome

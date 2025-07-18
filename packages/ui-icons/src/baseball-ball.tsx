@@ -16,7 +16,7 @@
  */
 import { faBaseballBall } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BaseballBall icon from FontAwesome

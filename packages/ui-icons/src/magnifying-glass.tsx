@@ -16,7 +16,7 @@
  */
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * MagnifyingGlass icon from FontAwesome

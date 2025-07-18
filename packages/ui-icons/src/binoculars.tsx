@@ -16,7 +16,7 @@
  */
 import { faBinoculars } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Binoculars icon from FontAwesome

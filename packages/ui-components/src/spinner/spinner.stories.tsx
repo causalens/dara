@@ -14,25 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { default as SpinnerComponent, SpinnerProps } from './spinner';
+import { default as SpinnerComponent, type SpinnerProps } from './spinner';
 
-export default {
+const meta: Meta<SpinnerProps> = {
     component: SpinnerComponent,
     title: 'UI Components/Spinner',
-} as Meta;
+};
 
-export const Spinner = (args: SpinnerProps): JSX.Element => (
-    <div style={{ height: '100%' }}>
-        <SpinnerComponent {...args} />
-    </div>
-);
-Spinner.args = { size: '1rem' };
+export default meta;
+type Story = StoryObj<SpinnerProps>;
 
-export const SpinnerWithText = (args: SpinnerProps): JSX.Element => (
-    <div style={{ height: '100%' }}>
-        <SpinnerComponent {...args} />
-    </div>
-);
-SpinnerWithText.args = { showText: true };
+export const Spinner: Story = {
+    args: { size: '1rem' },
+    render: (args: SpinnerProps): JSX.Element => (
+        <div style={{ height: '100%', width: '100%' }}>
+            <SpinnerComponent {...args} />
+        </div>
+    ),
+};
+
+export const SpinnerWithText: Story = {
+    args: { showText: true },
+    render: (args: SpinnerProps): JSX.Element => (
+        <div style={{ height: '100%', width: '100%' }}>
+            <SpinnerComponent {...args} />
+        </div>
+    ),
+};

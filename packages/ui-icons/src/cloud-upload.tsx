@@ -16,7 +16,7 @@
  */
 import { faCloudUpload } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CloudUpload icon from FontAwesome

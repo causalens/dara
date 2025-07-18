@@ -16,7 +16,7 @@
  */
 import { faBookQuran } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BookQuran icon from FontAwesome

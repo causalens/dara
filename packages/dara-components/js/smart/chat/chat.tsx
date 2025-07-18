@@ -1,10 +1,10 @@
 import * as React from 'react';
 
 import {
-    RequestExtras,
-    StyledComponentProps,
-    UserData,
-    Variable,
+    type RequestExtras,
+    type StyledComponentProps,
+    type UserData,
+    type Variable,
     handleAuthErrors,
     injectCss,
     request,
@@ -14,7 +14,7 @@ import {
     useVariable,
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
-import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
+import { type Message, Chat as UiChat, type UserData as UiUserData } from '@darajs/ui-components';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 interface ChatProps extends StyledComponentProps {

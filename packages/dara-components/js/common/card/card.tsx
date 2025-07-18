@@ -1,11 +1,11 @@
 import { transparentize } from 'polished';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    LayoutComponentProps,
-    Variable,
+    type LayoutComponentProps,
+    type Variable,
     injectCss,
     useComponentStyles,
     useVariable,

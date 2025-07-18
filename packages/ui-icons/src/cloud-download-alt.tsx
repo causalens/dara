@@ -16,7 +16,7 @@
  */
 import { faCloudDownloadAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CloudDownloadAlt icon from FontAwesome

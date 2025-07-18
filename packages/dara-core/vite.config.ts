@@ -1,7 +1,7 @@
-import { fileURLToPath, URL } from 'url';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
 import path from 'path';
+import { URL, fileURLToPath } from 'url';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
     plugins: [
@@ -31,8 +31,10 @@ export default defineConfig({
             name: 'dara.core',
             formats: ['umd'],
             fileName: 'dara.core',
+            cssFileName: 'style',
         },
         outDir: 'dist/umd',
+        emptyOutDir: false,
     },
     resolve: {
         alias: [{ find: '@', replacement: fileURLToPath(new URL('./js', import.meta.url)) }],

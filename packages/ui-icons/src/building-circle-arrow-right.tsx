@@ -16,7 +16,7 @@
  */
 import { faBuildingCircleArrowRight } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BuildingCircleArrowRight icon from FontAwesome

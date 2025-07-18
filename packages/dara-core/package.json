@@ -1,6 +1,6 @@
 {
   "name": "@darajs/core",
-  "version": "1.18.5",
+  "version": "1.19.0",
   "description": "Dara Framework core",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -37,9 +37,9 @@
     "@babel/preset-env": "^7.23.0",
     "@babel/preset-react": "^7.22.15",
     "@babel/preset-typescript": "^7.23.0",
-    "@darajs/eslint-config": "1.18.5",
-    "@darajs/prettier-config": "1.18.5",
-    "@darajs/stylelint-config": "1.18.5",
+    "@darajs/eslint-config": "1.19.0",
+    "@darajs/prettier-config": "1.19.0",
+    "@darajs/stylelint-config": "1.19.0",
     "@rollup/plugin-inject": "^4.0.4",
     "@testing-library/dom": "^9.3.0",
     "@testing-library/jest-dom": "^5.16.5",
@@ -59,7 +59,7 @@
     "@types/recoil": "^0.0.9",
     "@types/styled-components": "^5.1.23",
     "@types/whatwg-fetch": "^0.0.33",
-    "@vitejs/plugin-react": "2.1.0",
+    "@vitejs/plugin-react": "4.6.0",
     "babel-jest": "^29.5.0",
     "concurrently": "^8.0.1",
     "cypress": "9.5.3",
@@ -75,14 +75,14 @@
     "start-server-and-test": "^1.14.0",
     "stylelint": "^15.0.0",
     "tsc-alias": "^1.8.5",
-    "vite": "3.1.8",
+    "vite": "7.0.4",
     "whatwg-fetch": "^3.6.2"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.18.5",
-    "@darajs/ui-components": "1.18.5",
-    "@darajs/ui-notifications": "1.18.5",
-    "@darajs/ui-utils": "1.18.5",
+    "@darajs/styled-components": "1.19.0",
+    "@darajs/ui-components": "1.19.0",
+    "@darajs/ui-notifications": "1.19.0",
+    "@darajs/ui-utils": "1.19.0",
     "@fortawesome/fontawesome-free": "~6.4.0",
     "@recoiljs/refine": "^0.1.1",
     "@tanstack/query-core": "^4.0.0",
@@ -117,5 +117,8 @@
   ],
   "publishConfig": {
     "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

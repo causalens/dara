@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
 import { useRef } from 'react';
+import { fn } from 'storybook/test';
 
-import { Props, default as TableComponent, TableHandle } from './table';
+import { type Props, default as TableComponent, type TableHandle } from './table';
 
 export default {
     component: TableComponent,
     title: 'UI Components/Table',
+    args: {
+        onItemsRendered: fn(),
+        onSort: fn(),
+        onFilter: fn(),
+    },
 } as Meta;
 
 // Sample data taken from react-table example
@@ -255,7 +261,7 @@ export const Table = (args: Props<any>): JSX.Element => {
     const tableRef = useRef<TableHandle>();
 
     return (
-        <div style={{ height: '100%' }}>
+        <div style={{ height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
             <button onClick={() => tableRef.current.resetFilters()} type="button">
                 Reset filters
@@ -276,7 +282,7 @@ export const TableSmallFont = (args: Props<any>): JSX.Element => {
     const tableRef = useRef<TableHandle>();
 
     return (
-        <div style={{ fontSize: '12px', height: '100%' }}>
+        <div style={{ fontSize: '12px', height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
             <button onClick={() => tableRef.current.resetFilters()} type="button">
                 Reset filters
@@ -297,7 +303,7 @@ export const TableInfinite = (args: Props<any>): JSX.Element => {
     const tableRef = useRef<TableHandle>();
 
     return (
-        <div style={{ height: '100%' }}>
+        <div style={{ height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
             <button onClick={() => tableRef.current.resetFilters()} type="button">
                 Reset filters

@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import * as React from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as CodeViewerComponent, CodeViewerProps } from './code-viewer';
+import { CodeComponentThemes, default as CodeViewerComponent, type CodeViewerProps } from './code-viewer';
 
-export default {
+const meta: Meta<CodeViewerProps> = {
     component: CodeViewerComponent,
     title: 'UI Components/CodeViewer',
-} as Meta;
+};
+
+export default meta;
+type Story = StoryObj<CodeViewerProps>;
 
 const codeString: string = `def greet(name):
     return f"Hello, {name}!"
@@ -41,9 +43,10 @@ if __name__ == "__main__":
     print(f"2 + 3 = {add(2, 3)}")
     print(f"Factorial of 5 is {factorial(5)}")`;
 
-export const CodeViewer = (props: CodeViewerProps): JSX.Element => <CodeViewerComponent {...props} />;
-CodeViewer.args = {
-    value: codeString,
-    language: 'python',
-    codeTheme: 'dark',
+export const CodeViewer: Story = {
+    args: {
+        value: codeString,
+        language: 'python',
+        codeTheme: CodeComponentThemes.DARK,
+    },
 };

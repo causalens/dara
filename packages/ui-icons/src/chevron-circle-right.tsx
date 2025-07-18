@@ -16,7 +16,7 @@
  */
 import { faChevronCircleRight } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ChevronCircleRight icon from FontAwesome

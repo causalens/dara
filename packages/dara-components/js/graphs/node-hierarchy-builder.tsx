@@ -1,15 +1,15 @@
 import { useRef } from 'react';
 
 import {
-    Action,
-    StyledComponentProps,
-    Variable,
+    type Action,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
-import { Node, NodeHierarchyBuilder as UINodeHierarchyBuilder } from '@darajs/ui-causal-graph-editor';
+import { type Node, NodeHierarchyBuilder as UINodeHierarchyBuilder } from '@darajs/ui-causal-graph-editor';
 
 type NodeType = Node | string;
 

@@ -1,4 +1,4 @@
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
 
 interface HeadingProps extends StyledComponentProps {

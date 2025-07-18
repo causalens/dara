@@ -16,7 +16,7 @@
  */
 import { faTanakh } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Tanakh icon from FontAwesome

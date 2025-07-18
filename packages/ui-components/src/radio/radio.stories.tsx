@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { Item } from '../types';
-import { default as RadioComponent, RadioGroupProps } from './radio-group';
+import { type Item } from '../types';
+import { default as RadioComponent, type RadioGroupProps } from './radio-group';
 
-export default {
+const meta: Meta<RadioGroupProps> = {
     component: RadioComponent,
     title: 'UI Components/Radio Group',
-} as Meta;
+};
+
+export default meta;
+type Story = StoryObj<RadioGroupProps>;
 
 const simpleItems: Item[] = [
     {
@@ -39,15 +42,17 @@ const simpleItems: Item[] = [
     },
 ];
 
-export const RadioGroup = (props: RadioGroupProps): JSX.Element => <RadioComponent {...props} />;
-RadioGroup.args = {
-    initialValue: 1,
-    items: simpleItems,
+export const RadioGroup: Story = {
+    args: {
+        initialValue: simpleItems[0],
+        items: simpleItems,
+    },
 };
 
-export const RadioGroupList = (props: RadioGroupProps): JSX.Element => <RadioComponent {...props} />;
-RadioGroupList.args = {
-    initialValue: 2,
-    isListStyle: true,
-    items: simpleItems,
+export const RadioGroupList: Story = {
+    args: {
+        initialValue: simpleItems[1],
+        isListStyle: true,
+        items: simpleItems,
+    },
 };

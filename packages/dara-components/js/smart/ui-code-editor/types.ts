@@ -1,4 +1,4 @@
-import { ContextType } from 'react';
+import { type ContextType } from 'react';
 import type { CompletionItem, MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types';
 
 import { WebSocketCtx } from '@darajs/core';

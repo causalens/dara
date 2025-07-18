@@ -16,7 +16,7 @@
  */
 import { faRoadBridge } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * RoadBridge icon from FontAwesome

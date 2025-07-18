@@ -16,7 +16,7 @@
  */
 import { faKiwiBird } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * KiwiBird icon from FontAwesome

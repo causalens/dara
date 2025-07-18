@@ -16,7 +16,7 @@
  */
 import { faKissBeam } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * KissBeam icon from FontAwesome

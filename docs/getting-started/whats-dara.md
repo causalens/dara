@@ -1,8 +1,10 @@
 ---
 title: What's Dara?
+description: Learn about the guiding principles of the Dara framework and how it differs from other frameworks
+boost: 2
 ---
 
-Welcome to the documentation for building decisionApps, for this you will be using the Dara framework (also known as decisionApp SDK). These pages will give you an introduction to the low-code application framework and help you along your first steps to making beautiful apps in no time at all.
+Welcome to the documentation for building interactive applications, for this you will be using the Dara framework. These pages will give you an introduction to the low-code application framework and help you along your first steps to making beautiful apps in no time at all.
 
 Dara is a low-code application framework that is different in architecture and usability but similar in purpose to Plotly Dash, Streamlit and Shiny. It's designed to make dashboards and apps quickly using tools that you are already familiar with.
 

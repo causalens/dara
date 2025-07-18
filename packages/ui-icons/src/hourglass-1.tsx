@@ -16,7 +16,7 @@
  */
 import { faHourglass1 } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Hourglass1 icon from FontAwesome

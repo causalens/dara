@@ -16,7 +16,7 @@
  */
 import { faStrikethrough } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Strikethrough icon from FontAwesome

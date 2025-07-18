@@ -16,7 +16,7 @@
  */
 import { faBuildingColumns } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BuildingColumns icon from FontAwesome

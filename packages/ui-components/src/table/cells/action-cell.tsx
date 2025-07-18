@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 import styled from '@darajs/styled-components';
-import { CheckSquare, Copy, IconProps, Square, ToggleOff, ToggleOn, Trash } from '@darajs/ui-icons';
+import { CheckSquare, Copy, type IconProps, Square, ToggleOff, ToggleOn, Trash } from '@darajs/ui-icons';
 
 export enum Action {
     COPY = 'copy',

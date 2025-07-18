@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
 import * as MDIcon from '@mdi/react';
 import * as React from 'react';
 import type { StyledComponent } from 'styled-components';
 
-import styled, { DefaultTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme } from '@darajs/styled-components';
 
 type IconProps = AsButtonProp & Omit<FontAwesomeIconProps, 'icon'>;
 
@@ -82,4 +82,4 @@ const StyledMDIcon: StyledComponent<(props: any) => JSX.Element, DefaultTheme, A
     ${(props) => (props.asButton ? `:hover { color: ${props.theme.colors.grey6 as string}; }` : '')}
 `;
 
-export { IconProps, StyledFAIcon, StyledMDIcon };
+export { type IconProps, StyledFAIcon, StyledMDIcon };

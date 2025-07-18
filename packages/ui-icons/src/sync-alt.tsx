@@ -16,7 +16,7 @@
  */
 import { faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * SyncAlt icon from FontAwesome

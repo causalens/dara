@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
 import { theme } from '@darajs/styled-components';
 
 import Badge from '../badge/badge';
-import { CarouselItem } from '../types';
-import { default as CarouselComponent, CarouselProps } from './carousel';
+import { type CarouselItem } from '../types';
+import { default as CarouselComponent, type CarouselProps } from './carousel';
 
-export default {
-    component: CarouselComponent,
+const meta: Meta<CarouselProps> = {
     title: 'UI Components/Carousel',
-} as Meta;
+    component: CarouselComponent,
+    decorators: [
+        (Story) => (
+            <div style={{ display: 'flex', height: '400px' }}>
+                <Story />
+            </div>
+        ),
+    ],
+};
 
-const Template = (args: CarouselProps): JSX.Element => (
-    <div style={{ display: 'flex', height: '400px' }}>
-        <CarouselComponent {...args} />
-    </div>
-);
+export default meta;
+type Story = StoryObj<CarouselProps>;
 
 const simpleItems: CarouselItem[] = [
     {
@@ -135,28 +140,28 @@ const complexItems: CarouselItem[] = [
     },
 ];
 
-export const TextCarousel = Template.bind({});
-
-TextCarousel.args = {
-    items: simpleItems,
+export const TextCarousel: Story = {
+    args: {
+        items: simpleItems,
+    },
 };
 
-export const ImgCarousel = Template.bind({});
-
-ImgCarousel.args = {
-    items: imgItems,
-    style: { flex: '0 0 500px' },
+export const ImgCarousel: Story = {
+    args: {
+        items: imgItems,
+        style: { flex: '0 0 500px' },
+    },
 };
 
-export const ImageTextCarousel = Template.bind({});
-
-ImageTextCarousel.args = {
-    items: imgTextItems,
-    style: { flex: '0 0 500px' },
+export const ImageTextCarousel: Story = {
+    args: {
+        items: imgTextItems,
+        style: { flex: '0 0 500px' },
+    },
 };
 
-export const ComplexCarousel = Template.bind({});
-
-ComplexCarousel.args = {
-    items: complexItems,
+export const ComplexCarousel: Story = {
+    args: {
+        items: complexItems,
+    },
 };

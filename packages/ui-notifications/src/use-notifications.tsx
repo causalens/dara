@@ -20,7 +20,7 @@ import React, { useContext } from 'react';
 
 import { Status } from '@darajs/ui-utils';
 
-import { NotificationPayload } from './notification-payload';
+import { type NotificationPayload } from './notification-payload';
 import { NotificationContext } from './notification-wrapper';
 
 interface AnyError extends Error {

@@ -1,5 +1,6 @@
 ---
 title: Templates
+description: Learn how to use templates to control the layout and routing of your Dara application
 ---
 
 Templates are a core part of the main configuration as they determine the following key aspects of your application:

@@ -16,7 +16,7 @@
  */
 import { faRotateLeft } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * RotateLeft icon from FontAwesome

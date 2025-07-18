@@ -16,7 +16,7 @@
  */
 import { faCodeCompare } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CodeCompare icon from FontAwesome

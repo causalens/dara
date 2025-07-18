@@ -1,6 +1,6 @@
-import { Language } from 'prism-react-renderer';
+import { type Language } from 'prism-react-renderer';
 
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import { CodeComponentThemes, CodeViewer as UiCodeViewer } from '@darajs/ui-components';
 
 const StyledCodeViewer = injectCss(UiCodeViewer);

@@ -1,4 +1,4 @@
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 
 interface BulletListProps extends StyledComponentProps {
     /** Content to be displayed in the bullet list */

@@ -1,9 +1,9 @@
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
 import { Switch as UISwitch } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 const _SwitchDiv = styled.div`
     display: flex;

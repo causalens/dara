@@ -16,7 +16,7 @@
  */
 import { faVoicemail } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Voicemail icon from FontAwesome

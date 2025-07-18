@@ -16,7 +16,7 @@
  */
 import { faRefresh } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Refresh icon from FontAwesome

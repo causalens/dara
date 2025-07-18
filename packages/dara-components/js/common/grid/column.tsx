@@ -1,14 +1,14 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    LayoutComponentProps,
+    type LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
-import { Breakpoints } from '../types';
+import { type Breakpoints } from '../types';
 
 /* eslint-disable react/no-unused-prop-types */
 export interface ColumnProps extends LayoutComponentProps {

@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { default as ModalComponent, ModalProps } from './modal';
+import { default as ModalComponent, type ModalProps } from './modal';
 
-export default {
+const meta: Meta<ModalProps> = {
     component: ModalComponent,
     title: 'UI Components/Modal',
-} as Meta;
+};
 
-export const Modal = (args: ModalProps): JSX.Element => <ModalComponent {...args} />;
+export default meta;
+type Story = StoryObj<ModalProps>;
 
-Modal.args = {
-    children: <div>Test Modal</div>,
-    render: true,
+export const Modal: Story = {
+    args: {
+        children: <div>Test Modal</div>,
+        render: true,
+    },
 };

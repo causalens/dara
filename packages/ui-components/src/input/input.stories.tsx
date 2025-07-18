@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as InputComponent, InputProps } from './input';
+import { default as InputComponent, type InputProps } from './input';
 
-export default {
+const meta: Meta<InputProps> = {
     component: InputComponent,
     title: 'UI Components/Input',
-} as Meta;
+};
 
-export const Input = (props: InputProps): JSX.Element => <InputComponent {...props} />;
-Input.args = {
-    placeholder: 'Placeholder...',
+export default meta;
+type Story = StoryObj<InputProps>;
+
+export const Input: Story = {
+    args: {
+        placeholder: 'Placeholder...',
+    },
 };

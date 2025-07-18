@@ -16,7 +16,7 @@
  */
 import { faClipboardList } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ClipboardList icon from FontAwesome

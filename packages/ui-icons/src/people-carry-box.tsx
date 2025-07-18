@@ -16,7 +16,7 @@
  */
 import { faPeopleCarryBox } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PeopleCarryBox icon from FontAwesome

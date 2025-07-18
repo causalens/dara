@@ -3,16 +3,16 @@ import { formatISO } from 'date-fns';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import mapKeys from 'lodash/mapKeys';
-import { ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-    Action,
-    AnyDataVariable,
-    ClauseQuery,
-    FilterQuery,
-    QueryOperator,
-    StyledComponentProps,
-    Variable,
+    type Action,
+    type AnyDataVariable,
+    type ClauseQuery,
+    type FilterQuery,
+    type QueryOperator,
+    type StyledComponentProps,
+    type Variable,
     combineFilters,
     injectCss,
     useAction,
@@ -21,8 +21,8 @@ import {
     useVariable,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
-import { Input, Item, Table as UiTable, useInfiniteLoader } from '@darajs/ui-components';
-import { SortingRule, useThrottledState } from '@darajs/ui-utils';
+import { Input, type Item, Table as UiTable, useInfiniteLoader } from '@darajs/ui-components';
+import { type SortingRule, useThrottledState } from '@darajs/ui-utils';
 
 import {
     AdaptivePrecisionCell,

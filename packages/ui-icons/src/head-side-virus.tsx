@@ -16,7 +16,7 @@
  */
 import { faHeadSideVirus } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * HeadSideVirus icon from FontAwesome

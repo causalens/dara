@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import { type Meta } from '@storybook/react-vite';
 import * as React from 'react';
 
 import { WandSparkles } from '@darajs/ui-icons';
 
-// import Spinner from '../spinner/spinner';
-import { UserData } from '../types';
+import { type UserData } from '../types';
 import { default as ChatComponent } from './chat';
 
 export default {

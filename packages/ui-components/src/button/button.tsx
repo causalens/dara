@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 import { transparentize } from 'polished';
-import { ButtonHTMLAttributes, ForwardedRef, forwardRef } from 'react';
+import { type ButtonHTMLAttributes, type ForwardedRef, forwardRef } from 'react';
 
-import styled, { DefaultTheme, useTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme, useTheme } from '@darajs/styled-components';
 
 import Spinner from '../spinner/spinner';
 

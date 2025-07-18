@@ -1,14 +1,14 @@
 import {
     DynamicComponent,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
-import { AccordionItemType, Badge, Accordion as UIAccordion } from '@darajs/ui-components';
+import { type AccordionItemType, Badge, Accordion as UIAccordion } from '@darajs/ui-components';
 
 const StyledHeader = styled.div`
     display: flex;

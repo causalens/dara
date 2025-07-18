@@ -1,4 +1,4 @@
-import { StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
+import { type StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
 
 interface MatplotlibProps extends StyledComponentProps {
     figure: string;

@@ -16,7 +16,7 @@
  */
 import { faArrowUpAZ } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ArrowUpAZ icon from FontAwesome

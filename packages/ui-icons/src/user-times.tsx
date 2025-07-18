@@ -16,7 +16,7 @@
  */
 import { faUserTimes } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * UserTimes icon from FontAwesome

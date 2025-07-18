@@ -16,7 +16,7 @@
  */
 import { faSynagogue } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Synagogue icon from FontAwesome

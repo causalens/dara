@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 
 import {
-    ComponentInstance,
-    Condition,
+    type ComponentInstance,
+    type Condition,
     DynamicComponent,
-    StyledComponentProps,
+    type StyledComponentProps,
     isConditionTrue,
     useAnyVariable,
 } from '@darajs/core';
