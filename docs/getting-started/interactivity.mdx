@@ -678,6 +678,73 @@ In addition to the cache `type`, you can also specify the `policy` to use, which
 cache with a maximum size of 10 items (globally, or per user/session depending on the `CacheType` set). For a detailed explanation of the available cache policies and how to use them,
 refer to [Cache Policies Documentation](../advanced/cache-policies.mdx).
 
+#### State Tracking with `StateVariable`
+
+`DerivedVariable`s provide three built-in state tracking properties that return `StateVariable` instances to help you monitor the execution state of your derived calculations:
+
+- `is_loading`: Returns `True` when the `DerivedVariable` is currently calculating, `False` otherwise
+- `has_error`: Returns `True` when the `DerivedVariable` calculation resulted in an error, `False` otherwise
+- `has_value`: Returns `True` when the `DerivedVariable` has a resolved value (successful calculation), `False` otherwise
+
+These state variables are particularly useful for creating responsive UIs that show loading states, error handling, and conditional rendering based on calculation status.
+
+```python
+from dara.core import Variable, DerivedVariable
+from dara.components import Stack, Text, Button, Input, If, Spinner
+
+# Variables for calculation
+x = Variable(10)
+y = Variable(5)
+
+# Expensive calculation that might take time
+def expensive_calculation(a, b):
+    import time
+    time.sleep(2)  # Simulate expensive operation
+    if b == 0:
+        raise ValueError("Division by zero!")
+    return a / b
+
+result = DerivedVariable(expensive_calculation, variables=[x, y])
+
+page_content = Stack(
+    Text("Enter values:"),
+    Input(value=x, type='number'),
+    Input(value=y, type='number'),
+    Button("Recalculate", onclick=result.trigger()),
+
+    # Conditional rendering based on calculation state
+    If(
+        condition=result.is_loading,
+        component=Stack(
+            Spinner(),
+            Text("Calculating..."),
+            align='center'
+        )
+    ),
+    If(
+        condition=result.has_error,
+        component=Stack(
+            Text("❌ Calculation failed!", color='red'),
+            Text("Please check your inputs"),
+            align='center'
+        )
+    ),
+    If(
+        condition=result.has_value,
+        component=Stack(
+            Text("✅ Calculation complete!", color='green'),
+            Text(f"Result: {result}"),
+            align='center'
+        )
+    )
+)
+```
+
+:::note
+`StateVariable` instances are read-only and automatically managed by their parent `DerivedVariable`.
+They also cannot be used as inputs to other `DerivedVariable`s to prevent complex dependency cycles.
+:::
+
 ## `py_component`
 
 The `py_component` function is a decorator and is the primary method of creating a dynamic layout based on the current state of an application's variables.

@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+-  Added StateVariable feature for tracking DerivedVariable states (loading, error, hasValue) via `dv.is_loading`, `dv.has_error`, and `dv.has_value` properties
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
 
 ## 1.19.0

@@ -16,6 +16,7 @@ import {
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
+    isStateVariable,
     isSwitchVariable,
     isUrlVariable,
     isVariable,
@@ -122,6 +123,12 @@ export function resolveVariable<VariableType>(
             value_map: resolvedValueMap,
             default: resolvedDefault,
         } satisfies ResolvedSwitchVariable;
+    }
+
+    if (isStateVariable(variable)) {
+        // StateVariables should not be resolved as they are internal client-side variables
+        // They should be handled by useVariable hook directly
+        throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
     }
 
     return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
