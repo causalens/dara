@@ -7,6 +7,7 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && vite build && tsc && cp js/index.css dist/ && cp -R dist/umd/ dara/components/umd/",
+    "prepare-dev": "tsc && cp js/index.css dist/",
     "lint": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
     "format": "prettier js --write",
     "format:check": "prettier js --check",

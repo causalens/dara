@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added a `DropdownMenu` component that displays a button which opens a dropdown menu with configurable menu items.
+
 ## 1.16.23
 
 -  Fixed an issue with `CodeEditor`, `Input`, `Select`, `Textarea` components where they would bubble up Enter keypresses when confirming composition using IME input

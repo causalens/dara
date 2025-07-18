@@ -16,6 +16,7 @@ export { default as Code } from './code/code';
 export { default as ComponentSelectList } from './component-select-list/component-select-list';
 export { default as Datepicker } from './datepicker/datepicker';
 export { default as UploadDropzone } from './dropzone/dropzone';
+export { default as DropdownMenu } from './dropdown-menu/dropdown-menu';
 export { default as Grid } from './grid/grid';
 export { default as Heading } from './heading/heading';
 export { default as HtmlRaw } from './html-raw/html-raw';

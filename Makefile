@@ -9,6 +9,9 @@ deps-project:
 prepare:
 	pnpm lerna run build
 
+prepare-dev:
+	pnpm lerna run prepare-dev
+
 # Install any deps and prepare any docs that need to be built without requiring all modules to be installed
 prepare-docs:
 	chmod +x tooling/scripts/prepare_docs.sh

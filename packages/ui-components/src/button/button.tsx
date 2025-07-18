@@ -42,6 +42,10 @@ export const BaseButton = styled.button<BaseButtonProps>`
 
     border: none;
     border-radius: 0.25rem;
+
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
 `;
 
 /**
