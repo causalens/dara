@@ -39,6 +39,7 @@ from dara.components.common.component_select_list import (
     ComponentSelectList,
 )
 from dara.components.common.datepicker import Datepicker
+from dara.components.common.dropdown_menu import DropdownMenu, MenuItem
 from dara.components.common.dropzone import UploadDropzone
 from dara.components.common.form import Form
 from dara.components.common.form_page import FormPage
@@ -87,6 +88,7 @@ __all__ = [
     'ComponentItem',
     'Datepicker',
     'Direction',
+    'DropdownMenu',
     'Form',
     'FormPage',
     'Grid',
@@ -100,6 +102,7 @@ __all__ = [
     'ItemBadge',
     'Label',
     'ListSection',
+    'MenuItem',
     'Markdown',
     'Modal',
     'Overlay',

@@ -32,6 +32,10 @@ function warnUpdateOnDerivedState(): void {
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
 }
 
+export interface UseVariableOptions {
+    suspend?: boolean | number;
+}
+
 /**
  * A helper hook that turns a Variable class into the actual value by accessing the appropriate recoil state from the
  * atomRegistry defined above. For convenience, it will also handle a non variable being passed and will return it
@@ -40,7 +44,10 @@ function warnUpdateOnDerivedState(): void {
  *
  * @param variable the possible variable to use
  */
-export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Dispatch<SetStateAction<T>>] {
+export function useVariable<T>(
+    variable: Variable<T> | T,
+    opts: UseVariableOptions = {}
+): [value: T, update: Dispatch<SetStateAction<T>>] {
     const extras = useRequestExtras();
 
     const { client: wsClient } = useContext(WebSocketCtx);
@@ -89,7 +96,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
             }
         }, [selectorLoadable]);
 
-        const deferred = useDeferLoadable(selectorLoadable);
+        const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
 
         return [deferred.value, warnUpdateOnDerivedState];
     }
@@ -124,7 +131,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         }
     }, [loadable]);
 
-    const deferred = useDeferLoadable(loadable);
+    const deferred = useDeferLoadable(loadable, opts.suspend);
 
     return [deferred, setLoadable];
 }

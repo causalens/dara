@@ -109,3 +109,5 @@ Select(items=items, fallback=Fallback.Row(suspend_render=500))
 def my_component(items):
     return str(items)
 ```
+
+Note that there are exceptions to the default behavior of suspending the component. Notably, the `SwitchVariable` and the `If` component operate as if `suspend_render` was set to `False`, i.e. they don't suspend the component beyond initial load.

@@ -46,9 +46,6 @@ jobs:
         env:
           POETRY_HTTP_BASIC_CAUSALENS_USERNAME: "${{ secrets.GAR_USERNAME }}"
           POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: "${{ secrets.GAR_KEY }}"
-      - name: Link venvs if cache was hit
-        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: make link
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -67,24 +64,9 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Detect Cypress version used
         id: set-cypress
-        run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"
-      - name: Install JS project dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Build JS packages
-        run: make prepare
-      - name: Cache built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
+        run: |
+          CYPRESS_VERSION=$(grep "cypress@" pnpm-lock.yaml | head -1 | sed 's/.*cypress@\([^:]*\):.*/\1/')
+          echo "cypress=$CYPRESS_VERSION" >> $GITHUB_OUTPUT
 
   python-lint:
     needs: setup
@@ -138,17 +120,8 @@ jobs:
         run: make deps-project
         env:
           PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Restore built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
+      - name: Prepare JS packages
+        run: make prepare-dev
       - name: Run JS linting
         run: pnpm lerna run lint
       - name: Run JS format check
@@ -204,17 +177,8 @@ jobs:
         run: make deps-project
         env:
           PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Restore built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
+      - name: Prepare JS packages
+        run: make prepare-dev
       - name: Run JS tests
         run: pnpm lerna run test
 
@@ -256,17 +220,8 @@ jobs:
         run: make deps-project
         env:
           PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-      - name: Restore built JS packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/lib
-            packages/*/build
-            packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
-          restore-keys: |
-            js-build-${{ runner.os }}-
+      - name: Build JS packages
+        run: make prepare
       - name: Cache Cypress binary
         uses: actions/cache@v4
         with:
