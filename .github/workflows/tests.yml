@@ -67,7 +67,9 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Detect Cypress version used
         id: set-cypress
-        run: echo "::set-output name=cypress::$(tooling/get-cypress-version/main.js)"
+        run: |
+          CYPRESS_VERSION=$(grep "cypress@" pnpm-lock.yaml | head -1 | sed 's/.*cypress@\([^:]*\):.*/\1/')
+          echo "cypress=$CYPRESS_VERSION" >> $GITHUB_OUTPUT
 
   python-lint:
     needs: setup
