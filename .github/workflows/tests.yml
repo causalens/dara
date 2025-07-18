@@ -82,7 +82,7 @@ jobs:
             packages/*/lib
             packages/*/build
             packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
+          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*', 'packages/*/js/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
 
@@ -146,7 +146,7 @@ jobs:
             packages/*/lib
             packages/*/build
             packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
+          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*', 'packages/*/js/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
       - name: Run JS linting
@@ -212,7 +212,7 @@ jobs:
             packages/*/lib
             packages/*/build
             packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
+          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*', 'packages/*/js/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
       - name: Run JS tests
@@ -264,7 +264,7 @@ jobs:
             packages/*/lib
             packages/*/build
             packages/*/dara/*/umd
-          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*') }}
+          key: js-build-${{ runner.os }}-${{ hashFiles('packages/*/package.json', 'packages/*/src/**/*', 'packages/*/js/**/*') }}
           restore-keys: |
             js-build-${{ runner.os }}-
       - name: Cache Cypress binary
