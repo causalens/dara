@@ -44,6 +44,7 @@ from dara.core.interactivity import (
     UrlVariable,
     Variable,
 )
+from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
@@ -173,6 +174,12 @@ def py_component(
             dynamic_kwargs: Dict[str, AnyVariable] = {}
             static_kwargs: Dict[str, Any] = {}
             for key, kwarg in all_kwargs.items():
+                if isinstance(kwarg, StateVariable):
+                    raise ValueError(
+                        'StateVariable cannot be used as input to py_component. '
+                        'StateVariables are internal variables for tracking DerivedVariable client state and using them as inputs would create complex dependencies that are '
+                        'difficult to debug. Consider using the StateVariable with an If component or SwitchVariable.'
+                    )
                 if isinstance(kwarg, AnyVariable):
                     dynamic_kwargs[key] = kwarg
                 else:

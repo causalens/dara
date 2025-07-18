@@ -8,6 +8,7 @@ import {
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isStateVariable,
     isSwitchVariable,
     isUrlVariable,
     isVariable,
@@ -37,6 +38,9 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             // for data variables this is a noop
         } else if (isSwitchVariable(variable)) {
             // cannot reset switch variables
+        } else if (isStateVariable(variable)) {
+            // StateVariables cannot be reset as they track parent DerivedVariable state
+            // This is a noop - the state will update when the parent DerivedVariable changes
         } else {
             // For plain variables reset them to default values
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);

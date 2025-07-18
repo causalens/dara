@@ -136,6 +136,13 @@ export interface SwitchVariable<T = any> {
     default: Variable<any> | any;
 }
 
+export interface StateVariable {
+    __typename: 'StateVariable';
+    uid: string;
+    parent_variable: DerivedVariable;
+    property_name: 'loading' | 'error' | 'hasValue';
+}
+
 export type DataFrame = Array<{
     [col: string]: any;
 }>;
@@ -153,9 +160,10 @@ export type AnyVariable<T> =
     | DerivedVariable
     | DataVariable
     | DerivedDataVariable
-    | SwitchVariable<T>;
+    | SwitchVariable<T>
+    | StateVariable;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
-export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T>;
+export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;
@@ -368,6 +376,7 @@ export interface DaraEventMap {
     URL_VARIABLE_LOADED: { variable: UrlVariable<any>; value: any };
     DATA_VARIABLE_LOADED: { variable: DataVariable; value: any };
     DERIVED_DATA_VARIABLE_LOADED: { variable: DerivedDataVariable; value: any };
+    STATE_VARIABLE_LOADED: { variable: StateVariable; value: any };
 }
 
 /**

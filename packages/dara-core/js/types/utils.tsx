@@ -14,6 +14,7 @@ import {
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
+    type StateVariable,
     type SwitchVariable,
     type UrlVariable,
 } from './core';
@@ -91,6 +92,15 @@ export function isLoopVariable(variable: any): variable is LoopVariable {
  */
 export function isSwitchVariable<T>(variable: AnyVariable<T> | T): variable is SwitchVariable {
     return isVariable(variable) && variable.__typename === 'SwitchVariable';
+}
+
+/**
+ * Check if a value is a state variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isStateVariable<T>(variable: AnyVariable<T> | T): variable is StateVariable {
+    return isVariable(variable) && variable.__typename === 'StateVariable';
 }
 
 /**
