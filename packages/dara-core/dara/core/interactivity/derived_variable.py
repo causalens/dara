@@ -147,8 +147,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 raise ValueError(
                     'StateVariable cannot be used as input to DerivedVariable. '
                     'StateVariables are internal variables for tracking DerivedVariable states '
-                    'and using them as inputs would create complex dependency cycles that are '
-                    'difficult to debug. Consider using the parent DerivedVariable directly instead.'
+                    'and using them as inputs would create complex dependencies that are '
+                    'difficult to debug. Consider using the parent DerivedVariable directly instead,'
+                    ' or use the StateVariable with an If component or SwitchVariable.'
                 )
 
         if cache is not None:
