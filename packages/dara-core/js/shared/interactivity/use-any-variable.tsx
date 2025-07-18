@@ -11,7 +11,7 @@ import { useVariable } from './use-variable';
 
 /**
  * A helper hook to retrieve value of any variable.
- * For the rare occassions where a component can accept both a DataVariable and a non-DataVariable.
+ * For the rare occassions where a component can accept both a DataVariable and a non-DataVariable, in a non-suspinding fashion.
  */
 export function useAnyVariable(variable: AnyDataVariable): DataFrame | undefined;
 export function useAnyVariable<T = any>(variable: AnyVariable<T>): T;
@@ -39,5 +39,7 @@ export function useAnyVariable<T = any>(variable: AnyVariable<T>): DataFrame | T
         return data ?? undefined;
     }
 
-    return useVariable(variable)[0];
+    return useVariable(variable, {
+        suspend: false,
+    })[0];
 }

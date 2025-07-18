@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
+-  `If` components and `SwitchVariable`s now operate similar to the `suspend: False` setting - when used with `DerivedVariable`s, they will suspend the component initially until they have the initial value; for further changes, they will use the prior value rather than suspend again
 
 ## 1.19.0
 
