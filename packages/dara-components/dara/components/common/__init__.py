@@ -30,7 +30,6 @@ from dara.components.common.base_component import (
 from dara.components.common.bullet_list import BulletList
 from dara.components.common.button import Button, ButtonStyle
 from dara.components.common.button_bar import ButtonBar, ButtonBarStyle
-from dara.components.common.dropdown_menu import DropdownMenu
 from dara.components.common.card import Card
 from dara.components.common.carousel import Carousel
 from dara.components.common.checkbox_group import CheckboxGroup
@@ -40,6 +39,7 @@ from dara.components.common.component_select_list import (
     ComponentSelectList,
 )
 from dara.components.common.datepicker import Datepicker
+from dara.components.common.dropdown_menu import DropdownMenu, MenuItem
 from dara.components.common.dropzone import UploadDropzone
 from dara.components.common.form import Form
 from dara.components.common.form_page import FormPage
@@ -102,6 +102,7 @@ __all__ = [
     'ItemBadge',
     'Label',
     'ListSection',
+    'MenuItem',
     'Markdown',
     'Modal',
     'Overlay',

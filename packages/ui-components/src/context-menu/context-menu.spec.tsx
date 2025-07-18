@@ -77,10 +77,10 @@ describe('Context Menu', () => {
 
         // Right click textarea to open context menu
         fireEvent.contextMenu(textAreaWrapper.children[0]);
-        
+
         // Wait for contextmenu to appear
         await waitFor(() => screen.getByTitle(TestAction.label));
-        
+
         const contextMenu = screen.getByTitle(TestAction.label).parentElement;
         expect(contextMenu).toHaveStyle({
             display: 'block',
@@ -98,7 +98,7 @@ describe('Context Menu', () => {
 
         // Right click textarea to open context menu
         fireEvent.contextMenu(textAreaWrapper.children[0]);
-        
+
         // Wait for menu to appear and get the action element
         const actionElement = await waitFor(() => screen.getByTitle(TestAction.label));
 

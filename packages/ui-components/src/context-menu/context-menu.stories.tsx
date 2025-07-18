@@ -61,9 +61,7 @@ export const WithRenderProp = (): JSX.Element => {
                 { label: 'Copy', icon: '📋' },
                 { label: 'Paste', icon: '📄' },
             ],
-            [
-                { label: 'Delete', icon: '🗑️' },
-            ],
+            [{ label: 'Delete', icon: '🗑️' }],
         ],
         onClick: (item, index) => {
             // eslint-disable-next-line no-console
@@ -84,18 +82,18 @@ export const WithRenderProp = (): JSX.Element => {
 
     return (
         <div>
-            <div 
-                onContextMenu={onContextMenu} 
-                style={{ 
+            <div
+                onContextMenu={onContextMenu}
+                style={{
                     width: '200px',
                     height: '100px',
-                    padding: '20px', 
+                    padding: '20px',
                     border: '2px dashed #ccc',
                     margin: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: theme.colors.blue1
+                    backgroundColor: theme.colors.blue1,
                 }}
             >
                 Right click me for new API context menu!

@@ -120,35 +120,38 @@ export function useContextMenu(props: UseContextMenuProps): UseContextMenuReturn
         hideMenu();
     }
 
-    const onContextMenu = React.useCallback((e: React.MouseEvent) => {
-        if (menuRefs.current && setShowRef.current) {
-            // dispatch event of a right click to close other context menu in the page
-            document.dispatchEvent(new Event('contextmenu'));
+    const onContextMenu = React.useCallback(
+        (e: React.MouseEvent) => {
+            if (menuRefs.current && setShowRef.current) {
+                // dispatch event of a right click to close other context menu in the page
+                document.dispatchEvent(new Event('contextmenu'));
 
-            // close other context menus
-            Sync$.next(uid);
+                // close other context menus
+                Sync$.next(uid);
 
-            // set position of the menu to match cursor position
-            menuRefs.current.setPositionReference({
-                getBoundingClientRect: () => ({
-                    width: 0,
-                    height: 0,
-                    x: e.clientX,
-                    y: e.clientY,
-                    top: e.clientY,
-                    left: e.clientX,
-                    right: e.clientX,
-                    bottom: e.clientY,
-                }),
-            });
-            showMenu();
-        }
+                // set position of the menu to match cursor position
+                menuRefs.current.setPositionReference({
+                    getBoundingClientRect: () => ({
+                        width: 0,
+                        height: 0,
+                        x: e.clientX,
+                        y: e.clientY,
+                        top: e.clientY,
+                        left: e.clientX,
+                        right: e.clientX,
+                        bottom: e.clientY,
+                    }),
+                });
+                showMenu();
+            }
 
-        // prevent bubbling (otherwise nested context menu components would fire all parent context menus)
-        e.stopPropagation();
-        // prevent browser context menu
-        e.preventDefault();
-    }, [showMenu, uid]);
+            // prevent bubbling (otherwise nested context menu components would fire all parent context menus)
+            e.stopPropagation();
+            // prevent browser context menu
+            e.preventDefault();
+        },
+        [showMenu, uid]
+    );
 
     React.useEffect(() => {
         const unsub = Sync$.subscribe((msg) => {
@@ -206,20 +209,22 @@ function ContextMenu<T>(Component: React.ComponentType<T> | string): (props: Con
                     (act) =>
                         ({
                             label: act.label,
-                            title: act.label,
                         }) satisfies MenuItem
                 ),
             ];
         }, [props.actions]);
 
-        const handleClick = React.useCallback((_item: MenuItem, index: [number, number]) => {
-            const [, itemIndex] = index;
-            // Since we only have one section in the HOC case, use itemIndex to get the action
-            const action = props.actions[itemIndex];
-            if (action) {
-                action.action();
-            }
-        }, [props.actions]);
+        const handleClick = React.useCallback(
+            (_item: MenuItem, index: [number, number]) => {
+                const [, itemIndex] = index;
+                // Since we only have one section in the HOC case, use itemIndex to get the action
+                const action = props.actions[itemIndex];
+                if (action) {
+                    action.action();
+                }
+            },
+            [props.actions]
+        );
 
         const { onContextMenu, contextMenu } = useContextMenu({
             menuItems,

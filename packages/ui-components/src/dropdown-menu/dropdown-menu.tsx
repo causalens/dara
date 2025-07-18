@@ -5,13 +5,13 @@ import * as React from 'react';
 import styled from '@darajs/styled-components';
 
 export const StyledDropdown = styled.div`
-    outline: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 
     background-color: ${(props) => props.theme.colors.blue1};
     border-radius: 4px;
+    outline: none;
     box-shadow: rgb(0 0 0 / 10%) 0 2px 5px;
 
     & > button:first-child {
@@ -52,11 +52,12 @@ export const StyledDropdown = styled.div`
 `;
 
 export const StyledDropdownMenuItem = styled.button`
+    cursor: pointer;
+
     display: flex;
     gap: 0.25rem;
     align-items: center;
     justify-content: space-between;
-    cursor: pointer;
 
     width: 100%;
     min-width: 160px;
@@ -67,14 +68,14 @@ export const StyledDropdownMenuItem = styled.button`
     color: ${(props) => props.theme.colors.text};
     white-space: nowrap;
 
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-
     background-color: ${(props) => props.theme.colors.blue1};
     border: none;
     border-radius: 4px;
     box-shadow: none;
+
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
 
     &:hover {
         background-color: ${(props) => props.theme.colors.grey1};
@@ -134,11 +135,16 @@ export type DropdownMenuProps = {
     /**
      * The function to call when the dropdown menu option is picked
      */
-    onClick?: (item: MenuItem) => void;
+    onClick?: (item: MenuItem, index: [number, number]) => void;
     /**
      * The button to display for opening the dropdown menu
      */
     button: React.ReactNode;
+    /**
+     * Any footer content to display in the dropdown.
+     * This is useful for displaying additional information in the dropdown.
+     */
+    footer?: React.ReactNode;
 };
 
 interface DropdownProps {
@@ -151,10 +157,10 @@ interface DropdownProps {
      */
     onClick?: (menuItem: MenuItem, index: [number, number]) => void;
     /**
-     * Any extra content to display in the dropdown.
+     * Any footer content to display in the dropdown.
      * This is useful for displaying additional information in the dropdown.
      */
-    extra?: React.ReactNode;
+    footer?: React.ReactNode;
 }
 
 export const Dropdown = (props: DropdownProps): JSX.Element => {
@@ -193,7 +199,7 @@ export const Dropdown = (props: DropdownProps): JSX.Element => {
                     {index < menuItems.length - 1 && <HorizontalDivider />}
                 </React.Fragment>
             ))}
-            {props.extra}
+            {props.footer}
         </DropdownMenu>
     );
 };
