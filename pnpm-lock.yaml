@@ -464,7 +464,7 @@ importers:
         version: 2.31.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1)
       eslint-plugin-jest:
         specifier: ^27.0.0
-        version: 27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       eslint-plugin-jsx-a11y:
         specifier: ^6.4.1
         version: 6.10.2(eslint@8.57.1)
@@ -718,7 +718,7 @@ importers:
         version: 29.7.0(@babel/core@7.26.0)
       babel-loader:
         specifier: ^8.2.2
-        version: 8.4.1(@babel/core@7.26.0)(webpack@5.96.1)
+        version: 8.4.1(@babel/core@7.26.0)(webpack@5.96.1(esbuild@0.25.6))
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -751,7 +751,7 @@ importers:
         version: 15.11.0(typescript@5.8.2)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(esbuild@0.25.6)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       tsc-alias:
         specifier: ^1.8.5
         version: 1.8.10
@@ -875,7 +875,7 @@ importers:
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.0.17
-        version: 9.0.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.45.0)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))
+        version: 9.0.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.45.0)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)(vite@7.0.4(@types/node@24.0.14)(terser@5.36.0))
       '@testing-library/dom':
         specifier: ^9.3.0
         version: 9.3.4
@@ -926,7 +926,7 @@ importers:
         version: 29.7.0(@babel/core@7.26.0)
       babel-loader:
         specifier: ^8.2.2
-        version: 8.4.1(@babel/core@7.26.0)(webpack@5.96.1(esbuild@0.25.6))
+        version: 8.4.1(@babel/core@7.26.0)(webpack@5.96.1)
       babel-plugin-styled-components:
         specifier: ^1.13.2
         version: 1.13.3(styled-components@5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1))(supports-color@5.5.0)
@@ -935,13 +935,13 @@ importers:
         version: 8.57.1
       eslint-plugin-jest:
         specifier: ^26.1.1
-        version: 26.9.0(eslint@8.57.1)(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 26.9.0(eslint@8.57.1)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       eslint-plugin-storybook:
         specifier: 9.0.17
         version: 9.0.17(eslint@8.57.1)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)
       jest:
         specifier: ^29.5.0
-        version: 29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0)
+        version: 29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0)
       jest-css-modules:
         specifier: ^2.1.0
         version: 2.1.0
@@ -968,7 +968,7 @@ importers:
         version: 5.8.2
       vite:
         specifier: 7.0.4
-        version: 7.0.4(@types/node@18.19.64)(terser@5.36.0)
+        version: 7.0.4(@types/node@24.0.14)(terser@5.36.0)
 
   packages/ui-hierarchy-viewer:
     dependencies:
@@ -1026,7 +1026,7 @@ importers:
         version: 15.11.0(typescript@5.8.2)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
@@ -1099,7 +1099,7 @@ importers:
         version: 15.11.0(typescript@5.8.2)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
@@ -1181,7 +1181,7 @@ importers:
         version: 15.11.0(typescript@5.8.2)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
@@ -1263,7 +1263,7 @@ importers:
         version: 15.11.0(typescript@5.8.2)
       ts-jest:
         specifier: ^29.1.0
-        version: 29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
+        version: 29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(esbuild@0.25.6)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
@@ -12778,15 +12778,6 @@ snapshots:
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
-  '@joshwooding/vite-plugin-react-docgen-typescript@0.6.1(typescript@5.8.2)(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))':
-    dependencies:
-      glob: 10.4.5
-      magic-string: 0.30.17
-      react-docgen-typescript: 2.2.2(typescript@5.8.2)
-      vite: 7.0.4(@types/node@18.19.64)(terser@5.36.0)
-    optionalDependencies:
-      typescript: 5.8.2
-
   '@joshwooding/vite-plugin-react-docgen-typescript@0.6.1(typescript@5.8.2)(vite@7.0.4(@types/node@24.0.14)(terser@5.36.0))':
     dependencies:
       glob: 10.4.5
@@ -14505,13 +14496,6 @@ snapshots:
       ts-dedent: 2.2.0
       util-deprecate: 1.0.2
 
-  '@storybook/builder-vite@9.0.17(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))':
-    dependencies:
-      '@storybook/csf-plugin': 9.0.17(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))
-      storybook: 9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5)
-      ts-dedent: 2.2.0
-      vite: 7.0.4(@types/node@18.19.64)(terser@5.36.0)
-
   '@storybook/builder-vite@9.0.17(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(vite@7.0.4(@types/node@24.0.14)(terser@5.36.0))':
     dependencies:
       '@storybook/csf-plugin': 9.0.17(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))
@@ -14563,26 +14547,6 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       storybook: 9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5)
-
-  '@storybook/react-vite@9.0.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.45.0)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))':
-    dependencies:
-      '@joshwooding/vite-plugin-react-docgen-typescript': 0.6.1(typescript@5.8.2)(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))
-      '@rollup/pluginutils': 5.2.0(rollup@4.45.0)
-      '@storybook/builder-vite': 9.0.17(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(vite@7.0.4(@types/node@18.19.64)(terser@5.36.0))
-      '@storybook/react': 9.0.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)
-      find-up: 7.0.0
-      magic-string: 0.30.17
-      react: 18.3.1
-      react-docgen: 8.0.0
-      react-dom: 18.3.1(react@18.3.1)
-      resolve: 1.22.8
-      storybook: 9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5)
-      tsconfig-paths: 4.2.0
-      vite: 7.0.4(@types/node@18.19.64)(terser@5.36.0)
-    transitivePeerDependencies:
-      - rollup
-      - supports-color
-      - typescript
 
   '@storybook/react-vite@9.0.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.45.0)(storybook@9.0.17(@testing-library/dom@9.3.4)(prettier@3.2.5))(typescript@5.8.2)(vite@7.0.4(@types/node@24.0.14)(terser@5.36.0))':
     dependencies:
@@ -17721,17 +17685,17 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-jest@26.9.0(eslint@8.57.1)(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
+  eslint-plugin-jest@26.9.0(eslint@8.57.1)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
     dependencies:
       '@typescript-eslint/utils': 5.62.0(eslint@8.57.1)(typescript@5.8.2)
       eslint: 8.57.1
     optionalDependencies:
-      jest: 29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0)
+      jest: 29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0)
     transitivePeerDependencies:
       - supports-color
       - typescript
 
-  eslint-plugin-jest@27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
+  eslint-plugin-jest@27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2):
     dependencies:
       '@typescript-eslint/utils': 5.62.0(eslint@8.57.1)(typescript@5.8.2)
       eslint: 8.57.1
@@ -23363,7 +23327,7 @@ snapshots:
 
   ts-dedent@2.2.0: {}
 
-  ts-jest@29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
+  ts-jest@29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(esbuild@0.25.6)(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
@@ -23381,8 +23345,9 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.26.0)
+      esbuild: 0.25.6
 
-  ts-jest@29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(@types/node@24.0.14)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
+  ts-jest@29.2.5(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(babel-plugin-macros@3.1.0))(typescript@5.8.2):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
