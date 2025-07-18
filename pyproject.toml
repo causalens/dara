@@ -31,7 +31,7 @@ jsonpatch = ">=1.33"
 matplotlib = ">=2.0.0"
 odfpy = "*"
 openpyxl = "*"
-packaging = ">=23.1,<24.0"
+packaging = ">=23.1"
 pandas = ">=1.1.0,<3.0.0"
 plotly = ">=5.14.0,<5.15.0"
 prometheus-client = ">=0.14.1,<0.15.0"
@@ -115,10 +115,6 @@ develop = true
 
 [tool.poetry.dev-dependencies.create-dara-app]
 path = "packages/create-dara-app"
-develop = true
-
-[tool.poetry.dev-dependencies.decision_app]
-path = "packages/decision-app"
 develop = true
 
 [tool.poetry.dev-dependencies.ui-notification]
