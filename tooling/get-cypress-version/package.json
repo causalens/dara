@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit && node ./esbuild.js",
+    "prepare-dev": "tsc --noEmit",
     "dev": "tsc --noEmit && rimraf dist && esbuild ./src/index.ts --bundle --platform=node --outfile=./dist/index.js"
   },
   "name": "get-cypress-version",

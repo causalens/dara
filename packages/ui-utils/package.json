@@ -7,6 +7,7 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc",
+    "prepare-dev": "tsc",
     "lint": "eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",

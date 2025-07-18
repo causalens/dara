@@ -79,11 +79,11 @@ describe('Context Menu', () => {
         fireEvent.contextMenu(textAreaWrapper.children[0]);
 
         // Wait for contextmenu to appear
-        await waitFor(() => screen.getByTitle(TestAction.label));
+        await waitFor(() => screen.getByText(TestAction.label));
 
-        const contextMenu = screen.getByTitle(TestAction.label).parentElement;
+        const contextMenu = screen.getByText(TestAction.label).parentElement;
         expect(contextMenu).toHaveStyle({
-            display: 'block',
+            display: 'flex',
         });
     });
 
@@ -100,7 +100,7 @@ describe('Context Menu', () => {
         fireEvent.contextMenu(textAreaWrapper.children[0]);
 
         // Wait for menu to appear and get the action element
-        const actionElement = await waitFor(() => screen.getByTitle(TestAction.label));
+        const actionElement = await waitFor(() => screen.getByText(TestAction.label));
 
         // Click on the action
         fireEvent.click(actionElement);
@@ -110,7 +110,7 @@ describe('Context Menu', () => {
 
         // Menu should be closed (element should no longer be in DOM)
         await waitFor(() => {
-            expect(screen.queryByTitle(TestAction.label)).toBeNull();
+            expect(screen.queryByText(TestAction.label)).toBeNull();
         });
     });
 });
