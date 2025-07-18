@@ -12,12 +12,12 @@ class MenuItem(TypedDict, total=False):
     """the label of the menu item"""
 
     icon: Optional[str]
-    """optional icon to show next to the label"""
+    """optional icon to show next to the label, use get_icon() helper"""
 
     style: Optional[Dict[str, Any]]
     """optional style to apply to the menu item"""
 
-    preventClose: Optional[bool]
+    prevent_close: Optional[bool]
     """optional flag to prevent the menu from closing when the item is clicked"""
 
     before: Optional[ComponentInstance]
@@ -35,20 +35,20 @@ class DropdownMenu(BaseDashboardComponent):
     A basic dropdown menu with simple text items:
 
     ```python
-    from dara.core import action
+    from dara.core import action, ActionCtx
     from dara.components import Button, DropdownMenu
 
     @action
-    async def handle_menu_click(ctx: action.Ctx, item: dict):
-        print(f"Clicked: {item['label']}")
+    async def handle_menu_click(ctx: ActionCtx):
+        print(f"Clicked: {ctx.input['label']}")
 
     DropdownMenu(
         button=Button('Options'),
-        onclick=handle_menu_click,
+        onclick=handle_menu_click(),
         menu_items=[
             [
-                {'label': 'Edit'},
-                {'label': 'Delete'},
+                MenuItem(label='Edit'),
+                MenuItem(label='Delete'),
             ]
         ]
     )
@@ -57,31 +57,31 @@ class DropdownMenu(BaseDashboardComponent):
     A dropdown menu with icons and custom styling:
 
     ```python
-    from dara.core import action
+    from dara.core import action, ActionCtx, get_icon
     from dara.components import Button, DropdownMenu
 
     @action
-    async def handle_menu_click(ctx: action.Ctx, item: dict):
-        print(f"Clicked: {item['label']}")
+    async def handle_menu_click(ctx: ActionCtx):
+        print(f"Clicked: {ctx.input['label']}")
 
     DropdownMenu(
-        button=Button('Actions', icon='ChevronDown'),
-        onclick=handle_menu_click,
+        button=Button('Actions', icon=get_icon('chevron-down')),
+        onclick=handle_menu_click(),
         menu_items=[
             [
-                {
-                    'label': 'Edit',
-                    'icon': 'Pen',
-                    'style': {'color': 'blue'}
-                },
-                {
-                    'label': 'Delete',
-                    'icon': 'Trash',
-                    'style': {'color': 'red'}
-                },
+                MenuItem(
+                    label='Edit',
+                    icon=get_icon('pen'),
+                    style={'color': 'blue'}
+                ),
+                MenuItem(
+                    label='Delete',
+                    icon=get_icon('trash'),
+                    style={'color': 'red'}
+                ),
             ],
             [
-                {'label': 'Settings', 'icon': 'Settings'}
+                MenuItem(label='Settings', icon=get_icon('gear'))
             ]
         ]
     )
@@ -90,33 +90,33 @@ class DropdownMenu(BaseDashboardComponent):
     A dropdown menu with custom components and prevent close behavior:
 
     ```python
-    from dara.core import action, Variable
+    from dara.core import action, ActionCtx, Variable
     from dara.components import Button, DropdownMenu, Text, Stack
 
     counter = Variable(0)
 
     @action
-    async def increment_counter(ctx: action.Ctx):
+    async def increment_counter(ctx: ActionCtx):
         counter.value += 1
 
     @action
-    async def handle_menu_click(ctx: action.Ctx, item: dict):
-        print(f"Clicked: {item['label']}")
+    async def handle_menu_click(ctx: ActionCtx):
+        print(f"Clicked: {ctx.input['label']}")
 
     DropdownMenu(
         button=Button('Custom Menu'),
-        onclick=handle_menu_click,
+        onclick=handle_menu_click(),
         menu_items=[
             [
-                {
-                    'label': Stack([Text('Counter: '), Text(counter)]),
-                    'preventClose': True
-                },
-                {
-                    'label': 'Increment',
-                    'before': Text('→'),
-                    'after': Text('↑')
-                }
+                MenuItem(
+                    label=Stack([Text('Counter: '), Text(counter)]),
+                    prevent_close=True
+                ),
+                MenuItem(
+                    label='Increment',
+                    before=Text('→'),
+                    after=Text('↑')
+                )
             ]
         ]
     )
@@ -125,20 +125,20 @@ class DropdownMenu(BaseDashboardComponent):
     A dropdown menu with footer content at the bottom:
 
     ```python
-    from dara.core import action
+    from dara.core import action, ActionCtx
     from dara.components import Button, DropdownMenu, Text, Stack
 
     @action
-    async def handle_menu_click(ctx: action.Ctx, item: dict):
-        print(f"Clicked: {item['label']}")
+    async def handle_menu_click(ctx: ActionCtx):
+        print(f"Clicked: {ctx.input['label']}")
 
     DropdownMenu(
         button=Button('Menu with Footer'),
-        onclick=handle_menu_click,
+        onclick=handle_menu_click(),
         menu_items=[
             [
-                {'label': 'Option 1'},
-                {'label': 'Option 2'},
+                MenuItem(label='Option 1'),
+                MenuItem(label='Option 2'),
             ]
         ],
         footer=Stack(

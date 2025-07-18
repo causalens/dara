@@ -19,7 +19,7 @@ interface ServerMenuItem {
     label: string | ComponentInstance;
     icon?: string;
     style?: React.CSSProperties;
-    preventClose?: boolean;
+    prevent_close?: boolean;
     before?: ComponentInstance;
     after?: ComponentInstance;
 }
@@ -44,7 +44,7 @@ function DropdownMenu(props: DropdownMenuProps): JSX.Element {
                     label: typeof item.label === 'string' ? item.label : <DynamicComponent component={item.label} />,
                     icon: Icon ? <Icon /> : undefined,
                     style: item.style,
-                    preventClose: item.preventClose,
+                    preventClose: item.prevent_close,
                     before: item.before ? <DynamicComponent component={item.before} /> : undefined,
                     after: item.after ? <DynamicComponent component={item.after} /> : undefined,
                 } satisfies MenuItem;
