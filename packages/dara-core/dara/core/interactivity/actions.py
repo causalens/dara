@@ -1459,9 +1459,8 @@ class action:
         for key, kwarg in all_kwargs.items():
             if isinstance(kwarg, StateVariable):
                 raise ValueError(
-                    'StateVariable cannot be used as input to py_component. '
-                    'StateVariables are internal variables for tracking DerivedVariable client state and using them as inputs would create complex dependencies that are '
-                    'difficult to debug. Consider using the StateVariable with an If component or SwitchVariable.'
+                    'StateVariable cannot be used as input to actions. '
+                    "StateVariables are internal variables for tracking DerivedVariable ephemeral client state shouldn't be used as action payloads."
                 )
             if isinstance(kwarg, AnyVariable):
                 dynamic_kwargs[key] = kwarg
