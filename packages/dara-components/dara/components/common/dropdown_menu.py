@@ -109,7 +109,7 @@ class DropdownMenu(BaseDashboardComponent):
         menu_items=[
             [
                 MenuItem(
-                    label=Stack([Text('Counter: '), Text(counter)]),
+                    label=Stack(Text('Counter: '), Text(counter)),
                     prevent_close=True
                 ),
                 MenuItem(
