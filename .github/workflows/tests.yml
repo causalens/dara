@@ -46,25 +46,6 @@ jobs:
         env:
           POETRY_HTTP_BASIC_CAUSALENS_USERNAME: "${{ secrets.GAR_USERNAME }}"
           POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: "${{ secrets.GAR_KEY }}"
-      - name: Link venvs if cache was hit
-        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: make link
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
       - name: Detect Cypress version used
         id: set-cypress
         run: |
