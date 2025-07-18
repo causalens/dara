@@ -96,16 +96,15 @@ class DropdownMenu(BaseDashboardComponent):
     counter = Variable(0)
 
     @action
-    async def increment_counter(ctx: ActionCtx):
-        counter.value += 1
-
-    @action
-    async def handle_menu_click(ctx: ActionCtx):
+    async def handle_menu_click(ctx: ActionCtx, counter_value: int):
         print(f"Clicked: {ctx.input['label']}")
+
+        if ctx.input['label'] == 'Increment':
+            await ctx.update(counter, counter_value + 1)
 
     DropdownMenu(
         button=Button('Custom Menu'),
-        onclick=handle_menu_click(),
+        onclick=handle_menu_click(counter),
         menu_items=[
             [
                 MenuItem(
