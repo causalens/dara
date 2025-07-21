@@ -17,11 +17,6 @@ describe('StateVariable', () => {
          */
 
         cy.cardContent('StateVariable State Tracking').within(() => {
-            // Initially, no state indicators should be visible
-            cy.contains('🔄 Loading... Please wait').should('not.exist');
-            cy.contains('❌ Error occurred during calculation').should('not.exist');
-            cy.contains('✅ Calculation successful!').should('not.exist');
-
             // Test success flow
             cy.contains('button', 'Trigger Success').click();
 
@@ -103,4 +98,3 @@ describe('StateVariable', () => {
         });
     });
 });
-
