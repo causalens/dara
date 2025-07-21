@@ -9,6 +9,7 @@ import {
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isStateVariable,
     isSwitchVariable,
     isUrlVariable,
     isVariable,
@@ -113,6 +114,29 @@ export function useVariable<T>(
 
     if (isSwitchVariable(variable)) {
         return [useSwitchVariable(variable), warnUpdateOnDerivedState];
+    }
+
+    if (isStateVariable(variable)) {
+        const parentSelector = useDerivedVariable(variable.parent_variable, wsClient, taskContext, extras);
+        const parentLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(parentSelector);
+
+        // Map the loadable state to the specific property
+        let stateValue: boolean;
+        switch (variable.property_name) {
+            case 'loading':
+                stateValue = parentLoadable.state === 'loading';
+                break;
+            case 'error':
+                stateValue = parentLoadable.state === 'hasError';
+                break;
+            case 'hasValue':
+                stateValue = parentLoadable.state === 'hasValue';
+                break;
+            default:
+                stateValue = false;
+        }
+
+        return [stateValue as T, warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);

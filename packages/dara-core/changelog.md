@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+-  Added StateVariable feature for tracking DerivedVariable states (loading, error, hasValue) via `dv.is_loading`, `dv.has_error`, and `dv.has_value` properties
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
 -  `If` components and `SwitchVariable`s now operate similar to the `suspend: False` setting - when used with `DerivedVariable`s, they will suspend the component initially until they have the initial value; for further changes, they will use the prior value rather than suspend again
 -  Unlock `packaging` dependency in `dara-core`

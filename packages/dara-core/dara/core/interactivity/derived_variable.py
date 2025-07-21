@@ -139,6 +139,19 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if nested is None:
             nested = []
 
+        # Validate that StateVariables are not used as inputs
+        from dara.core.interactivity.state_variable import StateVariable
+
+        for var in variables:
+            if isinstance(var, StateVariable):
+                raise ValueError(
+                    'StateVariable cannot be used as input to DerivedVariable. '
+                    'StateVariables are internal variables for tracking DerivedVariable states '
+                    'and using them as inputs would create complex dependencies that are '
+                    'difficult to debug. Consider using the parent DerivedVariable directly instead,'
+                    ' or use the StateVariable with an If component or SwitchVariable.'
+                )
+
         if cache is not None:
             cache = Cache.Policy.from_arg(cache)
 
@@ -213,6 +226,39 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         """
         assert_no_context('ctx.trigger')
         return TriggerVariable(variable=self, force=force)
+
+    @property
+    def is_loading(self):
+        """
+        Get a StateVariable that tracks the loading state of this DerivedVariable.
+
+        :return: StateVariable that is True when this DerivedVariable is loading, False otherwise
+        """
+        from dara.core.interactivity.state_variable import StateVariable
+
+        return StateVariable(parent_variable=self, property_name='loading')
+
+    @property
+    def has_error(self):
+        """
+        Get a StateVariable that tracks the error state of this DerivedVariable.
+
+        :return: StateVariable that is True when this DerivedVariable has an error, False otherwise
+        """
+        from dara.core.interactivity.state_variable import StateVariable
+
+        return StateVariable(parent_variable=self, property_name='error')
+
+    @property
+    def has_value(self):
+        """
+        Get a StateVariable that tracks whether this DerivedVariable has a resolved value.
+
+        :return: StateVariable that is True when this DerivedVariable has a value, False otherwise
+        """
+        from dara.core.interactivity.state_variable import StateVariable
+
+        return StateVariable(parent_variable=self, property_name='hasValue')
 
     @staticmethod
     def _get_cache_key(*args, uid: str, deps: Optional[List[int]] = None):
