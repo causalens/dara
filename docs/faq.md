@@ -137,7 +137,7 @@ result = DerivedVariable(run_experiment, variables=[data, model])
 
 def display_results(result_value):
     if result_value > 0:
-        return Text(result_value, color='green')
+        return Text(result_value, color='green', raw_css={'font-size': '1.5rem'})
     else:
         return Text(result_value, color='red')
 

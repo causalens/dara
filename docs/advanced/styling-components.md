@@ -29,9 +29,9 @@ For example the above example could also be written as:
 Card(
     Text(
         'My bold and italic text in a box with blue background',
-        raw_css={'font-weight': 'bold', 'font-style': 'italic'}
+        raw_css={'font-weight': 'bold', 'font-style': 'italic'} # You can use a dict
     ),
-    raw_css={'background-color': 'powderblue'}
+    raw_css='background-color: powderblue' # Or a string
 )
 ```
 
@@ -227,6 +227,29 @@ Another useful resource to use when dealing with styling is [Visbug Chrome Exten
 
 :::tip
 Seeing how much you can customize and build your own components, it helps to define them as functions or classes so you can repeatedly call them with different inputs instead of having to redefine and customize the component again. Check out the section [**Best Practices: Reusing Components**](../best-practices/reusing-components) to learn more.
+:::
+
+### Advanced Selectors with CSS Strings
+
+For complex styling scenarios, you can pass CSS strings to write advanced selectors and combinators. When you pass a string to the `raw_css` property, it gets embedded directly into the styled-components CSS.
+
+```python
+from dara.components import Card, Text
+
+Card(
+    Text('Child content'),
+    raw_css="""
+        & > [data-type="children-wrapper"] { 
+            padding: 0; 
+        }
+    """
+)
+```
+
+This allows you to use all CSS combinators (`>`, `+`, `~`, etc.), pseudo-classes (`:hover`, `:focus`), and any other CSS features that aren't possible with simple style properties.
+
+:::info
+The `raw_css` property accepts both camelCase (React-style) and kebab-case CSS property names. Kebab-case properties are automatically converted to camelCase under the hood, so `background-color` and `backgroundColor` both work.
 :::
 
 ### Id and For properties
