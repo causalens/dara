@@ -64,7 +64,7 @@ def example():
     language = Variable('Python')  # This defines a Variable object that will be used to link fields together
 
     return Card(
-        Text('What is your favorite coding language?'),
+        Text('What is your favorite coding language?', raw_css={'font-size': '1.5rem'}), # Pass raw_css for custom styling
         Input(value=language), # Here the input takes in the current value and allows for it to be updated through the user's keyboard
         Text(language) # Here the text component simply displays the value
     )

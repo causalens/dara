@@ -27,7 +27,7 @@ A `dara.components.common.text.Text` component is the basic component for adding
 ```python
 from dara.components import Text
 
-Text('My text', align='center')
+Text('My text', align='center', raw_css={'font-size': '1.5rem'})
 ```
 
 ![Text](../assets/getting_started/components/text.png)
