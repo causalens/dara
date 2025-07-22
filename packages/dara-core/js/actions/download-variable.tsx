@@ -13,12 +13,12 @@ export const restoreColumnName = (colName: string): string => {
     if (colMatch) {
         return colMatch[1]!;
     }
-    
+
     // Handle __index__N__originalName format (keep as is for index columns)
     if (colName.startsWith('__index__')) {
         return colName;
     }
-    
+
     return colName;
 };
 
@@ -28,17 +28,17 @@ export const restoreColumnName = (colName: string): string => {
 export const processDataForDownload = (content: Array<Record<string, any>>): Array<Record<string, any>> => {
     return content.map((row) => {
         const processedRow: Record<string, any> = {};
-        
+
         Object.entries(row).forEach(([key, value]) => {
             // Skip __index__ columns entirely for downloads
             if (key === '__index__' || key.startsWith('__index__')) {
                 return;
             }
-            
+
             const restoredKey = restoreColumnName(key);
             processedRow[restoredKey] = value;
         });
-        
+
         return processedRow;
     });
 };
@@ -46,7 +46,7 @@ export const processDataForDownload = (content: Array<Record<string, any>>): Arr
 const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
     // Process the data to restore original column names and remove index columns
     const processedContent = processDataForDownload(content);
-    
+
     const headings: string[] = [];
     const indexes: Record<string, number> = {};
     processedContent.forEach((c) => {
