@@ -4,10 +4,52 @@ import { saveAs } from 'file-saver';
 import { getVariableValue } from '@/shared/interactivity/use-variable-value';
 import { type ActionHandler, type DownloadVariableImpl } from '@/types/core';
 
+/**
+ * Restore original column names by inverting pandas_utils transformations
+ */
+export const restoreColumnName = (colName: string): string => {
+    // Handle __col__N__originalName format
+    const colMatch = colName.match(/^__col__\d+__(.+)$/);
+    if (colMatch) {
+        return colMatch[1]!;
+    }
+
+    // Handle __index__N__originalName format (keep as is for index columns)
+    if (colName.startsWith('__index__')) {
+        return colName;
+    }
+
+    return colName;
+};
+
+/**
+ * Process data to restore original column structure before creating matrix
+ */
+export const processDataForDownload = (content: Array<Record<string, any>>): Array<Record<string, any>> => {
+    return content.map((row) => {
+        const processedRow: Record<string, any> = {};
+
+        Object.entries(row).forEach(([key, value]) => {
+            // Skip __index__ columns entirely for downloads
+            if (key === '__index__' || key.startsWith('__index__')) {
+                return;
+            }
+
+            const restoredKey = restoreColumnName(key);
+            processedRow[restoredKey] = value;
+        });
+
+        return processedRow;
+    });
+};
+
 const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
+    // Process the data to restore original column names and remove index columns
+    const processedContent = processDataForDownload(content);
+
     const headings: string[] = [];
     const indexes: Record<string, number> = {};
-    content.forEach((c) => {
+    processedContent.forEach((c) => {
         Object.keys(c).forEach((k) => {
             if (!headings.includes(k)) {
                 headings.push(k);
@@ -20,7 +62,7 @@ const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): an
 
     const matrix: any[][] = [];
 
-    content.forEach((c) => {
+    processedContent.forEach((c) => {
         const row: any[] = new Array(headingsLength);
         Object.entries(c).forEach(([k, v]) => {
             row[indexes[k]!] = v;
@@ -134,13 +176,9 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         value = await value;
     }
 
-    // strip the __index__ column from data vars
+    // Process data to restore original column structure and remove internal columns
     if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
-        for (const row of value) {
-            if ('__index__' in row) {
-                delete row.__index__;
-            }
-        }
+        value = processDataForDownload(value);
     }
 
     const fileName = actionImpl.file_name || 'Data';
