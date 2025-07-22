@@ -9,6 +9,7 @@ title: Changelog
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
 -  Unlock `packaging` dependency in `dara-core`
 -  Fixed an issue where using `DownloadVariable` on a `DataVariable` would include internally transformed column names
+-  Docs: Add more examples of using `raw_css` in more places
 
 ## 1.19.0
 
