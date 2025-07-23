@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Pinned `@fortawesome/react-fontawesome` to `0.2.2`
+
 ## 1.18.7
 
 - Locked `@react-aria/utils` to `3.29.1` to avoid breaking changes in `react-aria-components`

@@ -74,7 +74,7 @@
     "@floating-ui/react": "^0.26.12",
     "@fortawesome/free-regular-svg-icons": "~6.4.0",
     "@fortawesome/free-solid-svg-icons": "~6.4.0",
-    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@fortawesome/react-fontawesome": "0.2.2",
     "@react-aria/utils": "3.29.1",
     "d3-array": "^3.2.4",
     "date-fns": "2.9.0",
