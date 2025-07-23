@@ -76,6 +76,16 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
+def is_forced(value: Any) -> bool:
+    """
+    Whether a value is a Derived(Data)Variable with a force_key or any of its values are forced
+    """
+    if not is_resolved_derived_variable(value) and not is_resolved_derived_data_variable(value):
+        return False
+
+    return value.get('force_key') is not None or any(is_forced(v) for v in value.get('values', []))
+
+
 def clean_force_key(value: Any) -> Any:
     """
     Clean an argument to a value to remove force keys

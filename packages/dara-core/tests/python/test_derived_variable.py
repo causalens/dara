@@ -1717,6 +1717,135 @@ async def test_force_key_busts_nested_dv_and_parent():
         # Nested reuses cache
         assert execution_count['nested'] == 2
 
+async def test_force_key_busts_grandparent():
+    """
+    Test that when including a force_key in a nested nested derived variable,
+    busts the parent and grandparent.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Track execution count
+    execution_count = {'grandchild': 0, 'child': 0, 'root': 0}
+
+    def grandchild_calc(a, b):
+        execution_count['grandchild'] += 1
+        return a + b
+
+    def child_calc(a):
+        execution_count['child'] += 1
+        return a * a
+
+    def root_calc(a):
+        execution_count['root'] += 1
+        return a * a
+
+    # var1+var2 -> grandchild -> child -> root chain
+    grandchild_var = DerivedVariable(grandchild_calc, variables=[var1, var2])
+    child_var = DerivedVariable(child_calc, variables=[grandchild_var])
+    root_var = DerivedVariable(root_calc, variables=[child_var])
+
+    builder.add_page('Test', content=MockComponent(text=root_var))
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call normally
+        response1 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=None,
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=None,
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response1.status_code == 200
+        assert response1.json()['value'] == (5 + 10) ** 2 ** 2
+        assert execution_count['root'] == 1
+        assert execution_count['child'] == 1
+        assert execution_count['grandchild'] == 1
+
+        # First force the child
+        response2 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=str(uuid4()),
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=None,
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()['value'] == (5 + 10) ** 2 ** 2
+        # Child and root should be forced, +1
+        assert execution_count['root'] == 2
+        assert execution_count['child'] == 2
+        # grand child was below force, was re-used
+        assert execution_count['grandchild'] == 1
+
+        # Then force the grandchild
+        response3 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=None,
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=str(uuid4()),
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response3.status_code == 200
+        assert response3.json()['value'] == (5 + 10) ** 2 ** 2
+        # All three variables should be forced, +1
+        assert execution_count['root'] == 3
+        assert execution_count['child'] == 3
+        assert execution_count['grandchild'] == 2
 
 async def test_none_value_is_valid():
     """

@@ -128,14 +128,17 @@ async def test_context_var_isolation():
 
     async def task_with_lock(resource_name: str):
         # Initially, no resources should be locked for this task
-        assert resource_name not in LOCKED_RESOURCES.get()
+        resources = LOCKED_RESOURCES.get()
+        assert resources is None or resource_name not in resources
 
         async with lock.acquire(resource_name):
             # During acquisition, resource should be in the context
-            assert resource_name in LOCKED_RESOURCES.get()
+            resources = LOCKED_RESOURCES.get()
+            assert resources is not None and resource_name in resources
 
         # After release, resource should be removed from context
-        assert resource_name not in LOCKED_RESOURCES.get()
+        resources = LOCKED_RESOURCES.get()
+        assert resources is None or resource_name not in resources
 
     # Run tasks concurrently with different resources
     await asyncio.gather(task_with_lock('resource_1'), task_with_lock('resource_2'))

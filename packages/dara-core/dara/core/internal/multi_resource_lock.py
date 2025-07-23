@@ -1,10 +1,11 @@
 from collections import Counter
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
+from typing import Set, Union
 
 import anyio
 
-LOCKED_RESOURCES = ContextVar[set[str]]('LOCKED_RESOURCES', default=set())
+LOCKED_RESOURCES = ContextVar[Union[Set[str], None]]('LOCKED_RESOURCES', default=None)
 
 
 class LockRecursionError(RuntimeError):
@@ -49,7 +50,27 @@ class MultiResourceLock:
         :param resource_name (str): The name of the resource to check.
         :return: True if the lock is held by the current task, False otherwise.
         """
-        return resource_name in LOCKED_RESOURCES.get()
+        if resources := LOCKED_RESOURCES.get():
+            return resource_name in resources
+        return False
+
+    def _add_locked_resource(self, resource_name: str):
+        """
+        Add a resource to the set of locked resources.
+        Internal used to keep track of locked resources for re-entrancy checks.
+        """
+        resources = LOCKED_RESOURCES.get() or set()
+        resources.add(resource_name)
+        LOCKED_RESOURCES.set(resources)
+
+    def _remove_locked_resource(self, resource_name: str):
+        """
+        Remove a resource from the set of locked resources.
+        Internal used to keep track of locked resources for re-entrancy checks.
+        """
+        if resources := LOCKED_RESOURCES.get():
+            resources.remove(resource_name)
+            LOCKED_RESOURCES.set(resources)
 
     @asynccontextmanager
     async def acquire(self, resource_name: str):
@@ -83,9 +104,7 @@ class MultiResourceLock:
             )
 
         # add to the set of locked resources
-        locked_resources = LOCKED_RESOURCES.get().copy()
-        locked_resources.add(resource_name)
-        LOCKED_RESOURCES.set(locked_resources)
+        self._add_locked_resource(resource_name)
 
         async with self._cleanup_lock:
             if resource_name not in self._locks:
@@ -103,6 +122,4 @@ class MultiResourceLock:
                     del self._locks[resource_name]
 
                 # remove from the set of locked resources
-                locked_resources = LOCKED_RESOURCES.get().copy()
-                locked_resources.remove(resource_name)
-                LOCKED_RESOURCES.set(locked_resources)
+                self._remove_locked_resource(resource_name)

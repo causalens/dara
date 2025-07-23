@@ -376,8 +376,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         """
         # dynamic import due to circular import
         from dara.core.internal.dependency_resolution import (
-            is_resolved_derived_data_variable,
-            is_resolved_derived_variable,
+            is_forced,
             resolve_dependency,
         )
 
@@ -412,13 +411,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         {'uid': var_entry.uid, 'args': args},
                     )
 
-                    # Whether one of the children have been forced - is so, the parent should skip the cache as well
+                    # Whether one of the (grand?)children have been forced - is so, the parent should skip the cache as well
                     has_forced_child = False
 
                     for val in args:
-                        if (is_resolved_derived_variable(val) or is_resolved_derived_data_variable(val)) and val.get(
-                            'force_key'
-                        ) is not None:
+                        if is_forced(val):
                             has_forced_child = True
                         var_value = await resolve_dependency(val, store, task_mgr)
                         values.append(var_value)
