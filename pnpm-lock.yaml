@@ -783,7 +783,7 @@ importers:
         specifier: ~6.4.0
         version: 6.4.2
       '@fortawesome/react-fontawesome':
-        specifier: ^0.2.0
+        specifier: 0.2.2
         version: 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
       '@headlessui-float/react':
         specifier: ^0.15.0
@@ -1052,7 +1052,7 @@ importers:
         specifier: ~6.4.0
         version: 6.4.2
       '@fortawesome/react-fontawesome':
-        specifier: ^0.2.0
+        specifier: 0.2.2
         version: 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
       '@mdi/js':
         specifier: 5.9.55
