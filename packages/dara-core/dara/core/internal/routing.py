@@ -42,14 +42,7 @@ from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import (
-    ActionResolverDef,
-    BaseTask,
-    PendingComputation,
-    PendingTask,
-    PendingValue,
-    UploadResolverDef,
-)
+from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
@@ -169,16 +162,7 @@ def create_router(config: Configuration):
             task_mgr,
         )
 
-        # First resolve a pending computation/value
-        if isinstance(response, (PendingValue, PendingComputation)):
-            response = await response.wait()
-
-        # then handle tasks
         if isinstance(response, BaseTask):
-            # special case - add a subscriber to the task
-            if isinstance(response, PendingTask):
-                response.add_subscriber()
-
             await task_mgr.run_task(response, body.ws_channel)
             return {'task_id': response.task_id}
 
@@ -287,16 +271,8 @@ def create_router(config: Configuration):
                 'return value',
                 {'value': response},
             )
-            # First resolve a pending computation/value
-            if isinstance(response, (PendingValue, PendingComputation)):
-                response = await response.wait()
 
-            # then handle tasks
             if isinstance(response, BaseTask):
-                # special case - add a subscriber to the task
-                if isinstance(response, PendingTask):
-                    response.add_subscriber()
-
                 await task_mgr.run_task(response, body.ws_channel)
                 return {'task_id': response.task_id}
 
@@ -378,16 +354,7 @@ def create_router(config: Configuration):
                     Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
                     format_for_display=True,
                 )
-                # First resolve a pending computation/value
-                if isinstance(data, (PendingValue, PendingComputation)):
-                    data = await data.wait()
-
-                # then handle tasks
                 if isinstance(data, BaseTask):
-                    # special case - add a subscriber to the task
-                    if isinstance(data, PendingTask):
-                        data.add_subscriber()
-
                     await task_mgr.run_task(data, body.ws_channel)
                     return {'task_id': data.task_id}
             elif data_variable_entry.type == 'plain':
@@ -523,16 +490,7 @@ def create_router(config: Configuration):
 
         WS_CHANNEL.set(body.ws_channel)
 
-        # First resolve a pending computation/value
-        if isinstance(result['value'], (PendingValue, PendingComputation)):
-            result['value'] = await result['value'].wait()
-
-        # then handle tasks
         if isinstance(result['value'], BaseTask):
-            # special case - add a subscriber to the task
-            if isinstance(result['value'], PendingTask):
-                result['value'].add_subscriber()
-
             # Kick off the task
             await task_mgr.run_task(result['value'], body.ws_channel)
             response = {

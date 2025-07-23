@@ -17,10 +17,9 @@ limitations under the License.
 
 from typing import Any, List, Literal, Optional, Union
 
-from numpy import isin
 from typing_extensions import TypedDict, TypeGuard
 
-from dara.core.base_definitions import BaseTask, PendingComputation, PendingTask, PendingValue
+from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store import CacheStore
@@ -184,9 +183,6 @@ async def _resolve_derived_var(
         args=input_values,
         force_key=derived_variable_entry.get('force_key'),
     )
-    print('reslved dv', result)
-    if isinstance(result['value'], (PendingComputation, PendingValue)):
-        return await result['value'].wait()
     return result['value']
 
 

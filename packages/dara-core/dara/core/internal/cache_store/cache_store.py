@@ -5,7 +5,6 @@ from dara.core.base_definitions import (
     KeepAllCachePolicy,
     LruCachePolicy,
     MostRecentCachePolicy,
-    PendingComputation,
     PendingTask,
     PendingValue,
     TTLCachePolicy,
@@ -14,7 +13,6 @@ from dara.core.internal.cache_store.base_impl import CacheStoreImpl, PolicyT
 from dara.core.internal.cache_store.keep_all import KeepAllCache
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
-from dara.core.internal.multi_resource_lock import MultiResourceLock
 from dara.core.internal.utils import CacheScope, get_cache_scope
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
@@ -112,9 +110,6 @@ class CacheScopeStore(Generic[PolicyT]):
         self.caches = {}
 
 
-CACHE_LOCK = MultiResourceLock()
-
-
 class CacheStore:
     """
     Key-value store class which stores a separate CacheScopeStore per registry entry.
@@ -200,9 +195,6 @@ class CacheStore:
         if isinstance(value, PendingTask):
             return await value.run()
 
-        if isinstance(value, PendingComputation):
-            return await value.wait()
-
         return value
 
     async def set(
@@ -224,35 +216,29 @@ class CacheStore:
         """
         assert registry_entry.cache is not None, 'Registry entry must have a cache policy to be used in a CacheStore'
 
-        async with CACHE_LOCK.acquire(registry_entry.to_store_key()):
-            registry_store = self.registry_stores.get(registry_entry.to_store_key())
+        registry_store = self.registry_stores.get(registry_entry.to_store_key())
 
-            # No store for this entry yet, create new
-            if registry_store is None:
-                registry_store = CacheScopeStore(registry_entry.cache)
-                self.registry_stores[registry_entry.to_store_key()] = registry_store
+        # No store for this entry yet, create new
+        if registry_store is None:
+            registry_store = CacheScopeStore(registry_entry.cache)
+            self.registry_stores[registry_entry.to_store_key()] = registry_store
 
-            prev_value = await registry_store.get(key)
+        prev_value = await registry_store.get(key)
 
-            # If previous value was a PendingValue, resolve it
-            if isinstance(prev_value, PendingValue):
-                if error is not None:
-                    prev_value.error(error)
-                else:
-                    prev_value.resolve(value)
-            elif isinstance(prev_value, PendingComputation):
-                if error is not None:
-                    prev_value.error(value)
-                else:
-                    prev_value.resolve_to_value(value)
+        # If previous value was a PendingValue, resolve it
+        if isinstance(prev_value, PendingValue):
+            if error is not None:
+                prev_value.error(error)
+            else:
+                prev_value.resolve(value)
 
-            # Update size
-            self._update_size(prev_value, value)
-            self._update_metrics()
+        # Update size
+        self._update_size(prev_value, value)
+        self._update_metrics()
 
-            await registry_store.set(key, value, pin=pin)
+        await registry_store.set(key, value, pin=pin)
 
-            return value
+        return value
 
     async def set_pending(self, registry_entry: CachedRegistryEntry, key: str):
         """
@@ -261,7 +247,6 @@ class CacheStore:
         :param registry_entry: The registry entry to store the value for.
         :param key: The key of the entry to set.
         """
-        print('--------set pending key', key)
         return await self.set(registry_entry, key, PendingValue())
 
     async def clear(self):

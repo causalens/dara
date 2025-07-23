@@ -37,16 +37,13 @@ from dara.core.base_definitions import (
     BaseTask,
     Cache,
     CachedRegistryEntry,
-    PendingComputation,
     PendingTask,
-    PendingValue,
     TaskError,
     TaskMessage,
     TaskProgressUpdate,
     TaskResult,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.cache_store.cache_store import CACHE_LOCK
 from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
@@ -238,64 +235,44 @@ class MetaTask(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-        task_args: List[Union[BaseTask, PendingValue, PendingComputation]] = [
-            x for x in self.args if isinstance(x, (BaseTask, PendingValue, PendingComputation))
-        ]
-        task_kwargs: Dict[str, Union[BaseTask, PendingValue, PendingComputation]] = {
-            k: v for k, v in self.kwargs.items() if isinstance(v, (BaseTask, PendingValue, PendingComputation))
-        }
+        tasks: List[BaseTask] = []
 
-        eng_logger.info(
-            f'MetaTask {self.task_id} running sub-tasks',
-        )
+        # Collect up the tasks that need to be run and kick them off without awaiting them.
+        tasks.extend(x for x in self.args if isinstance(x, BaseTask))
+        tasks.extend(x for x in self.kwargs.values() if isinstance(x, BaseTask))
+
+        eng_logger.info(f'MetaTask {self.task_id} running sub-tasks', {'task_ids': [x.task_id for x in tasks]})
 
         # Wait for all tasks to complete
-        arg_results: Dict[int, Any] = {}
-        kwarg_results: Dict[str, Any] = {}
+        results: Dict[str, Any] = {}
 
-        async def _run_and_capture_result_arg(task: Union[BaseTask, PendingValue, PendingComputation], task_idx: int):
+        async def _run_and_capture_result(task: BaseTask):
             """
             Run a task and capture the result
             """
-            nonlocal arg_results
-            if isinstance(task, BaseTask):
-                result = await task.run(send_stream)
-                arg_results[task_idx] = result
-            else:
-                result = await task.wait()
-                arg_results[task_idx] = result
+            nonlocal results
+            result = await task.run(send_stream)
+            results[task.task_id] = result
 
-        async def _run_and_capture_result_kwarg(
-            task: Union[BaseTask, PendingValue, PendingComputation], kwarg_name: str
-        ):
-            """
-            Run a task and capture the result
-            """
-            nonlocal kwarg_results
-            if isinstance(task, BaseTask):
-                result = await task.run(send_stream)
-                kwarg_results[kwarg_name] = result
-            else:
-                result = await task.wait()
-                kwarg_results[kwarg_name] = result
+        if len(tasks) > 0:
+            try:
+                async with create_task_group() as tg:
+                    self.cancel_scope = tg.cancel_scope
+                    for task in tasks:
+                        tg.start_soon(_run_and_capture_result, task)
+            except BaseException as e:
+                if send_stream is not None:
+                    await send_stream.send(
+                        TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
+                    )
+                raise
+            finally:
+                self.cancel_scope = None
 
-        try:
-            async with create_task_group() as tg:
-                self.cancel_scope = tg.cancel_scope
-                for task_idx, task in enumerate(task_args):
-                    tg.start_soon(_run_and_capture_result_arg, task, task_idx)
-                for kwarg_name, task in task_kwargs.items():
-                    tg.start_soon(_run_and_capture_result_kwarg, task, kwarg_name)
-        except BaseException as e:
-            if send_stream is not None:
-                await send_stream.send(
-                    TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
-                )
-            raise
-        finally:
-            self.cancel_scope = None
+        eng_logger.debug(f'MetaTask {self.task_id}', 'completed sub-tasks', results)
 
-        eng_logger.debug(f'MetaTask {self.task_id}', 'completed sub-tasks')
+        # Order the results in the same order as the tasks list
+        result_values = [results[task.task_id] for task in tasks]
 
         args = []
         kwargs = {}
@@ -303,15 +280,15 @@ class MetaTask(BaseTask):
         # Rebuild the args and kwargs with the results of the underlying tasks
         # Here the task results could be DataFrames so make sure we clean the internal __index__ col from them
         # before passing into the task function
-        for arg_idx, arg in enumerate(self.args):
-            if isinstance(arg, (BaseTask, PendingValue, PendingComputation)):
-                args.append(remove_index(arg_results[arg_idx]))
+        for arg in self.args:
+            if isinstance(arg, BaseTask):
+                args.append(remove_index(result_values.pop(0)))
             else:
                 args.append(arg)
 
         for k, val in self.kwargs.items():
-            if isinstance(val, (BaseTask, PendingValue, PendingComputation)):
-                kwargs[k] = remove_index(kwarg_results[k])
+            if isinstance(val, BaseTask):
+                kwargs[k] = remove_index(result_values.pop(0))
             else:
                 kwargs[k] = val
 
@@ -413,17 +390,8 @@ class TaskManager:
 
         # Create and store the pending task
         pending_task = PendingTask(task.task_id, task, ws_channel)
-
-        # Check if there's already a PendingComputation in the store and convert it
         if task.cache_key is not None and task.reg_entry is not None:
-            async with CACHE_LOCK.acquire(task.reg_entry.to_store_key()):
-                existing_value = await self.store.get(task.reg_entry, key=task.cache_key)
-                if isinstance(existing_value, PendingComputation):
-                    # Convert the PendingComputation to PendingTask
-                    existing_value.resolve_to_pending_task(pending_task)
-                else:
-                    # Set the pending task in the store
-                    await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
+            await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
 
         self.tasks[task.task_id] = pending_task
 
@@ -454,19 +422,14 @@ class TaskManager:
                 for channel in [*task.notify_channels, *task.task_def.notify_channels]:
                     await self.ws_manager.send_message(channel, {'status': 'CANCELED', 'task_id': task_id})
 
-            with CancelScope(shield=True):
-                # We're only now cancelling the task to make sure the clients are notified about cancelling
-                # and receive the correct status rather than an error
-                await task.cancel()
+            # We're only now cancelling the task to make sure the clients are notified about cancelling
+            # and receive the correct status rather than an error
+            await task.cancel()
 
-                # Then remove the pending task from cache so next requests would recalculate rather than receive
-                # a broken pending task
-                if task.task_def.cache_key is not None and task.task_def.reg_entry is not None:
-                    async with CACHE_LOCK.acquire(task.task_def.reg_entry.to_store_key()):
-                        await self.store.set(
-                            task.task_def.reg_entry, key=task.task_def.cache_key, value=None, error=CancelledError()
-                        )
-                        await self.store.delete(task.task_def.reg_entry, key=task.task_def.cache_key)
+            # Then remove the pending task from cache so next requests would recalculate rather than receive
+            # a broken pending task
+            if task.task_def.cache_key is not None and task.task_def.reg_entry is not None:
+                await self.store.set(task.task_def.reg_entry, key=task.task_def.cache_key, value=None)
 
             # Remove from running tasks
             self.tasks.pop(task_id, None)
@@ -567,19 +530,14 @@ class TaskManager:
                             if message.task_id in self.tasks:
                                 self.tasks[message.task_id].fail(message.error)
 
-                            with CancelScope(shield=True):
-                                # If the task has a cache key, set cached value to None
-                                # This makes it so that the next request will recalculate the value rather than keep failing
-                                if (
-                                    message.cache_key is not None
-                                    and message.reg_entry is not None
-                                    and message.reg_entry.cache is not None
-                                ):
-                                    async with CACHE_LOCK.acquire(message.reg_entry.to_store_key()):
-                                        await self.store.set(
-                                            message.reg_entry, key=message.cache_key, value=None, error=message.error
-                                        )
-                                        await self.store.delete(message.reg_entry, key=message.cache_key)
+                            # If the task has a cache key, set cached value to None
+                            # This makes it so that the next request will recalculate the value rather than keep failing
+                            if (
+                                message.cache_key is not None
+                                and message.reg_entry is not None
+                                and message.reg_entry.cache is not None
+                            ):
+                                await self.store.set(message.reg_entry, key=message.cache_key, value=None)
 
             try:
                 async with create_task_group() as tg:
