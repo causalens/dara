@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.8
 
 -   Pinned @fortawesome/react-fontawesome to `0.2.2`
 
