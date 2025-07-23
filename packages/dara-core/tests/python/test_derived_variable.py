@@ -1101,6 +1101,38 @@ async def test_derived_variable_task_chain_loop():
     """
     Test a scenario where the task chain forms a loop.
     The expected scenario is that there is no deadlock and the value resolves correctly.
+
+        +-------+     +-------+
+        | var1  |     | var2  |
+        |  (1)  |     |  (2)  |
+        +-------+     +-------+
+             |            |
+             |            |
+             v            v
+        +--------------------+
+        |  [Task] task_var   |
+        |        (3)         |
+        +--------------------+
+                   | \
+                   |  \  (task_var is also
+                   |   \  an input to the
+                   |    \ parent_var)
+                   v     \
+        +----------------+ \
+        |  meta_dv_2 (5) |  |
+        +----------------+  |
+                   |        |
+                   v        |
+        +----------------+  |
+        |  meta_dv_1 (8) |  |
+        +----------------+  |
+                   |        |
+                   |        |
+                   |        |
+                   v        v
+        +------------------------------+
+        |        parent_var (11)       |
+        +------------------------------+
     """
     builder = ConfigurationBuilder()
 
@@ -1582,10 +1614,10 @@ async def test_force_key_prevents_double_execution():
         assert execution_count['count'] == 2, f'Expected 2 executions, got {execution_count["count"]}'
 
 
-async def test_force_key_only_busts_nested_dv():
+async def test_force_key_busts_nested_dv_and_parent():
     """
     Test that when including a force_key in a nested derived variable,
-    only the nested dv is forced to re-execute.
+    both the nested dv and the parent dv are forced to re-execute.
     """
     builder = ConfigurationBuilder()
 
@@ -1657,9 +1689,8 @@ async def test_force_key_only_busts_nested_dv():
         )
         assert response2.status_code == 200
         assert response2.json()['value'] == (5 + 10) ** 2
-        # Should still be 1, as the nested dv was not forced
-        assert execution_count['derived'] == 1
-        # nested has been forced
+        # Both variables should be re-executed
+        assert execution_count['derived'] == 2
         assert execution_count['nested'] == 2
 
         # Now force the top-level dv to re-execute
@@ -1682,7 +1713,7 @@ async def test_force_key_only_busts_nested_dv():
         assert response3.status_code == 200
         assert response3.json()['value'] == (5 + 10) ** 2
         # Top-level dv should have been forced, +1
-        assert execution_count['derived'] == 2
+        assert execution_count['derived'] == 3
         # Nested reuses cache
         assert execution_count['nested'] == 2
 

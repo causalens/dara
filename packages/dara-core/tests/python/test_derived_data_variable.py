@@ -1221,9 +1221,7 @@ async def test_derived_data_variable_pending_value():
             call_count += 1
         elif call_count == 1:
             # second call we control when we unlock the computation
-            print('waiting for event...')
             await ev.wait()
-            print('event received')
         else:
             assert False, 'too many calls'
 
