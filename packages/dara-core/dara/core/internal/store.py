@@ -84,11 +84,7 @@ class Store:
         if self._store.get(cache_key) is None:
             self._store[cache_key] = {}
 
-        # PendingValue handling removed - using locks instead
-
         self._store[cache_key][key] = value
-
-    # set_pending_value method removed - using locks instead of PendingValue
 
     def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: Optional[CacheType] = CacheType.GLOBAL):
         """
