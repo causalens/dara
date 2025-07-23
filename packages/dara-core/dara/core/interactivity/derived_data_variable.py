@@ -30,6 +30,7 @@ from dara.core.base_definitions import (
     BaseTask,
     Cache,
     CacheArgType,
+    PendingComputation,
     PendingTask,
     PendingValue,
 )
@@ -257,6 +258,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         # Check for cached result of the entire data variable
         data_store_entry = await store.get(data_entry, key=data_cache_key)
 
+        if isinstance(data_store_entry, (PendingComputation, PendingValue)):
+            data_store_entry = await data_store_entry.wait()
+
         # if there's a pending task for this exact request, subscribe to the pending task and return it
         if isinstance(data_store_entry, PendingTask):
             data_store_entry.add_subscriber()
@@ -357,6 +361,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         :param pagination: the pagination to apply to the data
         """
         dv_result = await cls.get_value(dv_entry, store, task_mgr, args, force_key)
+
+        if isinstance(dv_result['value'], (PendingComputation, PendingValue)):
+            dv_result['value'] = await dv_result['value'].wait()
 
         # If the intermediate result was a task/metatask, we need to run it
         # get_data will then pick up the result from the pending task for it

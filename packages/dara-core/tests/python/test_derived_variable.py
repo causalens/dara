@@ -1261,6 +1261,8 @@ async def test_task_error_later_reuse():
         messages = await get_ws_messages(ws)
         assert any(data['message']['task_id'] == task_id and data['message']['status'] == 'ERROR' for data in messages)
 
+        await asyncio.sleep(2)
+
         # Then request the metatask
         response_2 = await _get_derived_variable(
             client,
@@ -1616,6 +1618,7 @@ async def test_force_key_only_busts_nested_dv():
 
     async with AsyncClient(app) as client:
         # First call normally
+        print('------CALL 1')
         response1 = await _get_derived_variable(
             client,
             derived_var,
@@ -1639,6 +1642,7 @@ async def test_force_key_only_busts_nested_dv():
         assert execution_count['nested'] == 1
 
         # Force the nested dv to re-execute
+        print('-------CALL 2')
         response2 = await _get_derived_variable(
             client,
             derived_var,
