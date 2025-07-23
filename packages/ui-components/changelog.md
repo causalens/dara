@@ -8,6 +8,7 @@ title: Changelog
 - Visual upgrade to `ContextMenu` to use the new `Dropdown` component
 - Added `useContextMenu` hook for non-HOC usage of `ContextMenu`
 - Locked `@react-aria/utils` to `3.29.1` to avoid breaking changes in `react-aria-components`
+- Pinned `@fortawesome/react-fontawesome` to `0.2.2`
 
 ## 1.17.4
 
