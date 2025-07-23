@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Locked `@react-aria/utils` to `3.29.1` to avoid breaking changes in `react-aria-components`
+
 ## 1.17.4
 
 - Fixed an issue where `Table`'s filter components would not show when clicking on the filter icon.
