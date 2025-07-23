@@ -14,7 +14,7 @@ from pandas import DataFrame
 
 from dara.core.auth.basic import BasicAuthConfig
 from dara.core.auth.definitions import JWT_ALGO
-from dara.core.base_definitions import Action, Cache, CacheType, PendingValue
+from dara.core.base_definitions import Action, Cache, CacheType
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.actions import UpdateVariable
@@ -1209,9 +1209,24 @@ async def test_derived_data_variable_pending_value():
 
     dv = ContextVar('dv')
 
+    ev = anyio.Event()
+
+    call_count = 0
+
     async def calc(a: DataFrame, b: int):
-        for _i in range(16):
-            await anyio.sleep(0.25)
+        nonlocal call_count
+
+        # First call we compute a value normally
+        if call_count == 0:
+            call_count += 1
+        elif call_count == 1:
+            # second call we control when we unlock the computation
+            print('waiting for event...')
+            await ev.wait()
+            print('event received')
+        else:
+            assert False, 'too many calls'
+
         assert '__index__' not in a.columns
         cp = a.copy()
         cp['col1'] += int(b)
@@ -1252,10 +1267,6 @@ async def test_derived_data_variable_pending_value():
         assert response.json()['value']
         cache_key = response.json()['cache_key']
 
-        # wait until ~halfway through the calculation
-        for _ in range(8):
-            await anyio.sleep(0.25)
-
         async with anyio.create_task_group() as tg:
             # kick off the second calculation
             tg.start_soon(
@@ -1273,20 +1284,26 @@ async def test_derived_data_variable_pending_value():
                 },
             )
 
-            # immediately request the data
+            response3 = None
+
+            async def _get_data():
+                nonlocal response3
+                response3 = await client.post(
+                    '/api/core/data-variable/uid',
+                    json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
+                    headers=AUTH_HEADERS,
+                )
+
+            # Kick off a request to get the data
             await anyio.sleep(0.5)
+            tg.start_soon(_get_data)
 
-            # check that at this point the cached value is a pending value
-            dv_entry = derived_variable_registry.get('uid')
-            store = utils_registry.get('Store')
-            data = await store.get(dv_entry, key=cache_key)
-            assert isinstance(data, PendingValue)
-
-            response3 = await client.post(
-                '/api/core/data-variable/uid',
-                json={'filters': None, 'cache_key': cache_key, 'ws_channel': 'test_channel'},
-                headers=AUTH_HEADERS,
-            )
+            # unblock the request and wait for data to complete
+            assert response3 is None
+            await anyio.sleep(0.5)
+            ev.set()
+            await wait_assert(lambda: response3 is not None, timeout=3)
+            assert response3 is not None
 
             # check response3 is the correct data
             assert response3.status_code == 200

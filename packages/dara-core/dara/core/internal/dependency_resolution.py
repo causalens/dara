@@ -84,6 +84,8 @@ def clean_force_key(value: Any) -> Any:
         return value
 
     if isinstance(value, dict):
+        # clone the dict to avoid mutating the original
+        value = value.copy()
         # Remove force key from the value
         value.pop('force_key', None)
         return {k: clean_force_key(v) for k, v in value.items()}
