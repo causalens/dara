@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.9
 
 -  Unlocked `react-aria-components` version
 
