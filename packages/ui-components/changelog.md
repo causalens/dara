@@ -2,9 +2,9 @@
 title: Changelog
 ---
 
-## 1.18.8
+## NEXT
 
-- Pinned `@fortawesome/react-fontawesome` to `0.2.2`
+-  Unlocked `react-aria-components` version
 
 ## 1.18.7
 
