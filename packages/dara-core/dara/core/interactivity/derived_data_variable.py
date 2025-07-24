@@ -207,9 +207,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         )
         value = await super().get_value(var_entry, store, task_mgr, args, force_key)
 
-        # Pin the value in the store until it's read by get data
         await asyncio.gather(
-            store.set(registry_entry=var_entry, key=value['cache_key'], value=value['value'], pin=True),
             store.set(
                 registry_entry=var_entry,
                 key=cls._get_schema_cache_key(value['cache_key']),
@@ -290,8 +288,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                         f'Derived Data Variable {_uid_short} creating filtering metatask',
                         {'uid': dv_entry.uid, 'task_id': task_id, 'cache_key': data_cache_key},
                     )
-
-                    return MetaTask(
+                    meta_task = MetaTask(
                         cls._filter_data,
                         [data, count_cache_key, data_entry, store, filters, pagination],
                         notify_channels=data.notify_channels,
@@ -300,6 +297,11 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                         reg_entry=data_entry,  # task results are set as the variable result
                         task_id=task_id,
                     )
+                    # Immediately store the pending task in the store
+                    pending_task = PendingTask(meta_task.task_id, meta_task)
+                    await store.set(data_entry, key=data_cache_key, value=pending_task)
+
+                    return meta_task
 
                 # Run the filtering
                 data = await cls._filter_data(data, count_cache_key, data_entry, store, filters, pagination)
