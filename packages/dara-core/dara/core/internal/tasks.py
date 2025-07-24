@@ -411,6 +411,8 @@ class TaskManager:
                 assert isinstance(pending_task, PendingTask), (
                     f'must be a PendingTask, found {type(pending_task)} {pending_task}'
                 )
+                if ws_channel is not None:
+                    pending_task.notify_channels.append(ws_channel)
         else:
             pending_task = PendingTask(task.task_id, task, ws_channel)
 
@@ -450,7 +452,7 @@ class TaskManager:
             # Then remove the pending task from cache so next requests would recalculate rather than receive
             # a broken pending task
             if task.task_def.cache_key is not None and task.task_def.reg_entry is not None:
-                await self.store.set(task.task_def.reg_entry, key=task.task_def.cache_key, value=None)
+                await self.store.delete(task.task_def.reg_entry, key=task.task_def.cache_key)
 
             # Remove from running tasks
             self.active_tasks.pop(task_id, None)
@@ -543,9 +545,7 @@ class TaskManager:
                                 and message.reg_entry is not None
                                 and message.reg_entry.cache is not None
                             ):
-                                await self.store.set(
-                                    message.reg_entry, key=message.cache_key, value=message.result
-                                )
+                                await self.store.set(message.reg_entry, key=message.cache_key, value=message.result)
                             # Notify the channels of the task's completion
                             await notify_channels(
                                 {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id}
@@ -589,10 +589,6 @@ class TaskManager:
                         )
                         eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
             except (Exception, ExceptionGroup) as err:
-                import traceback
-
-                traceback.print_exc()
-                print('ERROR IN TASK MGR', err)
                 err = resolve_exception_group(err)
 
                 # Mark pending task as failed

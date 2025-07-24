@@ -362,6 +362,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         task_mgr: TaskManager,
         args: List[Any],
         force_key: Optional[str] = None,
+        _pin_result: bool = False,
     ) -> DerivedVariableResult:
         """
         Get the value of this DerivedVariable. This method will check the main app store for an appropriate response
@@ -373,6 +374,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         :param task_mgr: task manager instance
         :param args: the arguments to call the underlying function with
         :param force_key: unique key for forced execution, if provided forces cache bypass
+        :param _pin_result: whether to pin the result in the store, used internally by derived data variables
         """
         # dynamic import due to circular import
         from dara.core.internal.dependency_resolution import (
@@ -543,7 +545,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
                             # Immediately store the pending task in the store
                             pending_task = PendingTask(meta_task.task_id, meta_task)
-                            await store.set(var_entry, key=cache_key, value=pending_task)
+                            await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                             return {'cache_key': cache_key, 'value': meta_task}
 
@@ -564,7 +566,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
                         # Immediately store the pending task in the store
                         pending_task = PendingTask(task.task_id, task)
-                        await store.set(var_entry, key=cache_key, value=pending_task)
+                        await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                         return {'cache_key': cache_key, 'value': task}
 
@@ -590,7 +592,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 
                     # only set the value if cache is not None, otherwise subsequent requests calculate the value again
                     if var_entry.cache is not None:
-                        await store.set(var_entry, key=cache_key, value=result)
+                        await store.set(var_entry, key=cache_key, value=result, pin=_pin_result)
 
                     eng_logger.info(
                         f'DerivedVariable {_uid_short} returning result',

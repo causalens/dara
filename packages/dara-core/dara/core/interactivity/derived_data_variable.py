@@ -17,7 +17,6 @@ limitations under the License.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Coroutine
 from typing import Any, Callable, List, Optional, Union, cast
 from uuid import uuid4
@@ -190,6 +189,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         task_mgr: TaskManager,
         args: List[Any],
         force_key: Optional[str] = None,
+        _pin_result: bool = False,
     ) -> DerivedVariableResult:
         """
         Update the underlying derived variable.
@@ -205,19 +205,17 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         eng_logger.info(
             f'Derived Data Variable {_uid_short} calling superclass get_value', {'uid': var_entry.uid, 'args': args}
         )
-        value = await super().get_value(var_entry, store, task_mgr, args, force_key)
+        value = await super().get_value(var_entry, store, task_mgr, args, force_key, _pin_result=True)
 
-        await asyncio.gather(
-            store.set(
-                registry_entry=var_entry,
-                key=cls._get_schema_cache_key(value['cache_key']),
-                value=build_table_schema(
-                    df_convert_to_internal(cast(DataFrame, value['value'])),
-                )
-                if isinstance(value['value'], DataFrame)
-                else None,
-                pin=True,
-            ),
+        await store.set(
+            registry_entry=var_entry,
+            key=cls._get_schema_cache_key(value['cache_key']),
+            value=build_table_schema(
+                df_convert_to_internal(cast(DataFrame, value['value'])),
+            )
+            if isinstance(value['value'], DataFrame)
+            else None,
+            pin=True,
         )
 
         eng_logger.info(
