@@ -220,6 +220,12 @@ class CacheStore:
 
         prev_value = await registry_store.get(key)
 
+        # If the previous value was a PendingTask, resolve it with the new value
+        # This handles cache-coordinated tasks (e.g., DerivedVariables) where PendingTasks
+        # are stored in cache to coordinate multiple callers with the same cache key
+        if isinstance(prev_value, PendingTask):
+            prev_value.resolve(value)
+
         # Update size
         self._update_size(prev_value, value)
         self._update_metrics()

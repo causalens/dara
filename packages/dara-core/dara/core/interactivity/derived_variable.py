@@ -541,6 +541,10 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                                 reg_entry=var_entry,  # task results are set as the DV result
                             )
 
+                            # Immediately store the pending task in the store
+                            pending_task = PendingTask(meta_task.task_id, meta_task)
+                            await store.set(var_entry, key=cache_key, value=pending_task)
+
                             return {'cache_key': cache_key, 'value': meta_task}
 
                         task_id = f'{var_uid}_Task_{str(uuid.uuid4())}'
@@ -557,6 +561,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                             task_id=task_id,
                             reg_entry=var_entry,  # task results are set as the DV result
                         )
+
+                        # Immediately store the pending task in the store
+                        pending_task = PendingTask(task.task_id, task)
+                        await store.set(var_entry, key=cache_key, value=pending_task)
+
                         return {'cache_key': cache_key, 'value': task}
 
                     try:

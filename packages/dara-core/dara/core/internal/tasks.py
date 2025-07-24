@@ -235,6 +235,7 @@ class MetaTask(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
+
         tasks: List[BaseTask] = []
 
         # Collect up the tasks that need to be run and kick them off without awaiting them.
@@ -297,8 +298,16 @@ class MetaTask(BaseTask):
         # Run the process result function with the completed set of args and kwargs
         if self.process_as_task:
             eng_logger.debug(f'MetaTask {self.task_id}', 'processing result as Task')
-            # Pass through cache_key so the processing task correctly updates the cache store entry
-            task = Task(self.process_result, args, kwargs, cache_key=self.cache_key)
+
+            task = Task(
+                self.process_result,
+                args,
+                kwargs,
+                # Pass through cache_key so the processing task correctly updates the cache store entry
+                reg_entry=self.reg_entry,
+                cache_key=self.cache_key,
+                task_id=self.task_id,
+            )
             res = await task.run(send_stream)
 
             eng_logger.info(f'MetaTask {self.task_id} returning result', {'result': res})
@@ -352,7 +361,9 @@ class TaskManager:
     """
 
     def __init__(self, task_group: TaskGroup, ws_manager: WebsocketManager, store: CacheStore):
-        self.tasks: Dict[str, PendingTask] = {}
+        # Registry for direct-coordinated tasks (e.g., py_components, top-level DerivedVariable task)
+        # These tasks don't use cache-based coordination and are managed directly by TaskManager
+        self.active_tasks: Dict[str, PendingTask] = {}
         self.task_group = task_group
         self.ws_manager = ws_manager
         self.store = store
@@ -373,10 +384,10 @@ class TaskManager:
         # If the task given is a PendingTask,
         # append the websocket channel to the task
         if isinstance(task, PendingTask):
-            if task.task_id in self.tasks:
-                if ws_channel:
-                    self.tasks[task.task_id].notify_channels.append(ws_channel)
-                return self.tasks[task.task_id]
+            if task.task_id in self.active_tasks:
+                if ws_channel is not None:
+                    self.active_tasks[task.task_id].notify_channels.append(ws_channel)
+                return self.active_tasks[task.task_id]
 
             assert task.task_def.reg_entry is not None, 'PendingTask must have a registry entry'
 
@@ -388,12 +399,18 @@ class TaskManager:
                 else self.get_result(task.task_id)
             )
 
-        # Create and store the pending task
-        pending_task = PendingTask(task.task_id, task, ws_channel)
+        # Otherwise, check if we already have a pending task for this task
+        # Inside py_component/DerivedVariable, we can pre-create the pending task
+        # without starting the task
         if task.cache_key is not None and task.reg_entry is not None:
-            await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
+            pending_task = await self.store.get(task.reg_entry, key=task.cache_key)
+            if pending_task is None:
+                pending_task = PendingTask(task.task_id, task, ws_channel)
+                await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
+        else:
+            pending_task = PendingTask(task.task_id, task, ws_channel)
 
-        self.tasks[task.task_id] = pending_task
+        self.active_tasks[task.task_id] = pending_task
 
         # Run the task in the background
         self.task_group.start_soon(self._run_task_and_notify, task, ws_channel)
@@ -408,7 +425,7 @@ class TaskManager:
         :param notify: whether to notify, true by default
         """
         eng_logger.debug(f'Attempting to cancel task {task_id}')
-        task = self.tasks.get(task_id, None)
+        task = self.active_tasks.get(task_id, None)
 
         if task is not None:
             # Check the subscriber count. If more than 1 subscriber
@@ -432,7 +449,7 @@ class TaskManager:
                 await self.store.set(task.task_def.reg_entry, key=task.task_def.cache_key, value=None)
 
             # Remove from running tasks
-            self.tasks.pop(task_id, None)
+            self.active_tasks.pop(task_id, None)
         else:
             raise TaskManagerError('Could not find a task with the passed id to cancel.')
 
@@ -440,7 +457,7 @@ class TaskManager:
         """
         Cancel all the currently running tasks, useful for cleaning up on app shutdown
         """
-        keys = list(self.tasks.keys())
+        keys = list(self.active_tasks.keys())
         for task_id in keys:
             try:
                 await self.cancel_task(task_id, notify=False)
@@ -475,7 +492,7 @@ class TaskManager:
         """
         cancel_scope = CancelScope()
 
-        self.tasks[task.task_id].cancel_scope = cancel_scope
+        self.active_tasks[task.task_id].cancel_scope = cancel_scope
 
         with cancel_scope:
             eng_logger.info(f'TaskManager running task {task.task_id}')
@@ -511,10 +528,11 @@ class TaskManager:
                             if isinstance(task, Task) and task.on_progress:
                                 await run_user_handler(task.on_progress, args=(message,))
                         elif isinstance(message, TaskResult):
-                            # Resolve the pending task related to the result
-                            if message.task_id in self.tasks:
-                                self.tasks[task.task_id].resolve(message.result)
-                            # If the task has a cache key, update the cached value
+                            # Handle dual coordination patterns:
+                            # 1. Direct-coordinated tasks: resolve via active_tasks registry
+                            if message.task_id in self.active_tasks:
+                                self.active_tasks[message.task_id].resolve(message.result)
+                            # 2. Cache-coordinated tasks: resolve via cache store (CacheStore.set handles PendingTask resolution)
                             if (
                                 message.cache_key is not None
                                 and message.reg_entry is not None
@@ -527,8 +545,8 @@ class TaskManager:
                             )
                         elif isinstance(message, TaskError):
                             # Fail the pending task related to the error
-                            if message.task_id in self.tasks:
-                                self.tasks[message.task_id].fail(message.error)
+                            if message.task_id in self.active_tasks:
+                                self.active_tasks[message.task_id].fail(message.error)
 
                             # If the task has a cache key, set cached value to None
                             # This makes it so that the next request will recalculate the value rather than keep failing
@@ -567,7 +585,7 @@ class TaskManager:
                 err = resolve_exception_group(err)
 
                 # Mark pending task as failed
-                self.tasks[task.task_id].fail(err)
+                self.active_tasks[task.task_id].fail(err)
 
                 dev_logger.error('Task failed', err, {'task_id': task.task_id})
                 await self.set_result(task.task_id, {'error': str(err)})
@@ -576,7 +594,7 @@ class TaskManager:
                 await notify_channels({'status': 'ERROR', 'task_id': task.task_id}, get_error_for_channel())
             finally:
                 # Remove the task from the running tasks
-                self.tasks.pop(task.task_id, None)
+                self.active_tasks.pop(task.task_id, None)
 
                 # Make sure streams are closed
                 with move_on_after(3, shield=True):

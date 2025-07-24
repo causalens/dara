@@ -1113,12 +1113,12 @@ async def test_derived_variable_task_chain_loop():
         |  [Task] task_var   |
         |        (3)         |
         +--------------------+
-                   | \
-                   |  \  (task_var is also
-                   |   \  an input to the
-                   |    \ parent_var)
-                   v     \
-        +----------------+ \
+                   | \\
+                   |  \\  (task_var is also
+                   |   \\  an input to the
+                   |    \\ parent_var)
+                   v     \\
+        +----------------+\\
         |  meta_dv_2 (5) |  |
         +----------------+  |
                    |        |
@@ -1717,6 +1717,7 @@ async def test_force_key_busts_nested_dv_and_parent():
         # Nested reuses cache
         assert execution_count['nested'] == 2
 
+
 async def test_force_key_busts_grandparent():
     """
     Test that when including a force_key in a nested nested derived variable,
@@ -1779,7 +1780,7 @@ async def test_force_key_busts_grandparent():
         )
 
         assert response1.status_code == 200
-        assert response1.json()['value'] == (5 + 10) ** 2 ** 2
+        assert response1.json()['value'] == (5 + 10) ** 2**2
         assert execution_count['root'] == 1
         assert execution_count['child'] == 1
         assert execution_count['grandchild'] == 1
@@ -1809,7 +1810,7 @@ async def test_force_key_busts_grandparent():
             },
         )
         assert response2.status_code == 200
-        assert response2.json()['value'] == (5 + 10) ** 2 ** 2
+        assert response2.json()['value'] == (5 + 10) ** 2**2
         # Child and root should be forced, +1
         assert execution_count['root'] == 2
         assert execution_count['child'] == 2
@@ -1841,11 +1842,12 @@ async def test_force_key_busts_grandparent():
             },
         )
         assert response3.status_code == 200
-        assert response3.json()['value'] == (5 + 10) ** 2 ** 2
+        assert response3.json()['value'] == (5 + 10) ** 2**2
         # All three variables should be forced, +1
         assert execution_count['root'] == 3
         assert execution_count['child'] == 3
         assert execution_count['grandchild'] == 2
+
 
 async def test_none_value_is_valid():
     """
