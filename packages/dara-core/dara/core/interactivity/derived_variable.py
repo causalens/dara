@@ -577,7 +577,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                             await store.delete(var_entry, key=cache_key)
                         raise
 
-                    # If a task is returned then update pending value to pending task and return it
+                    # If a task is returned then ensure we register it
                     if isinstance(result, BaseTask):
                         eng_logger.info(
                             f'DerivedVariable {_uid_short} returning task as a result',
@@ -586,6 +586,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         # Make sure cache settings are set on the task
                         result.cache_key = cache_key
                         result.reg_entry = var_entry
+
+                        task_mgr.register_task(result)
 
                         return {'cache_key': cache_key, 'value': result}
 

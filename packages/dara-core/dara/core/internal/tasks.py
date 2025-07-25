@@ -761,10 +761,12 @@ class TaskManager:
                                 await self.store.delete(message.reg_entry, key=message.cache_key)
 
                             # Notify all PendingTasks that depend on this specific task
+                            error = get_error_for_channel()
                             await self._multicast_task_completion_notification(
                                 message_task_id=message.task_id,
                                 messages=[
-                                    {'status': 'ERROR', 'task_id': message.task_id, 'error': get_error_for_channel()}
+                                    {'status': 'ERROR', 'task_id': message.task_id, 'error': error['error']},
+                                    error,
                                 ],
                             )
 
@@ -790,11 +792,12 @@ class TaskManager:
                         # Cancel any remaining tasks in the hierarchy that might still be running
                         await self._cancel_task_hierarchy(task, notify=True)
                     else:
-                        message = {'status': 'ERROR', 'task_id': task.task_id, 'error': get_error_for_channel()}
-                        # Notify about this task failing
+                        error = get_error_for_channel()
+                        message = {'status': 'ERROR', 'task_id': task.task_id, 'error': error['error']}
+                        # Notify about this task failing, and a server broadcast error
                         await self._send_notification_for_pending_task(
                             pending_task=pending_task,
-                            messages=[message],
+                            messages=[message, error],
                         )
                         # notify related tasks
                         await self._multicast_task_completion_notification(

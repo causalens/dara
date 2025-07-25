@@ -53,7 +53,9 @@ async def test_task_manager_run_task(_uid):
         handler = ws_mgr.create_handler(return_channel)
 
         # Kick off the task
-        pending_task = await task_manager.run_task(task, return_channel)
+        pending_task = task_manager.register_task(task)
+        await store.set(reg_entry, key='uid', value=pending_task)
+        await task_manager.run_task(task, return_channel)
 
         # Task is pending
         assert not pending_task.event.is_set()
@@ -98,7 +100,8 @@ async def test_task_manager_run_task_track_progress(_uid):
         return_channel = 'chan'
         handler = ws_mgr.create_handler(return_channel)
 
-        pending_task = await task_manager.run_task(task, return_channel)
+        pending_task = task_manager.register_task(task)
+        await task_manager.run_task(task, return_channel)
         assert handler.receive_stream.statistics().current_buffer_used == 0
 
         result = await pending_task.run()
@@ -142,7 +145,8 @@ async def test_task_manager_cancel_task(_uid):
         return_channel = 'chan'
         handler = ws_mgr.create_handler(return_channel)
 
-        pending_task = await task_manager.run_task(task, return_channel)
+        pending_task = task_manager.register_task(task)
+        await task_manager.run_task(task, return_channel)
         assert handler.receive_stream.statistics().current_buffer_used == 0
 
         # Yield to let the task start
@@ -179,7 +183,9 @@ async def test_task_manager_cancel_task_with_subs(_uid):
         handler = ws_mgr.create_handler(return_channel)
 
         # Create a PendingTask with multiple subscribers in the store
-        pending_task = await task_manager.run_task(task, return_channel)
+        pending_task = task_manager.register_task(task)
+        await store.set(reg_entry, key='cache_key', value=pending_task)
+        await task_manager.run_task(task, return_channel)
         pending_task.add_subscriber()
         assert (await store.get(reg_entry, key='cache_key')).subscribers == 2
 
