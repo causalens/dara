@@ -60,6 +60,7 @@
     "@types/recoil": "^0.0.9",
     "@types/styled-components": "^5.1.23",
     "@types/whatwg-fetch": "^0.0.33",
+    "@types/react-virtualized-auto-sizer": "1.0.4",
     "@vitejs/plugin-react": "4.6.0",
     "babel-jest": "^29.5.0",
     "concurrently": "^8.0.1",
