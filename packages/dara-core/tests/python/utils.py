@@ -285,6 +285,8 @@ async def wait_for(callback: Callable[[], WaitForResult], timeout: float = 1) ->
 
             try:
                 result = callback()
+                if inspect.iscoroutine(result):
+                    result = await result
             except BaseException:
                 continue
             else:

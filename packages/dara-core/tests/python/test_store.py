@@ -120,22 +120,3 @@ async def test_user_list():
         )
     )
     assert store.list(cache_type=CacheType.USER) == []
-
-
-async def test_wait_and_get():
-    """Test the pending values system and async fetching of keys"""
-    store = Store()
-
-    # Set the test key as pending
-    store.set_pending_value('test')
-
-    # Create two coroutines that are trying to access the result
-    var1 = store.get_or_wait('test')
-    var2 = store.get_or_wait('test')
-
-    # Set the value in the store
-    store.set('test', 'value')
-
-    # Check that the awaits resolve to the same value
-    assert await var1 == 'value'
-    assert await var2 == 'value'

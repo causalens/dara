@@ -33,6 +33,7 @@ from typing import (
     overload,
 )
 
+import anyio
 from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import BaseTask
@@ -257,11 +258,14 @@ async def render_component(
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}
 
-        for key, value in values.items():
-            val = await resolve_dependency(value, store, task_mgr)
+        async def _resolve_kwarg(val: Any, key: str):
+            val = await resolve_dependency(val, store, task_mgr)
             typ = annotations.get(key)
-
             resolved_dyn_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}
@@ -296,6 +300,7 @@ async def render_component(
             eng_logger.info(
                 f'PyComponent {definition.func.__name__} returning task', {'uid': definition.name, 'task_id': task}
             )
+            task_mgr.register_task(task)
 
             return task
 

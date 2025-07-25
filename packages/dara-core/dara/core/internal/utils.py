@@ -33,12 +33,13 @@ from typing import (
     Literal,
     Optional,
     Tuple,
+    Type,
     Union,
 )
 
 import anyio
 from anyio import from_thread
-from exceptiongroup import ExceptionGroup
+from exceptiongroup import BaseExceptionGroup, ExceptionGroup
 from starlette.concurrency import run_in_threadpool
 
 from dara.core.auth.definitions import SESSION_ID, USER
@@ -234,3 +235,18 @@ def resolve_exception_group(error: Any):
         return resolve_exception_group(error.exceptions[0])
 
     return error
+
+
+def exception_group_contains(err_type: Type[BaseException], group: BaseExceptionGroup) -> bool:
+    """
+    Check if an ExceptionGroup contains an error of a given type, recursively
+
+    :param err_type: The type of error to check for
+    :param group: The ExceptionGroup to check
+    """
+    for exc in group.exceptions:
+        if isinstance(exc, err_type):
+            return True
+        if isinstance(exc, BaseExceptionGroup):
+            return exception_group_contains(err_type, exc)
+    return False

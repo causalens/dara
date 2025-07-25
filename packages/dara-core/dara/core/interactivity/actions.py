@@ -1246,6 +1246,7 @@ class ActionCtx:
         task_mgr: TaskManager = utils_registry.get('TaskManager')
 
         task = Task(func=func, args=args, kwargs=kwargs, on_progress=on_progress)
+        task_mgr.register_task(task)
         pending_task = await task_mgr.run_task(task)
         return await pending_task.value()
 

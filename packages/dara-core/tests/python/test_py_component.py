@@ -749,13 +749,15 @@ async def test_derive_var_with_run_as_task_flag():
 async def test_chain_derived_var_with_run_as_task_flag():
     """
     Check that a chain of derived variables with run_as_task is passed the py_component resolves correctly.
+
+    input -> dv_root -> dv_leaf_1 -> dv_leaf_2 -> dv_top
     """
     input = Variable(1)
 
-    dv_root = DerivedVariable(root, variables=[input], run_as_task=True)  # 1 + 1 = 2
-    dv_leaf_1 = DerivedVariable(leaf_1, variables=[dv_root])  # 2 + 2 = 4
-    dv_leaf_2 = DerivedVariable(leaf_2, variables=[dv_leaf_1])  # 4 + 3 = 7
-    dv_top = DerivedVariable(add, variables=[dv_leaf_1, dv_leaf_2])  # 4 + 7 = 11 - RESULT
+    dv_root = DerivedVariable(root, variables=[input], run_as_task=True, uid='dv_root')  # 1 + 1 = 2
+    dv_leaf_1 = DerivedVariable(leaf_1, variables=[dv_root], uid='dv_leaf_1')  # 2 + 2 = 4
+    dv_leaf_2 = DerivedVariable(leaf_2, variables=[dv_leaf_1], uid='dv_leaf_2')  # 4 + 3 = 7
+    dv_top = DerivedVariable(add, variables=[dv_leaf_1, dv_leaf_2], uid='dv_top')  # 4 + 7 = 11 - RESULT
 
     builder = ConfigurationBuilder()
 

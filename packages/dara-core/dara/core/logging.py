@@ -74,7 +74,7 @@ class Logger:
 
         self._logger.warning(payload, extra={'content': extra})
 
-    def error(self, title: str, error: Exception, extra: Optional[Dict[str, Any]] = None):
+    def error(self, title: str, error: BaseException, extra: Optional[Dict[str, Any]] = None):
         """
         Log a message at the ERROR level
 
@@ -171,11 +171,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def _print_stacktrace():
+def _print_stacktrace(err: Optional[BaseException] = None) -> str:
     """
     Prints out the current stack trace whilst unwinding all the logging calls on the way so it just shows the relevant
     parts. Will also extract any exceptions and print them at the end.
     """
+    if err is not None:
+        return ''.join(traceback.format_exception(type(err), err, err.__traceback__))
+
     exc = sys.exc_info()[0]
     stack = traceback.extract_stack()[:-1]
     if exc is not None:
@@ -215,8 +218,9 @@ class DaraProdFormatter(logging.Formatter):
             }
 
             if record.levelname == 'ERROR':
-                payload['error'] = str(payload.pop('error'))
-                payload['stacktrace'] = _print_stacktrace()
+                err = payload.pop('error')
+                payload['error'] = str(err)
+                payload['stacktrace'] = _print_stacktrace(err if isinstance(err, BaseException) else None)
 
             return payload
 
@@ -281,8 +285,8 @@ class DaraDevFormatter(logging.Formatter):
 
             if record.levelname == 'ERROR':
                 error = ''
-                if payload.get('error'):
-                    error = _print_stacktrace()
+                if err := payload.get('error'):
+                    error = _print_stacktrace(err if isinstance(err, BaseException) else None)
                 content = base_msg
                 if record.__dict__.get('content'):
                     content = content + '\r\n' + self.extra_template % (spacer, record.__dict__['content'])

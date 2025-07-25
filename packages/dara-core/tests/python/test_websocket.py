@@ -471,9 +471,8 @@ async def test_action_task_error():
             assert task_result_msg.get('message').get('task_id') == task_id
 
             # Check we got a traceback message
-            traceback_msg = next(filter(lambda m: 'error' in m['message'], messages))
+            traceback_msg = next(filter(lambda m: 'error' in m['message'] and 'time' in m['message'], messages))
             assert traceback_msg.get('message').get('error').startswith('Traceback')
-            assert 'time' in traceback_msg.get('message')
 
             # Task should have error stored as its result
             result = (await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)).json()

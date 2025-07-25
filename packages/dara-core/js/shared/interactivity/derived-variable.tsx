@@ -18,6 +18,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { TaskError } from '@/api/websocket';
 import { handleAuthErrors } from '@/auth/auth';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
@@ -553,8 +554,15 @@ export function getOrRegisterDerivedVariable(
 
                                 try {
                                     await wsClient.waitForTask(taskId);
-                                } catch {
-                                    // If there was an error waiting for task it means it was cancelled (by a re-run)
+                                } catch (e: unknown) {
+                                    if (e instanceof TaskError) {
+                                        // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                                        (e as any).selectorId = key;
+                                        (e as any).selectorExtras = extrasSerializable.toJSON();
+                                        throw e;
+                                    }
+
+                                    // should be a TaskCancelledError
                                     // It should be safe to return `null` here as the selector will re-run and throw suspense again
                                     return {
                                         cache_key: cacheKey,

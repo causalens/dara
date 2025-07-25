@@ -143,10 +143,14 @@ async def execute_action(
     if values is not None:
         annotations = action.__annotations__
 
-        for key, value in values.items():
+        async def _resolve_kwarg(val: Any, key: str):
             typ = annotations.get(key)
-            val = await resolve_dependency(value, store, task_mgr)
+            val = await resolve_dependency(val, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}
@@ -171,9 +175,11 @@ async def execute_action(
 
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
-        return MetaTask(
+        meta_task = MetaTask(
             process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
         )
+        task_mgr.register_task(meta_task)
+        return meta_task
 
     # No tasks - run directly as an asyncio task and return the execution id
     # Originally used to use FastAPI BackgroundTasks, but these ended up causing a blocking behavior that blocked some

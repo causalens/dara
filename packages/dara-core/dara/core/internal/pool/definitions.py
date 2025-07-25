@@ -95,7 +95,7 @@ class TaskDefinition:
     def __await__(self):
         """Await the underlying event, then return or raise the result"""
         yield from self.event.wait().__await__()
-        if isinstance(self.result, Exception):
+        if isinstance(self.result, BaseException):
             raise self.result
         return self.result
 

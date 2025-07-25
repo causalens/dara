@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
@@ -10,6 +11,24 @@ const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
 const interPingInterval = 5000;
 const maxAttempts = Math.round(maxDisconnectedTime / interAttemptTimeout);
+
+export class TaskCancelledError extends Error {
+    task_id: string;
+
+    constructor(message: string, task_id: string) {
+        super(message);
+        this.task_id = task_id;
+    }
+}
+
+export class TaskError extends Error {
+    task_id: string;
+
+    constructor(message: string, task_id: string) {
+        super(message);
+        this.task_id = task_id;
+    }
+}
 
 interface InitMessage {
     message: {
@@ -35,22 +54,20 @@ export enum TaskStatus {
     PROGRESS = 'PROGRESS',
 }
 
-export interface ProgressNotificationMessage {
-    message: {
-        message: string;
-        progress: number;
-        status: TaskStatus.PROGRESS;
-        task_id: string;
-    };
+type TaskNotificationMessageContent =
+    | { status: TaskStatus.COMPLETE; task_id: string }
+    | { status: TaskStatus.ERROR; task_id: string; error: string }
+    | { status: TaskStatus.PROGRESS; task_id: string; progress: number; message: string }
+    | { status: TaskStatus.CANCELED; task_id: string };
+
+export interface TaskNotificationMessage {
+    message: TaskNotificationMessageContent;
     type: 'message';
 }
 
-export interface TaskNotificationMessage {
-    message: {
-        status: TaskStatus;
-        task_id: string;
-    };
+export interface ProgressNotificationMessage {
     type: 'message';
+    message: Extract<TaskNotificationMessageContent, { status: TaskStatus.PROGRESS }>;
 }
 
 export interface ServerTriggerMessage {
@@ -443,7 +460,7 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
-     * Returns a promise that will resolve when the task is completed. If the task is cancelled then this will throw an
+     * Returns a promise that will resolve when the task is completed. If the task is cancelled or errored then this will throw an
      * error to signify that.
      *
      * @param task_id the id of the task to wait for
@@ -451,16 +468,20 @@ export class WebSocketClient implements WebSocketClientInterface {
     waitForTask(task_id: string): Promise<any> {
         return this.messages$
             .pipe(
-                filter(
-                    (msg) =>
+                filter((msg): msg is TaskNotificationMessage => {
+                    return (
                         isTaskNotification(msg) &&
                         msg.message?.task_id === task_id &&
-                        msg.message.status !== TaskStatus.PROGRESS // don't take progress updates
-                ),
+                        msg.message.status !== TaskStatus.PROGRESS
+                    ); // don't take progress updates
+                }),
                 map((msg) => {
-                    if (isTaskNotification(msg) && msg.message.status === TaskStatus.CANCELED) {
-                        throw new Error('CANCELED');
+                    if (msg.message.status === TaskStatus.CANCELED) {
+                        throw new TaskCancelledError('Task was cancelled', msg.message.task_id);
+                    } else if (msg.message.status === TaskStatus.ERROR) {
+                        throw new TaskError(msg.message.error, msg.message.task_id);
                     }
+
                     return msg;
                 }),
                 take(1)

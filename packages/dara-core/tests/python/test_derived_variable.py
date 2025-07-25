@@ -1101,15 +1101,49 @@ async def test_derived_variable_task_chain_loop():
     """
     Test a scenario where the task chain forms a loop.
     The expected scenario is that there is no deadlock and the value resolves correctly.
+
+        +-------+     +-------+
+        | var1  |     | var2  |
+        |  (1)  |     |  (2)  |
+        +-------+     +-------+
+             |            |
+             |            |
+             v            v
+        +--------------------+
+        |  [Task] task_var   |
+        |        (3)         |
+        +--------------------+
+                   | \\
+                   |  \\  (task_var is also
+                   |   \\  an input to the
+                   |    \\ parent_var)
+                   v     \\
+        +----------------+\\
+        |  meta_dv_2 (5) |  |
+        +----------------+  |
+                   |        |
+                   v        |
+        +----------------+  |
+        |  meta_dv_1 (8) |  |
+        +----------------+  |
+                   |        |
+                   |        |
+                   |        |
+                   v        v
+        +------------------------------+
+        |        parent_var (11)       |
+        +------------------------------+
     """
     builder = ConfigurationBuilder()
 
     var1 = Variable(1)
     var2 = Variable(2)
-    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)  # 3
-    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])  # 5
-    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])  # 8
-    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])  # 11
+    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True, uid='task_var')  # 3
+    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var], uid='meta_dv_2')  # 5
+    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2], uid='meta_dv_1')  # 8
+    parent_var = DerivedVariable(
+        lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var], uid='parent_var'
+    )  # 11
 
     builder.add_page('Test', content=MockComponent(text=parent_var))
 
@@ -1582,10 +1616,10 @@ async def test_force_key_prevents_double_execution():
         assert execution_count['count'] == 2, f'Expected 2 executions, got {execution_count["count"]}'
 
 
-async def test_force_key_only_busts_nested_dv():
+async def test_force_key_busts_nested_dv_and_parent():
     """
     Test that when including a force_key in a nested derived variable,
-    only the nested dv is forced to re-execute.
+    both the nested dv and the parent dv are forced to re-execute.
     """
     builder = ConfigurationBuilder()
 
@@ -1657,9 +1691,8 @@ async def test_force_key_only_busts_nested_dv():
         )
         assert response2.status_code == 200
         assert response2.json()['value'] == (5 + 10) ** 2
-        # Should still be 1, as the nested dv was not forced
-        assert execution_count['derived'] == 1
-        # nested has been forced
+        # Both variables should be re-executed
+        assert execution_count['derived'] == 2
         assert execution_count['nested'] == 2
 
         # Now force the top-level dv to re-execute
@@ -1682,9 +1715,140 @@ async def test_force_key_only_busts_nested_dv():
         assert response3.status_code == 200
         assert response3.json()['value'] == (5 + 10) ** 2
         # Top-level dv should have been forced, +1
-        assert execution_count['derived'] == 2
+        assert execution_count['derived'] == 3
         # Nested reuses cache
         assert execution_count['nested'] == 2
+
+
+async def test_force_key_busts_grandparent():
+    """
+    Test that when including a force_key in a nested nested derived variable,
+    busts the parent and grandparent.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+
+    # Track execution count
+    execution_count = {'grandchild': 0, 'child': 0, 'root': 0}
+
+    def grandchild_calc(a, b):
+        execution_count['grandchild'] += 1
+        return a + b
+
+    def child_calc(a):
+        execution_count['child'] += 1
+        return a * a
+
+    def root_calc(a):
+        execution_count['root'] += 1
+        return a * a
+
+    # var1+var2 -> grandchild -> child -> root chain
+    grandchild_var = DerivedVariable(grandchild_calc, variables=[var1, var2])
+    child_var = DerivedVariable(child_calc, variables=[grandchild_var])
+    root_var = DerivedVariable(root_calc, variables=[child_var])
+
+    builder.add_page('Test', content=MockComponent(text=root_var))
+
+    config = create_app(builder)
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call normally
+        response1 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=None,
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=None,
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response1.status_code == 200
+        assert response1.json()['value'] == (5 + 10) ** 2**2
+        assert execution_count['root'] == 1
+        assert execution_count['child'] == 1
+        assert execution_count['grandchild'] == 1
+
+        # First force the child
+        response2 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=str(uuid4()),
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=None,
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()['value'] == (5 + 10) ** 2**2
+        # Child and root should be forced, +1
+        assert execution_count['root'] == 2
+        assert execution_count['child'] == 2
+        # grand child was below force, was re-used
+        assert execution_count['grandchild'] == 1
+
+        # Then force the grandchild
+        response3 = await _get_derived_variable(
+            client,
+            root_var,
+            {
+                'values': [
+                    ResolvedDerivedVariable(
+                        type='derived',
+                        uid=str(child_var.uid),
+                        force_key=None,
+                        values=[
+                            ResolvedDerivedVariable(
+                                type='derived',
+                                uid=str(grandchild_var.uid),
+                                force_key=str(uuid4()),
+                                values=[5, 10],
+                            )
+                        ],
+                    )
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        assert response3.status_code == 200
+        assert response3.json()['value'] == (5 + 10) ** 2**2
+        # All three variables should be forced, +1
+        assert execution_count['root'] == 3
+        assert execution_count['child'] == 3
+        assert execution_count['grandchild'] == 2
 
 
 async def test_none_value_is_valid():
