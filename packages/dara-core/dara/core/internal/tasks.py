@@ -37,7 +37,6 @@ from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
     BaseTask,
-    Cache,
     CachedRegistryEntry,
     LruCachePolicy,
     PendingTask,
@@ -50,7 +49,7 @@ from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.utils import resolve_exception_group, run_user_handler
+from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
@@ -266,12 +265,12 @@ class MetaTask(BaseTask):
                         if send_stream is not None:
                             await send_stream.send(
                                 TaskError(
-                                    task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry
+                                    task_id=self.task_id, error=err, cache_key=self.cache_key, reg_entry=self.reg_entry
                                 )
                             )
 
                     asyncio.create_task(_async_handle_error())
-                    raise
+                    raise err
 
                 if len(tasks) > 0:
                     with catch({BaseException: handle_exception}):  # type: ignore
@@ -635,10 +634,7 @@ class TaskManager:
         async def _send_to_channel(channel: str):
             for message in messages:
                 # Create message with this PendingTask's task_id (if message has task_id)
-                if 'task_id' in message:
-                    message_for_task = {**message, 'task_id': pending_task.task_id}
-                else:
-                    message_for_task = message
+                message_for_task = {**message, 'task_id': pending_task.task_id} if 'task_id' in message else message
                 await self.ws_manager.send_message(channel, message_for_task)
 
         async with create_task_group() as channel_tg:
