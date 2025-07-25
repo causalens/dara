@@ -40,7 +40,7 @@
     "@types/react-dom": "^18.2.4",
     "@types/react-plotly.js": "~2.6.0",
     "@types/react-table": "^7.0.19",
-    "@types/react-virtualized-auto-sizer": "^1.0.0",
+    "@types/react-virtualized-auto-sizer": "1.0.4",
     "@types/react-window": "^1.8.2",
     "@types/react-window-infinite-loader": "^1.0.3",
     "@types/styled-components": "^5.1.0",
