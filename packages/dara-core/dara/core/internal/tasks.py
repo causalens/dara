@@ -553,7 +553,6 @@ class TaskManager:
         self,
         messages: List[dict],
         root_task: BaseTask,
-        ws_channel: Optional[str] = None,
         hierarchical: bool = False,
         filter_task_id: Optional[str] = None,
     ):
@@ -579,40 +578,18 @@ class TaskManager:
             # Simple case: just notify the root task
             task_ids_to_notify = {root_task.task_id}
 
-        async def _send_notification_for_task_id(task_id_to_notify: str):
-            """Send notifications for a specific task ID"""
-            if task_id_to_notify not in self.tasks:
-                return
-
-            pending_task = self.tasks[task_id_to_notify]
-
-            # Collect channels for this specific task ID
-            channels_to_notify = set(pending_task.notify_channels)
-            channels_to_notify.update(pending_task.task_def.notify_channels)
-
-            # Also add the current ws_channel if this is the running task
-            if task_id_to_notify == root_task.task_id and ws_channel:
-                channels_to_notify.add(ws_channel)
-
-            if not channels_to_notify:
-                return
-
-            # Send to all channels for this task ID in parallel
-            async def _send_to_channel(channel: str):
-                for message in messages:
-                    # For hierarchical notifications, update task_id in each message
-                    if hierarchical and 'task_id' in message:
-                        message = {**message, 'task_id': task_id_to_notify}
-                    await self.ws_manager.send_message(channel, message)
-
-            async with create_task_group() as channel_tg:
-                for channel in channels_to_notify:
-                    channel_tg.start_soon(_send_to_channel, channel)
-
         # Send notifications for all task IDs in parallel
         async with create_task_group() as task_tg:
             for task_id_to_notify in task_ids_to_notify:
-                task_tg.start_soon(_send_notification_for_task_id, task_id_to_notify)
+                if task_id_to_notify not in self.tasks:
+                    continue
+                messages_copy = messages.copy()
+                for msg in messages_copy:
+                    if hierarchical and 'task_id' in msg:
+                        msg['task_id'] = task_id_to_notify
+                task_tg.start_soon(
+                    self._send_notification_for_pending_task, self.tasks[task_id_to_notify], messages_copy
+                )
 
     async def _multicast_progress_notification(
         self, root_task: BaseTask, message: TaskProgressUpdate, ws_channel: Optional[str] = None
@@ -636,13 +613,17 @@ class TaskManager:
             await self._multicast_notification(
                 messages=[progress_message],
                 root_task=root_task,
-                ws_channel=ws_channel,
                 hierarchical=True,
                 filter_task_id=message.task_id,
             )
 
     async def _send_notification_for_pending_task(self, pending_task: PendingTask, messages: List[dict]):
-        """Send notifications for a specific PendingTask"""
+        """
+        Send notifications for a specific PendingTask
+
+        :param pending_task: The PendingTask to send notifications for
+        :param messages: The messages to send
+        """
         # Collect channels for this PendingTask
         channels_to_notify = set(pending_task.notify_channels)
         channels_to_notify.update(pending_task.task_def.notify_channels)

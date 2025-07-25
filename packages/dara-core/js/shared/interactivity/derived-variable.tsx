@@ -553,17 +553,14 @@ export function getOrRegisterDerivedVariable(
                                 taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
 
                                 try {
-                                    console.log('DV WAITING FOR TASK', taskId);
                                     await wsClient.waitForTask(taskId);
                                 } catch (e: unknown) {
-                                    console.log('DV GOT ERROR', e);
                                     if (e instanceof TaskError) {
                                         // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
                                         (e as any).selectorId = key;
                                         (e as any).selectorExtras = extrasSerializable.toJSON();
                                         throw e;
                                     }
-                                    console.log('DV GOT CANCELLED', e);
 
                                     // should be a TaskCancelledError
                                     // It should be safe to return `null` here as the selector will re-run and throw suspense again
