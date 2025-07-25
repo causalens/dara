@@ -504,7 +504,6 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                             f'DerivedVariable {_uid_short} waiting for pending task',
                             {'uid': var_entry.uid, 'pending_task': value.task_id},
                         )
-                        value.add_subscriber()
                         return {'cache_key': cache_key, 'value': value}
 
                     # We retrieved an actual value from the cache, return it
@@ -544,7 +543,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                             )
 
                             # Immediately store the pending task in the store
-                            pending_task = PendingTask(meta_task.task_id, meta_task)
+                            pending_task = task_mgr.register_task(meta_task)
                             await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                             return {'cache_key': cache_key, 'value': meta_task}
@@ -565,7 +564,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                         )
 
                         # Immediately store the pending task in the store
-                        pending_task = PendingTask(task.task_id, task)
+                        pending_task = task_mgr.register_task(task)
                         await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                         return {'cache_key': cache_key, 'value': task}

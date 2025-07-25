@@ -296,6 +296,7 @@ async def render_component(
             eng_logger.info(
                 f'PyComponent {definition.func.__name__} returning task', {'uid': definition.name, 'task_id': task}
             )
+            task_mgr.register_task(task)
 
             return task
 

@@ -18,6 +18,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { TaskError } from '@/api/websocket';
 import { handleAuthErrors } from '@/auth/auth';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
@@ -552,9 +553,19 @@ export function getOrRegisterDerivedVariable(
                                 taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
 
                                 try {
+                                    console.log('DV WAITING FOR TASK', taskId);
                                     await wsClient.waitForTask(taskId);
-                                } catch {
-                                    // If there was an error waiting for task it means it was cancelled (by a re-run)
+                                } catch (e: unknown) {
+                                    console.log('DV GOT ERROR', e);
+                                    if (e instanceof TaskError) {
+                                        // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                                        (e as any).selectorId = key;
+                                        (e as any).selectorExtras = extrasSerializable.toJSON();
+                                        throw e;
+                                    }
+                                    console.log('DV GOT CANCELLED', e);
+
+                                    // should be a TaskCancelledError
                                     // It should be safe to return `null` here as the selector will re-run and throw suspense again
                                     return {
                                         cache_key: cacheKey,

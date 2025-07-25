@@ -171,9 +171,11 @@ async def execute_action(
 
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
-        return MetaTask(
+        meta_task = MetaTask(
             process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
         )
+        task_mgr.register_task(meta_task)
+        return meta_task
 
     # No tasks - run directly as an asyncio task and return the execution id
     # Originally used to use FastAPI BackgroundTasks, but these ended up causing a blocking behavior that blocked some

@@ -14,6 +14,7 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { TaskError } from '@/api/websocket';
 import { handleAuthErrors } from '@/auth';
 import { useDeferLoadable } from '@/shared/utils';
 import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
@@ -231,9 +232,17 @@ function getOrRegisterServerComponent({
                             taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
 
                             try {
+                                console.log('PY WAITING FOR TASK', taskId);
                                 await wsClient.waitForTask(taskId);
-                            } catch {
-                                return null;
+                            } catch (e: unknown) {
+                                console.log('PY GOT ERROR', e);
+                                    (e as any).selectorId = key;
+                                    (e as any).selectorExtras = extrasSerializable.toJSON();
+                                    throw e;
+
+                                // console.log('PY GOT CANCELLED', e);
+                                // should be a TaskCancelledError
+                                // return null;
                             } finally {
                                 taskContext.endTask(taskId);
                             }

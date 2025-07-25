@@ -263,7 +263,6 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
                 # if there's a pending task for this exact request, subscribe to the pending task and return it
                 if isinstance(data_store_entry, PendingTask):
-                    data_store_entry.add_subscriber()
                     return data_store_entry
 
                 # Found cached result
@@ -280,6 +279,10 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
 
                 # if the DV returned a task (Task/PendingTask), return a MetaTask which will do the filtering on the task result
                 if isinstance(data, BaseTask):
+                    from dara.core.internal.registries import utils_registry
+
+                    task_mgr: TaskManager = utils_registry.get('TaskManager')
+
                     task_id = f'{dv_entry.uid}_Filter_MetaTask_{str(uuid4())}'
 
                     eng_logger.info(
@@ -296,7 +299,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
                         task_id=task_id,
                     )
                     # Immediately store the pending task in the store
-                    pending_task = PendingTask(meta_task.task_id, meta_task)
+                    pending_task = task_mgr.register_task(meta_task)
                     await store.set(data_entry, key=data_cache_key, value=pending_task)
 
                     return meta_task

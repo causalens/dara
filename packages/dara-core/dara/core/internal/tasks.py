@@ -15,28 +15,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import asyncio
 import contextlib
 import inspect
 import math
 from collections.abc import Awaitable
-from typing import Any, Callable, Dict, List, Optional, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Set, Union, cast, overload
 
 from anyio import (
     CancelScope,
     ClosedResourceError,
     create_memory_object_stream,
     create_task_group,
+    get_cancelled_exc_class,
     move_on_after,
 )
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
-from exceptiongroup import ExceptionGroup
+from exceptiongroup import ExceptionGroup, catch
 from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
     BaseTask,
     Cache,
     CachedRegistryEntry,
+    LruCachePolicy,
     PendingTask,
     TaskError,
     TaskMessage,
@@ -235,105 +238,115 @@ class MetaTask(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-
-        tasks: List[BaseTask] = []
-
-        # Collect up the tasks that need to be run and kick them off without awaiting them.
-        tasks.extend(x for x in self.args if isinstance(x, BaseTask))
-        tasks.extend(x for x in self.kwargs.values() if isinstance(x, BaseTask))
-
-        eng_logger.info(f'MetaTask {self.task_id} running sub-tasks', {'task_ids': [x.task_id for x in tasks]})
-
-        # Wait for all tasks to complete
-        results: Dict[str, Any] = {}
-
-        async def _run_and_capture_result(task: BaseTask):
-            """
-            Run a task and capture the result
-            """
-            nonlocal results
-            result = await task.run(send_stream)
-            results[task.task_id] = result
-
-        if len(tasks) > 0:
-            try:
-                async with create_task_group() as tg:
-                    self.cancel_scope = tg.cancel_scope
-                    for task in tasks:
-                        tg.start_soon(_run_and_capture_result, task)
-            except BaseException as e:
-                if send_stream is not None:
-                    await send_stream.send(
-                        TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
-                    )
-                raise
-            finally:
-                self.cancel_scope = None
-
-        eng_logger.debug(f'MetaTask {self.task_id}', 'completed sub-tasks', results)
-
-        # Order the results in the same order as the tasks list
-        result_values = [results[task.task_id] for task in tasks]
-
-        args = []
-        kwargs = {}
-
-        # Rebuild the args and kwargs with the results of the underlying tasks
-        # Here the task results could be DataFrames so make sure we clean the internal __index__ col from them
-        # before passing into the task function
-        for arg in self.args:
-            if isinstance(arg, BaseTask):
-                args.append(remove_index(result_values.pop(0)))
-            else:
-                args.append(arg)
-
-        for k, val in self.kwargs.items():
-            if isinstance(val, BaseTask):
-                kwargs[k] = remove_index(result_values.pop(0))
-            else:
-                kwargs[k] = val
-
-        eng_logger.debug(f'MetaTask {self.task_id}', 'processing result', {'args': args, 'kwargs': kwargs})
-
-        # Run the process result function with the completed set of args and kwargs
-        if self.process_as_task:
-            eng_logger.debug(f'MetaTask {self.task_id}', 'processing result as Task')
-
-            task = Task(
-                self.process_result,
-                args,
-                kwargs,
-                # Pass through cache_key so the processing task correctly updates the cache store entry
-                reg_entry=self.reg_entry,
-                cache_key=self.cache_key,
-                task_id=self.task_id,
-            )
-            res = await task.run(send_stream)
-
-            eng_logger.info(f'MetaTask {self.task_id} returning result', {'result': res})
-
-            return res
+        self.cancel_scope = CancelScope()
 
         try:
-            res = await run_user_handler(self.process_result, args, kwargs)
+            with self.cancel_scope:
+                tasks: List[BaseTask] = []
 
-            # Send MetaTask result - it could be that there is a nested structure
-            # of MetaTasks so we need to make sure intermediate results are also sent
-            if send_stream is not None:
-                await send_stream.send(
-                    TaskResult(task_id=self.task_id, result=res, cache_key=self.cache_key, reg_entry=self.reg_entry)
-                )
-        except BaseException as e:
-            # Recover from error - update the pending value to prevent subsequent requests getting stuck
-            if send_stream is not None:
-                await send_stream.send(
-                    TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
-                )
-            raise
+                # Collect up the tasks that need to be run and kick them off without awaiting them.
+                tasks.extend(x for x in self.args if isinstance(x, BaseTask))
+                tasks.extend(x for x in self.kwargs.values() if isinstance(x, BaseTask))
 
-        eng_logger.info(f'MetaTask {self.task_id} returning result', {'result': res})
+                eng_logger.info(f'MetaTask {self.task_id} running sub-tasks', {'task_ids': [x.task_id for x in tasks]})
 
-        return res
+                # Wait for all tasks to complete
+                results: Dict[str, Any] = {}
+
+                async def _run_and_capture_result(task: BaseTask):
+                    """
+                    Run a task and capture the result
+                    """
+                    nonlocal results
+                    result = await task.run(send_stream)
+                    results[task.task_id] = result
+
+                def handle_exception(err: ExceptionGroup):
+                    async def _async_handle_error():
+                        if send_stream is not None:
+                            await send_stream.send(
+                                TaskError(
+                                    task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry
+                                )
+                            )
+
+                    asyncio.create_task(_async_handle_error())
+                    raise
+
+                if len(tasks) > 0:
+                    with catch({BaseException: handle_exception}):  # type: ignore
+                        async with create_task_group() as tg:
+                            for task in tasks:
+                                tg.start_soon(_run_and_capture_result, task)
+
+                eng_logger.debug(f'MetaTask {self.task_id}', 'completed sub-tasks', results)
+
+                # Order the results in the same order as the tasks list
+                result_values = [results[task.task_id] for task in tasks]
+
+                args = []
+                kwargs = {}
+
+                # Rebuild the args and kwargs with the results of the underlying tasks
+                # Here the task results could be DataFrames so make sure we clean the internal __index__ col from them
+                # before passing into the task function
+                for arg in self.args:
+                    if isinstance(arg, BaseTask):
+                        args.append(remove_index(result_values.pop(0)))
+                    else:
+                        args.append(arg)
+
+                for k, val in self.kwargs.items():
+                    if isinstance(val, BaseTask):
+                        kwargs[k] = remove_index(result_values.pop(0))
+                    else:
+                        kwargs[k] = val
+
+                eng_logger.debug(f'MetaTask {self.task_id}', 'processing result', {'args': args, 'kwargs': kwargs})
+
+                # Run the process result function with the completed set of args and kwargs
+                if self.process_as_task:
+                    eng_logger.debug(f'MetaTask {self.task_id}', 'processing result as Task')
+
+                    task = Task(
+                        self.process_result,
+                        args,
+                        kwargs,
+                        # Pass through cache_key so the processing task correctly updates the cache store entry
+                        reg_entry=self.reg_entry,
+                        cache_key=self.cache_key,
+                        task_id=self.task_id,
+                    )
+                    res = await task.run(send_stream)
+
+                    eng_logger.info(f'MetaTask {self.task_id} returning result', {'result': res})
+
+                    return res
+
+                try:
+                    res = await run_user_handler(self.process_result, args, kwargs)
+
+                    # Send MetaTask result - it could be that there is a nested structure
+                    # of MetaTasks so we need to make sure intermediate results are also sent
+                    if send_stream is not None:
+                        await send_stream.send(
+                            TaskResult(
+                                task_id=self.task_id, result=res, cache_key=self.cache_key, reg_entry=self.reg_entry
+                            )
+                        )
+                except BaseException as e:
+                    # Recover from error - update the pending value to prevent subsequent requests getting stuck
+                    if send_stream is not None:
+                        await send_stream.send(
+                            TaskError(task_id=self.task_id, error=e, cache_key=self.cache_key, reg_entry=self.reg_entry)
+                        )
+                    raise
+
+                eng_logger.info(f'MetaTask {self.task_id} returning result', {'result': res})
+
+                return res
+        finally:
+            self.cancel_scope = None
 
     async def cancel(self):
         """
@@ -352,8 +365,10 @@ class TaskManager:
     TaskManager is responsible for running tasks and managing their pending state. It is also responsible for
     communicating the state of tasks to the client via the WebsocketManager.
 
-    When a task is run, a PendingTask it is stored in the tasks dict. It is also stored in the store
-    with the key of the task's cache_key. This allows the task to be retrieved by the cache_key from the store.
+    Every task created gets registered with the TaskManager and is tracked by the TaskManager
+    as a PendingTask.
+
+    This allows the task to be retrieved by the cache_key from the store.
 
     When a task is completed, it is removed from the tasks dict and the store entry is updated with the result.
 
@@ -361,12 +376,18 @@ class TaskManager:
     """
 
     def __init__(self, task_group: TaskGroup, ws_manager: WebsocketManager, store: CacheStore):
-        # Registry for direct-coordinated tasks (e.g., py_components, top-level DerivedVariable task)
-        # These tasks don't use cache-based coordination and are managed directly by TaskManager
-        self.active_tasks: Dict[str, PendingTask] = {}
+        self.tasks: Dict[str, PendingTask] = {}
         self.task_group = task_group
         self.ws_manager = ws_manager
         self.store = store
+
+    def register_task(self, task: BaseTask) -> PendingTask:
+        """
+        Register a task. This will ensure the task it tracked and notifications are routed correctly.
+        """
+        pending_task = PendingTask(task.task_id, task)
+        self.tasks[task.task_id] = pending_task
+        return pending_task
 
     @overload
     async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any: ...
@@ -384,10 +405,12 @@ class TaskManager:
         # If the task given is a PendingTask,
         # append the websocket channel to the task
         if isinstance(task, PendingTask):
-            if task.task_id in self.active_tasks:
+            if task.task_id in self.tasks:
+                # Increment subscriber count for this component request
+                self.tasks[task.task_id].add_subscriber()
                 if ws_channel is not None:
-                    self.active_tasks[task.task_id].notify_channels.append(ws_channel)
-                return self.active_tasks[task.task_id]
+                    self.tasks[task.task_id].notify_channels.append(ws_channel)
+                return self.tasks[task.task_id]
 
             assert task.task_def.reg_entry is not None, 'PendingTask must have a registry entry'
 
@@ -399,39 +422,70 @@ class TaskManager:
                 else self.get_result(task.task_id)
             )
 
-        # Otherwise, check if we already have a pending task for this task
-        # Inside py_component/DerivedVariable, we can pre-create the pending task
-        # without starting the task
-        if task.cache_key is not None and task.reg_entry is not None:
-            pending_task = await self.store.get(task.reg_entry, key=task.cache_key)
-            if pending_task is None:
-                pending_task = PendingTask(task.task_id, task, ws_channel)
-                await self.store.set(task.reg_entry, key=task.cache_key, value=pending_task)
-            else:
-                assert isinstance(pending_task, PendingTask), (
-                    f'must be a PendingTask, found {type(pending_task)} {pending_task}'
-                )
-                if ws_channel is not None:
-                    pending_task.notify_channels.append(ws_channel)
-        else:
-            pending_task = PendingTask(task.task_id, task, ws_channel)
-
-        self.active_tasks[task.task_id] = pending_task
+        # Otherwise, we should already have a pending task for this task
+        pending_task = self.tasks[task.task_id]
+        if ws_channel is not None:
+            pending_task.notify_channels.append(ws_channel)
 
         # Run the task in the background
         self.task_group.start_soon(self._run_task_and_notify, task, ws_channel)
 
         return pending_task
 
+    async def _cancel_tasks(self, task_ids: List[str], notify: bool = True):
+        """
+        Cancel a list of tasks
+
+        :param task_ids: The list of task IDs to cancel
+        :param notify: Whether to send cancellation notifications
+        """
+        with CancelScope(shield=True):
+            # Cancel all tasks in the hierarchy
+            for task_id_to_cancel in task_ids:
+                if task_id_to_cancel in self.tasks:
+                    pending_task = self.tasks[task_id_to_cancel]
+
+                    # Notify channels that this specific task was cancelled
+                    if notify:
+                        await self._multicast_notification(
+                            messages=[{'status': 'CANCELED', 'task_id': task_id_to_cancel}],
+                            root_task=pending_task.task_def,
+                            hierarchical=False,
+                        )
+
+                    if not pending_task.event.is_set():
+                        # Cancel the actual task
+                        await pending_task.cancel()
+
+                        # Remove from cache if it has cache settings
+                        if pending_task.task_def.cache_key is not None and pending_task.task_def.reg_entry is not None:
+                            await self.store.delete(
+                                pending_task.task_def.reg_entry, key=pending_task.task_def.cache_key
+                            )
+
+                    # Remove from running tasks
+                    self.tasks.pop(task_id_to_cancel, None)
+
+    async def _cancel_task_hierarchy(self, task: BaseTask, notify: bool = True):
+        """
+        Recursively cancel all tasks in a task hierarchy
+
+        :param task: The root task to cancel (and its children)
+        :param notify: Whether to send cancellation notifications
+        """
+        all_task_ids = self._collect_all_task_ids_in_hierarchy(task)
+        await self._cancel_tasks(list(all_task_ids), notify)
+
     async def cancel_task(self, task_id: str, notify: bool = True):
         """
-        Cancel a running task by its id
+        Cancel a running task by its id. If the task has child tasks (MetaTask),
+        all child tasks will also be cancelled.
 
         :param task_id: the id of the task
         :param notify: whether to notify, true by default
         """
         eng_logger.debug(f'Attempting to cancel task {task_id}')
-        task = self.active_tasks.get(task_id, None)
+        task = self.tasks.get(task_id, None)
 
         if task is not None:
             # Check the subscriber count. If more than 1 subscriber
@@ -440,22 +494,9 @@ class TaskManager:
                 task.remove_subscriber()
                 return
 
-            # Notify any listening channels that the job has been cancelled so that they can handle it correctly
-            if notify:
-                for channel in [*task.notify_channels, *task.task_def.notify_channels]:
-                    await self.ws_manager.send_message(channel, {'status': 'CANCELED', 'task_id': task_id})
+            # Cancel the entire task hierarchy (including child tasks)
+            await self._cancel_task_hierarchy(task.task_def, notify)
 
-            # We're only now cancelling the task to make sure the clients are notified about cancelling
-            # and receive the correct status rather than an error
-            await task.cancel()
-
-            # Then remove the pending task from cache so next requests would recalculate rather than receive
-            # a broken pending task
-            if task.task_def.cache_key is not None and task.task_def.reg_entry is not None:
-                await self.store.delete(task.task_def.reg_entry, key=task.task_def.cache_key)
-
-            # Remove from running tasks
-            self.active_tasks.pop(task_id, None)
         else:
             raise TaskManagerError('Could not find a task with the passed id to cancel.')
 
@@ -463,7 +504,7 @@ class TaskManager:
         """
         Cancel all the currently running tasks, useful for cleaning up on app shutdown
         """
-        keys = list(self.active_tasks.keys())
+        keys = list(self.tasks.keys())
         for task_id in keys:
             try:
                 await self.cancel_task(task_id, notify=False)
@@ -476,18 +517,182 @@ class TaskManager:
 
         :param task_id: the id of the task to fetch
         """
-        result = await self.store.get(TaskResultEntry, key=task_id)
-
-        # Clean up the result afterwards
-        await self.store.delete(TaskResultEntry, key=task_id)
-
-        return result
+        # the result is not deleted, the results are kept in an LRU cache
+        # which will clean up older entries
+        return await self.store.get(TaskResultEntry, key=task_id)
 
     async def set_result(self, task_id: str, value: Any):
         """
         Set the result of a task by its id
         """
         return await self.store.set(TaskResultEntry, key=task_id, value=value)
+
+    def _collect_all_task_ids_in_hierarchy(self, task: BaseTask) -> Set[str]:
+        """
+        Recursively collect all task IDs in the task hierarchy
+
+        :param task: The root task to start collecting from
+        :return: Set of all task IDs in the hierarchy
+        """
+        task_ids = {task.task_id}
+
+        if isinstance(task, MetaTask):
+            # Collect from args
+            for arg in task.args:
+                if isinstance(arg, BaseTask):
+                    task_ids.update(self._collect_all_task_ids_in_hierarchy(arg))
+
+            # Collect from kwargs
+            for value in task.kwargs.values():
+                if isinstance(value, BaseTask):
+                    task_ids.update(self._collect_all_task_ids_in_hierarchy(value))
+
+        return task_ids
+
+    async def _multicast_notification(
+        self,
+        messages: List[dict],
+        root_task: BaseTask,
+        ws_channel: Optional[str] = None,
+        hierarchical: bool = False,
+        filter_task_id: Optional[str] = None,
+    ):
+        """
+        Send notifications to task channels in parallel, with optional hierarchical broadcasting
+
+        :param messages: List of message dictionaries to send
+        :param root_task: The task to collect channels from
+        :param ws_channel: Optional websocket channel for the running task
+        :param hierarchical: If True, send to all task IDs in the hierarchy
+        :param filter_task_id: If hierarchical=True, only notify if this task_id is in hierarchy
+        """
+        if hierarchical:
+            # Get all task IDs in the hierarchy
+            all_task_ids = self._collect_all_task_ids_in_hierarchy(root_task)
+
+            # Only notify if the filter_task_id came from a task in this hierarchy
+            if filter_task_id and filter_task_id not in all_task_ids:
+                return
+
+            task_ids_to_notify = all_task_ids
+        else:
+            # Simple case: just notify the root task
+            task_ids_to_notify = {root_task.task_id}
+
+        async def _send_notification_for_task_id(task_id_to_notify: str):
+            """Send notifications for a specific task ID"""
+            if task_id_to_notify not in self.tasks:
+                return
+
+            pending_task = self.tasks[task_id_to_notify]
+
+            # Collect channels for this specific task ID
+            channels_to_notify = set(pending_task.notify_channels)
+            channels_to_notify.update(pending_task.task_def.notify_channels)
+
+            # Also add the current ws_channel if this is the running task
+            if task_id_to_notify == root_task.task_id and ws_channel:
+                channels_to_notify.add(ws_channel)
+
+            if not channels_to_notify:
+                return
+
+            # Send to all channels for this task ID in parallel
+            async def _send_to_channel(channel: str):
+                for message in messages:
+                    # For hierarchical notifications, update task_id in each message
+                    if hierarchical and 'task_id' in message:
+                        message = {**message, 'task_id': task_id_to_notify}
+                    await self.ws_manager.send_message(channel, message)
+
+            async with create_task_group() as channel_tg:
+                for channel in channels_to_notify:
+                    channel_tg.start_soon(_send_to_channel, channel)
+
+        # Send notifications for all task IDs in parallel
+        async with create_task_group() as task_tg:
+            for task_id_to_notify in task_ids_to_notify:
+                task_tg.start_soon(_send_notification_for_task_id, task_id_to_notify)
+
+    async def _multicast_progress_notification(
+        self, root_task: BaseTask, message: TaskProgressUpdate, ws_channel: Optional[str] = None
+    ):
+        """
+        Send progress notifications to all task IDs in the hierarchy in parallel
+
+        :param root_task: The top-level task being run
+        :param message: The progress update message
+        :param ws_channel: Optional websocket channel for the running task
+        """
+        # prevent cancellation, we need the notifications to be sent
+        with CancelScope(shield=True):
+            progress_message = {
+                'task_id': message.task_id,  # Will be updated per task ID in multicast
+                'status': 'PROGRESS',
+                'progress': message.progress,
+                'message': message.message,
+            }
+
+            await self._multicast_notification(
+                messages=[progress_message],
+                root_task=root_task,
+                ws_channel=ws_channel,
+                hierarchical=True,
+                filter_task_id=message.task_id,
+            )
+
+    async def _send_notification_for_pending_task(self, pending_task: PendingTask, messages: List[dict]):
+        """Send notifications for a specific PendingTask"""
+        # Collect channels for this PendingTask
+        channels_to_notify = set(pending_task.notify_channels)
+        channels_to_notify.update(pending_task.task_def.notify_channels)
+
+        if not channels_to_notify:
+            return
+
+        # Send to all channels for this PendingTask in parallel
+        async def _send_to_channel(channel: str):
+            for message in messages:
+                # Create message with this PendingTask's task_id (if message has task_id)
+                if 'task_id' in message:
+                    message_for_task = {**message, 'task_id': pending_task.task_id}
+                else:
+                    message_for_task = message
+                await self.ws_manager.send_message(channel, message_for_task)
+
+        async with create_task_group() as channel_tg:
+            for channel in channels_to_notify:
+                channel_tg.start_soon(_send_to_channel, channel)
+
+    async def _multicast_task_completion_notification(self, message_task_id: str, messages: List[dict]):
+        """
+        Send completion/error notifications to all PendingTasks that depend on the specific task
+
+        This is different from hierarchical notifications - instead of notifying all tasks in a hierarchy,
+        we notify all PendingTasks that have the specific failing/completing task in their dependency tree.
+
+        :param message_task_id: The specific task ID that completed/failed
+        :param messages: List of notification messages to send
+        """
+        # prevent cancellation, we need the notifications to be sent
+        with CancelScope(shield=True):
+            # Find all PendingTasks that have the message_task_id in their hierarchy
+            tasks_to_notify = set()
+
+            for pending_task in self.tasks.values():
+                # Check if the message_task_id is in this PendingTask's hierarchy
+                task_ids_in_hierarchy = self._collect_all_task_ids_in_hierarchy(pending_task.task_def)
+                if message_task_id in task_ids_in_hierarchy:
+                    tasks_to_notify.add(pending_task.task_id)
+
+            # Send notifications for all affected PendingTasks in parallel
+            if tasks_to_notify:
+                async with create_task_group() as task_tg:
+                    for pending_task_id in tasks_to_notify:
+                        if pending_task_id not in self.tasks:
+                            continue
+                        pending_task = self.tasks[pending_task_id]
+                        task_tg.start_soon(self._send_notification_for_pending_task, pending_task, messages)
 
     async def _run_task_and_notify(self, task: BaseTask, ws_channel: Optional[str]):
         """
@@ -498,22 +703,12 @@ class TaskManager:
         """
         cancel_scope = CancelScope()
 
-        self.active_tasks[task.task_id].cancel_scope = cancel_scope
+        pending_task = self.tasks[task.task_id]
+
+        pending_task.cancel_scope = cancel_scope
 
         with cancel_scope:
             eng_logger.info(f'TaskManager running task {task.task_id}')
-
-            async def notify_channels(*messages: dict):
-                """
-                Notify the channels of the task's progress
-                """
-                channels_to_notify = [*task.notify_channels]
-                if ws_channel:
-                    channels_to_notify.append(ws_channel)
-
-                for channel in channels_to_notify:
-                    for message in messages:
-                        await self.ws_manager.send_message(channel, message)
 
             # Create a memory object stream to capture messages from the tasks
             send_stream, receive_stream = create_memory_object_stream[TaskMessage](math.inf)
@@ -522,22 +717,15 @@ class TaskManager:
                 async with receive_stream:
                     async for message in receive_stream:
                         if isinstance(message, TaskProgressUpdate):
-                            # Notify the channels of the task's progress
-                            await notify_channels(
-                                {
-                                    'task_id': task.task_id,
-                                    'status': 'PROGRESS',
-                                    'progress': message.progress,
-                                    'message': message.message,
-                                }
-                            )
+                            # Send progress notifications to all task IDs in the hierarchy in parallel
+                            await self._multicast_progress_notification(task, message, ws_channel)
                             if isinstance(task, Task) and task.on_progress:
                                 await run_user_handler(task.on_progress, args=(message,))
                         elif isinstance(message, TaskResult):
                             # Handle dual coordination patterns:
                             # 1. Direct-coordinated tasks: resolve via active_tasks registry
-                            if message.task_id in self.active_tasks:
-                                self.active_tasks[message.task_id].resolve(message.result)
+                            if message.task_id in self.tasks:
+                                self.tasks[message.task_id].resolve(message.result)
 
                             # 2. Cache-coordinated tasks: resolve via cache store (CacheStore.set handles PendingTask resolution)
                             if (
@@ -546,14 +734,22 @@ class TaskManager:
                                 and message.reg_entry.cache is not None
                             ):
                                 await self.store.set(message.reg_entry, key=message.cache_key, value=message.result)
-                            # Notify the channels of the task's completion
-                            await notify_channels(
-                                {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id}
+
+                            # Set final result
+                            await self.set_result(message.task_id, message.result)
+
+                            # Notify all PendingTasks that depend on this specific task
+                            await self._multicast_task_completion_notification(
+                                message_task_id=message.task_id,
+                                messages=[{'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id}],
                             )
+
+                            # Remove the task from the registered tasks - it finished running
+                            self.tasks.pop(message.task_id, None)
                         elif isinstance(message, TaskError):
                             # Fail the pending task related to the error
-                            if message.task_id in self.active_tasks:
-                                self.active_tasks[message.task_id].fail(message.error)
+                            if message.task_id in self.tasks:
+                                self.tasks[message.task_id].fail(message.error)
 
                             # If the task has a cache key, set cached value to None
                             # This makes it so that the next request will recalculate the value rather than keep failing
@@ -562,46 +758,77 @@ class TaskManager:
                                 and message.reg_entry is not None
                                 and message.reg_entry.cache is not None
                             ):
-                                await self.store.set(message.reg_entry, key=message.cache_key, value=None)
+                                await self.store.delete(message.reg_entry, key=message.cache_key)
+
+                            # Notify all PendingTasks that depend on this specific task
+                            await self._multicast_task_completion_notification(
+                                message_task_id=message.task_id,
+                                messages=[
+                                    {'status': 'ERROR', 'task_id': message.task_id, 'error': get_error_for_channel()}
+                                ],
+                            )
+
+                            # Remove the task from the registered tasks - it finished running
+                            self.tasks.pop(message.task_id, None)
+
+            def handle_exception(err: ExceptionGroup):
+                # Mark pending task as failed
+                pending_task.fail(err)
+
+                dev_logger.error('Task failed', cast(Exception, err), {'task_id': task.task_id})
+
+                async def _async_handle_error():
+                    await self.set_result(task.task_id, {'error': str(err)})
+
+                    # If the task has a cache key, set cached value to None
+                    # This makes it so that the next request will recalculate the value rather than keep failing
+                    if task.cache_key is not None and task.reg_entry is not None and task.reg_entry.cache is not None:
+                        await self.store.delete(task.reg_entry, key=task.cache_key)
+
+                    # If this is a cancellation, ensure all tasks in the hierarchy are cancelled
+                    if any(isinstance(x, get_cancelled_exc_class()) for x in err.exceptions):
+                        # Cancel any remaining tasks in the hierarchy that might still be running
+                        await self._cancel_task_hierarchy(task, notify=True)
+                    else:
+                        message = {'status': 'ERROR', 'task_id': task.task_id, 'error': get_error_for_channel()}
+                        # Notify about this task failing
+                        await self._send_notification_for_pending_task(
+                            pending_task=pending_task,
+                            messages=[message],
+                        )
+                        # notify related tasks
+                        await self._multicast_task_completion_notification(
+                            message_task_id=task.task_id,
+                            messages=[message],
+                        )
+
+                asyncio.create_task(_async_handle_error())
 
             try:
-                async with create_task_group() as tg:
-                    # Handle incoming messages in parallel
-                    tg.start_soon(handle_messages)
+                with catch({BaseException: handle_exception}):  # type: ignore
+                    async with create_task_group() as tg:
+                        # Handle incoming messages in parallel
+                        tg.start_soon(handle_messages)
 
-                    # Handle tasks that return other tasks
-                    async with send_stream:
-                        result = task
-                        while isinstance(result, BaseTask):
-                            result = await task.run(send_stream)
+                        # Handle tasks that return other tasks
+                        async with send_stream:
+                            result = task
+                            while isinstance(result, BaseTask):
+                                result = await task.run(send_stream)
 
-                        # Set final result
-                        await self.set_result(task.task_id, result)
-
-                        # Notify any channels that need to be notified about the whole task being completed
-                        await send_stream.send(
-                            TaskResult(
-                                task_id=task.task_id,
-                                result=result,
-                                cache_key=task.cache_key,
-                                reg_entry=task.reg_entry,
+                            # Notify any channels that need to be notified about the whole task being completed
+                            await send_stream.send(
+                                TaskResult(
+                                    task_id=task.task_id,
+                                    result=result,
+                                    cache_key=task.cache_key,
+                                    reg_entry=task.reg_entry,
+                                )
                             )
-                        )
-                        eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
-            except (Exception, ExceptionGroup) as err:
-                err = resolve_exception_group(err)
-
-                # Mark pending task as failed
-                self.active_tasks[task.task_id].fail(err)
-
-                dev_logger.error('Task failed', err, {'task_id': task.task_id})
-                await self.set_result(task.task_id, {'error': str(err)})
-
-                # Notify any channels that need to be notified
-                await notify_channels({'status': 'ERROR', 'task_id': task.task_id}, get_error_for_channel())
+                            eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
             finally:
                 # Remove the task from the running tasks
-                self.active_tasks.pop(task.task_id, None)
+                self.tasks.pop(task.task_id, None)
 
                 # Make sure streams are closed
                 with move_on_after(3, shield=True):
@@ -609,7 +836,7 @@ class TaskManager:
                     await receive_stream.aclose()
 
 
-TaskResultEntry = CachedRegistryEntry(uid='task-results', cache=Cache.Policy.KeepAll())
+TaskResultEntry = CachedRegistryEntry(uid='task-results', cache=LruCachePolicy(max_size=256))
 """
 Global registry entry for task results.
 This is global because task ids are unique and accessed one time only so it's effectively a one-time use random key.
