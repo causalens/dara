@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.19.1
 
 - Added a new `Dropdown` and `DropdownMenu` components which now match the rest of the UI kit
 - Visual upgrade to `ContextMenu` to use the new `Dropdown` component

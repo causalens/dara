@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.19.1
 
 -  Added a `DropdownMenu` component that displays a button which opens a dropdown menu with configurable menu items.
 

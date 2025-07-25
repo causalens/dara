@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.19.1
 
 -  Added StateVariable feature for tracking DerivedVariable states (loading, error, hasValue) via `dv.is_loading`, `dv.has_error`, and `dv.has_value` properties
 -  `If` components and `SwitchVariable`s now operate similar to the `suspend: False` setting - when used with `DerivedVariable`s, they will suspend the component initially until they have the initial value; for further changes, they will use the prior value rather than suspend again
