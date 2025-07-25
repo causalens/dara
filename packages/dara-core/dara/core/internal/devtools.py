@@ -32,7 +32,7 @@ def print_stacktrace(err: Optional[BaseException] = None) -> str:
     Prints out the current stack trace. Will also extract any exceptions and print them at the end.
     """
     if err is not None:
-        return '\n'.join(traceback.format_exception(type(err), err, err.__traceback__))
+        return ''.join(traceback.format_exception(type(err), err, err.__traceback__))
 
     exc = sys.exc_info()[0]
     stack = traceback.extract_stack()[:-1]

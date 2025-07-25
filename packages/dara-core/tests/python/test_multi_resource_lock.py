@@ -1,81 +1,53 @@
 import asyncio
 
+import anyio
 import pytest
 
-from dara.core.internal.multi_resource_lock import LockRecursionError, MultiResourceLock
+from dara.core.internal.multi_resource_lock import MultiResourceLock
 
 pytestmark = pytest.mark.anyio
 
 
-async def test_reentrant_lock_allows_recursive_acquisition():
-    """Test that a reentrant lock allows the same resource to be acquired multiple times by the same task."""
-    lock = MultiResourceLock(reentrant=True)
+async def test_basic_lock_functionality():
+    """Test basic functionality of locks."""
+    lock = MultiResourceLock()
     resource_name = 'test_resource'
 
-    acquisition_count = 0
+    # Should be able to acquire and release normally
+    async with lock.acquire(resource_name):
+        assert lock.is_locked(resource_name)
 
-    async def nested_acquisition():
-        nonlocal acquisition_count
-        async with lock.acquire(resource_name):
-            acquisition_count += 1
-            if acquisition_count < 3:
-                # Recursively acquire the same resource
-                await nested_acquisition()
-
-    await nested_acquisition()
-    assert acquisition_count == 3
+    # Should be released after context exit
+    assert not lock.is_locked(resource_name)
 
 
-async def test_non_reentrant_lock_raises_on_recursive_acquisition():
-    """Test that a non-reentrant lock raises LockRecursionError when the same resource is acquired recursively."""
-    lock = MultiResourceLock(reentrant=False)
-    resource_name = 'test_resource'
+async def test_same_task_recursive_acquisition_fails():
+    """Test that the same task trying to acquire the same resource recursively fails."""
+    lock = MultiResourceLock()
+    resource_name = 'recursive_resource'
 
     async with lock.acquire(resource_name):
-        # Attempting to acquire the same resource again should raise LockRecursionError
-        with pytest.raises(LockRecursionError) as exc_info:
+        # This should raise RuntimeError from the underlying anyio.Lock
+        with pytest.raises(RuntimeError) as exc_info:
             async with lock.acquire(resource_name):
                 pass
 
-        assert 'already locked by the current task' in str(exc_info.value)
-        assert 'not re-entrant' in str(exc_info.value)
-
-
-async def test_lock_is_released_after_context_exit():
-    """Test that locks are properly released after exiting the context manager."""
-    lock = MultiResourceLock(reentrant=False)
-    resource_name = 'test_resource'
-
-    # First acquisition should work
-    async with lock.acquire(resource_name):
-        assert lock.is_locked(resource_name)
-        assert lock.is_locked_by_current_task(resource_name)
-
-    # After exiting, the lock should be released
-    assert not lock.is_locked(resource_name)
-    assert not lock.is_locked_by_current_task(resource_name)
-
-    # Second acquisition should also work
-    async with lock.acquire(resource_name):
-        assert lock.is_locked(resource_name)
-        assert lock.is_locked_by_current_task(resource_name)
+        assert 'already held' in str(exc_info.value).lower()
 
 
 async def test_different_resources_can_be_acquired_simultaneously():
     """Test that different resources can be locked simultaneously without interference."""
-    lock = MultiResourceLock(reentrant=False)
+    lock = MultiResourceLock()
 
     async with lock.acquire('resource_1'):
         async with lock.acquire('resource_2'):
             assert lock.is_locked('resource_1')
             assert lock.is_locked('resource_2')
-            assert lock.is_locked_by_current_task('resource_1')
-            assert lock.is_locked_by_current_task('resource_2')
 
 
 async def test_concurrent_access_to_same_resource():
     """Test that concurrent tasks cannot access the same resource simultaneously."""
-    lock = MultiResourceLock(reentrant=False)
+    lock = MultiResourceLock()
     resource_name = 'shared_resource'
 
     results = []
@@ -102,7 +74,7 @@ async def test_concurrent_access_to_same_resource():
 
 async def test_lock_cleanup_after_waiters_finish():
     """Test that locks are cleaned up from internal storage when no waiters remain."""
-    lock = MultiResourceLock(reentrant=False)
+    lock = MultiResourceLock()
     resource_name = 'cleanup_test_resource'
 
     # Initially, no locks should exist
@@ -120,50 +92,9 @@ async def test_lock_cleanup_after_waiters_finish():
     assert resource_name not in lock._waiters
 
 
-async def test_context_var_isolation():
-    """Test that LOCKED_RESOURCES context variable properly isolates between tasks."""
-    from dara.core.internal.multi_resource_lock import LOCKED_RESOURCES
-
-    lock = MultiResourceLock(reentrant=False)
-
-    async def task_with_lock(resource_name: str):
-        # Initially, no resources should be locked for this task
-        resources = LOCKED_RESOURCES.get()
-        assert resources is None or resource_name not in resources
-
-        async with lock.acquire(resource_name):
-            # During acquisition, resource should be in the context
-            resources = LOCKED_RESOURCES.get()
-            assert resources is not None and resource_name in resources
-
-        # After release, resource should be removed from context
-        resources = LOCKED_RESOURCES.get()
-        assert resources is None or resource_name not in resources
-
-    # Run tasks concurrently with different resources
-    await asyncio.gather(task_with_lock('resource_1'), task_with_lock('resource_2'))
-
-
-async def test_derived_variable_lock_configuration():
-    """Test that the DerivedVariable lock is configured correctly for circular dependency detection."""
-    from dara.core.interactivity.derived_variable import DV_LOCK
-
-    # DV_LOCK should be non-reentrant to detect circular dependencies
-    assert not DV_LOCK._reentrant, 'DV_LOCK should be non-reentrant to detect circular dependencies'
-
-    # Test that it behaves as expected for circular dependency detection
-    cache_key = 'test_dv_cache_key'
-
-    async with DV_LOCK.acquire(cache_key):
-        # Attempting to acquire the same cache key should raise LockRecursionError
-        with pytest.raises(LockRecursionError):
-            async with DV_LOCK.acquire(cache_key):
-                pass
-
-
 async def test_exception_handling_during_lock_acquisition():
     """Test that exceptions during lock acquisition don't leave locks in inconsistent state."""
-    lock = MultiResourceLock(reentrant=False)
+    lock = MultiResourceLock()
     resource_name = 'exception_test_resource'
 
     class TestException(Exception):
@@ -177,7 +108,6 @@ async def test_exception_handling_during_lock_acquisition():
 
     # Lock should be released after exception
     assert not lock.is_locked(resource_name)
-    assert not lock.is_locked_by_current_task(resource_name)
 
     # Should be able to acquire the lock again
     async with lock.acquire(resource_name):
@@ -186,7 +116,7 @@ async def test_exception_handling_during_lock_acquisition():
 
 async def test_multiple_waiters_on_same_resource():
     """Test that multiple tasks can wait for the same resource and are served in order."""
-    lock = MultiResourceLock(reentrant=False)
+    lock = MultiResourceLock()
     resource_name = 'multi_waiter_resource'
 
     execution_order = []
@@ -208,3 +138,61 @@ async def test_multiple_waiters_on_same_resource():
     assert not lock.is_locked(resource_name)
     assert resource_name not in lock._locks
     assert resource_name not in lock._waiters
+
+
+async def test_parallel_different_resources():
+    """
+    Critical Test Case: Parallel tasks acquiring different resources.
+    This should work fine and all tasks should be able to acquire their respective locks.
+    """
+    lock = MultiResourceLock()
+
+    results = []
+
+    async def task_with_resource(resource_name: str):
+        async with lock.acquire(resource_name):
+            results.append(f'acquired_{resource_name}')
+            await anyio.sleep(0.01)  # Simulate some work
+            results.append(f'releasing_{resource_name}')
+
+    # Run tasks in parallel with different resources
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(task_with_resource, 'resource_A')
+        tg.start_soon(task_with_resource, 'resource_B')
+        tg.start_soon(task_with_resource, 'resource_C')
+
+    # All tasks should have completed successfully
+    acquired_count = len([r for r in results if r.startswith('acquired_')])
+    released_count = len([r for r in results if r.startswith('releasing_')])
+
+    assert acquired_count == 3, f'Expected 3 acquisitions, got {acquired_count}'
+    assert released_count == 3, f'Expected 3 releases, got {released_count}'
+
+    # Check that all resources were acquired
+    assert 'acquired_resource_A' in results
+    assert 'acquired_resource_B' in results
+    assert 'acquired_resource_C' in results
+
+
+async def test_different_tasks_same_resource_sequential_access():
+    """
+    Critical Test Case: Different tasks accessing the same resource should work sequentially.
+    This tests that different tasks properly respect the lock semantics.
+    """
+    lock = MultiResourceLock()
+    resource_name = 'shared_resource'
+
+    results = []
+
+    async def task_with_resource(task_id: str):
+        async with lock.acquire(resource_name):
+            results.append(f'{task_id}_acquired')
+            await anyio.sleep(0.01)  # Small delay to ensure ordering
+            results.append(f'{task_id}_released')
+
+    # Run two tasks sequentially that both try to acquire the same resource
+    await task_with_resource('task1')
+    await task_with_resource('task2')
+
+    # Both tasks should have completed successfully in order
+    assert results == ['task1_acquired', 'task1_released', 'task2_acquired', 'task2_released']

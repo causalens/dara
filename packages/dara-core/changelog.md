@@ -9,6 +9,8 @@ title: Changelog
 -  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
 -  Unlock `packaging` dependency in `dara-core`
 -  Fixed an issue where using `DownloadVariable` on a `DataVariable` would include internally transformed column names
+-  Fixed various data races related to the `DerivedVariable` caching and task system. This should improve their reliability and improve performance as it will minimize the number of times the same computation is performed.
+-  `DerivedVariable` dependency resolution is now parallelized to improve performance
 
 ## 1.19.0
 

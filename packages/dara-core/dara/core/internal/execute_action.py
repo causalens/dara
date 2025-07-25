@@ -143,10 +143,14 @@ async def execute_action(
     if values is not None:
         annotations = action.__annotations__
 
-        for key, value in values.items():
+        async def _resolve_kwarg(val: Any, key: str):
             typ = annotations.get(key)
-            val = await resolve_dependency(value, store, task_mgr)
+            val = await resolve_dependency(val, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}

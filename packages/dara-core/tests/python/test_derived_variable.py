@@ -1138,10 +1138,10 @@ async def test_derived_variable_task_chain_loop():
 
     var1 = Variable(1)
     var2 = Variable(2)
-    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)  # 3
-    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])  # 5
-    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])  # 8
-    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])  # 11
+    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True, uid='task_var')  # 3
+    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var], uid='meta_dv_2')  # 5
+    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2], uid='meta_dv_1')  # 8
+    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var], uid='parent_var')  # 11
 
     builder.add_page('Test', content=MockComponent(text=parent_var))
 

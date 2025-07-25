@@ -21,7 +21,6 @@ import asyncio
 import inspect
 import os
 from collections.abc import Awaitable, Coroutine, Sequence
-from contextlib import contextmanager
 from functools import wraps
 from importlib import import_module
 from importlib.util import find_spec
@@ -251,28 +250,3 @@ def exception_group_contains(err_type: Type[BaseException], group: BaseException
         if isinstance(exc, BaseExceptionGroup):
             return exception_group_contains(err_type, exc)
     return False
-
-
-@contextmanager
-def reraise(
-    caught: Type[BaseException],
-    raised: Type[BaseException],
-    *args,
-    **kwargs,
-):
-    """
-    Map any `caught` exception that occurs inside the `with`-block
-    to a new `raised` exception, preserving the traceback.
-
-    Example
-    -------
-    >>> with reraise(KeyError, ValueError, "Bad mapping"):
-    ...     {}["missing"]
-    Traceback (most recent call last):
-        ...
-    ValueError: Bad mapping
-    """
-    try:
-        yield
-    except caught as exc:  # noqa: B904
-        raise raised(*args, **kwargs) from exc
