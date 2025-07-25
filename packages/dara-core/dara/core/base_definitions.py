@@ -407,7 +407,7 @@ class PendingTask(BaseTask):
             self.cancel_scope.cancel()
         await self.task_def.cancel()
 
-        self.error = Exception('Task was cancelled')
+        self.error = anyio.get_cancelled_exc_class()()
         self.event.set()
 
     def add_subscriber(self):

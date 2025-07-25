@@ -2,16 +2,23 @@ from unittest.mock import patch
 
 import anyio
 import pytest
-from anyio import create_task_group
+from anyio import create_task_group, get_cancelled_exc_class
 from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import Cache
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.pool import TaskPool
-from dara.core.internal.tasks import CachedRegistryEntry, Task, TaskManager
+from dara.core.internal.tasks import CachedRegistryEntry, MetaTask, Task, TaskManager
 from dara.core.internal.websocket import WebsocketManager
 
-from tests.python.tasks import calc_task, track_task
+from tests.python.tasks import (
+    calc_task,
+    failing_task_a,
+    task_b,
+    task_c,
+    track_task,
+    very_slow_task_a,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -155,10 +162,10 @@ async def test_task_manager_cancel_task(_uid):
         # Cancel the task
         await task_manager.cancel_task(task.task_id)
 
-        with pytest.raises(Exception) as e:
+        with pytest.raises(BaseException) as e:
             await pending_task.run()
 
-        assert 'cancel' in str(e.value)
+        assert isinstance(e.value, get_cancelled_exc_class())
 
         assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
             'status': 'CANCELED',
@@ -201,10 +208,10 @@ async def test_task_manager_cancel_task_with_subs(_uid):
 
         # Cancel the task
         await task_manager.cancel_task(task.task_id)
-        with pytest.raises(Exception) as e:
+        with pytest.raises(BaseException) as e:
             await pending_task.run()
 
-        assert 'cancel' in str(e.value)
+        assert isinstance(e.value, get_cancelled_exc_class())
 
         # Now the task should be canceled
         assert jsonable_encoder((await handler.receive_stream.receive()).message) == {
@@ -214,3 +221,144 @@ async def test_task_manager_cancel_task_with_subs(_uid):
 
         # Check that now the pending task should be removed
         assert await store.get(reg_entry, 'cache_key') is None
+
+
+@patch('dara.core.base_definitions.uuid.uuid4', side_effect=['task_a', 'task_b', 'task_c'])
+async def test_task_chain_error_propagation(_uid):
+    """
+    Test that when we have task chains A->B and A->C where A is shared,
+    if A fails, both B and C receive error notifications correctly.
+    """
+    async with create_task_group() as tg:
+        store = CacheStore()
+        ws_mgr = WebsocketManager()
+        task_manager = TaskManager(tg, ws_mgr, store)
+
+        # Setup handlers for different channels
+        channel_b = 'channel_b'
+        channel_c = 'channel_c'
+        handler_b = ws_mgr.create_handler(channel_b)
+        handler_c = ws_mgr.create_handler(channel_c)
+
+        # Create shared task A that will fail
+        task_a = Task(failing_task_a, ['test_value'], cache_key='task_a')
+
+        # Register task A first to get the PendingTask
+        pending_task_a = task_manager.register_task(task_a)
+
+        # Create MetaTasks B and C that both depend on the same task A
+        # The first one gets the original task, the second gets the PendingTask
+        meta_task_b = MetaTask(task_b, [task_a], cache_key='task_b')
+        meta_task_c = MetaTask(task_c, [pending_task_a], cache_key='task_c')
+
+        # Register and run the MetaTasks
+        pending_task_b = task_manager.register_task(meta_task_b)
+        pending_task_c = task_manager.register_task(meta_task_c)
+
+        # Start both task chains
+        await task_manager.run_task(meta_task_b, channel_b)
+        await task_manager.run_task(meta_task_c, channel_c)
+
+        # Wait for tasks to execute and fail
+        for i in range(10):  # Wait up to 1 second
+            await anyio.sleep(0.1)
+
+            # If both tasks are done and we have messages, break early
+            if (
+                pending_task_b.event.is_set()
+                and pending_task_c.event.is_set()
+                and handler_b.receive_stream.statistics().current_buffer_used > 0
+                and handler_c.receive_stream.statistics().current_buffer_used > 0
+            ):
+                break
+
+        # Collect all messages from both channels
+        messages_b = []
+        messages_c = []
+
+        while handler_b.receive_stream.statistics().current_buffer_used > 0:
+            msg = await handler_b.receive_stream.receive()
+            messages_b.append(jsonable_encoder(msg.message))
+
+        while handler_c.receive_stream.statistics().current_buffer_used > 0:
+            msg = await handler_c.receive_stream.receive()
+            messages_c.append(jsonable_encoder(msg.message))
+
+        # Find error messages
+        error_msg_b = next((msg for msg in messages_b if msg.get('status') == 'ERROR'), None)
+        error_msg_c = next((msg for msg in messages_c if msg.get('status') == 'ERROR'), None)
+
+        assert error_msg_b is not None, f'No error message found for B. Messages: {messages_b}'
+        assert error_msg_c is not None, f'No error message found for C. Messages: {messages_c}'
+        assert error_msg_b['task_id'] == 'task_b'
+        assert error_msg_c['task_id'] == 'task_c'
+
+
+@patch('dara.core.base_definitions.uuid.uuid4', side_effect=['task_a', 'task_b', 'task_c'])
+async def test_task_chain_cancellation_propagation(_uid):
+    """
+    Test that when we have task chains A->B and A->C where A is shared,
+    if we cancel one chain (e.g., B), the other chain (C) also gets cancelled
+    because they share the same dependency A.
+    """
+    async with create_task_group() as tg:
+        store = CacheStore()
+        ws_mgr = WebsocketManager()
+        task_manager = TaskManager(tg, ws_mgr, store)
+
+        # Setup handlers for different channels
+        channel_b = 'channel_b'
+        channel_c = 'channel_c'
+        handler_b = ws_mgr.create_handler(channel_b)
+        handler_c = ws_mgr.create_handler(channel_c)
+
+        # Create task A that takes a long time
+        task_a = Task(very_slow_task_a, ['test_value'], cache_key='task_a')
+        pending_task_a = task_manager.register_task(task_a)
+
+        # Create MetaTasks B and C that depend on A
+        meta_task_b = MetaTask(task_b, [task_a], cache_key='task_b')
+        meta_task_c = MetaTask(task_c, [pending_task_a], cache_key='task_c')
+
+        # Register and run the MetaTasks
+        pending_task_b = task_manager.register_task(meta_task_b)
+        pending_task_c = task_manager.register_task(meta_task_c)
+
+        # Start both task chains
+        await task_manager.run_task(meta_task_b, channel_b)
+        await task_manager.run_task(meta_task_c, channel_c)
+
+        # Let tasks start running
+        await anyio.sleep(0.1)
+
+        # Cancel task B (which should also cancel shared dependency A and consequently C)
+        await task_manager.cancel_task('task_b')
+
+        # Wait a bit for cancellation to propagate
+        await anyio.sleep(0.2)
+
+        # Check that both channels received cancellation notifications
+        messages_b = []
+        messages_c = []
+
+        # Collect messages from both channels
+        while handler_b.receive_stream.statistics().current_buffer_used > 0:
+            msg = await handler_b.receive_stream.receive()
+            messages_b.append(msg.message)
+
+        while handler_c.receive_stream.statistics().current_buffer_used > 0:
+            msg = await handler_c.receive_stream.receive()
+            messages_c.append(msg.message)
+
+        # Verify cancellation messages were sent - depending on the ordering of events,
+        # it could end up being a cancel or an error
+        cancel_msg_b = next((msg for msg in messages_b if getattr(msg, 'status', None) in {'CANCELED', 'ERROR'}), None)
+        cancel_msg_c = next((msg for msg in messages_c if getattr(msg, 'status', None) in {'CANCELED', 'ERROR'}), None)
+
+        assert pending_task_b.event.is_set()
+        assert pending_task_c.event.is_set()
+
+        assert cancel_msg_b is not None, f'No cancellation message found for B. Messages: {messages_b}'
+        assert cancel_msg_c is not None, f'No cancellation message found for C. Messages: {messages_c}'
+        assert cancel_msg_b.task_id == 'task_b'
+        assert cancel_msg_c.task_id == 'task_c'
