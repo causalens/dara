@@ -81,7 +81,6 @@
     "prism-react-renderer": "^1.2.0",
     "react": "^18.0",
     "react-aria-components": "^1.9.0",
-    "@react-aria/utils": "3.29.1",
     "react-collapse": "^5.1.1",
     "react-datepicker": "4.8.0",
     "react-dom": "^18.0",
