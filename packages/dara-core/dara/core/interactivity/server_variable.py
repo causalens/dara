@@ -84,7 +84,7 @@ class ServerVariable(AnyVariable):
 
     def __init__(
         self,
-        default: Any,
+        default: Optional[Any] = None,
         backend: Optional[ServerBackend] = None,
         scope: Literal['user', 'global'] = 'global',
         uid: Optional[str] = None,
@@ -144,13 +144,15 @@ class ServerVariable(AnyVariable):
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
-        # Broadcast the latest sequence number to all clients for this variable
-        await ws_mgr.broadcast(
-            ServerVariableMessage(
-                uid=self.uid,
-                sequence_number=await self.backend.get_sequence_number(self.key),
-            )
-        )
+        message = ServerVariableMessage(uid=self.uid, sequence_number=await self.backend.get_sequence_number(self.key))
+
+        if self.scope == 'global':
+            return await ws_mgr.broadcast(message)
+
+        user = USER.get()
+        assert user is not None, 'User not found when trying to send notification'
+        user_id = user.identity_id or user.identity_name
+        return await ws_mgr.send_message_to_user(user_id, message)
 
     async def read(self):
         return await self.backend.read(self.key)
