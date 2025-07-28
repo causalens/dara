@@ -599,10 +599,11 @@ class TaskManager:
 
         # Send to all channels for this PendingTask in parallel
         async def _send_to_channel(channel: str):
-            for message in messages:
-                # Create message with this PendingTask's task_id (if message has task_id)
-                message_for_task = {**message, 'task_id': pending_task.task_id} if 'task_id' in message else message
-                await self.ws_manager.send_message(channel, message_for_task)
+            async with create_task_group() as channel_tg:
+                for message in messages:
+                    # Create message with this PendingTask's task_id (if message has task_id)
+                    message_for_task = {**message, 'task_id': pending_task.task_id} if 'task_id' in message else message
+                    channel_tg.start_soon(self.ws_manager.send_message, channel, message_for_task)
 
         async with create_task_group() as channel_tg:
             for channel in channels_to_notify:
