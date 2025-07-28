@@ -1,5 +1,6 @@
 import abc
-from typing import Any, Dict, Literal, Optional, Tuple, Union
+from collections import defaultdict
+from typing import Any, DefaultDict, Dict, Literal, Optional, Tuple, Union
 
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
@@ -7,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
-from dara.core.internal.registries import server_variable_registry
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
 
@@ -15,7 +15,7 @@ from .any_variable import AnyVariable
 
 
 class ServerVariableMessage(ServerMessagePayload):
-    __type: Literal['ServerVariable']
+    typ: Literal['ServerVariable'] = Field(alias='__type', default='ServerVariable')
     uid: str
     sequence_number: int
 
@@ -53,14 +53,15 @@ class ServerBackend(BaseModel, abc.ABC):
 
 
 class MemoryBackend(ServerBackend):
+    data: Dict[str, Any] = Field(default_factory=dict)
+    sequence_number: DefaultDict[str, int] = Field(default_factory=lambda: defaultdict(int))
+
     def __init__(self, scope: Literal['user', 'global'] = 'user'):
-        self.scope = scope
-        self.data: Dict[str, Any] = {}
-        self.sequence_number: Dict[str, int] = {}
+        super().__init__(scope=scope)
 
     async def write(self, key: str, value: Any):
         self.data[key] = value
-        self.sequence_number[key] = 1
+        self.sequence_number[key] += 1
         return value
 
     async def read(self, key: str) -> Any:
@@ -78,19 +79,21 @@ class MemoryBackend(ServerBackend):
 
 
 class ServerVariable(AnyVariable):
-    backend: ServerBackend = Field(default_factory=MemoryBackend, exclude=True)
+    backend: ServerBackend = Field(exclude=True)
     scope: Literal['user', 'global']
 
     def __init__(
         self,
         default: Any,
         backend: Optional[ServerBackend] = None,
-        scope: Literal['user', 'global'] = 'user',
+        scope: Literal['user', 'global'] = 'global',
         uid: Optional[str] = None,
         **kwargs,
     ) -> None:
+        from dara.core.internal.registries import server_variable_registry
+
         if backend is None:
-            backend = MemoryBackend(scope)
+            backend = MemoryBackend(scope=scope)
 
         if default is not None:
             assert scope == 'global', (
@@ -98,7 +101,7 @@ class ServerVariable(AnyVariable):
             )
             call_async(backend.write, 'global', default)
 
-        super().__init__(uid=uid, default=default, backend=backend, scope=scope, **kwargs)
+        super().__init__(uid=uid, backend=backend, scope=scope, **kwargs)
 
         var_entry = ServerVariableRegistryEntry(uid=str(self.uid), backend=backend)
         server_variable_registry.register(str(self.uid), var_entry)
@@ -142,17 +145,17 @@ class ServerVariable(AnyVariable):
         )
 
     async def read(self):
-        return self.backend.read(self.key)
+        return await self.backend.read(self.key)
 
     async def write(self, value: Any):
-        value = self.backend.write(self.key, value)
+        value = await self.backend.write(self.key, value)
         await self._notify()
         return value
 
     async def read_filtered(
         self, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ):
-        return self.backend.read_filtered(self.key, filters, pagination)
+        return await self.backend.read_filtered(self.key, filters, pagination)
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:

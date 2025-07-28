@@ -218,7 +218,11 @@ function resolveValue(
     }
 
     if (isResolvedServerVariable(value)) {
-        return value;
+        return {
+            ...value,
+            sequence_number:
+                isRecoilValue(value.sequence_number) ? getter(value.sequence_number) : value.sequence_number,
+        };
     }
 
     if (isCondition(value)) {

@@ -37,6 +37,7 @@ from dara.core.interactivity.actions import (
 from dara.core.interactivity.any_data_variable import AnyDataVariable
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.condition import Condition, Operator
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
@@ -69,6 +70,7 @@ __all__ = [
     'TriggerVariable',
     'UpdateVariable',
     'UpdateVariableImpl',
+    'ServerVariable',
     'SideEffect',
     'Condition',
     'Operator',

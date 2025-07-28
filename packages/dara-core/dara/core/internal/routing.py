@@ -444,7 +444,8 @@ def create_router(config: Configuration):
     ):
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
-        return await server_variable_entry.backend.get_sequence_number(uid)
+        seq_num = await server_variable_entry.backend.get_sequence_number(uid)
+        return {'sequence_number': seq_num}
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(
