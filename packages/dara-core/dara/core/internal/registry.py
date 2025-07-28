@@ -33,6 +33,7 @@ class RegistryType(str, Enum):
     COMPONENTS = 'Components'
     ENDPOINT_CONFIG = 'Endpoint Configuration'
     DATA_VARIABLE = 'DataVariable'
+    SERVER_VARIABLE = 'ServerVariable'
     DERIVED_VARIABLE = 'DerivedVariable'
     LAST_VALUE = 'LatestValue'
     TEMPLATE = 'Template'

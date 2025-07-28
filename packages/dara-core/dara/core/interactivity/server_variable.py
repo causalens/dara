@@ -2,12 +2,22 @@ import abc
 from typing import Any, Dict, Literal, Optional, Tuple, Union
 
 from pandas import DataFrame
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.auth.definitions import USER
+from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
+from dara.core.internal.registries import server_variable_registry
+from dara.core.internal.utils import call_async
+from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
 
 from .any_variable import AnyVariable
+
+
+class ServerVariableMessage(ServerMessagePayload):
+    __type: Literal['ServerVariable']
+    uid: str
+    sequence_number: int
 
 
 class ServerBackend(BaseModel, abc.ABC):
@@ -33,14 +43,22 @@ class ServerBackend(BaseModel, abc.ABC):
         :param pagination: pagination to apply
         """
 
+    @abc.abstractmethod
+    async def get_sequence_number(self, key: str) -> int:
+        """
+        Get the sequence number for a given key
+        """
+
 
 class MemoryBackend(ServerBackend):
     def __init__(self, scope: Literal['user', 'global'] = 'user'):
         self.scope = scope
         self.data: Dict[str, Any] = {}
+        self.sequence_number: Dict[str, int] = {}
 
     async def write(self, key: str, value: Any):
         self.data[key] = value
+        self.sequence_number[key] = 1
         return value
 
     async def read(self, key: str) -> Any:
@@ -53,9 +71,12 @@ class MemoryBackend(ServerBackend):
         # TODO: maybe in endpoint, need to convert object to str etc, format_for_display
         return apply_filters(dataset, coerce_to_filter_query(filters), pagination)
 
+    async def get_sequence_number(self, key: str) -> int:
+        return self.sequence_number.get(key, 0)
+
 
 class ServerVariable(AnyVariable):
-    backend: ServerBackend
+    backend: ServerBackend = Field(default_factory=MemoryBackend, exclude=True)
     scope: Literal['user', 'global']
 
     def __init__(
@@ -68,7 +89,17 @@ class ServerVariable(AnyVariable):
     ) -> None:
         if backend is None:
             backend = MemoryBackend()
+
+        if default is not None:
+            assert scope == 'global', (
+                'ServerVariable can only be used with global scope, cannot initialize user-specific values'
+            )
+            call_async(backend.write, 'global', default)
+
         super().__init__(uid=uid, default=default, backend=backend, scope=scope, **kwargs)
+
+        var_entry = ServerVariableRegistryEntry(uid=str(self.uid), backend=backend)
+        server_variable_registry.register(str(self.uid), var_entry)
 
     def _get_key(self):
         if self.scope == 'global':
@@ -82,16 +113,49 @@ class ServerVariable(AnyVariable):
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
+    async def _notify(self):
+        from dara.core.internal.registries import utils_registry
+
+        ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
+
+        # Broadcast the latest sequence number to all clients for this variable
+        await ws_mgr.broadcast(
+            ServerVariableMessage(
+                uid=self.uid,
+                sequence_number=await self.backend.get_sequence_number(self._get_key()),
+            )
+        )
+
     async def read(self):
         key = self._get_key()
         return self.backend.read(key)
 
     async def write(self, value: Any):
         key = self._get_key()
-        return self.backend.write(key, value)
+        value = self.backend.write(key, value)
+        await self._notify()
+        return value
 
     async def read_filtered(
         self, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ):
         key = self._get_key()
         return self.backend.read_filtered(key, filters, pagination)
+
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        parent_dict = nxt(self)
+        return {**parent_dict, '__typename': 'ServerVariable', 'uid': str(parent_dict['uid'])}
+
+
+class ServerVariableRegistryEntry(CachedRegistryEntry):
+    """
+    Registry entry for ServerVariable.
+    """
+
+    backend: ServerBackend
+    """
+    Backend instance
+    """
+
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)

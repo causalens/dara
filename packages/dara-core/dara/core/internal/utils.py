@@ -34,6 +34,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -41,6 +42,7 @@ import anyio
 from anyio import from_thread
 from exceptiongroup import BaseExceptionGroup, ExceptionGroup
 from starlette.concurrency import run_in_threadpool
+from typing_extensions import ParamSpec
 
 from dara.core.auth.definitions import SESSION_ID, USER
 from dara.core.base_definitions import CacheType
@@ -177,7 +179,11 @@ def enforce_sso(conf: ConfigurationBuilder):
         ) from err
 
 
-def async_dedupe(fn: Callable[..., Awaitable]):
+P = ParamSpec('P')
+T = TypeVar('T')
+
+
+def async_dedupe(fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     """
     Decorator to deduplicate concurrent calls to asynchronous functions based on their arguments.
 
@@ -195,7 +201,7 @@ def async_dedupe(fn: Callable[..., Awaitable]):
     is_method = 'self' in inspect.signature(fn).parameters
 
     @wraps(fn)
-    async def wrapped(*args, **kwargs):
+    async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         non_self_args = args[1:] if is_method else args
         key = (non_self_args, frozenset(kwargs.items()))
         lock = locks.get(key)

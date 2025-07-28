@@ -131,6 +131,15 @@ export interface BackendStorePatchMessage {
     type: 'message';
 }
 
+export interface ServerVariableMessage {
+    message: {
+        __type: 'ServerVariable';
+        uid: string;
+        sequence_number: number;
+    };
+    type: 'message';
+}
+
 export interface CustomMessage {
     message: {
         data: any;
@@ -151,6 +160,7 @@ export type WebSocketMessage =
     | ProgressNotificationMessage
     | ServerTriggerMessage
     | ServerErrorMessage
+    | ServerVariableMessage
     | VariableRequestMessage
     | ActionMessage
     | BackendStoreMessage
@@ -167,6 +177,10 @@ function isTaskNotification(message: WebSocketMessage): message is TaskNotificat
 
 function isServerTriggerMessage(message: WebSocketMessage): message is ServerTriggerMessage {
     return message.type === 'message' && 'data_id' in message.message;
+}
+
+function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
+    return message.type === 'message' && '__type' in message.message && message.message.__type === 'ServerVariable';
 }
 
 function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
@@ -202,6 +216,7 @@ export interface WebSocketClientInterface {
     actionMessages$: (executionId: string) => Observable<ActionImpl>;
     backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
     backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']>;
+    serverVariableMessages$(): Observable<ServerVariableMessage['message']>;
     channel$: () => Observable<string>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
@@ -369,6 +384,13 @@ export class WebSocketClient implements WebSocketClientInterface {
     backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']> {
         return this.messages$.pipe(
             filter(isBackendStorePatchMessage),
+            map((msg) => msg.message)
+        );
+    }
+
+    serverVariableMessages$(): Observable<ServerVariableMessage['message']> {
+        return this.messages$.pipe(
+            filter(isServerVariableMessage),
             map((msg) => msg.message)
         );
     }

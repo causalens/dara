@@ -13,3 +13,4 @@ export * from './store';
 export * from './use-server-component';
 export * from './nested';
 export * from './derived-variable';
+export * from './server-variable';

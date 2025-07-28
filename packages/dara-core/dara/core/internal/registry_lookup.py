@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from collections.abc import Coroutine
-from typing import Callable, Dict, Literal, Union
+from typing import Callable, Dict, Literal, TypeVar, Union
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -33,6 +33,8 @@ RegistryLookupKey = Literal[
 ]
 CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
 
+RegistryType = TypeVar('RegistryType')
+
 
 class RegistryLookup:
     """
@@ -45,7 +47,7 @@ class RegistryLookup:
         self.handlers = handlers
 
     @async_dedupe
-    async def get(self, registry: Registry, uid: str):
+    async def get(self, registry: Registry[RegistryType], uid: str) -> RegistryType:
         """
         Get the entry from registry by uid.
         If uid is not in registry and it has a external handler that defined, will execute the handler

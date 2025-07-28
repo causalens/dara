@@ -60,6 +60,7 @@ from dara.core.internal.registries import (
     derived_variable_registry,
     download_code_registry,
     latest_value_registry,
+    server_variable_registry,
     static_kwargs_registry,
     template_registry,
     upload_resolver_registry,
@@ -436,6 +437,14 @@ def create_router(config: Configuration):
             return Response(content=content, media_type='application/json')
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
+
+    @core_api_router.get('/server-variable/{uid}/sequence', dependencies=[Depends(verify_session)])
+    async def get_server_variable_sequence(
+        uid: str,
+    ):
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
+        return await server_variable_entry.backend.get_sequence_number(uid)
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
     async def upload_data(

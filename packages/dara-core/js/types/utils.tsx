@@ -14,6 +14,7 @@ import {
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedSwitchVariable,
+    type ServerVariable,
     type StateVariable,
     type SwitchVariable,
     type UrlVariable,
@@ -68,6 +69,11 @@ export function isDataVariable<T>(variable: AnyVariable<T> | T): variable is Dat
  */
 export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable is DerivedDataVariable {
     return isVariable(variable) && variable.__typename === 'DerivedDataVariable';
+}
+
+/** Check if a value is a server variable instance and type guard the response */
+export function isServerVariable(variable: AnyVariable<any>): variable is ServerVariable {
+    return isVariable(variable) && variable.__typename === 'ServerVariable';
 }
 
 /**

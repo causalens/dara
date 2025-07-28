@@ -5,10 +5,12 @@ import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITI
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
+    UserError,
     type Variable,
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isServerVariable,
     isStateVariable,
     isSwitchVariable,
     isUrlVariable,
@@ -137,6 +139,10 @@ export function useVariable<T>(
         }
 
         return [stateValue as T, warnUpdateOnDerivedState];
+    }
+
+    if (isServerVariable(variable)) {
+        throw new UserError('ServerVariable cannot be directly consumed by this component');
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);
