@@ -6,7 +6,6 @@ from dara.core.base_definitions import (
     LruCachePolicy,
     MostRecentCachePolicy,
     PendingTask,
-    PendingValue,
     TTLCachePolicy,
 )
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl, PolicyT
@@ -189,9 +188,6 @@ class CacheStore:
 
         value = await self.get(registry_entry, key)
 
-        if isinstance(value, PendingValue):
-            return await value.wait()
-
         if isinstance(value, PendingTask):
             return await value.run()
 
@@ -202,7 +198,6 @@ class CacheStore:
         registry_entry: CachedRegistryEntry,
         key: str,
         value: Any,
-        error: Optional[Exception] = None,
         pin: bool = False,
     ):
         """
@@ -225,12 +220,11 @@ class CacheStore:
 
         prev_value = await registry_store.get(key)
 
-        # If previous value was a PendingValue, resolve it
-        if isinstance(prev_value, PendingValue):
-            if error is not None:
-                prev_value.error(error)
-            else:
-                prev_value.resolve(value)
+        # If the previous value was a PendingTask, resolve it with the new value
+        # This handles cache-coordinated tasks (e.g., DerivedVariables) where PendingTasks
+        # are stored in cache to coordinate multiple callers with the same cache key
+        if isinstance(prev_value, PendingTask):
+            prev_value.resolve(value)
 
         # Update size
         self._update_size(prev_value, value)
@@ -239,15 +233,6 @@ class CacheStore:
         await registry_store.set(key, value, pin=pin)
 
         return value
-
-    async def set_pending(self, registry_entry: CachedRegistryEntry, key: str):
-        """
-        Set a pending value for the given registry entry and cache key.
-
-        :param registry_entry: The registry entry to store the value for.
-        :param key: The key of the entry to set.
-        """
-        return await self.set(registry_entry, key, PendingValue())
 
     async def clear(self):
         """

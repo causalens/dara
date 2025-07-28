@@ -238,24 +238,6 @@ async def test_cache_store_user_api():
     assert await store.get(reg_entry, key='test_key') == 'test_value_2'
 
 
-async def test_cache_store_wait_and_get():
-    store = CacheStore()
-    reg_entry = CachedRegistryEntry(uid='test_uid', cache=Cache.Policy.KeepAll())
-
-    await store.set_pending(reg_entry, key='test_key')
-
-    # Create two coroutines that are trying to access the result
-    var_1 = store.get_or_wait(reg_entry, key='test_key')
-    var_2 = store.get_or_wait(reg_entry, key='test_key')
-
-    # Set the value
-    await store.set(reg_entry, key='test_key', value='test_value')
-
-    # Check the values are resolved
-    assert await var_1 == 'test_value'
-    assert await var_2 == 'test_value'
-
-
 async def test_cache_store_pinning():
     store = CacheStore()
     reg_entry = CachedRegistryEntry(uid='test_uid', cache=Cache.Policy.MostRecent())

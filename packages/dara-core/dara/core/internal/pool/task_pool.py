@@ -158,7 +158,7 @@ class TaskPool:
 
         task = self.tasks.pop(task_uid)
         if not task.event.is_set():
-            task.result = Exception('Task cancelled')
+            task.result = anyio.get_cancelled_exc_class()()
             task.event.set()
 
         # Task in progress, stop the worker

@@ -407,7 +407,7 @@ class PendingTask(BaseTask):
             self.cancel_scope.cancel()
         await self.task_def.cancel()
 
-        self.error = Exception('Task was cancelled')
+        self.error = anyio.get_cancelled_exc_class()()
         self.event.set()
 
     def add_subscriber(self):
@@ -430,47 +430,6 @@ class PendingTask(BaseTask):
         if self.error:
             raise self.error
         return self.result
-
-
-class PendingValue:
-    """
-    An internal class that's used to represent a pending value. Holds a future object that can be awaited by
-    multiple consumers.
-    """
-
-    def __init__(self):
-        self.event = anyio.Event()
-        self._value = None
-        self._error = None
-
-    async def wait(self):
-        """
-        Wait for the underlying event to be set
-        """
-        # Waiting in chunks as otherwise Jupyter blocks the event loop
-        while not self.event.is_set():
-            await anyio.sleep(0.01)
-        if self._error:
-            raise self._error
-        return self._value
-
-    def resolve(self, value: Any):
-        """
-        Resolve the pending state and send values to the waiting code
-
-        :param value: the value to resolve as the result
-        """
-        self._value = value
-        self.event.set()
-
-    def error(self, exc: Exception):
-        """
-        Resolve the pending state with an error and send it to the waiting code
-
-        :param exc: exception to resolve as the result
-        """
-        self._error = exc
-        self.event.set()
 
 
 class AnnotatedAction(BaseModel):

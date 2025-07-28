@@ -232,8 +232,10 @@ function getOrRegisterServerComponent({
 
                             try {
                                 await wsClient.waitForTask(taskId);
-                            } catch {
-                                return null;
+                            } catch (e: unknown) {
+                                (e as any).selectorId = key;
+                                (e as any).selectorExtras = extrasSerializable.toJSON();
+                                throw e;
                             } finally {
                                 taskContext.endTask(taskId);
                             }
