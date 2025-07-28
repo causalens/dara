@@ -167,43 +167,43 @@ export type WebSocketMessage =
     | BackendStorePatchMessage
     | CustomMessage;
 
-function isInitMessage(message: WebSocketMessage): message is InitMessage {
+export function isInitMessage(message: WebSocketMessage): message is InitMessage {
     return message.type === 'init';
 }
 
-function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
+export function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
     return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
 }
 
-function isServerTriggerMessage(message: WebSocketMessage): message is ServerTriggerMessage {
+export function isServerTriggerMessage(message: WebSocketMessage): message is ServerTriggerMessage {
     return message.type === 'message' && 'data_id' in message.message;
 }
 
-function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
+export function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
     return message.type === 'message' && '__type' in message.message && message.message.__type === 'ServerVariable';
 }
 
-function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
+export function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
     return message.type === 'message' && 'error' in message.message;
 }
 
-function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
+export function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
     return message.type === 'message' && 'variable' in message.message;
 }
 
-function isActionMessage(message: WebSocketMessage): message is ActionMessage {
+export function isActionMessage(message: WebSocketMessage): message is ActionMessage {
     return message.type === 'message' && 'action' in message.message;
 }
 
-function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
+export function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
     return message.type === 'message' && 'store_uid' in message.message && 'value' in message.message;
 }
 
-function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
+export function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
     return message.type === 'message' && 'store_uid' in message.message && 'patches' in message.message;
 }
 
-function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
+export function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
     return message.type === 'custom';
 }
 
