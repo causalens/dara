@@ -1,24 +1,36 @@
-import {
-    type BeforePlotEvent,
-    type ClickAnnotationEvent,
-    type FrameAnimationEvent,
-    type LegendClickEvent,
-    type PlotDatum,
-    type PlotHoverEvent,
-    type PlotMouseEvent,
-    type PlotRelayoutEvent,
-    type PlotRestyleEvent,
-    type PlotSelectionEvent,
-    type SliderChangeEvent,
-    type SliderEndEvent,
-    type SliderStartEvent,
-    type SunburstClickEvent,
+import type {
+    BeforePlotEvent,
+    ClickAnnotationEvent,
+    FrameAnimationEvent,
+    LegendClickEvent,
+    PlotDatum,
+    PlotHoverEvent,
+    PlotMouseEvent,
+    PlotRelayoutEvent,
+    PlotRestyleEvent,
+    PlotSelectionEvent,
+    SliderChangeEvent,
+    SliderEndEvent,
+    SliderStartEvent,
+    SunburstClickEvent,
 } from 'plotly.js';
-import { useState } from 'react';
-import Plot, { type PlotParams } from 'react-plotly.js';
+import * as React from 'react';
+import type { PlotParams } from 'react-plotly.js';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
-import { type Action, type StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
+import {
+    type Action,
+    DefaultFallback,
+    type StyledComponentProps,
+    injectCss,
+    useAction,
+    useComponentStyles,
+} from '@darajs/core';
+
+// eslint-disable-next-line import/extensions
+import createPlotlyComponent from './plotly-factory';
+
+const PLOTLY_URL = 'https://cdn.plot.ly/plotly-2.28.0.min.js';
 
 /**
  * Names defined by plotly.js, this is what Python will send us
@@ -140,6 +152,12 @@ interface PlotlyProps extends StyledComponentProps {
 interface ActionEvent {
     custom_js: string;
     handler?: (value: any) => Promise<void>;
+}
+
+declare global {
+    interface Window {
+        plotlyLoading?: boolean;
+    }
 }
 
 /**
@@ -295,8 +313,11 @@ const StyledPlotly = injectCss('div');
  * @param {PlotlyProps} props - the component props
  */
 function Plotly(props: PlotlyProps): JSX.Element {
+    const [Component, setComponent] = React.useState<React.ComponentType<PlotParams> | null>(() =>
+        window.Plotly ? createPlotlyComponent(window.Plotly) : null
+    );
     const [style, css] = useComponentStyles(props);
-    const [figure, setFigure] = useState(() => JSON.parse(props.figure));
+    const [figure, setFigure] = React.useState(() => JSON.parse(props.figure));
     const eventActions = new Map<string, Array<ActionEvent>>();
 
     if (props.events) {
@@ -323,6 +344,51 @@ function Plotly(props: PlotlyProps): JSX.Element {
         return acc;
     }, {} as RequiredPlotParams);
 
+    async function waitForPlotly(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+                if (window.Plotly) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function loadPlotlyLibrary(url: string): Promise<void> {
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => {
+            resolve = r;
+        });
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = () => {
+            resolve();
+        };
+        document.head.appendChild(script);
+        return promise;
+    }
+
+    const initializePlotly = React.useCallback(async (): Promise<void> => {
+        if (window.plotlyLoading) {
+            await waitForPlotly();
+        } else if (!window.Plotly) {
+            window.plotlyLoading = true;
+            await loadPlotlyLibrary(PLOTLY_URL);
+            window.plotlyLoading = false;
+        }
+
+        const newComponent = createPlotlyComponent(window.Plotly);
+        // important to use the function form, otherwise component is interpreted as a function and invoked
+        setComponent(() => newComponent);
+    }, []);
+
+    React.useEffect(() => {
+        if (!Component) {
+            initializePlotly();
+        }
+    }, [Component, initializePlotly]);
+
     return (
         <StyledPlotly
             $rawCss={css}
@@ -337,15 +403,20 @@ function Plotly(props: PlotlyProps): JSX.Element {
         >
             <AutoSizer>
                 {({ height, width }) => (
-                    <Plot
-                        config={{ responsive: true }}
-                        data={figure.data}
-                        frames={figure.frames}
-                        layout={figure.layout}
-                        {...eventHandlers}
-                        style={{ height, width }}
-                        useResizeHandler
-                    />
+                    <>
+                        {!Component && <DefaultFallback style={{ height, width }} />}
+                        {Component && (
+                            <Component
+                                config={{ responsive: true }}
+                                data={figure.data}
+                                frames={figure.frames}
+                                layout={figure.layout}
+                                {...eventHandlers}
+                                style={{ height, width }}
+                                useResizeHandler
+                            />
+                        )}
+                    </>
                 )}
             </AutoSizer>
         </StyledPlotly>

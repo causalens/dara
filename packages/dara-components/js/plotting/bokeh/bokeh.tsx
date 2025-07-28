@@ -89,11 +89,19 @@ function Bokeh(props: BokehProps): JSX.Element {
         });
     }
 
-    function loadBokehLibrary(url: string, version: string): void {
+    function loadBokehLibrary(url: string, version: string): Promise<void> {
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => {
+            resolve = r;
+        });
         const script = document.createElement('script');
         script.src = url.replace('{version}', version);
         script.async = true;
+        script.onload = () => {
+            resolve();
+        };
         document.head.appendChild(script);
+        return promise;
     }
 
     async function initializeBokeh(): Promise<void> {
@@ -107,13 +115,9 @@ function Bokeh(props: BokehProps): JSX.Element {
             const [core, ...libraries] = BOKEH_LIBRARIES;
 
             // Core needs to be loaded before all the other libraries
-            loadBokehLibrary(core, bokehVersion);
+            await loadBokehLibrary(core, bokehVersion);
 
-            await waitForBokeh();
-
-            libraries.forEach((url) => {
-                loadBokehLibrary(url, bokehVersion);
-            });
+            await Promise.all(libraries.map((url) => loadBokehLibrary(url, bokehVersion)));
         }
 
         events.forEach(([ev, handler]) => {

@@ -5,6 +5,7 @@ title: Changelog
 ## 1.19.1
 
 -  Added a `DropdownMenu` component that displays a button which opens a dropdown menu with configurable menu items.
+-  The `plotly.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~18MB to ~8MB
 
 ## 1.16.23
 
