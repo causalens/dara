@@ -46,6 +46,7 @@ from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolv
 from dara.core.configuration import Configuration
 from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import DownloadRegistryEntry
 from dara.core.internal.execute_action import CURRENT_ACTION_ID
@@ -444,7 +445,7 @@ def create_router(config: Configuration):
     ):
         registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
         server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
-        seq_num = await server_variable_entry.backend.get_sequence_number(uid)
+        seq_num = await ServerVariable.get_sequence_number(server_variable_entry)
         return {'sequence_number': seq_num}
 
     @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])

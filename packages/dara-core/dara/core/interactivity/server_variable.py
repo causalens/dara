@@ -115,6 +115,14 @@ class ServerVariable(AnyVariable):
         return await entry.backend.read(key)
 
     @classmethod
+    async def get_sequence_number(cls, entry: 'ServerVariableRegistryEntry'):
+        """
+        Internal method to get the sequence number of a server variable based in its registry entry.
+        """
+        key = cls.get_key(entry.backend.scope)
+        return await entry.backend.get_sequence_number(key)
+
+    @classmethod
     def get_key(cls, scope: Literal['global', 'user']):
         if scope == 'global':
             return 'global'
