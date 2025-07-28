@@ -8,6 +8,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
     isDataVariable,
@@ -16,6 +17,7 @@ import {
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
+    isServerVariable,
     isStateVariable,
     isSwitchVariable,
     isUrlVariable,
@@ -29,6 +31,7 @@ import {
     getOrRegisterUrlVariable,
     resolveDataVariable,
 } from './internal';
+import { resolveServerVariable } from './server-variable';
 
 /**
  * Resolve a variable to a value (for non-derived variables using provided resolver)
@@ -54,6 +57,7 @@ export function resolveVariable<VariableType>(
     | ResolvedDerivedVariable
     | ResolvedDerivedDataVariable
     | ResolvedDataVariable
+    | ResolvedServerVariable
     | ResolvedSwitchVariable
     | VariableType {
     if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
@@ -85,6 +89,10 @@ export function resolveVariable<VariableType>(
 
     if (isDataVariable(variable)) {
         return resolveDataVariable(variable);
+    }
+
+    if (isServerVariable(variable)) {
+        return resolveServerVariable(variable, extras, resolver);
     }
 
     if (isUrlVariable(variable)) {

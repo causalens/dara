@@ -7,7 +7,7 @@ import { validateResponse } from '@darajs/ui-utils';
 
 import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { type ServerVariable } from '@/types';
+import { type ResolvedServerVariable, type ServerVariable } from '@/types';
 
 import { WebSocketCtx } from '../context';
 import { StateSynchronizer } from './state-synchronizer';
@@ -115,6 +115,22 @@ export function getOrRegisterServerVariable(variable: ServerVariable, extras: Re
     atomFamilyMembersRegistry.get(family)!.set(extrasSerializable.toJSON(), atomInstance);
 
     return atomInstance;
+}
+
+/** Resolve a server variable to its resolved form  */
+export function resolveServerVariable(
+    variable: ServerVariable,
+    extras: RequestExtras,
+    resolver: (val: RecoilState<any>) => any
+): ResolvedServerVariable {
+    const atom = getOrRegisterServerVariable(variable, extras);
+    // the value stored on the client is the sequence number
+    const seqNumber = resolver(atom);
+    return {
+        type: 'server',
+        uid: variable.uid,
+        sequence_number: seqNumber,
+    } satisfies ResolvedServerVariable;
 }
 
 /**

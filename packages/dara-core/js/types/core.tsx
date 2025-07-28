@@ -195,6 +195,12 @@ export interface ResolvedDerivedDataVariable {
     values: Array<any>;
 }
 
+export interface ResolvedServerVariable {
+    type: 'server';
+    uid: string;
+    sequence_number: number;
+}
+
 export interface ResolvedSwitchVariable {
     type: 'switch';
     uid: string;

@@ -4,7 +4,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { type AnyDataVariable, type AnyVariable, type DataFrame, isDataVariable, isDerivedDataVariable } from '@/types';
+import {
+    type AnyDataVariable,
+    type AnyVariable,
+    type DataFrame,
+    UserError,
+    isDataVariable,
+    isDerivedDataVariable,
+    isServerVariable,
+} from '@/types';
 
 import { useDataVariable } from './use-data-variable';
 import { useVariable } from './use-variable';
@@ -37,6 +45,10 @@ export function useAnyVariable<T = any>(variable: AnyVariable<T>): DataFrame | T
         }, [getData]);
 
         return data ?? undefined;
+    }
+
+    if (isServerVariable(variable)) {
+        throw new UserError('ServerVariable cannot be used in this context');
     }
 
     return useVariable(variable, {

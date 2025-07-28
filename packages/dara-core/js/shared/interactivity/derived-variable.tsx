@@ -30,6 +30,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
     isDerivedDataVariable,
@@ -37,6 +38,7 @@ import {
     isResolvedDataVariable,
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedServerVariable,
     isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
@@ -189,6 +191,7 @@ function resolveValue(
         | ResolvedDerivedVariable
         | ResolvedDerivedDataVariable
         | ResolvedDataVariable
+        | ResolvedServerVariable
         | ResolvedSwitchVariable
         | RecoilValue<any>,
     getter: GetRecoilValue
@@ -211,6 +214,10 @@ function resolveValue(
     }
 
     if (isResolvedDataVariable(value)) {
+        return value;
+    }
+
+    if (isResolvedServerVariable(value)) {
         return value;
     }
 

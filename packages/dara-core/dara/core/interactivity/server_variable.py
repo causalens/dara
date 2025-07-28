@@ -21,6 +21,8 @@ class ServerVariableMessage(ServerMessagePayload):
 
 
 class ServerBackend(BaseModel, abc.ABC):
+    scope: Literal['global', 'user']
+
     @abc.abstractmethod
     async def write(self, key: str, value: Any):
         """
@@ -88,7 +90,7 @@ class ServerVariable(AnyVariable):
         **kwargs,
     ) -> None:
         if backend is None:
-            backend = MemoryBackend()
+            backend = MemoryBackend(scope)
 
         if default is not None:
             assert scope == 'global', (
@@ -101,8 +103,17 @@ class ServerVariable(AnyVariable):
         var_entry = ServerVariableRegistryEntry(uid=str(self.uid), backend=backend)
         server_variable_registry.register(str(self.uid), var_entry)
 
-    def _get_key(self):
-        if self.scope == 'global':
+    @classmethod
+    async def get_value(cls, entry: 'ServerVariableRegistryEntry'):
+        """
+        Internal method to get the value of a server variable based in its registry entry.
+        """
+        key = cls.get_key(entry.backend.scope)
+        return await entry.backend.read(key)
+
+    @classmethod
+    def get_key(cls, scope: Literal['global', 'user']):
+        if scope == 'global':
             return 'global'
 
         user = USER.get()
@@ -113,6 +124,10 @@ class ServerVariable(AnyVariable):
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
+    @property
+    def key(self):
+        return self.get_key(self.scope)
+
     async def _notify(self):
         from dara.core.internal.registries import utils_registry
 
@@ -122,25 +137,22 @@ class ServerVariable(AnyVariable):
         await ws_mgr.broadcast(
             ServerVariableMessage(
                 uid=self.uid,
-                sequence_number=await self.backend.get_sequence_number(self._get_key()),
+                sequence_number=await self.backend.get_sequence_number(self.key),
             )
         )
 
     async def read(self):
-        key = self._get_key()
-        return self.backend.read(key)
+        return self.backend.read(self.key)
 
     async def write(self, value: Any):
-        key = self._get_key()
-        value = self.backend.write(key, value)
+        value = self.backend.write(self.key, value)
         await self._notify()
         return value
 
     async def read_filtered(
         self, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ):
-        key = self._get_key()
-        return self.backend.read_filtered(key, filters, pagination)
+        return self.backend.read_filtered(self.key, filters, pagination)
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:

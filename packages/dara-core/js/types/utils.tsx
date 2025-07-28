@@ -13,6 +13,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     type ServerVariable,
     type StateVariable,
@@ -157,6 +158,17 @@ export function isResolvedDerivedDataVariable(
         'type' in value &&
         value.type === 'derived-data' &&
         'uid' in value
+    );
+}
+
+export function isResolvedServerVariable(value: any | ResolvedServerVariable): value is ResolvedServerVariable {
+    return (
+        value &&
+        typeof value === 'object' &&
+        'type' in value &&
+        value.type === 'server' &&
+        'uid' in value &&
+        'sequence_number' in value
     );
 }
 

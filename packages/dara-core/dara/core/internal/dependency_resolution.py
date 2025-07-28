@@ -22,6 +22,7 @@ from typing_extensions import TypedDict, TypeGuard
 from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
 from dara.core.interactivity.filtering import FilterQuery
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -50,6 +51,12 @@ class ResolvedDataVariable(TypedDict):
     uid: str
 
 
+class ResolvedServerVariable(TypedDict):
+    type: Literal['server']
+    uid: str
+    sequence_number: int
+
+
 class ResolvedSwitchVariable(TypedDict):
     type: Literal['switch']
     uid: str
@@ -70,6 +77,10 @@ def is_resolved_derived_data_variable(
 
 def is_resolved_data_variable(obj: Any) -> TypeGuard[ResolvedDataVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'data'
+
+
+def is_resolved_server_variable(obj: Any) -> TypeGuard[ResolvedServerVariable]:
+    return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'server'
 
 
 def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
@@ -131,6 +142,9 @@ async def resolve_dependency(
 
     if is_resolved_data_variable(entry):
         return await _resolve_data_var(entry, store)
+
+    if is_resolved_server_variable(entry):
+        return await _resolve_server_var(entry)
 
     if is_resolved_switch_variable(entry):
         return await _resolve_switch_var(entry, store, task_mgr)
@@ -212,6 +226,20 @@ async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: Ca
     var = await registry_mgr.get(data_variable_registry, str(data_variable_entry.get('uid')))
     result = await DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
     return remove_index(result)
+
+
+async def _resolve_server_var(resolved_server_variable: ResolvedServerVariable) -> Any:
+    """
+    Resolve a server variable.
+
+    :param server_variable_entry: server var entry
+    :param store: the store instance to use for caching
+    """
+    from dara.core.internal.registries import server_variable_registry, utils_registry
+
+    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+    server_var_entry = await registry_mgr.get(server_variable_registry, resolved_server_variable['uid'])
+    return await ServerVariable.get_value(server_var_entry)
 
 
 def _normalize_lookup_key(value: Any) -> str:

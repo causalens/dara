@@ -20,6 +20,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     UserError,
     type Variable,
@@ -67,6 +68,7 @@ export function getVariableValue<VV, B extends boolean = false>(
     | ResolvedDerivedVariable
     | ResolvedDerivedDataVariable
     | ResolvedSwitchVariable
+    | ResolvedServerVariable
     | Promise<VV>
     | Promise<DataFrame> {
     // Using loadable since the resolver is only used for simple atoms and shouldn't cause problems
