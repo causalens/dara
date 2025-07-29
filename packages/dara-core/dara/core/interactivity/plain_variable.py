@@ -36,7 +36,7 @@ from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
-from dara.core.persistence import BackendStore, PersistenceStore
+from dara.core.persistence import BackendStore, BrowserStore, PersistenceStore
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -51,7 +51,6 @@ class Variable(NonDataVariable, Generic[VariableType]):
     """
 
     default: Optional[VariableType] = None
-    persist_value: bool = False
     store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = Field(default_factory=list)
@@ -94,12 +93,13 @@ class Variable(NonDataVariable, Generic[VariableType]):
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 
-        if persist_value is not None:
+        if persist_value:
             warnings.warn(
                 '`persist_value` is deprecated and will be removed in a future version. Use `store=dara.core.persistence.BrowserStore(...)` instead.',
                 DeprecationWarning,
                 stacklevel=2,
             )
+            kwargs['store'] = BrowserStore()
 
         super().__init__(**kwargs)  # type: ignore
 
