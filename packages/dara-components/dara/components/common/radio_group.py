@@ -23,7 +23,7 @@ from typing_extensions import TypedDict
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import NonDataVariable, UrlVariable, Variable
+from dara.core.interactivity import NonDataVariable, Variable
 from dara.core.visual.components.types import Direction
 
 
@@ -92,7 +92,7 @@ class RadioGroup(FormComponent):
     """
 
     items: Union[List[RadioItem], List[str], NonDataVariable]
-    value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
+    value: Optional[Variable[Any]] = None
     list_styling: Optional[bool] = False
     onchange: Optional[Action] = None
     direction: Direction = Direction.VERTICAL

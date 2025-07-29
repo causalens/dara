@@ -42,7 +42,6 @@ from dara.core.interactivity import (
     AnyDataVariable,
     AnyVariable,
     DerivedVariable,
-    UrlVariable,
     Variable,
 )
 from dara.core.interactivity.state_variable import StateVariable
@@ -208,7 +207,7 @@ def py_component(
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
                 new_type = Union[
-                    typ, Variable[typ], DerivedVariable[typ], UrlVariable[typ], AnyDataVariable  # type: ignore
+                    typ, Variable[typ], DerivedVariable[typ], AnyDataVariable  # type: ignore
                 ]
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)

@@ -26,7 +26,6 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
     AnyDataVariable,
     NonDataVariable,
-    UrlVariable,
     Variable,
 )
 
@@ -736,7 +735,7 @@ class Table(ContentComponent):
     multi_select: bool = False
     show_checkboxes: bool = True
     onclick_row: Optional[Action] = None
-    selected_indices: Optional[Union[List[int], UrlVariable, Variable]] = None
+    selected_indices: Optional[Union[List[int], Variable]] = None
     search_columns: Optional[List[str]] = None
     searchable: bool = False
     include_index: bool = True

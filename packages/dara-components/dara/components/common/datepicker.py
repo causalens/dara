@@ -16,11 +16,11 @@ limitations under the License.
 """
 
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
-from dara.core.interactivity import UrlVariable, Variable
+from dara.core.interactivity import Variable
 
 
 class Datepicker(FormComponent):
@@ -93,7 +93,7 @@ class Datepicker(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
+    value: Optional[Variable[Any]] = None
     date_format: str = 'dd/MM/yyyy'
     enable_time: bool = False
     max_date: Optional[datetime] = None

@@ -25,7 +25,7 @@ from dara.core.interactivity.any_variable import AnyVariable
 
 class NonDataVariable(AnyVariable, abc.ABC):
     """
-    NonDataVariable represents any variable that is not specifically designed to hold datasets (i.e. Variable, DerivedVariable, UrlVariable)
+    NonDataVariable represents any variable that is not specifically designed to hold datasets (i.e. Variable, DerivedVariable)
 
     :param uid: the unique identifier for this variable; if not provided a random one is generated
     """

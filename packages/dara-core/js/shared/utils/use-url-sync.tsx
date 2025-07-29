@@ -54,7 +54,7 @@ export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncO
 
     /**
      * Custom URL change listener which utilises the history object to listen for changes. This is used by the
-     * RecoilURLSync component to listen for changes to the URL and trigger UrlVariable updates.
+     * RecoilURLSync component to listen for changes to the URL and trigger Variables with QueryParamStore updates.
      *
      * This is required as by default the library only listens for 'popstate' events which are not triggered when
      * the URL is changed programmatically via history.push.
