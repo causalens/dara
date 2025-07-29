@@ -133,6 +133,8 @@ collab_variable = Variable(default='default value', store=store)
 value = await store.read()
 # store can also be accessed from the variable
 value = await variable.store.read()
+# or as a shortcut method on the variable itself (this raises an error if the store is not a BackendStore)
+value = await variable.read()
 
 # write a new value to the store
 await store.write('new value')
