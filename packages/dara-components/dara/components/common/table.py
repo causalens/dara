@@ -721,7 +721,7 @@ class Table(ContentComponent):
     :param onclick_row: An action handler for when a row is clicked on the table
     :param selected_indices: Optional variable to store the selected rows indices, must be a list of numbers. Note that these indices are
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value. If you would like the selection to persist over
-    page reloads, you must set `persist_value=True` on the variable.
+    page reloads, you must use a `BrowserStore` on a `Variable`.
     :param search_columns: Optional list defining the columns to be searched, only the columns passed are searchable
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
     :param include_index: Boolean, if True the table will render the index column(s), defaults to True

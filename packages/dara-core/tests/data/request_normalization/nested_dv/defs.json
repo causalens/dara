@@ -6,7 +6,6 @@
       {
         "default": 1,
         "nested": [],
-        "persist_value": false,
         "uid": "{{var_1_uid}}",
         "__typename": "Variable",
         "store": null
@@ -18,7 +17,6 @@
       {
         "default": 1,
         "nested": [],
-        "persist_value": false,
         "uid": "{{var_1_uid}}",
         "__typename": "Variable",
         "store": null

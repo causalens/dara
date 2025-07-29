@@ -4,10 +4,7 @@
       "a": 1,
       "b": 2
     },
-    "nested": [
-      "a"
-    ],
-    "persist_value": false,
+    "nested": ["a"],
     "uid": "{{var_1_uid}}",
     "__typename": "Variable",
     "store": null
@@ -17,10 +14,7 @@
       "a": 1,
       "b": 2
     },
-    "nested": [
-      "b"
-    ],
-    "persist_value": false,
+    "nested": ["b"],
     "uid": "{{var_2_uid}}",
     "__typename": "Variable",
     "store": null

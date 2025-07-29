@@ -131,7 +131,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         Override the init function of all Variables created within the context of this function.
 
         ```python
-        with Variable.init_override(lambda kwargs: {**kwargs, 'persist_value': True}):
+        with Variable.init_override(lambda kwargs: {**kwargs, 'store': ...}):
             var = Variable()
         ```
 

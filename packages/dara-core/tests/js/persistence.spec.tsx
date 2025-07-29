@@ -36,7 +36,7 @@ describe('Variable Persistence', () => {
     });
     afterAll(() => server.close());
 
-    test('variable with persist_value updates when storage event is triggered', async () => {
+    test('variable with BrowserStore updates when storage event is triggered', async () => {
         // We're using an object to make sure the serialisation works correctly
         const defaultValue = { val: 0 };
         const newValue = { val: 5 };
