@@ -35,9 +35,13 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             // This is a noop - the state will update when the parent DerivedVariable changes
         } else {
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
-            // NOTE: using set(..., default) instead of reset,
-            // as reset doesn't work if e.g. we use the QueryParamStore
-            ctx.set(plainAtom, variable.default);
+            if (variable.store?.__typename === 'QueryParamStore') {
+                // NOTE: using set(..., default) instead of reset,
+                // as reset doesn't properly reset the query param
+                ctx.set(plainAtom, variable.default);
+            } else {
+                ctx.reset(plainAtom);
+            }
 
             ctx.eventBus.publish('PLAIN_VARIABLE_LOADED', { variable, value: variable.default });
         }
