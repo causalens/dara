@@ -544,11 +544,13 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
 
     cwd = os.getcwd()
     os.chdir(build_cache.static_files_dir)
+    dev_logger.info('Installing JS dependencies...')
     exit_code = os.system(f'{package_manager} install')  # nosec B605 # package_manager is validated
     if exit_code > 0:
         raise SystemError(
             "Failed to install the JS dependencies - there's likely a connection issue or a broken package"
         )
+    dev_logger.info('JS dependencies installed successfully')
 
     # Load entry template as a string
     with open(entry_template, encoding='utf-8') as f:

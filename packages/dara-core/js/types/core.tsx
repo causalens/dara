@@ -154,6 +154,12 @@ export interface DataVariable {
     uid: string;
 }
 
+export interface ServerVariable {
+    __typename: 'ServerVariable';
+    uid: string;
+    scope: 'global' | 'user';
+}
+
 export type AnyVariable<T> =
     | SingleVariable<T>
     | UrlVariable<T>
@@ -161,7 +167,8 @@ export type AnyVariable<T> =
     | DataVariable
     | DerivedDataVariable
     | SwitchVariable<T>
-    | StateVariable;
+    | StateVariable
+    | ServerVariable;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
 export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
@@ -186,6 +193,12 @@ export interface ResolvedDerivedDataVariable {
     type: 'derived-data';
     uid: string;
     values: Array<any>;
+}
+
+export interface ResolvedServerVariable {
+    type: 'server';
+    uid: string;
+    sequence_number: number;
 }
 
 export interface ResolvedSwitchVariable {
