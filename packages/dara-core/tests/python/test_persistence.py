@@ -91,7 +91,7 @@ async def test_creating_plain_variable_inits_store():
     await sleep(0.5)  # Wait for the store to be initialized
 
     # Check that when reading the value, the default is respected
-    assert await var.store.read() == 123
+    assert await var.read() == 123
 
     # Verify store is put into registry
     from dara.core.internal.registries import backend_store_registry
@@ -1064,3 +1064,34 @@ async def test_sequence_number_user_subscription_notifications(mock_ws_mgr):
     message = call_args[1]
     assert 'value' in message
     assert message['sequence_number'] == 1  # Should use current sequence for this user
+
+
+async def test_store_helpers_raise_without_backend_store():
+    var = Variable()
+
+    with pytest.raises(AssertionError):
+        await var.read()
+
+    with pytest.raises(AssertionError):
+        await var.write('test')
+
+    with pytest.raises(AssertionError):
+        await var.delete()
+
+    with pytest.raises(AssertionError):
+        await var.get_all()
+
+
+async def test_store_helpers():
+    var = Variable(store=BackendStore())
+
+    await var.write('test')
+    assert await var.read() == 'test'
+
+    await var.delete()
+    assert await var.read() is None
+
+    await var.write('test2')
+    assert await var.read() == 'test2'
+
+    assert await var.get_all() == {'global': 'test2'}

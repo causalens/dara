@@ -20,7 +20,7 @@ from __future__ import annotations
 import warnings
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
@@ -36,7 +36,7 @@ from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
-from dara.core.persistence import PersistenceStore
+from dara.core.persistence import BackendStore, PersistenceStore
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
@@ -275,6 +275,70 @@ class Variable(NonDataVariable, Generic[VariableType]):
             )
 
         return cls(default=other)  # type: ignore
+
+    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
+        """
+        Persist a value to the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is written for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param value: value to write
+        :param notify: whether to broadcast the new value to clients
+        :param ignore_channel: if passed, ignore the specified websocket channel when broadcasting
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.write(value, notify=notify, ignore_channel=ignore_channel)
+
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
+        """
+        Apply partial updates to the variable's BackendStore using JSON Patch operations or automatic diffing.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the patches are applied for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param data: Either a list of JSON patch operations (RFC 6902) or a full object to diff against current value
+        :param notify: whether to broadcast the patches to clients
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.write_partial(data, notify=notify)
+
+    async def read(self):
+        """
+        Read a value from the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is read for the current user so the method can only
+        be used in authenticated contexts.
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.read()
+
+    async def delete(self, notify=True):
+        """
+        Delete the persisted value from the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is deleted for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param notify: whether to broadcast that the value was deleted to clients
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.delete(notify=notify)
+
+    async def get_all(self) -> Dict[str, Any]:
+        """
+        Get all the values from the variable's BackendStore as a dictionary of key-value pairs.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        For global scope, the dictionary contains a single key-value pair `{'global': value}`.
+        For user scope, the dictionary contains a key-value pair for each user `{'user1': value1, 'user2': value2, ...}`.
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.get_all()
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
