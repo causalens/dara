@@ -64,6 +64,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         uid: Optional[str] = None,
         store: Optional[PersistenceStoreType_co] = None,
         nested: Optional[List[str]] = None,
+        **kwargs,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -75,7 +76,14 @@ class Variable(NonDataVariable, Generic[VariableType]):
         """
         if nested is None:
             nested = []
-        kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store, 'nested': nested}
+        kwargs = {
+            'default': default,
+            'persist_value': persist_value,
+            'uid': uid,
+            'store': store,
+            'nested': nested,
+            **kwargs,
+        }
 
         # If an override is active, run the kwargs through it
         override = VARIABLE_INIT_OVERRIDE.get()
@@ -90,6 +98,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
             warnings.warn(
                 '`persist_value` is deprecated and will be removed in a future version. Use `store=dara.core.persistence.BrowserStore(...)` instead.',
                 DeprecationWarning,
+                stacklevel=2,
             )
 
         super().__init__(**kwargs)  # type: ignore

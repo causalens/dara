@@ -28,7 +28,9 @@ from dara.core.persistence import QueryParamStore
 VariableType = TypeVar('VariableType')
 
 
-@deprecated('Use dara.core.interactivity.plain_variable.Variable with dara.core.persistence.QueryParamStore instead')
+@deprecated(
+    'UrlVariable is deprecated and will be removed in a future version. Use dara.core.interactivity.plain_variable.Variable with dara.core.persistence.QueryParamStore instead'
+)
 class UrlVariable(Variable[VariableType]):
     """
     A UrlVariable is very similar to a normal Variable however rather than it's state being stored in the memory of
@@ -51,4 +53,4 @@ class UrlVariable(Variable[VariableType]):
         :param default: the initial value for the variable, defaults to None
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
-        super().__init__(default=default, uid=uid, store=QueryParamStore(query=query))
+        super().__init__(default=default, uid=uid, store=QueryParamStore(query=query), query=query)
