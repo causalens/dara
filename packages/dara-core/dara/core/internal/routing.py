@@ -309,6 +309,53 @@ def create_router(config: Configuration):
         except KeyError as err:
             raise ValueError(f'Could not find latest value for derived variable with uid: {uid}') from err
 
+    class TabularRequestBody(BaseModel):
+        filters: Optional[FilterQuery] = None
+        ws_channel: str
+        dv_values: Optional[NormalizedPayload[Mapping[str, Any]]] = None
+        """DerivedVariable values if variable is a DerivedVariable"""
+        force_key: Optional[str] = None
+        """Optional force key if variable is a DerivedVariable and a recalculation is forced"""
+
+    @core_api_router.get('/tabular-variable/{uid}', dependencies=[Depends(verify_session)])
+    async def get_tabular_variable(
+        uid: str,
+        body: TabularRequestBody,
+        offset: Optional[int] = None,
+        limit: Optional[int] = None,
+        order_by: Optional[str] = None,
+        index: Optional[str] = None,
+    ):
+        """
+        Generic endpoint for getting tabular data from a variable.
+        Supports ServerVariables and DerivedVariables.
+        """
+        pagination = Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+        # ServerVariable
+        if body.dv_values is None:
+            server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
+            data, count = await ServerVariable.get_tabular_data(server_variable_entry, body.filters, pagination)
+            return {'data': data, 'count': count}
+
+        # DerivedVariable
+        store: CacheStore = utils_registry.get('Store')
+        task_mgr: TaskManager = utils_registry.get('TaskManager')
+        variable_def = await registry_mgr.get(derived_variable_registry, uid)
+        values = denormalize(body.dv_values.data, body.dv_values.lookup)
+
+        result = await variable_def.get_tabular_data(
+            variable_def, store, task_mgr, values, body.force_key, pagination, body.filters
+        )
+
+        if isinstance(result, BaseTask):
+            await task_mgr.run_task(result, body.ws_channel)
+            return {'task_id': result.task_id}
+
+        data, count = result
+        return {'data': data, 'count': count}
+
     class DataVariableRequestBody(BaseModel):
         filters: Optional[FilterQuery] = None
         cache_key: Optional[str] = None

@@ -91,3 +91,16 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
 
 def df_to_json(df: DataFrame) -> str:
     return df_convert_to_internal(df).to_json(orient='records') or ''
+
+
+def format_for_display(df: DataFrame) -> DataFrame:
+    """
+    Apply transformations to a DataFrame to make it suitable for display.
+    """
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
+            df.loc[:, col] = df[col].apply(str)
+
+    return df
