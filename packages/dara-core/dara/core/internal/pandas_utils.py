@@ -15,9 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, TypeVar, cast
+import json
+from typing import Any, Literal, Optional, TypeVar, Union, cast
 
+from fastapi import Response
 from pandas import DataFrame, MultiIndex
+from pandas.io.json._table_schema import build_table_schema
+from typing_extensions import TypedDict, TypeGuard
+
+from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters
 
 INDEX = '__index__'
 
@@ -65,6 +71,9 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     if any(isinstance(c, str) and c.startswith('__col__') for c in df.columns):
         return df
 
+    # Apply display transformations to the DataFrame
+    format_for_display(df)
+
     # Handle hierarchical columns: [(A, B), (A, C)] -> ['A_B', 'A_C']
     if isinstance(df.columns, MultiIndex):
         df.columns = ['_'.join(col).strip() if col[0] != INDEX else INDEX for col in df.columns.values]
@@ -93,14 +102,51 @@ def df_to_json(df: DataFrame) -> str:
     return df_convert_to_internal(df).to_json(orient='records') or ''
 
 
-def format_for_display(df: DataFrame) -> DataFrame:
+def format_for_display(df: DataFrame) -> None:
     """
     Apply transformations to a DataFrame to make it suitable for display.
+    Not: this does NOT make a copy of the DataFrame
     """
-    df = df.copy()
     for col in df.columns:
         if df[col].dtype == 'object':
             # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
             df.loc[:, col] = df[col].apply(str)
 
-    return df
+
+class FieldType(TypedDict):
+    name: Union[str, tuple[str, ...]]
+    type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
+
+
+class DataFrameSchema(TypedDict):
+    fields: list[FieldType]
+    primaryKey: list[str]
+
+
+class DataResponse(TypedDict):
+    data: Optional[DataFrame]
+    count: int
+    schema: Optional[DataFrameSchema]
+
+
+def is_data_response(response: Any) -> TypeGuard[DataResponse]:
+    has_shape = isinstance(response, dict) and 'data' in response and 'count' in response
+    if not has_shape:
+        return False
+    return response['data'] is None or isinstance(response['data'], DataFrame)
+
+
+def data_response_to_json(response: DataResponse) -> str:
+    def _custom_serializer(obj: Any) -> Any:
+        if isinstance(obj, DataFrame):
+            return df_to_json(obj)
+        raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
+
+    return json.dumps(response, default=_custom_serializer)
+
+
+def build_data_response(data: DataFrame, count: int) -> DataResponse:
+    data_internal = df_convert_to_internal(data)
+    schema = cast(DataFrameSchema, build_table_schema(data_internal))
+
+    return DataResponse(data=data, count=count, schema=schema)

@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, List, Optional, Tuple, Union, cast, overload
 
 import numpy
 from pandas import DataFrame, Series  # noqa: F401
@@ -229,6 +229,18 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Serie
         return filters
     else:
         raise ValueError(f'Unknown query type {type(query)}')
+
+
+@overload
+def apply_filters(
+    data: DataFrame, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+) -> Tuple[DataFrame, int]: ...
+
+
+@overload
+def apply_filters(
+    data: None, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+) -> Tuple[None, int]: ...
 
 
 def apply_filters(

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
-from dara.core.internal.pandas_utils import format_for_display
+from dara.core.internal.pandas_utils import DataResponse, build_data_response, format_for_display
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
 
@@ -128,12 +128,12 @@ class ServerVariable(AnyVariable):
         entry: 'ServerVariableRegistryEntry',
         filters: Optional[FilterQuery] = None,
         pagination: Optional[Pagination] = None,
-    ) -> Tuple[Optional[DataFrame], int]:
+    ) -> DataResponse:
         key = cls.get_key(entry.backend.scope)
         data, count = await entry.backend.read_filtered(key, filters, pagination)
-        if data is not None:
-            data = format_for_display(data)
-        return data, count
+        if data is None:
+            return DataResponse(data=None, count=0, schema=None)
+        return build_data_response(data, count)
 
     @classmethod
     def get_key(cls, scope: Literal['global', 'user']):

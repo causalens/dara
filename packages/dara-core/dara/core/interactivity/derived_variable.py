@@ -62,7 +62,7 @@ from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.multi_resource_lock import MultiResourceLock
-from dara.core.internal.pandas_utils import format_for_display
+from dara.core.internal.pandas_utils import DataResponse, build_data_response, format_for_display
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -93,15 +93,12 @@ class DerivedVariableResult(TypedDict):
 class FilterResolver(Protocol):
     async def __call__(
         self, data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-    ) -> Tuple[Optional[DataFrame], int]: ...
+    ) -> Tuple[DataFrame, int]: ...
 
 
 async def default_filter_resolver(
     data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-) -> Tuple[Optional[DataFrame], int]:
-    if data is None:
-        return None, 0
-
+) -> Tuple[DataFrame, int]:
     assert isinstance(data, DataFrame), (
         'Default filter resolver expects a DataFrame to be returned from the DerivedVariable function'
     )
@@ -636,15 +633,13 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         filter_resolver: FilterResolver,
         filters: Optional[FilterQuery] = None,
         pagination: Optional[Pagination] = None,
-    ) -> Tuple[Optional[DataFrame], int]:
+    ) -> DataResponse:
         if data is None:
-            return None, 0
+            return DataResponse(data=None, count=0, schema=None)
 
         # Filtering part
         data, count = await filter_resolver(data, filters, pagination)
-        if data is not None:
-            data = format_for_display(data)
-        return data, count
+        return build_data_response(data, count)
 
     @classmethod
     async def get_tabular_data(
@@ -656,7 +651,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         force_key: Optional[str] = None,
         pagination: Optional[Pagination] = None,
         filters: Optional[FilterQuery] = None,
-    ) -> Union[MetaTask, Tuple[Optional[DataFrame], int]]:
+    ) -> Union[MetaTask, DataResponse]:
         """
         Get filtered tabular data from the underlying derived variable.
 
@@ -711,7 +706,7 @@ class DerivedVariableRegistryEntry(CachedRegistryEntry):
     polling_interval: Optional[int]
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
-    get_tabular_data: Callable[..., Awaitable[Union[Tuple[Optional[DataFrame], int], MetaTask]]]
+    get_tabular_data: Callable[..., Awaitable[Union[DataResponse, MetaTask]]]
     """Handler to get the tabular data of the derived variable. Defaults to DerivedVariable.get_tabular_data, should match the signature"""
     model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 

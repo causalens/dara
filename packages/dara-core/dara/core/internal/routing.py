@@ -51,7 +51,7 @@ from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import DownloadRegistryEntry
 from dara.core.internal.execute_action import CURRENT_ACTION_ID
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
-from dara.core.internal.pandas_utils import df_to_json
+from dara.core.internal.pandas_utils import data_response_to_json, df_to_json, is_data_response
 from dara.core.internal.registries import (
     action_def_registry,
     action_registry,
@@ -336,8 +336,8 @@ def create_router(config: Configuration):
         # ServerVariable
         if body.dv_values is None:
             server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
-            data, count = await ServerVariable.get_tabular_data(server_variable_entry, body.filters, pagination)
-            return {'data': data, 'count': count}
+            data_response = await ServerVariable.get_tabular_data(server_variable_entry, body.filters, pagination)
+            return Response(data_response_to_json(data_response), media_type='application/json')
 
         # DerivedVariable
         store: CacheStore = utils_registry.get('Store')
@@ -353,8 +353,7 @@ def create_router(config: Configuration):
             await task_mgr.run_task(result, body.ws_channel)
             return {'task_id': result.task_id}
 
-        data, count = result
-        return {'data': data, 'count': count}
+        return Response(data_response_to_json(result), media_type='application/json')
 
     class DataVariableRequestBody(BaseModel):
         filters: Optional[FilterQuery] = None
@@ -611,9 +610,11 @@ def create_router(config: Configuration):
                 {'value': res},
             )
 
-            # Serialize dataframes correctly
+            # Serialize dataframes correctly, either direct or as a DataResponse
             if isinstance(res, DataFrame):
-                return Response(df_to_json(res))
+                return Response(df_to_json(res), media_type='application/json')
+            elif is_data_response(res):
+                return Response(data_response_to_json(res), media_type='application/json')
 
             return res
         except Exception as err:
