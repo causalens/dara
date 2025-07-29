@@ -69,8 +69,7 @@ page_content = Stack(
 </details>
 
 :::tip
-A `Variable` can be made persistent when refreshing the page by using the `persist_value` flag.
-For more advanced persistence and collaboration options [check out the advanced guide](../advanced/persistence-and-collaboration.mdx).
+A `Variable`'s source of truth can be customized by providing a `store` parameter. This enables features like URL persistence, browser storage, and collaboration across users. For more information about available store options, [check out the persistence guide](../advanced/persistence-and-collaboration.mdx).
 :::
 
 :::caution
@@ -88,32 +87,7 @@ In the later sections of this page you will learn how to update a `Variable` and
 
 :::
 
-### `UrlVariable`
 
-`dara.core.interactivity.url_variable.UrlVariable` is very similar to a normal `Variable`. The only difference is that its state is stored in the URL of the page
-as a query parameter, rather than being stored in the memory of the client.
-This is useful to i.e. preserve state across page refreshes and providing deep links.
-
-```python
-from dara.core import ConfigurationBuilder, UrlVariable
-from dara.components import Stack, Tab, TabbedCard, Text
-
-config = ConfigurationBuilder()
-
-# State will be stored as a query param, i.e. `...?url_value=default_value`
-url_variable = UrlVariable(query='url_value', default='default_value')
-
-page_content = Stack(
-    #here selected_tab updates the state of the url_variable
-    TabbedCard(
-        Tab(Text('tab1 content'), title='Tab1'), Tab(Text('tab2 content'), title='Tab2'), selected_tab=url_variable
-    )
-)
-
-config.add_page('Url Variable', content=page_content)
-```
-
-`UrlVariable` supports nested dictionary values with the `.get(key)` method just like a normal `Variable`.
 
 ### `SwitchVariable`
 
@@ -390,7 +364,7 @@ and compose them. Learn more about composing actions [here](./actions.md#composi
 
 :::
 
-One example of a static action object is the result of calling `sync` on a `Variable` or `UrlVariable` instance. This creates an action object which, when passed to an action prop,
+One example of a static action object is the result of calling `sync` on a `Variable` instance. This creates an action object which, when passed to an action prop,
 will update the variable with the value of the input sent from the component.
 
 ```python
