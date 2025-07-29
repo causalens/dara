@@ -77,7 +77,6 @@ class Variable(NonDataVariable, Generic[VariableType]):
             nested = []
         kwargs = {
             'default': default,
-            'persist_value': persist_value,
             'uid': uid,
             'store': store,
             'nested': nested,
@@ -89,7 +88,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         if override is not None:
             kwargs = override(kwargs)
 
-        if kwargs.get('store') is not None and kwargs.get('persist_value'):
+        if kwargs.get('store') is not None and persist_value:
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 

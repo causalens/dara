@@ -8,7 +8,9 @@ from fastapi.encoders import jsonable_encoder
 from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
+from dara.core.interactivity.url_variable import UrlVariable
 from dara.core.main import _start_application
+from dara.core.persistence import BrowserStore, QueryParamStore
 
 from tests.python.utils import _get_derived_variable, create_app
 
@@ -175,3 +177,21 @@ async def test_variable_init_override():
     # check that the override is not active anymore
     new_variable = Variable(default='foo')
     assert new_variable.default == 'foo'
+
+
+async def test_persist_value():
+    """
+    Test that persist_value is backwards compatible
+    """
+    var = Variable(persist_value=True)
+    assert isinstance(var.store, BrowserStore)
+
+
+async def test_url_variable():
+    """
+    Test that url variable is backwards compatible
+    """
+    var = UrlVariable(query='test')
+    assert isinstance(var, Variable)  # subclass
+    assert isinstance(var.store, QueryParamStore)
+    assert var.store.query == 'test'
