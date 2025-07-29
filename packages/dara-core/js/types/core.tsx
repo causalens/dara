@@ -112,16 +112,6 @@ export interface DerivedVariable {
     loop_instance_uid?: string;
 }
 
-export interface DerivedDataVariable {
-    __typename: 'DerivedDataVariable';
-    cache: CachePolicy;
-    deps: Array<AnyVariable<any>>;
-    filters: FilterQuery | null;
-    polling_interval?: number;
-    uid: string;
-    variables: Array<AnyVariable<any>>;
-}
-
 export interface LoopVariable {
     __typename: 'LoopVariable';
     uid: string;
@@ -147,13 +137,6 @@ export type DataFrame = Array<{
     [col: string]: any;
 }>;
 
-export interface DataVariable {
-    __typename: 'DataVariable';
-    cache: CachePolicy;
-    filters: FilterQuery | null;
-    uid: string;
-}
-
 export interface ServerVariable {
     __typename: 'ServerVariable';
     uid: string;
@@ -164,12 +147,9 @@ export type AnyVariable<T> =
     | SingleVariable<T>
     | UrlVariable<T>
     | DerivedVariable
-    | DataVariable
-    | DerivedDataVariable
     | SwitchVariable<T>
     | StateVariable
     | ServerVariable;
-export type AnyDataVariable = DataVariable | DerivedDataVariable;
 export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
@@ -387,8 +367,6 @@ export interface DaraEventMap {
     DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
     PLAIN_VARIABLE_LOADED: { variable: SingleVariable<any>; value: any };
     URL_VARIABLE_LOADED: { variable: UrlVariable<any>; value: any };
-    DATA_VARIABLE_LOADED: { variable: DataVariable; value: any };
-    DERIVED_DATA_VARIABLE_LOADED: { variable: DerivedDataVariable; value: any };
     STATE_VARIABLE_LOADED: { variable: StateVariable; value: any };
 }
 
@@ -439,7 +417,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    variable: SingleVariable<any> | UrlVariable<any> | DataVariable;
+    variable: SingleVariable<any> | UrlVariable<any>;
     value: any;
 }
 

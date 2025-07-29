@@ -45,7 +45,7 @@ const STATE_SYNCHRONIZER = new StateSynchronizer();
  * @param variable variable to register
  * @param extras request extras to be merged into the options
  */
-export function getOrRegisterServerVariable(variable: ServerVariable, extras: RequestExtras): RecoilState<any> {
+export function getOrRegisterServerVariable(variable: ServerVariable, extras: RequestExtras): RecoilState<number> {
     if (!atomFamilyRegistry.has(variable.uid)) {
         atomFamilyRegistry.set(
             variable.uid,

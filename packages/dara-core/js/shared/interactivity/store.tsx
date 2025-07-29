@@ -64,7 +64,7 @@ export type TriggerIndexValue = {
     inc: number;
 };
 
-type RegistryKeyType = 'selector' | 'derived-selector' | 'trigger' | 'filters';
+type RegistryKeyType = 'result-selector' | 'selector' | 'derived-selector' | 'trigger' | 'filters';
 
 /**
  * Get a unique registry key of a given type for a given variable.

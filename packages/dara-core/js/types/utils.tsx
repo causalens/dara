@@ -6,8 +6,6 @@ import {
     type AnyVariable,
     type ComponentInstance,
     type Condition,
-    type DataVariable,
-    type DerivedDataVariable,
     type DerivedVariable,
     type LoopVariable,
     type ResolvedDataVariable,
@@ -52,24 +50,6 @@ export function isUrlVariable<T>(variable: AnyVariable<T> | T): variable is UrlV
  */
 export function isDerivedVariable<T>(variable: AnyVariable<T> | T): variable is DerivedVariable {
     return isVariable(variable) && variable.__typename === 'DerivedVariable';
-}
-
-/**
- * Check if a value is a data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDataVariable<T>(variable: AnyVariable<T> | T): variable is DataVariable {
-    return isVariable(variable) && variable.__typename === 'DataVariable';
-}
-
-/**
- * Check if a value is a derived data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable is DerivedDataVariable {
-    return isVariable(variable) && variable.__typename === 'DerivedDataVariable';
 }
 
 /** Check if a value is a server variable instance and type guard the response */
