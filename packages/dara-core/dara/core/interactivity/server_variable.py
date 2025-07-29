@@ -75,7 +75,7 @@ class MemoryBackend(ServerBackend):
         return apply_filters(dataset, coerce_to_filter_query(filters), pagination)
 
     async def get_sequence_number(self, key: str) -> int:
-        return self.sequence_number.get(key, 0)
+        return self.sequence_number[key]
 
 
 class ServerVariable(AnyVariable):
