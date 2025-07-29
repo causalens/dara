@@ -11,6 +11,7 @@ import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { cleanSessionCache, resolveTheme } from '@/shared/utils';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
 
+import { ServerVariableSyncProvider } from '../interactivity';
 import { StoreProviders } from '../interactivity/persistence';
 import DynamicContext from './dynamic-context';
 
@@ -118,11 +119,13 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
                 >
                     <DynamicContext contextComponents={config?.context_components ?? []}>
                         <StoreProviders>
-                            <RootWrapper>
-                                <DynamicComponent component={template!.layout} />
-                                <VariableStateProvider wsClient={wsClient} />
-                                {config?.enable_devtools && <DevTools />}
-                            </RootWrapper>
+                            <ServerVariableSyncProvider>
+                                <RootWrapper>
+                                    <DynamicComponent component={template!.layout} />
+                                    <VariableStateProvider wsClient={wsClient} />
+                                    {config?.enable_devtools && <DevTools />}
+                                </RootWrapper>
+                            </ServerVariableSyncProvider>
                         </StoreProviders>
                     </DynamicContext>
                 </RegistriesCtx.Provider>

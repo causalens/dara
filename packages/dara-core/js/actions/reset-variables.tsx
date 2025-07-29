@@ -7,6 +7,7 @@ import {
     isDataVariable,
     isDerivedDataVariable,
     isDerivedVariable,
+    isServerVariable,
     isStateVariable,
     isSwitchVariable,
     isVariable,
@@ -33,6 +34,8 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
         } else if (isStateVariable(variable)) {
             // StateVariables cannot be reset as they track parent DerivedVariable state
             // This is a noop - the state will update when the parent DerivedVariable changes
+        } else if (isServerVariable(variable)) {
+            // ServerVariables cannot be reset currently as they might not even have a default value (user stores)
         } else {
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
             if (variable.store?.__typename === 'QueryParamStore') {

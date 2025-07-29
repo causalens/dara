@@ -32,6 +32,7 @@ from dara.core.interactivity.derived_variable import (
     DerivedVariableRegistryEntry,
     LatestValueRegistryEntry,
 )
+from dara.core.interactivity.server_variable import ServerVariableRegistryEntry
 from dara.core.internal.download import DownloadDataEntry
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
@@ -45,6 +46,8 @@ upload_resolver_registry = Registry[UploadResolverDef](
 component_registry = Registry[ComponentTypeAnnotation](RegistryType.COMPONENTS, CORE_COMPONENTS)
 config_registry = Registry[EndpointConfiguration](RegistryType.ENDPOINT_CONFIG)
 data_variable_registry = Registry[DataVariableRegistryEntry](RegistryType.DATA_VARIABLE, allow_duplicates=False)
+server_variable_registry = Registry[ServerVariableRegistryEntry](RegistryType.SERVER_VARIABLE, allow_duplicates=False)
+"""map of server variable uid -> server variable entry"""
 derived_variable_registry = Registry[DerivedVariableRegistryEntry](
     RegistryType.DERIVED_VARIABLE, allow_duplicates=False
 )

@@ -2,6 +2,7 @@
 /* eslint-disable import/no-cycle */
 export * from './plain-variable';
 export * from './data-variable';
+export * from './server-variable';
 export * from './derived-variable';
 export * from './nested';
 export * from './triggers';

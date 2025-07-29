@@ -8,6 +8,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -326,7 +327,7 @@ async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], tim
     assert result
 
 
-async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict]:
+async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: Optional[int] = None) -> List[dict]:
     """
     Wait for ws messages until timeout is passed.
     """
@@ -336,6 +337,9 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict
         with anyio.move_on_after(timeout) as scope:
             msg = await ws.receive_json()
             messages.append(msg)
+
+            if count is not None and len(messages) == count:
+                break
 
         if scope.cancel_called:
             break

@@ -42,6 +42,7 @@ from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.interactivity.state_variable import StateVariable
 from dara.core.interactivity.switch_variable import SwitchVariable
 from dara.core.interactivity.url_variable import UrlVariable
@@ -69,6 +70,7 @@ __all__ = [
     'TriggerVariable',
     'UpdateVariable',
     'UpdateVariableImpl',
+    'ServerVariable',
     'SideEffect',
     'Condition',
     'Operator',

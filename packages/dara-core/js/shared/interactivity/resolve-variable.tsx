@@ -8,6 +8,7 @@ import {
     type ResolvedDataVariable,
     type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
     isDataVariable,
@@ -16,13 +17,19 @@ import {
     isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
+    isServerVariable,
     isStateVariable,
     isSwitchVariable,
     isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolveDataVariable } from './internal';
+import {
+    getOrRegisterDerivedVariable,
+    getOrRegisterPlainVariable,
+    resolveDataVariable,
+    resolveServerVariable,
+} from './internal';
 
 /**
  * Resolve a variable to a value (for non-derived variables using provided resolver)
@@ -48,6 +55,7 @@ export function resolveVariable<VariableType>(
     | ResolvedDerivedVariable
     | ResolvedDerivedDataVariable
     | ResolvedDataVariable
+    | ResolvedServerVariable
     | ResolvedSwitchVariable
     | VariableType {
     if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
@@ -79,6 +87,10 @@ export function resolveVariable<VariableType>(
 
     if (isDataVariable(variable)) {
         return resolveDataVariable(variable);
+    }
+
+    if (isServerVariable(variable)) {
+        return resolveServerVariable(variable, extras, resolver);
     }
 
     if (isSwitchVariable(variable)) {
