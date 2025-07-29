@@ -17,6 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import warnings
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, Generic, List, Optional, TypeVar
@@ -84,6 +85,12 @@ class Variable(NonDataVariable, Generic[VariableType]):
         if kwargs.get('store') is not None and kwargs.get('persist_value'):
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
+
+        if persist_value is not None:
+            warnings.warn(
+                '`persist_value` is deprecated and will be removed in a future version. Use `store=dara.core.persistence.BrowserStore(...)` instead.',
+                DeprecationWarning,
+            )
 
         super().__init__(**kwargs)  # type: ignore
 

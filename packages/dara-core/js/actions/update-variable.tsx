@@ -1,5 +1,4 @@
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
-import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
 import { type ActionHandler, type UpdateVariableImpl } from '@/types/core';
 
 /**
@@ -24,10 +23,6 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl
         case 'Variable':
             varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
             eventName = 'PLAIN_VARIABLE_LOADED';
-            break;
-        case 'UrlVariable':
-            varAtom = getOrRegisterUrlVariable(actionImpl.variable);
-            eventName = 'URL_VARIABLE_LOADED';
             break;
         case 'DataVariable':
             throw new Error('DataVariable is not supported in UpdateVariable action');

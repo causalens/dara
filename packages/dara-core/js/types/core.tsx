@@ -81,19 +81,20 @@ export interface BackendStore extends PersistenceStore {
     readonly: boolean;
 }
 
-export interface SingleVariable<T = any, TStore extends PersistenceStore = never> {
+export interface QueryParamStore extends PersistenceStore {
+    __typename: 'QueryParamStore';
+    query: string;
+}
+
+export interface BrowserStore extends PersistenceStore {
+    __typename: 'BrowserStore';
+}
+
+export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
     __typename: 'Variable';
     default: T | DerivedVariable;
     nested: string[];
-    persist_value?: boolean;
     store?: TStore;
-    uid: string;
-}
-
-export interface UrlVariable<T> {
-    __typename: 'UrlVariable';
-    default: T;
-    query: string;
     uid: string;
 }
 
@@ -156,14 +157,13 @@ export interface DataVariable {
 
 export type AnyVariable<T> =
     | SingleVariable<T>
-    | UrlVariable<T>
     | DerivedVariable
     | DataVariable
     | DerivedDataVariable
     | SwitchVariable<T>
     | StateVariable;
 export type AnyDataVariable = DataVariable | DerivedDataVariable;
-export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
+export type Variable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;
@@ -373,7 +373,6 @@ export interface DaraEventMap {
     SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
     DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
     PLAIN_VARIABLE_LOADED: { variable: SingleVariable<any>; value: any };
-    URL_VARIABLE_LOADED: { variable: UrlVariable<any>; value: any };
     DATA_VARIABLE_LOADED: { variable: DataVariable; value: any };
     DERIVED_DATA_VARIABLE_LOADED: { variable: DerivedDataVariable; value: any };
     STATE_VARIABLE_LOADED: { variable: StateVariable; value: any };
@@ -426,7 +425,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    variable: SingleVariable<any> | UrlVariable<any> | DataVariable;
+    variable: SingleVariable<any> | DataVariable;
     value: any;
 }
 

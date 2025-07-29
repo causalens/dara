@@ -99,7 +99,7 @@ export interface ActionMessage {
         /**
          * Action implementation instance
          */
-        action: ActionImpl;
+        action: ActionImpl | null;
         /**
          * Execution uid
          */
@@ -199,7 +199,7 @@ const pingMessage: PingPongMessage = {
 };
 
 export interface WebSocketClientInterface {
-    actionMessages$: (executionId: string) => Observable<ActionImpl>;
+    actionMessages$: (executionId: string) => Observable<ActionImpl | null>;
     backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
     backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']>;
     channel$: () => Observable<string>;
@@ -445,7 +445,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      *
      * @param executionId id of the execution to receive action implementations for
      */
-    actionMessages$(executionId: string): Observable<ActionImpl> {
+    actionMessages$(executionId: string): Observable<ActionImpl | null> {
         return this.messages$.pipe(
             filter((msg): msg is ActionMessage => isActionMessage(msg) && msg.message.uid === executionId),
             map((msg) => msg.message.action)

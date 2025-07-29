@@ -126,7 +126,6 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
             return atomFamilyMembersRegistry.get(family)!.size > 0;
         }
 
-        case 'UrlVariable':
         case 'DataVariable':
             return atomRegistry.has(variable.uid);
 

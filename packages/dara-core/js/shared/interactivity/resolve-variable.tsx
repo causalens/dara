@@ -18,17 +18,11 @@ import {
     isResolvedSwitchVariable,
     isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import {
-    getOrRegisterDerivedVariable,
-    getOrRegisterPlainVariable,
-    getOrRegisterUrlVariable,
-    resolveDataVariable,
-} from './internal';
+import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolveDataVariable } from './internal';
 
 /**
  * Resolve a variable to a value (for non-derived variables using provided resolver)
@@ -85,10 +79,6 @@ export function resolveVariable<VariableType>(
 
     if (isDataVariable(variable)) {
         return resolveDataVariable(variable);
-    }
-
-    if (isUrlVariable(variable)) {
-        return resolver(getOrRegisterUrlVariable(variable));
     }
 
     if (isSwitchVariable(variable)) {
