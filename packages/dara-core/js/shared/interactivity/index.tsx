@@ -1,7 +1,6 @@
 export { useVariable } from './use-variable';
-export { useAnyVariable } from './use-any-variable';
 export { default as useVariableValue, getVariableValue } from './use-variable-value';
-export { useDataVariable } from './use-data-variable';
+export { useTabularVariable as useDataVariable } from './use-tabular-variable';
 export { combineFilters } from './filtering';
 export { default as useRefreshSelector } from './use-refresh-selector';
 export { default as useVariableState } from './use-variable-state';

@@ -127,15 +127,9 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         }
 
         case 'UrlVariable':
-        case 'DataVariable':
             return atomRegistry.has(variable.uid);
 
         case 'DerivedVariable': {
-            const key = getRegistryKey(variable, 'selector');
-            return selectorFamilyRegistry.has(key);
-        }
-
-        case 'DerivedDataVariable': {
             const key = getRegistryKey(variable, 'selector');
             return selectorFamilyRegistry.has(key);
         }

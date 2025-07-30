@@ -5,16 +5,11 @@ import { type RequestExtras } from '@/api/http';
 import {
     type AnyVariable,
     type GlobalTaskContext,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
-    isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
     isServerVariable,
@@ -25,12 +20,7 @@ import {
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import {
-    getOrRegisterDerivedVariable,
-    getOrRegisterPlainVariable,
-    getOrRegisterUrlVariable,
-    resolveDataVariable,
-} from './internal';
+import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, getOrRegisterUrlVariable } from './internal';
 import { resolveServerVariable } from './server-variable';
 
 /**
@@ -55,12 +45,10 @@ export function resolveVariable<VariableType>(
 ):
     | RecoilState<VariableType>
     | ResolvedDerivedVariable
-    | ResolvedDerivedDataVariable
-    | ResolvedDataVariable
     | ResolvedServerVariable
     | ResolvedSwitchVariable
     | VariableType {
-    if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+    if (isDerivedVariable(variable)) {
         getOrRegisterDerivedVariable(variable, client, taskContext, extras);
 
         // For derived variable, recursively resolve the dependencies
@@ -69,26 +57,12 @@ export function resolveVariable<VariableType>(
         // Store indexes of values which are in deps
         const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
 
-        if (isDerivedDataVariable(variable)) {
-            return {
-                deps,
-                filters: variable.filters,
-                type: 'derived-data',
-                uid: variable.uid,
-                values,
-            } satisfies ResolvedDerivedDataVariable;
-        }
-
         return {
             deps,
             type: 'derived',
             uid: variable.uid,
             values,
         } satisfies ResolvedDerivedVariable;
-    }
-
-    if (isDataVariable(variable)) {
-        return resolveDataVariable(variable);
     }
 
     if (isServerVariable(variable)) {
@@ -150,7 +124,7 @@ export function resolveVariable<VariableType>(
  * @param forceKeyOverride optional force key to use instead of the one embedded in the resolved variable
  */
 export function cleanValue(value: unknown, forceKeyOverride?: string | null): any {
-    if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
+    if (isResolvedDerivedVariable(value)) {
         const { deps, ...rest } = value;
         const cleanedValues = value.values.map((v) => cleanValue(v));
 

@@ -5,8 +5,6 @@ import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
 import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
 import {
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
     isServerVariable,
     isStateVariable,
@@ -22,7 +20,7 @@ import {
 const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
     actionImpl.variables.filter(isVariable).forEach((variable) => {
         // For DVs, trigger their recalculation
-        if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+        if (isDerivedVariable(variable)) {
             const triggerAtom = getOrRegisterTrigger(variable);
 
             ctx.set(triggerAtom, (triggerIndexValue) => ({
@@ -35,8 +33,6 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             ctx.set(urlAtom, variable.default);
 
             ctx.eventBus.publish('URL_VARIABLE_LOADED', { variable, value: variable.default });
-        } else if (isDataVariable(variable)) {
-            // for data variables this is a noop
         } else if (isSwitchVariable(variable)) {
             // cannot reset switch variables
         } else if (isStateVariable(variable)) {

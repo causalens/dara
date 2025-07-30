@@ -29,8 +29,8 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl
             varAtom = getOrRegisterUrlVariable(actionImpl.variable);
             eventName = 'URL_VARIABLE_LOADED';
             break;
-        case 'DataVariable':
-            throw new Error('DataVariable is not supported in UpdateVariable action');
+        case 'ServerVariable':
+            throw new Error('ServerVariable is not supported in UpdateVariable action');
     }
 
     let newValue;

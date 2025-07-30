@@ -160,21 +160,6 @@ export interface ResolvedDerivedVariable {
     values: Array<any>;
 }
 
-export interface ResolvedDataVariable {
-    filters: FilterQuery | null;
-    type: 'data';
-    uid: string;
-}
-
-export interface ResolvedDerivedDataVariable {
-    deps: Array<number>;
-    filters: FilterQuery | null;
-    force_key?: string | null;
-    type: 'derived-data';
-    uid: string;
-    values: Array<any>;
-}
-
 export interface ResolvedServerVariable {
     type: 'server';
     uid: string;

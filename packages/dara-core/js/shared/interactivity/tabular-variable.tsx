@@ -15,7 +15,7 @@ import {
     type ServerVariable,
 } from '@/types';
 
-import { normalizeRequest } from '../utils';
+import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { type DerivedResult, cleanArgs } from './internal';
 

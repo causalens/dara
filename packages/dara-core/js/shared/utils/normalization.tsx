@@ -1,13 +1,9 @@
 import {
     type AnyVariable,
-    type DerivedDataVariable,
     type DerivedVariable,
     type NormalizedPayload,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
-    isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
 } from '@/types';
@@ -95,16 +91,16 @@ export function denormalize(obj: JsonLike, lookup: Mapping): Mapping | JsonArray
  * @param def variable definition
  */
 function normalizeResolvedDerivedVariable(
-    resolved: ResolvedDerivedVariable | ResolvedDerivedDataVariable,
-    def: DerivedVariable | DerivedDataVariable
+    resolved: ResolvedDerivedVariable,
+    def: DerivedVariable
 ): NormalizedPayload<any> {
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    const normalizedValues: Array<any | ResolvedDerivedVariable | ResolvedDerivedDataVariable> = [];
+    const normalizedValues: Array<any | ResolvedDerivedVariable> = [];
     let lookup: Record<string, any> = {};
 
     for (const [key, val] of resolved.values.entries()) {
         // Recursively call normalize on resolve derived variables
-        if (isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val)) {
+        if (isResolvedDerivedVariable(val)) {
             const { data: nestedNormalized, lookup: nestedLookup } = normalizeResolvedDerivedVariable(
                 val,
                 def.variables[key] as DerivedVariable
@@ -165,7 +161,7 @@ export function normalizeRequest(
         // If no def is found, i.e. a static kwarg in PyComponent
         if (!kwargDef) {
             data[key] = val;
-        } else if (isDerivedVariable(kwargDef) || isDerivedDataVariable(kwargDef)) {
+        } else if (isDerivedVariable(kwargDef)) {
             // Handle resolved derived variable
             const { data: nestedData, lookup: nestedLookup } = normalizeResolvedDerivedVariable(val, kwargDef);
             data[key] = nestedData;
