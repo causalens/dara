@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.10
 
 -  Fixed an issue where `Table` type inference would not handle the different datetime64 types correctly.
 
