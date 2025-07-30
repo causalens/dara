@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Deprecated `UrlVariable` in favour of using `Variable(store=QueryParamStore(query=...))`
+-  Deprecated `persist_value` on `Variable` in favour of using `Variable(store=BrowserStore(...))` instead
+-  Added `read`, `write`, `delete`, `get_all` shortcut methods on `Variable` that pass through to the corresponding methods on the attached `BackendStore` instance. This allows for a more concise API when using `BackendStore` but raise if the attached store is not of the `BackendStore` type
+
 ## 1.19.1
 
 -  Added StateVariable feature for tracking DerivedVariable states (loading, error, hasValue) via `dv.is_loading`, `dv.has_error`, and `dv.has_value` properties

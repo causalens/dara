@@ -22,7 +22,7 @@ from pydantic import field_validator
 from dara.components.common.base_component import ContentComponent
 from dara.components.common.utils import CarouselItem
 from dara.core.base_definitions import Action
-from dara.core.interactivity import NonDataVariable, UrlVariable, Variable
+from dara.core.interactivity import NonDataVariable, Variable
 
 
 class Carousel(ContentComponent):
@@ -119,7 +119,7 @@ class Carousel(ContentComponent):
     """
 
     items: Union[List[CarouselItem], NonDataVariable]
-    value: Optional[Union[Variable[int], UrlVariable[int]]] = None
+    value: Optional[Variable[int]] = None
     onchange: Optional[Action] = None
 
     @field_validator('items', mode='before')

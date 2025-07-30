@@ -540,3 +540,25 @@ class BackendStoreEntry(BaseModel):
     uid: str
     store: BackendStore
     """Store instance"""
+
+
+class BrowserStore(PersistenceStore):
+    """
+    Persistence store implementation that uses browser local storage
+    """
+
+    async def init(self, variable: 'Variable'):
+        # noop
+        pass
+
+
+class QueryParamStore(PersistenceStore):
+    """
+    Persistence store implementation that uses a URL query parameter
+    """
+
+    query: str
+
+    async def init(self, variable: 'Variable'):
+        # noop
+        pass

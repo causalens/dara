@@ -2,7 +2,6 @@
   "Variable:{{root_var_uid}}": {
     "default": "test",
     "nested": [],
-    "persist_value": false,
     "uid": "{{root_var_uid}}",
     "__typename": "Variable",
     "store": null

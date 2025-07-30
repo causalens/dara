@@ -63,15 +63,15 @@ The `ActionCtx` instance injected into the decorated function has the following 
 
 ```python
 async def update(
-    variable: Variable | UrlVariable | DataVariable,
+    variable: Variable | DataVariable,
     value: Any
 )
 ```
 
-`update` is a method to trigger an update of a `Variable`, `DataVariable` or `UrlVariable`. It takes the following arguments:
+`update` is a method to trigger an update of a `Variable` or `DataVariable` . It takes the following arguments:
 
-- `variable` - a `Variable`, `DataVariable` or `UrlVariable` instance to update with a new value upon triggering the action
-- `value` - the new value to update the `Variable`, `DataVariable` or `UrlVariable` with
+- `variable` - a `Variable` or `DataVariable` instance to update with a new value upon triggering the action
+- `value` - the new value to update the `Variable` or `DataVariable` with
 
 Note that the value passed to `update` must be a valid value for the variable type. In particular, updating a `DataVariable` should be done with a `pandas.DataFrame` instance or `None`.
 
@@ -548,12 +548,6 @@ Select(
 In the above example, the `sync_action` action and the `sync` shortcut action have the same functionality - both update the `some_variable` variable with the value of the selected item in the `Select` component.
 Note that if you would like to transform the value coming from the component before updating the variable, you should use the `@action` decorator instead.
 
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.sync) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.sync).
-
-:::
-
 ### `update`
 
 `update` is a convenience method to update a given `Variable` with a new static value.
@@ -575,12 +569,6 @@ Button('set to True', onclick=var.update(value=True))
 In the above example, the `manual_action` action and the `update` shortcut action have the same functionality - both update the `var` variable with the value `True`.
 The shortcut action is useful in scenarios where you want to update a variable with a static value, without the need to compute it in an `@action`-annotated function.
 
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.update) and [DataVariable](dara.core.interactivity.data_variable.DataVariable.update) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.update).
-
-:::
-
 ### `toggle`
 
 `toggle` is a convenience method to toggle a given `Variable` between `True` and `False`.
@@ -600,12 +588,6 @@ Button('toggle', onclick=var.toggle())
 ```
 
 In the above example, the `toggle_action` action and the `toggle` shortcut action have the same functionality - both toggle the `var` variable between `True` and `False`.
-
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.toggle) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.toggle).
-
-:::
 
 ### `trigger`
 
@@ -778,8 +760,8 @@ Below are example of how to use the deprecated API and how to migrate to the new
 
 The `UpdateVariable` API takes the following arguments:
 
-- `resolver`: a function to resolve the new value for the `Variable`, `DataVariable` or `UrlVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
-- `variable`: the `Variable`, `DataVariable` or `UrlVariable` to update with a new value upon triggering the action
+- `resolver`: a function to resolve the new value for the `Variable` or `DataVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
+- `variable`: the `Variable` or `DataVariable`  to update with a new value upon triggering the action
 - `extras`: any extra variables to resolve and pass to the resolver function, you can obtain a list of the resolved values of all the extras passed with `ctx.extras` in the resolver function
 
 ```python

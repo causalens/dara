@@ -16,10 +16,10 @@ import type {
     DerivedDataVariable,
     DerivedVariable,
     NavigateToImpl,
+    QueryParamStore,
     ResetVariablesImpl,
     SingleVariable,
     UpdateVariableImpl,
-    UrlVariable,
     Variable,
 } from '../../js/types/core';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
@@ -139,11 +139,15 @@ describe('useAction', () => {
             uid: 'uid',
         };
 
-        const urlVariable: UrlVariable<string> = {
-            __typename: 'UrlVariable',
+        const urlVariable: SingleVariable<string, QueryParamStore> = {
+            __typename: 'Variable',
             default: 'url_value',
-            query: 'q',
+            store: {
+                __typename: 'QueryParamStore',
+                query: 'q',
+            },
             uid: 'url-uid',
+            nested: [],
         };
 
         const action1: UpdateVariableImpl = {
@@ -196,7 +200,7 @@ describe('useAction', () => {
             },
         ]);
         expect(receivedData[1]).toEqual([
-            'URL_VARIABLE_LOADED',
+            'PLAIN_VARIABLE_LOADED',
             {
                 variable: urlVariable,
                 value: 'updated',
@@ -311,7 +315,7 @@ describe('useAction', () => {
             );
         };
 
-        const { getByTestId } = wrappedRender(<MockComponent action={action} var={variable} />);
+        const { getByTestId } = wrappedRender(<MockComponent action={action} />);
 
         await waitFor(() => expect(getByTestId('update')).toBeInTheDocument());
 
@@ -663,13 +667,17 @@ describe('useAction', () => {
         expect(getContent()).toEqual({ nested: { inner_nested: { key: 'updated' }, key: 'updated' } });
     });
 
-    it('should handle UPDATE_VARIABLE for UrlVariable', async () => {
+    it('should handle UPDATE_VARIABLE for Variable with QueryParamStore', async () => {
         const history = createMemoryHistory();
-        const variable: UrlVariable<string> = {
-            __typename: 'UrlVariable',
+        const variable: SingleVariable<string, QueryParamStore> = {
+            __typename: 'Variable',
             default: 'value',
-            query: 'q',
+            store: {
+                __typename: 'QueryParamStore',
+                query: 'q',
+            },
             uid: 'uid',
+            nested: [],
         };
 
         const action: UpdateVariableImpl = {
@@ -708,21 +716,29 @@ describe('useAction', () => {
         await waitFor(() => expect(history.location.search).toBe('?q=updated'));
     });
 
-    it('should handle UPDATE_VARIABLE for multiple UrlVariables', async () => {
+    it('should handle UPDATE_VARIABLE for multiple Variables with QueryParamStore', async () => {
         const history = createMemoryHistory();
 
-        const variable1: UrlVariable<string> = {
-            __typename: 'UrlVariable',
+        const variable1: SingleVariable<string, QueryParamStore> = {
+            __typename: 'Variable',
             default: '1',
-            query: 'x',
+            store: {
+                __typename: 'QueryParamStore',
+                query: 'x',
+            },
             uid: 'uid1',
+            nested: [],
         };
 
-        const variable2: UrlVariable<string> = {
-            __typename: 'UrlVariable',
+        const variable2: SingleVariable<string, QueryParamStore> = {
+            __typename: 'Variable',
             default: '1',
-            query: 'y',
+            store: {
+                __typename: 'QueryParamStore',
+                query: 'y',
+            },
             uid: 'uid2',
+            nested: [],
         };
 
         const action1: UpdateVariableImpl = {
@@ -804,9 +820,14 @@ describe('useAction', () => {
             filters: {
                 column: 'col1',
                 value: 'val1',
+                operator: 'EQ',
             },
             uid: 'result2',
             variables: [variableB],
+            cache: {
+                policy: 'global',
+                cache_type: 'session',
+            },
         };
 
         const action: UpdateVariableImpl = {
@@ -822,6 +843,7 @@ describe('useAction', () => {
             },
             loading: LOADING_VARIABLE,
             uid: 'uid',
+            definition_uid: 'definition',
         };
 
         const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
@@ -840,7 +862,7 @@ describe('useAction', () => {
         };
 
         // store received message
-        let serverReceivedMessage: object = null;
+        let serverReceivedMessage: Record<string, any> | null = null;
 
         server.use(
             rest.post('/api/core/action/:uid', async (req, res, ctx) => {
@@ -870,7 +892,7 @@ describe('useAction', () => {
 
         act(() => {
             // get execution id from the received message
-            const executionId = serverReceivedMessage.execution_id;
+            const executionId = serverReceivedMessage!.execution_id;
             wsClient.receiveMessage({
                 message: {
                     action,
@@ -912,14 +934,18 @@ describe('useAction', () => {
         });
     });
 
-    it('should handle RESET_VARIABLE for UrlVariable', async () => {
+    it('should handle RESET_VARIABLE for Variable with QueryParamStore', async () => {
         const history = createMemoryHistory();
 
-        const variable: UrlVariable<string> = {
-            __typename: 'UrlVariable',
+        const variable: SingleVariable<string, QueryParamStore> = {
+            __typename: 'Variable',
             default: 'default-value',
-            query: 'q',
+            store: {
+                __typename: 'QueryParamStore',
+                query: 'q',
+            },
             uid: 'uid',
+            nested: [],
         };
 
         const resetAction: ResetVariablesImpl = {
@@ -1094,11 +1120,11 @@ describe('useAction', () => {
         );
 
         // store received message
-        let serverReceivedMessage: object = null;
+        let serverReceivedMessage: Record<string, any> | null = null;
 
         server.use(
             rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                serverReceivedMessage = req.body as object;
+                serverReceivedMessage = req.body as Record<string, any>;
                 return res(
                     ctx.json({
                         execution_id: 'execution_uid',
@@ -1120,7 +1146,7 @@ describe('useAction', () => {
         // Send custom impls via wsClient
         act(() => {
             // get execution id from the received message
-            const executionId = serverReceivedMessage.execution_id;
+            const executionId = serverReceivedMessage!.execution_id;
             wsClient.receiveMessage({
                 message: {
                     action: customAction,

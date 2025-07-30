@@ -18,7 +18,6 @@ import {
     type ServerVariable,
     type StateVariable,
     type SwitchVariable,
-    type UrlVariable,
 } from './core';
 
 /**
@@ -34,15 +33,6 @@ export function isVariable<T>(variable: AnyVariable<T> | T): variable is AnyVari
         variable.hasOwnProperty('__typename') &&
         (variable as { __typename: string }).__typename.includes('Variable')
     );
-}
-
-/**
- * Check if a value is a UrlVariable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isUrlVariable<T>(variable: AnyVariable<T> | T): variable is UrlVariable<T> {
-    return isVariable(variable) && variable.__typename === 'UrlVariable';
 }
 
 /**

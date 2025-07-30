@@ -2,7 +2,6 @@ import { nanoid } from 'nanoid';
 
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
-import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
 import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
 import {
     isDataVariable,
@@ -11,7 +10,6 @@ import {
     isServerVariable,
     isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types/utils';
 
@@ -29,12 +27,6 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
                 force_key: nanoid(),
                 inc: triggerIndexValue.inc + 1,
             }));
-        } else if (isUrlVariable(variable)) {
-            // For UrlVariables, we use set instead of reset to update the URL as well; otherwise just the atom is reset
-            const urlAtom = getOrRegisterUrlVariable(variable);
-            ctx.set(urlAtom, variable.default);
-
-            ctx.eventBus.publish('URL_VARIABLE_LOADED', { variable, value: variable.default });
         } else if (isDataVariable(variable)) {
             // for data variables this is a noop
         } else if (isSwitchVariable(variable)) {
@@ -45,9 +37,14 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
         } else if (isServerVariable(variable)) {
             // ServerVariables cannot be reset currently as they might not even have a default value (user stores)
         } else {
-            // For plain variables reset them to default values
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
-            ctx.reset(plainAtom);
+            if (variable.store?.__typename === 'QueryParamStore') {
+                // NOTE: using set(..., default) instead of reset,
+                // as reset doesn't properly reset the query param
+                ctx.set(plainAtom, variable.default);
+            } else {
+                ctx.reset(plainAtom);
+            }
 
             ctx.eventBus.publish('PLAIN_VARIABLE_LOADED', { variable, value: variable.default });
         }

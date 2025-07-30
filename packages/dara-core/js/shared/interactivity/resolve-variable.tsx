@@ -20,7 +20,6 @@ import {
     isServerVariable,
     isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types';
 
@@ -28,10 +27,9 @@ import {
 import {
     getOrRegisterDerivedVariable,
     getOrRegisterPlainVariable,
-    getOrRegisterUrlVariable,
     resolveDataVariable,
+    resolveServerVariable,
 } from './internal';
-import { resolveServerVariable } from './server-variable';
 
 /**
  * Resolve a variable to a value (for non-derived variables using provided resolver)
@@ -93,10 +91,6 @@ export function resolveVariable<VariableType>(
 
     if (isServerVariable(variable)) {
         return resolveServerVariable(variable, extras, resolver);
-    }
-
-    if (isUrlVariable(variable)) {
-        return resolver(getOrRegisterUrlVariable(variable));
     }
 
     if (isSwitchVariable(variable)) {
