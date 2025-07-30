@@ -294,14 +294,56 @@ function filtersToFilterQuery(filters: Filter[]): FilterQuery {
  *
  * If column has datetime formatter, datetime filter, or type=datetime then its a datetime column
  */
-function getDatetimeColumns(columns: ColumnProps[]): string[] {
+function getDatetimeColumns(columns: ColumnProps[]): [id: string, type: string][] {
     if (columns) {
         return columns
             .filter(
-                (col) => col?.formatter?.type === 'datetime' || col.type === 'datetime' || col.filter === 'datetime'
+                (col) =>
+                    col?.formatter?.type === 'datetime' || col?.type?.includes('datetime') || col.filter === 'datetime'
             )
-            .map((c) => c.col_id);
+            .map((c) => [c.col_id, c.type]);
     }
+
+    return [];
+}
+
+type DatetimeUnit = 'ns' | 'us' | 'ms' | 's';
+
+function extractDatetimeUnit(dtypeString: string): DatetimeUnit {
+    if (!dtypeString) {
+        return 'ns';
+    }
+    // Extract unit from strings like 'datetime64[ns]', 'datetime64[ms]', etc.
+    const match = dtypeString.match(/datetime64\[(\w+)\]/);
+    return match ? (match[1] as DatetimeUnit) : 'ns'; // default to nanoseconds
+}
+
+function parseTimestamp(timestamp: number | null, colType: string): string {
+    if (!timestamp) {
+        return String(timestamp);
+    }
+
+    const unit = extractDatetimeUnit(colType);
+    let timestampMs;
+
+    switch (unit) {
+        case 's':
+            timestampMs = timestamp * 1000;
+            break;
+        case 'ms':
+            timestampMs = timestamp;
+            break;
+        case 'us':
+            timestampMs = timestamp / 1000;
+            break;
+        case 'ns':
+            timestampMs = timestamp / 1_000_000;
+            break;
+        default:
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            return String(timestamp);
+    }
+    return formatISO(new Date(timestampMs));
 }
 
 /**
@@ -410,12 +452,19 @@ function Table(props: TableProps): JSX.Element {
                     // Prop not provided, create columns from data
                     processedColumns = columnsWithoutGeneratedIndex.map((column) => {
                         const isIndex = column.startsWith(INDEX_COL);
+                        let formatter: ColumnProps['formatter'];
+                        if (fieldTypes[column]?.type === 'boolean') {
+                            formatter = { type: 'boolean' };
+                        } else if ((fieldTypes[column]?.type ?? '').includes('datetime')) {
+                            formatter = { type: 'datetime' };
+                        }
+
                         return {
                             col_id: column,
                             sticky: isIndex ? 'left' : undefined,
                             label: extractColumnLabel(column, isIndex),
                             type: fieldTypes[column]?.type as ColumnProps['type'],
-                            formatter: fieldTypes[column]?.type === 'boolean' ? { type: 'boolean' } : undefined,
+                            formatter,
                         };
                     });
                     if (!props.include_index) {
@@ -447,18 +496,10 @@ function Table(props: TableProps): JSX.Element {
 
             return {
                 data: response.data.map((row: DataRow) => {
-                    for (const val of datetimeColumns) {
+                    for (const [colId, colType] of datetimeColumns) {
                         // Format datetime timestamps to dates
-                        if (typeof row[val] === 'number') {
-                            let timestamp = row[val];
-                            if (timestamp < 1e12) {
-                                // Likely in seconds
-                                timestamp *= 1_000; // Convert to milliseconds
-                            } else if (timestamp > 1e15) {
-                                // Likely in nanoseconds
-                                timestamp /= 1_000_000; // Convert to milliseconds
-                            }
-                            row[val] = formatISO(new Date(timestamp));
+                        if (typeof row[colId] === 'number') {
+                            row[colId] = parseTimestamp(row[colId], colType);
                         }
                     }
 
