@@ -22,7 +22,6 @@ from typing import Optional, Union, cast
 
 from anyio.abc import TaskGroup
 from pandas import DataFrame
-from pandas.io.json._table_schema import build_table_schema
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -44,7 +43,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal, get_schema
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
@@ -230,7 +229,7 @@ class DataVariable(AnyDataVariable):
                 store.set(
                     var_entry,
                     key=cls._get_schema_cache_key(var_entry.uid),
-                    value=build_table_schema(df_convert_to_internal(entry.data)),
+                    value=get_schema(df_convert_to_internal(entry.data)),
                     pin=True,
                 ),
             )

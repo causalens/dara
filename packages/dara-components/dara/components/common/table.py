@@ -379,7 +379,18 @@ class Column(BaseModel):
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
-    type: Optional[Union[Literal['number'], Literal['string'], Literal['datetime']]] = None
+    type: Optional[
+        Union[
+            Literal['number'],
+            Literal['string'],
+            # Generic datetime, assumes datetime64[ns]
+            Literal['datetime'],
+            # Specific datetime64 types
+            Literal['datetime64[ns]'],
+            Literal['datetime64[ms]'],
+            Literal['datetime64[s]'],
+        ]
+    ] = None
 
     model_config = ConfigDict(use_enum_values=True)
 

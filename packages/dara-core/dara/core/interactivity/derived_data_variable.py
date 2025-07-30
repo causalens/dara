@@ -22,7 +22,6 @@ from typing import Any, Callable, List, Optional, Union, cast
 from uuid import uuid4
 
 from pandas import DataFrame
-from pandas.io.json._table_schema import build_table_schema
 from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.base_definitions import (
@@ -51,7 +50,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal, get_schema
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -207,7 +206,7 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         await store.set(
             registry_entry=var_entry,
             key=cls._get_schema_cache_key(value['cache_key']),
-            value=build_table_schema(
+            value=get_schema(
                 df_convert_to_internal(cast(DataFrame, value['value'])),
             )
             if isinstance(value['value'], DataFrame)

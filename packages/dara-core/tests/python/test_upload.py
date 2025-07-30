@@ -237,7 +237,7 @@ async def test_upload_data_variable_default_xlsx():
                 assert numpy.allclose(list_1, list_2)
             # hanadle timestamp
             elif isinstance(list_2[0], Timestamp):
-                list_1_as_date = to_datetime(list_1, unit='ms')  # Convert Unix time in milliseconds to datetime
+                list_1_as_date = to_datetime(list_1, unit='ns')  # Convert Unix time in nanoseconds to datetime
                 assert list_1_as_date.to_list() == list_2  # Assert that they are equal
             else:
                 assert list_1 == list_2
