@@ -65,6 +65,9 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     if any(isinstance(c, str) and c.startswith('__col__') for c in df.columns):
         return df
 
+    # Append index to match the way we process the original DataFrame
+    df = cast(DataFrame, append_index(df))
+
     # Handle hierarchical columns: [(A, B), (A, C)] -> ['A_B', 'A_C']
     if isinstance(df.columns, MultiIndex):
         df.columns = ['_'.join(col).strip() if col[0] != INDEX else INDEX for col in df.columns.values]
@@ -90,4 +93,19 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
 
 
 def df_to_json(df: DataFrame) -> str:
-    return df_convert_to_internal(df).to_json(orient='records') or ''
+    return df_convert_to_internal(df).to_json(orient='records', date_unit='ns') or ''
+
+
+def get_schema(df: DataFrame):
+    from pandas.io.json._table_schema import build_table_schema
+
+    raw_schema = build_table_schema(df)
+
+    for field_data in cast(list, raw_schema['fields']):
+        if field_data.get('type') == 'datetime':
+            # for datetime fields we need to know the resolution, so we get the actual e.g. `datetime64[ns]` string
+            column_name = field_data.get('name')
+            dtype_str = str(df[column_name].dtype)
+            field_data['type'] = dtype_str
+
+    return raw_schema
