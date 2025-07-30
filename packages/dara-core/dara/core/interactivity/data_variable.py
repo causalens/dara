@@ -43,7 +43,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import df_convert_to_internal, get_schema
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal, get_schema
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
@@ -148,7 +148,7 @@ class DataVariable(AnyDataVariable):
 
         TODO: for now data is always kept in store, in the future depending on the size data might be cached on disk
         """
-        await store.set(var_entry, key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=data))
+        await store.set(var_entry, key=cls._get_cache_key(var_entry.uid), value=DataStoreEntry(data=append_index(data)))
 
     @classmethod
     def update_value(cls, var_entry: DataVariableRegistryEntry, store: CacheStore, data: Optional[DataFrame]):

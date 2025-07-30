@@ -50,7 +50,7 @@ from dara.core.interactivity.filtering import (
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.hashing import hash_object
-from dara.core.internal.pandas_utils import df_convert_to_internal, get_schema
+from dara.core.internal.pandas_utils import append_index, df_convert_to_internal, get_schema
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.logging import eng_logger
 
@@ -166,6 +166,9 @@ class DerivedDataVariable(AnyDataVariable, DerivedVariable):
         """
         if data is not None and not isinstance(data, DataFrame):
             raise ValueError(f'Data returned by DerivedDataVariable resolver must be a DataFrame, found {type(data)}')
+
+        # Right before we filter, append index column to the dataset
+        data = append_index(data)
 
         filtered_data, count = apply_filters(data, coerce_to_filter_query(filters), pagination)
 
