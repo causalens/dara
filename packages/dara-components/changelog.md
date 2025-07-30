@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `Table` type inference would not handle the different datetime64 types correctly.
+
 ## 1.19.1
 
 -  Added a `DropdownMenu` component that displays a button which opens a dropdown menu with configurable menu items.

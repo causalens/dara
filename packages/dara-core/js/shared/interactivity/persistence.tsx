@@ -2,7 +2,7 @@ import { mixed } from '@recoiljs/refine';
 import { applyPatch } from 'fast-json-patch';
 import * as React from 'react';
 import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
-import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect } from 'recoil-sync';
+import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect, urlSyncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
 
@@ -11,8 +11,8 @@ import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
-import { type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
-import { type BackendStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
+import { type GlobalTaskContext, type QueryParamStore, type SingleVariable, isDerivedVariable } from '@/types';
+import { type BackendStore, type BrowserStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
@@ -364,7 +364,7 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
  * @param variable variable to create effect for
  */
 function localStorageEffect<T>(
-    variable: SingleVariable<T, PersistenceStore>,
+    variable: SingleVariable<T, any>,
     extrasSerializable: RequestExtrasSerializable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext
@@ -402,33 +402,46 @@ function localStorageEffect<T>(
     });
 }
 
-interface StoreSync {
-    (props: { children: React.ReactNode }): JSX.Element;
+function urlEffect<T>(variable: SingleVariable<T, QueryParamStore>): AtomEffect<any> {
+    return urlSyncEffect({
+        history: 'push',
+        itemKey: variable.store!.query,
+        refine: mixed(),
+    });
 }
 
-interface Effect<T = any> {
+interface Effect<T = any, TStore extends PersistenceStore = PersistenceStore> {
     (
-        variable: SingleVariable<T>,
+        variable: SingleVariable<T, TStore>,
         requestExtras: RequestExtrasSerializable,
         wsClient: WebSocketClientInterface,
         taskContext: GlobalTaskContext
     ): AtomEffect<T>;
 }
 
-export const STORES: Record<
-    string,
-    {
-        effect: Effect;
-        sync: StoreSync;
-    }
-> = {
+// Type-safe mapping from store __typename to store type
+type StoreTypeMap = {
+    BackendStore: BackendStore;
+    BrowserStore: BrowserStore;
+    QueryParamStore: QueryParamStore;
+};
+
+// Type-safe STORES configuration
+type StoresConfig = {
+    [K in keyof StoreTypeMap]: {
+        effect: Effect<any, StoreTypeMap[K]>;
+    };
+};
+
+export const STORES: StoresConfig = {
     BackendStore: {
         effect: backendStoreEffect,
-        sync: BackendStoreSync,
     },
     BrowserStore: {
         effect: localStorageEffect,
-        sync: BrowserStoreSync,
+    },
+    QueryParamStore: {
+        effect: urlEffect,
     },
 };
 
@@ -439,14 +452,17 @@ export const STORES: Record<
  *
  * @param variable variable to get effect for
  */
-export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effect | null {
+export function getEffect<T, StoreType extends PersistenceStore>(
+    variable: SingleVariable<T, StoreType>
+): Effect<T, StoreType> | null {
     const storeName = variable.store?.__typename;
 
-    if (!storeName) {
+    if (!storeName || !(storeName in STORES)) {
         return null;
     }
 
-    return STORES[storeName]?.effect ?? null;
+    // Type assertion is safe here because we've checked the key exists
+    return (STORES as any)[storeName]?.effect ?? null;
 }
 
 /**
@@ -456,6 +472,7 @@ export function getEffect(variable: SingleVariable<any, PersistenceStore>): Effe
  */
 export function StoreProviders({ children }: { children: React.ReactNode }): JSX.Element {
     // this could be a loop if STORES is dynamically extensible but static for now
+    // NOTE: the url sync is applied separately as it needs to be wrapped around the router
     return (
         <BackendStoreSync>
             <BrowserStoreSync>{children}</BrowserStoreSync>

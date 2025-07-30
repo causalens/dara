@@ -15,12 +15,11 @@ import {
     isServerVariable,
     isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, getOrRegisterUrlVariable } from './internal';
+import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable } from './internal';
 import { resolveServerVariable } from './server-variable';
 
 /**
@@ -67,10 +66,6 @@ export function resolveVariable<VariableType>(
 
     if (isServerVariable(variable)) {
         return resolveServerVariable(variable, extras, resolver);
-    }
-
-    if (isUrlVariable(variable)) {
-        return resolver(getOrRegisterUrlVariable(variable));
     }
 
     if (isSwitchVariable(variable)) {

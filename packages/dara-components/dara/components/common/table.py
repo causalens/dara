@@ -26,7 +26,6 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
     AnyDataVariable,
     NonDataVariable,
-    UrlVariable,
     Variable,
 )
 
@@ -380,7 +379,18 @@ class Column(BaseModel):
     sticky: Optional[str] = None
     tooltip: Optional[str] = None
     width: Optional[Union[int, str]] = None
-    type: Optional[Union[Literal['number'], Literal['string'], Literal['datetime']]] = None
+    type: Optional[
+        Union[
+            Literal['number'],
+            Literal['string'],
+            # Generic datetime, assumes datetime64[ns]
+            Literal['datetime'],
+            # Specific datetime64 types
+            Literal['datetime64[ns]'],
+            Literal['datetime64[ms]'],
+            Literal['datetime64[s]'],
+        ]
+    ] = None
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -722,7 +732,7 @@ class Table(ContentComponent):
     :param onclick_row: An action handler for when a row is clicked on the table
     :param selected_indices: Optional variable to store the selected rows indices, must be a list of numbers. Note that these indices are
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value. If you would like the selection to persist over
-    page reloads, you must set `persist_value=True` on the variable.
+    page reloads, you must use a `BrowserStore` on a `Variable`.
     :param search_columns: Optional list defining the columns to be searched, only the columns passed are searchable
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
     :param include_index: Boolean, if True the table will render the index column(s), defaults to True
@@ -736,7 +746,7 @@ class Table(ContentComponent):
     multi_select: bool = False
     show_checkboxes: bool = True
     onclick_row: Optional[Action] = None
-    selected_indices: Optional[Union[List[int], UrlVariable, Variable]] = None
+    selected_indices: Optional[Union[List[int], Variable]] = None
     search_columns: Optional[List[str]] = None
     searchable: bool = False
     include_index: bool = True

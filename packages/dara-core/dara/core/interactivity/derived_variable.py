@@ -62,7 +62,7 @@ from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.multi_resource_lock import MultiResourceLock
-from dara.core.internal.pandas_utils import DataResponse, build_data_response, format_for_display
+from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -636,6 +636,8 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     ) -> DataResponse:
         if data is None:
             return DataResponse(data=None, count=0, schema=None)
+
+        data = append_index(data)
 
         # Filtering part
         data, count = await filter_resolver(data, filters, pagination)

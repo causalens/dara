@@ -23,7 +23,7 @@ from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.interactivity import NonDataVariable, UrlVariable, Variable
+from dara.core.interactivity import NonDataVariable, Variable
 from dara.core.logging import dev_logger
 
 
@@ -132,7 +132,7 @@ class Select(FormComponent):
     max_rows: int = 3
     onchange: Optional[Action] = None
     placeholder: Optional[str] = None
-    value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
+    value: Optional[Variable[Any]] = None
 
     @field_validator('items', mode='before')
     @classmethod

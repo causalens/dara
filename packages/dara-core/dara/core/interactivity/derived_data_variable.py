@@ -21,7 +21,6 @@ from collections.abc import Coroutine
 from typing import Any, Callable, List, Optional, Union
 
 from pandas import DataFrame
-from pydantic import ConfigDict
 from typing_extensions import deprecated
 
 from dara.core.base_definitions import (

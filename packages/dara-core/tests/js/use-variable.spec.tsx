@@ -7,7 +7,7 @@ import { useRecoilCallback } from 'recoil';
 import { setSessionToken } from '@/auth/use-session-token';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
-import { type DaraEventMap, type DataVariable, type TriggerVariableImpl } from '@/types/core';
+import { type BrowserStore, type DaraEventMap, type DataVariable, type QueryParamStore, type TriggerVariableImpl } from '@/types/core';
 
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import {
@@ -16,13 +16,7 @@ import {
     clearRegistries_TEST,
 } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
-import {
-    type Action,
-    type DerivedVariable,
-    type SingleVariable,
-    type UrlVariable,
-    type Variable,
-} from '../../js/types';
+import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
@@ -134,12 +128,12 @@ describe('useVariable', () => {
         it('should accept a variable as an argument and create a recoil state for it', () => {
             const { result } = renderHook(
                 () =>
-                    useVariable<string>({
+                    useVariable<string | undefined>({
                         __typename: 'Variable',
                         default: undefined,
                         nested: [],
                         uid: 'test',
-                    } satisfies Variable<string>),
+                    } satisfies Variable<string | undefined>),
                 {
                     wrapper: Wrapper,
                 }
@@ -242,9 +236,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: [],
-                        persist_value: true,
                         uid: 'session-test-1',
-                    } as SingleVariable<any>),
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -272,9 +268,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: ['val'],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-2',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -307,9 +305,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: [],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-3',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -335,9 +335,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: ['val'],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-4',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -706,8 +708,8 @@ describe('useVariable', () => {
             await waitFor(() => {
                 expect(receivedData).toHaveLength(1);
             });
-            expect(receivedData[0].variable).toEqual(variable);
-            expect(receivedData[0].value).toEqual({
+            expect(receivedData[0]!.variable).toEqual(variable);
+            expect(receivedData[0]!.value).toEqual({
                 value: result.current[0],
                 cache_key: expect.any(String),
             });
@@ -2241,8 +2243,8 @@ describe('useVariable', () => {
         });
     });
 
-    describe('UrlVariable', () => {
-        it('should manage the state of a UrlVariable by using the history api', async () => {
+    describe('Variable with QueryParamStore', () => {
+        it('should manage the state of a Variable with QueryParamStore by using the history api', async () => {
             const history = createMemoryHistory();
 
             act(() => {
@@ -2252,11 +2254,15 @@ describe('useVariable', () => {
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
-                        __typename: 'UrlVariable',
+                        __typename: 'Variable',
                         default: 'test',
-                        query: 'q',
+                        store: {
+                            __typename: 'QueryParamStore',
+                            query: 'q',
+                        },
                         uid: 'uid',
-                    } as UrlVariable<string>),
+                        nested: [],
+                    } as SingleVariable<string, QueryParamStore>),
                 { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
             );
             await waitFor(() => {
@@ -2280,7 +2286,7 @@ describe('useVariable', () => {
             });
         });
 
-        it('should pick up the state of the url by first render of a UrlVariable', () => {
+        it('should pick up the state of the url by first render of a Variable with QueryParamStore', () => {
             const history = createMemoryHistory();
 
             act(() => {
@@ -2289,11 +2295,15 @@ describe('useVariable', () => {
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
-                        __typename: 'UrlVariable',
+                        __typename: 'Variable',
                         default: 'test',
-                        query: 'q',
+                        store: {
+                            __typename: 'QueryParamStore',
+                            query: 'q',
+                        },
                         uid: 'uid',
-                    } as UrlVariable<string>),
+                        nested: [],
+                    } as SingleVariable<string, QueryParamStore>),
                 { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
             );
             expect(result.current[0]).toBe('initial');
@@ -2306,20 +2316,24 @@ describe('useVariable', () => {
                 history.push('/target');
             });
 
-            const receivedData: Array<DaraEventMap['URL_VARIABLE_LOADED']> = [];
+            const receivedData: Array<DaraEventMap['PLAIN_VARIABLE_LOADED']> = [];
 
             const variable = {
-                __typename: 'UrlVariable',
+                __typename: 'Variable',
                 default: 'test',
-                query: 'q',
+                store: {
+                    __typename: 'QueryParamStore',
+                    query: 'q',
+                },
                 uid: 'uid',
-            } satisfies UrlVariable<string>;
+                nested: [],
+            } satisfies SingleVariable<string, QueryParamStore>;
 
             const { result } = renderHook(() => useVariable<string>(variable), {
                 wrapper: ({ children }) => (
                     <EventCapturer
                         onEvent={(ev) => {
-                            if (ev.type === 'URL_VARIABLE_LOADED') {
+                            if (ev.type === 'PLAIN_VARIABLE_LOADED') {
                                 receivedData.push(ev.data);
                             }
                         }}

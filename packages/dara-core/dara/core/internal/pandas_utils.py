@@ -16,16 +16,20 @@ limitations under the License.
 """
 
 import json
-from typing import Any, Literal, Optional, TypeVar, Union, cast
+from typing import Any, Literal, Optional, TypeVar, Union, cast, overload
 
-from fastapi import Response
 from pandas import DataFrame, MultiIndex
-from pandas.io.json._table_schema import build_table_schema
 from typing_extensions import TypedDict, TypeGuard
 
-from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters
-
 INDEX = '__index__'
+
+
+@overload
+def append_index(df: DataFrame) -> DataFrame: ...
+
+
+@overload
+def append_index(df: None) -> None: ...
 
 
 def append_index(df: Optional[DataFrame]) -> Optional[DataFrame]:
@@ -74,6 +78,9 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     # Apply display transformations to the DataFrame
     format_for_display(df)
 
+    # Append index to match the way we process the original DataFrame
+    df = cast(DataFrame, append_index(df))
+
     # Handle hierarchical columns: [(A, B), (A, C)] -> ['A_B', 'A_C']
     if isinstance(df.columns, MultiIndex):
         df.columns = ['_'.join(col).strip() if col[0] != INDEX else INDEX for col in df.columns.values]
@@ -99,7 +106,7 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
 
 
 def df_to_json(df: DataFrame) -> str:
-    return df_convert_to_internal(df).to_json(orient='records') or ''
+    return df_convert_to_internal(df).to_json(orient='records', date_unit='ns') or ''
 
 
 def format_for_display(df: DataFrame) -> None:
@@ -147,6 +154,21 @@ def data_response_to_json(response: DataResponse) -> str:
 
 def build_data_response(data: DataFrame, count: int) -> DataResponse:
     data_internal = df_convert_to_internal(data)
-    schema = cast(DataFrameSchema, build_table_schema(data_internal))
+    schema = get_schema(data_internal)
 
     return DataResponse(data=data, count=count, schema=schema)
+
+
+def get_schema(df: DataFrame):
+    from pandas.io.json._table_schema import build_table_schema
+
+    raw_schema = build_table_schema(df)
+
+    for field_data in cast(list, raw_schema['fields']):
+        if field_data.get('type') == 'datetime':
+            # for datetime fields we need to know the resolution, so we get the actual e.g. `datetime64[ns]` string
+            column_name = field_data.get('name')
+            dtype_str = str(df[column_name].dtype)
+            field_data['type'] = dtype_str
+
+    return cast(DataFrameSchema, raw_schema)

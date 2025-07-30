@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
-from dara.core.internal.pandas_utils import DataResponse, build_data_response, format_for_display
+from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
 
@@ -72,6 +72,7 @@ class MemoryBackend(ServerBackend):
         self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ) -> Tuple[Optional[DataFrame], int]:
         dataset = self.data.get(key)
+        dataset = append_index(dataset)
         return apply_filters(dataset, coerce_to_filter_query(filters), pagination)
 
     async def get_sequence_number(self, key: str) -> int:

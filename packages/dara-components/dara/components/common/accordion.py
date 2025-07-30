@@ -24,7 +24,7 @@ from dara.components.common.utils import ItemBadge
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import UrlVariable, Variable
+from dara.core.interactivity import Variable
 from dara.core.logging import dev_logger
 
 
@@ -249,7 +249,6 @@ class Accordion(LayoutComponent):
     value: Optional[
         Union[
             Variable[Union[int, List[int]]],
-            UrlVariable[Union[int, List[int]]],
             int,
             List[int],
         ]

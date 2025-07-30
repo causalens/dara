@@ -122,7 +122,7 @@ def my_function(var):
     ...
 
 my_function(my_variable)
->>> uid='dbc82441-dc9a-4d58-baf0-d7822d56f95a' default=5 persist_value=False nested=[]
+>>> uid='dbc82441-dc9a-4d58-baf0-d7822d56f95a' default=5 nested=[]
 ```
 
 While `Variable`s and `DerivedVariable`s can be passed directly to the components, you may need to extract the value of a `Variable` to render a dynamic layout.

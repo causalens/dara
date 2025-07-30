@@ -16,14 +16,14 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 from pydantic import field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
-from dara.core.interactivity import UrlVariable, Variable
+from dara.core.interactivity import Variable
 
 
 class ButtonBarStyle(str, Enum):
@@ -107,7 +107,7 @@ class ButtonBar(FormComponent):
     """
 
     items: List[Item]
-    value: Optional[Union[Variable, UrlVariable]] = None
+    value: Optional[Variable] = None
     onchange: Optional[Action] = None
     id: Optional[str] = None
     styling: ButtonBarStyle = ButtonBarStyle.PRIMARY

@@ -65,7 +65,6 @@ if TYPE_CHECKING:
     from dara.core.interactivity import (
         AnyVariable,
         DerivedVariable,
-        UrlVariable,
         Variable,
     )
     from dara.core.internal.cache_store import CacheStore
@@ -126,7 +125,7 @@ class UpdateVariableImpl(ActionImpl):
 
     py_name = 'UpdateVariable'
 
-    variable: Union[Variable, UrlVariable, DataVariable]
+    variable: Union[Variable, DataVariable]
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -173,7 +172,7 @@ class UpdateVariable(AnnotatedAction):
     @deprecated: Passing in resolvers is deprecated, use `ctx.update` in an `@action` or `UpdateVariableImpl` instead.
     `UpdateVariableImpl` will be renamed to `UpdateVariable` in Dara 2.0.
 
-    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable, UrlVariable or DataVariable.
+    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable or DataVariable.
     The resolver function takes a Context param which will feed the `inputs`: `old` and `new` as well as any `extras` passed through.
 
     Below an example of how a resolver might look:
@@ -241,13 +240,13 @@ class UpdateVariable(AnnotatedAction):
 
     Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
-    variable: Union[Variable, DataVariable, UrlVariable]
+    variable: Union[Variable, DataVariable]
     extras: Optional[List[AnyVariable]]
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
-        variable: Union[Variable, DataVariable, UrlVariable],
+        variable: Union[Variable, DataVariable],
         extras: Optional[List[AnyVariable]] = None,
     ):
         """
@@ -830,9 +829,9 @@ class ActionCtx:
     async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT): ...
+    async def update(self, variable: Variable[VariableT], value: VariableT): ...
 
-    async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
+    async def update(self, variable: Union[Variable, DataVariable], value: Any):
         """
         Update a given variable to provided value.
 

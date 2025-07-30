@@ -13,13 +13,12 @@ import {
     isServerVariable,
     isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable, useUrlVariable } from './internal';
+import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable } from './internal';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
 /* eslint-disable react-hooks/rules-of-hooks */
@@ -102,16 +101,6 @@ export function useVariable<T>(
         const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
 
         return [deferred.value, warnUpdateOnDerivedState];
-    }
-
-    if (isUrlVariable(variable)) {
-        const [urlValue, setUrlValue] = useUrlVariable<T>(variable);
-
-        useEffect(() => {
-            bus.publish('URL_VARIABLE_LOADED', { variable, value: urlValue });
-        }, [urlValue]);
-
-        return [urlValue, setUrlValue as Dispatch<SetStateAction<T>>];
     }
 
     if (isSwitchVariable(variable)) {

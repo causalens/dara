@@ -1,6 +1,5 @@
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
-import { getOrRegisterUrlVariable } from '@/shared/interactivity/url-variable';
-import { type ActionHandler, type UpdateVariableImpl } from '@/types/core';
+import { type ActionHandler, type UpdateVariableImpl, UserError } from '@/types/core';
 
 /**
  * Constant to replace with the input value.
@@ -16,22 +15,10 @@ export const TOGGLE = '__dara_toggle__';
  * Front-end handler for UpdateVariable action.
  */
 const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl) => {
-    let varAtom;
-    let eventName: 'PLAIN_VARIABLE_LOADED' | 'URL_VARIABLE_LOADED';
-
-    // Make sure the variable is registered
-    switch (actionImpl.variable.__typename) {
-        case 'Variable':
-            varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
-            eventName = 'PLAIN_VARIABLE_LOADED';
-            break;
-        case 'UrlVariable':
-            varAtom = getOrRegisterUrlVariable(actionImpl.variable);
-            eventName = 'URL_VARIABLE_LOADED';
-            break;
-        case 'ServerVariable':
-            throw new Error('ServerVariable is not supported in UpdateVariable action');
+    if (actionImpl.variable.__typename !== 'Variable') {
+        throw new UserError('UpdateVariable action only supports Variables');
     }
+    const varAtom = getOrRegisterPlainVariable(actionImpl.variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
 
     let newValue;
 
@@ -47,7 +34,7 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl
     }
 
     ctx.set(varAtom, newValue);
-    ctx.eventBus.publish(eventName, { variable: actionImpl.variable as any, value: newValue });
+    ctx.eventBus.publish('PLAIN_VARIABLE_LOADED', { variable: actionImpl.variable as any, value: newValue });
 };
 
 export default UpdateVariable;

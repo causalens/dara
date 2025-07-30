@@ -6,10 +6,90 @@ title: Persistence and Collaboration
 
 By default `Variable` state is purely client-side, meaning its source of truth is the browser memory.
 It also means that refreshing the browser page resets `Variable` state, and that each user has their own "copy"
-of the data. To customize the behavior, `Variable` accepts a store property. This allows changing `Variable`'s source of truth,
+of the data. To customize the behavior, `Variable` accepts a `store` parameter. This allows changing `Variable`'s source of truth,
 thereby enabling features like data persistence and collaborative interactions across users.
 
+## What is a Store?
+
+A store defines where and how a `Variable`'s data is stored and synchronized. Dara provides three built-in store types:
+
+- **`QueryParamStore`**: Stores variable state in the URL as query parameters, enabling deep linking and URL-based state sharing
+- **`BrowserStore`**: Stores variable state in the browser's local storage, persisting data across page refreshes for individual users
+- **`BackendStore`**: Stores variable state on the server, enabling real-time collaboration and data persistence across sessions
+
+Each store type serves different use cases and can be easily swapped by changing the `store` parameter on your `Variable`.
+
 The rest of the page goes in-depth into available stores and how they can be used in your application.
+
+## `dara.core.persistence.QueryParamStore`
+
+The `QueryParamStore` stores variable state in the URL as query parameters. This is useful for creating deep links, preserving state across page refreshes, and enabling users to share specific application states via URL.
+
+```python
+from dara.core import Variable
+from dara.core.persistence import QueryParamStore
+from dara.components import Stack, Tab, TabbedCard, Text
+
+# State will be stored as a query param, i.e. `...?tab_selection=default_value`
+tab_variable = Variable(
+    default='tab1',
+    store=QueryParamStore(query='tab_selection')
+)
+
+page_content = Stack(
+    # The selected tab updates the URL query parameter
+    TabbedCard(
+        Tab(Text('Tab 1 content'), title='Tab 1'),
+        Tab(Text('Tab 2 content'), title='Tab 2'),
+        selected_tab=tab_variable
+    )
+)
+```
+
+### Key Features
+
+- **Deep linking**: Users can bookmark or share URLs that restore specific application states
+- **Browser navigation**: Back/forward buttons work naturally with URL-based state
+- **Cross-session persistence**: State persists across browser sessions when URLs are bookmarked
+
+## `dara.core.persistence.BrowserStore`
+
+The `BrowserStore` uses the browser's local storage to persist variable state across page refreshes. This provides a seamless user experience where application state is maintained locally for each user.
+
+```python
+from dara.core import Variable
+from dara.core.persistence import BrowserStore
+from dara.components import Input, Stack, Text
+
+# User preferences stored in browser local storage
+user_preferences = Variable(
+    default={'theme': 'light', 'language': 'en'},
+    store=BrowserStore()
+)
+
+page_content = Stack(
+    Text('Your preferences are automatically saved locally'),
+    Input(value=user_preferences.get('theme')),
+    # State persists across page refreshes
+)
+```
+
+### Key Features
+
+- **Local persistence**: Data survives page refreshes and browser restarts
+- **User-specific**: Each user has their own local copy of the data
+- **No server dependency**: Works entirely client-side
+
+### Use Cases
+
+- User preferences and settings
+- Form data preservation
+- Local application state
+- Draft content that shouldn't be lost on refresh
+
+:::note
+`BrowserStore` data is stored per-browser and per-domain. Users won't see their data when switching browsers or devices, and clearing browser data will reset the stored values.
+:::
 
 
 ## `dara.core.persistence.BackendStore`
@@ -53,6 +133,8 @@ collab_variable = Variable(default='default value', store=store)
 value = await store.read()
 # store can also be accessed from the variable
 value = await variable.store.read()
+# or as a shortcut method on the variable itself (this raises an error if the store is not a BackendStore)
+value = await variable.read()
 
 # write a new value to the store
 await store.write('new value')
@@ -165,7 +247,7 @@ await store.write_partial(updated_data)
 #### Supported JSON Patch Operations
 
 - `add`: Add a new value to an object or array
-- `remove`: Remove a value from an object or array  
+- `remove`: Remove a value from an object or array
 - `replace`: Replace a value in an object or array
 - `move`: Move a value within the data structure
 - `copy`: Copy a value to another location

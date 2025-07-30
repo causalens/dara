@@ -126,8 +126,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
             return atomFamilyMembersRegistry.get(family)!.size > 0;
         }
 
-        case 'UrlVariable':
-            return atomRegistry.has(variable.uid);
+        // TODO: need to add server var?
 
         case 'DerivedVariable': {
             const key = getRegistryKey(variable, 'selector');

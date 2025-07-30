@@ -7,7 +7,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
 import {
     type SingleVariable,
-    type UrlVariable,
     type Variable,
     injectCss,
     useAction,
@@ -80,7 +79,7 @@ interface SelectProps extends FormComponentProps {
     searchable: boolean;
     /** The selectedItem variable to read and update */
     // eslint-disable-next-line react/no-unused-prop-types
-    value?: SingleVariable<any> | UrlVariable<any>;
+    value?: SingleVariable<any>;
 }
 
 // Disabling rules-of-hook as the assumption is that props changing the type of the select won't change
