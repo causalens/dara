@@ -44,7 +44,7 @@ from starlette.background import BackgroundTask
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
 from dara.core.configuration import Configuration
-from dara.core.interactivity.any_data_variable import DataVariableRegistryEntry, upload
+from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
@@ -57,7 +57,6 @@ from dara.core.internal.registries import (
     action_registry,
     backend_store_registry,
     component_registry,
-    data_variable_registry,
     derived_variable_registry,
     download_code_registry,
     latest_value_registry,
@@ -317,7 +316,7 @@ def create_router(config: Configuration):
         force_key: Optional[str] = None
         """Optional force key if variable is a DerivedVariable and a recalculation is forced"""
 
-    @core_api_router.get('/tabular-variable/{uid}', dependencies=[Depends(verify_session)])
+    @core_api_router.post('/tabular-variable/{uid}', dependencies=[Depends(verify_session)])
     async def get_tabular_variable(
         uid: str,
         body: TabularRequestBody,
@@ -354,136 +353,6 @@ def create_router(config: Configuration):
             return {'task_id': result.task_id}
 
         return Response(data_response_to_json(result), media_type='application/json')
-
-    class DataVariableRequestBody(BaseModel):
-        filters: Optional[FilterQuery] = None
-        cache_key: Optional[str] = None
-        ws_channel: Optional[str] = None
-
-    @core_api_router.post('/data-variable/{uid}', dependencies=[Depends(verify_session)])
-    async def get_data_variable(
-        uid: str,
-        body: DataVariableRequestBody,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-        order_by: Optional[str] = None,
-        index: Optional[str] = None,
-    ):
-        try:
-            store: CacheStore = utils_registry.get('Store')
-            task_mgr: TaskManager = utils_registry.get('TaskManager')
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            data_variable_entry: DataVariableRegistryEntry = await registry_mgr.get(data_variable_registry, uid)
-
-            data = None
-            WS_CHANNEL.set(body.ws_channel)
-
-            if data_variable_entry.type == 'derived':
-                if body.cache_key is None:
-                    raise HTTPException(
-                        status_code=400,
-                        detail='Cache key is required for derived data variables',
-                    )
-
-                if body.ws_channel is None:
-                    raise HTTPException(
-                        status_code=400,
-                        detail='Websocket channel is required for derived data variables',
-                    )
-
-                derived_variable_entry = await registry_mgr.get(derived_variable_registry, uid)
-
-                data = await data_variable_entry.get_data(
-                    derived_variable_entry,
-                    data_variable_entry,
-                    body.cache_key,
-                    store,
-                    body.filters,
-                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
-                    format_for_display=True,
-                )
-                if isinstance(data, BaseTask):
-                    await task_mgr.run_task(data, body.ws_channel)
-                    return {'task_id': data.task_id}
-            elif data_variable_entry.type == 'plain':
-                data = await data_variable_entry.get_data(
-                    data_variable_entry,
-                    store,
-                    body.filters,
-                    Pagination(offset=offset, limit=limit, orderBy=order_by, index=index),
-                    format_for_display=True,
-                )
-
-            dev_logger.debug(
-                f'DataVariable {data_variable_entry.uid[:3]}..{data_variable_entry.uid[-3:]}',
-                'return value',
-                {
-                    'value': data.describe() if isinstance(data, pandas.DataFrame) else None,
-                    'uid': uid,
-                },  # type: ignore
-            )
-
-            if data is None:
-                return None
-
-            # Explicitly convert to JSON to avoid implicit serialization;
-            # return as records as that makes more sense in a JSON structure
-            return Response(
-                content=df_to_json(data) if isinstance(data, pandas.DataFrame) else data,
-                media_type='application/json',
-            )  # type: ignore
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
-
-    class DataVariableCountRequestBody(BaseModel):
-        cache_key: Optional[str] = None
-        filters: Optional[FilterQuery] = None
-
-    @core_api_router.post('/data-variable/{uid}/count', dependencies=[Depends(verify_session)])
-    async def get_data_variable_count(uid: str, body: Optional[DataVariableCountRequestBody] = None):
-        try:
-            store: CacheStore = utils_registry.get('Store')
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            variable_def = await registry_mgr.get(data_variable_registry, uid)
-
-            if variable_def.type == 'plain':
-                return await variable_def.get_total_count(
-                    variable_def, store, body.filters if body is not None else None
-                )
-
-            if body is None or body.cache_key is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Cache key is required when requesting DerivedDataVariable's count",
-                )
-
-            return await variable_def.get_total_count(variable_def, store, body.cache_key, body.filters)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
-
-    @core_api_router.get('/data-variable/{uid}/schema', dependencies=[Depends(verify_session)])
-    async def get_data_variable_schema(uid: str, cache_key: Optional[str] = None):
-        try:
-            store: CacheStore = utils_registry.get('Store')
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            data_def = await registry_mgr.get(data_variable_registry, uid)
-
-            if data_def.type == 'plain':
-                return await data_def.get_schema(data_def, store)
-
-            if cache_key is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail='Cache key is required when requesting DerivedDataVariable schema',
-                )
-
-            # Use the other registry for derived variables
-            derived_ref = await registry_mgr.get(derived_variable_registry, uid)
-            data = await data_def.get_schema(derived_ref, store, cache_key)
-            content = json.dumps(jsonable_encoder(data)) if isinstance(data, dict) else data
-            return Response(content=content, media_type='application/json')
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @core_api_router.get('/server-variable/{uid}/sequence', dependencies=[Depends(verify_session)])
     async def get_server_variable_sequence(
@@ -530,7 +399,6 @@ def create_router(config: Configuration):
         values: NormalizedPayload[List[Any]]
         force_key: Optional[str] = None
         ws_channel: str
-        is_data_variable: Optional[bool] = False
 
     @core_api_router.post('/derived-variable/{uid}', dependencies=[Depends(verify_session)])
     async def get_derived_variable(uid: str, body: DerivedStateRequestBody):

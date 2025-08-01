@@ -25,7 +25,7 @@ import { type DerivedResult, cleanArgs } from './internal';
  * @param path url path
  * @param pagination pagination object
  */
-function createDataUrl(path: string, pagination?: Pagination): URL {
+function createDataUrl(path: string, pagination: Pagination | null): URL {
     const url = new URL(path, window.location.origin);
 
     if (pagination?.limit) {
@@ -63,7 +63,7 @@ type FieldType = {
     type: 'integer' | 'number' | 'boolean' | 'datetime' | 'duration' | 'any' | 'str';
 };
 
-type DataFrameSchema = {
+export type DataFrameSchema = {
     fields: FieldType[];
     primaryKey: string[];
 };
@@ -72,7 +72,16 @@ export function isDataResponse(response: any): response is DataResponse {
     return response && typeof response === 'object' && 'data' in response && 'count' in response;
 }
 
-export type DataFetcher = (filters?: FilterQuery, pagination?: Pagination) => Promise<DataResponse>;
+export interface ColumnTypeHint {
+    type?: 'number' | 'string' | 'datetime' | 'datetime64[ns]' | 'datetime64[us]' | 'datetime64[ms]' | 'datetime64[s]';
+    filter?: 'text' | 'categorical' | 'numeric' | 'datetime';
+}
+
+export type DataFetcher = (
+    filters: FilterQuery | null,
+    pagination: Pagination | null,
+    columnHints?: Record<string, ColumnTypeHint>
+) => Promise<DataResponse>;
 
 type TabularDataRequestBody =
     | {
@@ -167,6 +176,6 @@ export function useFetchTabularDerivedVariable(
             previousResult.current = taskResult;
             return taskResult;
         },
-        [variable.uid, dvResult, wsClient, taskContext, extras]
+        [variable.uid, variable.variables, dvResult, wsClient, taskContext, extras]
     );
 }

@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import json
+import uuid
 from typing import Any, Literal, Optional, TypeVar, Union, cast, overload
 
 from pandas import DataFrame, MultiIndex
@@ -144,12 +145,24 @@ def is_data_response(response: Any) -> TypeGuard[DataResponse]:
 
 
 def data_response_to_json(response: DataResponse) -> str:
+    """
+    Serialize a DataResponse to JSON.
+
+    json.dumps() custom serializers only accept value->value mappings, whereas `to_json` on pandas returns a string directly.
+    To avoid double serialization, we first insert a placeholder string and then replace it with the actual serialized JSON.
+    """
+    placeholder = str(uuid.uuid4())
+
     def _custom_serializer(obj: Any) -> Any:
         if isinstance(obj, DataFrame):
-            return df_to_json(obj)
+            return placeholder
         raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
-    return json.dumps(response, default=_custom_serializer)
+    result = json.dumps(response, default=_custom_serializer)
+    result = result.replace(
+        f'"{placeholder}"', df_to_json(response['data']) if response['data'] is not None else 'null'
+    )
+    return result
 
 
 def build_data_response(data: DataFrame, count: int) -> DataResponse:

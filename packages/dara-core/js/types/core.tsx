@@ -144,12 +144,7 @@ export interface ServerVariable {
     scope: 'global' | 'user';
 }
 
-export type AnyVariable<T> =
-    | SingleVariable<T>
-    | DerivedVariable
-    | SwitchVariable<T>
-    | StateVariable
-    | ServerVariable;
+export type AnyVariable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable | ServerVariable;
 export type Variable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {

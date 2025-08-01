@@ -8,12 +8,11 @@ import {
     type Condition,
     type DerivedVariable,
     type LoopVariable,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     type ServerVariable,
+    type SingleVariable,
     type StateVariable,
     type SwitchVariable,
 } from './core';
@@ -31,6 +30,15 @@ export function isVariable<T>(variable: AnyVariable<T> | T): variable is AnyVari
         variable.hasOwnProperty('__typename') &&
         (variable as { __typename: string }).__typename.includes('Variable')
     );
+}
+
+/**
+ * Check if a value is a single variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isSingleVariable<T>(variable: AnyVariable<T> | T): variable is SingleVariable<T> {
+    return isVariable(variable) && variable.__typename === 'Variable';
 }
 
 /**
@@ -92,41 +100,6 @@ export function isResolvedDerivedVariable(value: any | ResolvedDerivedVariable):
         'values' in value &&
         'type' in value &&
         value.type === 'derived' &&
-        'uid' in value
-    );
-}
-
-/**
- * Check if a value is a ResolvedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDataVariable(value: any | ResolvedDataVariable): value is ResolvedDataVariable {
-    return (
-        value &&
-        typeof value === 'object' &&
-        'filters' in value &&
-        'type' in value &&
-        value.type === 'data' &&
-        'uid' in value
-    );
-}
-
-/**
- * Check if a value is a ResolvedDerivedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDerivedDataVariable(
-    value: any | ResolvedDerivedDataVariable
-): value is ResolvedDerivedDataVariable {
-    return (
-        value &&
-        typeof value === 'object' &&
-        'filters' in value &&
-        'values' in value &&
-        'type' in value &&
-        value.type === 'derived-data' &&
         'uid' in value
     );
 }

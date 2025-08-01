@@ -7,8 +7,6 @@ import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
     UserError,
     type Variable,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
     isServerVariable,
     isStateVariable,
@@ -82,11 +80,6 @@ export function useVariable<T>(
             variablesContext?.variables.current.delete(variable.uid);
         };
     }, []);
-
-    // This hook should only be used for components not expecting DataFrames
-    if (isDataVariable(variable) || isDerivedDataVariable(variable)) {
-        throw new Error(`Non-data variable expected, got ${(variable as any).__typename as string}`);
-    }
 
     if (isDerivedVariable(variable)) {
         const selector = useDerivedVariable(variable, wsClient, taskContext, extras);

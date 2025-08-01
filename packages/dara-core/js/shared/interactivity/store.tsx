@@ -15,10 +15,6 @@ export type SelectorFamily = (P: RequestExtrasSerializable) => RecoilValue<any>;
 export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
 
 /**
- * Key -> trigger atom
- */
-export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
-/**
  * Key -> atom
  */
 export const atomRegistry = new Map<string, RecoilState<any>>();
@@ -87,7 +83,6 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
  */
 export function clearRegistries_TEST(): void {
     for (const registry of [
-        dataRegistry,
         atomRegistry,
         atomFamilyRegistry,
         atomFamilyMembersRegistry,

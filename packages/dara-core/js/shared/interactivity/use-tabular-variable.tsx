@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { useRecoilValue, useRecoilValueLoadable } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle
@@ -12,10 +12,12 @@ import {
     type ServerVariable,
     type SingleVariable,
     isServerVariable,
+    isSingleVariable,
     isVariable,
 } from '@/types';
 
-import { type DerivedResult, getOrRegisterDerivedVariableResult } from './internal';
+import { createFetcher } from './filtering';
+import { type DerivedResult, getOrRegisterDerivedVariableResult, useVariable } from './internal';
 import { getOrRegisterServerVariable } from './server-variable';
 import { type DataFetcher, useFetchTabularDerivedVariable, useFetchTabularServerVariable } from './tabular-variable';
 
@@ -35,8 +37,9 @@ export function useTabularVariable(
     const extras = useRequestExtras();
     const { client: wsClient } = useContext(WebSocketCtx);
 
-    if (!isVariable(variable) || variable.__typename === 'Variable') {
-        throw new Error('NOT IMPLEMENTED YET');
+    if (!isVariable(variable) || isSingleVariable(variable)) {
+        const [data] = useVariable(variable);
+        return useMemo(() => createFetcher(data), [data]);
     }
 
     // Synchronously register subscription to the underlying DV, clean up on unmount

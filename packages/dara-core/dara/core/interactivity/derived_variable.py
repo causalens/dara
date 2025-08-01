@@ -45,7 +45,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, runtime_checkable
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -90,6 +90,7 @@ class DerivedVariableResult(TypedDict):
     value: Union[Any, BaseTask]
 
 
+@runtime_checkable
 class FilterResolver(Protocol):
     async def __call__(
         self, data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
@@ -136,7 +137,7 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         nested: Optional[List[str]] = None,
         filter_resolver: Optional[FilterResolver] = None,
         _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
-        _get_tabular_data: Optional[Callable[..., Awaitable[Tuple[Optional[DataFrame], int]]]] = None,
+        _get_tabular_data: Optional[Callable[..., Union[Awaitable[DataResponse], Awaitable[MetaTask]]]] = None,
     ):
         """
         A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other

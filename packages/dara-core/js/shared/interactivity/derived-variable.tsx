@@ -30,7 +30,6 @@ import {
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
-    isDerivedVariable,
     isResolvedDerivedVariable,
     isResolvedServerVariable,
     isResolvedSwitchVariable,
@@ -68,7 +67,6 @@ interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
     extras: RequestExtras;
     force_key?: string | null;
-    is_data_variable?: boolean;
     /**
      * selector instance key  - each selector's requests should be treated separately
      */
@@ -98,7 +96,6 @@ export async function fetchDerivedVariable<T>({
     variableUid,
     values,
     wsClient,
-    is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<T>> {
     const cacheControl =
         cache === null ?
@@ -112,7 +109,7 @@ export async function fetchDerivedVariable<T>({
     const res = await request(
         `/api/core/derived-variable/${variableUid}`,
         {
-            body: JSON.stringify({ is_data_variable, values, ws_channel, force_key: force_key ?? null }),
+            body: JSON.stringify({ values, ws_channel, force_key: force_key ?? null }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
@@ -143,7 +140,6 @@ async function debouncedFetchDerivedVariable({
     extras,
     cache,
     force_key,
-    is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     // If this is the first time this is called then set up a subject and return stream for this selector
     if (!debouncedFetchSubjects[selectorKey]) {
@@ -161,7 +157,6 @@ async function debouncedFetchDerivedVariable({
         cache,
         extras,
         force_key,
-        is_data_variable,
         selectorKey,
         values,
         variableUid,
@@ -336,7 +331,7 @@ export function resolveDerivedValue(
     const triggerList = buildTriggerList(variables);
 
     // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
-    const triggers = registerChildTriggers(triggerList, wsClient, get);
+    const triggers = registerChildTriggers(triggerList, get);
 
     if (selfTrigger) {
         triggers.unshift(selfTrigger);
@@ -393,6 +388,7 @@ export function resolveDerivedValue(
             return {
                 entry: previousEntry,
                 type: 'previous',
+                values,
             };
         }
 

@@ -1,47 +1,27 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useContext } from 'react';
-import { useLocation } from 'react-router-dom';
-import { type Snapshot, useRecoilCallback } from 'recoil';
-
-import { useDeepCompare } from '@darajs/ui-utils';
+import { type Snapshot } from 'recoil';
 
 // eslint-disable-next-line import/no-cycle
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras } from '@/api/http';
-import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import {
     type AnyVariable,
     type DataFrame,
-    type DataVariable,
-    type DerivedDataVariable,
     type DerivedVariable,
     type GlobalTaskContext,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     UserError,
-    type Variable,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
-    isResolvedDataVariable,
-    isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedServerVariable,
     isResolvedSwitchVariable,
-    isVariable,
+    isServerVariable,
 } from '@/types';
 
-import {
-    cleanArgs,
-    fetchDataVariable,
-    fetchDerivedDataVariable,
-    fetchDerivedVariable,
-    isTaskResponse,
-    resolveVariable,
-} from './internal';
+import { cleanArgs, fetchDerivedVariable, isTaskResponse, resolveVariable } from './internal';
 
 type GetVariableValueCtx = {
     client: WebSocketClientInterface;
@@ -64,9 +44,7 @@ export function getVariableValue<VV, B extends boolean = false>(
 ):
     | VV
     | DataFrame
-    | ResolvedDataVariable
     | ResolvedDerivedVariable
-    | ResolvedDerivedDataVariable
     | ResolvedSwitchVariable
     | ResolvedServerVariable
     | Promise<VV>
@@ -80,33 +58,28 @@ export function getVariableValue<VV, B extends boolean = false>(
         throw new UserError('Switch variables are not supported in this context');
     }
 
-    // if we're NOT forced to fetch, or if it's not a DV/DDV/data variable, return the resolved value
+    // if we're NOT forced to fetch, or if it's not a DV/Server variable, return the resolved value
     // variable is plain/url
-    if (
-        !shouldFetchVariable ||
-        (!isDerivedVariable(variable) && !isDataVariable(variable) && !isDerivedDataVariable(variable))
-    ) {
+    if (!shouldFetchVariable || (!isDerivedVariable(variable) && !isServerVariable(variable))) {
         return resolved;
     }
 
     // we're forced to fetch but the resolved variable is not a resolved DV/data var, return the resolved value
-    // variable is plain/url/switch
-    if (
-        !isResolvedDerivedVariable(resolved) &&
-        !isResolvedDataVariable(resolved) &&
-        !isResolvedDerivedDataVariable(resolved)
-    ) {
+    // variable is plain/switch
+    if (!isResolvedDerivedVariable(resolved) && !isResolvedServerVariable(resolved)) {
         return resolved;
     }
 
-    // data variable
-    if (isResolvedDataVariable(resolved)) {
-        return fetchDataVariable(resolved.uid, ctx.extras, resolved.filters);
+    // server variable
+    if (isResolvedServerVariable(resolved)) {
+        // TODO: fetch entire server var?
+        // return fetchDataVariable(resolved.uid, ctx.extras, resolved.filters);
+        return null as any;
     }
 
     // derived variable
     return fetchDerivedVariable({
-        cache: (variable as DerivedVariable | DerivedDataVariable).cache,
+        cache: (variable as DerivedVariable).cache,
         extras: ctx.extras,
         force_key: null,
         /**
@@ -114,10 +87,7 @@ export function getVariableValue<VV, B extends boolean = false>(
          */
         selectorKey: resolved.uid,
 
-        values: normalizeRequest(
-            cleanArgs(resolved.values),
-            (variable as DerivedVariable | DerivedDataVariable).variables
-        ),
+        values: normalizeRequest(cleanArgs(resolved.values), (variable as DerivedVariable).variables),
         variableUid: resolved.uid,
         wsClient: ctx.client,
     }).then((resp) => {
@@ -127,55 +97,6 @@ export function getVariableValue<VV, B extends boolean = false>(
             throw new Error('Task DerivedVariables are not supported in this context');
         }
 
-        // for derived data variables we need to make another request to retrieve the filtered value
-        if (isDerivedDataVariable(variable)) {
-            return ctx.client
-                .getChannel()
-                .then((chan) =>
-                    fetchDerivedDataVariable(variable.uid, ctx.extras, resp.cache_key, chan, variable.filters)
-                );
-        }
-
         return resp.value;
     }) as Promise<VV>;
-}
-
-/**
- * A helper hook that turns a Variable class into the actual value.
- * As opposed to the `useVariable` hook, this one returns a callback to retrieve the latest value
- * without subscribing the component using it to updates.
- * For derived (data) variables, instead of returning its value directly - its resolved to its
- * uid and dependency values.
- *
- * @param variable the variable to use
- * @param shouldFetchVariable if true, if the variable is a derived (data) variable, the request to fetch the variable value will be made
- * @returns Returns the value if the Variable is not derived/data. A Resolved(Data/Derived/DerivedData)Variable if shouldFetchVariable = false, and a Promise for fetching the variable if true.
- */
-export default function useVariableValue<VV, B extends boolean = false>(
-    variable: VV | Variable<VV> | DataVariable | DerivedVariable | DerivedDataVariable,
-    shouldFetchVariable: B = false as B
-): () => ReturnType<typeof getVariableValue<VV, B>> {
-    const taskContext = useTaskContext();
-    const { client } = useContext(WebSocketCtx);
-    const { search } = useLocation();
-    const extras = useRequestExtras();
-
-    if (!isVariable<VV>(variable)) {
-        return () => variable;
-    }
-
-    return useRecoilCallback(
-        ({ snapshot }) => {
-            return () => {
-                return getVariableValue<VV, B>(variable, shouldFetchVariable, {
-                    client,
-                    extras,
-                    search,
-                    snapshot,
-                    taskContext,
-                });
-            };
-        },
-        [variable.uid, useDeepCompare(taskContext), client, search, extras]
-    );
 }

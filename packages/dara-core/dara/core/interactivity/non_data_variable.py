@@ -23,9 +23,9 @@ from typing import Optional
 from dara.core.interactivity.any_variable import AnyVariable
 
 
-class NonDataVariable(AnyVariable, abc.ABC):
+class ClientVariable(AnyVariable, abc.ABC):
     """
-    NonDataVariable represents any variable that is not specifically designed to hold datasets (i.e. Variable, DerivedVariable)
+    Client represents any variable which can be ordinarily serialized to the client
 
     :param uid: the unique identifier for this variable; if not provided a random one is generated
     """
@@ -69,3 +69,6 @@ class NonDataVariable(AnyVariable, abc.ABC):
         from .loop_variable import LoopVariable
 
         return LoopVariable()
+
+
+NonDataVariable = ClientVariable
