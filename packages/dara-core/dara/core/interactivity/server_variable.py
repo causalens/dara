@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 from dara.core.auth.definitions import USER
 from dara.core.base_definitions import CachedRegistryEntry
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
+from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
 
@@ -71,7 +72,7 @@ class MemoryBackend(ServerBackend):
         self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ) -> Tuple[Optional[DataFrame], int]:
         dataset = self.data.get(key)
-        # TODO: maybe in endpoint, need to convert object to str etc, format_for_display
+        dataset = append_index(dataset)
         return apply_filters(dataset, coerce_to_filter_query(filters), pagination)
 
     async def get_sequence_number(self, key: str) -> int:
@@ -121,6 +122,19 @@ class ServerVariable(AnyVariable):
         """
         key = cls.get_key(entry.backend.scope)
         return await entry.backend.get_sequence_number(key)
+
+    @classmethod
+    async def get_tabular_data(
+        cls,
+        entry: 'ServerVariableRegistryEntry',
+        filters: Optional[FilterQuery] = None,
+        pagination: Optional[Pagination] = None,
+    ) -> DataResponse:
+        key = cls.get_key(entry.backend.scope)
+        data, count = await entry.backend.read_filtered(key, filters, pagination)
+        if data is None:
+            return DataResponse(data=None, count=0, schema=None)
+        return build_data_response(data, count)
 
     @classmethod
     def get_key(cls, scope: Literal['global', 'user']):

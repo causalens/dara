@@ -4,12 +4,12 @@ import * as React from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { type ListChildComponentProps, type ListItemKeySelector, VariableSizeList } from 'react-window';
 
-import { DynamicComponent, useAnyVariable } from '@/shared';
+import { DynamicComponent, useVariable } from '@/shared';
 import { FallbackCtx } from '@/shared/context';
 import { useFallbackCtx } from '@/shared/context/fallback-context';
 import { resolveNested } from '@/shared/interactivity/nested';
 
-import { type AnyVariable, type ComponentInstance } from '../../types/core';
+import { type AnyVariable, type ComponentInstance, type Variable } from '../../types/core';
 import { type Marker, applyMarkers, getInjectionMarkers } from './templating';
 
 interface VirtualizationConfig {
@@ -18,7 +18,7 @@ interface VirtualizationConfig {
 }
 
 interface ForProps {
-    items: AnyVariable<Array<any>>;
+    items: Variable<Array<any>>;
     renderer: ComponentInstance;
     placeholder: ComponentInstance | null;
     key_accessor: string | null;
@@ -77,7 +77,7 @@ const ForChild = React.memo((props: ListChildComponentProps<ItemData>): React.Re
 }, isEqual);
 
 function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNode {
-    const items = useAnyVariable(props.items);
+    const [items] = useVariable(props.items, { suspend: false });
     const markers = React.useMemo(() => getInjectionMarkers(props.renderer), [props.renderer]);
     const key = React.useMemo(() => props.key_accessor?.split('.') ?? null, [props.key_accessor]);
 

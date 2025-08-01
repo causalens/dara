@@ -6,16 +6,13 @@ import {
     type AnyVariable,
     type ComponentInstance,
     type Condition,
-    type DataVariable,
-    type DerivedDataVariable,
     type DerivedVariable,
     type LoopVariable,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     type ServerVariable,
+    type SingleVariable,
     type StateVariable,
     type SwitchVariable,
 } from './core';
@@ -36,30 +33,21 @@ export function isVariable<T>(variable: AnyVariable<T> | T): variable is AnyVari
 }
 
 /**
+ * Check if a value is a single variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isSingleVariable<T>(variable: AnyVariable<T> | T): variable is SingleVariable<T> {
+    return isVariable(variable) && variable.__typename === 'Variable';
+}
+
+/**
  * Check if a value is a derived variable instance and type guard the response
  *
  * @param variable the potential derived variable to check
  */
 export function isDerivedVariable<T>(variable: AnyVariable<T> | T): variable is DerivedVariable {
     return isVariable(variable) && variable.__typename === 'DerivedVariable';
-}
-
-/**
- * Check if a value is a data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDataVariable<T>(variable: AnyVariable<T> | T): variable is DataVariable {
-    return isVariable(variable) && variable.__typename === 'DataVariable';
-}
-
-/**
- * Check if a value is a derived data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable is DerivedDataVariable {
-    return isVariable(variable) && variable.__typename === 'DerivedDataVariable';
 }
 
 /** Check if a value is a server variable instance and type guard the response */
@@ -112,41 +100,6 @@ export function isResolvedDerivedVariable(value: any | ResolvedDerivedVariable):
         'values' in value &&
         'type' in value &&
         value.type === 'derived' &&
-        'uid' in value
-    );
-}
-
-/**
- * Check if a value is a ResolvedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDataVariable(value: any | ResolvedDataVariable): value is ResolvedDataVariable {
-    return (
-        value &&
-        typeof value === 'object' &&
-        'filters' in value &&
-        'type' in value &&
-        value.type === 'data' &&
-        'uid' in value
-    );
-}
-
-/**
- * Check if a value is a ResolvedDerivedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDerivedDataVariable(
-    value: any | ResolvedDerivedDataVariable
-): value is ResolvedDerivedDataVariable {
-    return (
-        value &&
-        typeof value === 'object' &&
-        'filters' in value &&
-        'values' in value &&
-        'type' in value &&
-        value.type === 'derived-data' &&
         'uid' in value
     );
 }

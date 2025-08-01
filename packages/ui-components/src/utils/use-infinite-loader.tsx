@@ -34,7 +34,7 @@ export interface InfiniteLoader<T> {
     /** The total count of items in the list */
     itemCount: number;
     /** A handler for the onItemsRendered function exposed by the react-window components */
-    onItemsRendered: (payload: ItemsRenderedPayload) => Promise<void>;
+    onItemsRendered: (payload: ItemsRenderedPayload, forceRefresh?: boolean) => Promise<void>;
     /**
      * A function to force a refresh of the data, will trigger a refetch of the current window and discard anything
      * outside that window

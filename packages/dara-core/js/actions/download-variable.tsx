@@ -176,10 +176,11 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         value = await value;
     }
 
+    // TODO: What to do with tabular data here?
     // Process data to restore original column structure and remove internal columns
-    if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
-        value = processDataForDownload(value);
-    }
+    // if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
+    //     value = processDataForDownload(value);
+    // }
 
     const fileName = actionImpl.file_name || 'Data';
     const fileNameWithExt = `${fileName}.${actionImpl.type}`;

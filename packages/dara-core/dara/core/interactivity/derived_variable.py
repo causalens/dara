@@ -27,6 +27,8 @@ from typing import (
     Generic,
     List,
     Optional,
+    Protocol,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -34,6 +36,7 @@ from typing import (
 
 import anyio
 from cachetools import LRUCache
+from pandas import DataFrame
 from pydantic import (
     ConfigDict,
     Field,
@@ -42,7 +45,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, runtime_checkable
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -54,10 +57,12 @@ from dara.core.base_definitions import (
 )
 from dara.core.interactivity.actions import TriggerVariable, assert_no_context
 from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.multi_resource_lock import MultiResourceLock
+from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
@@ -85,6 +90,22 @@ class DerivedVariableResult(TypedDict):
     value: Union[Any, BaseTask]
 
 
+@runtime_checkable
+class FilterResolver(Protocol):
+    async def __call__(
+        self, data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+    ) -> Tuple[DataFrame, int]: ...
+
+
+async def default_filter_resolver(
+    data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+) -> Tuple[DataFrame, int]:
+    assert isinstance(data, DataFrame), (
+        'Default filter resolver expects a DataFrame to be returned from the DerivedVariable function'
+    )
+    return apply_filters(data, filters, pagination)
+
+
 class DerivedVariable(NonDataVariable, Generic[VariableType]):
     """
     A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other
@@ -102,11 +123,11 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
     deps: Optional[List[AnyVariable]] = Field(validate_default=True)
     nested: List[str] = Field(default_factory=list)
     uid: str
-    model_config = ConfigDict(extra='forbid', use_enum_values=True)
+    model_config = ConfigDict(extra='forbid', use_enum_values=True, arbitrary_types_allowed=True)
 
     def __init__(
         self,
-        func: Callable[..., VariableType] | Callable[..., Awaitable[VariableType]],
+        func: Union[Callable[..., VariableType], Callable[..., Awaitable[VariableType]]],
         variables: List[AnyVariable],
         cache: Optional[CacheArgType] = Cache.Type.GLOBAL,
         run_as_task: bool = False,
@@ -114,7 +135,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         deps: Optional[List[AnyVariable]] = None,
         uid: Optional[str] = None,
         nested: Optional[List[str]] = None,
+        filter_resolver: Optional[FilterResolver] = None,
         _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
+        _get_tabular_data: Optional[Callable[..., Union[Awaitable[DataResponse], Awaitable[MetaTask]]]] = None,
     ):
         """
         A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other
@@ -133,6 +156,9 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                             tasks, defaults to False
         :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
                              component to poll the backend and refresh itself every n seconds.
+        :param filter_resolver: an optional function to resolve the filter query for the derived variable. This can be
+        used to customize the way tabular data is resolved. This is invoked with the result of the main DerivedVariable function,
+        as well as filters and pagination. The function should return a DataFrame.
         :param deps: an optional array of variables, specifying which dependant variables changing should trigger a
                         recalculation of the derived variable
         - `deps = None` - `func` is ran everytime (default behaviour),
@@ -199,12 +225,14 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
             DerivedVariableRegistryEntry(
                 cache=cache,
                 func=func,
+                filter_resolver=filter_resolver,
                 polling_interval=polling_interval,
                 run_as_task=run_as_task,
                 uid=str(self.uid),
                 variables=variables,
                 deps=deps_indexes,
                 get_value=_get_value or DerivedVariable.get_value,
+                get_tabular_data=_get_tabular_data or DerivedVariable.get_tabular_data,
             ),
         )
 
@@ -600,6 +628,60 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
                 return {'cache_key': cache_key, 'value': result}
 
     @classmethod
+    async def _filter_data(
+        cls,
+        data: Union[DataFrame, Any, None],
+        filter_resolver: FilterResolver,
+        filters: Optional[FilterQuery] = None,
+        pagination: Optional[Pagination] = None,
+    ) -> DataResponse:
+        if data is None:
+            return DataResponse(data=None, count=0, schema=None)
+
+        data = append_index(data)
+
+        # Filtering part
+        data, count = await filter_resolver(data, filters, pagination)
+        return build_data_response(data, count)
+
+    @classmethod
+    async def get_tabular_data(
+        cls,
+        var_entry: DerivedVariableRegistryEntry,
+        store: CacheStore,
+        task_mgr: TaskManager,
+        args: List[Any],
+        force_key: Optional[str] = None,
+        pagination: Optional[Pagination] = None,
+        filters: Optional[FilterQuery] = None,
+    ) -> Union[MetaTask, DataResponse]:
+        """
+        Get filtered tabular data from the underlying derived variable.
+
+        Resolves the the DeriedVariable and runs filtering on the result,
+        either using a custom filter_resolver or the default logic.
+        """
+        filter_resolver = var_entry.filter_resolver or default_filter_resolver
+        result = await cls.get_value(var_entry, store, task_mgr, args, force_key)
+
+        if isinstance(result['value'], BaseTask):
+            task_id = f'{var_entry.uid}_Filter_MetaTask_{str(uuid.uuid4())}'
+            task = MetaTask(
+                cls._filter_data,
+                task_id=task_id,
+                kwargs={
+                    'data': result['value'],
+                    'filters': filters,
+                    'pagination': pagination,
+                    'filter_resolver': filter_resolver,
+                },
+            )
+            task_mgr.register_task(task)
+            return task
+
+        return await cls._filter_data(result['value'], filter_resolver, filters, pagination)
+
+    @classmethod
     def check_polling(cls, variables: List[AnyVariable]):
         for variable in variables:
             if isinstance(variable, DerivedVariable) and (
@@ -621,12 +703,15 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
 class DerivedVariableRegistryEntry(CachedRegistryEntry):
     deps: Optional[List[int]]
     func: Optional[Callable[..., Any]]
+    filter_resolver: Optional[FilterResolver]
     run_as_task: bool
     variables: List[AnyVariable]
     polling_interval: Optional[int]
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
-    model_config = ConfigDict(extra='forbid')
+    get_tabular_data: Callable[..., Awaitable[Union[DataResponse, MetaTask]]]
+    """Handler to get the tabular data of the derived variable. Defaults to DerivedVariable.get_tabular_data, should match the signature"""
+    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
 
 class LatestValueRegistryEntry(CachedRegistryEntry):

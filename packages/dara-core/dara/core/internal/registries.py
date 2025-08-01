@@ -27,7 +27,6 @@ from dara.core.definitions import (
     EndpointConfiguration,
     Template,
 )
-from dara.core.interactivity.data_variable import DataVariableRegistryEntry
 from dara.core.interactivity.derived_variable import (
     DerivedVariableRegistryEntry,
     LatestValueRegistryEntry,
@@ -45,7 +44,6 @@ upload_resolver_registry = Registry[UploadResolverDef](
 )  # functions for upload resolvers requiring backend calls
 component_registry = Registry[ComponentTypeAnnotation](RegistryType.COMPONENTS, CORE_COMPONENTS)
 config_registry = Registry[EndpointConfiguration](RegistryType.ENDPOINT_CONFIG)
-data_variable_registry = Registry[DataVariableRegistryEntry](RegistryType.DATA_VARIABLE, allow_duplicates=False)
 server_variable_registry = Registry[ServerVariableRegistryEntry](RegistryType.SERVER_VARIABLE, allow_duplicates=False)
 """map of server variable uid -> server variable entry"""
 derived_variable_registry = Registry[DerivedVariableRegistryEntry](

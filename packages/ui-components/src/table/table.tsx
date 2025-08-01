@@ -294,14 +294,14 @@ export interface TableHandle {
  * Extra properties available on the Table function itself
  */
 interface TableProperties {
-    ActionColumn?: (
+    ActionColumn: (
         actions: Array<ActionCol>,
         accessor?: string,
         sticky?: string,
         disableSelectAll?: boolean
     ) => TableColumn;
-    Actions?: typeof Actions;
-    cells?: typeof cells;
+    Actions: typeof Actions;
+    cells: typeof cells;
 }
 
 export interface Props<T extends { [k: string]: any }> {
@@ -316,7 +316,7 @@ export interface Props<T extends { [k: string]: any }> {
     /** An array of data objects, each object should contain the keys defined as accessors in the column defs */
     data?: Array<T>;
     /** An optional function to retrieve an item from a virtualized dataset, use in conjunction with onItemsRendered */
-    getItem?: (index: number) => T;
+    getItem?: (index: number) => T | undefined;
     /** An optional initial sort for the table */
     initialSort?: Array<SortingRule<string>>;
     /** The total number of items in the table, required when using the infinite loader */

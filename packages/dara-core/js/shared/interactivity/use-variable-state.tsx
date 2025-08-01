@@ -4,20 +4,15 @@ import { useRecoilCallback } from 'recoil';
 import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import {
     type AnyVariable,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
 } from '@/types';
 
 import { resolveVariable } from './resolve-variable';
 import { isRegistered } from './store';
 
-type AnyResolvedVariable =
-    | ResolvedDataVariable
-    | ResolvedDerivedDataVariable
-    | ResolvedDerivedVariable
-    | ResolvedSwitchVariable;
+type AnyResolvedVariable = ResolvedDerivedVariable | ResolvedSwitchVariable | ResolvedServerVariable;
 
 /**
  * Helper hook to get the current state of the variable.

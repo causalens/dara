@@ -1,7 +1,6 @@
 export { useVariable } from './use-variable';
-export { useAnyVariable } from './use-any-variable';
-export { default as useVariableValue, getVariableValue } from './use-variable-value';
-export { useDataVariable } from './use-data-variable';
+export { getVariableValue } from './use-variable-value';
+export * from './use-tabular-variable';
 export { combineFilters } from './filtering';
 export { default as useRefreshSelector } from './use-refresh-selector';
 export { default as useVariableState } from './use-variable-state';
@@ -14,3 +13,4 @@ export * from './use-server-component';
 export * from './nested';
 export * from './derived-variable';
 export * from './server-variable';
+export * from './tabular-variable';

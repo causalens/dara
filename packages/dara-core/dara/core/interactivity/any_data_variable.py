@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import abc
 import io
 import os
 from collections.abc import Awaitable
@@ -27,28 +26,14 @@ from pydantic import ConfigDict
 
 from dara.core.base_definitions import CachedRegistryEntry, UploadResolverDef
 from dara.core.interactivity.any_variable import AnyVariable
-from dara.core.interactivity.filtering import FilterQuery
 from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
 
-
-class AnyDataVariable(AnyVariable, abc.ABC):
-    """
-    AnyDataVariable represents any variable that is specifically designed to hold datasets (i.e. DataVariable, DerivedDataVariable)
-
-    :param uid: the unique identifier for this variable; if not provided a random one is generated
-    :param filters: a dictionary of filters to apply to the data
-    """
-
-    uid: str
-    filters: Optional[FilterQuery] = None
-
-    def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
-        super().__init__(uid=uid, **kwargs)
-
-    def filter(self, filters: FilterQuery):
-        return self.copy(update={'filters': filters}, deep=True)
+AnyDataVariable = AnyVariable
+"""
+Maintained for backwards compatibility
+"""
 
 
 class FieldType(TypedDict):
