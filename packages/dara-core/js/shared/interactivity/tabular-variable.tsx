@@ -95,6 +95,34 @@ type TabularDataRequestBody =
           ws_channel: string;
       };
 
+export async function fetchTabularServerVariable({
+    variable,
+    // Explicitly unused, required for the callback dependency to ensure its identity changes
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    seqNumber,
+    wsClient,
+    extras,
+    filters = null,
+    pagination = null,
+}: {
+    variable: ServerVariable;
+    seqNumber: number;
+    wsClient: WebSocketClientInterface;
+    extras: RequestExtras;
+    filters?: FilterQuery | null;
+    pagination?: Pagination | null;
+}): Promise<DataResponse> {
+    const url = createDataUrl(`/api/core/tabular-variable/${variable.uid}`, pagination);
+    const body = {
+        filters: filters ?? null,
+        ws_channel: await wsClient.getChannel(),
+    } satisfies TabularDataRequestBody;
+    const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
+    await handleAuthErrors(response, true);
+    await validateResponse(response, 'Failed to fetch tabular data');
+    return response.json();
+}
+
 export function useFetchTabularServerVariable(
     variable: ServerVariable,
     seqNumber: number,
@@ -103,18 +131,9 @@ export function useFetchTabularServerVariable(
 ): DataFetcher {
     return useCallback<DataFetcher>(
         async (filters, pagination) => {
-            const url = createDataUrl(`/api/core/tabular-variable/${variable.uid}`, pagination);
-            const body = {
-                filters: filters ?? null,
-                ws_channel: await wsClient.getChannel(),
-            } satisfies TabularDataRequestBody;
-            const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
-            await handleAuthErrors(response, true);
-            await validateResponse(response, 'Failed to fetch tabular data');
-            return response.json();
+            return fetchTabularServerVariable({ variable, seqNumber, wsClient, extras, filters, pagination });
         },
-        // TODO: somehow make seqNumber not raise
-        [wsClient, variable.uid, seqNumber, extras]
+        [wsClient, variable, seqNumber, extras]
     );
 }
 

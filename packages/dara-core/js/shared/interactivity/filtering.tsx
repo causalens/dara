@@ -154,7 +154,8 @@ function filterRow(
         }
     } catch (error) {
         // If any error occurred, don't filter the row
-        console.debug('Filter error:', error, { column, value, operator });
+        // eslint-disable-next-line no-console
+        console.warn('Filter error:', error, { column, value, operator });
         return true;
     }
 }
@@ -295,6 +296,7 @@ export function applyFilters(
 }
 
 export function createFetcher(df: DataFrame) {
+    // eslint-disable-next-line @typescript-eslint/require-await
     return async (filters: FilterQuery | null, pagination: Pagination | null) => {
         return applyFilters(df, filters, pagination);
     };

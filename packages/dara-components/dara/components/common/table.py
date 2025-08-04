@@ -16,18 +16,22 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import List, Literal, Optional, Sequence, Union
+from typing import Any, List, Literal, Optional, Sequence, Union
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_validator
+from fastapi.encoders import jsonable_encoder
+from pandas import DataFrame
+from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, ValidationInfo, field_serializer, field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
     AnyDataVariable,
+    AnyVariable,
     NonDataVariable,
     Variable,
 )
+from dara.core.logging import dev_logger
 
 
 class TableFormatterType(Enum):
@@ -739,10 +743,10 @@ class Table(ContentComponent):
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
-    model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True)
+    model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
 
     columns: Optional[Union[Sequence[Union[Column, dict, str]], NonDataVariable]] = None
-    data: AnyDataVariable
+    data: Union[AnyVariable, DataFrame, list]
     multi_select: bool = False
     show_checkboxes: bool = True
     onclick_row: Optional[Action] = None
@@ -754,6 +758,26 @@ class Table(ContentComponent):
 
     TableFormatterType = TableFormatterType
     TableFilter = TableFilter
+
+    @field_serializer('data', mode='wrap')
+    def serialize_field(self, value: Any, nxt: SerializerFunctionWrapHandler):
+        if isinstance(value, AnyVariable):
+            return nxt(value)
+
+        from dara.core.internal.encoder_registry import get_jsonable_encoder
+
+        try:
+            if isinstance(value, DataFrame):
+                value = value.to_dict(orient='records')
+            return jsonable_encoder(value, custom_encoder=get_jsonable_encoder())
+        except Exception as e:
+            dev_logger.error(
+                f'Error serializing raw data in Table, falling back to default serialization.'
+                'Alternatively, you can provide a JSON-serializable dictionary in the "records format", i.e. `[{"col_a": 1}, {"col_a": 2}]`.',
+                error=e,
+            )
+
+        return nxt(value)
 
     @field_validator('columns')
     @classmethod

@@ -1,3 +1,4 @@
+import { type QuansyncFn, quansync } from 'quansync';
 import { type RecoilState } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
@@ -20,38 +21,29 @@ import {
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable } from './internal';
-import { resolveServerVariable } from './server-variable';
+import { resolveServerVariableQuan } from './server-variable';
 
-/**
- * Resolve a variable to a value (for non-derived variables using provided resolver)
- * or a ResolvedDerivedVariable (if it's a derived variable).
- * Registers all encountered variables which aren't yet in registry.
- *
- * @param variable variable to resolve
- * @param client websocket client from context
- * @param taskContext global task context
- * @param extras request extras to be merged into the options
- * @param resolver function to run the value through (for non-derived variables)
- */
-export function resolveVariable<VariableType>(
+const resolveVariableInternal = quansync(function* resolveVariableQuan<VariableType>(
     variable: AnyVariable<VariableType>,
     client: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras,
-    resolver: (val: RecoilState<VariableType>) => RecoilState<VariableType> | ResolvedDerivedVariable | VariableType = (
-        val: RecoilState<VariableType>
-    ) => val
-):
-    | RecoilState<VariableType>
-    | ResolvedDerivedVariable
-    | ResolvedServerVariable
-    | ResolvedSwitchVariable
-    | VariableType {
+    resolver: QuansyncFn<
+        RecoilState<VariableType> | ResolvedDerivedVariable | VariableType,
+        [RecoilState<VariableType>]
+    >
+): Generator<
+    any,
+    RecoilState<VariableType> | ResolvedDerivedVariable | ResolvedServerVariable | ResolvedSwitchVariable | VariableType
+> {
     if (isDerivedVariable(variable)) {
         getOrRegisterDerivedVariable(variable, client, taskContext, extras);
 
         // For derived variable, recursively resolve the dependencies
-        const values = variable.variables.map((v) => resolveVariable(v, client, taskContext, extras, resolver));
+        const values = [];
+        for (const v of variable.variables) {
+            values.push(yield* resolveVariableQuan(v, client, taskContext, extras, resolver));
+        }
 
         // Store indexes of values which are in deps
         const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
@@ -65,7 +57,7 @@ export function resolveVariable<VariableType>(
     }
 
     if (isServerVariable(variable)) {
-        return resolveServerVariable(variable, extras, resolver);
+        return yield* resolveServerVariableQuan(variable, extras, resolver);
     }
 
     if (isSwitchVariable(variable)) {
@@ -73,24 +65,30 @@ export function resolveVariable<VariableType>(
         // and return a serialized representation similar to derived variables
         let resolvedValue =
             isVariable(variable.value) ?
-                resolveVariable(variable.value, client, taskContext, extras, resolver)
+                yield* resolveVariableQuan(variable.value, client, taskContext, extras, resolver)
             :   variable.value;
 
         // value could be a condition object, resolve its variable
         if (isCondition(resolvedValue)) {
             resolvedValue = {
                 ...resolvedValue,
-                variable: resolveVariable(resolvedValue.variable, client, taskContext, extras, resolver) as any,
+                variable: yield* resolveVariableQuan(
+                    resolvedValue.variable,
+                    client,
+                    taskContext,
+                    extras,
+                    resolver
+                ) as any,
             };
         }
 
         const resolvedValueMap =
             isVariable(variable.value_map) ?
-                resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
+                yield* resolveVariableQuan(variable.value_map as any, client, taskContext, extras, resolver)
             :   variable.value_map;
         const resolvedDefault =
             isVariable(variable.default) ?
-                resolveVariable(variable.default, client, taskContext, extras, resolver)
+                yield* resolveVariableQuan(variable.default, client, taskContext, extras, resolver)
             :   variable.default;
 
         return {
@@ -108,8 +106,10 @@ export function resolveVariable<VariableType>(
         throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
     }
 
-    return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
-}
+    return yield* resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
+});
+export const resolveVariable = resolveVariableInternal.sync;
+export const resolveVariableAsync = resolveVariableInternal.async;
 
 /**
  * Clean value to a format understood by the backend.

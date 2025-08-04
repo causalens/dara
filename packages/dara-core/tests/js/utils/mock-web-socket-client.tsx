@@ -114,9 +114,6 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
-    serverTriggers$(dataId: string): Observable<any> {
-        return this.messages$.pipe(filter((msg: any) => msg.message.data_id === dataId));
-    }
 
     /**
      * Get the observable to receive variable request messages

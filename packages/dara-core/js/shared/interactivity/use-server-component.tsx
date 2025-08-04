@@ -182,7 +182,6 @@ function getOrRegisterServerComponent({
                             kwargsList,
                             kwargsList, // pass deps=kwargs
                             resolvedKwargsList,
-                            wsClient,
                             get,
                             selfTrigger
                         );

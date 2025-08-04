@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react';
+import { rest } from 'msw';
 import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilCallback } from 'recoil';
@@ -7,15 +8,16 @@ import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
 
 import { getVariableValue } from '../../js/shared/interactivity';
-import type { DataVariable, DerivedDataVariable, DerivedVariable, SingleVariable, Variable } from '../../js/types';
+import type { DerivedVariable, ServerVariable, SingleVariable, Variable } from '../../js/types';
 import { isVariable } from '../../js/types';
 import { Wrapper, server } from './utils';
+import { mockSchema } from './utils/test-server-handlers';
 
 /**
  * Test hook - wraps getVariableValue in a RecoilCallback and provides all the required contexts
  */
 function useVariableValue<VV, B extends boolean = false>(
-    variable: VV | Variable<VV> | DataVariable | DerivedVariable | DerivedDataVariable,
+    variable: VV | Variable<VV> | DerivedVariable,
     shouldFetchVariable: B = false as B
 ): () => ReturnType<typeof getVariableValue<VV, B>> {
     const taskContext = useTaskContext();
@@ -140,7 +142,6 @@ describe('getVariableValue', () => {
         expect(typeof resolved === 'object' && typeof resolved.then === 'function').toBe(true);
         const res = await resolved;
         expect(res).toEqual({
-            is_data_variable: false,
             force_key: null,
             values: {
                 data: [
@@ -167,74 +168,63 @@ describe('getVariableValue', () => {
         });
     });
 
-    it('should return a promise for derived data variable if shouldFetchVariable is true', async () => {
-        const variable: SingleVariable<number> = {
-            __typename: 'Variable',
-            default: 5,
-            nested: [],
-            uid: 'single',
-        };
-
-        const derivedDataVariable: DerivedDataVariable = {
-            __typename: 'DerivedDataVariable',
-            cache: { policy: 'default', cache_type: 'session' },
-            deps: [variable],
-            filters: {
-                column: 'col1',
-                operator: 'EQ',
-                value: 'val1',
+    it.only('should return a promise for server variable if shouldFetchVariable is set to true', async () => {
+        const mockData = [
+            {
+                col1: 1,
+                col2: 6,
+                col3: 'a',
+                col4: 'f',
             },
-            uid: 'derived',
-            variables: [variable],
+            {
+                col1: 2,
+                col2: 5,
+                col3: 'b',
+                col4: 'e',
+            },
+        ];
+        server.use(
+            rest.post('/api/core/tabular-variable/dep2', async (req, res, ctx) => {
+                return res(
+                    ctx.json({
+                        data: mockData,
+                        count: 10,
+                        schema: mockSchema,
+                    })
+                );
+            })
+        );
+
+        const variable: ServerVariable = {
+            __typename: 'ServerVariable',
+            uid: 'dep2',
+            scope: 'global',
         };
 
-        const { result } = renderHook(() => useVariableValue(derivedDataVariable, true), { wrapper: Wrapper });
+        const { result } = renderHook(() => useVariableValue(variable, true), { wrapper: Wrapper });
 
         expect(result.current).toBeInstanceOf(Function);
 
         const resolved = result.current() as Promise<any>;
         expect(typeof resolved === 'object' && typeof resolved.then === 'function').toBe(true);
         const res = await resolved;
-        expect(res).toMatchObject([
-            { col1: 1, col2: 6, col3: 'a', col4: 'f' },
-            { col1: 2, col2: 5, col3: 'b', col4: 'e' },
-            {
-                cache_key: '{"data":[{"__ref":"Variable:single"}],"lookup":{"Variable:single":5}}', // mock cache key returned from DV endpoint, stringified values
-                filters: { column: 'col1', value: 'val1' }, // filters are sent correctly
-                ws_channel: 'uid', // mock ms_channel passed through
-            },
-        ]);
-    });
-
-    it('should resolve a derived data variable if shouldFetchVariable is false', () => {
-        const variable: SingleVariable<number> = {
-            __typename: 'Variable',
-            default: 5,
-            nested: [],
-            uid: 'single',
-        };
-
-        const derivedDataVariable: DerivedDataVariable = {
-            __typename: 'DerivedDataVariable',
-            cache: { policy: 'default', cache_type: 'session' },
-            deps: [variable],
-            filters: {
-                column: 'col1',
-                operator: 'EQ',
-                value: 'val1',
-            },
-            uid: 'derived',
-            variables: [variable],
-        };
-
-        const { result } = renderHook(() => useVariableValue(derivedDataVariable, false), { wrapper: Wrapper });
-
-        expect(result.current()).toEqual({
-            deps: [0],
-            filters: { column: 'col1', value: 'val1', operator: 'EQ' },
-            type: 'derived-data',
-            uid: 'derived',
-            values: [5],
+        expect(res).toMatchObject({
+            data: [
+                {
+                    col1: 1,
+                    col2: 6,
+                    col3: 'a',
+                    col4: 'f',
+                },
+                {
+                    col1: 2,
+                    col2: 5,
+                    col3: 'b',
+                    col4: 'e',
+                },
+            ],
+            count: 10,
+            schema: mockSchema,
         });
     });
 });

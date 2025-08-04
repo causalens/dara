@@ -23,10 +23,5 @@ export function getUniqueIdentifier<T>(variable: AnyVariable<T>): string {
         identifier += variable.nested.join(',');
     }
 
-    // include filters for DataVariable to consider variables with different filters as different instances
-    if ('filters' in variable && variable.filters) {
-        identifier += hashObject(variable.filters);
-    }
-
     return identifier;
 }

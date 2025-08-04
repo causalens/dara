@@ -1,4 +1,5 @@
 import { mixed } from '@recoiljs/refine';
+import { type QuansyncFn, quansync } from 'quansync';
 import React from 'react';
 import { type AtomEffect, type RecoilState, atomFamily } from 'recoil';
 import { type ListenToItems, type ReadItem, RecoilSync, syncEffect } from 'recoil-sync';
@@ -118,20 +119,21 @@ export function getOrRegisterServerVariable(variable: ServerVariable, extras: Re
 }
 
 /** Resolve a server variable to its resolved form  */
-export function resolveServerVariable(
+export const resolveServerVariableQuan = quansync(function* resolveServerVariable(
     variable: ServerVariable,
     extras: RequestExtras,
-    resolver: (val: RecoilState<any>) => any
-): ResolvedServerVariable {
+    resolver: QuansyncFn<any, [RecoilState<any>]>
+): Generator<any, ResolvedServerVariable> {
     const atom = getOrRegisterServerVariable(variable, extras);
     // the value stored on the client is the sequence number
-    const seqNumber = resolver(atom);
+    const seqNumber = yield* resolver(atom);
     return {
         type: 'server',
         uid: variable.uid,
         sequence_number: seqNumber,
     } satisfies ResolvedServerVariable;
-}
+});
+export const resolveServerVariable = resolveServerVariableQuan.sync;
 
 /**
  * RecoilSync implementation for ServerVariable

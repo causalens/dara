@@ -13,17 +13,27 @@ import {
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
+    type ServerVariable,
     UserError,
     isDerivedVariable,
     isResolvedDerivedVariable,
     isResolvedServerVariable,
     isResolvedSwitchVariable,
     isServerVariable,
+    isSingleVariable,
+    isStateVariable,
+    isSwitchVariable,
 } from '@/types';
 
-import { cleanArgs, fetchDerivedVariable, isTaskResponse, resolveVariable } from './internal';
+import {
+    cleanArgs,
+    fetchDerivedVariable,
+    fetchTabularServerVariable,
+    isTaskResponse,
+    resolveVariable,
+} from './internal';
 
-type GetVariableValueCtx = {
+export type GetVariableValueCtx = {
     client: WebSocketClientInterface;
     extras: RequestExtras;
     search: string;
@@ -35,68 +45,23 @@ type GetVariableValueCtx = {
  * Helper function that returns the current value of a variable.
  *
  * Plain variables are always resolved to their value.
- * Computed (server-side) variables are resolved to their uid and dependency values, unless shouldFetchVariable is true.
+ * Computed (server-side) variables are resolved to their uid and dependency values.
  */
-export function getVariableValue<VV, B extends boolean = false>(
+export function getVariableValue<VV>(
     variable: AnyVariable<VV>,
-    shouldFetchVariable: B = false as B,
     ctx: GetVariableValueCtx
-):
-    | VV
-    | DataFrame
-    | ResolvedDerivedVariable
-    | ResolvedSwitchVariable
-    | ResolvedServerVariable
-    | Promise<VV>
-    | Promise<DataFrame> {
-    // Using loadable since the resolver is only used for simple atoms and shouldn't cause problems
+): VV | ResolvedDerivedVariable | ResolvedServerVariable | Promise<VV> {
+    if (isSwitchVariable(variable) || isStateVariable(variable)) {
+        throw new UserError(`${variable.__typename} is not supported in this context`);
+    }
+
     const resolved = resolveVariable<any>(variable, ctx.client, ctx.taskContext, ctx.extras, (v) =>
         ctx.snapshot.getLoadable(v).getValue()
     );
 
-    if (isResolvedSwitchVariable(resolved)) {
-        throw new UserError('Switch variables are not supported in this context');
-    }
-
-    // if we're NOT forced to fetch, or if it's not a DV/Server variable, return the resolved value
-    // variable is plain/url
-    if (!shouldFetchVariable || (!isDerivedVariable(variable) && !isServerVariable(variable))) {
+    if (isSingleVariable(variable)) {
         return resolved;
     }
 
-    // we're forced to fetch but the resolved variable is not a resolved DV/data var, return the resolved value
-    // variable is plain/switch
-    if (!isResolvedDerivedVariable(resolved) && !isResolvedServerVariable(resolved)) {
-        return resolved;
-    }
-
-    // server variable
-    if (isResolvedServerVariable(resolved)) {
-        // TODO: fetch entire server var?
-        // return fetchDataVariable(resolved.uid, ctx.extras, resolved.filters);
-        return null as any;
-    }
-
-    // derived variable
-    return fetchDerivedVariable({
-        cache: (variable as DerivedVariable).cache,
-        extras: ctx.extras,
-        force_key: null,
-        /**
-         * In this case we're not concerned about different selectors fetching the value so just use the uid
-         */
-        selectorKey: resolved.uid,
-
-        values: normalizeRequest(cleanArgs(resolved.values), (variable as DerivedVariable).variables),
-        variableUid: resolved.uid,
-        wsClient: ctx.client,
-    }).then((resp) => {
-        // This is really only used in DownloadVariable currently; we can add support for tasks
-        // if it is requested in the future
-        if (isTaskResponse(resp)) {
-            throw new Error('Task DerivedVariables are not supported in this context');
-        }
-
-        return resp.value;
-    }) as Promise<VV>;
+    return resolved;
 }

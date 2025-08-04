@@ -237,6 +237,10 @@ export function getDeps(values: Array<ResolvedDerivedVariable | any>, deps?: num
             return getDeps(val.values, val.deps).flat();
         }
 
+        if (isResolvedServerVariable(val)) {
+            return val.sequence_number;
+        }
+
         if (isResolvedSwitchVariable(val)) {
             // For switch variables, return the constituent parts as dependencies
             return getDeps([val.value, val.value_map, val.default], [0, 1, 2]).flat();
@@ -274,6 +278,8 @@ interface PreviousResult {
      * List of values to use in the refetch request (force_key is embedded directly in the values)
      */
     values: any[];
+    /** Key to the deps cache */
+    depsKey: string;
 }
 
 /**
@@ -294,6 +300,8 @@ interface CurrentResult {
      * List of values to use in the refetch request (force_key is embedded directly in the values)
      */
     values: any[];
+    /** Key to the deps cache */
+    depsKey: string;
 }
 
 /**
@@ -314,7 +322,6 @@ export type DerivedResult = PreviousResult | CurrentResult;
  * @param variables dependant variables
  * @param deps list of relevant dependant variables, akin to useEffect dependency array
  * @param resolvedVariables resolved values of dependant variables - turned into primitives and Resolved forms
- * @param wsClient websocket client
  * @param get getter function to resolve atoms to values
  * @param selfTrigger additional trigger index value to register as a dependency
  */
@@ -323,7 +330,6 @@ export function resolveDerivedValue(
     variables: any[], // variable or primitive
     deps: any[], // variable or primitive
     resolvedVariables: any[],
-    wsClient: WebSocketClientInterface,
     get: GetRecoilValue,
     selfTrigger?: TriggerIndexValue
 ): DerivedResult {
@@ -342,6 +348,7 @@ export function resolveDerivedValue(
      * - primitive values are resolved to themselves
      * - simple variables are resolved to their values
      * - derived variables are resolved to ResolvedDerivedVariable objects with nested values/deps resolved to values
+     * - server variables are resolved to their sequence number
      */
     const values = resolvedVariables.map((v) => resolveValue(v, get));
 
@@ -379,6 +386,7 @@ export function resolveDerivedValue(
         .map((dep) => variableValueMap.get(getUniqueIdentifier(dep)))
         .concat(triggers.map((trigger) => trigger.inc)); // Append triggerValues to make triggers force a recalc even when deps didn't change
 
+
     // If there's no entry it's the first run so skip; otherwise:
     if (previousEntry) {
         const areArgsTheSame = isEqual(previousEntry.args, relevantValues);
@@ -389,6 +397,7 @@ export function resolveDerivedValue(
                 entry: previousEntry,
                 type: 'previous',
                 values,
+                depsKey: key,
             };
         }
 
@@ -434,6 +443,7 @@ export function resolveDerivedValue(
             selfTriggerForceKey,
             type: 'current',
             values,
+            depsKey: key,
         };
     }
 
@@ -442,6 +452,7 @@ export function resolveDerivedValue(
         selfTriggerForceKey: null,
         type: 'current',
         values,
+        depsKey: key,
     };
 }
 
@@ -495,7 +506,6 @@ export function getOrRegisterDerivedVariableResult(
                             variable.variables,
                             variable.deps,
                             resolvedVariables,
-                            wsClient,
                             get,
                             selfTrigger
                         );
@@ -635,7 +645,7 @@ export function getOrRegisterDerivedVariable(
                             'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
 
                         // Store the final result and arguments used
-                        depsRegistry.set(selectorKey, {
+                        depsRegistry.set(derivedResult.depsKey, {
                             args: derivedResult.relevantValues,
                             cacheKey,
                             result: variableValue,

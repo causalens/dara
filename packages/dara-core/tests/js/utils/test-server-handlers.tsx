@@ -2,6 +2,7 @@
 import { rest } from 'msw';
 
 import { ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
+import type { DataFrameSchema } from '@/shared';
 
 const mockComponents: Record<string, JsComponent | PyComponent> = {
     ProgressTracker: {
@@ -71,16 +72,16 @@ const mockActions: Record<string, ActionDef> = {
     },
 };
 
-const mockSchema = {
+const mockSchema: DataFrameSchema = {
     fields: [
         { name: '__col__1__col1', type: 'integer' },
         { name: '__col__2__col2', type: 'integer' },
-        { name: '__col__3__col3', type: 'string' },
-        { name: '__col__4__col4', type: 'string' },
-        { name: '__index__0__index', type: 'integer' }
+        { name: '__col__3__col3', type: 'str' },
+        { name: '__col__4__col4', type: 'str' },
+        { name: '__index__0__index', type: 'integer' },
     ],
+    primaryKey: ['__index__0__index'],
 };
-
 
 // These handlers return mock responses for all the requests made by the application
 const handlers = [
@@ -145,51 +146,6 @@ const handlers = [
                 cache_key: JSON.stringify(body.values),
                 value: body,
             })
-        );
-    }),
-    rest.get('/api/core/data-variable/:uid/schema', async (req, res, ctx) => {
-        if (req.url.pathname.endsWith('/schema')) {
-            return res(ctx.json(mockSchema));
-        }
-    }),
-    // for some reason MSW does not understand nested path so we need to work around it
-    rest.post('/api/core/data-variable/:uid*', async (req, res, ctx) => {
-        if (req.url.pathname.endsWith('/count')) {
-            return res(ctx.json(10));
-        }
-
-        const body = await req.json();
-        return res(
-            ctx.json([
-                {
-                    col1: 1,
-                    col2: 6,
-                    col3: 'a',
-                    col4: 'f',
-                },
-                {
-                    col1: 2,
-                    col2: 5,
-                    col3: 'b',
-                    col4: 'e',
-                },
-                {
-                    // fields required for DDV - so we can check they are sent
-                    cache_key: body.cache_key,
-
-                    // Append what filters were sent
-                    filters: body.filters,
-
-                    limit: req.url.searchParams.get('limit'),
-
-                    offset: req.url.searchParams.get('offset'),
-                    order_by: req.url.searchParams.get('order_by'),
-
-                    // time of response to check for re-fetches
-                    time: Date.now(),
-                    ws_channel: body.ws_channel,
-                },
-            ])
         );
     }),
     rest.delete('/api/core/tasks/:taskId', async (req, res, ctx) => {
