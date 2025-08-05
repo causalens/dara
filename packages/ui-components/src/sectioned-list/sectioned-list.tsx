@@ -25,8 +25,8 @@ import Badge from '../badge/badge';
 import { Input, InputWrapper, Wrapper } from '../combo-box/combo-box';
 import ChevronButton from '../shared/chevron-button';
 import DropdownList from '../shared/dropdown-list';
-import ListItem, { StyledListItem } from '../shared/list-item';
-import { InteractiveComponentProps, Item } from '../types';
+import { StyledListItem } from '../shared/list-item';
+import { type InteractiveComponentProps, type Item } from '../types';
 import { matchWidthToReference } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
 
@@ -109,6 +109,8 @@ export interface SectionedListProps extends InteractiveComponentProps<Item> {
     onSelect?: (item: ListItem) => void | Promise<void>;
     /** Put the component in controlled mode and pass in the selectedItem */
     selectedItem?: ListItem | Item;
+    /** An optional placeholder for the input field to display when nothing is selected, defaults to '' */
+    placeholder?: string;
     /** Pass through of style property to the root element */
     style?: React.CSSProperties;
 }
@@ -162,7 +164,11 @@ function SectionedList(props: SectionedListProps): JSX.Element {
 
     const [pendingHighlight, setPendingHighlight] = useState(null);
     const [items, setItems] = useState(unpackedItems);
-    const [inputValue, setInputValue] = useState(props.selectedItem?.label ?? '');
+    const [inputValue, setInputValue] = useState(
+        props.selectedItem?.label && props.selectedItem.label !== 'null' ?
+            props.selectedItem.label
+        :   props.placeholder ?? ''
+    );
 
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
     const {
@@ -179,7 +185,13 @@ function SectionedList(props: SectionedListProps): JSX.Element {
         itemToString: (item: Item) => (item ? item.label : ''),
         items,
         onInputValueChange: (change) => {
-            setInputValue(change.inputValue);
+            const shouldUpdateInput = (
+                [stateChangeTypes.ItemClick, stateChangeTypes.InputChange] as UseComboboxStateChangeTypes[]
+            ).includes(change.type);
+
+            if (shouldUpdateInput) {
+                setInputValue(change.inputValue);
+            }
 
             if (!change.inputValue) {
                 setItems(unpackedItems);
@@ -300,9 +312,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
 
     useEffect(() => {
         if (props.selectedItem === null) {
-            setInputValue('');
+            setInputValue(props.placeholder ?? '');
         }
-    }, [props.selectedItem]);
+    }, [props.selectedItem, props.placeholder]);
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,

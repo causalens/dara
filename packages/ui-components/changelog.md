@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where `SectionedList` would not update the input value when clicking on an item.
+- Updated the `SectionedList` component to support placeholder text.
+
 ## 1.18.9
 
 -  Unlocked `react-aria-components` version

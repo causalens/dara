@@ -178,6 +178,7 @@ function Select(props: SelectProps): JSX.Element {
             <StyledSectionedList
                 $rawCss={css}
                 items={formattedItems}
+                placeholder={props.placeholder}
                 onSelect={onSelect}
                 selectedItem={selectedItem}
                 style={style}
