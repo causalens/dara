@@ -76,7 +76,6 @@ run:
 # Before committing, revert changes to readmes they are only for PyPi
 publish:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
-	poetry anthology run publish
 
 	git checkout -- **/README.md
 	git checkout -- .npmrc
