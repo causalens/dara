@@ -6,7 +6,7 @@ from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from dara.core.auth.definitions import USER
-from dara.core.base_definitions import CachedRegistryEntry
+from dara.core.base_definitions import CachedRegistryEntry, NonTabularDataError
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
 from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.utils import call_async
@@ -72,6 +72,14 @@ class MemoryBackend(ServerBackend):
         self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ) -> Tuple[Optional[DataFrame], int]:
         dataset = self.data.get(key)
+
+        # print user-friendly error message if the data is not a DataFrame
+        # most likely due to user passing a non-tabular server variable to e.g. a Table
+        if dataset is not None and not isinstance(dataset, DataFrame):
+            raise NonTabularDataError(
+                f'Failed to retrieve ServerVariable tabular data, expected pandas.DataFrame, got {type(dataset)}'
+            )
+
         dataset = append_index(dataset)
         return apply_filters(dataset, coerce_to_filter_query(filters), pagination)
 
@@ -116,6 +124,15 @@ class ServerVariable(AnyVariable):
         return await entry.backend.read(key)
 
     @classmethod
+    async def write_value(cls, entry: 'ServerVariableRegistryEntry', value: Any):
+        """
+        Internal method to write the value of a server variable based in its registry entry.
+        """
+        key = cls.get_key(entry.backend.scope)
+        await entry.backend.write(key, value)
+        await cls._notify(entry.uid, key, entry.backend)
+
+    @classmethod
     async def get_sequence_number(cls, entry: 'ServerVariableRegistryEntry'):
         """
         Internal method to get the sequence number of a server variable based in its registry entry.
@@ -153,14 +170,15 @@ class ServerVariable(AnyVariable):
     def key(self):
         return self.get_key(self.scope)
 
-    async def _notify(self):
+    @classmethod
+    async def _notify(cls, uid: str, key: str, backend: ServerBackend):
         from dara.core.internal.registries import utils_registry
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
-        message = ServerVariableMessage(uid=self.uid, sequence_number=await self.backend.get_sequence_number(self.key))
+        message = ServerVariableMessage(uid=uid, sequence_number=await backend.get_sequence_number(key))
 
-        if self.scope == 'global':
+        if backend.scope == 'global':
             return await ws_mgr.broadcast(message)
 
         user = USER.get()
@@ -173,7 +191,7 @@ class ServerVariable(AnyVariable):
 
     async def write(self, value: Any):
         value = await self.backend.write(self.key, value)
-        await self._notify()
+        await self._notify(self.uid, self.key, self.backend)
         return value
 
     async def read_filtered(

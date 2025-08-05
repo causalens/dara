@@ -13,6 +13,7 @@ import {
     type NormalizedPayload,
     type Pagination,
     type ServerVariable,
+    UserError,
 } from '@/types';
 
 import { normalizeRequest } from '../utils/normalization';
@@ -45,6 +46,21 @@ function createDataUrl(path: string, pagination: Pagination | null): URL {
     }
 
     return url;
+}
+
+async function validateTabularResponse(uid: string, response: Response): Promise<void> {
+    if (response.status === 415) {
+        let msg = `The requested variable ${uid} data is not tabular`;
+        try {
+            const data = await response.json();
+            if ('detail' in data) {
+                msg += `. ${data.detail}`;
+            }
+        } catch {
+            // ignore
+        }
+        throw new UserError(msg);
+    }
 }
 
 interface TaskResponse {
@@ -119,6 +135,7 @@ export async function fetchTabularServerVariable({
     } satisfies TabularDataRequestBody;
     const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
     await handleAuthErrors(response, true);
+    await validateTabularResponse(variable.uid, response);
     await validateResponse(response, 'Failed to fetch tabular data');
     return response.json();
 }
@@ -160,6 +177,7 @@ export function useFetchTabularDerivedVariable(
             } satisfies TabularDataRequestBody;
             const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
             await handleAuthErrors(response, true);
+            await validateTabularResponse(variable.uid, response);
             await validateResponse(response, 'Failed to fetch tabular data');
             const responseJson: TaskResponse | DataResponse = await response.json();
 

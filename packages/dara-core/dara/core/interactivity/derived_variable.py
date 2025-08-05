@@ -53,6 +53,7 @@ from dara.core.base_definitions import (
     Cache,
     CacheArgType,
     CachedRegistryEntry,
+    NonTabularDataError,
     PendingTask,
 )
 from dara.core.interactivity.actions import TriggerVariable, assert_no_context
@@ -100,9 +101,10 @@ class FilterResolver(Protocol):
 async def default_filter_resolver(
     data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
 ) -> Tuple[DataFrame, int]:
-    assert isinstance(data, DataFrame), (
-        'Default filter resolver expects a DataFrame to be returned from the DerivedVariable function'
-    )
+    if not isinstance(data, DataFrame):
+        raise NonTabularDataError(
+            f'Default filter resolver expects a DataFrame to be returned from the DerivedVariable function, got {type(data)}'
+        )
     return apply_filters(data, filters, pagination)
 
 
@@ -638,7 +640,10 @@ class DerivedVariable(NonDataVariable, Generic[VariableType]):
         if data is None:
             return DataResponse(data=None, count=0, schema=None)
 
-        data = append_index(data)
+        # silently add the index column for DataFrame values
+        # User resolver could technically not be returning a DataFrame
+        if isinstance(data, DataFrame):
+            data = append_index(data)
 
         # Filtering part
         data, count = await filter_resolver(data, filters, pagination)

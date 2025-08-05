@@ -17,16 +17,13 @@ limitations under the License.
 
 import io
 import os
-from collections.abc import Awaitable
-from typing import Any, Callable, Literal, Optional, TypedDict, Union, cast
+from typing import Literal, Optional, TypedDict, Union, cast
 
 import pandas
 from fastapi import UploadFile
-from pydantic import ConfigDict
 
-from dara.core.base_definitions import CachedRegistryEntry, UploadResolverDef
+from dara.core.base_definitions import UploadResolverDef
 from dara.core.interactivity.any_variable import AnyVariable
-from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
 
@@ -46,23 +43,6 @@ class DataFrameSchema(TypedDict):
     primaryKey: list[str]
 
 
-class DataVariableRegistryEntry(CachedRegistryEntry):
-    """
-    Registry entry for DataVariable.
-    """
-
-    type: Literal['plain', 'derived']
-    get_data: Callable[..., Awaitable[Any]]
-    """Handler to get the data from the data variable. Defaults to DataVariable.get_value for type=plain, and DerivedDataVariable.get_data for type=derived"""
-
-    get_total_count: Callable[..., Awaitable[int]]
-    """Handler to get the total number of rows in the data variable. Defaults to DataVariable.get_total_count for type=plain, and DerivedDataVariable.get_total_count for type=derived"""
-
-    get_schema: Callable[..., Awaitable[DataFrameSchema]]
-    """Handler to get the schema for data variable. Defaults to DataVariable.get_schema for type=plain, and DerivedDataVariable.get_schema for type=derived"""
-    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
-
-
 async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: Optional[str] = None):
     """
     Handler for uploading data.
@@ -71,31 +51,27 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
     :param data_uid: optional uid of the data variable to upload to
     :param resolver_id: optional id of the upload resolver to use, falls back to default handlers for csv/xlsx
     """
-    from dara.core.interactivity.data_variable import DataVariable
+    from dara.core.interactivity.server_variable import ServerVariable
     from dara.core.internal.registries import (
-        data_variable_registry,
+        server_variable_registry,
         upload_resolver_registry,
         utils_registry,
     )
 
-    store: CacheStore = utils_registry.get('Store')
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
     if data.filename is None:
         raise ValueError('Filename not provided')
 
-    variable = None
+    variable_entry = None
 
     _name, file_type = os.path.splitext(data.filename)
 
     if data_uid is not None:
         try:
-            variable = await registry_mgr.get(data_variable_registry, data_uid)
+            variable_entry = await registry_mgr.get(server_variable_registry, data_uid)
         except KeyError as e:
             raise ValueError(f'Data Variable {data_uid} does not exist') from e
-
-        if variable.type == 'derived':
-            raise ValueError('Cannot upload data to DerivedDataVariable')
 
     content = cast(bytes, await data.read())
 
@@ -119,6 +95,6 @@ async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: 
         content = pandas.read_csv(file_object_csv, index_col=0)
         content.columns = content.columns.str.replace('Unnamed: *', 'column_', regex=True)  # type: ignore
 
-    # If a data variable is provided, update it with the new content
-    if variable:
-        DataVariable.update_value(variable, store, content)
+    # If a server variable is provided, update it with the new content
+    if variable_entry:
+        await ServerVariable.write_value(variable_entry, content)

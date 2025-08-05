@@ -304,6 +304,12 @@ class CachedRegistryEntry(BaseModel):
         return f'{self.__class__.__name__}(cache={self.cache}, uid={self.uid})'
 
 
+class NonTabularDataError(Exception):
+    """
+    Raised when trying to interpret a non-tabular variable as tabular
+    """
+
+
 class BaseTaskMessage(BaseModel):
     task_id: str
 

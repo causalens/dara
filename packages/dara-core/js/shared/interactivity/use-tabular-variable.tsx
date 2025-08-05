@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Snapshot, useRecoilValue, useRecoilValueLoadable } from 'recoil';
+import { type Snapshot, useRecoilValue, useRecoilValueLoadable } from 'recoil';
 
 import type { RequestExtras } from '@/api/http';
 import type { WebSocketClientInterface } from '@/api/websocket';
@@ -23,6 +23,7 @@ import {
 
 import { normalizeRequest } from '../utils/normalization';
 import { createFetcher } from './filtering';
+// eslint-disable-next-line import/no-cycle
 import {
     type DerivedResult,
     cleanArgs,

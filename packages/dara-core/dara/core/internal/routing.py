@@ -40,9 +40,10 @@ from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
+from starlette.status import HTTP_415_UNSUPPORTED_MEDIA_TYPE
 
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import ActionResolverDef, BaseTask, UploadResolverDef
+from dara.core.base_definitions import ActionResolverDef, BaseTask, NonTabularDataError, UploadResolverDef
 from dara.core.configuration import Configuration
 from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
@@ -311,7 +312,7 @@ def create_router(config: Configuration):
     class TabularRequestBody(BaseModel):
         filters: Optional[FilterQuery] = None
         ws_channel: str
-        dv_values: Optional[NormalizedPayload[Mapping[str, Any]]] = None
+        dv_values: Optional[NormalizedPayload[List[Any]]] = None
         """DerivedVariable values if variable is a DerivedVariable"""
         force_key: Optional[str] = None
         """Optional force key if variable is a DerivedVariable and a recalculation is forced"""
@@ -329,30 +330,33 @@ def create_router(config: Configuration):
         Generic endpoint for getting tabular data from a variable.
         Supports ServerVariables and DerivedVariables.
         """
-        pagination = Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
-        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        try:
+            pagination = Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
+            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-        # ServerVariable
-        if body.dv_values is None:
-            server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
-            data_response = await ServerVariable.get_tabular_data(server_variable_entry, body.filters, pagination)
-            return Response(data_response_to_json(data_response), media_type='application/json')
+            # ServerVariable
+            if body.dv_values is None:
+                server_variable_entry = await registry_mgr.get(server_variable_registry, uid)
+                data_response = await ServerVariable.get_tabular_data(server_variable_entry, body.filters, pagination)
+                return Response(data_response_to_json(data_response), media_type='application/json')
 
-        # DerivedVariable
-        store: CacheStore = utils_registry.get('Store')
-        task_mgr: TaskManager = utils_registry.get('TaskManager')
-        variable_def = await registry_mgr.get(derived_variable_registry, uid)
-        values = denormalize(body.dv_values.data, body.dv_values.lookup)
+            # DerivedVariable
+            store: CacheStore = utils_registry.get('Store')
+            task_mgr: TaskManager = utils_registry.get('TaskManager')
+            variable_def = await registry_mgr.get(derived_variable_registry, uid)
+            values = denormalize(body.dv_values.data, body.dv_values.lookup)
 
-        result = await variable_def.get_tabular_data(
-            variable_def, store, task_mgr, values, body.force_key, pagination, body.filters
-        )
+            result = await variable_def.get_tabular_data(
+                variable_def, store, task_mgr, values, body.force_key, pagination, body.filters
+            )
 
-        if isinstance(result, BaseTask):
-            await task_mgr.run_task(result, body.ws_channel)
-            return {'task_id': result.task_id}
+            if isinstance(result, BaseTask):
+                await task_mgr.run_task(result, body.ws_channel)
+                return {'task_id': result.task_id}
 
-        return Response(data_response_to_json(result), media_type='application/json')
+            return Response(data_response_to_json(result), media_type='application/json')
+        except NonTabularDataError as e:
+            raise HTTPException(status_code=HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e)) from e
 
     @core_api_router.get('/server-variable/{uid}/sequence', dependencies=[Depends(verify_session)])
     async def get_server_variable_sequence(
