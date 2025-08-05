@@ -314,7 +314,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
         if (props.selectedItem === null) {
             setInputValue(props.placeholder ?? '');
         }
-    }, [props.selectedItem]);
+    }, [props.selectedItem, props.placeholder]);
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
