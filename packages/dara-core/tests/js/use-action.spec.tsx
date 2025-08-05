@@ -13,7 +13,6 @@ import type {
     ActionImpl,
     AnnotatedAction,
     DaraEventMap,
-    DerivedDataVariable,
     DerivedVariable,
     NavigateToImpl,
     QueryParamStore,
@@ -814,20 +813,16 @@ describe('useAction', () => {
             variables: [variableB],
         };
 
-        const dataVariableResult: DerivedDataVariable = {
-            __typename: 'DerivedDataVariable',
+        const dataVariableResult: DerivedVariable = {
+            __typename: 'DerivedVariable',
             deps: [variableB],
-            filters: {
-                column: 'col1',
-                value: 'val1',
-                operator: 'EQ',
-            },
             uid: 'result2',
             variables: [variableB],
             cache: {
                 policy: 'global',
                 cache_type: 'session',
             },
+            nested: [],
         };
 
         const action: UpdateVariableImpl = {
@@ -919,9 +914,7 @@ describe('useAction', () => {
                 data: {
                     var: { type: 'derived', uid: 'result', values: [{ __ref: 'Variable:b' }] },
                     var2: {
-                        filters: { column: 'col1', value: 'val1' },
-
-                        type: 'derived-data',
+                        type: 'derived',
                         uid: 'result2',
                         values: [{ __ref: 'Variable:b' }],
                     },

@@ -386,7 +386,6 @@ export function resolveDerivedValue(
         .map((dep) => variableValueMap.get(getUniqueIdentifier(dep)))
         .concat(triggers.map((trigger) => trigger.inc)); // Append triggerValues to make triggers force a recalc even when deps didn't change
 
-
     // If there's no entry it's the first run so skip; otherwise:
     if (previousEntry) {
         const areArgsTheSame = isEqual(previousEntry.args, relevantValues);
@@ -481,21 +480,23 @@ export function getOrRegisterDerivedVariableResult(
                 },
                 get:
                     (extrasSerializable: RequestExtrasSerializable) =>
-                    ({ get }) => {
+                    async ({ get }) => {
                         /**
                          * Recursively resolve variables to list of values
                          *
                          * For derived variables, put ResolvedDerivedVariable object with values resolved to recoil atoms/selectors,
                          * and deps resolved to array of indexes of variables (or null if not set)
                          */
-                        const resolvedVariables = variable.variables.map((v) => {
-                            // Handle non-variables - plain values could be injected via LoopVariable
-                            if (!isVariable(v)) {
-                                return v;
-                            }
+                        const resolvedVariables = await Promise.all(
+                            variable.variables.map(async (v) => {
+                                // Handle non-variables - plain values could be injected via LoopVariable
+                                if (!isVariable(v)) {
+                                    return Promise.resolve(v);
+                                }
 
-                            return resolveVariable(v, wsClient, taskContext, currentExtras);
-                        });
+                                return resolveVariable(v, wsClient, taskContext, currentExtras);
+                            })
+                        );
 
                         const selfTrigger = get(getOrRegisterTrigger(variable));
 

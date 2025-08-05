@@ -755,6 +755,7 @@ describe('useVariable', () => {
         });
 
         it('should keep on updating the derived variable if polling_interval is set', async () => {
+            jest.useFakeTimers();
             const { result } = renderHook(
                 () =>
                     useVariable<string>({

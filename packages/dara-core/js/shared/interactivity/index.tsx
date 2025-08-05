@@ -1,5 +1,4 @@
 export { useVariable } from './use-variable';
-export { getVariableValue } from './use-variable-value';
 export * from './use-tabular-variable';
 export { combineFilters } from './filtering';
 export { default as useRefreshSelector } from './use-refresh-selector';

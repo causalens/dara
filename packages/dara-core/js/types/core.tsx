@@ -415,7 +415,7 @@ export interface ResetVariablesImpl extends ActionImpl {
 }
 
 export interface DownloadVariableImpl extends ActionImpl {
-    variable: AnyVariable<any>;
+    variable: SingleVariable<any> | DerivedVariable | ServerVariable;
     file_name?: string;
     type: 'csv' | 'json' | 'xlsx';
 }

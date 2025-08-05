@@ -1,8 +1,10 @@
 import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { getVariableValue } from '@/shared/interactivity/use-variable-value';
-import { type ActionHandler, type DownloadVariableImpl } from '@/types/core';
+import { Status } from '@darajs/ui-utils';
+
+import { getTabularVariableValue } from '@/shared';
+import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '@/types/core';
 
 /**
  * Restore original column names by inverting pandas_utils transformations
@@ -25,7 +27,7 @@ export const restoreColumnName = (colName: string): string => {
 /**
  * Process data to restore original column structure before creating matrix
  */
-export const processDataForDownload = (content: Array<Record<string, any>>): Array<Record<string, any>> => {
+export const processDataForDownload = (content: DataFrame): DataFrame => {
     return content.map((row) => {
         const processedRow: Record<string, any> = {};
 
@@ -164,7 +166,7 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
  * Retrieves the variable value and downloads the variable as either a csv, json or xl file
  */
 const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
-    let value = getVariableValue(actionImpl.variable, true, {
+    let value = await getTabularVariableValue(actionImpl.variable, {
         client: ctx.wsClient,
         extras: ctx.extras,
         search: ctx.location.search,
@@ -172,15 +174,21 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         taskContext: ctx.taskCtx,
     });
 
-    if (value instanceof Promise) {
-        value = await value;
+    if (value === null) {
+        ctx.notificationCtx.pushNotification({
+            key: '_downloadVariable',
+            message: 'Failed to fetch the variable value',
+            status: Status.ERROR,
+            title: 'Error fetching variable value',
+        });
+        return;
     }
 
-    // TODO: What to do with tabular data here?
-    // Process data to restore original column structure and remove internal columns
-    // if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
-    //     value = processDataForDownload(value);
-    // }
+    // Process data to restore original column structure and remove internal columns if it's in tabular format
+    // this simply cleans keys in [{record1}, {record2}] format
+    if (Array.isArray(value)) {
+        value = processDataForDownload(value);
+    }
 
     const fileName = actionImpl.file_name || 'Data';
     const fileNameWithExt = `${fileName}.${actionImpl.type}`;

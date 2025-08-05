@@ -217,7 +217,7 @@ describe('useTabularVariable', () => {
             const { result } = renderHook(() => useTabularVariable(dataVariable), {
                 wrapper: Wrapper,
             });
-            expect(result.current).toBeInstanceOf(Function);
+            await waitFor(() => expect(result.current).toBeInstanceOf(Function));
 
             const dataResponse = await result.current(null, null);
 

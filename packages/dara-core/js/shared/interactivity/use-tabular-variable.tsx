@@ -12,18 +12,34 @@ import {
     type DataFrame,
     type DerivedVariable,
     type GlobalTaskContext,
+    type ResolvedDerivedVariable,
     type ServerVariable,
     type SingleVariable,
+    UserError,
     isServerVariable,
     isSingleVariable,
     isVariable,
 } from '@/types';
 
+import { normalizeRequest } from '../utils/normalization';
 import { createFetcher } from './filtering';
-import { type DerivedResult, getOrRegisterDerivedVariableResult, resolveVariable, useVariable } from './internal';
+import {
+    type DerivedResult,
+    cleanArgs,
+    fetchDerivedVariable,
+    getOrRegisterDerivedVariableResult,
+    isTaskResponse,
+    resolveVariable,
+    useVariable,
+} from './internal';
 import { getOrRegisterServerVariable } from './server-variable';
-import { type DataFetcher, useFetchTabularDerivedVariable, useFetchTabularServerVariable } from './tabular-variable';
-import { type GetVariableValueCtx, getVariableValue } from './use-variable-value';
+import {
+    type DataFetcher,
+    type DataResponse,
+    fetchTabularServerVariable,
+    useFetchTabularDerivedVariable,
+    useFetchTabularServerVariable,
+} from './tabular-variable';
 
 /**
  * Helper hook which turns any variable into a callback to return DataFrame.
@@ -90,32 +106,34 @@ export async function getTabularVariableValue(
         snapshot: Snapshot;
         taskContext: GlobalTaskContext;
     }
-): Promise<DataFrame> {
+): Promise<DataFrame | null> {
     if (!isVariable(variable)) {
         return variable;
     }
 
     if (isSingleVariable(variable)) {
-        // in this case it's safe to getValue directly from the Recoil state
         return resolveVariable(variable, ctx.client, ctx.taskContext, ctx.extras, (v) =>
-            ctx.snapshot.getLoadable(v).getValue()
+            ctx.snapshot.getLoadable(v).toPromise()
         );
     }
 
     if (isServerVariable(variable)) {
-        const result = fetchTabularServerVariable({
+        const response = await fetchTabularServerVariable({
             variable,
-            seqNumber: resolved.sequence_number,
+            // doesn't matter for fetching, will get up to date anyway
+            seqNumber: 0,
             wsClient: ctx.client,
             extras: ctx.extras,
-        }).then((resp) => {
-            return resp.data;
         });
-        return result;
+        return response.data;
     }
 
+    const resolved = (await resolveVariable(variable, ctx.client, ctx.taskContext, ctx.extras, (v) =>
+        ctx.snapshot.getLoadable(v).toPromise()
+    )) as ResolvedDerivedVariable;
+
     // derived variable
-    return fetchDerivedVariable({
+    const result = await fetchDerivedVariable({
         cache: variable.cache,
         extras: ctx.extras,
         force_key: null,
@@ -124,16 +142,16 @@ export async function getTabularVariableValue(
          */
         selectorKey: resolved.uid,
 
-        values: normalizeRequest(cleanArgs(resolved.values), (variable as DerivedVariable).variables),
+        values: normalizeRequest(cleanArgs(resolved.values), variable.variables),
         variableUid: resolved.uid,
         wsClient: ctx.client,
-    }).then((resp) => {
-        // This is really only used in DownloadVariable currently; we can add support for tasks
-        // if it is requested in the future
-        if (isTaskResponse(resp)) {
-            throw new Error('Task DerivedVariables are not supported in this context');
-        }
+    });
 
-        return resp.value;
-    }) as Promise<VV>;
+    // This is really only used in DownloadVariable currently; we can add support for task
+    if (isTaskResponse(result)) {
+        throw new UserError('Task DerivedVariables are not supported in this context');
+    }
+
+    const response = result.value as DataResponse;
+    return response.data;
 }
