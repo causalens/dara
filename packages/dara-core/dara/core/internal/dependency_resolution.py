@@ -21,7 +21,6 @@ from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity import DerivedVariable
-from dara.core.interactivity.filtering import FilterQuery
 from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.registry_lookup import RegistryLookup

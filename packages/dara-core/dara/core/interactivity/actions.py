@@ -55,6 +55,7 @@ from dara.core.base_definitions import (
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -67,7 +68,6 @@ if TYPE_CHECKING:
         DerivedVariable,
         Variable,
     )
-    from dara.core.internal.cache_store import CacheStore
 
 
 class ActionInputs(BaseModel):
@@ -125,7 +125,7 @@ class UpdateVariableImpl(ActionImpl):
 
     py_name = 'UpdateVariable'
 
-    variable: Union[Variable, DataVariable]
+    variable: Union[Variable, ServerVariable]
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -138,16 +138,15 @@ class UpdateVariableImpl(ActionImpl):
         if isinstance(self.variable, DataVariable):
             # Update on the backend
             from dara.core.internal.registries import (
-                data_variable_registry,
+                server_variable_registry,
                 utils_registry,
             )
 
-            store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-            var_entry = await registry_mgr.get(data_variable_registry, self.variable.uid)
-            DataVariable.update_value(var_entry, store, self.value)
-            # Don't notify frontend explicitly, all clients will be notified by update_value above
+            var_entry = await registry_mgr.get(server_variable_registry, self.variable.uid)
+            await ServerVariable.write_value(var_entry, self.value)
+            # Don't notify frontend explicitly, all clients will be notified by write_value above
             return None
 
         # for non-data variables just ping frontend with the new value

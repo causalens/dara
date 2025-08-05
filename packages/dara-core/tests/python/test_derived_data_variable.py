@@ -123,7 +123,7 @@ async def test_derived_data_variable_dv_value_not_returned():
     app = _start_application(config)
     async with AsyncClient(app) as client:
         response = await _get_derived_variable(
-            client, derived, { 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
+            client, derived, {'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
 
         # Check no actual value is returned when is_data_variable is True
