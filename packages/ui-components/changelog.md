@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.18.11
 
 - Fixed an issue where `SectionedList` would not update the input value when clicking on an item.
 - Updated the `SectionedList` component to support placeholder text.
