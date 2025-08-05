@@ -55,7 +55,7 @@ function DropdownMenu(props: DropdownMenuProps): JSX.Element {
     const onClick = React.useCallback(
         (_item: MenuItem, index: [number, number]) => {
             // look up the server-side item and call the action, we don't want to send the react components
-            const serverItem = serverMenuItems[index[0]][index[1]];
+            const serverItem = serverMenuItems[index[0]]![index[1]];
             onClickAction(serverItem);
         },
         [onClickAction, serverMenuItems]

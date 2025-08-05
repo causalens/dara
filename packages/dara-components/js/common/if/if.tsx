@@ -25,7 +25,7 @@ interface IfProps extends StyledComponentProps {
  * @param props the component props
  */
 function If(props: IfProps): JSX.Element {
-    const [value] = useVariable(props.condition.variable, { suspend: false });
+    const [value] = useVariable(props.condition.variable, { suspend: false, serverVariable: 'one-row' });
     const [other] = useVariable(props.condition.other, { suspend: false });
 
     const conditionResult = useMemo(

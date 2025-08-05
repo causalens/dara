@@ -50,7 +50,7 @@ function Column(props: ColumnProps): JSX.Element {
                 ...style,
             }}
         >
-            <DisplayCtx.Provider value={{ component: 'column', direction: props.direction }}>
+            <DisplayCtx.Provider value={{ component: 'column', direction: props.direction ?? 'vertical' }}>
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={`cell-${idx}-${child.uid}`} />
                 ))}

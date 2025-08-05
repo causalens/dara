@@ -33,7 +33,7 @@ interface VisualEdgeEncoderProps extends StyledComponentProps {
     /** Whether to allow node/edge selection even when editable = false */
     allow_selection_when_not_editable?: boolean;
     /** Default legends dict for each editor mode available */
-    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
+    default_legends: Record<EditorMode, GraphLegendDefinition[]>;
     /** Allow editing */
     editable?: boolean;
     /** Graph layout definition object */
@@ -145,11 +145,11 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
                             acc[c.source] = {};
                         }
 
-                        acc[c.source][c.target] = {
-                            destination: parsedNodes[c.target],
+                        acc[c.source]![c.target] = {
+                            destination: parsedNodes[c.target]!,
                             edge_type: EdgeType.UNDIRECTED_EDGE,
                             meta: {},
-                            source: parsedNodes[c.source],
+                            source: parsedNodes[c.source]!,
                         };
                     }
 

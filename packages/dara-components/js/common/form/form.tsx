@@ -62,7 +62,7 @@ function Form(props: FormProps): JSX.Element {
 
     const resolveInitialValue = useCallback(
         (defaultValue?: any, variable?: Variable<any>, id?: string): any => {
-            if (formState?.[id]) {
+            if (id && formState?.[id]) {
                 if (variable) {
                     return { ...variable, default: formState?.[id] };
                 }
@@ -80,7 +80,7 @@ function Form(props: FormProps): JSX.Element {
     const [currentPage, setCurrentPage] = useState(0);
 
     return (
-        <FormCtx.Provider value={{ formValues: formState, resolveInitialValue, updateForm }}>
+        <FormCtx.Provider value={{ formValues: formState, resolveInitialValue, updateForm: updateForm as any }}>
             <StyledForm $rawCss={css} className={props.className} style={style}>
                 {pages.length === 0 && (
                     <FormWrapper style={{ alignItems: props.align, justifyContent: props.justify }}>

@@ -54,18 +54,18 @@ function mapTabProps({ props }: TabProps): Tab {
     return { title: props.title };
 }
 
-function findTabComponent(children: Array<TabProps>, selectedTab: string): TabProps {
+function findTabComponent(children: Array<TabProps>, selectedTab?: string): TabProps | undefined {
     return children.find(({ props: { title } }) => title === selectedTab);
 }
 
-function getTabHeader(children: Array<TabProps>, selectedTab: string): Tab {
+function getTabHeader(children: Array<TabProps>, selectedTab?: string): Tab {
     const selected = findTabComponent(children, selectedTab);
-    return selected ? mapTabProps(selected) : mapTabProps(children[0]);
+    return selected ? mapTabProps(selected) : mapTabProps(children[0]!);
 }
 
 function getCardBody(children: Array<TabProps>, selectedTab: string): Array<ComponentInstance> {
     const selected = findTabComponent(children, selectedTab);
-    return selected ? selected.props.children : children[0].props.children;
+    return selected ? selected.props.children : children[0]!.props.children;
 }
 
 /**
@@ -77,8 +77,8 @@ function getCardBody(children: Array<TabProps>, selectedTab: string): Array<Comp
 function TabbedCard(props: TabbedCardProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [selectedTabFromVar, setSelectedTabFromVar] = useVariable(props.selected_tab);
-    const [selectedTab, setSelectedTab] = useState(
-        getTabHeader(props.children, selectedTabFromVar || props.initial_tab)
+    const [selectedTab, setSelectedTab] = useState(() =>
+        getTabHeader(props.children, selectedTabFromVar ?? props.initial_tab)
     );
     const [selectedCard, setSelectedCard] = useState(getCardBody(props.children, selectedTab.title));
 
@@ -99,7 +99,7 @@ function TabbedCard(props: TabbedCardProps): JSX.Element {
 
     return (
         <TabbedCardWrapper $rawCss={css} style={style}>
-            <Tabs<Tab> onSelectTab={onSelectTab} selectedTab={selectedTab} tabs={tabs} />
+            <Tabs<Tab> onSelectTab={onSelectTab as any} selectedTab={selectedTab} tabs={tabs} />
             <Card data-active-tab={selectedTab.title} data-type="children-wrapper">
                 <DisplayCtx.Provider value={{ component: 'tabbedcard', direction: 'vertical' }}>
                     {selectedCard.map((child: ComponentInstance, idx: number) => (

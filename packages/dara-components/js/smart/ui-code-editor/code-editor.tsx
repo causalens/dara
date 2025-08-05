@@ -228,7 +228,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
         return configurableHotkeys?.hotkeyBindings ?
                 Object.keys(configurableHotkeys.hotkeyBindings).reduce((acc, key) => {
                     acc[key] = (e: KeyboardEvent) => {
-                        configurableHotkeys.hotkeyBindings?.[key]?.(e, viewRef.current);
+                        configurableHotkeys.hotkeyBindings?.[key]?.(e, viewRef.current!);
                     };
                     return acc;
                 }, {} as KeyBindingMap)
@@ -246,7 +246,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
             viewRef.current?.focus();
         }
         if (focusType === 'soft' && onBlur) {
-            onBlur(new FocusEvent('blur'), viewRef.current);
+            onBlur(new FocusEvent('blur'), viewRef.current!);
         }
         setPrevIsFocused(focusOnLoad);
     }
@@ -256,8 +256,8 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
     const enableGoToDef = React.useMemo(() => onGoToDefinition !== undefined, [onGoToDefinition]);
     const goToDef = useLatestCallback(onGoToDefinition ?? noop);
 
-    useOnClickOutside(ref.current, () => {
-        closeArgumentsHintsTooltip(viewRef.current);
+    useOnClickOutside(ref.current!, () => {
+        closeArgumentsHintsTooltip(viewRef.current!);
     });
 
     useEffect(() => {
@@ -275,7 +275,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
             },
             extensions: [
                 extensions ?? [],
-                ...getDefaultExtensions(initialThemeType.current),
+                getDefaultExtensions(initialThemeType.current),
                 EditorView.clickAddsSelectionRange.of((evt) => evt.altKey && !evt.ctrlKey && !evt.metaKey),
                 EditorView.editable.of(!disabled),
                 EditorState.readOnly.of(readOnly),
@@ -293,7 +293,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                         signatureHelp,
                         // completion
                         autocompletion({
-                            override: [(ctx) => getLspCompletion(client, ctx, uri)],
+                            override: [(ctx) => getLspCompletion(client, ctx, uri!)],
                             // use original sorting order from the LSP
                             compareCompletions: () => 1,
                             // reactivate completion when completing paths
@@ -305,7 +305,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                         // go-to-definition
                         enableGoToDef ?
                             goToDefinitionExtension(async (ch, line) => {
-                                const res = await getLspDefinition(client, uri, line, ch);
+                                const res = await getLspDefinition(client, uri!, line, ch);
                                 if (res) {
                                     goToDef(res.definitions);
                                 }
@@ -333,7 +333,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                             const ch = pos - linePosInfo.from;
                             const line = linePosInfo.number - 1;
 
-                            const inspection = await getLspInspection(client, uri, line, ch);
+                            const inspection = await getLspInspection(client, uri!, line, ch);
 
                             if (!inspection) {
                                 return null;
@@ -342,7 +342,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                             return {
                                 above: true,
                                 create: () => {
-                                    const dom = tooltipRef.current;
+                                    const dom = tooltipRef.current!;
 
                                     setTooltipContent(
                                         tooltipRenderer({
@@ -367,7 +367,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                                 pos: wordRange.from,
                             };
                         }),
-                    ]
+                    ].filter((x) => x !== null)
                 :   [],
                 keymap.of([
                     {
@@ -379,13 +379,13 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
 
                             // if the tooltip is not currently showing, skip
                             const signatureHelpState = signatureHelp[0];
-                            if (viewRef.current.state.field(signatureHelpState) === null) {
+                            if (viewRef.current!.state.field(signatureHelpState) === null) {
                                 return false;
                             }
 
                             // tooltip is showing, close and return true to stop propagation
                             // so Escape doesn't trigger other events
-                            closeArgumentsHintsTooltip(viewRef.current);
+                            closeArgumentsHintsTooltip(viewRef.current!);
 
                             return true;
                         },
@@ -397,7 +397,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                         keymapPrecedence?.map((binding) => {
                             return {
                                 ...binding,
-                                run: () => binding.run?.(viewRef.current) ?? false,
+                                run: () => binding.run?.(viewRef.current!) ?? false,
                             };
                         }) ?? []
                     )
@@ -483,13 +483,13 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
             // changes to initialValue coming through. If the content is still different after 100ms then we push the
             // update through as we are now sure that the difference was intentional and not due to race condition.
             const timeoutID = setTimeout(() => {
-                if (viewRef.current.state.doc.toString() !== initialValue) {
-                    viewRef.current.dispatch({
+                if (viewRef.current!.state.doc.toString() !== initialValue) {
+                    viewRef.current!.dispatch({
                         annotations: EXTERNAL_UPDATE.of(true),
                         changes: {
                             from: 0,
                             insert: initialValue,
-                            to: viewRef.current.state.doc.length,
+                            to: viewRef.current!.state.doc.length,
                         },
                         selection: { anchor: initialValue?.length ?? 0 },
                     });
@@ -507,7 +507,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
     const handleKeyDownCapture = React.useCallback(
         (e: React.KeyboardEvent<HTMLDivElement>): void => {
             // While composing (IME), stop bubbling all events
-            if (viewRef.current.compositionStarted || viewRef.current.composing) {
+            if (viewRef.current!.compositionStarted || viewRef.current!.composing) {
                 hasCompositionJustEnded.current = false;
                 e.stopPropagation();
                 e.preventDefault();
@@ -587,11 +587,11 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
             <div
                 onBlur={() => {
                     if (enableLsp) {
-                        closeArgumentsHintsTooltip(viewRef.current);
+                        closeArgumentsHintsTooltip(viewRef.current!);
                     }
                     // if not using focus types and just a plain editor, call onBlur
                     if (focusType === undefined) {
-                        onBlur?.(new FocusEvent('blur'), viewRef.current);
+                        onBlur?.(new FocusEvent('blur'), viewRef.current!);
                     }
                 }}
                 data-testid={dataTestId}

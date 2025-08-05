@@ -25,7 +25,7 @@ interface ComponentSelectListProps extends StyledComponentProps {
     /** An optional Action for listening to changes in the selected items */
     on_select?: Action;
     /** The optional selected items, can be an array of titles if multiSelect is true otherwise a title */
-    selected_items?: Variable<Array<string> | string>;
+    selected_items?: Variable<Array<string> | string | null>;
 }
 
 const StyledComponentSelectList = injectCss(UIComponentSelectList);
@@ -62,6 +62,7 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
             itemsPerRow={props.items_per_row}
             multiSelect={props.multi_select}
             onSelect={updateSelectedItems}
+            // @ts-expect-error incorrect type in ui-components
             selectedItems={selectedItems && castArray(selectedItems)}
             style={style}
         />

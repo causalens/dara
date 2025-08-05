@@ -87,7 +87,7 @@ function Button(
             ref={ref}
             {...props}
         >
-            {icon && (
+            {Icon && (
                 <Icon
                     style={{
                         color: iconColor,

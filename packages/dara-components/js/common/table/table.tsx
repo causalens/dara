@@ -17,6 +17,7 @@ import {
     type ServerVariable,
     type SingleVariable,
     type StyledComponentProps,
+    UserError,
     type Variable,
     combineFilters,
     injectCss,
@@ -505,6 +506,7 @@ function Table(props: TableProps): JSX.Element {
             );
 
             if (data === null || data.length === 0) {
+                setResolvedColumns([]);
                 return { data: [], totalCount: count };
             }
 
@@ -532,7 +534,16 @@ function Table(props: TableProps): JSX.Element {
 
     const extraDataCache = useRef<Record<string, DataRow>>({});
 
+    // throw user errors to error boundary
+    // workaround for error-boundaries not catching errors from async code
+    const [userError, setUserError] = useState<Error | null>(null);
+    if (userError) {
+        throw userError;
+    }
     const onError = useCallback((err: Error) => {
+        if (err instanceof UserError) {
+            setUserError(err);
+        }
         // eslint-disable-next-line no-console
         console.error('[Table] error while fetching data', err);
     }, []);

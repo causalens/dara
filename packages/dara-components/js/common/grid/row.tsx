@@ -44,7 +44,7 @@ const MAX_COLUMNS = 12;
  * @param breakpoint the breakpoint to consider the span for
  * @param breakpoints an object containing when all of the breakpoints happen
  */
-function getSpanForBreakpoint(span: number | Breakpoints, breakpoint: number, breakpoints: Breakpoints): number | null {
+function getSpanForBreakpoint(span: number | Breakpoints | null | undefined, breakpoint: number, breakpoints: Breakpoints): number | null {
     if (typeof span === 'number') {
         return span;
     }
@@ -77,10 +77,10 @@ function getSpanForBreakpoint(span: number | Breakpoints, breakpoint: number, br
  */
 function getCellWidthByRow(row: Array<ColumnInstance>, breakpoint: number, breakpoints: Breakpoints): number {
     const totalAssignedSpan = row
-        .filter((column) => column.props.span !== null)
-        .reduce((sum, current) => sum + getSpanForBreakpoint(current.props.span, breakpoint, breakpoints), 0);
+        .filter((column) => column.props.span !== null && column.props.span !== undefined)
+        .reduce((sum, current) => sum + (getSpanForBreakpoint(current.props.span, breakpoint, breakpoints) ?? 0), 0);
     const columnsWithNoSpan = row.filter(
-        (column) => getSpanForBreakpoint(column.props.span, breakpoint, breakpoints) === null
+        (column) => getSpanForBreakpoint(column.props.span ?? null, breakpoint, breakpoints) === null
     ).length;
     const span = (MAX_COLUMNS - totalAssignedSpan) / columnsWithNoSpan;
     return span;
@@ -98,11 +98,11 @@ function getCellWidthByRow(row: Array<ColumnInstance>, breakpoint: number, break
 function getCellWidth(
     row: Array<ColumnInstance>,
     childSpan: number | null,
-    columnGap: number,
+    columnGap: number | undefined,
     breakpoint: number,
     breakpoints: Breakpoints
 ): number {
-    const widthAvailable = 100 - (row.length - 1) * columnGap;
+    const widthAvailable = 100 - (row.length - 1) * columnGap!;
     const width =
         childSpan ?
             (childSpan * widthAvailable) / MAX_COLUMNS
@@ -122,10 +122,10 @@ function getCellWidth(
 function getColumnWidth(
     children: Array<ColumnInstance>,
     child: ColumnInstance,
-    columnGap: number,
+    columnGap: number | undefined,
     breakpoint: number,
     breakpoints: Breakpoints
-): number {
+): number | undefined {
     // contains the current sum of span occupied by all children in current row
     let currentSum = 0;
     // contains whether the child is in the current row we are looking at
@@ -136,7 +136,7 @@ function getColumnWidth(
     const childSpan = getSpanForBreakpoint(child.props?.span, breakpoint, breakpoints);
     for (const [childrenIndex, currentChild] of children.entries()) {
         // get the current child span for given breakpoint
-        const currentChildSpan = getSpanForBreakpoint(currentChild.props?.span, breakpoint, breakpoints);
+        const currentChildSpan = getSpanForBreakpoint(currentChild.props?.span, breakpoint, breakpoints)!;
         // if a column does not have a span we allocate it a temporary value of 1, otherwise we add to the current sum its span
         currentSum += currentChildSpan ?? 1;
 
@@ -187,15 +187,15 @@ function getColumnWidth(
 function getAllWidthsForColumn(
     children: Array<ColumnInstance>,
     child: ColumnInstance,
-    columnGap: number,
+    columnGap: number | undefined,
     breakpoints: Breakpoints
 ): Breakpoints {
     return {
-        lg: getColumnWidth(children, child, columnGap, breakpoints.lg, breakpoints),
-        md: getColumnWidth(children, child, columnGap, breakpoints.md, breakpoints),
-        sm: getColumnWidth(children, child, columnGap, breakpoints.sm, breakpoints),
-        xl: getColumnWidth(children, child, columnGap, breakpoints.xl, breakpoints),
-        xs: getColumnWidth(children, child, columnGap, breakpoints.xs, breakpoints),
+        lg: getColumnWidth(children, child, columnGap, breakpoints.lg, breakpoints)!,
+        md: getColumnWidth(children, child, columnGap, breakpoints.md, breakpoints)!,
+        sm: getColumnWidth(children, child, columnGap, breakpoints.sm, breakpoints)!,
+        xl: getColumnWidth(children, child, columnGap, breakpoints.xl, breakpoints)!,
+        xs: getColumnWidth(children, child, columnGap, breakpoints.xs, breakpoints)!,
     };
 }
 
@@ -206,16 +206,16 @@ function getAllWidthsForColumn(
  * @param offsetWidth if offset was a column the width it would take on the screen
  * @param columnGap the columnGap applied to that row
  */
-function getMarginLeft(width: number | null, offsetWidth: number | null, columnGap: number): number {
+function getMarginLeft(width: number | null, offsetWidth: number | null | undefined, columnGap: number | undefined): number {
     // if there is no offset or if the column takes the whole row then the margin-left should be 0
     if (offsetWidth && width !== 100) {
         // if offset span + width are greater than 12, then offset is corrected so row adds to 12
-        if (offsetWidth + width + columnGap > 100) {
-            return 100 - width;
+        if (offsetWidth + width! + columnGap! > 100) {
+            return 100 - width!;
         }
         // otherwise should be the space a column of the offset span would take plus the space taken by a column gap
         // this is needed to ensure alignment between rows
-        return offsetWidth + columnGap;
+        return offsetWidth + columnGap!;
     }
     return 0;
 }
@@ -232,10 +232,10 @@ function getColumnStyle(
     children: Array<ColumnInstance>,
     child: ColumnInstance,
     breakpoints: Breakpoints,
-    columnGap: number
+    columnGap: number | undefined
 ): string {
     const widths = getAllWidthsForColumn(children, child, columnGap, breakpoints);
-    let offsets: Breakpoints;
+    let offsets: Breakpoints | undefined;
     if (child.props?.offset) {
         const offset_child = {
             props: { span: child.props?.offset },

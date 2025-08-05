@@ -71,6 +71,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             items={items}
             onChange={onChange}
             style={style}
+            // @ts-expect-error incorrect type in ui-components
             value={items.find((item) => item.value === value) ?? null}
         />
     );
