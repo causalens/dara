@@ -185,7 +185,11 @@ function SectionedList(props: SectionedListProps): JSX.Element {
         itemToString: (item: Item) => (item ? item.label : ''),
         items,
         onInputValueChange: (change) => {
-            if (change.type === stateChangeTypes.ItemClick) {
+            const shouldUpdateInput = (
+                [stateChangeTypes.ItemClick, stateChangeTypes.InputChange] as UseComboboxStateChangeTypes[]
+            ).includes(change.type);
+
+            if (shouldUpdateInput) {
                 setInputValue(change.inputValue);
             }
 
