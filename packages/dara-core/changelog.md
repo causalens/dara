@@ -7,6 +7,11 @@ title: Changelog
 -  Deprecated `UrlVariable` in favour of using `Variable(store=QueryParamStore(query=...))`
 -  Deprecated `persist_value` on `Variable` in favour of using `Variable(store=BrowserStore(...))` instead
 -  Added `read`, `write`, `delete`, `get_all` shortcut methods on `Variable` that pass through to the corresponding methods on the attached `BackendStore` instance. This allows for a more concise API when using `BackendStore` but raise if the attached store is not of the `BackendStore` type
+-  Deprecated `DataVariable` in favour of new generalized `ServerVariable`. It represents server-side data. Server variables can store tabular data and be consumed by e.g. `Table` component if required as a special case,
+otherwise they are considered unserializable and do not get sent to the client. `DataVariable` acts as effectively an alias for `ServerVariable`.
+-  Deprecated `DerivedDataVariable`. `DerivedVariable` can return tabular data if needed, the automatic data filtering and pagination is now handled seamlessly when consumed by e.g. `Table` component.
+-  Added optional `filter_resolver` to `DerivedVariable` which can be used to customize the filtering logic of the derived variable. The default filter resolver assumes the derived function returns `DataFrame` and applies the default filtering logic.
+Custom filter resolver can be used to e.g. return a data reference from the derived function and offload filtering logic to remote API in the filtering part.
 
 ## 1.19.1
 

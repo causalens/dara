@@ -88,6 +88,54 @@ class MemoryBackend(ServerBackend):
 
 
 class ServerVariable(AnyVariable):
+    """
+    A ServerVariable represents server-side data that is synchronized with the client.
+
+    Unlike Variables with BackendStore (which are client state persisted on server),
+    ServerVariable holds data that originates and is managed on the server, with
+    clients receiving reactive updates when the data changes.
+
+    ServerVariable can store any Python object, including non-serializable data like
+    database connections, ML models, or complex objects.
+
+    However, when used with components expecting tabular data (like Table), the data must be
+    serializable or a NonTabularDataError will be raised. The default backend implementation
+    expects the tabular data to be a pandas DataFrame. To support other data types, you can
+    implement a custom backend that translates the data into a filtered DataFrame in the
+    `read_filtered` method.
+
+    ```python
+    import pandas as pd
+    from dara.core import ServerVariable, action
+    from dara.core.interactivity.server_variable import ServerBackend
+    from sklearn.ensemble import RandomForestClassifier
+
+    # Basic usage with DataFrame
+    data = ServerVariable(pd.DataFrame({'a': [1, 2, 3]}))
+
+    # Non-serializable data (ML model)
+    model = ServerVariable(trained_sklearn_model, scope='global')
+
+    # Custom backend
+    class DatabaseBackend(ServerBackend):
+        # ... implements all the methods as DB operations
+
+    data = ServerVariable(backend=DatabaseBackend(...))
+
+    # User-specific data
+    user_prefs = ServerVariable(scope='user')
+
+    @action
+    async def on_click(ctx):
+        # write to the data for the user who initiated the action
+        await user_prefs.write('dark')
+    ```
+
+    :param default: Initial value for the variable (global scope only)
+    :param backend: Custom backend for data storage and retrieval
+    :param scope: 'global' (shared across all users) or 'user' (per-user data)
+    """
+
     backend: ServerBackend = Field(exclude=True)
     scope: Literal['user', 'global']
 
@@ -147,6 +195,9 @@ class ServerVariable(AnyVariable):
         filters: Optional[FilterQuery] = None,
         pagination: Optional[Pagination] = None,
     ) -> DataResponse:
+        """
+        Internal method to get tabular data from the backend
+        """
         key = cls.get_key(entry.backend.scope)
         data, count = await entry.backend.read_filtered(key, filters, pagination)
         if data is None:
@@ -155,6 +206,11 @@ class ServerVariable(AnyVariable):
 
     @classmethod
     def get_key(cls, scope: Literal['global', 'user']):
+        """
+        Resolve the key for the given scope
+
+        :param scope: the scope to resolve the key for
+        """
         if scope == 'global':
             return 'global'
 
@@ -168,10 +224,20 @@ class ServerVariable(AnyVariable):
 
     @property
     def key(self):
+        """
+        Current key for the backend
+        """
         return self.get_key(self.scope)
 
     @classmethod
     async def _notify(cls, uid: str, key: str, backend: ServerBackend):
+        """
+        Internal method to notify clients of a change in the value
+
+        :param uid: the uid of the variable
+        :param key: the key for the backend
+        :param backend: the backend instance
+        """
         from dara.core.internal.registries import utils_registry
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
@@ -212,9 +278,19 @@ class ServerVariable(AnyVariable):
         raise NotImplementedError('ServerVariable does not support reset')
 
     async def read(self):
+        """
+        Read the current value from the backend.
+        Depending on the scope, the value will be global or user-specific.
+        """
         return await self.backend.read(self.key)
 
     async def write(self, value: Any):
+        """
+        Write a new value to the backend.
+        Depending on the scope, the value will be global or user-specific.
+
+        :param value: the new value to write
+        """
         value = await self.backend.write(self.key, value)
         await self._notify(self.uid, self.key, self.backend)
         return value
@@ -222,6 +298,13 @@ class ServerVariable(AnyVariable):
     async def read_filtered(
         self, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
     ):
+        """
+        Read a filtered value from the backend.
+        Depending on the scope, the value will be global or user-specific.
+
+        :param filters: the filters to apply
+        :param pagination: the pagination to apply
+        """
         return await self.backend.read_filtered(self.key, filters, pagination)
 
     @model_serializer(mode='wrap')

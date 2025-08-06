@@ -117,6 +117,61 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
     DerivedVariables can be chained together to form complex data flows whilst keeping everything organized and
     structured in an easy to follow way. DerivedVariable results are cached automatically and will only be
     recalculated when necessary.
+
+    As a special case, DerivedVariables can be used for tabular data and retrieving its slice as a DataFrame. This functionality
+    is utilized by e.g. the built-in Table component. By default, when passing a DerivedVariable to a Table component, Dara
+    expects the resolver function to return a DataFrame or None. This behaviour can be customized by providing a custom `filter_resolver`.
+    This function will be invoked with the result of the main DerivedVariable function, as well as filters and pagination. It can be used
+    to e.g. retrieve a slice of data from an API endpoint or a database instead of retrieving the entire dataset and filtering it in-memory.
+
+    ```python
+    from typing import Optional
+    import httpx
+    import pandas as pd
+    from dara.core import DerivedVariable, Variable
+    from dara.core.interactivity.filtering import FilterQuery, Pagination
+
+    # Custom filter resolver for API-based filtering
+    async def api_filter_resolver(data, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None):
+        async with httpx.AsyncClient() as client:
+            # in this case data is a string url
+            response = await client.get(data, params={
+                # translates filters/pagination to API-specific query params
+                'filters': filters.dict() if filters else {},
+                'offset': pagination.offset if pagination else 0,
+                'limit': pagination.limit if pagination else 50
+            })
+            data = response.json()
+            # conform to the filter resolver API, return a tuple of (DataFrame, total_count)
+            return pd.DataFrame(data['results']), data['total_count']
+
+    # DerivedVariable with custom filtering
+    user_params = Variable({'dataset': 'experiments'})
+    derived_data = DerivedVariable(
+        lambda params: f"https://api.example.com/data/{params['dataset']}",
+        variables=[user_params],
+        filter_resolver=api_filter_resolver
+    )
+    ```
+
+    :param func: the function to derive a new value from the input variables.
+    :param variables: a set of input variables that will be passed to the deriving function
+    :param cache: whether to cache the result, defaults to global caching. Other options are to cache per user
+                  session, per user or to not cache at all
+    :param run_as_task: whether to run the calculation in a separate process, recommended for any CPU intensive
+                        tasks, defaults to False
+    :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
+                         component to poll the backend and refresh itself every n seconds.
+    :param filter_resolver: an optional function to resolve the filter query for the derived variable. This can be
+    used to customize the way tabular data is resolved. This is invoked with the result of the main DerivedVariable function,
+    as well as filters and pagination. The function should return a DataFrame and total count.
+    :param deps: an optional array of variables, specifying which dependant variables changing should trigger a
+                    recalculation of the derived variable
+    - `deps = None` - `func` is ran everytime (default behaviour),
+    - `deps = []` - `func` is ran once on initial startup,
+    - `deps = [var1, var2]` - `func` is ran whenever one of these vars changes
+    - `deps = [var1.get('nested_property')]` - `func` is ran only when the nested property changes, other changes to the variable are ignored
+    :param uid: the unique identifier for this variable; if not provided a random one is generated
     """
 
     cache: Optional[BaseCachePolicy]
@@ -141,34 +196,6 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
         _get_tabular_data: Optional[Callable[..., Union[Awaitable[DataResponse], Awaitable[MetaTask]]]] = None,
     ):
-        """
-        A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other
-        variables with a python function. This is one of two primary ways that python logic can be embedded into the
-        application (the other being the @py_component decorator).
-
-        DerivedVariables can be chained together to form complex data flows whilst keeping everything organized and
-        structured in an easy to follow way. DerivedVariable results are cached automatically and will only be
-        recalculated when necessary.
-
-        :param func: the function to derive a new value from the input variables.
-        :param variables: a set of input variables that will be passed to the deriving function
-        :param cache: whether to cache the result, defaults to global caching. Other options are to cache per user
-                      session, per user or to not cache at all
-        :param run_as_task: whether to run the calculation in a separate process, recommended for any CPU intensive
-                            tasks, defaults to False
-        :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
-                             component to poll the backend and refresh itself every n seconds.
-        :param filter_resolver: an optional function to resolve the filter query for the derived variable. This can be
-        used to customize the way tabular data is resolved. This is invoked with the result of the main DerivedVariable function,
-        as well as filters and pagination. The function should return a DataFrame.
-        :param deps: an optional array of variables, specifying which dependant variables changing should trigger a
-                        recalculation of the derived variable
-        - `deps = None` - `func` is ran everytime (default behaviour),
-        - `deps = []` - `func` is ran once on initial startup,
-        - `deps = [var1, var2]` - `func` is ran whenever one of these vars changes
-        - `deps = [var1.get('nested_property')]` - `func` is ran only when the nested property changes, other changes to the variable are ignored
-        :param uid: the unique identifier for this variable; if not provided a random one is generated
-        """
         if nested is None:
             nested = []
 
