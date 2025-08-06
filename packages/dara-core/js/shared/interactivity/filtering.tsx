@@ -295,9 +295,21 @@ export function applyFilters(
     };
 }
 
+const INDEX = '__index__';
+
+function appendIndex(df: DataFrame): DataFrame {
+    if (df.length > 0 && !(INDEX in df[0]!)) {
+        return df.map((row, i) => ({ ...row, [INDEX]: i }));
+    }
+    return df;
+}
+
 export function createFetcher(df: DataFrame) {
+    // create a copy of the data with an index column
+    const data = appendIndex(df);
+
     // eslint-disable-next-line @typescript-eslint/require-await
     return async (filters: FilterQuery | null, pagination: Pagination | null) => {
-        return applyFilters(df, filters, pagination);
+        return applyFilters(data, filters, pagination);
     };
 }

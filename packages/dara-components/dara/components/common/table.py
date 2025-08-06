@@ -26,7 +26,6 @@ from dara.components.common.base_component import ContentComponent
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
-    AnyDataVariable,
     AnyVariable,
     NonDataVariable,
     Variable,
@@ -772,7 +771,7 @@ class Table(ContentComponent):
             return jsonable_encoder(value, custom_encoder=get_jsonable_encoder())
         except Exception as e:
             dev_logger.error(
-                f'Error serializing raw data in Table, falling back to default serialization.'
+                'Error serializing raw data in Table, falling back to default serialization.'
                 'Alternatively, you can provide a JSON-serializable dictionary in the "records format", i.e. `[{"col_a": 1}, {"col_a": 2}]`.',
                 error=e,
             )

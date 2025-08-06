@@ -23,7 +23,7 @@ from pydantic import ConfigDict
 
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import DataVariable, ServerVariable
+from dara.core.interactivity import ServerVariable
 
 DropzoneResolver = Union[
     Callable[[bytes, str], DataFrame],
