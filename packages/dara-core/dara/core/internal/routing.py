@@ -328,6 +328,8 @@ def create_router(config: Configuration):
         Generic endpoint for getting tabular data from a variable.
         Supports ServerVariables and DerivedVariables.
         """
+        WS_CHANNEL.set(body.ws_channel)
+
         try:
             pagination = Pagination(offset=offset, limit=limit, orderBy=order_by, index=index)
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')

@@ -216,7 +216,7 @@ class MetaTask(BaseTask):
         :param notify_channels: If this task is run in a TaskManager instance these channels will also be notified on
                                 completion
         :param process_as_task: Whether to run the process_result function as a task or not, defaults to False
-        :param cache_key: Optional cache key if there is a PendingTask in the store associated with this task
+        :param cache_key: Optional cache key if there is a registry entry to store results for the task in
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
         """
         self.args = args if args is not None else []
