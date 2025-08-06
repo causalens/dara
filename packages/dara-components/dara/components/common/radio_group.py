@@ -23,7 +23,7 @@ from typing_extensions import TypedDict
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import NonDataVariable, Variable
+from dara.core.interactivity import ClientVariable, Variable
 from dara.core.visual.components.types import Direction
 
 
@@ -91,7 +91,7 @@ class RadioGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[RadioItem], List[str], NonDataVariable]
+    items: Union[List[RadioItem], List[str], ClientVariable]
     value: Optional[Variable[Any]] = None
     list_styling: Optional[bool] = False
     onchange: Optional[Action] = None
@@ -100,8 +100,8 @@ class RadioGroup(FormComponent):
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[RadioItem], NonDataVariable]:
-        if isinstance(items, NonDataVariable):
+    def validate_items(cls, items: Any) -> Union[List[RadioItem], ClientVariable]:
+        if isinstance(items, ClientVariable):
             return items
         if len(items) == 0:
             raise ValueError('Items list is empty, you must provide at least one item')

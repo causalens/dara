@@ -4,7 +4,7 @@ from typing_extensions import TypedDict
 
 from dara.components.common.base_component import BaseDashboardComponent
 from dara.components.common.button import Button
-from dara.core import Action, ComponentInstance, NonDataVariable
+from dara.core import Action, ClientVariable, ComponentInstance
 
 
 class MenuItem(TypedDict, total=False):
@@ -157,5 +157,5 @@ class DropdownMenu(BaseDashboardComponent):
 
     button: Button
     onclick: Action
-    menu_items: Union[List[List[MenuItem]], NonDataVariable]
+    menu_items: Union[List[List[MenuItem]], ClientVariable]
     footer: Optional[ComponentInstance] = None

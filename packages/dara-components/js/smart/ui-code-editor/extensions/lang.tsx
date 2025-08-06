@@ -17,6 +17,7 @@ export function getExtensionsForLang(lang?: LangsType): Extension {
             return getMarkdownExtensions();
         case 'sql':
             return getSQLExtensions();
+        case undefined:
         default:
             return [];
     }

@@ -24,8 +24,8 @@ from dara.core.internal.utils import async_dedupe
 RegistryLookupKey = Literal[
     RegistryType.ACTION,
     RegistryType.COMPONENTS,
-    RegistryType.DATA_VARIABLE,
     RegistryType.DERIVED_VARIABLE,
+    RegistryType.SERVER_VARIABLE,
     RegistryType.STATIC_KWARGS,
     RegistryType.UPLOAD_RESOLVER,
     RegistryType.BACKEND_STORE,

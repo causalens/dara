@@ -23,7 +23,7 @@ from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.interactivity import NonDataVariable, Variable
+from dara.core.interactivity import ClientVariable, Variable
 from dara.core.logging import dev_logger
 
 
@@ -128,7 +128,7 @@ class Select(FormComponent):
     id: Optional[str] = None
     multiselect: bool = False
     searchable: bool = False
-    items: Union[List[Union[Item, ListSection]], NonDataVariable]
+    items: Union[List[Union[Item, ListSection]], ClientVariable]
     max_rows: int = 3
     onchange: Optional[Action] = None
     placeholder: Optional[str] = None
@@ -136,10 +136,10 @@ class Select(FormComponent):
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any, info: ValidationInfo) -> Union[List[Union[Item, ListSection]], NonDataVariable]:
+    def validate_items(cls, items: Any, info: ValidationInfo) -> Union[List[Union[Item, ListSection]], ClientVariable]:
         multiselect = info.data.get('multiselect')
         searchable = info.data.get('searchable')
-        if isinstance(items, NonDataVariable):
+        if isinstance(items, ClientVariable):
             return items
         if not isinstance(items, list):
             raise ValueError('Items must be passed as a list to the select component')

@@ -23,7 +23,7 @@ from dara.components.common.text import Text
 from dara.core import ComponentInstance
 from dara.core.base_definitions import Action
 from dara.core.definitions import discover
-from dara.core.interactivity import Condition, NonDataVariable
+from dara.core.interactivity import ClientVariable, Condition
 
 
 class ButtonStyle(str, Enum):
@@ -118,18 +118,18 @@ class Button(LayoutComponent):
         often used as primary actions, while outline buttons are more subtle and commonly used as secondary actions.
     """
 
-    disabled: Optional[Union[Condition, NonDataVariable, bool]] = None
+    disabled: Optional[Union[Condition, ClientVariable, bool]] = None
     onclick: Optional[Action] = None
     icon: Optional[str] = None
     styling: Optional[ButtonStyle] = None
     outline: bool = False
 
     def __init__(
-        self, children: Union[str, ComponentInstance, NonDataVariable], styling: Optional[ButtonStyle] = None, **kwargs
+        self, children: Union[str, ComponentInstance, ClientVariable], styling: Optional[ButtonStyle] = None, **kwargs
     ):
         child = children
         style = styling if styling is not None else ButtonStyle.PRIMARY
-        if isinstance(children, (str, NonDataVariable)):
+        if isinstance(children, (str, ClientVariable)):
             child = Text(text=children)
         if not styling and isinstance(children, ComponentInstance) and not isinstance(children, Text):
             style = ButtonStyle.PLAIN

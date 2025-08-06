@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import { type Dispatch, type SetStateAction, useContext, useEffect, useState, useMemo } from 'react';
+import { type Dispatch, type SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
@@ -17,7 +17,12 @@ import {
 
 import { useEventBus } from '../event-bus/event-bus';
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterPlainVariable, getOrRegisterServerVariable, useDerivedVariable, useSwitchVariable } from './internal';
+import {
+    getOrRegisterPlainVariable,
+    getOrRegisterServerVariable,
+    useDerivedVariable,
+    useSwitchVariable,
+} from './internal';
 import { useTabularVariable } from './use-tabular-variable';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */

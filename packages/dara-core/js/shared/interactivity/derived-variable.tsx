@@ -641,7 +641,7 @@ export function getOrRegisterDerivedVariable(
                             variableValue = variableResponse.value;
                         }
 
-                        // resolve nested if defined (i.e. for DerivedVariable, DerivedDataVariable does not have nested)
+                        // resolve nested if defined
                         variableValue =
                             'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
 

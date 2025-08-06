@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Literal, Optional, Union
 
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class CodeEditor(StyledComponentInstance):
@@ -43,6 +43,6 @@ class CodeEditor(StyledComponentInstance):
 
     js_module = '@darajs/components'
 
-    script: NonDataVariable
+    script: ClientVariable
 
     language: Optional[Union[Literal['json'], Literal['python'], Literal['markdown'], Literal['sql']]] = None

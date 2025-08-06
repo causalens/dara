@@ -22,7 +22,7 @@ from pydantic import field_validator
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class NodeMeta(BaseModel):
@@ -109,7 +109,7 @@ class NodeHierarchyBuilder(StyledComponentInstance):
     js_module = '@darajs/components'
 
     editable: bool = True
-    nodes: Union[List[List[str]], List[str], List[Node], List[List[Node]], NonDataVariable]
+    nodes: Union[List[List[str]], List[str], List[Node], List[List[Node]], ClientVariable]
     node_font_size: Optional[int] = None
     node_size: Optional[int] = None
     on_update: Optional[Action] = None
@@ -117,8 +117,8 @@ class NodeHierarchyBuilder(StyledComponentInstance):
 
     @field_validator('nodes')
     @classmethod
-    def validate_nodes(cls, nodes: Any) -> Union[NonDataVariable, List[List[str]], List[List[Node]]]:
-        if isinstance(nodes, NonDataVariable):
+    def validate_nodes(cls, nodes: Any) -> Union[ClientVariable, List[List[str]], List[List[Node]]]:
+        if isinstance(nodes, ClientVariable):
             return nodes
         if not isinstance(nodes, list):
             raise ValueError('Nodes provided to NodeHierarchyBuilder must be a Variable or a list of strings/Nodes')

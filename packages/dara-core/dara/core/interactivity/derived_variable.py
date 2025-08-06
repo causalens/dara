@@ -58,8 +58,8 @@ from dara.core.base_definitions import (
 )
 from dara.core.interactivity.actions import TriggerVariable, assert_no_context
 from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters
-from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.multi_resource_lock import MultiResourceLock
@@ -108,7 +108,7 @@ async def default_filter_resolver(
     return apply_filters(data, filters, pagination)
 
 
-class DerivedVariable(NonDataVariable, Generic[VariableType]):
+class DerivedVariable(ClientVariable, Generic[VariableType]):
     """
     A DerivedVariable allows a value to be derived (via a function) from the current value of a set of other
     variables with a python function. This is one of two primary ways that python logic can be embedded into the

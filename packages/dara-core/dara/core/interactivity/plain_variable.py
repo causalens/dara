@@ -31,9 +31,8 @@ from pydantic import (
     model_serializer,
 )
 
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
 from dara.core.persistence import BackendStore, BrowserStore, PersistenceStore
@@ -45,7 +44,7 @@ PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceSt
 
 
 # TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
-class Variable(NonDataVariable, Generic[VariableType]):
+class Variable(ClientVariable, Generic[VariableType]):
     """
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
     """
@@ -268,11 +267,6 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         :param default: the initial value for the variable, defaults to None
         """
-        if isinstance(other, DerivedDataVariable):
-            raise ValueError(
-                'Cannot create a Variable from a DerivedDataVariable, only standard DerivedVariables are allowed'
-            )
-
         return cls(default=other)  # type: ignore
 
     async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):

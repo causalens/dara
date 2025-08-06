@@ -2,10 +2,10 @@ from typing import List, Optional
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
-from .non_data_variable import NonDataVariable
+from .client_variable import ClientVariable
 
 
-class LoopVariable(NonDataVariable):
+class LoopVariable(ClientVariable):
     """
     A LoopVariable is a type of variable that represents an item in a list.
     It should be constructed using a parent Variable's `.list_item` property.

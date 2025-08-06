@@ -44,7 +44,11 @@ const MAX_COLUMNS = 12;
  * @param breakpoint the breakpoint to consider the span for
  * @param breakpoints an object containing when all of the breakpoints happen
  */
-function getSpanForBreakpoint(span: number | Breakpoints | null | undefined, breakpoint: number, breakpoints: Breakpoints): number | null {
+function getSpanForBreakpoint(
+    span: number | Breakpoints | null | undefined,
+    breakpoint: number,
+    breakpoints: Breakpoints
+): number | null {
     if (typeof span === 'number') {
         return span;
     }
@@ -206,7 +210,11 @@ function getAllWidthsForColumn(
  * @param offsetWidth if offset was a column the width it would take on the screen
  * @param columnGap the columnGap applied to that row
  */
-function getMarginLeft(width: number | null, offsetWidth: number | null | undefined, columnGap: number | undefined): number {
+function getMarginLeft(
+    width: number | null,
+    offsetWidth: number | null | undefined,
+    columnGap: number | undefined
+): number {
     // if there is no offset or if the column takes the whole row then the margin-left should be 0
     if (offsetWidth && width !== 100) {
         // if offset span + width are greater than 12, then offset is corrected so row adds to 12

@@ -22,13 +22,13 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import SerializerFunctionWrapHandler, model_serializer
 from typing_extensions import Literal
 
-from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.interactivity.client_variable import ClientVariable
 
 if TYPE_CHECKING:
     from dara.core.interactivity.derived_variable import DerivedVariable
 
 
-class StateVariable(NonDataVariable):
+class StateVariable(ClientVariable):
     """
     A StateVariable is an internal variable type used to track client-side state of other variables.
     It is not meant to be created directly by users, but rather returned by properties like
