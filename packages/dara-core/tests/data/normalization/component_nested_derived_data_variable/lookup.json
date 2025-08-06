@@ -6,7 +6,7 @@
     "__typename": "Variable",
     "store": null
   },
-  "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}": {
+  "DerivedVariable:{{dv_1_uid}}": {
     "cache": {
       "cache_type": "global",
       "policy": "lru",
@@ -18,20 +18,16 @@
         "__ref": "Variable:{{root_var_uid}}"
       }
     ],
-    "filters": {
-      "column": "col1",
-      "value": "val1",
-      "operator": "EQ"
-    },
+    "nested": [],
     "polling_interval": null,
     "deps": [
       {
         "__ref": "Variable:{{root_var_uid}}"
       }
     ],
-    "__typename": "DerivedDataVariable"
+    "__typename": "DerivedVariable"
   },
-  "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}": {
+  "DerivedVariable:{{dv_2_uid}}": {
     "cache": {
       "cache_type": "global",
       "policy": "lru",
@@ -43,20 +39,16 @@
         "__ref": "Variable:{{root_var_uid}}"
       }
     ],
-    "filters": {
-      "column": "col1",
-      "value": "val1",
-      "operator": "EQ"
-    },
+    "nested": [],
     "polling_interval": null,
     "deps": [
       {
         "__ref": "Variable:{{root_var_uid}}"
       }
     ],
-    "__typename": "DerivedDataVariable"
+    "__typename": "DerivedVariable"
   },
-  "DerivedDataVariable:{{dv_3_uid}}:{{dv_3_hash}}": {
+  "DerivedVariable:{{dv_3_uid}}": {
     "cache": {
       "cache_type": "global",
       "policy": "lru",
@@ -65,26 +57,22 @@
     "uid": "{{dv_3_uid}}",
     "variables": [
       {
-        "__ref": "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}"
+        "__ref": "DerivedVariable:{{dv_1_uid}}"
       },
       {
-        "__ref": "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}"
+        "__ref": "DerivedVariable:{{dv_2_uid}}"
       }
     ],
-    "filters": {
-      "column": "col1",
-      "value": "val1",
-      "operator": "EQ"
-    },
+    "nested": [],
     "polling_interval": null,
     "deps": [
       {
-        "__ref": "DerivedDataVariable:{{dv_1_uid}}:{{dv_1_hash}}"
+        "__ref": "DerivedVariable:{{dv_1_uid}}"
       },
       {
-        "__ref": "DerivedDataVariable:{{dv_2_uid}}:{{dv_2_hash}}"
+        "__ref": "DerivedVariable:{{dv_2_uid}}"
       }
     ],
-    "__typename": "DerivedDataVariable"
+    "__typename": "DerivedVariable"
   }
 }

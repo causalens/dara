@@ -276,7 +276,7 @@ async def test_fetching_session_based_derived_variable():
 
         # Change session and call it again and make sure it gets called again
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "token1", "identity_name": "user", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "token1", "identity_id": "user", "identity_name": "user", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
         response = await _get_derived_variable(
             client,
@@ -408,7 +408,7 @@ async def test_fetching_user_based_derived_variable():
 
         # Change user and call it again and make sure it gets called only once as it is a different user
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_name": "test_user_2", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_id": "test_user_2", "identity_name": "test_user_2", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
         response = await _get_derived_variable(
             client,
@@ -851,7 +851,7 @@ async def test_fetch_latest_derived_variable():
 
         # Check it returns None if there is no latest value for an user
         alt_auth_headers = {
-            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_name": "test_user_1", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
+            'Authorization': f'Bearer {jwt.encode({"session_id": "test_sess", "identity_id": "test_user_1", "identity_name": "test_user_1", "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)}, TEST_JWT_SECRET, algorithm=JWT_ALGO)}'
         }
 
         response = await _get_latest_derived_variable(client, derived, alt_auth_headers)
@@ -889,111 +889,6 @@ async def test_fetch_latest_derived_variable():
 
         assert response.status_code == 200
         assert response.json() == 11
-
-
-async def test_derived_variable_with_switch_variable():
-    """
-    Test that SwitchVariable can be used in a DerivedVariable.variables
-    """
-    builder = ConfigurationBuilder()
-
-    dv = ContextVar('dv')
-
-    def calc(a, switch_result):
-        return a + switch_result
-
-    func = Mock(wraps=calc)
-
-    def page():
-        var1 = Variable(5)
-        condition_var = Variable(True)
-
-        # Create a switch variable that returns 10 when True, 20 when False
-        switch_var = SwitchVariable.when(condition=condition_var, true_value=10, false_value=20, uid='switch_uid')
-
-        derived = DerivedVariable(func, variables=[var1, switch_var])
-        dv.set(derived)
-        return MockComponent(text=derived)
-
-    builder.add_page('Test', page)
-
-    config = builder._to_configuration()
-
-    # Run the app so the component is initialized
-    app = _start_application(config)
-
-    async with AsyncClient(app) as client:
-        # Test with condition=True, should return 5 + 10 = 15
-        response = await _get_derived_variable(
-            client,
-            dv.get(),
-            {
-                'values': [
-                    5,
-                    {
-                        'type': 'switch',
-                        'uid': 'switch_uid',
-                        'value': True,
-                        'value_map': {True: 10, False: 20},
-                        'default': 0,
-                    },
-                ],
-                'ws_channel': 'test_channel',
-                'force_key': None,
-            },
-        )
-
-        assert response.status_code == 200
-        assert response.json()['value'] == 15
-        assert func.call_count == 1
-
-        # Test with condition=False, should return 5 + 20 = 25
-        response = await _get_derived_variable(
-            client,
-            dv.get(),
-            {
-                'values': [
-                    5,
-                    {
-                        'type': 'switch',
-                        'uid': 'switch_uid',
-                        'value': False,
-                        'value_map': {True: 10, False: 20},
-                        'default': 0,
-                    },
-                ],
-                'ws_channel': 'test_channel',
-                'force_key': None,
-            },
-        )
-
-        assert response.status_code == 200
-        assert response.json()['value'] == 25
-        assert func.call_count == 2
-
-        # Test with unknown value, should use default (0), return 5 + 0 = 5
-        response = await _get_derived_variable(
-            client,
-            dv.get(),
-            {
-                'values': [
-                    5,
-                    {
-                        'type': 'switch',
-                        'uid': 'switch_uid',
-                        'value': 'unknown',
-                        'value_map': {True: 10, False: 20},
-                        'default': 0,
-                    },
-                ],
-                'ws_channel': 'test_channel',
-                'force_key': None,
-            },
-        )
-
-        assert response.status_code == 200
-        assert response.json()['value'] == 5
-        assert func.call_count == 3
 
 
 async def test_derived_variable_with_switch_variable_condition():
@@ -1917,3 +1812,108 @@ async def test_none_value_is_valid():
         assert response3.status_code == 200
         assert response3.json()['value'] is None
         assert execution_count['count'] == 2
+
+
+async def test_derived_variable_with_switch_variable():
+    """
+    Test that SwitchVariable can be used in a DerivedVariable.variables
+    """
+    builder = ConfigurationBuilder()
+
+    dv = ContextVar('dv')
+
+    def calc(a, switch_result):
+        return a + switch_result
+
+    func = Mock(wraps=calc)
+
+    def page():
+        var1 = Variable(5)
+        condition_var = Variable(True)
+
+        # Create a switch variable that returns 10 when True, 20 when False
+        switch_var = SwitchVariable.when(condition=condition_var, true_value=10, false_value=20, uid='switch_uid')
+
+        derived = DerivedVariable(func, variables=[var1, switch_var])
+        dv.set(derived)
+        return MockComponent(text=derived)
+
+    builder.add_page('Test', page)
+
+    config = builder._to_configuration()
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # Test with condition=True, should return 5 + 10 = 15
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': True,
+                        'value_map': {True: 10, False: 20},
+                        'default': 0,
+                    },
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 15
+        assert func.call_count == 1
+
+        # Test with condition=False, should return 5 + 20 = 25
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': False,
+                        'value_map': {True: 10, False: 20},
+                        'default': 0,
+                    },
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 25
+        assert func.call_count == 2
+
+        # Test with unknown value, should use default (0), return 5 + 0 = 5
+        response = await _get_derived_variable(
+            client,
+            dv.get(),
+            {
+                'values': [
+                    5,
+                    {
+                        'type': 'switch',
+                        'uid': 'switch_uid',
+                        'value': 'unknown',
+                        'value_map': {True: 10, False: 20},
+                        'default': 0,
+                    },
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 5
+        assert func.call_count == 3

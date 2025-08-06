@@ -14,6 +14,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.filtering import FilterQuery, Pagination, ValueQuery, apply_filters
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.dependency_resolution import ResolvedServerVariable
 from dara.core.internal.pandas_utils import DataResponse, append_index, df_convert_to_internal
@@ -256,6 +257,75 @@ async def test_tabular_derived_variable_with_filters():
         assert data_second_response.json()['data'] == expected
         assert data_second_response.json()['count'] == len(expected)
         assert mock_func.call_count == 1
+
+
+async def test_tabular_derived_variable_with_custom_filter_resolver():
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    # Define a mock function that can be spied on so we can check the caching system
+    def func(a: int):
+        return a + 1
+
+    async def filter_resolver(
+        data: int, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+    ):
+        slice = cast(DataFrame, TEST_DATA[TEST_DATA['col1'] == data])
+        return apply_filters(slice, filters, pagination)
+
+    mock_func = Mock(wraps=func)
+    mock_filter_resolver = Mock(wraps=filter_resolver)
+
+    derived = DerivedVariable(mock_func, filter_resolver=mock_filter_resolver, variables=[var1], uid='uid')
+
+    builder.add_page('Test', content=MockComponent(text=derived))
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        # First call with no filters - should return all sliced data
+        response = await _get_tabular_derived_variable(
+            client,
+            derived,
+            {
+                'dv_values': [0],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+        data_response: DataResponse = response.json()
+        # == 1 since we filter with 0+1
+        expected = df_convert_to_internal(TEST_DATA[TEST_DATA['col1'] == 1]).to_dict(orient='records')
+        assert data_response['data'] == expected
+        assert data_response['count'] == len(expected)
+        assert data_response['count'] == 2  # sanity check, should be 2
+        assert mock_func.call_count == 1
+        assert mock_filter_resolver.call_count == 1
+
+        # Then filter where col2==6, should narrow down result to 1 row
+        response = await _get_tabular_derived_variable(
+            client,
+            derived,
+            {
+                'dv_values': [0],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+                'filters': ValueQuery(column='col2', value=6).dict(),
+            },
+        )
+        data_response: DataResponse = response.json()
+        # == 1 since we filter with 0+1
+        dv_result = df_convert_to_internal(TEST_DATA[TEST_DATA['col1'] == 1])
+        # extra filter specified
+        expected = dv_result[dv_result['__col__2__col2'] == 6].to_dict(orient='records')
+        assert data_response['data'] == expected
+        assert data_response['count'] == len(expected)
+        assert data_response['count'] == 1
+        assert mock_func.call_count == 1  # not called again, different filters
+        assert mock_filter_resolver.call_count == 2  # called again on every request
 
 
 @pytest.mark.parametrize('cache', [('session'), ('global')])

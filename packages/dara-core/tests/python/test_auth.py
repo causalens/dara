@@ -44,6 +44,7 @@ async def test_verify_session():
         # Create a couple of JWTs to use
         token = jwt.encode(
             TokenData(
+                identity_id='user',
                 identity_name='user',
                 session_id='token1',
                 exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
@@ -148,6 +149,7 @@ async def test_refresh_token_success():
         # expired but should be ignored
         exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
         identity_name='user',
+        identity_id='user',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
@@ -226,6 +228,7 @@ async def test_refresh_token_live_ws_connection():
         # expired but should be ignored
         exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=3),
         identity_name='user',
+        identity_id='user',
         id_token='OLD_TOKEN',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
@@ -237,6 +240,7 @@ async def test_refresh_token_live_ws_connection():
                     TokenData(
                         session_id=old_token.session_id,
                         exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+                        identity_id=old_token.identity_name,
                         identity_name=old_token.identity_name,
                         id_token='NEW_TOKEN',
                     ).dict(),
@@ -308,6 +312,7 @@ async def test_refresh_token_concurrent_requests():
         session_id='session',
         exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
         identity_name='user',
+        identity_id='user',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
@@ -355,6 +360,7 @@ async def test_refresh_token_cache_expiration():
         session_id='session',
         exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
         identity_name='user',
+        identity_id='user',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
@@ -411,6 +417,7 @@ async def test_refresh_token_different_tokens_not_cached():
         session_id='session',
         exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
         identity_name='user',
+        identity_id='user',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
@@ -462,6 +469,7 @@ async def test_refresh_token_error_not_cached():
         session_id='session',
         exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
         identity_name='user',
+        identity_id='user',
     )
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 

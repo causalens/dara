@@ -51,7 +51,7 @@ def decode_token(token: str, **kwargs) -> TokenData:
 
 
 def sign_jwt(
-    identity_id: Optional[str],
+    identity_id: str,
     identity_name: str,
     identity_email: Optional[str],
     groups: List[str],

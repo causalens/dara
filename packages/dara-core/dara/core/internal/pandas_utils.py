@@ -19,7 +19,7 @@ import json
 import uuid
 from typing import Any, Literal, Optional, TypeVar, Union, cast, overload
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 from typing_extensions import TypedDict, TypeGuard
 
 INDEX = '__index__'
@@ -116,9 +116,17 @@ def format_for_display(df: DataFrame) -> None:
     Not: this does NOT make a copy of the DataFrame
     """
     for col in df.columns:
-        if df[col].dtype == 'object':
-            # We need to convert all values to string to avoid issues with displaying data in the Table component, for example when displaying datetime and number objects in the same column
-            df.loc[:, col] = df[col].apply(str)
+        column_data = df[col]
+        if isinstance(column_data, DataFrame):
+            # Handle duplicate column names - format each column in the sub-DataFrame
+            for sub_col in column_data.columns:
+                if isinstance(column_data[sub_col], Series) and column_data[sub_col].dtype == 'object':
+                    column_data.loc[:, sub_col] = column_data[sub_col].apply(str)
+        elif column_data.dtype == 'object':
+            # We need to convert all values to string to avoid issues with
+            # displaying data in the Table component, for example when
+            # displaying datetime and number objects in the same column
+            df.loc[:, col] = column_data.apply(str)
 
 
 class FieldType(TypedDict):

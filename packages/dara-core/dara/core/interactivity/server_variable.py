@@ -186,6 +186,31 @@ class ServerVariable(AnyVariable):
         user_id = user.identity_id or user.identity_name
         return await ws_mgr.send_message_to_user(user_id, message)
 
+    def update(self, value: Any):
+        """
+        Create an action to update the value of this Variable to a provided value.
+
+        ```python
+        import pandas as pd
+        from dara.core import ServerVariable
+        from dara.components import Button
+
+        data = ServerVariable(pd.DataFrame({'a': [1, 2, 3]}))
+
+        Button(
+            'Empty Data',
+            onclick=data.update(None),
+        )
+
+        ```
+        """
+        from dara.core.interactivity.actions import UpdateVariableImpl
+
+        return UpdateVariableImpl(variable=self, value=value)
+
+    def reset(self):
+        raise NotImplementedError('ServerVariable does not support reset')
+
     async def read(self):
         return await self.backend.read(self.key)
 
