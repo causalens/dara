@@ -1,7 +1,7 @@
 import datetime
 import os
 from contextvars import ContextVar
-from typing import Optional, Union, cast
+from typing import Optional, Tuple, Union, cast
 from unittest.mock import Mock, patch
 
 import jwt
@@ -17,8 +17,9 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import DataVariable, Variable
 from dara.core.interactivity.actions import UpdateVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.filtering import ClauseQuery, QueryCombinator, ValueQuery
+from dara.core.interactivity.filtering import ClauseQuery, FilterQuery, Pagination, QueryCombinator, ValueQuery
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.interactivity.server_variable import MemoryBackend, ServerVariable
 from dara.core.internal.dependency_resolution import ResolvedServerVariable
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.main import _start_application
@@ -74,10 +75,12 @@ async def reset_data_variable_cache():
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, DataVariable, DerivedVariable]
+    text: Union[str, DataVariable, DerivedVariable, ServerVariable]
     action: Optional[Action] = None
 
-    def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
+    def __init__(
+        self, text: Union[str, DataVariable, DerivedVariable, ServerVariable], action: Optional[Action] = None
+    ):
         super().__init__(text=text, uid='uid', action=action)
 
 
@@ -93,6 +96,79 @@ async def test_data_cache_combinations():
 
     with pytest.raises(ValueError):
         DataVariable(data=TEST_DATA, cache=CacheType.SESSION)
+
+
+async def test_fetching_tabular_server_variable_must_be_tabular():
+    """
+    Test that the default backend for ServerVariables expects stored data to be a DataFrame
+    to support read_filtered
+    """
+    builder = ConfigurationBuilder()
+    data_var = ServerVariable(uid='uid', default=1)
+
+    builder.add_page('Test', content=lambda: MockComponent(text=data_var))
+
+    config = builder._to_configuration()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        response = await _get_tabular_server_variable(
+            client,
+            data_var,
+            {
+                'ws_channel': 'test_channel',
+            },
+            expect_success=False,
+        )
+        assert response.status_code == 415
+        assert 'expected pandas.DataFrame' in response.json()['detail']
+
+
+async def test_can_support_other_tabular_data_with_custom_backend():
+    """
+    Test that with a custom backend, ServerVariables can be used with other tabular data
+    """
+    builder = ConfigurationBuilder()
+
+    mock_value_query = ValueQuery(column='column', value='value')
+    mock_pagination = Pagination(offset=0, limit=10)
+
+    call_args = []
+    data = DataFrame(data={'column': ['value']})
+
+    class CustomBackend(MemoryBackend):
+        async def read_filtered(
+            self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
+        ) -> Tuple[Optional[DataFrame], int]:
+            call_args.append((key, filters, pagination))
+            # return mock dataframe
+            return data, len(data.index)
+
+    data_var = ServerVariable(uid='uid', default=1, backend=CustomBackend(scope='global'))
+
+    builder.add_page('Test', content=lambda: MockComponent(text=data_var))
+
+    config = builder._to_configuration()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client:
+        response = await _get_tabular_server_variable(
+            client,
+            data_var,
+            {
+                'filters': mock_value_query.dict(),
+                'ws_channel': 'test_channel',
+            },
+            query_string={
+                'offset': '0',
+                'limit': '10',
+            },
+        )
+        assert response.json()['data'] == df_convert_to_internal(data).to_dict(orient='records')
+        assert len(call_args) == 1
+        assert call_args[0] == ('global', mock_value_query, mock_pagination)
 
 
 async def test_fetching_global_data_variable():
