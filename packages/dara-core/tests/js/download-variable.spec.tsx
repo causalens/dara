@@ -14,9 +14,9 @@ describe('Download Variable Processing Utils', () => {
             expect(restoreColumnName('__col__2__Profit_Q1')).toBe('Profit_Q1');
         });
 
-        it('should preserve __index__ columns as-is', () => {
-            expect(restoreColumnName('__index__0__level_0')).toBe('__index__0__level_0');
-            expect(restoreColumnName('__index__1__Store')).toBe('__index__1__Store');
+        it('should preserve __index__ columns as-is and restore index columns', () => {
+            expect(restoreColumnName('__index__0__level_0')).toBe('level_0');
+            expect(restoreColumnName('__index__1__Store')).toBe('Store');
             expect(restoreColumnName('__index__')).toBe('__index__');
         });
 
@@ -37,20 +37,20 @@ describe('Download Variable Processing Utils', () => {
         it('should process simple data with __col__ prefixes', () => {
             const input = [
                 {
-                    '__col__0__Name': 'John',
-                    '__col__1__Age': 30,
-                    '__col__2__City': 'NYC'
+                    __col__0__Name: 'John',
+                    __col__1__Age: 30,
+                    __col__2__City: 'NYC',
                 },
                 {
-                    '__col__0__Name': 'Jane',
-                    '__col__1__Age': 25,
-                    '__col__2__City': 'LA'
-                }
+                    __col__0__Name: 'Jane',
+                    __col__1__Age: 25,
+                    __col__2__City: 'LA',
+                },
             ];
 
             const expected = [
                 { Name: 'John', Age: 30, City: 'NYC' },
-                { Name: 'Jane', Age: 25, City: 'LA' }
+                { Name: 'Jane', Age: 25, City: 'LA' },
             ];
 
             expect(processDataForDownload(input)).toEqual(expected);
@@ -59,24 +59,24 @@ describe('Download Variable Processing Utils', () => {
         it('should remove all __index__ columns', () => {
             const input = [
                 {
-                    '__index__': 0,
-                    '__index__0__level_0': 'Store',
-                    '__index__1__level_1': 'A',
-                    '__col__0__Sales': 100,
-                    '__col__1__Profit': 20
+                    __index__: 0,
+                    __index__0__level_0: 'Store',
+                    __index__1__level_1: 'A',
+                    __col__0__Sales: 100,
+                    __col__1__Profit: 20,
                 },
                 {
-                    '__index__': 1,
-                    '__index__0__level_0': 'Store',
-                    '__index__1__level_1': 'B',
-                    '__col__0__Sales': 80,
-                    '__col__1__Profit': 15
-                }
+                    __index__: 1,
+                    __index__0__level_0: 'Store',
+                    __index__1__level_1: 'B',
+                    __col__0__Sales: 80,
+                    __col__1__Profit: 15,
+                },
             ];
 
             const expected = [
-                { Sales: 100, Profit: 20 },
-                { Sales: 80, Profit: 15 }
+                { level_0: 'Store', level_1: 'A', Sales: 100, Profit: 20 },
+                { level_0: 'Store', level_1: 'B', Sales: 80, Profit: 15 },
             ];
 
             expect(processDataForDownload(input)).toEqual(expected);
@@ -85,22 +85,24 @@ describe('Download Variable Processing Utils', () => {
         it('should handle multi-index flattened columns', () => {
             const input = [
                 {
-                    '__index__0__level_0': 'Store',
-                    '__index__1__level_1': 'A',
-                    '__col__0__Sales_Q1': 100,
-                    '__col__1__Sales_Q2': 120,
-                    '__col__2__Profit_Q1': 20,
-                    '__col__3__Profit_Q2': 25
-                }
+                    __index__0__level_0: 'Store',
+                    __index__1__level_1: 'A',
+                    __col__0__Sales_Q1: 100,
+                    __col__1__Sales_Q2: 120,
+                    __col__2__Profit_Q1: 20,
+                    __col__3__Profit_Q2: 25,
+                },
             ];
 
             const expected = [
                 {
-                    'Sales_Q1': 100,
-                    'Sales_Q2': 120,
-                    'Profit_Q1': 20,
-                    'Profit_Q2': 25
-                }
+                    level_0: 'Store',
+                    level_1: 'A',
+                    Sales_Q1: 100,
+                    Sales_Q2: 120,
+                    Profit_Q1: 20,
+                    Profit_Q2: 25,
+                },
             ];
 
             expect(processDataForDownload(input)).toEqual(expected);
@@ -109,20 +111,21 @@ describe('Download Variable Processing Utils', () => {
         it('should handle mixed column formats', () => {
             const input = [
                 {
-                    '__index__': 0,
-                    '__col__0__ProcessedCol': 'value1',
-                    'NormalCol': 'value2',
-                    '__index__1__SomeIndex': 'indexValue',
-                    '__col__1__AnotherCol': 'value3'
-                }
+                    __index__: 0,
+                    __col__0__ProcessedCol: 'value1',
+                    NormalCol: 'value2',
+                    __index__1__SomeIndex: 'indexValue',
+                    __col__1__AnotherCol: 'value3',
+                },
             ];
 
             const expected = [
                 {
-                    'ProcessedCol': 'value1',
-                    'NormalCol': 'value2',
-                    'AnotherCol': 'value3'
-                }
+                    SomeIndex: 'indexValue',
+                    ProcessedCol: 'value1',
+                    NormalCol: 'value2',
+                    AnotherCol: 'value3',
+                },
             ];
 
             expect(processDataForDownload(input)).toEqual(expected);
@@ -135,9 +138,8 @@ describe('Download Variable Processing Utils', () => {
         it('should handle rows with no processable columns', () => {
             const input = [
                 {
-                    '__index__': 0,
-                    '__index__0__level': 'value'
-                }
+                    __index__: 0,
+                },
             ];
 
             const expected = [{}];
@@ -148,27 +150,28 @@ describe('Download Variable Processing Utils', () => {
         it('should preserve data types', () => {
             const input = [
                 {
-                    '__col__0__StringCol': 'text',
-                    '__col__1__NumberCol': 42,
-                    '__col__2__BoolCol': true,
-                    '__col__3__NullCol': null,
-                    '__col__4__ArrayCol': [1, 2, 3],
-                    '__col__5__ObjectCol': { nested: 'value' }
-                }
+                    __col__0__StringCol: 'text',
+                    __col__1__NumberCol: 42,
+                    __col__2__BoolCol: true,
+                    __col__3__NullCol: null,
+                    __col__4__ArrayCol: [1, 2, 3],
+                    __col__5__ObjectCol: { nested: 'value' },
+                },
             ];
 
             const expected = [
                 {
-                    'StringCol': 'text',
-                    'NumberCol': 42,
-                    'BoolCol': true,
-                    'NullCol': null,
-                    'ArrayCol': [1, 2, 3],
-                    'ObjectCol': { nested: 'value' }
-                }
+                    StringCol: 'text',
+                    NumberCol: 42,
+                    BoolCol: true,
+                    NullCol: null,
+                    ArrayCol: [1, 2, 3],
+                    ObjectCol: { nested: 'value' },
+                },
             ];
 
             expect(processDataForDownload(input)).toEqual(expected);
         });
     });
 });
+

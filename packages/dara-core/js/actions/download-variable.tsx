@@ -6,19 +6,23 @@ import { Status } from '@darajs/ui-utils';
 import { getTabularVariableValue } from '@/shared';
 import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '@/types/core';
 
+const COL_PATTERN = /^__col__\d+__(.+)$/;
+const INDEX_PATTERN = /^__index__\d+__(.+)$/;
+
 /**
  * Restore original column names by inverting pandas_utils transformations
  */
 export const restoreColumnName = (colName: string): string => {
     // Handle __col__N__originalName format
-    const colMatch = colName.match(/^__col__\d+__(.+)$/);
+    const colMatch = colName.match(COL_PATTERN);
     if (colMatch) {
         return colMatch[1]!;
     }
 
-    // Handle __index__N__originalName format (keep as is for index columns)
-    if (colName.startsWith('__index__')) {
-        return colName;
+    // Handle __index__N__originalName format
+    const indexMatch = colName.match(INDEX_PATTERN);
+    if (indexMatch) {
+        return indexMatch[1]!;
     }
 
     return colName;
@@ -32,8 +36,8 @@ export const processDataForDownload = (content: DataFrame): DataFrame => {
         const processedRow: Record<string, any> = {};
 
         Object.entries(row).forEach(([key, value]) => {
-            // Skip __index__ columns entirely for downloads
-            if (key === '__index__' || key.startsWith('__index__')) {
+            // Skip __index__ columns entirely for downloads, keep the `__index__N__originalName` format
+            if (key === '__index__') {
                 return;
             }
 

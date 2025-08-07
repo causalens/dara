@@ -44,7 +44,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import ConfigDict
-from typing_extensions import deprecated
+from typing_extensions import TypeAlias, deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -1328,7 +1328,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar[type[ActionCtx]] = ActionCtx
+    Ctx: TypeAlias = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
