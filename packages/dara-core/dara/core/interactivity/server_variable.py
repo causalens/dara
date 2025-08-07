@@ -217,8 +217,7 @@ class ServerVariable(AnyVariable):
         user = USER.get()
 
         if user:
-            user_key = user.identity_id or user.identity_name
-            return user_key
+            return user.identity_id
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
@@ -249,7 +248,7 @@ class ServerVariable(AnyVariable):
 
         user = USER.get()
         assert user is not None, 'User not found when trying to send notification'
-        user_id = user.identity_id or user.identity_name
+        user_id = user.identity_id
         return await ws_mgr.send_message_to_user(user_id, message)
 
     def update(self, value: Any):
