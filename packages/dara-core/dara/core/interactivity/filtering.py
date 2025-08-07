@@ -53,6 +53,7 @@ class Pagination(BaseModel):
     index: Optional[str] = None
 
     @field_validator('orderBy', mode='before')
+    @classmethod
     def clean_order_by(cls, order_by):
         if order_by is None:
             return None

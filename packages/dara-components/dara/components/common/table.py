@@ -862,7 +862,8 @@ class Table(ContentComponent):
     TableFilter = TableFilter
 
     @field_validator('data')
-    def validate_data(self, data):
+    @classmethod
+    def validate_data(cls, data):
         # variables are fine, can't validate here
         if isinstance(data, (DataFrame, AnyVariable)):
             return data
