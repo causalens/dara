@@ -222,10 +222,10 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
       '@tanstack/query-core':
-        specifier: ^4.0.0
+        specifier: ^4.40.0
         version: 4.40.0
       '@tanstack/react-query':
-        specifier: ^4.0.0
+        specifier: ^4.40.1
         version: 4.40.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns:
         specifier: 2.9.0
