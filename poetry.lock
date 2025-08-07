@@ -24,13 +24,13 @@ files = [
 
 [[package]]
 name = "anyio"
-version = "4.9.0"
-description = "High level compatibility layer for multiple asynchronous event loop implementations"
+version = "4.10.0"
+description = "High-level concurrency and networking framework on top of asyncio or Trio"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "anyio-4.9.0-py3-none-any.whl", hash = "sha256:9f76d541cad6e36af7beb62e978876f3b41e3e04f2c1fbf0884604c0a9c4d93c"},
-    {file = "anyio-4.9.0.tar.gz", hash = "sha256:673c0c244e15788651a4ff38710fea9675823028a6f08a5eda409e0c9840a028"},
+    {file = "anyio-4.10.0-py3-none-any.whl", hash = "sha256:60e474ac86736bbfd6f210f7a61218939c318f43f9972497381f1c5e930ed3d1"},
+    {file = "anyio-4.10.0.tar.gz", hash = "sha256:3f3fae35c96039744587aa5b8371e7e8e603c0702999535961dd336026973ba6"},
 ]
 
 [package.dependencies]
@@ -40,8 +40,6 @@ sniffio = ">=1.1"
 typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
 
 [package.extras]
-doc = ["Sphinx (>=8.2,<9.0)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx_rtd_theme"]
-test = ["anyio[trio]", "blockbuster (>=1.5.23)", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "trustme", "truststore (>=0.9.1)", "uvloop (>=0.21)"]
 trio = ["trio (>=0.26.1)"]
 
 [[package]]
@@ -170,13 +168,13 @@ pandas = ">=1.0.0,<3.0.0"
 
 [[package]]
 name = "certifi"
-version = "2025.7.14"
+version = "2025.8.3"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "certifi-2025.7.14-py3-none-any.whl", hash = "sha256:6b31f564a415d79ee77df69d757bb49a5bb53bd9f756cbbe24394ffd6fc1f4b2"},
-    {file = "certifi-2025.7.14.tar.gz", hash = "sha256:8ea99dbdfaaf2ba2f9bac77b9249ef62ec5218e7c2b2e903378ed5fccf765995"},
+    {file = "certifi-2025.8.3-py3-none-any.whl", hash = "sha256:f6c12493cfb1b06ba2ff328595af9350c65d6644968e5d3a2ffd78699af217a5"},
+    {file = "certifi-2025.8.3.tar.gz", hash = "sha256:e564105f78ded564e3ae7c923924435e1daa7463faeab5bb932bc53ffae63407"},
 ]
 
 [[package]]
@@ -502,7 +500,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -599,7 +597,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -610,7 +608,7 @@ develop = true
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.19.1"
+dara-core = "1.20.0-alpha.1"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -624,7 +622,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -668,7 +666,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.19.1)"]
+all = ["dara-components (==1.20.0-alpha.1)"]
 
 [package.source]
 type = "directory"
@@ -702,7 +700,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -856,13 +854,13 @@ woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
 
 [[package]]
 name = "freezegun"
-version = "1.5.3"
+version = "1.5.4"
 description = "Let your Python tests travel through time"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "freezegun-1.5.3-py3-none-any.whl", hash = "sha256:1ce20ee4be61349ba52c3af64f5eaba8d08ff51acfcf1b3ea671f03e54c818f1"},
-    {file = "freezegun-1.5.3.tar.gz", hash = "sha256:d7c6204e33a50affd7c7aa284f4f92e04e96f72d63313b89ceaaf60d9c64bc5e"},
+    {file = "freezegun-1.5.4-py3-none-any.whl", hash = "sha256:8bdd75c9d790f53d5a173d273064ccd7900984b36635be552befeedb0cd47b20"},
+    {file = "freezegun-1.5.4.tar.gz", hash = "sha256:798b9372fdd4d907f33e8b6a58bc64e682d9ffa8d494ce60f780197ee81faed1"},
 ]
 
 [package.dependencies]
@@ -1942,7 +1940,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2547,29 +2545,29 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "ruff"
-version = "0.12.5"
+version = "0.12.7"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "ruff-0.12.5-py3-none-linux_armv6l.whl", hash = "sha256:1de2c887e9dec6cb31fcb9948299de5b2db38144e66403b9660c9548a67abd92"},
-    {file = "ruff-0.12.5-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:d1ab65e7d8152f519e7dea4de892317c9da7a108da1c56b6a3c1d5e7cf4c5e9a"},
-    {file = "ruff-0.12.5-py3-none-macosx_11_0_arm64.whl", hash = "sha256:962775ed5b27c7aa3fdc0d8f4d4433deae7659ef99ea20f783d666e77338b8cf"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:73b4cae449597e7195a49eb1cdca89fd9fbb16140c7579899e87f4c85bf82f73"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:8b13489c3dc50de5e2d40110c0cce371e00186b880842e245186ca862bf9a1ac"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f1504fea81461cf4841778b3ef0a078757602a3b3ea4b008feb1308cb3f23e08"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:c7da4129016ae26c32dfcbd5b671fe652b5ab7fc40095d80dcff78175e7eddd4"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:ca972c80f7ebcfd8af75a0f18b17c42d9f1ef203d163669150453f50ca98ab7b"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:8dbbf9f25dfb501f4237ae7501d6364b76a01341c6f1b2cd6764fe449124bb2a"},
-    {file = "ruff-0.12.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2c47dea6ae39421851685141ba9734767f960113d51e83fd7bb9958d5be8763a"},
-    {file = "ruff-0.12.5-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:c5076aa0e61e30f848846f0265c873c249d4b558105b221be1828f9f79903dc5"},
-    {file = "ruff-0.12.5-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:a5a4c7830dadd3d8c39b1cc85386e2c1e62344f20766be6f173c22fb5f72f293"},
-    {file = "ruff-0.12.5-py3-none-musllinux_1_2_i686.whl", hash = "sha256:46699f73c2b5b137b9dc0fc1a190b43e35b008b398c6066ea1350cce6326adcb"},
-    {file = "ruff-0.12.5-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:5a655a0a0d396f0f072faafc18ebd59adde8ca85fb848dc1b0d9f024b9c4d3bb"},
-    {file = "ruff-0.12.5-py3-none-win32.whl", hash = "sha256:dfeb2627c459b0b78ca2bbdc38dd11cc9a0a88bf91db982058b26ce41714ffa9"},
-    {file = "ruff-0.12.5-py3-none-win_amd64.whl", hash = "sha256:ae0d90cf5f49466c954991b9d8b953bd093c32c27608e409ae3564c63c5306a5"},
-    {file = "ruff-0.12.5-py3-none-win_arm64.whl", hash = "sha256:48cdbfc633de2c5c37d9f090ba3b352d1576b0015bfc3bc98eaf230275b7e805"},
-    {file = "ruff-0.12.5.tar.gz", hash = "sha256:b209db6102b66f13625940b7f8c7d0f18e20039bb7f6101fbdac935c9612057e"},
+    {file = "ruff-0.12.7-py3-none-linux_armv6l.whl", hash = "sha256:76e4f31529899b8c434c3c1dede98c4483b89590e15fb49f2d46183801565303"},
+    {file = "ruff-0.12.7-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:789b7a03e72507c54fb3ba6209e4bb36517b90f1a3569ea17084e3fd295500fb"},
+    {file = "ruff-0.12.7-py3-none-macosx_11_0_arm64.whl", hash = "sha256:2e1c2a3b8626339bb6369116e7030a4cf194ea48f49b64bb505732a7fce4f4e3"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:32dec41817623d388e645612ec70d5757a6d9c035f3744a52c7b195a57e03860"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:47ef751f722053a5df5fa48d412dbb54d41ab9b17875c6840a58ec63ff0c247c"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a828a5fc25a3efd3e1ff7b241fd392686c9386f20e5ac90aa9234a5faa12c423"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:5726f59b171111fa6a69d82aef48f00b56598b03a22f0f4170664ff4d8298efb"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:74e6f5c04c4dd4aba223f4fe6e7104f79e0eebf7d307e4f9b18c18362124bccd"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:5d0bfe4e77fba61bf2ccadf8cf005d6133e3ce08793bbe870dd1c734f2699a3e"},
+    {file = "ruff-0.12.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:06bfb01e1623bf7f59ea749a841da56f8f653d641bfd046edee32ede7ff6c606"},
+    {file = "ruff-0.12.7-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:e41df94a957d50083fd09b916d6e89e497246698c3f3d5c681c8b3e7b9bb4ac8"},
+    {file = "ruff-0.12.7-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:4000623300563c709458d0ce170c3d0d788c23a058912f28bbadc6f905d67afa"},
+    {file = "ruff-0.12.7-py3-none-musllinux_1_2_i686.whl", hash = "sha256:69ffe0e5f9b2cf2b8e289a3f8945b402a1b19eff24ec389f45f23c42a3dd6fb5"},
+    {file = "ruff-0.12.7-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:a07a5c8ffa2611a52732bdc67bf88e243abd84fe2d7f6daef3826b59abbfeda4"},
+    {file = "ruff-0.12.7-py3-none-win32.whl", hash = "sha256:c928f1b2ec59fb77dfdf70e0419408898b63998789cc98197e15f560b9e77f77"},
+    {file = "ruff-0.12.7-py3-none-win_amd64.whl", hash = "sha256:9c18f3d707ee9edf89da76131956aba1270c6348bfee8f6c647de841eac7194f"},
+    {file = "ruff-0.12.7-py3-none-win_arm64.whl", hash = "sha256:dfce05101dbd11833a0776716d5d1578641b7fddb537fe7fa956ab85d1769b69"},
+    {file = "ruff-0.12.7.tar.gz", hash = "sha256:1fc3193f238bc2d7968772c82831a4ff69252f673be371fb49663f0068b7ec71"},
 ]
 
 [[package]]
@@ -2711,7 +2709,7 @@ pbr = ">=2.0.0"
 
 [[package]]
 name = "styled-components"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2724,7 +2722,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2930,7 +2928,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2943,7 +2941,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2956,7 +2954,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2969,7 +2967,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2982,7 +2980,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -2995,7 +2993,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3008,7 +3006,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.19.1"
+version = "1.20.0-alpha.1"
 description = ""
 optional = false
 python-versions = "*"
@@ -3358,4 +3356,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.13.0"
-content-hash = "cc4e3e5f2780b90017ec7a268d66febd7c232f01c886e3f4df87b63e8d61738e"
+content-hash = "7bc777e2f57c4e832476d54cdc2a49741a77546b7c164b0dcdc9ad2cd60305ee"

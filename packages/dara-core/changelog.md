@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.0-alpha.1
 
 -  Deprecated `UrlVariable` in favour of using `Variable(store=QueryParamStore(query=...))`
 -  Deprecated `persist_value` on `Variable` in favour of using `Variable(store=BrowserStore(...))` instead
