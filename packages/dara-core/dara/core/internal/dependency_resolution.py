@@ -106,7 +106,6 @@ async def resolve_dependency(
     :param store: store instance
     :param task_mgr: task manager instance
     """
-    # TODO: remove index? make sure we test this
     if is_resolved_derived_variable(entry):
         return await _resolve_derived_var(entry, store, task_mgr)
 

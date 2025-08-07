@@ -8,8 +8,6 @@ import {
     isResolvedSwitchVariable,
 } from '@/types';
 
-import { hashObject } from './hashing';
-
 /* eslint-disable no-underscore-dangle */
 type Mapping = Record<string, any>;
 type JsonArray = Array<JsonLike | string | number>;
@@ -28,10 +26,6 @@ export function getIdentifier(variable: AnyVariable<any>): string {
 
     if ('nested' in variable && variable.nested.length > 0) {
         id += `:${variable.nested.join(',')}`;
-    }
-
-    if ('filters' in variable) {
-        id += `:${hashObject(variable.filters)}`;
     }
 
     return id;

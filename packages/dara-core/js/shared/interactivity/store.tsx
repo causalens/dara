@@ -108,6 +108,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (variable.__typename) {
+        case 'ServerVariable':
         case 'Variable': {
             if (atomRegistry.has(variable.uid)) {
                 return true;
@@ -120,8 +121,6 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
             return atomFamilyMembersRegistry.get(family)!.size > 0;
         }
-
-        // TODO: need to add server var?
 
         case 'DerivedVariable': {
             const key = getRegistryKey(variable, 'selector');
