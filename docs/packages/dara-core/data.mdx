@@ -4,7 +4,7 @@ title: Handling Data
 
 ## Overview
 
-The `dara-core` provides extra functionalities for interacting with data, built on top of the core `DataVariable` concepts.
+The `dara-core` provides extra functionalities for interacting with data, built on top of the core `ServerVariable` concepts.
 It contains the `UploadDropzone` component, as well as a `DataFactory` class which is a factory of variables, actions and methods
 to interact with locally stored data.
 
@@ -15,7 +15,7 @@ using the component (e.g. for programmatic upload only):
 
 ```python
 from dara.core.data_utils.endpoints import upload
-from daracore import ConfigurationBuilder
+from dara.core import ConfigurationBuilder
 
 config = ConfigurationBuilder()
 config.add_endpoint(upload)

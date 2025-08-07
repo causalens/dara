@@ -1,215 +1,300 @@
 ---
 title: Handling Data
-description: Learn how to handle data in Dara applications using DataVariable for optimal performance with larger datasets
+description: Learn how to handle server-side data in Dara applications using ServerVariable and work with large tabular data
 boost: 1.5
 ---
 
-This page will introduce you to handling data in Dara applications.
+This page will introduce you to handling data in Dara applications, covering both server-side data management and working with tabular data.
 
-## `DataVariable`
+## Understanding Data in Dara
 
-You have previously been introduced to the concept of `dara.core.interactivity.plain_variable.Variable`s, the core of interactivity in Dara. These variables work well for smaller application data but `DataVariable` are better equipped to handle datasets, especially larger ones while optimizing performance.
+Dara provides different approaches for handling data depending on where the data originates and how it's managed:
 
-`dara.core.interactivity.data_variable.DataVariable`s take in data in the form of a `pandas.DataFrame`. `DataVariable` can also be instantiated without data to be filled later by interacting with the app.
+- **Client State**: Use `Variable`s for ephemeral UI state
+- **Client State with Persistence**: Use `Variable` with a `store` for UI state that needs persistence or collaboration (covered in [Persistence and Collaboration](../advanced/persistence-and-collaboration.mdx))
+- **Server-Side Data**: Use `ServerVariable` for data that originates and is managed on the server
+- **Computed Data**: Use `DerivedVariable` for data derived from other variables
 
-```python
-import pandas
-from dara.core import DataVariable, CacheType
+## Server-Side Data with ServerVariable
 
-data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
-my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
-```
+`ServerVariable` represents **synchronized server state** - data that originates and is managed on the server, with clients receiving reactive updates when the data changes but not sending the actual data to the client.
+This is notably different from `Variable`s with `BackendStore`, which represents client state that happens to be persisted on the server but it still synced in its entirety with the client.
 
-Like `DerivedVariable`s, you can set how you'd like to cache the results according to the `CacheType` enumeration:
+### Key Characteristics
 
-- `CacheType.GLOBAL` - as you've seen previously, the data will be accessible by all users and can be provided upfront
-- `CacheType.SESSION` - the data will be accessible only for the current session
-- `CacheType.USER` - the data will be accessible only for the current user and is tracked across sessions/logins
+- **Server as Source of Truth**: Data originates from and is managed by the server
+- **Reactive Updates**: Clients automatically receive updates when server data changes
+- **Non-Serializable Support**: Can store any Python object, including ML models, database connections, etc.
+- **Automatic Synchronization**: Changes propagate to all connected clients via WebSocket
 
-:::caution
-When loading your data directly in source code like the example above, the `cache` argument **must** be set to `global` and therefore accessible by all users. This is because at the time of executing your code initially, there is no concept of a logged in user or session. Any other setting in this context will trigger an error. Keep reading to see when other `cache` settings can be used.
-:::
-
-### Usage
-
-The `DataVariable` can be used as any other variable, that is:
-
-- in a `DerivedVariable`
+### Basic Usage
 
 ```python
-import pandas
-from dara.core import DataVariable, DerivedVariable, CacheType
+import pandas as pd
+from dara.core import ServerVariable
+from dara.components import Table, Text, Stack
 
-data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
-my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
+# Basic DataFrame storage
+dataset = ServerVariable(pd.DataFrame({
+    'experiment': ['A', 'B', 'C'],
+    'accuracy': [0.85, 0.92, 0.78],
+    'samples': [1000, 1500, 800]
+}))
 
-DerivedVariable(my_function, variables=[my_first_data_variable])
-```
-
-- in a `py_component`
-
-```python
-import pandas
-from bokeh.plotting import figure
-
-from dara.core import py_component, DataVariable, CacheType, ConfigurationBuilder
-from dara.components import Bokeh
-
-
-@py_component
-def plot_data(data: pandas.DataFrame):
-    p = figure(title='My Plot')
-    p.line(x=data['a'], y=data['b'])
-    return Bokeh(p)
-
-data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
-my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
-
-config = ConfigurationBuilder()
-config.add_page('data page', plot_data(my_first_data_variable))
-```
-
-- in an `action`
-
-```python
-import pandas
-from dara.core import DataVariable, CacheType, Variable, action
-
-data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
-my_first_data_variable = DataVariable(data, cache=CacheType.GLOBAL)
-
-target = Variable()
-
-@action
-async def my_resolver_function(ctx: action.Ctx, data_var_value: pandas.DataFrame):
-    # data_var_value here takes the value of my_first_data_variable
-    ...
-    await ctx.update(variable=target, value=data_var_value)
-
-my_resolver_function(my_first_data_variable)
-```
-
-### Updating
-
-You can update the data stored in a `DataVariable` by:
-
-- using a `dara.core.interactivity.actions` action
-
-```python
-import pandas
-from dara.core import DataVariable, CacheType
-
-my_session_data_variable = DataVariable(cache=CacheType.SESSION)
-# Load a new DataFrame into the DataVariable - only visible to the current session since cache=CacheType.SESSION
-my_session_data_variable.update(value=pandas.read_csv(...))
-
-# Load a new DataFrame into the DataVariable - visible to all users since cache=CacheType.GLOBAL
-my_first_data_variable.update(value=pandas.read_csv(...))
-```
-
-- using `dara-components.common.dropzone.UploadDropzone` to upload a new dataset
-
-```python
-from dara.core import DataVariable, CacheType
-from dara.components import UploadDropzone
-
-# data specific to the user
-target = DataVariable(cache=CacheType.USER)
-
-# On upload, target will be updated to store the DataFrame uploaded by the user
-UploadDropzone(target=target)
-```
-
-### Filtering
-
-Another benefit of using a `DataVariable` for data is the ability to filter it. This will automatically be
-done by components designed to handle `DataVariable`s, such as `dara.components.common.table.Table`, which will only request a subset of data
-as needed.
-
-```python
-import pandas
-
-from dara.core import DataVariable, ConfigurationBuilder
-from dara.core.interactivity.filtering import ClauseQuery, ValueQuery
-from dara.components import Table
-
-data = pandas.DataFrame(data={'a': [1, 2, 3], 'b': [4, 5, 6]})
-variable = DataVariable(data)
-
-# Filter rows where 'a' == 2
-variable_filtered_1 = variable.filter(ValueQuery(column='a', value=2))
-
-# Filter rows where 'a' == 2 or 'b' == 5
-variable_filtered_2 = variable.filter(
-    ClauseQuery(
-        combinator='OR',
-        clauses=[ValueQuery(column='a', value=2), ValueQuery(column='b', value=5)]
-    )
+# Non-serializable data (ML model)
+from sklearn.ensemble import RandomForestClassifier
+trained_model = ServerVariable(
+    RandomForestClassifier().fit(X_train, y_train),
+    scope='global'
 )
 
-...
-
-filtered_tables = Stack(
-    Table(data=variable_filtered_1, columns=['a', 'b']),
-    Table(data=variable_filtered_2, columns=['a', 'b'])
+# Tabular data display
+page_content = Stack(
+    Text('Experiment Results'),
+    Table(data=dataset)  # Automatically handles filtering/pagination
 )
-
-config = ConfigurationBuilder()
-config.add_page('Filtered Data', filtered_tables)
 ```
 
-Even though the new filtered variables can be used as if they were new variables, they will correctly
-be updated when the original variable is updated i.e. via an action.
+### Scope Management
 
-## `DerivedDataVariable`
+ServerVariable supports two scopes:
 
-Another way to handle data is to create a `dara.core.interactivity.derived.data_variable.DerivedDataVariable` that will produce a dataset on the fly.
-This is very similar to a `DerivedVariable` except it's designed to handle data.
+- **`global`**: Data shared across all users (default, also supports setting an initial value)
+- **`user`**: Separate data per user, useful for e.g. personalized datasets or user-specific analysis results
 
-The differences between `DerivedVariable` and `DerivedDataVariable` are the following:
+```python
+# Global data - shared across all users
+global_dataset = ServerVariable(
+    pd.read_csv('shared_results.csv'),
+    scope='global'
+)
 
-- The resolver function must return a `DataFrame`.
-- It doesn't support nested data or have the `.get` method- as it does not make sense when working with a `DataFrame`.
-- The `cache` option cannot be set to `None`.
+# User-specific data - separate per user
+user_analysis = ServerVariable(
+    scope='user',
+    backend=UserAnalysisBackend()
+)
+```
 
-Under the hood it works almost exactly like a `DerivedVariable`. Your resolver function will be executed
-whenever one of the dependant variables change (or when you use `.trigger()`). Its result will be then
-passed through the same filtering logic as for a `DataVariable`.
+### Custom Backends
 
-`DerivedDataVariable`s can also be ran in a separate process like `DerivedVariable`s. The same requirements apply in that you must specify the location of the `DerivedDataVariable`s resolvers in your app using `config.task_module` and set `run_as_task=True` on the `DerivedDataVariable`'s instantiation.
+For advanced use cases, you can implement custom backends to integrate with databases, APIs, or other data sources:
 
-:::tip
-When you want to perform any data processing within your app based on user inputs, a `DerivedDataVariable` is a
-great way to keep this logic outside of your `py_component`s. See
-[\_\_Best Practices: Light PyComponents](../best-practices/light-pycomponents#use-deriveddatavariables-for-data-processing)
-for an example.
+```python
+from dara.core.interactivity.server_variable import ServerBackend
+from typing import Optional, Tuple, Union
+import asyncpg
 
-Additionally, if you are doing any data processing in your app that is not based on user inputs
-(for example static scaling or dropping of columns), your app will perform better if this processing is done beforehand
-and loaded into your app already processed.
-:::
+class DatabaseBackend(ServerBackend):
+    def __init__(self, connection_string: str):
+        super().__init__(scope='global')
+        self.connection_string = connection_string
+        self._sequence_numbers = {}
 
-## Caching
+    async def read(self, key: str):
+        # Read full dataset
+        conn = await asyncpg.connect(self.connection_string)
+        try:
+            rows = await conn.fetch("SELECT * FROM experiments")
+            return pd.DataFrame(rows)
+        finally:
+            await conn.close()
 
-Just like in `DerivedVariable`s, the `cache` setting on data variables can also accept a policy object to determine how the data
-will be preserved and evicted. Learn more about the available cache policies and how to use them in the [Cache Policies Documentation](../advanced/cache-policies.mdx).
+    async def write(self, key: str, value):
+        # Handle data updates
+        # Implementation depends on your use case
+        pass
 
-:::warning
+    async def get_sequence_number(self, key: str) -> int:
+        # Track data version for synchronization
+        return self._sequence_numbers.get(key, 0)
 
-For a `DataVariable` the size-based `LRU` cache does not make a difference, as there is always one copy of the data in memory per
-the cache scope (i.e. one global copy with `cache_type='global'`, one copy per user or per session respectively with `'user'` and `'session'` types).
+# Use custom backend
+database_data = ServerVariable(backend=DatabaseBackend("postgresql://..."))
+```
 
-The `TTL` cache can be still used to evict data after a certain amount of time.
+## Working with Tabular Data
 
-:::
+Tabular data handling in Dara is optimized for performance with large datasets through built-in filtering, pagination, and lazy loading.
 
-## Data Utilities
+### Table Component Integration
 
-The data utilities provide extra functionalities for interacting with data, built on top of the core `DataVariable` concepts.
-They contain a `dara.core.data_utils.DataFactory` class which is a factory of variables, actions and methods to interact with locally stored data.
+The `Table` component automatically integrates with both `ServerVariable` and `DerivedVariable` to provide efficient data display:
 
-To learn more you can checkout the [documentation](../packages/dara-core/data).
+```python
+from dara.core import ServerVariable, DerivedVariable, Variable
+from dara.components import Table, Stack, Select, Item
+
+# Large dataset stored on server
+large_dataset = ServerVariable(pd.read_csv('large_file.csv'))
+
+# Filtered view based on user selection
+category_filter = Variable('all')
+
+def filter_by_category(data, category):
+    if category == 'all':
+        return data
+    return data[data['category'] == category]
+
+filtered_data = DerivedVariable(
+    filter_by_category,
+    variables=[large_dataset, category_filter]
+)
+
+page_content = Stack(
+    Select(
+        value=category_filter,
+        items=[
+            Item(label='All Categories', value='all'),
+            Item(label='Category A', value='A'),
+            Item(label='Category B', value='B')
+        ]
+    ),
+    # Table automatically handles pagination and filtering
+    # Use the entire dataset
+    Table(data=large_dataset),
+    # Or the filtered one
+    Table(data=filtered_data)
+)
+```
+
+### Custom ServerVariable filtering
+
+Server variables handle filtering and pagination via their `backend` implementation and its `read_filtered` method. The default `MemoryBackend` stores the data in memory and implements `DataFrame` filtering.
+This means that with the default backend, the only type of tabular data supported is a `DataFrame`.
+
+For advanced tabular data scenarios, you can implement custom backends with customized `read_filtered` methods. The example below shows how one could implement a backend that stores the data in a database,
+and translates the filtering and pagination queries into SQL queries that retrieve a slice of the DB data as a `DataFrame`.
+
+```python
+from dara.core.interactivity.server_variable import ServerBackend
+from dara.core.interactivity.filtering import FilterQuery, Pagination
+from typing import Optional, Tuple
+import pandas as pd
+import asyncpg
+
+class DatabaseBackend(ServerBackend):
+    def __init__(self, connection_string: str):
+        super().__init__(scope='global')
+        self.connection_string = connection_string
+
+    async def read(self, key: str):
+        # Read full dataset (used for programmatic non-tabular access)
+        conn = await asyncpg.connect(self.connection_string)
+        try:
+            rows = await conn.fetch("SELECT * FROM large_table")
+            return pd.DataFrame(rows)
+        finally:
+            await conn.close()
+
+    async def read_filtered(
+        self,
+        key: str,
+        filters: Optional[FilterQuery] = None,
+        pagination: Optional[Pagination] = None
+    ) -> Tuple[Optional[pd.DataFrame], int]:
+        """
+        Optimized filtering at the database level for better performance.
+        Translates the filters and pagination into SQL queries that retrieve a slice of the DB data as a `DataFrame`.
+        """
+        conn = await asyncpg.connect(self.connection_string)
+        try:
+            # Build SQL query from filters
+            where_clause = self._build_where_clause(filters)
+            count_query = f"SELECT COUNT(*) FROM large_table {where_clause}"
+            total_count = await conn.fetchval(count_query)
+
+            # Apply pagination
+            limit_clause = ""
+            if pagination:
+                offset = pagination.offset or 0
+                limit = pagination.limit or 50
+                limit_clause = f"LIMIT {limit} OFFSET {offset}"
+
+            # Fetch filtered data
+            data_query = f"SELECT * FROM large_table {where_clause} {limit_clause}"
+            rows = await conn.fetch(data_query)
+
+            return pd.DataFrame(rows), total_count
+
+        finally:
+            await conn.close()
+
+    def _build_where_clause(self, filters: Optional[FilterQuery]) -> str:
+        # Convert Dara filters to SQL WHERE clause
+        # Implementation depends on your filter requirements
+        if not filters:
+            return ""
+        # ... filter conversion logic
+        return "WHERE ..."
+
+# Use optimized backend
+optimized_data = ServerVariable(backend=DatabaseBackend("postgresql://..."))
+
+# Table will use read_filtered for efficient server-side filtering
+efficient_table = Table(data=optimized_data)
+```
+
+### Custom Filter Resolvers with DerivedVariable
+
+Similar to `ServerVariable`, `DerivedVariable`s also support a default `DataFrame` filtering for tabular data. This means that by default, to use a `DerivedVariable` with e.g. a `Table` component,
+its function must return a `DataFrame` or `None`. This can be customized by providing a `filter_resolver` function. It will be called with the result of the main `DerivedVariable` function,
+as well as filters and pagination. The function should return a `DataFrame` and total count.
+
+The example below shows how to use a custom filter resolver to filter a `DerivedVariable` that returns a `DataFrame` with a remote API.
+
+```python
+from dara.core import DerivedVariable, Variable
+from dara.core.interactivity.filtering import FilterQuery, Pagination
+import httpx
+
+# API-based data filtering
+async def api_filter_resolver(
+    endpoint_url: str,
+    filters: Optional[FilterQuery] = None,
+    pagination: Optional[Pagination] = None
+) -> Tuple[pd.DataFrame, int]:
+    """
+    Custom resolver that queries a remote API with filters
+    """
+    async with httpx.AsyncClient() as client:
+        # translate filters and pagination into API query params
+        params = {
+            'filters': filters.dict() if filters else {},
+            'offset': pagination.offset if pagination else 0,
+            'limit': pagination.limit if pagination else 50,
+        }
+
+        response = await client.get(endpoint_url, params=params)
+        data = response.json()
+
+        return pd.DataFrame(data['results']), data['total_count']
+
+# Parameters for API query
+api_params = Variable({'dataset': 'experiments', 'version': 'latest'})
+
+def build_api_endpoint(params):
+    return f"https://api.example.com/data/{params['dataset']}/{params['version']}"
+
+# DerivedVariable with custom filtering
+api_data = DerivedVariable(
+    build_api_endpoint,
+    variables=[api_params],
+    filter_resolver=api_filter_resolver
+)
+
+# Table automatically uses the custom filter resolver
+api_table = Table(
+    data=api_data,
+    columns=['experiment_id', 'accuracy', 'timestamp']
+)
+```
+
+### Performance Best Practices
+
+1. **Use ServerVariable or DerivedVariable for Large Datasets**: Store datasets on the server rather than passing them directly into a `Table` component to offload the filtering and pagination logic to the backend
+2. **Implement custom backends or filter_resolver for remote data**: For remote data, it's more efficient to retrieve only a slice of the data than to retrieve the entire dataset and filter it in-memory
 
 ## Next Steps
 
-Throughout the user guide, you've been adding pages to your configuration to render the components you've built. All of these pages are configured into a layout along with a router so that you can navigate to and from pages with URLs and navigation bars. You will learn more about this in the next section.
+You've learned how to handle both server-side data and tabular data in Dara applications. The next section will cover how to organize these data-driven components into complete application layouts and navigation structures.

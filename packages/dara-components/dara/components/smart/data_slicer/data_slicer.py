@@ -51,7 +51,7 @@ from dara.components.smart.data_slicer.utils.plotting import render_input_plot
 from dara.core import DerivedVariable, Variable, py_component
 from dara.core.actions import UpdateVariable
 from dara.core.definitions import ComponentInstance, discover
-from dara.core.interactivity import AnyDataVariable, DataVariable
+from dara.core.interactivity import AnyVariable, ServerVariable
 
 NO_RESULTS_FOUND = Stack(Text('No results found'))
 TABLE_ROWS = 5
@@ -63,7 +63,7 @@ def increment(ctx: UpdateVariable.Ctx):  # type: ignore
 
 @discover
 class DataSlicer:
-    def __init__(self, data: Union[DataFrame, AnyDataVariable], rows_to_show: int = 10):
+    def __init__(self, data: Union[DataFrame, AnyVariable], rows_to_show: int = 10):
         """
         DataSlicer component allows the user to select a subset of a dataset by variable ranges or individual rows.
         Once instantiated, the `DerivedVariable` returned by `get_output()` will contain the filtered data.
@@ -73,7 +73,7 @@ class DataSlicer:
         :param data: input data
         :param rows_to_show: number of rows to show in the 'Head' and 'Tail' sections of filter preview
         """
-        self.data_var = data if isinstance(data, AnyDataVariable) else DataVariable(data)
+        self.data_var = data if isinstance(data, AnyVariable) else ServerVariable(data)
         self.selected_column = Variable(None)
         self.rows_to_show = Variable(rows_to_show)
 

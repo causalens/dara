@@ -2,7 +2,7 @@
 title: Light PyComponents
 ---
 
-The `@py_component` decorator is used to create a dynamic layout based on the current state of an application's variables. They rely on the state, and do not define the state. 
+The `@py_component` decorator is used to create a dynamic layout based on the current state of an application's variables. They rely on the state, and do not define the state.
 
 Ideally, when loading results you want as much as the page to be displayed as possible. There are two ways to achieve this, and both should be used whenever possible.
 
@@ -10,19 +10,19 @@ Ideally, when loading results you want as much as the page to be displayed as po
 
 You should aim to keep heavy computation out of `dara.core.visual.dynamic_component.py_component`s and leave the heavy lifting to the `dara.core.interactivity.derived_variable.DerivedVariable`s.
 
-`DerivedVariable`s are better equipped for expensive computations because the results can be cached and you have more control over when they are recalculated thanks to the `deps` argument. `py_component`s should only handle changes to the UI. 
+`DerivedVariable`s are better equipped for expensive computations because the results can be cached and you have more control over when they are recalculated thanks to the `deps` argument. `py_component`s should only handle changes to the UI.
 
-The flow of a new calculation should be: 
+The flow of a new calculation should be:
 
-`Variable`s &rarr; `DerivedVariable`s &rarr; `py_component`s 
+`Variable`s &rarr; `DerivedVariable`s &rarr; `py_component`s
 
-If no calculation is needed and only visual updates are required, the flow should be: 
+If no calculation is needed and only visual updates are required, the flow should be:
 
 `Variable`s &rarr; `py_component`s
 
 ### Minimize the Content of Your `py_component`s
 
-You should aim to have relatively small `py_component`s. 
+You should aim to have relatively small `py_component`s.
 
 If we define our whole page to be one single `py_component`, the whole page will not display until the state is resolved and all components are rendered.
 
@@ -35,10 +35,10 @@ class Page:
     def __init__(self):
         self.a = Variable(1)
         self.b = Variable(2)
-        
+
         self.c = Variable(3)
         self.d = Variable(4)
-        
+
         self.output1 = DerivedVariable(
             my_long_calculation1,
             variables=[self.a, self.b]
@@ -47,17 +47,17 @@ class Page:
             my_long_calculation2,
             variables=[self.c, self.d]
         )
-        
+
     def __call__(self):
         return Card(
             self.layout1(output1),
             self.layout2(output2)
         )
-        
+
     @py_component
     def layout(self, output1):
         return Stack(Text(output1))
-        
+
     @py_component
     def layout2(self, output2):
         return Stack(Text(output2))
@@ -69,10 +69,10 @@ class Page:
     def __init__(self):
         self.a = Variable(1)
         self.b = Variable(2)
-        
+
         self.c = Variable(3)
         self.d = Variable(4)
-        
+
         self.output1 = DerivedVariable(
             my_long_calculation1,
             variables=[self.a, self.b]
@@ -81,10 +81,10 @@ class Page:
             my_long_calculation2,
             variables=[self.c, self.d]
         )
-    
+
     def __call__(self):
         return self.layout(output1, output2)
-        
+
     @py_component
     def layout(self, output1, output2):
         return Card(
@@ -94,18 +94,18 @@ class Page:
 
 ```
 
-### Use `DerivedDataVariable`s for Data Processing
+### Use `DerivedVariable`s for Data Processing
 
-Often times you may want to manipulate a dataset based on user input. While it may be tempting to do this processing in a `py_component`, your app will have better performance if this logic is extracted to a `DerivedDataVariable`.
+Often times you may want to manipulate a dataset based on user input. While it may be tempting to do this processing in a `py_component`, your app will have better performance if this logic is extracted to a `DerivedVariable`.
 
-Additionally, `Table` objects only accept `DataVariable`s or `DerivedDataVariable`s so by using a `DerivedDataVariable`, you will not have to arbitrarily wrap your `pandas.DataFrame` in a `DataVariable` in order to utilize a table.
+Additionally, while `Table` objects accept a raw `DataFrame`, it is more efficient to pass it as a `DerivedVariable` so that the table can be filtered and paginated efficiently on the backend rather than passing the entire dataset to the frontend.
 
 The following page that filters a table by its columns:
 
 ```python
 import pandas
 from typing import List
-from dara.core import py_component, DataVariable, Variable
+from dara.core import py_component, Variable
 from dara.components import Table, Select, Stack
 
 def DataPage(data: pandas.DataFrame):
@@ -113,7 +113,7 @@ def DataPage(data: pandas.DataFrame):
 
     @py_component
     def display_table(selected_columns: List[str]):
-        return Table(data=DataVariable(data[selected_columns]))
+        return Table(data=data[selected_columns])
 
     return Stack(
         Select(items=['X', 'Y', 'Z'], value=selected_columns_var, multiselect=True),
@@ -126,12 +126,12 @@ should be refactored to the following page that achieves the same outcome but in
 ```python
 import pandas
 from typing import List
-from dara.core import DerivedDataVariable, Variable
+from dara.core import DerivedVariable, Variable
 from dara.components import Table, Select, Stack
 
 def DataPage(data: pandas.DataFrame):
     selected_columns_var = Variable(['X'])
-    selected_data = DerivedDataVariable(
+    selected_data = DerivedVariable(
         lambda x: data[x], variables=[selected_columns_var]
     )
 

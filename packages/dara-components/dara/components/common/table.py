@@ -261,7 +261,7 @@ class Column(BaseModel):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
     Table.column(
         col_id='col1',
@@ -285,7 +285,7 @@ class Column(BaseModel):
         .
         .
     ])
-    data_var = DataVariable(data)
+    data_var = ServerVariable(data)
 
     ```
 
@@ -661,9 +661,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -702,9 +702,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable, Variable
+    from dara.core import ServerVariable, Variable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -738,9 +738,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -771,7 +771,7 @@ class Table(ContentComponent):
 
     import pandas
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
     data = [{
         'age': 27,
@@ -784,7 +784,7 @@ class Table(ContentComponent):
     }]
     df = pandas.DataFrame(data, columns=['age', 'name', 'surname'])
     df.reset_index()
-    Table(data=DataVariable(df), columns=[{'col_id': 'age', 'label': 'Age'}, 'index'])
+    Table(data=ServerVariable(df), columns=[{'col_id': 'age', 'label': 'Age'}, 'index'])
 
     ```
 
@@ -793,9 +793,9 @@ class Table(ContentComponent):
     ```python
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame(
             [
                 {
