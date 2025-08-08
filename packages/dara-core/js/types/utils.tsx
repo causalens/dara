@@ -136,7 +136,7 @@ export function isActionImpl(action: any): action is ActionImpl {
 }
 
 export function isAnnotatedAction(action: any): action is AnnotatedAction {
-    return action && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
+    return action && isObject(action) && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
 }
 
 export const isPyComponent = (value: unknown): value is ComponentInstance =>
