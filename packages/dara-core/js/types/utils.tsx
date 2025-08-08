@@ -51,7 +51,7 @@ export function isDerivedVariable<T>(variable: AnyVariable<T> | T): variable is 
 }
 
 /** Check if a value is a server variable instance and type guard the response */
-export function isServerVariable(variable: AnyVariable<any>): variable is ServerVariable {
+export function isServerVariable(variable: any): variable is ServerVariable {
     return isVariable(variable) && variable.__typename === 'ServerVariable';
 }
 
