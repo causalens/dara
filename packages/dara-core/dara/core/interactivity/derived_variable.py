@@ -193,8 +193,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         uid: Optional[str] = None,
         nested: Optional[List[str]] = None,
         filter_resolver: Optional[FilterResolver] = None,
-        _get_value: Optional[Callable[..., Awaitable[Any]]] = None,
-        _get_tabular_data: Optional[Callable[..., Union[Awaitable[DataResponse], Awaitable[MetaTask]]]] = None,
+        **kwargs,
     ):
         if nested is None:
             nested = []
@@ -236,6 +235,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
             polling_interval=polling_interval,
             deps=deps,
             nested=nested,
+            **kwargs,
         )
 
         # Import the registry of variables and register the function at import
@@ -260,8 +260,8 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                 uid=str(self.uid),
                 variables=variables,
                 deps=deps_indexes,
-                get_value=_get_value or DerivedVariable.get_value,
-                get_tabular_data=_get_tabular_data or DerivedVariable.get_tabular_data,
+                get_value=DerivedVariable.get_value,
+                get_tabular_data=DerivedVariable.get_tabular_data,
             ),
         )
 
