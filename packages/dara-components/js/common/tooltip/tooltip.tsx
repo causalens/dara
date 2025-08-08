@@ -45,7 +45,7 @@ function Tooltip(props: TooltipProps): JSX.Element {
             styling={props.styling}
         >
             {/* Python side makes sure there's only one child and it is Stack */}
-            <Stack {...props.children[0].props} />
+            <Stack {...props.children![0]!.props} />
         </StyledTooltip>
     );
 }

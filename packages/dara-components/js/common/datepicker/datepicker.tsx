@@ -18,7 +18,7 @@ const StyledDatepickerDiv = injectCss(DatepickerDiv);
 /**
  * Parse a server datetime string to a Date object
  */
-export function parseDateString(date: string | Date): Date {
+export function parseDateString(date: string | Date | undefined): Date | undefined {
     if (!date) {
         return;
     }
@@ -85,7 +85,7 @@ function Datepicker(props: DatepickerProps): JSX.Element {
         }
     }, []);
 
-    const formattedValue: Date | [Date, Date] = useMemo(() => {
+    const formattedValue = useMemo(() => {
         if (props.range && value) {
             return [parseDateString(value?.[0]), parseDateString(value?.[1])];
         }

@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Optional, Union
 
 from dara.components.common.base_component import LayoutComponent
-from dara.core import NonDataVariable
+from dara.core import ClientVariable
 from dara.core.definitions import ComponentInstance
 
 
@@ -53,8 +53,8 @@ class Card(LayoutComponent):
     :param align: How to align the content of the card, accepts any flexbox alignments
     """
 
-    subtitle: Optional[Union[str, NonDataVariable]] = None
-    title: Optional[Union[str, NonDataVariable]] = None
+    subtitle: Optional[Union[str, ClientVariable]] = None
+    title: Optional[Union[str, ClientVariable]] = None
     accent: bool = False
 
     def __init__(self, *args: Union[ComponentInstance, None], **kwargs):

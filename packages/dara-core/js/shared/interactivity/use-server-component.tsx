@@ -156,17 +156,15 @@ function getOrRegisterServerComponent({
                     (extrasSerializable: RequestExtrasSerializable) =>
                     async ({ get }) => {
                         // Kwargs resolved to their simple values
-                        const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
-                            (acc, k) => {
-                                const value = dynamicKwargs[k]!;
-                                acc[k] =
+                        const resolvedKwargs = await Promise.all(
+                            Object.entries(dynamicKwargs).map(async ([k, value]) => {
+                                const resolvedValue =
                                     isVariable(value) ?
-                                        resolveVariable(value, wsClient, taskContext, currentExtras)
+                                        await resolveVariable(value, wsClient, taskContext, currentExtras)
                                     :   value;
-                                return acc;
-                            },
-                            {} as Record<string, any>
-                        );
+                                return [k, resolvedValue];
+                            })
+                        ).then((entries) => Object.fromEntries(entries));
 
                         // Turn kwargs into lists so we can re-use the DerivedVariable logic
                         const resolvedKwargsList = Object.values(resolvedKwargs);
@@ -182,7 +180,6 @@ function getOrRegisterServerComponent({
                             kwargsList,
                             kwargsList, // pass deps=kwargs
                             resolvedKwargsList,
-                            wsClient,
                             get,
                             selfTrigger
                         );

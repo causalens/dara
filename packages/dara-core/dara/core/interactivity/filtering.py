@@ -20,15 +20,23 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, List, Optional, Tuple, Union, cast, overload
 
 import numpy
-from pandas import DataFrame, Series  # noqa: F401
+from pandas import DataFrame, Series
+from pydantic import field_validator  # noqa: F401
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger
 
 COLUMN_PREFIX_REGEX = re.compile(r'__(?:col|index)__\d+__')
+
+
+def clean_column_name(col: str) -> str:
+    """
+    Cleans a column name by removing the index or col prefix
+    """
+    return re.sub(COLUMN_PREFIX_REGEX, '', col)
 
 
 class Pagination(BaseModel):
@@ -43,6 +51,13 @@ class Pagination(BaseModel):
     limit: Optional[int] = None
     orderBy: Optional[str] = None
     index: Optional[str] = None
+
+    @field_validator('orderBy', mode='before')
+    @classmethod
+    def clean_order_by(cls, order_by):
+        if order_by is None:
+            return None
+        return clean_column_name(order_by)
 
 
 class QueryCombinator(str, Enum):
@@ -229,6 +244,18 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Serie
         return filters
     else:
         raise ValueError(f'Unknown query type {type(query)}')
+
+
+@overload
+def apply_filters(
+    data: DataFrame, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+) -> Tuple[DataFrame, int]: ...
+
+
+@overload
+def apply_filters(
+    data: None, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+) -> Tuple[None, int]: ...
 
 
 def apply_filters(

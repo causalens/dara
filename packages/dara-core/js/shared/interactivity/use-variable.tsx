@@ -1,5 +1,6 @@
+import { useSuspenseQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import { type Dispatch, type SetStateAction, useContext, useEffect, useState } from 'react';
+import { type Dispatch, type SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
@@ -7,8 +8,6 @@ import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
     UserError,
     type Variable,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
     isServerVariable,
     isStateVariable,
@@ -18,7 +17,13 @@ import {
 
 import { useEventBus } from '../event-bus/event-bus';
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable } from './internal';
+import {
+    getOrRegisterPlainVariable,
+    getOrRegisterServerVariable,
+    useDerivedVariable,
+    useSwitchVariable,
+} from './internal';
+import { useTabularVariable } from './use-tabular-variable';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
 /* eslint-disable react-hooks/rules-of-hooks */
@@ -35,6 +40,13 @@ function warnUpdateOnDerivedState(): void {
 }
 
 export interface UseVariableOptions {
+    /**
+     * Defines how server variables should be handled.
+     * - disallow: disallow server variables from being used in this component
+     * - one-row: fetches the first row of the server variable and uses that as the value.
+     *       Useful for e.g. condition truthiness checks for non-emptiness
+     */
+    serverVariable?: 'disallow' | 'one-row';
     suspend?: boolean | number;
 }
 
@@ -48,7 +60,7 @@ export interface UseVariableOptions {
  */
 export function useVariable<T>(
     variable: Variable<T> | T,
-    opts: UseVariableOptions = {}
+    opts: UseVariableOptions = { serverVariable: 'disallow' }
 ): [value: T, update: Dispatch<SetStateAction<T>>] {
     const extras = useRequestExtras();
 
@@ -82,11 +94,6 @@ export function useVariable<T>(
             variablesContext?.variables.current.delete(variable.uid);
         };
     }, []);
-
-    // This hook should only be used for components not expecting DataFrames
-    if (isDataVariable(variable) || isDerivedDataVariable(variable)) {
-        throw new Error(`Non-data variable expected, got ${(variable as any).__typename as string}`);
-    }
 
     if (isDerivedVariable(variable)) {
         const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
@@ -131,7 +138,28 @@ export function useVariable<T>(
     }
 
     if (isServerVariable(variable)) {
-        throw new UserError('ServerVariable cannot be directly consumed by this component');
+        if (opts.serverVariable === 'disallow') {
+            throw new UserError('ServerVariable cannot be directly consumed by this component');
+        }
+
+        // assume one-row behaviour
+        const atom = useMemo(() => getOrRegisterServerVariable(variable, extras), [variable, extras]);
+        const [seqNumber] = useRecoilState(atom);
+        const fetcher = useTabularVariable(variable);
+        // convert the fetcher to a suspended query to match recoil behaviour
+        const { data } = useSuspenseQuery({
+            // use the seq number as a dependency to refetch on changes
+            queryKey: ['use-variable-server-variable', variable.uid, seqNumber],
+            queryFn: async () => {
+                const result = await fetcher(null, {
+                    limit: 1,
+                    offset: 0,
+                });
+                return result.data;
+            },
+            refetchOnWindowFocus: false,
+        });
+        return [(data?.[0] ?? null) as T, warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);

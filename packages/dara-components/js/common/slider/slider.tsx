@@ -60,7 +60,7 @@ function Slider(props: SliderProps): JSX.Element {
 
             // if we're supposed to output a number, unwrap the array
             if (isOutputNumber) {
-                [serialisedValues] = values;
+                serialisedValues = values[0]!;
             }
 
             // immediately update internal state

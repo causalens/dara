@@ -113,16 +113,6 @@ export interface DerivedVariable {
     loop_instance_uid?: string;
 }
 
-export interface DerivedDataVariable {
-    __typename: 'DerivedDataVariable';
-    cache: CachePolicy;
-    deps: Array<AnyVariable<any>>;
-    filters: FilterQuery | null;
-    polling_interval?: number;
-    uid: string;
-    variables: Array<AnyVariable<any>>;
-}
-
 export interface LoopVariable {
     __typename: 'LoopVariable';
     uid: string;
@@ -148,49 +138,19 @@ export type DataFrame = Array<{
     [col: string]: any;
 }>;
 
-export interface DataVariable {
-    __typename: 'DataVariable';
-    cache: CachePolicy;
-    filters: FilterQuery | null;
-    uid: string;
-}
-
 export interface ServerVariable {
     __typename: 'ServerVariable';
     uid: string;
     scope: 'global' | 'user';
 }
 
-export type AnyVariable<T> =
-    | SingleVariable<T>
-    | DerivedVariable
-    | DataVariable
-    | DerivedDataVariable
-    | SwitchVariable<T>
-    | StateVariable
-    | ServerVariable;
-export type AnyDataVariable = DataVariable | DerivedDataVariable;
+export type AnyVariable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable | ServerVariable;
 export type Variable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;
     force_key?: string | null;
     type: 'derived';
-    uid: string;
-    values: Array<any>;
-}
-
-export interface ResolvedDataVariable {
-    filters: FilterQuery | null;
-    type: 'data';
-    uid: string;
-}
-
-export interface ResolvedDerivedDataVariable {
-    deps: Array<number>;
-    filters: FilterQuery | null;
-    force_key?: string | null;
-    type: 'derived-data';
     uid: string;
     values: Array<any>;
 }
@@ -386,8 +346,6 @@ export interface DaraEventMap {
     SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
     DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
     PLAIN_VARIABLE_LOADED: { variable: SingleVariable<any>; value: any };
-    DATA_VARIABLE_LOADED: { variable: DataVariable; value: any };
-    DERIVED_DATA_VARIABLE_LOADED: { variable: DerivedDataVariable; value: any };
     STATE_VARIABLE_LOADED: { variable: StateVariable; value: any };
 }
 
@@ -438,7 +396,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    variable: SingleVariable<any> | DataVariable;
+    variable: SingleVariable<any>;
     value: any;
 }
 
@@ -457,7 +415,7 @@ export interface ResetVariablesImpl extends ActionImpl {
 }
 
 export interface DownloadVariableImpl extends ActionImpl {
-    variable: AnyVariable<any>;
+    variable: SingleVariable<any> | DerivedVariable | ServerVariable;
     file_name?: string;
     type: 'csv' | 'json' | 'xlsx';
 }

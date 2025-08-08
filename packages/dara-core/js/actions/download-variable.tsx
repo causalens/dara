@@ -1,22 +1,28 @@
 import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { getVariableValue } from '@/shared/interactivity/use-variable-value';
-import { type ActionHandler, type DownloadVariableImpl } from '@/types/core';
+import { Status } from '@darajs/ui-utils';
+
+import { getTabularVariableValue } from '@/shared';
+import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '@/types/core';
+
+const COL_PATTERN = /^__col__\d+__(.+)$/;
+const INDEX_PATTERN = /^__index__\d+__(.+)$/;
 
 /**
  * Restore original column names by inverting pandas_utils transformations
  */
 export const restoreColumnName = (colName: string): string => {
     // Handle __col__N__originalName format
-    const colMatch = colName.match(/^__col__\d+__(.+)$/);
+    const colMatch = colName.match(COL_PATTERN);
     if (colMatch) {
         return colMatch[1]!;
     }
 
-    // Handle __index__N__originalName format (keep as is for index columns)
-    if (colName.startsWith('__index__')) {
-        return colName;
+    // Handle __index__N__originalName format
+    const indexMatch = colName.match(INDEX_PATTERN);
+    if (indexMatch) {
+        return indexMatch[1]!;
     }
 
     return colName;
@@ -25,13 +31,13 @@ export const restoreColumnName = (colName: string): string => {
 /**
  * Process data to restore original column structure before creating matrix
  */
-export const processDataForDownload = (content: Array<Record<string, any>>): Array<Record<string, any>> => {
+export const processDataForDownload = (content: DataFrame): DataFrame => {
     return content.map((row) => {
         const processedRow: Record<string, any> = {};
 
         Object.entries(row).forEach(([key, value]) => {
-            // Skip __index__ columns entirely for downloads
-            if (key === '__index__' || key.startsWith('__index__')) {
+            // Skip __index__ columns entirely for downloads, keep the `__index__N__originalName` format
+            if (key === '__index__') {
                 return;
             }
 
@@ -164,7 +170,7 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
  * Retrieves the variable value and downloads the variable as either a csv, json or xl file
  */
 const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
-    let value = getVariableValue(actionImpl.variable, true, {
+    let value = await getTabularVariableValue(actionImpl.variable, {
         client: ctx.wsClient,
         extras: ctx.extras,
         search: ctx.location.search,
@@ -172,12 +178,19 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         taskContext: ctx.taskCtx,
     });
 
-    if (value instanceof Promise) {
-        value = await value;
+    if (value === null) {
+        ctx.notificationCtx.pushNotification({
+            key: '_downloadVariable',
+            message: 'Failed to fetch the variable value',
+            status: Status.ERROR,
+            title: 'Error fetching variable value',
+        });
+        return;
     }
 
-    // Process data to restore original column structure and remove internal columns
-    if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
+    // Process data to restore original column structure and remove internal columns if it's in tabular format
+    // this simply cleans keys in [{record1}, {record2}] format
+    if (Array.isArray(value)) {
         value = processDataForDownload(value);
     }
 

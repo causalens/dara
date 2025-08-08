@@ -15,6 +15,7 @@ interface ButtonBarProps extends FormComponentProps {
     /** The style of the button, accepts: primary, secondary. Defaults to primary */
     styling?: 'primary' | 'secondary';
     /** The selectedItem variable to read and update */
+    // eslint-disable-next-line react/no-unused-prop-types
     value?: Variable<string>;
 }
 
@@ -29,7 +30,7 @@ const StyledButtonBar = injectCss(UiButtonBar);
 function ButtonBar(props: ButtonBarProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
-    const [value, setValue] = useVariable(formCtx.resolveInitialValue(props.items[0].value));
+    const [value, setValue] = useVariable(formCtx.resolveInitialValue(props.items[0]!.value));
     const onChangeAction = useAction(props.onchange);
 
     const onSelect = useCallback(

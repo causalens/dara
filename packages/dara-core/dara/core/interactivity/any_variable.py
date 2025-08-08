@@ -111,7 +111,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         user_identity = None
 
         if current_user is not None:
-            user_identity = current_user.identity_id or current_user.identity_name
+            user_identity = current_user.identity_id
         elif isinstance(auth_config, BasicAuthConfig):
             # basic auth - assume it's the single existing user
             user_identity = list(auth_config.users.keys())[0]

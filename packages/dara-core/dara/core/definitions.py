@@ -84,22 +84,22 @@ class ErrorHandlingConfig(BaseModel):
     raw_css: Optional[Any] = None
     """
     Raw styling to apply to the displayed error boundary.
-    Accepts a CSSProperties, dict, str, or NonDataVariable.
+    Accepts a CSSProperties, dict, str, or ClientVariable.
     """
 
     @field_validator('raw_css', mode='before')
     @classmethod
     def validate_raw_css(cls, value):
-        from dara.core.interactivity.non_data_variable import NonDataVariable
+        from dara.core.interactivity.client_variable import ClientVariable
 
         if value is None:
             return None
-        if isinstance(value, (str, NonDataVariable, CSSProperties)):
+        if isinstance(value, (str, ClientVariable, CSSProperties)):
             return value
         if isinstance(value, dict):
             return {_kebab_to_camel(k): v for k, v in value.items()}
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(value)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(value)}')
 
     def model_dump(self, *args, **kwargs):
         result = super().model_dump(*args, **kwargs)
@@ -145,7 +145,7 @@ class ComponentInstance(BaseModel):
     """
     Raw styling to apply to the component.
     Can be an dict/CSSProperties instance representing the `styles` tag, a string injected directly into the CSS of the wrapping component,
-    or a NonDataVariable resoling to either of the above.
+    or a ClientVariable resoling to either of the above.
 
     ```python
 
@@ -216,7 +216,7 @@ class ComponentInstance(BaseModel):
     @field_validator('raw_css', mode='before')
     @classmethod
     def parse_css(cls, css: Optional[Any]):
-        from dara.core.interactivity.non_data_variable import NonDataVariable
+        from dara.core.interactivity.client_variable import ClientVariable
 
         if css is None:
             return None
@@ -225,10 +225,10 @@ class ComponentInstance(BaseModel):
         if isinstance(css, dict):
             return {_kebab_to_camel(k): v for k, v in css.items()}
 
-        if isinstance(css, (NonDataVariable, CSSProperties, str)):
+        if isinstance(css, (ClientVariable, CSSProperties, str)):
             return css
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(css)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(css)}')
 
     @classmethod
     def isinstance(cls, obj: Any) -> bool:

@@ -3,15 +3,7 @@ import { nanoid } from 'nanoid';
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
-import {
-    isDataVariable,
-    isDerivedDataVariable,
-    isDerivedVariable,
-    isServerVariable,
-    isStateVariable,
-    isSwitchVariable,
-    isVariable,
-} from '@/types/utils';
+import { isDerivedVariable, isServerVariable, isStateVariable, isSwitchVariable, isVariable } from '@/types/utils';
 
 /**
  * Front-end handler for ResetVariables action.
@@ -20,15 +12,13 @@ import {
 const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
     actionImpl.variables.filter(isVariable).forEach((variable) => {
         // For DVs, trigger their recalculation
-        if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+        if (isDerivedVariable(variable)) {
             const triggerAtom = getOrRegisterTrigger(variable);
 
             ctx.set(triggerAtom, (triggerIndexValue) => ({
                 force_key: nanoid(),
                 inc: triggerIndexValue.inc + 1,
             }));
-        } else if (isDataVariable(variable)) {
-            // for data variables this is a noop
         } else if (isSwitchVariable(variable)) {
             // cannot reset switch variables
         } else if (isStateVariable(variable)) {

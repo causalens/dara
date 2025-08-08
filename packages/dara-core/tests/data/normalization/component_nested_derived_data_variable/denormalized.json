@@ -20,6 +20,7 @@
                   "max_size": 10
                 },
                 "uid": "{{dv_1_uid}}",
+                "nested": [],
                 "variables": [
                   {
                     "default": "test",
@@ -29,11 +30,6 @@
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
                 "polling_interval": null,
                 "deps": [
                   {
@@ -44,7 +40,7 @@
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               },
               {
                 "cache": {
@@ -62,12 +58,8 @@
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
                 "polling_interval": null,
+                "nested": [],
                 "deps": [
                   {
                     "default": "test",
@@ -77,14 +69,10 @@
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               }
             ],
-            "filters": {
-              "column": "col1",
-              "value": "val1",
-              "operator": "EQ"
-            },
+            "nested": [],
             "polling_interval": null,
             "deps": [
               {
@@ -103,11 +91,7 @@
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
+                "nested": [],
                 "polling_interval": null,
                 "deps": [
                   {
@@ -118,7 +102,7 @@
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               },
               {
                 "cache": {
@@ -136,11 +120,7 @@
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
+                "nested": [],
                 "polling_interval": null,
                 "deps": [
                   {
@@ -151,10 +131,10 @@
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               }
             ],
-            "__typename": "DerivedDataVariable"
+            "__typename": "DerivedVariable"
           }
         },
         "uid": "{{mock_text_uid}}"

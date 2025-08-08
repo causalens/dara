@@ -44,7 +44,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import ConfigDict
-from typing_extensions import deprecated
+from typing_extensions import TypeAlias, deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -54,7 +54,7 @@ from dara.core.base_definitions import (
     TaskProgressUpdate,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
@@ -67,7 +67,6 @@ if TYPE_CHECKING:
         DerivedVariable,
         Variable,
     )
-    from dara.core.internal.cache_store import CacheStore
 
 
 class ActionInputs(BaseModel):
@@ -125,7 +124,7 @@ class UpdateVariableImpl(ActionImpl):
 
     py_name = 'UpdateVariable'
 
-    variable: Union[Variable, DataVariable]
+    variable: Union[Variable, ServerVariable]
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -135,19 +134,18 @@ class UpdateVariableImpl(ActionImpl):
     """Special value for `value` that will toggle the variable value"""
 
     async def execute(self, ctx: ActionCtx) -> Any:
-        if isinstance(self.variable, DataVariable):
+        if isinstance(self.variable, ServerVariable):
             # Update on the backend
             from dara.core.internal.registries import (
-                data_variable_registry,
+                server_variable_registry,
                 utils_registry,
             )
 
-            store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-            var_entry = await registry_mgr.get(data_variable_registry, self.variable.uid)
-            DataVariable.update_value(var_entry, store, self.value)
-            # Don't notify frontend explicitly, all clients will be notified by update_value above
+            var_entry = await registry_mgr.get(server_variable_registry, self.variable.uid)
+            await ServerVariable.write_value(var_entry, self.value)
+            # Don't notify frontend explicitly, all clients will be notified by write_value above
             return None
 
         # for non-data variables just ping frontend with the new value
@@ -172,7 +170,7 @@ class UpdateVariable(AnnotatedAction):
     @deprecated: Passing in resolvers is deprecated, use `ctx.update` in an `@action` or `UpdateVariableImpl` instead.
     `UpdateVariableImpl` will be renamed to `UpdateVariable` in Dara 2.0.
 
-    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable or DataVariable.
+    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable or ServerVariable.
     The resolver function takes a Context param which will feed the `inputs`: `old` and `new` as well as any `extras` passed through.
 
     Below an example of how a resolver might look:
@@ -240,13 +238,13 @@ class UpdateVariable(AnnotatedAction):
 
     Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
-    variable: Union[Variable, DataVariable]
+    variable: Union[Variable, ServerVariable]
     extras: Optional[List[AnyVariable]]
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
-        variable: Union[Variable, DataVariable],
+        variable: Union[Variable, ServerVariable],
         extras: Optional[List[AnyVariable]] = None,
     ):
         """
@@ -628,13 +626,13 @@ def DownloadContent(
 
     ```python
 
-    from dara.core import action, ConfigurationBuilder, DataVariable, DownloadContent
+    from dara.core import action, ConfigurationBuilder, ServerVariable, DownloadContent
     from dara.components.components import Button, Stack
 
 
     # generate data, alternatively you could load it from a file
     df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-    my_var = DataVariable(df)
+    my_var = ServerVariable(df)
 
     config = ConfigurationBuilder()
 
@@ -826,12 +824,12 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]): ...
+    async def update(self, variable: ServerVariable, value: Optional[DataFrame]): ...
 
     @overload
     async def update(self, variable: Variable[VariableT], value: VariableT): ...
 
-    async def update(self, variable: Union[Variable, DataVariable], value: Any):
+    async def update(self, variable: Union[Variable, ServerVariable], value: Any):
         """
         Update a given variable to provided value.
 
@@ -1114,12 +1112,12 @@ class ActionCtx:
 
         ```python
 
-        from dara.core import action, ConfigurationBuilder, DataVariable
+        from dara.core import action, ConfigurationBuilder, ServerVariable
         from dara.components.components import Button, Stack
 
         # generate data, alternatively you could load it from a file
         df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-        my_var = DataVariable(df)
+        my_var = ServerVariable(df)
 
         config = ConfigurationBuilder()
 
@@ -1330,7 +1328,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar[type[ActionCtx]] = ActionCtx
+    Ctx: TypeAlias = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action

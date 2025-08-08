@@ -14,6 +14,13 @@
     "rootDir": "./js",
     "outDir": "./dist/",
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    // strict
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
   }
 }

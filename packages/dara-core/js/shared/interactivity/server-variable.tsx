@@ -19,12 +19,12 @@ import { atomFamilyMembersRegistry, atomFamilyRegistry } from './store';
 const STORE_EXTRAS_MAP = new Map<string, RequestExtrasSerializable>();
 
 /**
- * Create a syncEffect for BackendStore
+ * Create a syncEffect for server variable
  *
  * @param variable variable to create the atom effect for
  * @param requestExtras extras object to create the effect for; used to pass through correct extras to write requests
  */
-function backendStoreEffect(variable: ServerVariable, requestExtras: RequestExtrasSerializable): AtomEffect<any> {
+function serverSyncEffect(variable: ServerVariable, requestExtras: RequestExtrasSerializable): AtomEffect<any> {
     // Assumption: the set of extras is unique to the store, i.e. the variable will not be used under different sets of extras
     // Otherwise we sync multiple different stores but then we treat them as the same atom, which would cause issues
     STORE_EXTRAS_MAP.set(variable.uid, requestExtras);
@@ -45,7 +45,7 @@ const STATE_SYNCHRONIZER = new StateSynchronizer();
  * @param variable variable to register
  * @param extras request extras to be merged into the options
  */
-export function getOrRegisterServerVariable(variable: ServerVariable, extras: RequestExtras): RecoilState<any> {
+export function getOrRegisterServerVariable(variable: ServerVariable, extras: RequestExtras): RecoilState<number> {
     if (!atomFamilyRegistry.has(variable.uid)) {
         atomFamilyRegistry.set(
             variable.uid,
@@ -97,7 +97,7 @@ export function getOrRegisterServerVariable(variable: ServerVariable, extras: Re
                         return unsub;
                     };
 
-                    return [familySync, backendStoreEffect(variable, extrasSerializable)];
+                    return [familySync, serverSyncEffect(variable, extrasSerializable)];
                 },
                 key: variable.uid,
             })
@@ -118,14 +118,14 @@ export function getOrRegisterServerVariable(variable: ServerVariable, extras: Re
 }
 
 /** Resolve a server variable to its resolved form  */
-export function resolveServerVariable(
+export async function resolveServerVariable(
     variable: ServerVariable,
     extras: RequestExtras,
-    resolver: (val: RecoilState<any>) => any
-): ResolvedServerVariable {
+    resolver: (state: RecoilState<any>) => Promise<any>
+): Promise<ResolvedServerVariable> {
     const atom = getOrRegisterServerVariable(variable, extras);
     // the value stored on the client is the sequence number
-    const seqNumber = resolver(atom);
+    const seqNumber = await resolver(atom);
     return {
         type: 'server',
         uid: variable.uid,

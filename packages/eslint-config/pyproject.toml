@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "eslint-config"
-version = "1.19.1"
+version = "1.20.0-alpha.1"

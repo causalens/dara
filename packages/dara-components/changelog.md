@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.0-alpha.1
 
 -  Fixed an issue where `Table` type inference would not handle the different datetime64 types correctly.
 -  Fixed an issue where `SectionedList` would not update the input value when clicking on an item.

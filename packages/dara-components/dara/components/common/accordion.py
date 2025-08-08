@@ -164,7 +164,7 @@ class Accordion(LayoutComponent):
     For these components you can set a height, for example:
 
     ```python
-    from dara.core import get_icon, ConfigurationBuilder, DataVariable
+    from dara.core import get_icon, ConfigurationBuilder, ServerVariable
     from dara.components.common import ComponentInstance, Table, Accordion, AccordionItem
     from dara.components.graphs import CausalGraphViewer
     from dara.components.graphs.graph_layout import PlanarLayout
@@ -185,7 +185,7 @@ class Accordion(LayoutComponent):
 
 
     # creates Table data
-    table_data = DataVariable(
+    table_data = ServerVariable(
         DataFrame(
             [
                 {

@@ -28,6 +28,7 @@ from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.normalization import denormalize
 
 
@@ -59,6 +60,7 @@ DATA_FILES = {'TEST_DATA_CSV': 'test-data.csv'}
 TEST_TOKEN = jwt.encode(
     {
         'session_id': 'token2',
+        'identity_id': 'test_user_2',
         'identity_name': 'test_user_2',
         'groups': [],
         'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
@@ -146,10 +148,6 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
             nested_data, nested_lookup = _normalize_resolved_dv(value, nested_def)
             data[key] = nested_data
             lookup.update(nested_lookup)
-        elif isinstance(nested_def, DataVariable):
-            identifier = f'{nested_def.__class__.__name__}:{str(nested_def.uid)}:{str(hash(nested_def.filters))}'
-            lookup[identifier] = value
-            data[key] = {'__ref': identifier}
         elif isinstance(nested_def, Dict):
             identifier = f'{nested_def.__class__.__name__}:{str(nested_def.uid)}'
             lookup[identifier] = value
@@ -174,6 +172,45 @@ async def _get_template(
 
     # If we don't expect response to be 200 don't denormalize
     return response.json(), response.status_code
+
+
+async def _get_tabular_derived_variable(
+    client: AsyncClient,
+    dv: DerivedVariable,
+    data: dict,
+    headers=AUTH_HEADERS,
+    expect_success=True,
+):
+    # Denormalize data.dv_values
+    normalized_values, lookup = normalize_request(data['dv_values'], dv.variables)
+    data['dv_values'] = {'data': normalized_values, 'lookup': lookup}
+
+    response = await client.post(
+        f'/api/core/tabular-variable/{str(dv.uid)}',
+        json=data,
+        headers=headers,
+    )
+    if expect_success:
+        assert response.status_code == 200
+
+    return response
+
+
+async def _get_tabular_server_variable(
+    client: AsyncClient,
+    sv: ServerVariable,
+    data: dict,
+    headers=AUTH_HEADERS,
+    expect_success=True,
+    query_string: Optional[dict] = None,
+):
+    response = await client.post(
+        f'/api/core/tabular-variable/{str(sv.uid)}', json=data, headers=headers, query_string=query_string
+    )
+    if expect_success:
+        assert response.status_code == 200
+
+    return response
 
 
 async def _get_derived_variable(

@@ -255,7 +255,7 @@ class BackendStore(PersistenceStore):
         user = USER.get()
 
         if user:
-            user_key = user.identity_id or user.identity_name
+            user_key = user.identity_id
 
             # Make sure the store is initialized
             if user_key not in self.initialized_scopes:
@@ -277,7 +277,7 @@ class BackendStore(PersistenceStore):
         if key == 'global':
             return None
 
-        # otherwise key is a user identity_id or identity_name
+        # otherwise key is a user identity_id
         return key
 
     def _register(self):
@@ -374,7 +374,7 @@ class BackendStore(PersistenceStore):
         if not user:
             return
 
-        user_identifier = user.identity_id or user.identity_name
+        user_identifier = user.identity_id
         return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
 
     async def _notify_patches(self, patches: List[Dict[str, Any]]):
@@ -393,7 +393,7 @@ class BackendStore(PersistenceStore):
         if not user:
             return
 
-        user_identifier = user.identity_id or user.identity_name
+        user_identifier = user.identity_id
         return await self._notify_user(user_identifier, patches=patches)
 
     async def init(self, variable: 'Variable'):

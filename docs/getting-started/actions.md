@@ -63,17 +63,15 @@ The `ActionCtx` instance injected into the decorated function has the following 
 
 ```python
 async def update(
-    variable: Variable | DataVariable,
+    variable: Variable | ServerVariable,
     value: Any
 )
 ```
 
-`update` is a method to trigger an update of a `Variable` or `DataVariable` . It takes the following arguments:
+`update` is a method to trigger an update of a `Variable` or `ServerVariable` . It takes the following arguments:
 
-- `variable` - a `Variable` or `DataVariable` instance to update with a new value upon triggering the action
-- `value` - the new value to update the `Variable` or `DataVariable` with
-
-Note that the value passed to `update` must be a valid value for the variable type. In particular, updating a `DataVariable` should be done with a `pandas.DataFrame` instance or `None`.
+- `variable` - a `Variable` or `ServerVariable` instance to update with a new value upon triggering the action
+- `value` - the new value to update the `Variable` or `ServerVariable` with
 
 To see how `update` works, consider the example below:
 
@@ -327,13 +325,12 @@ See the following example:
 ```python
 import os
 import pandas
-from dara.core import action, ConfigurationBuilder, DataVariable
+from dara.core import action, ConfigurationBuilder, ServerVariable
 from dara.components import Button, Stack
 from dara.core.definitions import ComponentInstance
 
-# generate data, alternatively you could load it from a file
 df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-my_var = DataVariable(df)
+my_var = ServerVariable(df)
 
 config = ConfigurationBuilder()
 
@@ -625,12 +622,6 @@ config.add_page(name='Trigger Variable', content=test_page())
 
 In the above example, the `trigger_my_var` action and the `trigger` shortcut action have the same functionality - both trigger a recalculation of the `der_var` variable.
 
-:::tip
-
-This method is also available for [DerivedDataVariable](dara.core.interactivity.derived_data_variable.DerivedDataVariable.trigger) in addition to [DerivedVariable](dara.core.interactivity.derived_variable.DerivedVariable.trigger).
-
-:::
-
 ## Action implementation objects
 
 Action implementation objects are instances of an `ActionImpl` subclass. Under the hood, the shortcut actions simply return the corresponding action implementation object. The `ActionCtx` methods are also implemented by sending an implementation object to the client, which then executes the action.
@@ -760,8 +751,8 @@ Below are example of how to use the deprecated API and how to migrate to the new
 
 The `UpdateVariable` API takes the following arguments:
 
-- `resolver`: a function to resolve the new value for the `Variable` or `DataVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
-- `variable`: the `Variable` or `DataVariable`  to update with a new value upon triggering the action
+- `resolver`: a function to resolve the new value for the `Variable` or `ServerVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
+- `variable`: the `Variable` or `ServerVariable`  to update with a new value upon triggering the action
 - `extras`: any extra variables to resolve and pass to the resolver function, you can obtain a list of the resolved values of all the extras passed with `ctx.extras` in the resolver function
 
 ```python
@@ -846,11 +837,11 @@ from dara.core import ConfigurationBuilder
 from dara.core.interactivity.actions import DownloadContent
 from dara.components import Button, Stack
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DataVariable
+from dara.core.interactivity import ServerVariable
 
 # generate data, alternatively you could load it from a file
 df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-my_var = DataVariable(df)
+my_var = ServerVariable(df)
 
 config = ConfigurationBuilder()
 

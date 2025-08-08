@@ -100,7 +100,9 @@ function prefixMatch(options: Completion[]): RegExp {
 
     for (const { apply } of options) {
         const [initial, ...restStr] = apply as string;
-        first.add(initial);
+        if (initial) {
+            first.add(initial);
+        }
         for (const char of restStr) {
             rest.add(char);
         }

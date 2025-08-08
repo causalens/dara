@@ -172,10 +172,10 @@ declare global {
  */
 function filterEventData<T extends PlotlyEventName>(
     figure: any,
-    eventData: Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0],
+    eventData: NonNullable<Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0]>,
     event: T
 ): any {
-    let filteredEventData: Record<string, any>;
+    let filteredEventData: Record<string, any> | undefined;
 
     if ([PlotlyEventName.Click, PlotlyEventName.Hover, PlotlyEventName.Selected].includes(event)) {
         const points = [];
@@ -197,10 +197,10 @@ function filterEventData<T extends PlotlyEventName>(
         const { data } = figure;
 
         for (let i = 0; i < pointEventData.points.length; i++) {
-            const fullPoint = pointEventData.points[i];
+            const fullPoint = pointEventData.points[i]!;
 
             const pointData = Object.fromEntries(
-                Object.entries(fullPoint).filter(([, value]: [keyof PlotDatum, PlotDatum[keyof PlotDatum]]) => {
+                Object.entries(fullPoint).filter(([, value]: [string, PlotDatum[keyof PlotDatum]]) => {
                     return typeof value !== 'object' && !Array.isArray(value);
                 })
             ) as PlotDatum & Record<'bbox' | 'pointNumbers', any>;
@@ -242,10 +242,10 @@ function filterEventData<T extends PlotlyEventName>(
         filteredEventData = eventData;
     }
     if ('range' in eventData) {
-        filteredEventData.range = eventData.range;
+        filteredEventData!.range = eventData.range;
     }
     if ('lassoPoints' in eventData) {
-        filteredEventData.lassoPoints = eventData.lassoPoints;
+        filteredEventData!.lassoPoints = eventData.lassoPoints;
     }
     return filteredEventData;
 }
@@ -287,7 +287,7 @@ function executeCustomJs(customJs: string, eventData: Readonly<PlotlyEventData>,
  */
 function handleEvent<T extends PlotlyEventName>(
     eventType: T,
-    eventData: Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0],
+    eventData: NonNullable<Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0]>,
     eventActions: Array<ActionEvent>,
     figure: any,
     setFigure: React.Dispatch<any>
@@ -334,10 +334,10 @@ function Plotly(props: PlotlyProps): JSX.Element {
     }
 
     // add an event handler for each Plot event, e.g. onClick, onHover, etc
-    const eventHandlers = Object.keys(eventHandlersMap).reduce((acc, key: keyof EventHandlersMap) => {
-        const eventHandlerName = eventHandlersMap[key];
+    const eventHandlers = Object.keys(eventHandlersMap).reduce((acc, key: string) => {
+        const eventHandlerName = eventHandlersMap[key as keyof EventHandlersMap];
         const eventHandler = (e: PlotlyEventData): void => {
-            handleEvent(key, e, eventActions.get(key), figure, setFigure);
+            handleEvent(key as keyof EventHandlersMap, e, eventActions.get(key)!, figure, setFigure);
         };
         // we are casting to any here because there is an issue with union vs intersection of types
         acc[eventHandlerName] = eventHandler as any;

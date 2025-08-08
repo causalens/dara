@@ -34,7 +34,7 @@ data = pandas.DataFrame({
 ```
 
 :::tip
-The `data` variable above is just a normal Python variable. You may also have global Dara `dara.core.interactivity.plain_variable.Variable`s in which case you can follow similar guidelines. It can help to keep your Python variables and Dara `Variable`s separate so you always know which variable belongs to which category. Your global Dara `dara.core.interactivity.plain_variable.Variable`s, `dara.core.interactivity.data_variable.DataVariable`s and `dara.core.interactivity.derived_variable.DerivedVariable`s can live in `variables.py` or be separated into multiple files within a `variables` folder.
+The `data` variable above is just a normal Python variable. You may also have global Dara `dara.core.interactivity.plain_variable.Variable`s in which case you can follow similar guidelines. It can help to keep your Python variables and Dara `Variable`s separate so you always know which variable belongs to which category. Your global Dara `dara.core.interactivity.plain_variable.Variable`s, `dara.core.interactivity.data_variable.ServerVariable`s and `dara.core.interactivity.derived_variable.DerivedVariable`s can live in `variables.py` or be separated into multiple files within a `variables` folder.
 :::
 
 ### Configuration

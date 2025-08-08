@@ -70,13 +70,6 @@ export interface ProgressNotificationMessage {
     message: Extract<TaskNotificationMessageContent, { status: TaskStatus.PROGRESS }>;
 }
 
-export interface ServerTriggerMessage {
-    message: {
-        data_id: string;
-    };
-    type: 'message';
-}
-
 export interface ServerErrorMessage {
     message: {
         error: string;
@@ -158,7 +151,6 @@ export type WebSocketMessage =
     | TokenUpdateMessage
     | TaskNotificationMessage
     | ProgressNotificationMessage
-    | ServerTriggerMessage
     | ServerErrorMessage
     | ServerVariableMessage
     | VariableRequestMessage
@@ -173,10 +165,6 @@ export function isInitMessage(message: WebSocketMessage): message is InitMessage
 
 export function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
     return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
-}
-
-export function isServerTriggerMessage(message: WebSocketMessage): message is ServerTriggerMessage {
-    return message.type === 'message' && 'data_id' in message.message;
 }
 
 export function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
@@ -225,7 +213,6 @@ export interface WebSocketClientInterface {
     sendMessage(value: any, channel: string, chunkCount?: number): void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;
-    serverTriggers$: (data_id: string) => Observable<ServerTriggerMessage>;
     taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
     variableRequests$: () => Observable<VariableRequestMessage>;
     waitForTask: (task_id: string) => Promise<any>;
@@ -433,18 +420,6 @@ export class WebSocketClient implements WebSocketClientInterface {
                     msg.message.status === TaskStatus.PROGRESS &&
                     task_ids.includes(msg.message.task_id)
             )
-        );
-    }
-
-    /**
-     * Get the observable to receive server trigger messages for a given data variable
-     *
-     * @param dataId id of the data variable triggered
-     */
-    serverTriggers$(dataId: string): Observable<ServerTriggerMessage> {
-        return this.messages$.pipe(
-            filter(isServerTriggerMessage),
-            filter((msg) => msg.message?.data_id === dataId)
         );
     }
 

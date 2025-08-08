@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class Node(BaseModel):
@@ -73,7 +73,7 @@ class HierarchySelector(StyledComponentInstance):
     allow_leaf_select: bool = True
     hierarchy: Node
     open_all: bool = True
-    value: NonDataVariable
+    value: ClientVariable
 
 
 class HierarchyViewer(StyledComponentInstance):
@@ -86,5 +86,5 @@ class HierarchyViewer(StyledComponentInstance):
 
     allow_leaf_click: bool = True
     allow_parent_click: bool = True
-    hierarchy: Union[Node, NonDataVariable]
+    hierarchy: Union[Node, ClientVariable]
     on_click_node: Optional[Action] = None

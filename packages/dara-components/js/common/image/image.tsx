@@ -5,7 +5,7 @@ interface ImageProps extends StyledComponentProps {
     /**
      * Src URL
      */
-    src?: string;
+    src: string;
 }
 
 const ImageComponent = styled.div<StyledComponentProps>`

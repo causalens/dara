@@ -7,8 +7,8 @@ import { type GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
  * @param theme the currently active theme
  * @param colorString the string passed to the color property
  */
-function getThemeColor(theme: DefaultTheme, colorString: string): string {
-    if (colorString.startsWith('theme')) {
+function getThemeColor(theme: DefaultTheme, colorString?: string): string | undefined {
+    if (colorString?.startsWith('theme')) {
         return theme.colors[colorString.replace('theme.', '') as keyof DefaultTheme['colors']];
     }
     return colorString;

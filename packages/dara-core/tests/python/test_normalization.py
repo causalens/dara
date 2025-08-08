@@ -81,11 +81,10 @@ def test_normalizes_components_with_no_variables():
 
 def test_normalizes_components_with_data_variable():
     """
-    For data variables with different filters should be put into lookup separately
+    Data(server) variables should be normalized correctly
     """
-    # Same variable with different filters
-    data_var = DataVariable(cache='user').filter(ValueQuery(column='test1', value='test1'))
-    data_var_2 = data_var.filter(ValueQuery(column='test2', value='test2'))
+    data_var = DataVariable(cache='user')
+    data_var_2 = DataVariable(cache='user')
 
     layout = MockStack(MockText(text=data_var), MockText(text=data_var_2))
 
@@ -94,8 +93,7 @@ def test_normalizes_components_with_data_variable():
         'mock_text_1_uid': str(layout.children[0].uid),
         'mock_text_2_uid': str(layout.children[1].uid),
         'data_var_uid': str(data_var.uid),
-        'data_var_hash_1': hash_object(data_var.filters),
-        'data_var_hash_2': hash_object(data_var_2.filters),
+        'data_var_uid_2': str(data_var_2.uid),
     }
 
     layout_dict = jsonable_encoder(layout)
@@ -190,13 +188,11 @@ def test_normalizes_components_with_nested_derived_variables():
     assert_dict_equal(denormalize(normalized_layout, lookup_map), denormalized_data)
 
 
-def test_normalizes_components_with_nested_derived_data_variables():
+def test_normalizes_components_with_nested_tabular_derived_variables():
     root_var = Variable('test')
-    dv1 = DerivedDataVariable(func=lambda x: x, variables=[root_var]).filter(ValueQuery(column='col1', value='val1'))
-    dv2 = DerivedDataVariable(func=lambda x: x, variables=[root_var]).filter(ValueQuery(column='col1', value='val1'))
-    dv3 = DerivedDataVariable(func=lambda x, y: x + y, variables=[dv1, dv2]).filter(
-        ValueQuery(column='col1', value='val1')
-    )
+    dv1 = DerivedDataVariable(func=lambda x: x, variables=[root_var])
+    dv2 = DerivedDataVariable(func=lambda x: x, variables=[root_var])
+    dv3 = DerivedDataVariable(func=lambda x, y: x + y, variables=[dv1, dv2])
 
     layout = MockStack(MockText(text=dv3))
     layout_dict = layout.dict()
@@ -206,9 +202,6 @@ def test_normalizes_components_with_nested_derived_data_variables():
         'dv_1_uid': str(dv1.uid),
         'dv_2_uid': str(dv2.uid),
         'dv_3_uid': str(dv3.uid),
-        'dv_1_hash': hash_object(dv1.filters),
-        'dv_2_hash': hash_object(dv2.filters),
-        'dv_3_hash': hash_object(dv3.filters),
         'mock_stack_uid': str(layout.uid),
         'mock_text_uid': str(layout.children[0].uid),
     }

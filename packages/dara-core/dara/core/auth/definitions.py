@@ -39,7 +39,7 @@ class TokenData(BaseModel):
 
     session_id: str
     exp: Union[float, int, datetime]
-    identity_id: Optional[str] = None
+    identity_id: str
     identity_name: str
     identity_email: Optional[str] = None
     id_token: Optional[str] = None
@@ -56,7 +56,7 @@ class UserData(BaseModel):
     :param groups: list of groups user belongs to
     """
 
-    identity_id: Optional[str] = None
+    identity_id: str
     identity_name: str
     identity_email: Optional[str] = None
     groups: Optional[List[str]] = []

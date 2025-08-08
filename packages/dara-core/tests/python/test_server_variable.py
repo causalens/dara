@@ -1,5 +1,4 @@
 import datetime
-from typing import List
 
 import jwt
 import pytest
@@ -9,11 +8,9 @@ from async_asgi_testclient.websocket import WebSocketSession
 from dara.core.auth.definitions import JWT_ALGO, USER, TokenData, UserData
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity.server_variable import ServerVariable
-from dara.core.internal.registries import utils_registry
-from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
 
-from tests.python.utils import TEST_JWT_SECRET, _async_ws_connect, create_app, get_ws_messages
+from tests.python.utils import TEST_JWT_SECRET, _async_ws_connect, get_ws_messages
 
 pytestmark = pytest.mark.anyio
 
@@ -25,6 +22,7 @@ USER_1 = UserData(
 USER_1_TOKEN = jwt.encode(
     TokenData(
         session_id='token1',
+        identity_id='user_1',
         identity_name='user_1',
         groups=[],
         exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
@@ -41,6 +39,7 @@ USER_2 = UserData(
 USER_2_TOKEN = jwt.encode(
     TokenData(
         session_id='token2',
+        identity_id='user_2',
         identity_name='user_2',
         groups=[],
         exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),

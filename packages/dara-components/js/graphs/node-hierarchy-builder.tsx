@@ -77,7 +77,7 @@ function NodeHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
             nodeFontSize={props.node_font_size}
             nodeSize={props.node_size}
             nodes={nodes}
-            onUpdate={onUpdate}
+            onUpdate={onUpdate as any}
             style={style}
             viewOnly={!props.editable}
             wrapNodeText={props.wrap_node_text}

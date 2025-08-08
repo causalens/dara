@@ -20,7 +20,7 @@ from typing import Union
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class Text(ContentComponent):
@@ -53,16 +53,16 @@ class Text(ContentComponent):
     :param formatted: Whether to display the text with existing formatting intact or not, default False
     """
 
-    text: Union[str, NonDataVariable]
+    text: Union[str, ClientVariable]
     align: Union[str, None] = 'left'  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False
 
     @field_validator('text')
     @classmethod
     def only_strings(cls, value: str):
-        if not isinstance(value, (str, NonDataVariable)):
+        if not isinstance(value, (str, ClientVariable)):
             raise ValueError(f'Invalid text passed to Text: {value}, expected a string')
         return value
 
-    def __init__(self, text: Union[str, NonDataVariable], **kwargs):
+    def __init__(self, text: Union[str, ClientVariable], **kwargs):
         super().__init__(text=text, **kwargs)

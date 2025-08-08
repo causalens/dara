@@ -269,7 +269,7 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
         }
 
         if (definition.tier_separation) {
-            builderWithTiers.tierSeparation(definition.tier_separation);
+            builderWithTiers.tierSeparation?.(definition.tier_separation);
         }
     }
 

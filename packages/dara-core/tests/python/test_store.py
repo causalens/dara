@@ -57,6 +57,7 @@ async def test_user_store_behavior():
     USER.set(
         UserData(
             identity_name='test1',
+            identity_id='test1',
         )
     )
     store.set('test', 'user_value', cache_type=CacheType.USER)
@@ -71,6 +72,7 @@ async def test_user_store_behavior():
     USER.set(
         UserData(
             identity_name='test2',
+            identity_id='test2',
         )
     )
     assert store.get('test', cache_type=CacheType.USER) is None

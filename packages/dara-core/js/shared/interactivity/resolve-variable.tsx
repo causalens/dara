@@ -5,16 +5,11 @@ import { type RequestExtras } from '@/api/http';
 import {
     type AnyVariable,
     type GlobalTaskContext,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
-    isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
     isServerVariable,
@@ -24,58 +19,30 @@ import {
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import {
-    getOrRegisterDerivedVariable,
-    getOrRegisterPlainVariable,
-    resolveDataVariable,
-    resolveServerVariable,
-} from './internal';
+import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable } from './internal';
+import { getOrRegisterServerVariable, resolveServerVariable } from './server-variable';
 
-/**
- * Resolve a variable to a value (for non-derived variables using provided resolver)
- * or a ResolvedDerivedVariable (if it's a derived variable).
- * Registers all encountered variables which aren't yet in registry.
- *
- * @param variable variable to resolve
- * @param client websocket client from context
- * @param taskContext global task context
- * @param extras request extras to be merged into the options
- * @param resolver function to run the value through (for non-derived variables)
- */
-export function resolveVariable<VariableType>(
+export async function resolveVariable<VariableType>(
     variable: AnyVariable<VariableType>,
     client: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras,
-    resolver: (val: RecoilState<VariableType>) => RecoilState<VariableType> | ResolvedDerivedVariable | VariableType = (
-        val: RecoilState<VariableType>
-    ) => val
-):
-    | RecoilState<VariableType>
-    | ResolvedDerivedVariable
-    | ResolvedDerivedDataVariable
-    | ResolvedDataVariable
-    | ResolvedServerVariable
-    | ResolvedSwitchVariable
-    | VariableType {
-    if (isDerivedVariable(variable) || isDerivedDataVariable(variable)) {
+    resolver: (
+        state: RecoilState<VariableType>
+    ) => Promise<RecoilState<VariableType> | ResolvedDerivedVariable | VariableType> = (state) => Promise.resolve(state)
+): Promise<
+    RecoilState<VariableType> | ResolvedDerivedVariable | ResolvedServerVariable | ResolvedSwitchVariable | VariableType
+> {
+    if (isDerivedVariable(variable)) {
         getOrRegisterDerivedVariable(variable, client, taskContext, extras);
 
         // For derived variable, recursively resolve the dependencies
-        const values = variable.variables.map((v) => resolveVariable(v, client, taskContext, extras, resolver));
+        const values = await Promise.all(
+            variable.variables.map((v) => resolveVariable(v, client, taskContext, extras, resolver))
+        );
 
         // Store indexes of values which are in deps
         const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
-
-        if (isDerivedDataVariable(variable)) {
-            return {
-                deps,
-                filters: variable.filters,
-                type: 'derived-data',
-                uid: variable.uid,
-                values,
-            } satisfies ResolvedDerivedDataVariable;
-        }
 
         return {
             deps,
@@ -85,11 +52,8 @@ export function resolveVariable<VariableType>(
         } satisfies ResolvedDerivedVariable;
     }
 
-    if (isDataVariable(variable)) {
-        return resolveDataVariable(variable);
-    }
-
     if (isServerVariable(variable)) {
+        getOrRegisterServerVariable(variable, extras);
         return resolveServerVariable(variable, extras, resolver);
     }
 
@@ -98,24 +62,24 @@ export function resolveVariable<VariableType>(
         // and return a serialized representation similar to derived variables
         let resolvedValue =
             isVariable(variable.value) ?
-                resolveVariable(variable.value, client, taskContext, extras, resolver)
+                await resolveVariable(variable.value, client, taskContext, extras, resolver)
             :   variable.value;
 
         // value could be a condition object, resolve its variable
         if (isCondition(resolvedValue)) {
             resolvedValue = {
                 ...resolvedValue,
-                variable: resolveVariable(resolvedValue.variable, client, taskContext, extras, resolver) as any,
+                variable: (await resolveVariable(resolvedValue.variable, client, taskContext, extras, resolver)) as any,
             };
         }
 
         const resolvedValueMap =
             isVariable(variable.value_map) ?
-                resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
+                await resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
             :   variable.value_map;
         const resolvedDefault =
             isVariable(variable.default) ?
-                resolveVariable(variable.default, client, taskContext, extras, resolver)
+                await resolveVariable(variable.default, client, taskContext, extras, resolver)
             :   variable.default;
 
         return {
@@ -144,7 +108,7 @@ export function resolveVariable<VariableType>(
  * @param forceKeyOverride optional force key to use instead of the one embedded in the resolved variable
  */
 export function cleanValue(value: unknown, forceKeyOverride?: string | null): any {
-    if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
+    if (isResolvedDerivedVariable(value)) {
         const { deps, ...rest } = value;
         const cleanedValues = value.values.map((v) => cleanValue(v));
 

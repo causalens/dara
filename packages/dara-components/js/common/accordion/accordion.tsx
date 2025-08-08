@@ -75,7 +75,7 @@ function Accordion(props: AccordionProps): JSX.Element {
             innerRenderer={innerRender}
             items={props.items}
             multi={props.multi}
-            onChange={handleChange}
+            onChange={handleChange as any}
             style={style}
             value={value}
         />

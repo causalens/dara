@@ -15,10 +15,6 @@ export type SelectorFamily = (P: RequestExtrasSerializable) => RecoilValue<any>;
 export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
 
 /**
- * Key -> trigger atom
- */
-export const dataRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
-/**
  * Key -> atom
  */
 export const atomRegistry = new Map<string, RecoilState<any>>();
@@ -64,7 +60,7 @@ export type TriggerIndexValue = {
     inc: number;
 };
 
-type RegistryKeyType = 'selector' | 'derived-selector' | 'trigger' | 'filters';
+type RegistryKeyType = 'result-selector' | 'selector' | 'derived-selector' | 'trigger' | 'filters';
 
 /**
  * Get a unique registry key of a given type for a given variable.
@@ -87,7 +83,6 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
  */
 export function clearRegistries_TEST(): void {
     for (const registry of [
-        dataRegistry,
         atomRegistry,
         atomFamilyRegistry,
         atomFamilyMembersRegistry,
@@ -113,6 +108,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
 
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (variable.__typename) {
+        case 'ServerVariable':
         case 'Variable': {
             if (atomRegistry.has(variable.uid)) {
                 return true;
@@ -126,15 +122,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
             return atomFamilyMembersRegistry.get(family)!.size > 0;
         }
 
-        case 'DataVariable':
-            return atomRegistry.has(variable.uid);
-
         case 'DerivedVariable': {
-            const key = getRegistryKey(variable, 'selector');
-            return selectorFamilyRegistry.has(key);
-        }
-
-        case 'DerivedDataVariable': {
             const key = getRegistryKey(variable, 'selector');
             return selectorFamilyRegistry.has(key);
         }

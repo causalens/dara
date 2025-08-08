@@ -179,7 +179,7 @@ def test_toggle_shortcut():
         plain_var.toggle()
 
 
-def test_update_shortcut():
+async def test_update_shortcut():
     plain_var = Variable()
     action = plain_var.update('test')
     assert isinstance(action, UpdateVariableImpl)

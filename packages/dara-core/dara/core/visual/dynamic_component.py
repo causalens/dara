@@ -38,12 +38,7 @@ from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
-from dara.core.interactivity import (
-    AnyDataVariable,
-    AnyVariable,
-    DerivedVariable,
-    Variable,
-)
+from dara.core.interactivity import AnyVariable
 from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
@@ -206,9 +201,7 @@ def py_component(
         params = OrderedDict()
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
-                new_type = Union[
-                    typ, Variable[typ], DerivedVariable[typ], AnyDataVariable  # type: ignore
-                ]
+                new_type = Union[typ, AnyVariable]
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)
                 new_annotations[var_name] = new_type

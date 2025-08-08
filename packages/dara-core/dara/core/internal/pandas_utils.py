@@ -15,11 +15,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, TypeVar, cast
+import json
+import uuid
+from typing import Any, Literal, Optional, TypeVar, Union, cast, overload
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
+from typing_extensions import TypedDict, TypeGuard
 
 INDEX = '__index__'
+
+
+@overload
+def append_index(df: DataFrame) -> DataFrame: ...
+
+
+@overload
+def append_index(df: None) -> None: ...
 
 
 def append_index(df: Optional[DataFrame]) -> Optional[DataFrame]:
@@ -65,6 +76,9 @@ def df_convert_to_internal(original_df: DataFrame) -> DataFrame:
     if any(isinstance(c, str) and c.startswith('__col__') for c in df.columns):
         return df
 
+    # Apply display transformations to the DataFrame
+    format_for_display(df)
+
     # Append index to match the way we process the original DataFrame
     df = cast(DataFrame, append_index(df))
 
@@ -96,6 +110,76 @@ def df_to_json(df: DataFrame) -> str:
     return df_convert_to_internal(df).to_json(orient='records', date_unit='ns') or ''
 
 
+def format_for_display(df: DataFrame) -> None:
+    """
+    Apply transformations to a DataFrame to make it suitable for display.
+    Not: this does NOT make a copy of the DataFrame
+    """
+    for col in df.columns:
+        column_data = df[col]
+        if isinstance(column_data, DataFrame):
+            # Handle duplicate column names - format each column in the sub-DataFrame
+            for sub_col in column_data.columns:
+                if isinstance(column_data[sub_col], Series) and column_data[sub_col].dtype == 'object':
+                    column_data.loc[:, sub_col] = column_data[sub_col].apply(str)
+        elif column_data.dtype == 'object':
+            # We need to convert all values to string to avoid issues with
+            # displaying data in the Table component, for example when
+            # displaying datetime and number objects in the same column
+            df.loc[:, col] = column_data.apply(str)
+
+
+class FieldType(TypedDict):
+    name: Union[str, tuple[str, ...]]
+    type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
+
+
+class DataFrameSchema(TypedDict):
+    fields: list[FieldType]
+    primaryKey: list[str]
+
+
+class DataResponse(TypedDict):
+    data: Optional[DataFrame]
+    count: int
+    schema: Optional[DataFrameSchema]
+
+
+def is_data_response(response: Any) -> TypeGuard[DataResponse]:
+    has_shape = isinstance(response, dict) and 'data' in response and 'count' in response
+    if not has_shape:
+        return False
+    return response['data'] is None or isinstance(response['data'], DataFrame)
+
+
+def data_response_to_json(response: DataResponse) -> str:
+    """
+    Serialize a DataResponse to JSON.
+
+    json.dumps() custom serializers only accept value->value mappings, whereas `to_json` on pandas returns a string directly.
+    To avoid double serialization, we first insert a placeholder string and then replace it with the actual serialized JSON.
+    """
+    placeholder = str(uuid.uuid4())
+
+    def _custom_serializer(obj: Any) -> Any:
+        if isinstance(obj, DataFrame):
+            return placeholder
+        raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
+
+    result = json.dumps(response, default=_custom_serializer)
+    result = result.replace(
+        f'"{placeholder}"', df_to_json(response['data']) if response['data'] is not None else 'null'
+    )
+    return result
+
+
+def build_data_response(data: DataFrame, count: int) -> DataResponse:
+    data_internal = df_convert_to_internal(data)
+    schema = get_schema(data_internal)
+
+    return DataResponse(data=data, count=count, schema=schema)
+
+
 def get_schema(df: DataFrame):
     from pandas.io.json._table_schema import build_table_schema
 
@@ -108,4 +192,4 @@ def get_schema(df: DataFrame):
             dtype_str = str(df[column_name].dtype)
             field_data['type'] = dtype_str
 
-    return raw_schema
+    return cast(DataFrameSchema, raw_schema)

@@ -211,30 +211,19 @@ async def test_cache_store_user_api():
     USER.set(
         UserData(
             identity_name='test1',
+            identity_id='test1',
         )
     )
     await store.set(reg_entry, key='test_key', value='test_value')
 
-    USER.set(
-        UserData(
-            identity_name='test2',
-        )
-    )
+    USER.set(UserData(identity_name='test2', identity_id='test2'))
     assert await store.get(reg_entry, key='test_key') is None
     await store.set(reg_entry, key='test_key', value='test_value_2')
 
-    USER.set(
-        UserData(
-            identity_name='test1',
-        )
-    )
+    USER.set(UserData(identity_name='test1', identity_id='test1'))
     assert await store.get(reg_entry, key='test_key') == 'test_value'
 
-    USER.set(
-        UserData(
-            identity_name='test2',
-        )
-    )
+    USER.set(UserData(identity_name='test2', identity_id='test2'))
     assert await store.get(reg_entry, key='test_key') == 'test_value_2'
 
 

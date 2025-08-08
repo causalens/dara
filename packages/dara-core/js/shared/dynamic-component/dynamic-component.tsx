@@ -19,14 +19,7 @@ import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
 import { isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
-import {
-    type Component,
-    type ComponentInstance,
-    type DerivedDataVariable,
-    type DerivedVariable,
-    isDerivedDataVariable,
-    isDerivedVariable,
-} from '@/types';
+import { type Component, type ComponentInstance, type DerivedVariable, isDerivedVariable } from '@/types';
 import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
@@ -37,14 +30,14 @@ import { cleanProps } from './clean-props';
  *
  * @param variable the derived variable to get the polling interval
  */
-function getDerivedVariablePollingInterval(variable: DerivedVariable | DerivedDataVariable): number | undefined {
+function getDerivedVariablePollingInterval(variable: DerivedVariable): number | undefined {
     let pollingInterval!: number;
 
     if (variable.polling_interval) {
         pollingInterval = variable.polling_interval;
     }
     variable.variables.forEach((value) => {
-        if (isDerivedVariable(value) || isDerivedDataVariable(value)) {
+        if (isDerivedVariable(value)) {
             const innerPollingInterval = getDerivedVariablePollingInterval(value);
             if (innerPollingInterval && (!pollingInterval || pollingInterval > innerPollingInterval)) {
                 pollingInterval = innerPollingInterval;
@@ -68,7 +61,7 @@ function computePollingInterval(
     let pollingInterval: number | undefined;
 
     Object.values(kwargs).forEach((value) => {
-        if (isDerivedVariable(value) || isDerivedDataVariable(value)) {
+        if (isDerivedVariable(value)) {
             const innerPollingInterval = getDerivedVariablePollingInterval(value);
             if (innerPollingInterval && (!pollingInterval || pollingInterval > innerPollingInterval)) {
                 pollingInterval = innerPollingInterval;

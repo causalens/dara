@@ -112,7 +112,7 @@ Regardless of what you choose, both allow for making small, reusable components 
 
 It is helpful to have your global state in one place and to keep it out of `main.py` for organization and readability. To do this you can define a `definitions.py` file where you keep global variables like any model instantiations or loading datasets.
 
-You can also define global `dara.core.interactivity.plain_variable.Variable`s, `dara.core.interactivity.derived_variable.DerivedVariable`s, `dara.core.interactivity.data_variable.DataVariable`s and `dara.core.interactivity.derived_data_variable.DerivedDataVariable`s here. These variables should be used across multiple pages. If they are only being used in one place they should be defined in the page they are being used.
+You can also define global `dara.core.interactivity.plain_variable.Variable`s, `dara.core.interactivity.derived_variable.DerivedVariable`s, `dara.core.interactivity.server_variable.ServerVariable`s here. These variables should be used across multiple pages. If they are only being used in one place they should be defined in the page they are being used.
 
 Following this practice, you'd have the following structure:
 
@@ -130,10 +130,10 @@ With your `definitions.py` file resembling the following:
 ```python title=my_app/definitions.py
 import pickle
 import pandas
-from dara.core import DataVariable
+from dara.core import ServerVariable
 
-# Data Variables
-my_data = DataVariable(pandas.read_csv('data.csv'))
+# Server Variables
+my_data = ServerVariable(pandas.read_csv('data.csv'))
 # Model Variables
 my_model = pickle.load(open('my_model.pkl', 'r'))
 features = ['X', 'Z']
@@ -170,9 +170,9 @@ Your app will ultimately perform some logic based on how the user interacts with
 
 ### Resolver Functions
 
-When the user interacts with the app and updates the values of the `Variable`s in your app, this will update `DerivedVariable`s and `DataDerivedVariable`s or trigger [actions]((../getting-started/actions)).
+When the user interacts with the app and updates the values of the `Variable`s in your app, this will update `DerivedVariable`s or trigger [actions]((../getting-started/actions)).
 
-In the following example, the user can choose a number of metrics to apply to their model which will be displayed to them in a `Table` via a `DerivedDataVariable`. The resolver of this `DerivedDataVariable` is not simple and cannot be resolved through a Python `lambda` function. Therefore it is best practice to move it out of your component logic.
+In the following example, the user can choose a number of metrics to apply to their model which will be displayed to them in a `Table` via a `DerivedVariable`. The resolver of this `DerivedVariable` is not simple and cannot be resolved through a Python `lambda` function. Therefore it is best practice to move it out of your component logic.
 
 ```python title=my_app/pages/performance_page.py
 import pandas
@@ -203,7 +203,7 @@ def resolve_metric_data(metrics: List[str]):
 
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
-    metric_data_var = DerivedDataVariable(
+    metric_data_var = DerivedVariable(
         resolve_metric_data, variables=[metric_var]
     )
     return Stack(
@@ -241,7 +241,7 @@ from my_app.utils.model_utils import resolve_metric_data
 
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
-    metric_data_var = DerivedDataVariable(
+    metric_data_var = DerivedVariable(
         resolve_metric_data, variables=[metric_var]
     )
     return Stack(
@@ -255,7 +255,7 @@ def PerformancePage():
 ```
 
 :::tip
-If your resolvers are performing heavy logic, it could benefit to spin up this logic in a separate process. This is possible by setting the `task_module` attribute on your `ConfigurationBuilder` to the location of where you keep your resolvers. You must also set `run_as_task=True` when you instantiate your `DerivedVariable` or `DerivedDataVariable`.
+If your resolvers are performing heavy logic, it could benefit to spin up this logic in a separate process. This is possible by setting the `task_module` attribute on your `ConfigurationBuilder` to the location of where you keep your resolvers. You must also set `run_as_task=True` when you instantiate your `DerivedVariable`.
 
 In this example, you would achieve this through the following
 
@@ -270,7 +270,7 @@ config.task_module = 'my_app.model_utils'
 
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
-    metric_data_var = DerivedDataVariable(
+    metric_data_var = DerivedVariable(
         resolve_metric_data,
         variables=[metric_var],
         run_as_task=True,

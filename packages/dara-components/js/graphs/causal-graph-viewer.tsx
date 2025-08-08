@@ -32,7 +32,7 @@ export interface CausalGraphViewerProps extends StyledComponentProps {
     /** The graph data to render */
     causal_graph: Variable<CausalGraph> | CausalGraph;
     /** Default legends dict for each editor mode available */
-    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
+    default_legends: Record<EditorMode, GraphLegendDefinition[]>;
     /** Flag for disabling edge addition */
     disable_edge_add?: boolean;
     /** Flag for disabling latent node addition */
@@ -74,7 +74,7 @@ const StyledGraphViewer = injectCss(UICausalGraphViewer);
  * @param props the component props
  * @returns
  */
-function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
+function CausalGraphViewer(props: CausalGraphViewerProps): React.ReactNode {
     const { pushNotification } = Notifications.useNotifications();
     const [style, css] = useComponentStyles(props);
     const theme = useTheme();

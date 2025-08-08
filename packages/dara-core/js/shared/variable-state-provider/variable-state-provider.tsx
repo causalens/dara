@@ -14,11 +14,11 @@ function VariableStateProvider(props: VariableStateProviderProps): React.ReactNo
     const getVariableState = useVariableState();
 
     useEffect(() => {
-        const sub = props.wsClient?.variableRequests$().subscribe((req) => {
+        const sub = props.wsClient?.variableRequests$().subscribe(async (req) => {
             // Catch any errors when fetching the variable value otherwise this takes down the stream and no further
             // requests are processed.
             try {
-                const variableValue = getVariableState(req.message.variable);
+                const variableValue = await getVariableState(req.message.variable);
                 props.wsClient.sendVariable(variableValue, req.message.__rchan);
             } catch (err) {
                 // eslint-disable-next-line no-console

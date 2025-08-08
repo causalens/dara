@@ -16,18 +16,21 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import List, Literal, Optional, Sequence, Union
+from typing import Any, List, Literal, Optional, Sequence, Union
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_validator
+from fastapi.encoders import jsonable_encoder
+from pandas import DataFrame
+from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, ValidationInfo, field_serializer, field_validator
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
-    AnyDataVariable,
-    NonDataVariable,
+    AnyVariable,
+    ClientVariable,
     Variable,
 )
+from dara.core.logging import dev_logger
 
 
 class TableFormatterType(Enum):
@@ -258,7 +261,7 @@ class Column(BaseModel):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
     Table.column(
         col_id='col1',
@@ -282,7 +285,7 @@ class Column(BaseModel):
         .
         .
     ])
-    data_var = DataVariable(data)
+    data_var = ServerVariable(data)
 
     ```
 
@@ -505,10 +508,113 @@ class Table(ContentComponent):
     ![Table](../../../../docs/packages/dara-components/common/assets/Table.png)
 
     A Table Component for drawing a simple table into a document. Table's can be created by passing data
-    as a DataVariable or a DerivedDataVariable. Columns can be passed as lists of dicts, where the col_id
-    of the cols must match the column name in the dataframe. Alternatively they can be Variables/DerivedVariables,
-    and if left undefined it will be inferred from the data passed.
+    as a ServerVariable, DerivedVariable, DataFrame or correctly formatted raw tabular data.
 
+    For simple client-side tables, you can directly pass data as list of records, where each record is a dict with string keys.
+
+    ```python
+    from dara.components.common import Table
+
+    Table(
+        data=[
+            {
+                'col1': 'a',
+                'col2': 1,
+                'col3': 'F',
+                'col4': '1990-02-12T00:00:00.000Z',
+            },
+            {
+                'col1': 'b',
+                'col2': 2,
+                'col3': 'M',
+                'col4': '1991-02-12T00:00:00.000Z',
+            },
+        ]
+    )
+    ```
+
+    You can also pass a DataFrame directly:
+
+    ```python
+    import pandas
+    from dara.components.common import Table
+
+    data = pandas.DataFrame([
+        {
+            'col1': 'a',
+            'col2': 1,
+            'col3': 'F',
+            'col4': '1990-02-12T00:00:00.000Z',
+        },
+        {
+            'col1': 'b',
+            'col2': 2,
+            'col3': 'M',
+            'col4': '1991-02-12T00:00:00.000Z',
+        },
+    ])
+
+    Table(data=data)
+    ```
+
+    When working with larger datasets, it is recommended to use a ServerVariable or DerivedVariable to avoid sending the entire dataset to the client.
+    They have built-in server-side filtering and pagination which is utilized by the Table component and integrated into its UI. They both support customization
+    of the filtering and pagination behavior, respectively via a custom `ServerVariable.backend` or a custom `DerivedVariable.filter_resolver`.
+
+    ServerVariables are ideal for static or mutable dataset that can be shared among users or specific to a user (with `scope='user'`) via e.g. data upload.
+    If possible, avoid recreating ServerVariables within e.g. `py_components`, as each instance will store a new copy of the data in memory.
+
+    ```python
+    from dara.core import ServerVariable
+    from dara.components.common import Table
+
+    data = ServerVariable(pandas.DataFrame([
+        {
+            'col1': 'a',
+            'col2': 1,
+            'col3': 'F',
+            'col4': '1990-02-12T00:00:00.000Z',
+        },
+        {
+            'col1': 'b',
+            'col2': 2,
+            'col3': 'M',
+            'col4': '1991-02-12T00:00:00.000Z',
+        },
+    ]))
+
+    Table(data=data)
+    ```
+
+    DerivedVariables allow you to create or resolve datasets on the fly, e.g. depending on user input.
+
+    ```python
+    import pandas
+    from dara.core import DerivedVariable
+    from dara.components.common import Table
+
+    async def create_data(user_input: str, row_count: int):
+        df = pandas.DataFrame()
+        for i in range(row_count):
+            df = df.append({
+                'col1': user_input,
+                'col2': i,
+                'col3': 'F',
+                'col4': '1990-02-12T00:00:00.000Z',
+            }, ignore_index=True)
+        return df
+
+    user_input = Variable('a')
+    row_count = Variable(10)
+
+    data = DerivedVariable(create_data, variables=[user_input, row_count])
+
+    Table(data=data)
+    ```
+
+    By default, the `Table` component will display all columns of the dataset. You can choose to customize which columns to display, their order, types and more.
+    Columns can be passed as lists of dicts, where the col_id of the cols must match the column name in the dataframe. Alternatively they can be Variables/DerivedVariables,
+    and if left undefined it will be inferred from the data passed.
     The list of columns can be a mix of dicts and strings. If a string is passed then it will be used as
     the col_id and label for the column whereas, passing a dict allows more control over the options. The
     available options for columns are as follows (see Column class for more detail):
@@ -526,9 +632,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -555,9 +661,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -596,9 +702,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable, Variable
+    from dara.core import ServerVariable, Variable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -632,9 +738,9 @@ class Table(ContentComponent):
 
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame([
             {
                 'col1': 1,
@@ -665,7 +771,7 @@ class Table(ContentComponent):
 
     import pandas
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
     data = [{
         'age': 27,
@@ -678,7 +784,7 @@ class Table(ContentComponent):
     }]
     df = pandas.DataFrame(data, columns=['age', 'name', 'surname'])
     df.reset_index()
-    Table(data=DataVariable(df), columns=[{'col_id': 'age', 'label': 'Age'}, 'index'])
+    Table(data=ServerVariable(df), columns=[{'col_id': 'age', 'label': 'Age'}, 'index'])
 
     ```
 
@@ -687,9 +793,9 @@ class Table(ContentComponent):
     ```python
     from pandas import DataFrame
     from dara.components.common import Table
-    from dara.core import DataVariable
+    from dara.core import ServerVariable
 
-    data = DataVariable(
+    data = ServerVariable(
         DataFrame(
             [
                 {
@@ -726,7 +832,7 @@ class Table(ContentComponent):
     ```
 
     :param columns: The table's columns, this can be a list, a Variable/DerivedVariable or if left undefined it will be inferred from the data
-    :param data: The table's data, must be a DataVariable or DerivedDataVariable
+    :param data: The table's data, can be a list of records or a Variable resolving to a list of records
     :param multi_select: Whether to allow selection of multiple rows, works with onclick_row and defaults to False
     :param show_checkboxes: Whether to show or hide checkboxes column when onclick_row is set. Defaults to True
     :param onclick_row: An action handler for when a row is clicked on the table
@@ -739,10 +845,10 @@ class Table(ContentComponent):
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     """
 
-    model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True)
+    model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
 
-    columns: Optional[Union[Sequence[Union[Column, dict, str]], NonDataVariable]] = None
-    data: AnyDataVariable
+    columns: Optional[Union[Sequence[Union[Column, dict, str]], ClientVariable]] = None
+    data: Union[AnyVariable, DataFrame, list]
     multi_select: bool = False
     show_checkboxes: bool = True
     onclick_row: Optional[Action] = None
@@ -754,6 +860,38 @@ class Table(ContentComponent):
 
     TableFormatterType = TableFormatterType
     TableFilter = TableFilter
+
+    @field_validator('data')
+    @classmethod
+    def validate_data(cls, data):
+        # variables are fine, can't validate here
+        if isinstance(data, (DataFrame, AnyVariable)):
+            return data
+        if isinstance(data, list):
+            if not all(isinstance(item, dict) and all(isinstance(key, str) for key in item) for item in data):
+                raise ValueError(f'Invalid data passed to Table: {data}, expected a list of dicts with string keys')
+            return data
+        raise ValueError(f'Invalid data passed to Table: {type(data)}, expected a DataFrame or a variable')
+
+    @field_serializer('data', mode='wrap')
+    def serialize_field(self, value: Any, nxt: SerializerFunctionWrapHandler):
+        if isinstance(value, AnyVariable):
+            return nxt(value)
+
+        from dara.core.internal.encoder_registry import get_jsonable_encoder
+
+        try:
+            if isinstance(value, DataFrame):
+                value = value.to_dict(orient='records')
+            return jsonable_encoder(value, custom_encoder=get_jsonable_encoder())
+        except Exception as e:
+            dev_logger.error(
+                'Error serializing raw data in Table, falling back to default serialization.'
+                'Alternatively, you can provide a JSON-serializable dictionary in the "records format", i.e. `[{"col_a": 1}, {"col_a": 2}]`.',
+                error=e,
+            )
+
+        return nxt(value)
 
     @field_validator('columns')
     @classmethod
@@ -770,7 +908,7 @@ class Table(ContentComponent):
                 else:
                     cols.append(Column(**col))
             return cols
-        elif isinstance(columns, NonDataVariable):
+        elif isinstance(columns, ClientVariable):
             return columns
         else:
             raise ValueError(f'Invalid list passed to Table columns: {columns}, expected a list')

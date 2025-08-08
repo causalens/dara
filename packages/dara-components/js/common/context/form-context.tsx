@@ -13,7 +13,7 @@ export interface FormContextValue {
     updateForm: (value: any, id?: string) => void;
 }
 
-const formCtx = createContext<FormContextValue>(null);
+const formCtx = createContext<FormContextValue | null>(null);
 
 export default formCtx;
 
@@ -26,7 +26,7 @@ export interface UseFormContextAPI {
 
 export function useFormContext(props: FormComponentProps): UseFormContextAPI {
     const formContext = useContext(formCtx);
-    const idRef = useRef<string>(null);
+    const idRef = useRef<string | null>(null);
     const isMounted = useRef(false);
 
     // if component is not in a form, then it doesn't need to update it
@@ -47,7 +47,7 @@ export function useFormContext(props: FormComponentProps): UseFormContextAPI {
         idRef.current = props.id;
     }
 
-    const updateForm = (value: any): void => formContext.updateForm(value, idRef.current);
+    const updateForm = (value: any): void => formContext.updateForm(value, idRef.current!);
     const resolveInitialValue = (defaultValue?: any): any =>
         formContext.resolveInitialValue(defaultValue, props.value, idRef.current);
 

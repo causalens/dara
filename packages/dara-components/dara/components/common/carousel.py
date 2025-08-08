@@ -22,7 +22,7 @@ from pydantic import field_validator
 from dara.components.common.base_component import ContentComponent
 from dara.components.common.utils import CarouselItem
 from dara.core.base_definitions import Action
-from dara.core.interactivity import NonDataVariable, Variable
+from dara.core.interactivity import ClientVariable, Variable
 
 
 class Carousel(ContentComponent):
@@ -118,14 +118,14 @@ class Carousel(ContentComponent):
     :param onchange: Action triggered when the component changes states
     """
 
-    items: Union[List[CarouselItem], NonDataVariable]
+    items: Union[List[CarouselItem], ClientVariable]
     value: Optional[Variable[int]] = None
     onchange: Optional[Action] = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[CarouselItem], NonDataVariable]:
-        if isinstance(items, NonDataVariable):
+    def validate_items(cls, items: Any) -> Union[List[CarouselItem], ClientVariable]:
+        if isinstance(items, ClientVariable):
             return items
         if not isinstance(items, list):
             raise ValueError('CarouselItem must be passed as a list to the Carousel component')

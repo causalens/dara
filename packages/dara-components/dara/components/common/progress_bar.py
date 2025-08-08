@@ -20,7 +20,7 @@ from typing import Optional, Union
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class ProgressBar(ContentComponent):
@@ -48,13 +48,13 @@ class ProgressBar(ContentComponent):
     :param color: Optional color property for the progress bar, this should be the hex value of the color.
     """
 
-    progress: Union[int, NonDataVariable]
+    progress: Union[int, ClientVariable]
     small: bool = False
     color: Optional[str] = None
 
     @field_validator('progress')
     @classmethod
     def validate_progress(cls, progress):
-        if not isinstance(progress, (int, NonDataVariable)):
+        if not isinstance(progress, (int, ClientVariable)):
             raise ValueError('Progress must be an int or Variable')
         return progress

@@ -41,6 +41,7 @@ __all__ = [
     'DerivedVariable',
     'DerivedDataVariable',
     'DataVariable',
+    'ServerVariable',
     'UrlVariable',
     'Cache',
     'CacheType',

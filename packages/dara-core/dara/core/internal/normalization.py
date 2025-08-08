@@ -31,7 +31,6 @@ from typing import (
 from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.internal.hashing import hash_object
 
 JsonLike = Union[Mapping, List]
 
@@ -80,10 +79,6 @@ def _get_identifier(obj: Referrable) -> str:
     if _is_referrable_nested(obj) and len(obj['nested']) > 0:
         nested = ','.join(cast(List[str], obj['nested']))
         identifier = f'{identifier}:{nested}'
-
-    if _is_referrable_with_filters(obj):
-        filter_hash = hash_object(obj['filters'])
-        identifier = f'{identifier}:{filter_hash}'
 
     return identifier
 

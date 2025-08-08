@@ -474,7 +474,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     if pending_tokens_registry.has(token):
         pending_tokens_registry.remove(token)
 
-    user_identifier = token_content.identity_id or token_content.identity_name
+    user_identifier = token_content.identity_id
 
     # Add the new session ID to known sessions for that user
     if sessions_registry.has(user_identifier):
