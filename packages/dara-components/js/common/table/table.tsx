@@ -645,7 +645,7 @@ function Table(props: TableProps): JSX.Element {
                 setSelectedRowIndices(newSelectedIndices);
                 selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
             }
-            if (isCheckboxSelect) {
+            if (isCheckboxSelect && selectedRows !== null) {
                 onSelectRow(selectedRows);
             }
             if (!props.supress_click_events_for_selection) {
