@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.1-alpha.2
  - Add flag on the table column to allow selection even if the clicking of the row is done
 
 ## 1.20.0-alpha.1
