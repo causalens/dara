@@ -843,6 +843,7 @@ class Table(ContentComponent):
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
     :param include_index: Boolean, if True the table will render the index column(s), defaults to True
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
+    :param supress_click_events_for_selection: Whether to suppress click events for clicks in select boxes. Defaults to False
     """
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)

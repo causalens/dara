@@ -648,7 +648,10 @@ function Table(props: TableProps): JSX.Element {
             if (isCheckboxSelect && selectedRows !== null) {
                 onSelectRow(selectedRows);
             }
-            if (!props.supress_click_events_for_selection) {
+            // If the flag is set and the click is from a checkbox, we don't want to trigger the click event
+            const shouldSuppressClick = props.supress_click_events_for_selection && isCheckboxSelect;
+            
+            if (!shouldSuppressClick) {
                 onClickRow(selectedRows);
             }
         },
