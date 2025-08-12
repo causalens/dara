@@ -62,25 +62,25 @@ importers:
         specifier: ^6.0.0
         version: 6.34.1
       '@darajs/core':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../dara-core
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-causal-graph-editor':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-causal-graph-editor
       '@darajs/ui-components':
-        specifier: 1.20.1-alpha.1
-        version: 1.20.1-alpha.1(@types/react@18.2.60)(react-is@18.3.1)
+        specifier: 1.20.0
+        version: link:../ui-components
       '@darajs/ui-hierarchy-viewer':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-hierarchy-viewer
       '@darajs/ui-icons':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       '@popperjs/core':
         specifier: 2.4.0
@@ -132,13 +132,13 @@ importers:
         specifier: ^7.23.5
         version: 7.26.0
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@testing-library/react-hooks':
         specifier: ^3.4.2
@@ -204,16 +204,16 @@ importers:
   packages/dara-core:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.20.1-alpha.1
-        version: 1.20.1-alpha.1(@types/react@18.2.60)(react-is@18.3.1)
+        specifier: 1.20.0
+        version: link:../ui-components
       '@darajs/ui-notifications':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       '@fortawesome/fontawesome-free':
         specifier: ~6.4.0
@@ -310,13 +310,13 @@ importers:
         specifier: ^7.23.0
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@rollup/plugin-inject':
         specifier: ^4.0.4
@@ -433,7 +433,7 @@ importers:
   packages/eslint-config:
     dependencies:
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.26.1
@@ -494,13 +494,13 @@ importers:
         version: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@types/styled-components':
         specifier: ^5.1.26
@@ -545,22 +545,22 @@ importers:
   packages/ui-causal-graph-editor:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.20.1-alpha.1
-        version: 1.20.1-alpha.1(@types/react@18.2.60)(react-is@18.3.1)
+        specifier: 1.20.0
+        version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-icons
       '@darajs/ui-notifications':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       '@darajs/ui-widgets':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-widgets
       comlink:
         specifier: ^4.4.1
@@ -657,14 +657,17 @@ importers:
         specifier: ^7.15.0
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
+      '@storybook/react-vite':
+        specifier: ^9.0.17
+        version: 9.1.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.46.2)(storybook@9.1.2(@testing-library/dom@9.3.4)(prettier@3.2.5)(vite@7.0.4(@types/node@22.13.10)(terser@5.36.0)))(typescript@5.8.2)(vite@7.0.4(@types/node@22.13.10)(terser@5.36.0))
       '@testing-library/dom':
         specifier: ^9.3.0
         version: 9.3.4
@@ -753,13 +756,13 @@ importers:
   packages/ui-components:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       '@floating-ui/react':
         specifier: ^0.26.12
@@ -856,13 +859,13 @@ importers:
         specifier: ^7.15.0
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.0.17
@@ -964,10 +967,10 @@ importers:
   packages/ui-hierarchy-viewer:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       d3:
         specifier: 6.2.0
@@ -977,13 +980,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@types/d3':
         specifier: ^6.2.0
@@ -1025,7 +1028,7 @@ importers:
   packages/ui-icons:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@fortawesome/fontawesome-svg-core':
         specifier: ~6.4.0
@@ -1053,13 +1056,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
@@ -1098,13 +1101,13 @@ importers:
   packages/ui-notifications:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       lodash:
         specifier: 4.17.21
@@ -1120,13 +1123,13 @@ importers:
         version: 7.8.1
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.0.17
@@ -1208,13 +1211,13 @@ importers:
         specifier: ^7.14.5
         version: 7.25.9(@babel/core@7.26.0)
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
@@ -1262,16 +1265,16 @@ importers:
   packages/ui-widgets:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.20.1-alpha.1
-        version: 1.20.1-alpha.1(@types/react@18.2.79)(react-is@18.3.1)
+        specifier: 1.20.0
+        version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../ui-utils
       lodash:
         specifier: 4.17.21
@@ -1299,13 +1302,13 @@ importers:
         specifier: ^7.15.0
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.20.1-alpha.1
+        specifier: 1.20.0
         version: link:../stylelint-config
       '@testing-library/dom':
         specifier: ^9.3.0
@@ -2177,18 +2180,6 @@ packages:
 
   '@cypress/xvfb@1.2.4':
     resolution: {integrity: sha512-skbBzPggOVYCbnGgV+0dmBdW/s77ZkAOXIC1knS8NagwDjBrNC1LuXtQJeiN6l+m7lzmHtaoUw/ctJKdqkG57Q==}
-
-  '@darajs/styled-components@1.20.1-alpha.1':
-    resolution: {integrity: sha512-vaPqvaKeDnE9VK0ipf/fOpWCemmAe8KwsKTO0uDXIQcUuRBo+bIEOk14Hj8Rvf/kYR8SOHvX1q211LX90fO2Kw==}
-
-  '@darajs/ui-components@1.20.1-alpha.1':
-    resolution: {integrity: sha512-FG9rPMXI+gU/MnxOcm3vg5RoD+IlAjEDAtrBxCysC+1syQMrJwsNHyPw5UlSwY8N3M+UHpI2jn7IUKu7f9CWDg==}
-
-  '@darajs/ui-icons@1.20.1-alpha.1':
-    resolution: {integrity: sha512-5QWwQKdn2oFwcL5HxLF7XYrBuvnM3I3Y5VkMX20jdFeMFgjWp3g4ph7QdsC/WhNI+226KiBTjIitb5w5s3Uhnw==}
-
-  '@darajs/ui-utils@1.20.1-alpha.1':
-    resolution: {integrity: sha512-znbnfq1/yB1Wkq2JhnhX08GFUxGYD4mHgvicmLCtNgOc2iTtr/7gu1Yl6M6ONogc+G1Znm8Cf5AzbKqqbAYMDA==}
 
   '@egjs/hammerjs@2.0.17':
     resolution: {integrity: sha512-XQsZgjm2EcVUiZQf11UBJQfmZeEmOW8DpI1gsFeln6w0ae0ii4dMQEQ0kjl6DspdWX1aGY1/loyXnP0JS06e/A==}
@@ -4136,9 +4127,6 @@ packages:
 
   '@types/react@18.2.60':
     resolution: {integrity: sha512-dfiPj9+k20jJrLGOu9Nf6eqxm2EyJRrq2NvwOFsfbb7sFExZ9WELPs67UImHj3Ayxg8ruTtKtNnbjaF8olPq0A==}
-
-  '@types/react@18.2.79':
-    resolution: {integrity: sha512-RwGAGXPl9kSXwdNTafkOEuFrTBD5SA2B3iEB96xi8+xu5ddUa/cpvyVCSNn+asgLCTHkb5ZxN8gbuibYJi4s1w==}
 
   '@types/recoil@0.0.9':
     resolution: {integrity: sha512-dXKcvdzQbkFCcULgxhtc/3shoCNqsspRUY1KwIUYcAzgS0qY7+IxlcjRjq+9PizFnzKrHESllkbezqCMstPmQA==}
@@ -11671,109 +11659,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@darajs/styled-components@1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)':
-    dependencies:
-      polished: 4.3.1
-      styled-components: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-    transitivePeerDependencies:
-      - react
-      - react-dom
-      - react-is
-
-  '@darajs/ui-components@1.20.1-alpha.1(@types/react@18.2.60)(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-icons': 1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.20.1-alpha.1
-      '@floating-ui/react': 0.26.27(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
-      d3-array: 3.2.4
-      date-fns: 2.9.0
-      downshift: 7.6.2(react@18.3.1)
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.7
-      polished: 3.6.4
-      prism-react-renderer: 1.3.5(react@18.3.1)
-      react: 18.3.1
-      react-aria-components: 1.9.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-collapse: 5.1.1(react@18.3.1)
-      react-datepicker: 4.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-dom: 18.3.1(react@18.3.1)
-      react-dropzone: 11.0.1(react@18.3.1)
-      react-markdown: 9.0.1(@types/react@18.2.60)(react@18.3.1)
-      react-table: 7.7.0(react@18.3.1)
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-window: 1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      remark-gfm: 4.0.0
-    transitivePeerDependencies:
-      - '@types/react'
-      - react-is
-      - supports-color
-
-  '@darajs/ui-components@1.20.1-alpha.1(@types/react@18.2.79)(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-icons': 1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.20.1-alpha.1
-      '@floating-ui/react': 0.26.27(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
-      d3-array: 3.2.4
-      date-fns: 2.9.0
-      downshift: 7.6.2(react@18.3.1)
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.7
-      polished: 3.6.4
-      prism-react-renderer: 1.3.5(react@18.3.1)
-      react: 18.3.1
-      react-aria-components: 1.9.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-collapse: 5.1.1(react@18.3.1)
-      react-datepicker: 4.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-dom: 18.3.1(react@18.3.1)
-      react-dropzone: 11.0.1(react@18.3.1)
-      react-markdown: 9.0.1(@types/react@18.2.79)(react@18.3.1)
-      react-table: 7.7.0(react@18.3.1)
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-window: 1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      remark-gfm: 4.0.0
-    transitivePeerDependencies:
-      - '@types/react'
-      - react-is
-      - supports-color
-
-  '@darajs/ui-icons@1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.20.1-alpha.1(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-brands-svg-icons': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
-      '@mdi/js': 5.9.55
-      '@mdi/react': 1.4.0
-      react: 18.3.1
-    transitivePeerDependencies:
-      - react-dom
-      - react-is
-
-  '@darajs/ui-utils@1.20.1-alpha.1':
-    dependencies:
-      d3-scale: 3.2.1
-      lodash: 4.17.21
-      nanoid: 3.3.7
-      react: 18.3.1
-      rxjs: 7.8.1
-      tinykeys: 3.0.0
-
   '@egjs/hammerjs@2.0.17':
     dependencies:
       '@types/hammerjs': 2.0.46
@@ -12275,8 +12160,8 @@ snapshots:
 
   '@jridgewell/source-map@0.3.6':
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.5
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/gen-mapping': 0.3.13
+      '@jridgewell/trace-mapping': 0.3.30
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
@@ -14267,11 +14152,11 @@ snapshots:
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 9.6.1
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   '@types/eslint@9.6.1':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
 
   '@types/estree-jsx@1.0.5':
@@ -14456,11 +14341,6 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.15
       '@types/scheduler': 0.23.0
-      csstype: 3.1.3
-
-  '@types/react@18.2.79':
-    dependencies:
-      '@types/prop-types': 15.7.15
       csstype: 3.1.3
 
   '@types/recoil@0.0.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
@@ -20747,23 +20627,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  react-markdown@9.0.1(@types/react@18.2.79)(react@18.3.1):
-    dependencies:
-      '@types/hast': 3.0.4
-      '@types/react': 18.2.79
-      devlop: 1.1.0
-      hast-util-to-jsx-runtime: 2.3.2
-      html-url-attributes: 3.0.1
-      mdast-util-to-hast: 13.2.0
-      react: 18.3.1
-      remark-parse: 11.0.0
-      remark-rehype: 11.1.1
-      unified: 11.0.5
-      unist-util-visit: 5.0.0
-      vfile: 6.0.1
-    transitivePeerDependencies:
-      - supports-color
-
   react-onclickoutside@6.13.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -21930,7 +21793,7 @@ snapshots:
 
   terser-webpack-plugin@5.3.10(esbuild@0.25.8)(webpack@5.96.1(esbuild@0.25.8)):
     dependencies:
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.30
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.2
@@ -21941,7 +21804,7 @@ snapshots:
 
   terser-webpack-plugin@5.3.10(webpack@5.96.1):
     dependencies:
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.30
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.2
@@ -22621,7 +22484,7 @@ snapshots:
   webpack@5.96.1:
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
@@ -22651,7 +22514,7 @@ snapshots:
   webpack@5.96.1(esbuild@0.25.8):
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
