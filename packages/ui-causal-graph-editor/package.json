@@ -37,6 +37,7 @@
     "@darajs/eslint-config": "1.20.0",
     "@darajs/prettier-config": "1.20.0",
     "@darajs/stylelint-config": "1.20.0",
+    "@storybook/react-vite": "^9.0.17",
     "@testing-library/dom": "^9.3.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
