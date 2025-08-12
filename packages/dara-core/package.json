@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "build": "rimraf dist && rimraf dara/core/umd && vite build && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias && cp -R dist/umd/ dara/core/umd/",
+    "prepare-dev": "mkdir -p dist && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias",
     "build-dev": "mkdir -p dist && cp js/index.css dist/ && cp -R js/assets dist/ && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "clean": "rimraf api assets components shared types *.js.map *.d.ts '!(*.config).js' *.css",
     "cypress:open": "cypress open",
@@ -50,16 +51,16 @@
     "@types/jest": "^29.5.1",
     "@types/lodash": "^4.14.178",
     "@types/node": "^18.15.3",
-    "@types/object-hash": "^2.2.1",
     "@types/react": "^18.2.6",
     "@types/react-collapse": "^5.0.1",
     "@types/react-dom": "^18.2.4",
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
+    "@types/react-virtualized-auto-sizer": "1.0.4",
     "@types/recoil": "^0.0.9",
     "@types/styled-components": "^5.1.23",
     "@types/whatwg-fetch": "^0.0.33",
-    "@vitejs/plugin-react": "2.1.0",
+    "@vitejs/plugin-react": "4.6.0",
     "babel-jest": "^29.5.0",
     "concurrently": "^8.0.1",
     "cypress": "9.5.3",
@@ -75,7 +76,7 @@
     "start-server-and-test": "^1.14.0",
     "stylelint": "^15.0.0",
     "tsc-alias": "^1.8.5",
-    "vite": "3.1.8",
+    "vite": "7.0.4",
     "whatwg-fetch": "^3.6.2"
   },
   "dependencies": {
@@ -85,8 +86,8 @@
     "@darajs/ui-utils": "1.20.1-alpha.1",
     "@fortawesome/fontawesome-free": "~6.4.0",
     "@recoiljs/refine": "^0.1.1",
-    "@tanstack/query-core": "^4.0.0",
-    "@tanstack/react-query": "^4.0.0",
+    "@tanstack/query-core": "^4.40.0",
+    "@tanstack/react-query": "^4.40.1",
     "date-fns": "2.9.0",
     "exceljs": "^4.3.0",
     "fast-json-patch": "^3.1.1",
@@ -94,7 +95,6 @@
     "history": "^4.9.0",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.0",
-    "object-hash": "^3.0.0",
     "polished": "^4.1.1",
     "query-string": "^7.1.1",
     "react": "^18.2.0",
@@ -117,5 +117,8 @@
   ],
   "publishConfig": {
     "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
+    "prepare-dev": "tsc",
     "lint": "eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",

@@ -7,6 +7,7 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc",
+    "prepare-dev": "tsc",
     "lint": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
@@ -38,7 +39,7 @@
     "@fortawesome/free-brands-svg-icons": "~6.4.0",
     "@fortawesome/free-regular-svg-icons": "~6.4.0",
     "@fortawesome/free-solid-svg-icons": "~6.4.0",
-    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@fortawesome/react-fontawesome": "0.2.2",
     "@mdi/js": "5.9.55",
     "@mdi/react": "1.4.0",
     "react": "^18.0"
