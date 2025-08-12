@@ -24,7 +24,7 @@ from dara.components.common.utils import ItemBadge
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import UrlVariable, Variable
+from dara.core.interactivity import Variable
 from dara.core.logging import dev_logger
 
 
@@ -164,7 +164,7 @@ class Accordion(LayoutComponent):
     For these components you can set a height, for example:
 
     ```python
-    from dara.core import get_icon, ConfigurationBuilder, DataVariable
+    from dara.core import get_icon, ConfigurationBuilder, ServerVariable
     from dara.components.common import ComponentInstance, Table, Accordion, AccordionItem
     from dara.components.graphs import CausalGraphViewer
     from dara.components.graphs.graph_layout import PlanarLayout
@@ -185,7 +185,7 @@ class Accordion(LayoutComponent):
 
 
     # creates Table data
-    table_data = DataVariable(
+    table_data = ServerVariable(
         DataFrame(
             [
                 {
@@ -249,7 +249,6 @@ class Accordion(LayoutComponent):
     value: Optional[
         Union[
             Variable[Union[int, List[int]]],
-            UrlVariable[Union[int, List[int]]],
             int,
             List[int],
         ]

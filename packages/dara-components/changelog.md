@@ -2,6 +2,17 @@
 title: Changelog
 ---
 
+## 1.20.0-alpha.1
+
+-  Fixed an issue where `Table` type inference would not handle the different datetime64 types correctly.
+-  Fixed an issue where `SectionedList` would not update the input value when clicking on an item.
+-  Updated the `SectionedList` component to support placeholder text.
+
+## 1.19.1
+
+-  Added a `DropdownMenu` component that displays a button which opens a dropdown menu with configurable menu items.
+-  The `plotly.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~18MB to ~8MB
+
 ## 1.16.23
 
 -  Fixed an issue with `CodeEditor`, `Input`, `Select`, `Textarea` components where they would bubble up Enter keypresses when confirming composition using IME input

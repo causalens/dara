@@ -14,11 +14,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from contextvars import ContextVar
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import anyio
 
@@ -30,11 +32,7 @@ from dara.core.interactivity.actions import (
     ActionImpl,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.dependency_resolution import (
-    is_resolved_derived_data_variable,
-    is_resolved_derived_variable,
-    resolve_dependency,
-)
+from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
@@ -145,14 +143,14 @@ async def execute_action(
     if values is not None:
         annotations = action.__annotations__
 
-        for key, value in values.items():
-            # Override `force` property to be false
-            if is_resolved_derived_variable(value) or is_resolved_derived_data_variable(value):
-                value['force'] = False
-
+        async def _resolve_kwarg(val: Any, key: str):
             typ = annotations.get(key)
-            val = await resolve_dependency(value, store, task_mgr)
+            val = await resolve_dependency(val, store, task_mgr)
             resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}
@@ -177,9 +175,11 @@ async def execute_action(
 
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
-        return MetaTask(
+        meta_task = MetaTask(
             process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
         )
+        task_mgr.register_task(meta_task)
+        return meta_task
 
     # No tasks - run directly as an asyncio task and return the execution id
     # Originally used to use FastAPI BackgroundTasks, but these ended up causing a blocking behavior that blocked some

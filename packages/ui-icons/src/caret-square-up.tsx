@@ -16,7 +16,7 @@
  */
 import { faCaretSquareUp } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * CaretSquareUp icon from FontAwesome

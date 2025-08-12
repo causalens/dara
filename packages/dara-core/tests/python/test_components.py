@@ -32,7 +32,6 @@ def test_css_variable():
                 'uid': css_var.uid,
                 'default': 'color: red;',
                 'nested': [],
-                'persist_value': False,
                 'store': None,
             }
         },

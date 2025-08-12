@@ -6,7 +6,6 @@ from dara.core.base_definitions import (
     LruCachePolicy,
     MostRecentCachePolicy,
     PendingTask,
-    PendingValue,
     TTLCachePolicy,
 )
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl, PolicyT
@@ -23,7 +22,7 @@ def cache_impl_for_policy(policy: PolicyT) -> CacheStoreImpl[PolicyT]:
     """
     impl: Optional[CacheStoreImpl] = None
 
-    if isinstance(policy, LruCachePolicy) or isinstance(policy, MostRecentCachePolicy):
+    if isinstance(policy, (LruCachePolicy, MostRecentCachePolicy)):
         impl = LRUCache(policy)
     elif isinstance(policy, TTLCachePolicy):
         impl = TTLCache(policy)
@@ -62,21 +61,24 @@ class CacheScopeStore(Generic[PolicyT]):
 
         return await cache.delete(key)
 
-    async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
         """
         Retrieve an entry from the cache.
 
         :param key: The key of the entry to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         """
         scope = get_cache_scope(self.policy.cache_type)
         cache = self.caches.get(scope)
 
         # No cache for this scope yet
         if cache is None:
+            if raise_for_missing:
+                raise KeyError(f'No cache found for {scope}')
             return None
 
-        return await cache.get(key, unpin=unpin)
+        return await cache.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
 
     async def set(self, key: str, value: Any, pin: bool = False):
         """
@@ -150,21 +152,30 @@ class CacheStore:
 
         return prev_entry
 
-    async def get(self, registry_entry: CachedRegistryEntry, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(
+        self,
+        registry_entry: CachedRegistryEntry,
+        key: str,
+        unpin: bool = False,
+        raise_for_missing: bool = False,
+    ) -> Optional[Any]:
         """
         Retrieve an entry from the cache for the given registry entry and cache key.
 
         :param registry_entry: The registry entry to retrieve the value for.
         :param key: The key of the entry to retrieve.
         :param unpin: If true, the entry will be unpinned if it is pinned.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         """
         registry_store = self.registry_stores.get(registry_entry.to_store_key())
 
         # No store for this entry yet
         if registry_store is None:
+            if raise_for_missing:
+                raise KeyError(f'No cache store found for {registry_entry.to_store_key()}')
             return None
 
-        return await registry_store.get(key, unpin=unpin)
+        return await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
 
     async def get_or_wait(self, registry_entry: CachedRegistryEntry, key: str):
         """
@@ -177,9 +188,6 @@ class CacheStore:
 
         value = await self.get(registry_entry, key)
 
-        if isinstance(value, PendingValue):
-            return await value.wait()
-
         if isinstance(value, PendingTask):
             return await value.run()
 
@@ -190,7 +198,6 @@ class CacheStore:
         registry_entry: CachedRegistryEntry,
         key: str,
         value: Any,
-        error: Optional[Exception] = None,
         pin: bool = False,
     ):
         """
@@ -213,12 +220,11 @@ class CacheStore:
 
         prev_value = await registry_store.get(key)
 
-        # If previous value was a PendingValue, resolve it
-        if isinstance(prev_value, PendingValue):
-            if error is not None:
-                prev_value.error(error)
-            else:
-                prev_value.resolve(value)
+        # If the previous value was a PendingTask, resolve it with the new value
+        # This handles cache-coordinated tasks (e.g., DerivedVariables) where PendingTasks
+        # are stored in cache to coordinate multiple callers with the same cache key
+        if isinstance(prev_value, PendingTask):
+            prev_value.resolve(value)
 
         # Update size
         self._update_size(prev_value, value)
@@ -227,15 +233,6 @@ class CacheStore:
         await registry_store.set(key, value, pin=pin)
 
         return value
-
-    async def set_pending(self, registry_entry: CachedRegistryEntry, key: str):
-        """
-        Set a pending value for the given registry entry and cache key.
-
-        :param registry_entry: The registry entry to store the value for.
-        :param key: The key of the entry to set.
-        """
-        return await self.set(registry_entry, key, PendingValue())
 
     async def clear(self):
         """

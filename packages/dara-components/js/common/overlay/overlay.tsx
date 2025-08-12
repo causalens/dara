@@ -1,8 +1,8 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DynamicComponent,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useComponentStyles,
     useVariable,

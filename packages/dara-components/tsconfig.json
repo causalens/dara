@@ -1,10 +1,26 @@
 {
   "extends": "../../tsconfig.json",
-  "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**"],
-  "include": ["./js/**/*"],
+  "exclude": [
+    "tests/**",
+    "**/*.spec.tsx",
+    "**/*.stories.tsx",
+    "dist/**"
+  ],
+  "include": [
+    "./js/**/*"
+  ],
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "./js",
-    "outDir": "./dist/"
+    "outDir": "./dist/",
+    "allowJs": true,
+    "checkJs": false,
+    // strict
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
   }
 }

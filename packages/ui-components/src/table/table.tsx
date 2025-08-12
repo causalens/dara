@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 import { faCircleQuestion } from '@fortawesome/free-regular-svg-icons';
-import { IconDefinition, faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons';
+import { type IconDefinition, faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import memoize from 'memoize-one';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import * as React from 'react';
 import {
-    FilterProps,
-    Filters,
-    HeaderGroup,
-    SortingRule,
+    type FilterProps,
+    type Filters,
+    type HeaderGroup,
+    type SortingRule,
     useFilters,
     useFlexLayout,
     useResizeColumns,
@@ -42,8 +42,8 @@ import CategoricalFilter from '../filter/categorical-filter';
 import DatetimeFilter from '../filter/datetime-filter';
 import NumericFilter from '../filter/numeric-filter';
 import Tooltip from '../tooltip/tooltip';
-import { ItemsRenderedPayload } from '../utils/use-infinite-loader';
-import { Action, ActionCell, ActionCol, Actions } from './cells/action-cell';
+import { type ItemsRenderedPayload } from '../utils/use-infinite-loader';
+import { Action, ActionCell, type ActionCol, Actions } from './cells/action-cell';
 import DatetimeCell from './cells/datetime-cell';
 import EditInputCell from './cells/edit-input-cell';
 import EditSelectCell from './cells/edit-select-cell';
@@ -51,7 +51,7 @@ import { FilterContainer, HeaderIconWrapper, TextFilter, categorical, datetime, 
 import SelectHeader from './headers/select-header';
 import OptionsMenu from './options-menu';
 import RenderRow, { ROW_HEIGHT, shouldForwardProp } from './render-row';
-import { TableColumn } from './types';
+import { type TableColumn } from './types';
 
 const Wrapper = styled.div<{ $hasMaxRows: boolean }>`
     display: inline-block;
@@ -294,14 +294,14 @@ export interface TableHandle {
  * Extra properties available on the Table function itself
  */
 interface TableProperties {
-    ActionColumn?: (
+    ActionColumn: (
         actions: Array<ActionCol>,
         accessor?: string,
         sticky?: string,
         disableSelectAll?: boolean
     ) => TableColumn;
-    Actions?: typeof Actions;
-    cells?: typeof cells;
+    Actions: typeof Actions;
+    cells: typeof cells;
 }
 
 export interface Props<T extends { [k: string]: any }> {
@@ -316,7 +316,7 @@ export interface Props<T extends { [k: string]: any }> {
     /** An array of data objects, each object should contain the keys defined as accessors in the column defs */
     data?: Array<T>;
     /** An optional function to retrieve an item from a virtualized dataset, use in conjunction with onItemsRendered */
-    getItem?: (index: number) => T;
+    getItem?: (index: number) => T | undefined;
     /** An optional initial sort for the table */
     initialSort?: Array<SortingRule<string>>;
     /** The total number of items in the table, required when using the infinite loader */

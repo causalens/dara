@@ -22,7 +22,7 @@ import sys
 
 from dara.core.logging import dev_logger, eng_logger
 
-CGROUP_V2_INDICATOR_PATH = '/sys/fs/cgroup/cgroup.controllers'   # Used to determine whether we're using cgroupv2
+CGROUP_V2_INDICATOR_PATH = '/sys/fs/cgroup/cgroup.controllers'  # Used to determine whether we're using cgroupv2
 
 CGROUP_V1_MEM_PATH = '/sys/fs/cgroup/memory/memory.limit_in_bytes'
 CGROUP_V2_MEM_PATH = '/sys/fs/cgroup/memory.max'

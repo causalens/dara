@@ -64,7 +64,7 @@ export { default as GraphOutline } from './graph-outline';
 export { default as HandPoint } from './hand-point';
 export { default as Heading } from './heading';
 export { default as Hdd } from './hdd';
-export { IconProps } from './icon-utils';
+export { type IconProps } from './icon-utils';
 export { default as InformationOutline } from './information-outline';
 export { default as Minus } from './minus';
 export { default as PackageVariantClosed } from './package-variant-closed';

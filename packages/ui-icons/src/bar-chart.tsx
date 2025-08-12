@@ -16,7 +16,7 @@
  */
 import { faBarChart } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BarChart icon from FontAwesome

@@ -16,7 +16,7 @@
  */
 import { faPersonArrowDownToLine } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * PersonArrowDownToLine icon from FontAwesome

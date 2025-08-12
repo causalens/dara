@@ -2,7 +2,64 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.0-alpha.1
+
+-  Deprecated `UrlVariable` in favour of using `Variable(store=QueryParamStore(query=...))`
+-  Deprecated `persist_value` on `Variable` in favour of using `Variable(store=BrowserStore(...))` instead
+-  Added `read`, `write`, `delete`, `get_all` shortcut methods on `Variable` that pass through to the corresponding methods on the attached `BackendStore` instance. This allows for a more concise API when using `BackendStore` but raise if the attached store is not of the `BackendStore` type
+-  Deprecated `DataVariable` in favour of new generalized `ServerVariable`. It represents server-side data. Server variables can store tabular data and be consumed by e.g. `Table` component if required as a special case,
+otherwise they are considered unserializable and do not get sent to the client. `DataVariable` acts as effectively an alias for `ServerVariable`.
+-  Deprecated `DerivedDataVariable`. `DerivedVariable` can return tabular data if needed, the automatic data filtering and pagination is now handled seamlessly when consumed by e.g. `Table` component.
+-  Added optional `filter_resolver` to `DerivedVariable` which can be used to customize the filtering logic of the derived variable. The default filter resolver assumes the derived function returns `DataFrame` and applies the default filtering logic.
+Custom filter resolver can be used to e.g. return a data reference from the derived function and offload filtering logic to remote API in the filtering part.
+
+## 1.19.1
+
+-  Added StateVariable feature for tracking DerivedVariable states (loading, error, hasValue) via `dv.is_loading`, `dv.has_error`, and `dv.has_value` properties
+-  `If` components and `SwitchVariable`s now operate similar to the `suspend: False` setting - when used with `DerivedVariable`s, they will suspend the component initially until they have the initial value; for further changes, they will use the prior value rather than suspend again
+-  Fixed an issue where a race condition in the task pool could cause it to no longer be able to process tasks
+-  Unlock `packaging` dependency in `dara-core`
+-  Fixed an issue where using `DownloadVariable` on a `DataVariable` would include internally transformed column names
+-  Fixed various data races related to the `DerivedVariable` caching and task system. This should improve their reliability and improve performance as it will minimize the number of times the same computation is performed.
+-  `DerivedVariable`, action and `py_component` dependency resolution is now parallelized to improve performance
+-  Docs: Add more examples of using `raw_css` in more places
+
+## 1.19.0
+
+-  Internal: upgraded production build to use Vite v7. The minimum version of Node required for production builds is now 20.19.0
+-  Docs: Improve documentation metadata for all Getting Started guides
+
+## 1.18.5
+
+-  Fixed an issue where WS_CHANNEL context var wasn't set within the websocket handler itself
+
+## 1.18.4
+
+-  Added a `placeholder` prop to the `For` component which allows you to specify a component to render when the data source is empty
+
+## 1.18.3
+
+-  Added a new `Fallback.Custom` option which allows you to specify a custom component to render when while suspended. The `fallback=` props for components now also supports passing any non-fallback component directly which implicitly wraps it in `Fallback.Custom`
+
+## 1.18.3
+
+-  Fixed an issue where `UrlVariable` would be wiped in some cases. The variable now doesn't sync the default value to query params by default
+
+## 1.18.2
+
+-  Internal: added `GENERATE_CODE_OVERRIDE` context variable to allow overriding the download code generation logic
+
+## 1.18.1
+
+-  Fixed missing `cachetools` dependency
+
+## 1.18.0
+
+-  Fixed an issue where using `trigger()` on a DerivedVariable would behave inconsistently and cause extra recomputations in some cases
+-  Fixed an issue where `None` values were being interpreted as cache misses for DerivedVariables
+-  Internal: added `RegistryLookup` key for `DOWNLOAD_CODE` to allow overriding the download code logic
+
+## 1.17.6
 
 -  Fixed an issue with the handleAuthErrors function when it's used with a non-json, streaming response.
 

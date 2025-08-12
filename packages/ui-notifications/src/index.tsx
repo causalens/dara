@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export { NotificationPayload } from './notification-payload';
+export { type NotificationPayload } from './notification-payload';
 export { default as NotificationWrapper, NotificationContext } from './notification-wrapper';
-export { useNotifications, UseNotificationsInterface } from './use-notifications';
+export { useNotifications, type UseNotificationsInterface } from './use-notifications';
 export { default as Notification } from './notification';

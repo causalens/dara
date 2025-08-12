@@ -17,10 +17,10 @@
 import { transparentize } from 'polished';
 import { useCallback, useEffect, useState } from 'react';
 
-import styled, { DefaultTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme } from '@darajs/styled-components';
 
 import { BaseButton } from '../button/button';
-import { InteractiveComponentProps, Item } from '../types';
+import { type InteractiveComponentProps, type Item } from '../types';
 
 interface ButtonBarWrapperProps {
     disabled?: boolean;

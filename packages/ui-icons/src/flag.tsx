@@ -16,7 +16,7 @@
  */
 import { faFlag } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Flag icon from FontAwesome

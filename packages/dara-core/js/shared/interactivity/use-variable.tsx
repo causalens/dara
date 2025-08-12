@@ -1,22 +1,29 @@
+import { useSuspenseQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import { type Dispatch, type SetStateAction, useContext, useEffect, useState } from 'react';
+import { type Dispatch, type SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
 import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
+    UserError,
     type Variable,
-    isDataVariable,
-    isDerivedDataVariable,
     isDerivedVariable,
+    isServerVariable,
+    isStateVariable,
     isSwitchVariable,
-    isUrlVariable,
     isVariable,
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterPlainVariable, useDerivedVariable, useSwitchVariable, useUrlVariable } from './internal';
+import {
+    getOrRegisterPlainVariable,
+    getOrRegisterServerVariable,
+    useDerivedVariable,
+    useSwitchVariable,
+} from './internal';
+import { useTabularVariable } from './use-tabular-variable';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
 /* eslint-disable react-hooks/rules-of-hooks */
@@ -32,6 +39,17 @@ function warnUpdateOnDerivedState(): void {
     console.warn('You tried to call update on variable with derived state, this is a noop and will be ignored.');
 }
 
+export interface UseVariableOptions {
+    /**
+     * Defines how server variables should be handled.
+     * - disallow: disallow server variables from being used in this component
+     * - one-row: fetches the first row of the server variable and uses that as the value.
+     *       Useful for e.g. condition truthiness checks for non-emptiness
+     */
+    serverVariable?: 'disallow' | 'one-row';
+    suspend?: boolean | number;
+}
+
 /**
  * A helper hook that turns a Variable class into the actual value by accessing the appropriate recoil state from the
  * atomRegistry defined above. For convenience, it will also handle a non variable being passed and will return it
@@ -40,7 +58,10 @@ function warnUpdateOnDerivedState(): void {
  *
  * @param variable the possible variable to use
  */
-export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Dispatch<SetStateAction<T>>] {
+export function useVariable<T>(
+    variable: Variable<T> | T,
+    opts: UseVariableOptions = { serverVariable: 'disallow' }
+): [value: T, update: Dispatch<SetStateAction<T>>] {
     const extras = useRequestExtras();
 
     const { client: wsClient } = useContext(WebSocketCtx);
@@ -74,11 +95,6 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         };
     }, []);
 
-    // This hook should only be used for components not expecting DataFrames
-    if (isDataVariable(variable) || isDerivedDataVariable(variable)) {
-        throw new Error(`Non-data variable expected, got ${(variable as any).__typename as string}`);
-    }
-
     if (isDerivedVariable(variable)) {
         const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
@@ -89,23 +105,61 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
             }
         }, [selectorLoadable]);
 
-        const deferred = useDeferLoadable(selectorLoadable);
+        const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
 
         return [deferred.value, warnUpdateOnDerivedState];
     }
 
-    if (isUrlVariable(variable)) {
-        const [urlValue, setUrlValue] = useUrlVariable<T>(variable);
-
-        useEffect(() => {
-            bus.publish('URL_VARIABLE_LOADED', { variable, value: urlValue });
-        }, [urlValue]);
-
-        return [urlValue, setUrlValue as Dispatch<SetStateAction<T>>];
-    }
-
     if (isSwitchVariable(variable)) {
         return [useSwitchVariable(variable), warnUpdateOnDerivedState];
+    }
+
+    if (isStateVariable(variable)) {
+        const parentSelector = useDerivedVariable(variable.parent_variable, wsClient, taskContext, extras);
+        const parentLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(parentSelector);
+
+        // Map the loadable state to the specific property
+        let stateValue: boolean;
+        switch (variable.property_name) {
+            case 'loading':
+                stateValue = parentLoadable.state === 'loading';
+                break;
+            case 'error':
+                stateValue = parentLoadable.state === 'hasError';
+                break;
+            case 'hasValue':
+                stateValue = parentLoadable.state === 'hasValue';
+                break;
+            default:
+                stateValue = false;
+        }
+
+        return [stateValue as T, warnUpdateOnDerivedState];
+    }
+
+    if (isServerVariable(variable)) {
+        if (opts.serverVariable === 'disallow') {
+            throw new UserError('ServerVariable cannot be directly consumed by this component');
+        }
+
+        // assume one-row behaviour
+        const atom = useMemo(() => getOrRegisterServerVariable(variable, extras), [variable, extras]);
+        const [seqNumber] = useRecoilState(atom);
+        const fetcher = useTabularVariable(variable);
+        // convert the fetcher to a suspended query to match recoil behaviour
+        const { data } = useSuspenseQuery({
+            // use the seq number as a dependency to refetch on changes
+            queryKey: ['use-variable-server-variable', variable.uid, seqNumber],
+            queryFn: async () => {
+                const result = await fetcher(null, {
+                    limit: 1,
+                    offset: 0,
+                });
+                return result.data;
+            },
+            refetchOnWindowFocus: false,
+        });
+        return [(data?.[0] ?? null) as T, warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);
@@ -124,7 +178,7 @@ export function useVariable<T>(variable: Variable<T> | T): [value: T, update: Di
         }
     }, [loadable]);
 
-    const deferred = useDeferLoadable(loadable);
+    const deferred = useDeferLoadable(loadable, opts.suspend);
 
     return [deferred, setLoadable];
 }

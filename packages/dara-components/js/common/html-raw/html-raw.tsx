@@ -1,4 +1,4 @@
-import { StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
+import { type StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 const _Wrapper = styled.div`

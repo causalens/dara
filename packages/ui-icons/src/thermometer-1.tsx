@@ -16,7 +16,7 @@
  */
 import { faThermometer1 } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Thermometer1 icon from FontAwesome

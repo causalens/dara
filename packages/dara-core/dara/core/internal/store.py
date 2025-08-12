@@ -17,7 +17,7 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional
 
-from dara.core.base_definitions import CacheType, PendingTask, PendingValue
+from dara.core.base_definitions import CacheType, PendingTask
 from dara.core.internal.utils import get_cache_scope
 
 
@@ -59,8 +59,6 @@ class Store:
         cache_key = get_cache_scope(cache_type)
         value = self._store.get(cache_key, {}).get(key)
 
-        if isinstance(value, PendingValue):
-            return await value.wait()
         if isinstance(value, PendingTask):
             return await value.run()
         return value
@@ -86,32 +84,7 @@ class Store:
         if self._store.get(cache_key) is None:
             self._store[cache_key] = {}
 
-        # If there is a PendingValue set for this key then trigger its resolution
-        if isinstance(self._store[cache_key].get(key), PendingValue):
-            if error is not None:
-                self._store[cache_key][key].error(error)
-            else:
-                self._store[cache_key][key].resolve(value)
-
         self._store[cache_key][key] = value
-
-    def set_pending_value(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL):
-        """
-        Set a pending state for a value in the store. This will trigger the async behavior of the get call if subsequent
-        requests ask for the same key. A future is created in the store, which all requests then listen for the
-        resolution of before returning.
-
-        :param key: the key to set as pending
-        :param cache_type: whether to pull the value from the specified cache specific store or the global one, defaults to
-                            the global one
-        """
-        cache_key = get_cache_scope(cache_type)
-        if self._store.get(cache_key) is None:
-            self._store[cache_key] = {}
-
-        pending_val = PendingValue()
-
-        self._store[cache_key][key] = pending_val
 
     def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: Optional[CacheType] = CacheType.GLOBAL):
         """
@@ -158,7 +131,7 @@ class Store:
                 # Otherwise go through and remove any non-pending values
                 keys = list(cache_type_store.keys())
                 for key in keys:
-                    if not isinstance(cache_type_store[key], (PendingValue, PendingTask)):
+                    if not isinstance(cache_type_store[key], PendingTask):
                         cache_type_store.pop(key)
 
     def list(self, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> List[str]:

@@ -1,5 +1,7 @@
 ---
 title: Components
+description: Learn how to create reusable UI components and think in components when building Dara apps
+boost: 1.5
 ---
 
 This page will give you more insight on how to use components.
@@ -25,7 +27,7 @@ A `dara.components.common.text.Text` component is the basic component for adding
 ```python
 from dara.components import Text
 
-Text('My text', align='center')
+Text('My text', align='center', raw_css={'font-size': '1.5rem'})
 ```
 
 ![Text](../assets/getting_started/components/text.png)

@@ -27,6 +27,8 @@ from typing import Any, Callable, Optional, Tuple
 import anyio
 from tblib import Traceback
 
+from dara.core.logging import dev_logger
+
 
 class SubprocessException:
     """
@@ -89,9 +91,7 @@ def read_from_shared_memory(pointer: SharedMemoryPointer) -> Any:
         data = shared_mem.buf[:data_size]
 
         # Unpickle and deepcopy
-        decoded_payload_shared = pickle.loads(
-            shared_mem.buf
-        )   # nosec B301 # we trust the shared memory pointer passed by the pool
+        decoded_payload_shared = pickle.loads(shared_mem.buf)  # nosec B301 # we trust the shared memory pointer passed by the pool
         decoded_payload = copy.deepcopy(decoded_payload_shared)
 
         # Cleanup
@@ -133,20 +133,23 @@ async def stop_process_async(process: BaseProcess, timeout: float = 3):
     # Terminate and wait for it to shutdown
     process.terminate()
 
-    # mimic process.join() in an async way to not block
-    await wait_while(process.is_alive, timeout)
+    try:
+        # mimic process.join() in an async way to not block
+        await wait_while(process.is_alive, timeout)
 
-    # If it's still alive
-    if process.is_alive():
-        try:
-            os.kill(process.pid, signal.SIGKILL)
-            await wait_while(process.is_alive, timeout)
-        except OSError:
+        # If it's still alive
+        if process.is_alive():
+            try:
+                os.kill(process.pid, signal.SIGKILL)
+                await wait_while(process.is_alive, timeout)
+            except OSError as e:
+                raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
+
+        # If it's still alive raise an exception
+        if process.is_alive():
             raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
-
-    # If it's still alive raise an exception
-    if process.is_alive():
-        raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+    except Exception as e:
+        dev_logger.error('Error stopping process', e)
 
 
 def stop_process(process: BaseProcess, timeout: float = 3):
@@ -171,8 +174,8 @@ def stop_process(process: BaseProcess, timeout: float = 3):
         try:
             os.kill(process.pid, signal.SIGKILL)
             process.join(timeout)
-        except OSError:
-            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}')
+        except OSError as e:
+            raise RuntimeError(f'Unable to terminate subprocess with PID {process.pid}') from e
 
     # If it's still alive raise an exception
     if process.is_alive():

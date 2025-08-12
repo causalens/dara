@@ -7,17 +7,8 @@
         "props": {
           "text": {
             "uid": "{{data_var_uid}}",
-            "filters": {
-              "column": "test1",
-              "value": "test1",
-              "operator": "EQ"
-            },
-            "cache": {
-              "cache_type": "user",
-              "policy": "lru",
-              "max_size": 10
-            },
-            "__typename": "DataVariable"
+            "scope": "user",
+            "__typename": "ServerVariable"
           }
         },
         "uid": "{{mock_text_1_uid}}"
@@ -26,18 +17,9 @@
         "name": "MockText",
         "props": {
           "text": {
-            "uid": "{{data_var_uid}}",
-            "filters": {
-              "column": "test2",
-              "value": "test2",
-              "operator": "EQ"
-            },
-            "cache": {
-              "cache_type": "user",
-              "policy": "lru",
-              "max_size": 10
-            },
-            "__typename": "DataVariable"
+            "uid": "{{data_var_uid_2}}",
+            "scope": "user",
+            "__typename": "ServerVariable"
           }
         },
         "uid": "{{mock_text_2_uid}}"

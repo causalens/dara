@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 import * as React from 'react';
-import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
 import { CONTROL_KEYS, Key } from '../constants';
 import Input from '../input/input';
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 import InputStepper from './input-stepper';
 
 const InputWrapper = styled.div<NumericInputProps>`

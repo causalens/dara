@@ -16,7 +16,7 @@
  */
 import { faHandPointDown } from '@fortawesome/free-regular-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * A HandPoint icon from FontAwesome

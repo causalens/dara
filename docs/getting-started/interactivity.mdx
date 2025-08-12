@@ -1,5 +1,7 @@
 ---
 title: Adding Interactivity
+description: Learn how to make your apps interactive with Variables and @py_components
+boost: 2
 ---
 
 This page will introduce you to the reactivity system used in the Dara framework. The reactivity system allows you to connect parts of your app together and enable user interaction on the UI.
@@ -67,8 +69,7 @@ page_content = Stack(
 </details>
 
 :::tip
-A `Variable` can be made persistent when refreshing the page by using the `persist_value` flag.
-For more advanced persistence and collaboration options [check out the advanced guide](../advanced/persistence-and-collaboration.mdx).
+A `Variable`'s source of truth can be customized by providing a `store` parameter. This enables features like URL persistence, browser storage, and collaboration across users. For more information about available store options, [check out the persistence guide](../advanced/persistence-and-collaboration.mdx).
 :::
 
 :::caution
@@ -86,32 +87,7 @@ In the later sections of this page you will learn how to update a `Variable` and
 
 :::
 
-### `UrlVariable`
 
-`dara.core.interactivity.url_variable.UrlVariable` is very similar to a normal `Variable`. The only difference is that its state is stored in the URL of the page
-as a query parameter, rather than being stored in the memory of the client.
-This is useful to i.e. preserve state across page refreshes and providing deep links.
-
-```python
-from dara.core import ConfigurationBuilder, UrlVariable
-from dara.components import Stack, Tab, TabbedCard, Text
-
-config = ConfigurationBuilder()
-
-# State will be stored as a query param, i.e. `...?url_value=default_value`
-url_variable = UrlVariable(query='url_value', default='default_value')
-
-page_content = Stack(
-    #here selected_tab updates the state of the url_variable
-    TabbedCard(
-        Tab(Text('tab1 content'), title='Tab1'), Tab(Text('tab2 content'), title='Tab2'), selected_tab=url_variable
-    )
-)
-
-config.add_page('Url Variable', content=page_content)
-```
-
-`UrlVariable` supports nested dictionary values with the `.get(key)` method just like a normal `Variable`.
 
 ### `SwitchVariable`
 
@@ -388,7 +364,7 @@ and compose them. Learn more about composing actions [here](./actions.md#composi
 
 :::
 
-One example of a static action object is the result of calling `sync` on a `Variable` or `UrlVariable` instance. This creates an action object which, when passed to an action prop,
+One example of a static action object is the result of calling `sync` on a `Variable` instance. This creates an action object which, when passed to an action prop,
 will update the variable with the value of the input sent from the component.
 
 ```python
@@ -675,6 +651,70 @@ The `trigger` method takes an optional `force` argument specifying whether you w
 In addition to the cache `type`, you can also specify the `policy` to use, which determines how items are retained or evicted from the cache.The default policy is an `LRU` (Least Recently Used)
 cache with a maximum size of 10 items (globally, or per user/session depending on the `CacheType` set). For a detailed explanation of the available cache policies and how to use them,
 refer to [Cache Policies Documentation](../advanced/cache-policies.mdx).
+
+#### State Tracking
+
+`DerivedVariable`s provide three built-in state tracking properties (that return internal `StateVariable` instances) to help you monitor the execution state of your derived calculations:
+
+- `is_loading`: Returns `True` when the `DerivedVariable` is currently calculating, `False` otherwise
+- `has_error`: Returns `True` when the `DerivedVariable` calculation resulted in an error, `False` otherwise
+- `has_value`: Returns `True` when the `DerivedVariable` has a resolved value (successful calculation), `False` otherwise
+
+These state variables are particularly useful for creating responsive UIs that show loading states, error handling, and conditional rendering based on calculation status.
+
+```python
+from dara.core import Variable, DerivedVariable
+from dara.components import Stack, Text, Button, Input, If
+
+# Variables for calculation
+x = Variable(10)
+y = Variable(5)
+
+# Expensive calculation that might take time
+def expensive_calculation(a, b):
+    import time
+    time.sleep(2)  # Simulate expensive operation
+    if b == 0:
+        raise ValueError("Division by zero!")
+    return a / b
+
+result = DerivedVariable(expensive_calculation, variables=[x, y])
+
+page_content = Stack(
+    Text("Enter values:"),
+    Input(value=x, type='number'),
+    Input(value=y, type='number'),
+    Button("Recalculate", onclick=result.trigger()),
+
+    # Conditional rendering based on calculation state
+    If(
+        result.is_loading,
+        Text("Calculating...")
+    ),
+    If(
+        result.has_error,
+        Stack(
+            Text("❌ Calculation failed!", color='red'),
+            Text("Please check your inputs"),
+            align='center'
+        )
+    ),
+    If(
+        result.has_value,
+        Stack(
+            Text("✅ Calculation complete!", color='green'),
+            Text(f"Result: {result}"),
+            align='center'
+        )
+    )
+)
+```
+
+:::note
+The `StateVariable` instances are read-only and automatically managed by their parent `DerivedVariable`.
+They also cannot be used as inputs to other `DerivedVariable`s to prevent complex dependency cycles. They should mostly be used directly
+within `If` components or via `SwitchVariable`s.
+:::
 
 ## `py_component`
 

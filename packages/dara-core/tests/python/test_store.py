@@ -1,7 +1,7 @@
 import pytest
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import CacheType, PendingTask
+from dara.core.base_definitions import CacheType
 from dara.core.internal.store import Store
 
 pytestmark = pytest.mark.anyio
@@ -57,6 +57,7 @@ async def test_user_store_behavior():
     USER.set(
         UserData(
             identity_name='test1',
+            identity_id='test1',
         )
     )
     store.set('test', 'user_value', cache_type=CacheType.USER)
@@ -71,6 +72,7 @@ async def test_user_store_behavior():
     USER.set(
         UserData(
             identity_name='test2',
+            identity_id='test2',
         )
     )
     assert store.get('test', cache_type=CacheType.USER) is None
@@ -120,22 +122,3 @@ async def test_user_list():
         )
     )
     assert store.list(cache_type=CacheType.USER) == []
-
-
-async def test_wait_and_get():
-    """Test the pending values system and async fetching of keys"""
-    store = Store()
-
-    # Set the test key as pending
-    store.set_pending_value('test')
-
-    # Create two coroutines that are trying to access the result
-    var1 = store.get_or_wait('test')
-    var2 = store.get_or_wait('test')
-
-    # Set the value in the store
-    store.set('test', 'value')
-
-    # Check that the awaits resolve to the same value
-    assert await var1 == 'value'
-    assert await var2 == 'value'

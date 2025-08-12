@@ -1,6 +1,6 @@
-import { Language } from 'prism-react-renderer';
+import { type Language } from 'prism-react-renderer';
 import * as React from 'react';
-import ReactMarkdown, { ExtraProps, Options } from 'react-markdown';
+import ReactMarkdown, { type ExtraProps, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import styled, { useTheme } from '@darajs/styled-components';

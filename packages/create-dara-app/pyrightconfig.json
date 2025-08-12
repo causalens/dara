@@ -1,0 +1,4 @@
+{
+    "extends": "../../pyrightconfig.json",
+    "exclude": ["./create_dara_app/templates/"]
+}

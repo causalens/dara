@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 
-import { Action, Variable, useAction, useVariable } from '@darajs/core';
+import { type Action, type Variable, useAction, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
 import { Filter } from '@darajs/ui-icons';
 

@@ -17,9 +17,10 @@ limitations under the License.
 
 from __future__ import annotations
 
+import warnings
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
@@ -30,26 +31,25 @@ from pydantic import (
     model_serializer,
 )
 
-from dara.core.interactivity.derived_data_variable import DerivedDataVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
-from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
-from dara.core.persistence import PersistenceStore
+from dara.core.persistence import BackendStore, BrowserStore, PersistenceStore
 
 VARIABLE_INIT_OVERRIDE = ContextVar[Optional[Callable[[dict], dict]]]('VARIABLE_INIT_OVERRIDE', default=None)
 
 VariableType = TypeVar('VariableType')
 PersistenceStoreType_co = TypeVar('PersistenceStoreType_co', bound=PersistenceStore, covariant=True)
 
+
 # TODO: once Python supports a default value for a generic type properly we can make PersistenceStoreType a second generic param
-class Variable(NonDataVariable, Generic[VariableType]):
+class Variable(ClientVariable, Generic[VariableType]):
     """
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
     """
 
     default: Optional[VariableType] = None
-    persist_value: bool = False
     store: Optional[PersistenceStore] = None
     uid: str
     nested: List[str] = Field(default_factory=list)
@@ -62,6 +62,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         uid: Optional[str] = None,
         store: Optional[PersistenceStoreType_co] = None,
         nested: Optional[List[str]] = None,
+        **kwargs,
     ):
         """
         A Variable represents a dynamic value in the system that can be read and written to by components and actions
@@ -73,18 +74,32 @@ class Variable(NonDataVariable, Generic[VariableType]):
         """
         if nested is None:
             nested = []
-        kwargs = {'default': default, 'persist_value': persist_value, 'uid': uid, 'store': store, 'nested': nested}
+        kwargs = {
+            'default': default,
+            'uid': uid,
+            'store': store,
+            'nested': nested,
+            **kwargs,
+        }
 
         # If an override is active, run the kwargs through it
         override = VARIABLE_INIT_OVERRIDE.get()
         if override is not None:
             kwargs = override(kwargs)
 
-        if kwargs.get('store') is not None and kwargs.get('persist_value'):
+        if kwargs.get('store') is not None and persist_value:
             # TODO: this is temporary, persist_value will eventually become a type of store
             raise ValueError('Cannot provide a Variable with both a store and persist_value set to True')
 
-        super().__init__(**kwargs)   # type: ignore
+        if persist_value:
+            warnings.warn(
+                '`persist_value` is deprecated and will be removed in a future version. Use `store=dara.core.persistence.BrowserStore(...)` instead.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            kwargs['store'] = BrowserStore()
+
+        super().__init__(**kwargs)  # type: ignore
 
         if self.store:
             call_async(self.store.init, self)
@@ -115,7 +130,7 @@ class Variable(NonDataVariable, Generic[VariableType]):
         Override the init function of all Variables created within the context of this function.
 
         ```python
-        with Variable.init_override(lambda kwargs: {**kwargs, 'persist_value': True}):
+        with Variable.init_override(lambda kwargs: {**kwargs, 'store': ...}):
             var = Variable()
         ```
 
@@ -252,12 +267,71 @@ class Variable(NonDataVariable, Generic[VariableType]):
 
         :param default: the initial value for the variable, defaults to None
         """
-        if isinstance(other, DerivedDataVariable):
-            raise ValueError(
-                'Cannot create a Variable from a DerivedDataVariable, only standard DerivedVariables are allowed'
-            )
+        return cls(default=other)  # type: ignore
 
-        return cls(default=other)   # type: ignore
+    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
+        """
+        Persist a value to the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is written for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param value: value to write
+        :param notify: whether to broadcast the new value to clients
+        :param ignore_channel: if passed, ignore the specified websocket channel when broadcasting
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.write(value, notify=notify, ignore_channel=ignore_channel)
+
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
+        """
+        Apply partial updates to the variable's BackendStore using JSON Patch operations or automatic diffing.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the patches are applied for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param data: Either a list of JSON patch operations (RFC 6902) or a full object to diff against current value
+        :param notify: whether to broadcast the patches to clients
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.write_partial(data, notify=notify)
+
+    async def read(self):
+        """
+        Read a value from the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is read for the current user so the method can only
+        be used in authenticated contexts.
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.read()
+
+    async def delete(self, notify=True):
+        """
+        Delete the persisted value from the variable's BackendStore.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        If scope='user', the value is deleted for the current user so the method can only
+        be used in authenticated contexts.
+
+        :param notify: whether to broadcast that the value was deleted to clients
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.delete(notify=notify)
+
+    async def get_all(self) -> Dict[str, Any]:
+        """
+        Get all the values from the variable's BackendStore as a dictionary of key-value pairs.
+        Raises an error if the variable does not have a BackendStore attached.
+
+        For global scope, the dictionary contains a single key-value pair `{'global': value}`.
+        For user scope, the dictionary contains a key-value pair for each user `{'user1': value1, 'user2': value2, ...}`.
+        """
+        assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
+        return await self.store.get_all()
 
     @model_serializer(mode='wrap')
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:

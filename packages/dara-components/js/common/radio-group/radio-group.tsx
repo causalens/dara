@@ -2,18 +2,18 @@
 import { useCallback, useMemo } from 'react';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DynamicComponent,
-    Variable,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
-import { RadioItem as UIRadioItem, RadioGroup as UiRadio } from '@darajs/ui-components';
+import { type RadioItem as UIRadioItem, RadioGroup as UiRadio } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 const StyledRadio = injectCss(UiRadio);
 
@@ -71,6 +71,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             items={items}
             onChange={onChange}
             style={style}
+            // @ts-expect-error incorrect type in ui-components
             value={items.find((item) => item.value === value) ?? null}
         />
     );

@@ -31,14 +31,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isAfter, isBefore, isEqual, isWithinInterval, parseISO } from 'date-fns';
 import { transparentize } from 'polished';
 import { useMemo, useRef, useState } from 'react';
-import { FilterProps, HeaderGroup, Row } from 'react-table';
+import { type FilterProps, type HeaderGroup, type Row } from 'react-table';
 
 import styled from '@darajs/styled-components';
 
 import { FilterWrapper, StyledSearchBar } from '../filter/categorical-filter';
-import { FilterResults as DatetimeFilterResults } from '../filter/datetime-filter';
-import { FilterResults as NumericFilterResults } from '../filter/numeric-filter';
-import { Item } from '../types';
+import { type FilterResults as DatetimeFilterResults } from '../filter/datetime-filter';
+import { type FilterResults as NumericFilterResults } from '../filter/numeric-filter';
+import { type Item } from '../types';
 
 const FilterIcon = styled(FontAwesomeIcon)<{ $hasFilter: boolean }>`
     cursor: pointer;

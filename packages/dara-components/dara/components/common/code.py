@@ -19,7 +19,7 @@ from enum import Enum
 from typing import ClassVar, Optional, Union
 
 from dara.components.common.base_component import ContentComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class Themes(str, Enum):
@@ -67,7 +67,7 @@ class Code(ContentComponent):
     :param language: The language to use for code highlighting
     """
 
-    code: Union[str, NonDataVariable]
+    code: Union[str, ClientVariable]
     theme: Optional[Themes] = None
     language: str = 'python'
 

@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import asyncio
 import os
 import sys
@@ -91,10 +92,11 @@ def _start_application(config: Configuration):
     os.environ['VITE_MANIFEST_PATH'] = f'{config.static_files_dir}/manifest.json'
     os.environ['VITE_STATIC_PATH'] = config.static_files_dir
     import fastapi_vite_dara
+    import fastapi_vite_dara.config
 
     if len(config.pages) > 0:
         BASE_DIR = Path(__file__).parent
-        jinja_templates = Jinja2Templates(directory=str((Path(BASE_DIR, 'jinja'))))
+        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
         jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
         jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
         jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
@@ -107,7 +109,7 @@ def _start_application(config: Configuration):
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', 8))))
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8'))))
 
     is_production = os.environ.get('DARA_DOCKER_MODE') == 'TRUE'
 
@@ -169,7 +171,7 @@ def _start_application(config: Configuration):
                     worker_parameters={'task_module': config.task_module},
                     max_workers=max_workers,
                 )
-                await task_pool.start(60)   # timeout after 60s
+                await task_pool.start(60)  # timeout after 60s
                 utils_registry.set('TaskPool', task_pool)
                 dev_logger.info('Task pool initialized')
 
@@ -337,15 +339,15 @@ def _start_application(config: Configuration):
 
     # Start metrics server in a daemon thread
     if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        port = int(os.environ.get('DARA_METRICS_PORT', 10000))
+        port = int(os.environ.get('DARA_METRICS_PORT', '10000'))
         start_http_server(port)
 
     # Start profiling server in a daemon thread if explicitly enabled (only works on linux)
     if os.environ.get('DARA_PYPPROF_PORT', None) is not None:
-        profiling_port = int(os.environ.get('DARA_PYPPROF_PORT', 10001))
+        profiling_port = int(os.environ.get('DARA_PYPPROF_PORT', '10001'))
         dev_logger.warning('Starting cpu/memory profiling server', extra={'port': profiling_port})
 
-        from pypprof.net_http import start_pprof_server
+        from pypprof.net_http import start_pprof_server  # pyright: ignore[reportMissingImports]
 
         start_pprof_server(port=profiling_port)
 
@@ -358,7 +360,7 @@ def _start_application(config: Configuration):
     app.include_router(core_api_router, prefix='/api/core')
 
     @app.get('/api/{rest_of_path:path}')
-    async def not_found():  # pylint: disable=unused-variable
+    async def not_found():
         raise HTTPException(status_code=404, detail='API endpoint not found')
 
     if len(config.pages) > 0:
@@ -369,22 +371,23 @@ def _start_application(config: Configuration):
         # Auto-js mode - serve the built template with UMDs
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
             # Load template
-            with open(os.path.join(Path(BASE_DIR, 'jinja'), 'index_autojs.html'), 'r', encoding='utf-8') as fp:
+            template_path = os.path.join(Path(BASE_DIR, 'jinja'), 'index_autojs.html')  # type: ignore
+            with open(template_path, encoding='utf-8') as fp:
                 template = fp.read()
 
             # Generate tags for the template
             template = build_autojs_template(template, build_cache, config)
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
-            async def serve_app(request: Request):  # pylint: disable=unused-variable
+            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
                 return HTMLResponse(template)
 
         else:
             # Otherwise serve the Vite template
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
-            async def serve_app(request: Request):  # pylint: disable=unused-variable
-                return jinja_templates.TemplateResponse(request, 'index.html')
+            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
+                return jinja_templates.TemplateResponse(request, 'index.html')  # type: ignore
 
     return app
 

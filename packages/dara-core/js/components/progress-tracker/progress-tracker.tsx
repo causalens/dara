@@ -176,9 +176,9 @@ function ProgressTracker(props: ProgressTrackerProps): React.ReactNode {
             if (taskIds.length > 0) {
                 setSubscribedTaskIds(taskIds);
 
-                progressSubscription = wsClient
-                    .progressUpdates$(...taskIds)
-                    .subscribe((notif) => setLatestProgressUpdate(notif.message));
+                progressSubscription = wsClient.progressUpdates$(...taskIds).subscribe((notif) => {
+                    setLatestProgressUpdate(notif.message);
+                });
 
                 clearInterval(timer);
             }

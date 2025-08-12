@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { type ElementRects, type Elements, Middleware, size } from '@floating-ui/react';
+import { type ElementRects, type Elements, type Middleware, size } from '@floating-ui/react';
 
 /**
  * A middleware for Floating UI that auto sizes the floating content to be the same as the reference element.

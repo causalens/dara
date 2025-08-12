@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Highlight, { Language, defaultProps } from 'prism-react-renderer';
+import Highlight, { type Language, defaultProps } from 'prism-react-renderer';
 import nightOwlLight from 'prism-react-renderer/themes/nightOwlLight';
 import vsDark from 'prism-react-renderer/themes/vsDark';
 import { useEffect, useMemo, useState } from 'react';
@@ -23,7 +23,7 @@ import styled, { darkTheme, theme, useTheme } from '@darajs/styled-components';
 import { Check, Copy } from '@darajs/ui-icons';
 import { copyToClipboard } from '@darajs/ui-utils';
 
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 
 const CodeViewerContainer = styled.div`
     display: flex;

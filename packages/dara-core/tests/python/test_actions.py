@@ -1,4 +1,5 @@
-from typing import Any, Coroutine
+from collections.abc import Coroutine
+from typing import Any
 
 import anyio
 import pytest
@@ -55,7 +56,10 @@ def reset_context():
 
 async def test_side_effect():
     """Test that the SideEffect action registers the action correctly"""
-    test_function = lambda x: x * x
+
+    def test_function(x):
+        return x * x
+
     var = Variable(0)
     action = SideEffect(function=test_function, extras=[var])
 
@@ -175,7 +179,7 @@ def test_toggle_shortcut():
         plain_var.toggle()
 
 
-def test_update_shortcut():
+async def test_update_shortcut():
     plain_var = Variable()
     action = plain_var.update('test')
     assert isinstance(action, UpdateVariableImpl)
@@ -255,7 +259,6 @@ def test_annotated_action_no_params_static():
 
 
 def test_annotated_action_missing_ctx():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -269,7 +272,6 @@ def test_annotated_action_missing_ctx():
 
 
 def test_annotated_action_missing_ctx_instance():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -284,7 +286,6 @@ def test_annotated_action_missing_ctx_instance():
 
 
 def test_annotated_action_missing_ctx_class():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -300,7 +301,6 @@ def test_annotated_action_missing_ctx_class():
 
 
 def test_annotated_action_missing_ctx_static():
-
     # Fake being within an @action already
     ACTION_CONTEXT.set('foo')
 
@@ -530,7 +530,7 @@ async def test_action_run_task_with_args(monkeypatch: pytest.MonkeyPatch):
     app = _start_application(config)
 
     # start the app normally, booting up the task pool etc
-    async with TestClient(app) as client:
+    async with TestClient(app):
         result = None
 
         async def _raw_test_action(ctx: ActionCtx, x: int, y: int):
@@ -559,7 +559,7 @@ async def test_action_run_task_progress(monkeypatch: pytest.MonkeyPatch):
     app = _start_application(config)
 
     # start the app normally, booting up the task pool etc
-    async with TestClient(app) as client:
+    async with TestClient(app):
         updates: list[TaskProgressUpdate] = []
         result = None
 
@@ -591,25 +591,24 @@ async def test_calling_an_action():
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action,
-                {
-                    'input': 'value',
-                    'values': {},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
-                },
-            )
-            assert res.status_code == 200
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
-            assert actions[0]['name'] == 'NavigateTo'
-            assert actions[0]['url'] == 'url/value'
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': 'value',
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'NavigateTo'
+        assert actions[0]['url'] == 'url/value'
 
 
 async def test_calling_async_action():
@@ -626,28 +625,27 @@ async def test_calling_async_action():
     action = UpdateVariable(resolver, var)
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action,
-                {
-                    'input': 'test',
-                    'values': {
-                        'old': 'current',
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': 'test',
+                'values': {
+                    'old': 'current',
                 },
-            )
-            assert res.status_code == 200
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 'test_current'
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 'test_current'
 
 
 async def test_calling_update_action_with_get_api():
@@ -660,28 +658,27 @@ async def test_calling_update_action_with_get_api():
     action = UpdateVariable(lambda ctx: ctx.inputs.new, var.get('nested'))
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action,
-                {
-                    'input': 'test',
-                    'values': {'old': None},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
-                },
-            )
-            assert res.status_code == 200
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': 'test',
+                'values': {'old': None},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 'test'
-            # Check nested property is passed through correctly
-            assert actions[0]['variable']['nested'] == ['nested']
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 'test'
+        # Check nested property is passed through correctly
+        assert actions[0]['variable']['nested'] == ['nested']
 
 
 async def test_calling_annotated_action():
@@ -703,32 +700,31 @@ async def test_calling_annotated_action():
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action_instance,
-                {
-                    'input': 5,
-                    'values': {
-                        'previous_value': 10,
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': 5,
+                'values': {
+                    'previous_value': 10,
                 },
-            )
-            assert res.status_code == 200
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 2
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 2
 
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 26  # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
 
-            assert actions[1]['name'] == 'ResetVariables'
-            assert actions[1]['variables'] == [var.dict()]
+        assert actions[1]['name'] == 'ResetVariables'
+        assert actions[1]['variables'] == [var.dict()]
 
 
 async def test_calling_annotated_action_execute_arbitrary_impl():
@@ -758,33 +754,32 @@ async def test_calling_annotated_action_execute_arbitrary_impl():
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action_instance,
-                {
-                    'input': 5,
-                    'values': {
-                        'previous_value': 10,
-                    },
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': 5,
+                'values': {
+                    'previous_value': 10,
                 },
-            )
-            assert res.status_code == 200
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 2
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 2
 
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 26   # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 26  # 10 (prev dynamic kwarg) + 5 (input) + 10 (static kwarg) + 1
 
-            assert actions[1]['name'] == 'CustomImpl'
-            assert actions[1]['foo'] == 'bar'
-            assert custom_exec_called_with == 5   # called with input=5
+        assert actions[1]['name'] == 'CustomImpl'
+        assert actions[1]['foo'] == 'bar'
+        assert custom_exec_called_with == 5  # called with input=5
 
 
 async def test_calling_action_restores_args():
@@ -807,27 +802,26 @@ async def test_calling_action_restores_args():
 
     app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action_instance,
-                {
-                    'input': None,
-                    'values': {'class_1': {'value': 10}},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
-                },
-            )
-            assert res.status_code == 200
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': None,
+                'values': {'class_1': {'value': 10}},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
 
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 20
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 20
 
 
 async def test_calling_an_action_with_extras():
@@ -844,27 +838,26 @@ async def test_calling_an_action_with_extras():
     action = UpdateVariable(resolver, var, extras=[var2])
 
     app = _start_application(config)
-    async with AsyncClient(app) as client:
-        async with _async_ws_connect(client) as websocket:
-            init = await websocket.receive_json()
-            exec_uid = 'exec_id'
-            res = await _call_action(
-                client,
-                action,
-                {
-                    'input': 'test',
-                    'values': {'old': 'current', 'kwarg_0': 'val2'},
-                    'ws_channel': init.get('message', {}).get('channel'),
-                    'execution_id': exec_uid,
-                },
-            )
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': 'test',
+                'values': {'old': 'current', 'kwarg_0': 'val2'},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
 
-            assert res.status_code == 200
+        assert res.status_code == 200
 
-            actions = await get_action_results(websocket, exec_uid)
-            assert len(actions) == 1
-            assert actions[0]['name'] == 'UpdateVariable'
-            assert actions[0]['value'] == 'test_current_val2'
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 'test_current_val2'
 
 
 async def test_calling_an_action_returns_task():
@@ -990,10 +983,10 @@ async def test_calling_an_action_returns_task_loop():
 
     var1 = Variable(1)
     var2 = Variable(2)
-    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)   # 3
-    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])   # 5
-    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])   # 8
-    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])   # 11
+    task_var = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)  # 3
+    meta_dv_2 = DerivedVariable(lambda _1: int(_1) + 2, variables=[task_var])  # 5
+    meta_dv_1 = DerivedVariable(lambda _1: int(_1) + 3, variables=[meta_dv_2])  # 8
+    parent_var = DerivedVariable(lambda _1, _2: int(_1) + int(_2), variables=[meta_dv_1, task_var])  # 11
 
     result = Variable()
     action = UpdateVariable(lambda ctx: ctx.extras[0], variable=result, extras=[parent_var])

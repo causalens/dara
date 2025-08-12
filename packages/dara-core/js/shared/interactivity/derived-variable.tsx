@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import isEqual from 'lodash/isEqual';
+import set from 'lodash/set';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
 import {
@@ -17,30 +18,26 @@ import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
+import { TaskError } from '@/api/websocket';
 import { handleAuthErrors } from '@/auth/auth';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
 import useInterval from '@/shared/utils/use-interval';
 import {
-    type DerivedDataVariable,
     type DerivedVariable,
     type GlobalTaskContext,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
     isCondition,
-    isDerivedDataVariable,
-    isDerivedVariable,
-    isResolvedDataVariable,
-    isResolvedDerivedDataVariable,
     isResolvedDerivedVariable,
+    isResolvedServerVariable,
     isResolvedSwitchVariable,
     isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { cleanArgs, getOrRegisterTrigger, registerChildTriggers, resolveNested, resolveVariable } from './internal';
+import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable } from './internal';
 import {
     type TriggerIndexValue,
     depsRegistry,
@@ -48,6 +45,7 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
+import { buildTriggerList, registerChildTriggers } from './triggers';
 
 export interface DerivedVariableValueResponse<T> {
     cache_key: string;
@@ -68,8 +66,7 @@ interface DerivedVariableTaskResponse {
 interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
     extras: RequestExtras;
-    force: boolean;
-    is_data_variable?: boolean;
+    force_key?: string | null;
     /**
      * selector instance key  - each selector's requests should be treated separately
      */
@@ -87,7 +84,6 @@ interface FetchDerivedVariableArgs {
  *
  * @param input Function inputs
  * - `cache`, the cache option for the derived variable.
- * - `force`, send force=true in the request body
  * - `extras`, request extras to be merged into the options
  * - `uid`, the uid of the derived variable
  * - `values`, values to pass in the request
@@ -95,12 +91,11 @@ interface FetchDerivedVariableArgs {
  */
 export async function fetchDerivedVariable<T>({
     cache,
-    force,
     extras,
+    force_key,
     variableUid,
     values,
     wsClient,
-    is_data_variable = false,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<T>> {
     const cacheControl =
         cache === null ?
@@ -110,10 +105,11 @@ export async function fetchDerivedVariable<T>({
         :   undefined;
 
     const ws_channel = await wsClient.getChannel();
+
     const res = await request(
         `/api/core/derived-variable/${variableUid}`,
         {
-            body: JSON.stringify({ force, is_data_variable, values, ws_channel }),
+            body: JSON.stringify({ values, ws_channel, force_key: force_key ?? null }),
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
@@ -141,10 +137,9 @@ async function debouncedFetchDerivedVariable({
     selectorKey,
     values,
     wsClient,
-    force,
     extras,
     cache,
-    is_data_variable = false,
+    force_key,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     // If this is the first time this is called then set up a subject and return stream for this selector
     if (!debouncedFetchSubjects[selectorKey]) {
@@ -161,8 +156,7 @@ async function debouncedFetchDerivedVariable({
     debouncedFetchSubjects[selectorKey].next({
         cache,
         extras,
-        force,
-        is_data_variable,
+        force_key,
         selectorKey,
         values,
         variableUid,
@@ -182,15 +176,10 @@ async function debouncedFetchDerivedVariable({
  * @param getter recoil getter function
  */
 function resolveValue(
-    value:
-        | ResolvedDerivedVariable
-        | ResolvedDerivedDataVariable
-        | ResolvedDataVariable
-        | ResolvedSwitchVariable
-        | RecoilValue<any>,
+    value: ResolvedDerivedVariable | ResolvedServerVariable | ResolvedSwitchVariable | RecoilValue<any>,
     getter: GetRecoilValue
 ): any {
-    if (isResolvedDerivedVariable(value) || isResolvedDerivedDataVariable(value)) {
+    if (isResolvedDerivedVariable(value)) {
         const resolvedValues = value.values.map((v) => resolveValue(v, getter));
 
         return {
@@ -207,8 +196,12 @@ function resolveValue(
         };
     }
 
-    if (isResolvedDataVariable(value)) {
-        return value;
+    if (isResolvedServerVariable(value)) {
+        return {
+            ...value,
+            sequence_number:
+                isRecoilValue(value.sequence_number) ? getter(value.sequence_number) : value.sequence_number,
+        };
     }
 
     if (isCondition(value)) {
@@ -240,8 +233,12 @@ export function getDeps(values: Array<ResolvedDerivedVariable | any>, deps?: num
             return [];
         }
 
-        if (isResolvedDerivedVariable(val) || isResolvedDerivedDataVariable(val)) {
+        if (isResolvedDerivedVariable(val)) {
             return getDeps(val.values, val.deps).flat();
+        }
+
+        if (isResolvedServerVariable(val)) {
+            return val.sequence_number;
         }
 
         if (isResolvedSwitchVariable(val)) {
@@ -277,6 +274,12 @@ interface PreviousResult {
         result: any;
     };
     type: 'previous';
+    /**
+     * List of values to use in the refetch request (force_key is embedded directly in the values)
+     */
+    values: any[];
+    /** Key to the deps cache */
+    depsKey: string;
 }
 
 /**
@@ -285,24 +288,26 @@ interface PreviousResult {
  */
 interface CurrentResult {
     /**
-     * Whether the refetch should be forcing
-     */
-    force: boolean;
-    /**
      * List of new 'relevant' values which should be used to update the depsRegistry entry if refetch was successful
      */
     relevantValues: any[];
+    /**
+     * Force key for self-trigger (polling, manual trigger), null if triggered by nested variable
+     */
+    selfTriggerForceKey: string | null;
     type: 'current';
     /**
-     * List of values to use in the refetch request
+     * List of values to use in the refetch request (force_key is embedded directly in the values)
      */
     values: any[];
+    /** Key to the deps cache */
+    depsKey: string;
 }
 
 /**
  * Represents the result of a derived variable resolution.
  */
-type DerivedResult = PreviousResult | CurrentResult;
+export type DerivedResult = PreviousResult | CurrentResult;
 
 /**
  * Resolve a derived value from a list of dependant variables and their resolved values.
@@ -317,21 +322,22 @@ type DerivedResult = PreviousResult | CurrentResult;
  * @param variables dependant variables
  * @param deps list of relevant dependant variables, akin to useEffect dependency array
  * @param resolvedVariables resolved values of dependant variables - turned into primitives and Resolved forms
- * @param wsClient websocket client
  * @param get getter function to resolve atoms to values
  * @param selfTrigger additional trigger index value to register as a dependency
  */
-export async function resolveDerivedValue(
+export function resolveDerivedValue(
     key: string,
     variables: any[], // variable or primitive
     deps: any[], // variable or primitive
     resolvedVariables: any[],
-    wsClient: WebSocketClientInterface,
     get: GetRecoilValue,
     selfTrigger?: TriggerIndexValue
-): Promise<DerivedResult> {
+): DerivedResult {
+    // Build trigger map once for efficient lookups
+    const triggerList = buildTriggerList(variables);
+
     // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
-    const triggers = registerChildTriggers(variables, wsClient, get);
+    const triggers = registerChildTriggers(triggerList, get);
 
     if (selfTrigger) {
         triggers.unshift(selfTrigger);
@@ -342,7 +348,7 @@ export async function resolveDerivedValue(
      * - primitive values are resolved to themselves
      * - simple variables are resolved to their values
      * - derived variables are resolved to ResolvedDerivedVariable objects with nested values/deps resolved to values
-     * - ResolvedDataVariable objects are left as is
+     * - server variables are resolved to their sequence number
      */
     const values = resolvedVariables.map((v) => resolveValue(v, get));
 
@@ -369,10 +375,6 @@ export async function resolveDerivedValue(
         return acc.set(getUniqueIdentifier(v), depsValues[idx]);
     }, new Map<string, any>());
 
-    let recalculateForced = false; // whether the recalculation was forced or not (by calling trigger with force=true)
-    let wasTriggered = false; // whether a trigger caused the selector execution
-    let wasTriggeredItself = false; // whether the variable's own trigger caused the selector execution
-
     /**
      * Deps handling
      */
@@ -393,6 +395,8 @@ export async function resolveDerivedValue(
             return {
                 entry: previousEntry,
                 type: 'previous',
+                values,
+                depsKey: key,
             };
         }
 
@@ -403,53 +407,66 @@ export async function resolveDerivedValue(
             previousEntry.args.length - triggers.length
         ) as number[];
 
+        // Find which trigger changed and handle force_key appropriately
+        let selfTriggerForceKey: string | null = null;
+
         for (const [idx, triggerValue] of triggers.entries()) {
             /**
              *  If any of the nested trigger value has changed (this execution was caused by a trigger)
-             *  update whether it was called with a `force` flag or not - based on the trigger that changed
+             *  handle the force_key appropriately
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                recalculateForced = triggerValue.force;
+                if (selfTrigger && idx === 0) {
+                    // This is a self-trigger (polling, manual trigger) - use global force
+                    selfTriggerForceKey = triggerValue.force_key;
+                } else if (triggerValue.force_key) {
+                    // This is a nested variable trigger - embed force_key in the specific variable
+                    // shift index back by 1 if we prepended a self trigger
+                    const valueIndex = selfTrigger ? idx - 1 : idx;
+                    const triggerInfo = triggerList[valueIndex]!;
 
-                // Record whether its own trigger was the one that caused the change
-                if (idx === 0) {
-                    wasTriggeredItself = true;
+                    // If the trigger path is empty, it means we need to force the DV itself
+                    // This can happen when e.g. a dependant DataVariable is triggered
+                    if (triggerInfo.path.length === 0) {
+                        selfTriggerForceKey = triggerValue.force_key;
+                    } else {
+                        set(values, [...triggerInfo.path, 'force_key'], triggerValue.force_key);
+                    }
                 }
-
-                wasTriggered = true;
                 break;
             }
         }
-    }
 
-    // if it was triggered but not by its own trigger, wait 50ms to let the triggered variable run first
-    if (wasTriggered && !wasTriggeredItself) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+            relevantValues,
+            selfTriggerForceKey,
+            type: 'current',
+            values,
+            depsKey: key,
+        };
     }
 
     return {
-        force: recalculateForced,
         relevantValues,
+        selfTriggerForceKey: null,
         type: 'current',
         values,
+        depsKey: key,
     };
 }
 
 /**
- * Get a derived variable from the selector registry, registering it if not already registered
- *
- * @param variable variable to register
- * @param wsClient WebSocket client from context
- * @param tasks tasks list from context
- * @param currentExtras request extras to be merged into the options
+ * Get or register a recoil selector for a given derived variable result object.
+ * Resolves the primitive values and returns either the previous cached result or an object
+ * signifying that we need to refetch the value.
  */
-export function getOrRegisterDerivedVariable(
-    variable: DerivedVariable | DerivedDataVariable,
+export function getOrRegisterDerivedVariableResult(
+    variable: DerivedVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     currentExtras: RequestExtras
-): RecoilValue<DerivedVariableValueResponse<any>> {
-    const key = getRegistryKey(variable, 'selector');
+): RecoilValue<DerivedResult> {
+    const key = getRegistryKey(variable, 'result-selector');
 
     if (!selectorFamilyRegistry.has(key)) {
         getOrRegisterTrigger(variable);
@@ -469,46 +486,106 @@ export function getOrRegisterDerivedVariable(
                          *
                          * For derived variables, put ResolvedDerivedVariable object with values resolved to recoil atoms/selectors,
                          * and deps resolved to array of indexes of variables (or null if not set)
-                         * For data variables, put ResolvedDataVariable object.
                          */
-                        const resolvedVariables = variable.variables.map((v) => {
-                            // Handle non-variables - plain values could be injected via LoopVariable
-                            if (!isVariable(v)) {
-                                return v;
-                            }
+                        const resolvedVariables = await Promise.all(
+                            variable.variables.map(async (v) => {
+                                // Handle non-variables - plain values could be injected via LoopVariable
+                                if (!isVariable(v)) {
+                                    return Promise.resolve(v);
+                                }
 
-                            return resolveVariable(v, wsClient, taskContext, currentExtras);
-                        });
+                                return resolveVariable(v, wsClient, taskContext, currentExtras);
+                            })
+                        );
 
                         const selfTrigger = get(getOrRegisterTrigger(variable));
-                        const { extras } = extrasSerializable;
 
                         // for deps use a different key for each selector instance rather than one per family
                         const selectorKey = key + extrasSerializable.toJSON();
-                        const derivedResult = await resolveDerivedValue(
+                        const derivedResult = resolveDerivedValue(
                             selectorKey,
                             variable.variables,
                             variable.deps,
                             resolvedVariables,
-                            wsClient,
                             get,
                             selfTrigger
                         );
+                        return derivedResult;
+                    },
+                key: nanoid(),
+            })
+        );
+    }
+
+    const family = selectorFamilyRegistry.get(key)!;
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+    // register selector instance in the selector family registry
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
+    }
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
+    return selectorInstance;
+}
+
+/**
+ * Get a derived variable from the selector registry, registering it if not already registered
+ *
+ * @param variable variable to register
+ * @param wsClient WebSocket client from context
+ * @param tasks tasks list from context
+ * @param currentExtras request extras to be merged into the options
+ */
+export function getOrRegisterDerivedVariable(
+    variable: DerivedVariable,
+    wsClient: WebSocketClientInterface,
+    taskContext: GlobalTaskContext,
+    currentExtras: RequestExtras
+): RecoilValue<DerivedVariableValueResponse<any>> {
+    const key = getRegistryKey(variable, 'selector');
+
+    if (!selectorFamilyRegistry.has(key)) {
+        getOrRegisterTrigger(variable);
+
+        // register a family for this particular variable
+        selectorFamilyRegistry.set(
+            key,
+            selectorFamily({
+                cachePolicy_UNSTABLE: {
+                    eviction: 'most-recent',
+                },
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    async ({ get }) => {
+                        const selectorKey = key + extrasSerializable.toJSON();
+
+                        // get the result selector instance for this extras value
+                        const dvResultSelector = getOrRegisterDerivedVariableResult(
+                            variable,
+                            wsClient,
+                            taskContext,
+                            extrasSerializable.extras
+                        );
+                        const derivedResult = get(dvResultSelector);
 
                         if (derivedResult.type === 'previous') {
                             return { cache_key: derivedResult.entry.cacheKey, value: derivedResult.entry.result };
                         }
 
+                        const { extras } = extrasSerializable;
                         let variableResponse = null;
 
                         try {
                             variableResponse = await debouncedFetchDerivedVariable({
                                 cache: variable.cache,
                                 extras,
-                                force: derivedResult.force,
-                                is_data_variable: isDerivedDataVariable(variable),
+                                force_key: derivedResult.selfTriggerForceKey,
                                 selectorKey,
-                                values: normalizeRequest(cleanArgs(derivedResult.values, false), variable.variables),
+                                values: normalizeRequest(cleanArgs(derivedResult.values), variable.variables),
                                 variableUid: variable.uid,
                                 wsClient,
                             });
@@ -522,53 +599,54 @@ export function getOrRegisterDerivedVariable(
                         const cacheKey = variableResponse.cache_key;
                         let variableValue = null;
 
-                        // We're only interested in the actual value for DVs.
-                        // For DerivedDataVariables we only need the cache key and the backend will handle the rest, regardless
-                        // of whether it's running as a task or not
-                        if (isDerivedVariable(variable)) {
-                            // If there is a task running related to the current variable then something has changed, so cancel them
-                            taskContext.cleanupRunningTasks(variable.uid);
+                        // If there is a task running related to the current variable then something has changed, so cancel them
+                        taskContext.cleanupRunningTasks(variable.uid);
 
-                            // If the variable is computed as a task then wait for it to finish and fetch the result
-                            if (isTaskResponse(variableResponse)) {
-                                const taskId = variableResponse.task_id;
+                        // If the variable is computed as a task then wait for it to finish and fetch the result
+                        if (isTaskResponse(variableResponse)) {
+                            const taskId = variableResponse.task_id;
 
-                                // register task being started
-                                taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
+                            // register task being started
+                            taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
 
-                                try {
-                                    await wsClient.waitForTask(taskId);
-                                } catch {
-                                    // If there was an error waiting for task it means it was cancelled (by a re-run)
-                                    // It should be safe to return `null` here as the selector will re-run and throw suspense again
-                                    return {
-                                        cache_key: cacheKey,
-                                        value: null,
-                                    };
-                                } finally {
-                                    taskContext.endTask(taskId);
-                                }
-
-                                try {
-                                    variableValue = await fetchTaskResult<any>(taskId, extras);
-                                } catch (e) {
+                            try {
+                                await wsClient.waitForTask(taskId);
+                            } catch (e: unknown) {
+                                if (e instanceof TaskError) {
                                     // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
                                     (e as any).selectorId = key;
                                     (e as any).selectorExtras = extrasSerializable.toJSON();
                                     throw e;
                                 }
-                            } else {
-                                variableValue = variableResponse.value;
+
+                                // should be a TaskCancelledError
+                                // It should be safe to return `null` here as the selector will re-run and throw suspense again
+                                return {
+                                    cache_key: cacheKey,
+                                    value: null,
+                                };
+                            } finally {
+                                taskContext.endTask(taskId);
                             }
+
+                            try {
+                                variableValue = await fetchTaskResult<any>(taskId, extras);
+                            } catch (e) {
+                                // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                                (e as any).selectorId = key;
+                                (e as any).selectorExtras = extrasSerializable.toJSON();
+                                throw e;
+                            }
+                        } else {
+                            variableValue = variableResponse.value;
                         }
 
-                        // Store the final result and arguments used if deps is specified
-
-                        // resolve nested if defined (i.e. for DerivedVariable, DerivedDataVariable does not have nested)
+                        // resolve nested if defined
                         variableValue =
                             'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
 
-                        depsRegistry.set(selectorKey, {
+                        // Store the final result and arguments used
+                        depsRegistry.set(derivedResult.depsKey, {
                             args: derivedResult.relevantValues,
                             cacheKey,
                             result: variableValue,
@@ -670,7 +748,7 @@ export function getOrRegisterDerivedVariableValue(
  * @param extras request extras to be merged into the options
  */
 export function useDerivedVariable(
-    variable: DerivedVariable | DerivedDataVariable,
+    variable: DerivedVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras
@@ -687,7 +765,11 @@ export function useDerivedVariable(
     // Creating a setter function for triggerIndex
     const triggerUpdates = useSetRecoilState(triggerIndex);
     const trigger = useCallback(
-        (force = true) => triggerUpdates((val) => ({ force, inc: val.inc + 1 })),
+        (force = true) =>
+            triggerUpdates((val) => ({
+                force_key: force ? nanoid() : null,
+                inc: val.inc + 1,
+            })),
         [triggerUpdates]
     );
 

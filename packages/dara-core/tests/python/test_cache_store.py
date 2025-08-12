@@ -2,10 +2,10 @@ import pytest
 from freezegun import freeze_time
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.internal.cache_store.cache_store import CacheStore
-from dara.core.internal.cache_store.ttl import TTLCache
-from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.base_definitions import Cache, CachedRegistryEntry
+from dara.core.internal.cache_store.cache_store import CacheStore
+from dara.core.internal.cache_store.lru import LRUCache
+from dara.core.internal.cache_store.ttl import TTLCache
 
 pytestmark = pytest.mark.anyio
 
@@ -73,8 +73,8 @@ async def test_lru_cache_pinning():
     assert await lru_cache.get('e') == 5
 
     # Test get without unpin
-    await lru_cache.set('a', 1, pin=True)   # should be a,d,e
-    await lru_cache.get('a', unpin=False)   # get but do not unpin
+    await lru_cache.set('a', 1, pin=True)  # should be a,d,e
+    await lru_cache.get('a', unpin=False)  # get but do not unpin
     await lru_cache.set('b', 2)
     assert await lru_cache.get('a') == 1  # "a" should not be evicted since it's still pinned
 
@@ -94,7 +94,7 @@ async def test_most_recent_cache():
     assert await cache.get('a') == 1
     await cache.set('b', 2)
     assert await cache.get('a') == 1  # "a" should still be in the cache since it's pinned
-    assert await cache.get('b') is None   # "b" will immediately be evicted since it overflows the cache
+    assert await cache.get('b') is None  # "b" will immediately be evicted since it overflows the cache
 
     # here both a and b are pinned, both are kept even though they overflow
     await cache.set('b', 2, pin=True)
@@ -211,49 +211,20 @@ async def test_cache_store_user_api():
     USER.set(
         UserData(
             identity_name='test1',
+            identity_id='test1',
         )
     )
     await store.set(reg_entry, key='test_key', value='test_value')
 
-    USER.set(
-        UserData(
-            identity_name='test2',
-        )
-    )
+    USER.set(UserData(identity_name='test2', identity_id='test2'))
     assert await store.get(reg_entry, key='test_key') is None
     await store.set(reg_entry, key='test_key', value='test_value_2')
 
-    USER.set(
-        UserData(
-            identity_name='test1',
-        )
-    )
+    USER.set(UserData(identity_name='test1', identity_id='test1'))
     assert await store.get(reg_entry, key='test_key') == 'test_value'
 
-    USER.set(
-        UserData(
-            identity_name='test2',
-        )
-    )
+    USER.set(UserData(identity_name='test2', identity_id='test2'))
     assert await store.get(reg_entry, key='test_key') == 'test_value_2'
-
-
-async def test_cache_store_wait_and_get():
-    store = CacheStore()
-    reg_entry = CachedRegistryEntry(uid='test_uid', cache=Cache.Policy.KeepAll())
-
-    await store.set_pending(reg_entry, key='test_key')
-
-    # Create two coroutines that are trying to access the result
-    var_1 = store.get_or_wait(reg_entry, key='test_key')
-    var_2 = store.get_or_wait(reg_entry, key='test_key')
-
-    # Set the value
-    await store.set(reg_entry, key='test_key', value='test_value')
-
-    # Check the values are resolved
-    assert await var_1 == 'test_value'
-    assert await var_2 == 'test_value'
 
 
 async def test_cache_store_pinning():

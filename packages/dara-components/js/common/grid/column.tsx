@@ -1,14 +1,14 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    LayoutComponentProps,
+    type LayoutComponentProps,
     injectCss,
     useComponentStyles,
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
-import { Breakpoints } from '../types';
+import { type Breakpoints } from '../types';
 
 /* eslint-disable react/no-unused-prop-types */
 export interface ColumnProps extends LayoutComponentProps {
@@ -50,7 +50,7 @@ function Column(props: ColumnProps): JSX.Element {
                 ...style,
             }}
         >
-            <DisplayCtx.Provider value={{ component: 'column', direction: props.direction }}>
+            <DisplayCtx.Provider value={{ component: 'column', direction: props.direction ?? 'vertical' }}>
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={`cell-${idx}-${child.uid}`} />
                 ))}

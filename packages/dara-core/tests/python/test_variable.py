@@ -8,7 +8,9 @@ from fastapi.encoders import jsonable_encoder
 from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
+from dara.core.interactivity.url_variable import UrlVariable
 from dara.core.main import _start_application
+from dara.core.persistence import BrowserStore, QueryParamStore
 
 from tests.python.utils import _get_derived_variable, create_app
 
@@ -93,12 +95,12 @@ class TestVariables(unittest.TestCase):
         second_derived_variable = DerivedVariable(test_resolve, variables=[variable], uid='test_another_derived_var')
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):
-            DerivedVariable(test_resolve, variables=[variable], uid='test_derived_var'),
+            (DerivedVariable(test_resolve, variables=[variable], uid='test_derived_var'),)
 
     def test_derived_variable_uid_run_as_task(self):
         """Test that when giving derived variables uid and running as task, that you can't have two with the same name"""
@@ -110,15 +112,15 @@ class TestVariables(unittest.TestCase):
         )
 
         # Checks that two derived variables with different uids can be registered
-        assert first_derived_variable.get_value != None
-        assert second_derived_variable.get_value != None
+        assert first_derived_variable.get_value is not None
+        assert second_derived_variable.get_value is not None
 
         # Checks that if another tries to register with same uid we get a value error
         with self.assertRaises(ValueError):
-            DerivedVariable(root, variables=[variable], uid='test_task_var', run_as_task=True),
+            (DerivedVariable(root, variables=[variable], uid='test_task_var', run_as_task=True),)
 
         with self.assertRaises(ValueError):
-            DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),
+            (DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),)
 
 
 async def test_derived_variables_with_df_nan():
@@ -144,7 +146,7 @@ async def test_derived_variables_with_df_nan():
     async with AsyncClient(app) as client:
         # Check that the component can be fetched via the api, with input_val passed in the body
         response = await _get_derived_variable(
-            client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force': False}
+            client, derived, {'is_data_variable': False, 'values': [0], 'ws_channel': 'test_channel', 'force_key': None}
         )
         assert response.status_code == 200
         assert response.json()['value'] == {
@@ -175,3 +177,21 @@ async def test_variable_init_override():
     # check that the override is not active anymore
     new_variable = Variable(default='foo')
     assert new_variable.default == 'foo'
+
+
+async def test_persist_value():
+    """
+    Test that persist_value is backwards compatible
+    """
+    var = Variable(persist_value=True)
+    assert isinstance(var.store, BrowserStore)
+
+
+async def test_url_variable():
+    """
+    Test that url variable is backwards compatible
+    """
+    var = UrlVariable(query='test')
+    assert isinstance(var, Variable)  # subclass
+    assert isinstance(var.store, QueryParamStore)
+    assert var.store.query == 'test'

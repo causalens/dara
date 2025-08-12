@@ -5,11 +5,11 @@ import {
     ForceAtlasLayout,
     GraphLayout,
     type GraphLayoutBuilder,
-    GroupingLayoutBuilder,
+    type GroupingLayoutBuilder,
     MarketingLayout,
     PlanarLayout,
     SpringLayout,
-    TieredGraphLayoutBuilder,
+    type TieredGraphLayoutBuilder,
 } from '@darajs/ui-causal-graph-editor';
 
 // Types mirror backend types defined in dara.components.graphs.graph_layout
@@ -269,7 +269,7 @@ export function parseLayoutDefinition(definition: GraphLayoutDefinition): GraphL
         }
 
         if (definition.tier_separation) {
-            builderWithTiers.tierSeparation(definition.tier_separation);
+            builderWithTiers.tierSeparation?.(definition.tier_separation);
         }
     }
 

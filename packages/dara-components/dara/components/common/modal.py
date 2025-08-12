@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from dara.components.common.base_component import LayoutComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class Modal(LayoutComponent):
@@ -47,4 +47,4 @@ class Modal(LayoutComponent):
     :param align: How to align the content of the modal, accepts any flexbox alignments
     """
 
-    show: NonDataVariable
+    show: ClientVariable

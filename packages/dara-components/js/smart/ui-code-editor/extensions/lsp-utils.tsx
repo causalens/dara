@@ -2,15 +2,17 @@ import type { Completion, CompletionContext, CompletionResult } from '@codemirro
 import { nanoid } from 'nanoid';
 import { type CompletionItem, CompletionItemKind, type SignatureHelp } from 'vscode-languageserver-types';
 
-import type {
-    LspCompletionResponse,
-    LspDefinitionResponse,
-    LspHoverResponse,
-    LspMessage,
-    LspSignatureHelpResponse,
-    WsClient,
+import {
+    type ErrorResponse,
+    LSP_MESSAGE_KIND,
+    type LspCompletionResponse,
+    type LspDefinitionResponse,
+    type LspHoverResponse,
+    type LspMessage,
+    type LspSignatureHelpResponse,
+    type WsClient,
+    isErrorResponse,
 } from '../types';
-import { ErrorResponse, LSP_MESSAGE_KIND, isErrorResponse } from '../types';
 
 const LSP_CODEMIRROR_TYPE_MAP = Object.fromEntries(
     Object.entries(CompletionItemKind).map(([key, value]) => [value, key])
@@ -98,7 +100,9 @@ function prefixMatch(options: Completion[]): RegExp {
 
     for (const { apply } of options) {
         const [initial, ...restStr] = apply as string;
-        first.add(initial);
+        if (initial) {
+            first.add(initial);
+        }
         for (const char of restStr) {
             rest.add(char);
         }

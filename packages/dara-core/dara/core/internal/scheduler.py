@@ -20,7 +20,7 @@ from datetime import datetime
 from multiprocessing import get_context
 from multiprocessing.process import BaseProcess
 from pickle import PicklingError
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, cast
 
 from croniter import croniter
 from pydantic import BaseModel, field_validator
@@ -56,25 +56,28 @@ class ScheduledJob(BaseModel):
             job_process = ctx.Process(target=self._refresh_timer, args=(func, args), daemon=True)
             job_process.start()
             return job_process
-        except PicklingError:
+        except PicklingError as err:
             raise PicklingError(
                 """
             Unable to pickle scheduled function. Please ensure that the function you are trying
             to schedule is not in the same file as the ConfigurationBuilder is defined and that
             the function is not a lambda.
             """
-            )
+            ) from err
 
     def _refresh_timer(self, func, args):
         while self.continue_running and not (self.run_once and not self.first_execution):
-            interval = self.interval
+            interval: int
             # If there's more than one interval to wait, i.e. this is a weekday process
-            if type(interval) == list:
+            if isinstance(self.interval, list):
                 # Wait the first interval if this is the first execution of the job
                 interval = self.interval[0] if self.first_execution else self.interval[1]
+            else:
+                interval = self.interval
+
             self.first_execution = False
             # Wait the interval and then run the job
-            time.sleep(interval)
+            time.sleep(cast(int, interval))
             func(*args)
 
 
@@ -176,7 +179,7 @@ class ScheduledJobFactory(BaseModel):
 
     @field_validator('weekday', mode='before')
     @classmethod
-    def validate_weekday(cls, weekday: Any) -> datetime:  # pylint: disable=E0213
+    def validate_weekday(cls, weekday: Any) -> datetime:
         if isinstance(weekday, datetime):
             return weekday
         if isinstance(weekday, str):
@@ -283,7 +286,9 @@ class Scheduler:
     def _weekday(self, weekday: int):
         # The job must execute on a weekly interval
         return ScheduledJobFactory(
-            interval=self.interval * 604800, run_once=self._run_once, weekday=str(weekday)  # type: ignore
+            interval=self.interval * 604800,
+            run_once=self._run_once,
+            weekday=str(weekday),  # type: ignore
         )
 
     def monday(self) -> ScheduledJobFactory:

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react';
+import type { Meta } from '@storybook/react-vite';
 import Graph from 'graphology';
 import clusters from 'graphology-generators/random/clusters';
 import deepCopy from 'lodash/cloneDeep';
@@ -24,8 +24,7 @@ import { useEffect, useState } from 'react';
 
 import { FRAUD, SHIPPED_UNITS } from '../../../tests/mocks/graphs';
 import { FcoseLayout } from '../../shared/graph-layout';
-import type { CausalGraph } from '../../types';
-import { EdgeType, VariableType } from '../../types';
+import { type CausalGraph, EdgeType, VariableType } from '../../types';
 import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, nodeTiersCausalGraph } from './stories-utils';

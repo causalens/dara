@@ -15,7 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Coroutine, Dict, Literal
+from collections.abc import Coroutine
+from typing import Callable, Dict, Literal, TypeVar, Union
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -23,13 +24,16 @@ from dara.core.internal.utils import async_dedupe
 RegistryLookupKey = Literal[
     RegistryType.ACTION,
     RegistryType.COMPONENTS,
-    RegistryType.DATA_VARIABLE,
     RegistryType.DERIVED_VARIABLE,
+    RegistryType.SERVER_VARIABLE,
     RegistryType.STATIC_KWARGS,
     RegistryType.UPLOAD_RESOLVER,
     RegistryType.BACKEND_STORE,
+    RegistryType.DOWNLOAD_CODE,
 ]
 CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
+
+RegistryType = TypeVar('RegistryType')
 
 
 class RegistryLookup:
@@ -37,11 +41,13 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: CustomRegistryLookup = {}):
+    def __init__(self, handlers: Union[CustomRegistryLookup, None] = None):
+        if handlers is None:
+            handlers = {}
         self.handlers = handlers
 
     @async_dedupe
-    async def get(self, registry: Registry, uid: str):
+    async def get(self, registry: Registry[RegistryType], uid: str) -> RegistryType:
         """
         Get the entry from registry by uid.
         If uid is not in registry and it has a external handler that defined, will execute the handler
@@ -62,4 +68,4 @@ class RegistryLookup:
                 return entry
             raise ValueError(
                 f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
-            ).with_traceback(e.__traceback__)
+            ) from e

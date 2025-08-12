@@ -18,8 +18,7 @@ limitations under the License.
 from typing import Literal, Optional
 
 # Re-export CSSProperties for easier importing
-# pylint: disable=unused-import
-from dara.core.visual.css import CSSProperties
+from dara.core.visual.css import CSSProperties  # noqa: F401
 
 IconStyle = Literal['solid', 'regular', 'brands']
 IconSize = Literal['1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x', '2xs', 'xs', 'sm', 'lg', 'xl', '2xl']

@@ -1,5 +1,4 @@
 import { type AtomEffect, type RecoilState, atomFamily, selectorFamily } from 'recoil';
-import { BehaviorSubject } from 'rxjs';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
@@ -8,102 +7,10 @@ import { type DerivedVariable, type GlobalTaskContext, type SingleVariable, isDe
 
 // eslint-disable-next-line import/no-cycle
 import { STORES, getEffect, getOrRegisterDerivedVariableValue, resolveNested, setNested } from './internal';
+import { StateSynchronizer } from './state-synchronizer';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, getRegistryKey, selectorFamilyRegistry } from './store';
 
-type VariableUpdate =
-    | { type: 'initial'; value: any }
-    | { isReset: boolean; nodeKey: string; oldValue: any; type: 'update'; value: any };
-
-/**
- * State synchronizer singleton
- *
- * Used to synchronize changes across atoms of the same family
- */
-class StateSynchronizer {
-    static #instance: StateSynchronizer;
-
-    #observers = new Map<string, BehaviorSubject<VariableUpdate>>();
-
-    // eslint-disable-next-line no-useless-constructor, no-empty-function
-    private constructor() {}
-
-    static getInstance(): StateSynchronizer {
-        if (!StateSynchronizer.#instance) {
-            StateSynchronizer.#instance = new StateSynchronizer();
-        }
-
-        return StateSynchronizer.#instance;
-    }
-
-    /**
-     * Register a key in the state synchronizer
-     *
-     * @param key key to register
-     * @param defaultValue value to register
-     */
-    register(key: string, defaultValue: any): void {
-        if (!this.#observers.has(key)) {
-            this.#observers.set(key, new BehaviorSubject({ type: 'initial', value: defaultValue } as VariableUpdate));
-        }
-    }
-
-    /**
-     * Check if a given key is registered in the state synchronizer
-     *
-     * @param key key to check if registered
-     */
-    isRegistered(key: string): boolean {
-        return this.#observers.has(key);
-    }
-
-    /**
-     * Get the current state for a given key
-     *
-     * @param key key to get the current value for
-     */
-    getCurrentState(key: string): VariableUpdate | null {
-        if (!this.isRegistered(key)) {
-            return null;
-        }
-        return this.#observers.get(key)!.getValue();
-    }
-
-    /**
-     * Subscribe to changes on a given key
-     *
-     * @param key key to subscribe to
-     */
-    subscribe(key: string, subscription: Parameters<BehaviorSubject<VariableUpdate>['subscribe']>[0]): () => void {
-        // If somehow the ended up with no listener here, register it with null value
-        if (!this.isRegistered(key)) {
-            this.register(key, null);
-        }
-
-        const sub = this.#observers.get(key)!.subscribe(subscription);
-        return () => {
-            sub.unsubscribe();
-
-            // if no more observers, remove the listener
-            if (this.#observers.get(key)!.observers.length === 0) {
-                this.#observers.delete(key);
-            }
-        };
-    }
-
-    /**
-     * Notify listeners for a given key
-     *
-     * @param key key to notify listeners for
-     * @param update update to notify about
-     */
-    notify(key: string, update: VariableUpdate): void {
-        // If somehow the ended up with no listener here, register it with null value
-        if (!this.isRegistered(key)) {
-            this.register(key, null);
-        }
-        this.#observers.get(key)!.next(update);
-    }
-}
+const STATE_SYNCHRONIZER = new StateSynchronizer();
 
 /**
  * Get a plain variable from the atom or selector registry (based on nested property),
@@ -149,10 +56,10 @@ export function getOrRegisterPlainVariable<T>(
                 effects: (extrasSerializable: RequestExtrasSerializable) => {
                     const familySync: AtomEffect<T> = ({ onSet, setSelf, resetSelf, node }) => {
                         // Register the atom in the state synchronizer if not already registered
-                        if (!StateSynchronizer.getInstance().isRegistered(variable.uid)) {
-                            StateSynchronizer.getInstance().register(variable.uid, variable.default);
+                        if (!STATE_SYNCHRONIZER.isRegistered(variable.uid)) {
+                            STATE_SYNCHRONIZER.register(variable.uid, variable.default);
                         } else {
-                            const currentState = StateSynchronizer.getInstance().getCurrentState(variable.uid);
+                            const currentState = STATE_SYNCHRONIZER.getCurrentState(variable.uid);
 
                             if (!isDefaultDerived || currentState?.type !== 'initial') {
                                 // Otherwise synchronize the initial value,
@@ -163,7 +70,7 @@ export function getOrRegisterPlainVariable<T>(
                         }
 
                         // Synchronize changes across atoms of the same family
-                        const unsub = StateSynchronizer.getInstance().subscribe(variable.uid, (update) => {
+                        const unsub = STATE_SYNCHRONIZER.subscribe(variable.uid, (update) => {
                             if (update.type === 'initial') {
                                 return;
                             }
@@ -181,7 +88,7 @@ export function getOrRegisterPlainVariable<T>(
                         });
 
                         onSet((newValue, oldValue, isReset) => {
-                            StateSynchronizer.getInstance().notify(variable.uid, {
+                            STATE_SYNCHRONIZER.notify(variable.uid, {
                                 isReset,
                                 nodeKey: node.key,
                                 oldValue,
@@ -195,20 +102,20 @@ export function getOrRegisterPlainVariable<T>(
 
                     const effects: AtomEffect<T>[] = [familySync];
 
-                    // add an effect to handle backend store updates
                     const storeEffect = getEffect(variable);
                     if (storeEffect) {
                         effects.push(storeEffect(variable, extrasSerializable, wsClient, taskContext));
-                    } else {
-                        // TODO: This is in an else block to ensure store effect are mutually exclusive, can be unified once backend API is unified
-                        // If persist_value flag is set, register an effect which updates the selected value in local storage
-                        // TODO: once BrowserStore is implemented instead of persist_value, this block can only check for isEmbedded
-                        // eslint-disable-next-line no-lonely-if
-                        if (variable.persist_value || isEmbedded()) {
-                            effects.push(
-                                STORES.BrowserStore!.effect(variable, extrasSerializable, wsClient, taskContext)
-                            );
-                        }
+                    } else if (isEmbedded()) {
+                        // In this case BrowserStore doesn't require an explicit store in the Variable form
+                        // so it's safe to cast to any
+                        effects.push(
+                            STORES.BrowserStore.effect(
+                                variable as SingleVariable<T, any>,
+                                extrasSerializable,
+                                wsClient,
+                                taskContext
+                            )
+                        );
                     }
 
                     return effects;

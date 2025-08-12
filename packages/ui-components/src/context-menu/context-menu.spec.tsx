@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
@@ -45,54 +46,71 @@ describe('Context Menu', () => {
         render(RenderContextMenu());
 
         await waitFor(() => {
-            expect(document.querySelector('body').children).toHaveLength(2);
+            const body = document.querySelector('body');
+            if (!body) {
+                throw new Error('Body not found');
+            }
+            expect(body.children).toHaveLength(2);
         });
-        const [textAreaWrapper, contextMenu] = document.querySelector('body').children;
+        const body = document.querySelector('body');
+        if (!body) {
+            throw new Error('Body not found');
+        }
+        const [textAreaWrapper, portalRoot] = body.children;
         // Textarea wrapper should have a textarea inside
         expect(textAreaWrapper.children[0].tagName).toBe('TEXTAREA');
-        // Contextmenu should be a div list and should be closed by default
-        expect(contextMenu.tagName).toBe('DIV');
-        expect(contextMenu).toHaveStyle({
-            display: 'none',
-        });
-        // The action should still be in the dom regardless of the contextmenu being hidden
-        expect(contextMenu.children[0]).toHaveAttribute('title', TestAction.label);
+        // Portal root should exist but be empty when menu is closed
+        expect(portalRoot.tagName).toBe('DIV');
+        expect(portalRoot.id).toBe('headlessui-portal-root');
+        expect(portalRoot.children).toHaveLength(1);
+        expect(portalRoot.children[0]).toHaveAttribute('data-headlessui-portal', '');
     });
 
     it('should open with clickable items when right clicked', async () => {
         render(RenderContextMenu());
 
-        // Wait for rendering to finish - prevents popper errors
-        await waitFor(() => screen.getByTitle(TestAction.label));
-
         const body = document.querySelector('body');
+        if (!body) {
+            throw new Error('Body not found');
+        }
         const [textAreaWrapper] = body.children;
 
-        // Right click textarea, wait for contextmenu to appear
+        // Right click textarea to open context menu
         fireEvent.contextMenu(textAreaWrapper.children[0]);
-        await waitFor(() => {
-            const contextMenu = screen.getByTitle(TestAction.label).parentElement;
-            expect(contextMenu).toHaveStyle({
-                display: 'flex',
-            });
+
+        // Wait for contextmenu to appear
+        await waitFor(() => screen.getByText(TestAction.label));
+
+        const contextMenu = screen.getByText(TestAction.label).parentElement;
+        expect(contextMenu).toHaveStyle({
+            display: 'flex',
         });
     });
 
     it('should invoke correct function and close context menu on click', async () => {
         render(RenderContextMenu());
 
-        // Wait for rendering to finish - prevents popper errors
-        const actionElement = await waitFor(() => screen.getByTitle(TestAction.label));
+        const body = document.querySelector('body');
+        if (!body) {
+            throw new Error('Body not found');
+        }
+        const [textAreaWrapper] = body.children;
+
+        // Right click textarea to open context menu
+        fireEvent.contextMenu(textAreaWrapper.children[0]);
+
+        // Wait for menu to appear and get the action element
+        const actionElement = await waitFor(() => screen.getByText(TestAction.label));
 
         // Click on the action
-        fireEvent.mouseUp(actionElement);
+        fireEvent.click(actionElement);
 
         // Correct method should be called
         await waitFor(() => expect(TestAction.action).toHaveBeenCalledTimes(1));
 
-        // Menu should be closed
-        expect(screen.getByTitle(TestAction.label).parentElement).toHaveStyle({
-            display: 'none',
+        // Menu should be closed (element should no longer be in DOM)
+        await waitFor(() => {
+            expect(screen.queryByText(TestAction.label)).toBeNull();
         });
     });
 });

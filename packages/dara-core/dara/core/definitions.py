@@ -19,15 +19,14 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Awaitable, Mapping
 from enum import Enum
 from typing import (
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
     Type,
@@ -85,22 +84,22 @@ class ErrorHandlingConfig(BaseModel):
     raw_css: Optional[Any] = None
     """
     Raw styling to apply to the displayed error boundary.
-    Accepts a CSSProperties, dict, str, or NonDataVariable.
+    Accepts a CSSProperties, dict, str, or ClientVariable.
     """
 
     @field_validator('raw_css', mode='before')
     @classmethod
     def validate_raw_css(cls, value):
-        from dara.core.interactivity.non_data_variable import NonDataVariable
+        from dara.core.interactivity.client_variable import ClientVariable
 
         if value is None:
             return None
-        if isinstance(value, (str, NonDataVariable, CSSProperties)):
+        if isinstance(value, (str, ClientVariable, CSSProperties)):
             return value
         if isinstance(value, dict):
             return {_kebab_to_camel(k): v for k, v in value.items()}
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(value)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(value)}')
 
     def model_dump(self, *args, **kwargs):
         result = super().model_dump(*args, **kwargs)
@@ -146,7 +145,7 @@ class ComponentInstance(BaseModel):
     """
     Raw styling to apply to the component.
     Can be an dict/CSSProperties instance representing the `styles` tag, a string injected directly into the CSS of the wrapping component,
-    or a NonDataVariable resoling to either of the above.
+    or a ClientVariable resoling to either of the above.
 
     ```python
 
@@ -175,7 +174,7 @@ class ComponentInstance(BaseModel):
     error_handler: Optional[ErrorHandlingConfig] = None
     """Configure the error handling for the component"""
 
-    fallback: Optional[BaseFallback] = None
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
     """
     Fallback component to render in place of the actual UI if it has not finished loading
     """
@@ -197,10 +196,27 @@ class ComponentInstance(BaseModel):
     def __repr__(self):
         return '__dara__' + json.dumps(jsonable_encoder(self))
 
+    @field_validator('fallback', mode='before')
+    @classmethod
+    def validate_fallback(cls, fallback):
+        if fallback is None:
+            return None
+
+        if isinstance(fallback, BaseFallback):
+            return fallback
+
+        # wrap custom component in fallback.custom
+        if isinstance(fallback, ComponentInstance):
+            from dara.core.visual.components.fallback import Fallback
+
+            return Fallback.Custom(component=fallback)
+
+        raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
+
     @field_validator('raw_css', mode='before')
     @classmethod
     def parse_css(cls, css: Optional[Any]):
-        from dara.core.interactivity.non_data_variable import NonDataVariable
+        from dara.core.interactivity.client_variable import ClientVariable
 
         if css is None:
             return None
@@ -209,10 +225,10 @@ class ComponentInstance(BaseModel):
         if isinstance(css, dict):
             return {_kebab_to_camel(k): v for k, v in css.items()}
 
-        if isinstance(css, (NonDataVariable, CSSProperties, str)):
+        if isinstance(css, (ClientVariable, CSSProperties, str)):
             return css
 
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or NonDataVariable, got {type(css)}')
+        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(css)}')
 
     @classmethod
     def isinstance(cls, obj: Any) -> bool:
@@ -264,8 +280,7 @@ class CallableClassComponent(Protocol):
     Callable class component protocol. Describes any class with a __call__ instance method returning a component instance.
     """
 
-    def __call__(self) -> ComponentInstance:
-        ...
+    def __call__(self) -> ComponentInstance: ...
 
 
 DiscoverTarget = Union[Callable[..., ComponentInstance], ComponentInstance, Type[CallableClassComponent]]
@@ -279,7 +294,7 @@ def discover(outer_obj: DiscoverT) -> DiscoverT:
     Will make sure to statically register all encountered dependencies of marked functional component or component class.
     Should not be necessary in most cases, mainly useful when creating component libraries.
     """
-    outer_obj.__wrapped_by__ = discover   # type: ignore
+    outer_obj.__wrapped_by__ = discover  # type: ignore
     return outer_obj
 
 
@@ -419,9 +434,8 @@ class BaseFallback(StyledComponentInstance):
     @field_validator('suspend_render')
     @classmethod
     def validate_suspend_render(cls, value):
-        if isinstance(value, int):
-            if value < 0:
-                raise ValueError('suspend_render must be a positive integer')
+        if isinstance(value, int) and value < 0:
+            raise ValueError('suspend_render must be a positive integer')
 
         return value
 
@@ -461,12 +475,29 @@ class PyComponentDef(BaseModel):
     func: Optional[Callable[..., Any]] = None
     name: str
     dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
-    fallback: Optional[BaseFallback] = None
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
     polling_interval: Optional[int] = None
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 
     type: Literal[ComponentType.PY] = ComponentType.PY
+
+    @field_validator('fallback', mode='before')
+    @classmethod
+    def validate_fallback(cls, fallback):
+        if fallback is None:
+            return None
+
+        if isinstance(fallback, BaseFallback):
+            return fallback
+
+        # wrap custom component in fallback.custom
+        if isinstance(fallback, ComponentInstance):
+            from dara.core.visual.components.fallback import Fallback
+
+            return Fallback.Custom(component=fallback)
+
+        raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
 
 
 # Helper type annotation for working with components
@@ -505,7 +536,7 @@ class Page(BaseModel):
     icon: Optional[str] = None
     content: ComponentInstanceType
     name: str
-    sub_pages: Optional[List['Page']] = []
+    sub_pages: Optional[List[Page]] = []
     url_safe_name: str
     include_in_menu: Optional[bool] = None
     on_load: Optional[Action] = None

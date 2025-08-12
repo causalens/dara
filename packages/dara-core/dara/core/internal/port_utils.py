@@ -27,7 +27,7 @@ def is_available(host: str, port: int) -> bool:
     """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(2.0)   # timeout in case port is blocked
+            sock.settimeout(2.0)  # timeout in case port is blocked
             return sock.connect_ex((host, port)) != 0
     except BaseException:
         return False

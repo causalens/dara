@@ -16,7 +16,7 @@
  */
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * AngleLeft icon from FontAwesome

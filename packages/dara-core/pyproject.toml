@@ -1,21 +1,16 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-[tool.blue]
-line-length = 120
+
 [tool.anthology.scripts]
-format = "poetry run isort dara && poetry run blue dara"
-format-check = "poetry run isort --check dara && poetry run blue --check dara"
-lint = "poetry run mypy --ignore-missing-imports -p dara.core && poetry run pylint dara"
+format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
+format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
+lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
 publish = "poetry publish"
 security-scan = "poetry run bandit dara -r -ll -i"
-test = "DARA_TEST_FLAG=true poetry run pytest ./tests"
-
-[tool.isort]
-known_causalens = ["dara"]
-profile = "black"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "CAUSALENS", "FIRSTPARTY", "LOCALFOLDER"]
+# Pool tests are ran after because they don't work well with parallelization
+test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto -v -m 'not pool' && poetry run pytest ./tests/python/test_pool.py -v"
 
 [tool.poetry]
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
@@ -26,7 +21,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.17.5"
+version = "1.20.0"
 source = []
 
 [[tool.poetry.packages]]
@@ -36,6 +31,7 @@ include = "dara"
 aiorwlock = "^1.4.0"
 anyio = ">=4.0.0"
 async-asgi-testclient = "^1.4.11"
+cachetools = "^5.0.0"
 click = "8.1.3"
 colorama = "^0.4.6"
 croniter = ">=1.0.15, <3.0.0"
@@ -48,7 +44,7 @@ httpx = ">=0.23.0"
 jinja2 = ">=2.1.1, <3.2.0"
 odfpy = "*"
 openpyxl = "*"
-packaging = "^23.1"
+packaging = ">=23.1"
 pandas = ">=1.1.0, <3.0.0"
 prometheus-client = "^0.14.1"
 pyarrow = "*"
@@ -69,11 +65,11 @@ jsonpatch = ">=1.33"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.17.5"
+version = "1.20.0"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.17.5"
+version = "1.20.0"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
@@ -81,17 +77,17 @@ version = ">=0.23.1"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.5"
-blue = "^0.9.1"
 freezegun = "^1.2.2"
-isort = "^5.10.1"
-mypy = "^1.6.0"
-pylint = "3.2.3"
+ruff = ">=0.12.2"
+pyright = "^1.1.400"
 pytest = "^7.0.0"
 pytest-timeout = "^2.1.0"
 requests = ">=2.25.1, <3.0.0"
+types-cachetools = "^6.0.0.20250525"
 types-croniter = "^1.0.10"
 types-requests = "^2.27.29"
-google-auth = "2.37.0"
+google-auth = "^2.37.0"
+pytest-xdist = "^3.8.0"
 
 [tool.poetry.extras]
 all = ["dara-components"]
@@ -104,3 +100,6 @@ dara = "dara.core.cli:cli"
 
 [tool.pytest.ini_options]
 timeout = 300
+markers = [
+    "pool: worker pool tests, should not be used with xdist"
+]

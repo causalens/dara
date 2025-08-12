@@ -20,7 +20,7 @@ import styled from '@darajs/styled-components';
 import { MagnifyingGlass } from '@darajs/ui-icons';
 
 import Input from '../input/input';
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 
 const Wrapper = styled.div`
     display: flex;

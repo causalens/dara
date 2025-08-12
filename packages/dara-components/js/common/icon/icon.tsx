@@ -1,4 +1,4 @@
-import { StyledComponentProps, getIcon, useComponentStyles } from '@darajs/core';
+import { type StyledComponentProps, getIcon, useComponentStyles } from '@darajs/core';
 
 interface IconProps extends StyledComponentProps {
     color?: string;

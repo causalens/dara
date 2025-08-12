@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 import styled from '@darajs/styled-components';
-import { CheckSquare, Copy, IconProps, Square, ToggleOff, ToggleOn, Trash } from '@darajs/ui-icons';
+import { CheckSquare, Copy, type IconProps, Square, ToggleOff, ToggleOn, Trash } from '@darajs/ui-icons';
 
 export enum Action {
     COPY = 'copy',
@@ -52,14 +52,14 @@ export interface ActionCol {
     label?: string;
 }
 
-export const Actions: { [k: string]: ActionCol } = {
+export const Actions = {
     COPY: { icon: Copy, id: Action.COPY, label: 'Copy' },
     DELETE: { icon: Trash, id: Action.DELETE, label: 'Delete' },
     SELECT: { getIcon: getSelectIcon, id: Action.SELECT, label: 'Select Row' },
     SELECT_ALL: { id: Action.SELECT_ALL, label: 'Select All Rows' },
     SWITCH: { getIcon: getSwitchIcon, id: Action.SWITCH, label: 'Switch On/Off' },
     UNSELECT_ALL: { id: Action.UNSELECT_ALL, label: 'Unselect All Rows' },
-};
+} as const;
 
 const ActionWrapper = styled.div`
     display: flex;

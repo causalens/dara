@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import * as React from 'react';
-import { useState } from 'react';
+import type { Meta } from '@storybook/react-vite';
+import React, { useState } from 'react';
 
-import { BaseSliderProps, CategoricalSlider as CategoricalSliderComponent, Slider as SliderComponent } from './slider';
+import {
+    type BaseSliderProps,
+    CategoricalSlider as CategoricalSliderComponent,
+    Slider as SliderComponent,
+} from './slider';
 
-export default {
+const meta: Meta<typeof SliderComponent> = {
     component: SliderComponent,
     title: 'UI Components/Slider',
-} as Meta;
+};
+
+export default meta;
 
 export const Slider = (args: BaseSliderProps<number>): JSX.Element => (
-    <div style={{ alignItems: 'center', display: 'flex', height: '100%' }}>
+    <div style={{ alignItems: 'center', display: 'flex', height: '100%', width: '100%' }}>
         <SliderComponent {...args} />
     </div>
 );
@@ -81,7 +86,7 @@ export const ControlledSlider = (args: BaseSliderProps<number>): JSX.Element => 
     }
 
     return (
-        <div>
+        <div style={{ width: '100%' }}>
             <button onClick={() => setValue([2.0])} type="button">
                 Set value to 2
             </button>
@@ -130,7 +135,7 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
 
 export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element => {
     return (
-        <div style={{ alignItems: 'center', display: 'flex', height: '100%' }}>
+        <div style={{ alignItems: 'center', display: 'flex', height: '100%', width: '100%' }}>
             <CategoricalSliderComponent {...args} />
         </div>
     );

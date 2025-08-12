@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+# ruff: noqa: F401, F403
 
 from dara.components.common.accordion import Accordion, AccordionItem
 from dara.components.common.anchor import Anchor
@@ -38,6 +39,7 @@ from dara.components.common.component_select_list import (
     ComponentSelectList,
 )
 from dara.components.common.datepicker import Datepicker
+from dara.components.common.dropdown_menu import DropdownMenu, MenuItem
 from dara.components.common.dropzone import UploadDropzone
 from dara.components.common.form import Form
 from dara.components.common.form_page import FormPage
@@ -86,6 +88,7 @@ __all__ = [
     'ComponentItem',
     'Datepicker',
     'Direction',
+    'DropdownMenu',
     'Form',
     'FormPage',
     'Grid',
@@ -99,6 +102,7 @@ __all__ = [
     'ItemBadge',
     'Label',
     'ListSection',
+    'MenuItem',
     'Markdown',
     'Modal',
     'Overlay',

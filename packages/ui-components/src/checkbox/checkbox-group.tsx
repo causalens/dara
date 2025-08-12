@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { Item } from '../types';
+import { type Item } from '../types';
 import Checkbox from './checkbox';
 
 export interface ItemState {

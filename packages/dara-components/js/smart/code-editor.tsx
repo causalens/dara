@@ -1,10 +1,10 @@
 import { ViewUpdate } from '@codemirror/view';
 import * as React from 'react';
 
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 
 import { UiCodeEditor } from './ui-code-editor';
-import { LangsType, getExtensionsForLang } from './ui-code-editor/extensions/lang';
+import { type LangsType, getExtensionsForLang } from './ui-code-editor/extensions/lang';
 
 interface CodeEditorProps extends StyledComponentProps {
     script: Variable<string>;

@@ -16,7 +16,7 @@
  */
 import { faUndo } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Undo icon from FontAwesome

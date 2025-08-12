@@ -16,7 +16,7 @@
  */
 import { faHouseTsunami } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * HouseTsunami icon from FontAwesome

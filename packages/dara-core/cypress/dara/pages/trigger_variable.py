@@ -1,5 +1,5 @@
-from dara.core.interactivity import DerivedVariable, Variable
 from dara.components import Button, Card, Input, Stack, Text
+from dara.core.interactivity import DerivedVariable, Variable
 
 
 def trigger_variable():

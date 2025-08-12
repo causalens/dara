@@ -21,11 +21,11 @@ from typing import Any, Dict, Optional, Union
 
 from pydantic import SerializerFunctionWrapHandler, field_validator, model_serializer
 
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.condition import Condition
-from dara.core.interactivity.non_data_variable import NonDataVariable
 
 
-class SwitchVariable(NonDataVariable):
+class SwitchVariable(ClientVariable):
     """
     A SwitchVariable represents a conditional value that switches between
     different values based on a condition or variable value.
@@ -216,21 +216,21 @@ class SwitchVariable(NonDataVariable):
     Key Serialization:
         When using mappings with SwitchVariable, be aware that JavaScript object keys
         are always strings. The system automatically converts lookup keys to strings:
-        - Python: {True: 'admin', False: 'user'}
-        - JavaScript: {"true": "admin", "false": "user"}
+        - Python: `{True: 'admin', False: 'user'}`
+        - JavaScript: `{"true": "admin", "false": "user"}`
         - Boolean values are converted to lowercase strings ("true"/"false")
         - Other values use standard string conversion to match JavaScript's String() behavior
     """
 
-    value: Optional[Union[Condition, NonDataVariable, Any]] = None
+    value: Optional[Union[Condition, ClientVariable, Any]] = None
     # must be typed as any, otherwise pydantic is trying to instantiate the variables incorrectly
     value_map: Optional[Any] = None
     default: Optional[Any] = None
 
     def __init__(
         self,
-        value: Union[Condition, NonDataVariable, Any],
-        value_map: Dict[Any, Any] | NonDataVariable,
+        value: Union[Condition, ClientVariable, Any],
+        value_map: Dict[Any, Any] | ClientVariable,
         default: Optional[Any] = None,
         uid: Optional[str] = None,
     ):
@@ -253,28 +253,28 @@ class SwitchVariable(NonDataVariable):
     @classmethod
     def validate_value_map(cls, v):
         """
-        Validate that value_map is either a dict or a NonDataVariable.
+        Validate that value_map is either a dict or a ClientVariable.
 
         :param v: The value to validate
         :return: The validated value
-        :raises ValueError: If value_map is not a dict or NonDataVariable
+        :raises ValueError: If value_map is not a dict or ClientVariable
         """
         if v is None:
             return v
         if isinstance(v, dict):
             return v
-        if isinstance(v, NonDataVariable):
+        if isinstance(v, ClientVariable):
             return v
-        raise ValueError(f'value_map must be a dict or NonDataVariable, got {type(v)}')
+        raise ValueError(f'value_map must be a dict or ClientVariable, got {type(v)}')
 
     @classmethod
     def when(
         cls,
-        condition: Union[Condition, NonDataVariable, Any],
-        true_value: Union[Any, NonDataVariable],
-        false_value: Union[Any, NonDataVariable],
+        condition: Union[Condition, ClientVariable, Any],
+        true_value: Union[Any, ClientVariable],
+        false_value: Union[Any, ClientVariable],
         uid: Optional[str] = None,
-    ) -> 'SwitchVariable':
+    ) -> SwitchVariable:
         """
         Create a SwitchVariable for boolean conditions.
 
@@ -346,11 +346,11 @@ class SwitchVariable(NonDataVariable):
     @classmethod
     def match(
         cls,
-        value: Union[NonDataVariable, Any],
-        mapping: Union[Dict[Any, Any], NonDataVariable],
-        default: Optional[Union[Any, NonDataVariable]] = None,
+        value: Union[ClientVariable, Any],
+        mapping: Union[Dict[Any, Any], ClientVariable],
+        default: Optional[Union[Any, ClientVariable]] = None,
         uid: Optional[str] = None,
-    ) -> 'SwitchVariable':
+    ) -> SwitchVariable:
         """
         Create a SwitchVariable with a custom mapping.
 

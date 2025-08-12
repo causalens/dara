@@ -3,13 +3,13 @@
     "__ref": "Variable:{{var_1_uid}}"
   },
   "{{var_2_name}}": {
+    "force_key": null,
     "type": "derived",
     "uid": "{{var_2_uid}}",
     "values": [
       {
         "__ref": "Variable:{{var_3_uid}}"
       }
-    ],
-    "force": false
+    ]
   }
 }

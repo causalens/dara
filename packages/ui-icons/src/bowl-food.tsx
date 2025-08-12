@@ -16,7 +16,7 @@
  */
 import { faBowlFood } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BowlFood icon from FontAwesome

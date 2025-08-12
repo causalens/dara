@@ -17,16 +17,21 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Optional, TypeVar
 
-from pydantic import ConfigDict, SerializerFunctionWrapHandler, model_serializer
+from pydantic import ConfigDict
+from typing_extensions import deprecated
 
-from dara.core.interactivity.non_data_variable import NonDataVariable
+from dara.core.interactivity.plain_variable import Variable
+from dara.core.persistence import QueryParamStore
 
 VariableType = TypeVar('VariableType')
 
 
-class UrlVariable(NonDataVariable, Generic[VariableType]):
+@deprecated(
+    'UrlVariable is deprecated and will be removed in a future version. Use dara.core.interactivity.plain_variable.Variable with dara.core.persistence.QueryParamStore instead'
+)
+class UrlVariable(Variable[VariableType]):
     """
     A UrlVariable is very similar to a normal Variable however rather than it's state being stored in the memory of
     the client it's value is stored in the url of page as a query parameter. This is very useful for parameterizing
@@ -48,89 +53,4 @@ class UrlVariable(NonDataVariable, Generic[VariableType]):
         :param default: the initial value for the variable, defaults to None
         :param uid: the unique identifier for this variable; if not provided a random one is generated
         """
-        super().__init__(query=query, default=default, uid=uid)
-
-    def sync(self):
-        """
-        Create an action to synchronise the value of this UrlVariable with input value sent from the component.
-
-        ```python
-
-        from dara.core import UrlVariable
-        from dara.components import Select
-
-        var = UrlVariable('first', query='num')
-        another_var = UrlVariable('second', query='num_two')
-
-        Select(
-            value=var,
-            items=['first', 'second', 'third'],
-            onchange=another_var.sync(),
-        )
-
-        ```
-        """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
-
-        assert_no_context('ctx.update')
-        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.INPUT)
-
-    def toggle(self):
-        """
-        Create an action to toggle the value of this UrlVariable. Note this only works for boolean variables.
-
-        ```python
-
-        from dara.core import UrlVariable
-        from dara.components import Button
-
-        var = UrlVariable(True, query='show')
-
-        Button(
-            'Toggle',
-            onclick=var.toggle(),
-        )
-
-        ```
-        """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
-
-        assert_no_context('ctx.update')
-        return UpdateVariableImpl(variable=self, value=UpdateVariableImpl.TOGGLE)
-
-    def update(self, value: Any):
-        """
-        Create an action to update the value of this UrlVariable to a provided value.
-
-        ```python
-
-        from dara.core import UrlVariable
-        from dara.components import Button
-
-        show = UrlVariable(True, query='show')
-
-        Button(
-            'Hide',
-            onclick=show.update(False),
-        )
-
-        ```
-        """
-        from dara.core.interactivity.actions import (
-            UpdateVariableImpl,
-            assert_no_context,
-        )
-
-        assert_no_context('ctx.update')
-        return UpdateVariableImpl(variable=self, value=value)
-
-    @model_serializer(mode='wrap')
-    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
-        parent_dict = nxt(self)
-        return {**parent_dict, '__typename': 'UrlVariable', 'uid': str(parent_dict['uid'])}
+        super().__init__(default=default, uid=uid, store=QueryParamStore(query=query), query=query)

@@ -16,7 +16,7 @@
  */
 import { faLeftRight } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * LeftRight icon from FontAwesome

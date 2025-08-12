@@ -1,12 +1,13 @@
 {
   "name": "@darajs/ui-hierarchy-viewer",
-  "version": "1.17.5",
+  "version": "1.20.0",
   "description": "Hierarchy Viewer for the Dara UI framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc",
+    "prepare-dev": "tsc",
     "lint": "eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
@@ -17,9 +18,9 @@
   "license": "Apache-2.0",
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.17.5",
-    "@darajs/prettier-config": "1.17.5",
-    "@darajs/stylelint-config": "1.17.5",
+    "@darajs/eslint-config": "1.20.0",
+    "@darajs/prettier-config": "1.20.0",
+    "@darajs/stylelint-config": "1.20.0",
     "@types/d3": "^6.2.0",
     "@types/jest": "^25.2.3",
     "@types/react": "^18.0",
@@ -34,8 +35,8 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.17.5",
-    "@darajs/ui-utils": "1.17.5",
+    "@darajs/styled-components": "1.20.0",
+    "@darajs/ui-utils": "1.20.0",
     "d3": "6.2.0",
     "react": "^18.0"
   },

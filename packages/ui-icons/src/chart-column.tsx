@@ -16,7 +16,7 @@
  */
 import { faChartColumn } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * ChartColumn icon from FontAwesome

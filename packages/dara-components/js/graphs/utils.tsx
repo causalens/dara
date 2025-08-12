@@ -1,5 +1,5 @@
-import { DefaultTheme } from '@darajs/styled-components';
-import { GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
+import { type DefaultTheme } from '@darajs/styled-components';
+import { type GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
 
 /**
  * Based on a color string, return the color from the theme if it starts with 'theme.'
@@ -7,8 +7,8 @@ import { GraphLegendDefinition } from '@darajs/ui-causal-graph-editor';
  * @param theme the currently active theme
  * @param colorString the string passed to the color property
  */
-function getThemeColor(theme: DefaultTheme, colorString: string): string {
-    if (colorString.startsWith('theme')) {
+function getThemeColor(theme: DefaultTheme, colorString?: string): string | undefined {
+    if (colorString?.startsWith('theme')) {
         return theme.colors[colorString.replace('theme.', '') as keyof DefaultTheme['colors']];
     }
     return colorString;

@@ -30,11 +30,11 @@ from dara.core.definitions import ComponentInstance, discover
 from dara.core.interactivity import AnyDataVariable, DerivedVariable, Variable
 
 
-def toggle_variable(ctx: UpdateVariable.Ctx):
+def toggle_variable(ctx: UpdateVariable.Ctx):  # type: ignore
     return not ctx.inputs.old
 
 
-def increment(ctx: UpdateVariable.Ctx):
+def increment(ctx: UpdateVariable.Ctx):  # type: ignore
     return ctx.inputs.old + 1
 
 
@@ -49,7 +49,7 @@ class DataSlicerModal(DataSlicer):
         """
         DataSlicerModal component is a modal version of the DataSlicer component.
 
-        Once instantiated, the `DerivedDataVariable` returned by `get_output()` will contain the filtered data.
+        Once instantiated, the `DerivedVariable` returned by `get_output()` will contain the filtered data.
 
         When included in a page, it adds a Filter button to the top-right corner of the screen which
         displays current filter status when hovered. The button opens up a modal with the DataSlicer when clicked.

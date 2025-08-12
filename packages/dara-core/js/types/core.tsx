@@ -81,19 +81,20 @@ export interface BackendStore extends PersistenceStore {
     readonly: boolean;
 }
 
-export interface SingleVariable<T = any, TStore extends PersistenceStore = never> {
+export interface QueryParamStore extends PersistenceStore {
+    __typename: 'QueryParamStore';
+    query: string;
+}
+
+export interface BrowserStore extends PersistenceStore {
+    __typename: 'BrowserStore';
+}
+
+export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
     __typename: 'Variable';
     default: T | DerivedVariable;
     nested: string[];
-    persist_value?: boolean;
     store?: TStore;
-    uid: string;
-}
-
-export interface UrlVariable<T> {
-    __typename: 'UrlVariable';
-    default: T;
-    query: string;
     uid: string;
 }
 
@@ -112,16 +113,6 @@ export interface DerivedVariable {
     loop_instance_uid?: string;
 }
 
-export interface DerivedDataVariable {
-    __typename: 'DerivedDataVariable';
-    cache: CachePolicy;
-    deps: Array<AnyVariable<any>>;
-    filters: FilterQuery | null;
-    polling_interval?: number;
-    uid: string;
-    variables: Array<AnyVariable<any>>;
-}
-
 export interface LoopVariable {
     __typename: 'LoopVariable';
     uid: string;
@@ -136,46 +127,38 @@ export interface SwitchVariable<T = any> {
     default: Variable<any> | any;
 }
 
+export interface StateVariable {
+    __typename: 'StateVariable';
+    uid: string;
+    parent_variable: DerivedVariable;
+    property_name: 'loading' | 'error' | 'hasValue';
+}
+
 export type DataFrame = Array<{
     [col: string]: any;
 }>;
 
-export interface DataVariable {
-    __typename: 'DataVariable';
-    cache: CachePolicy;
-    filters: FilterQuery | null;
+export interface ServerVariable {
+    __typename: 'ServerVariable';
     uid: string;
+    scope: 'global' | 'user';
 }
 
-export type AnyVariable<T> =
-    | SingleVariable<T>
-    | UrlVariable<T>
-    | DerivedVariable
-    | DataVariable
-    | DerivedDataVariable
-    | SwitchVariable<T>;
-export type AnyDataVariable = DataVariable | DerivedDataVariable;
-export type Variable<T> = SingleVariable<T> | UrlVariable<T> | DerivedVariable | SwitchVariable<T>;
+export type AnyVariable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable | ServerVariable;
+export type Variable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
     deps: Array<number>;
+    force_key?: string | null;
     type: 'derived';
     uid: string;
     values: Array<any>;
 }
 
-export interface ResolvedDataVariable {
-    filters: FilterQuery | null;
-    type: 'data';
+export interface ResolvedServerVariable {
+    type: 'server';
     uid: string;
-}
-
-export interface ResolvedDerivedDataVariable {
-    deps: Array<number>;
-    filters: FilterQuery | null;
-    type: 'derived-data';
-    uid: string;
-    values: Array<any>;
+    sequence_number: number;
 }
 
 export interface ResolvedSwitchVariable {
@@ -363,9 +346,7 @@ export interface DaraEventMap {
     SERVER_COMPONENT_LOADED: { name: string; uid: string; value: ComponentInstance };
     DERIVED_VARIABLE_LOADED: { variable: DerivedVariable; value: any };
     PLAIN_VARIABLE_LOADED: { variable: SingleVariable<any>; value: any };
-    URL_VARIABLE_LOADED: { variable: UrlVariable<any>; value: any };
-    DATA_VARIABLE_LOADED: { variable: DataVariable; value: any };
-    DERIVED_DATA_VARIABLE_LOADED: { variable: DerivedDataVariable; value: any };
+    STATE_VARIABLE_LOADED: { variable: StateVariable; value: any };
 }
 
 /**
@@ -415,7 +396,7 @@ export interface ActionImpl {
 }
 
 export interface UpdateVariableImpl extends ActionImpl {
-    variable: SingleVariable<any> | UrlVariable<any> | DataVariable;
+    variable: SingleVariable<any>;
     value: any;
 }
 
@@ -434,7 +415,7 @@ export interface ResetVariablesImpl extends ActionImpl {
 }
 
 export interface DownloadVariableImpl extends ActionImpl {
-    variable: AnyVariable<any>;
+    variable: SingleVariable<any> | DerivedVariable | ServerVariable;
     file_name?: string;
     type: 'csv' | 'json' | 'xlsx';
 }

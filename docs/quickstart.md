@@ -1,5 +1,6 @@
 ---
 title: Your First App
+description: Build a Dara app from start to finish with exploratory data analysis and classification models
 ---
 
 This page will help you build an app from start to finish. The use case is simple, using `sklearn`'s iris dataset you will do some simple exploratory data analysis (EDA) and build a simple classifier and explore its results.
@@ -321,6 +322,19 @@ def eda_page():
 ```
 
 Along with the `dara.components.common.select.Select` components, there are `dara.components.common.text.Text` components that label the `Select`s. These components together are wrapped in a `dara.components.common.stack.Stack` which is a core component for laying out a document. Wrapping these in a `Stack` keeps them separate from the `scatter_plot`. Setting the `Stack`'s `direction` to horizontal lays the components next to each other left-to-right.
+
+Additionally, every Component in Dara has a property called `raw_css` which allows you to pass arbitrary CSS properties as a `dict` or `string`.
+
+```python
+Card(
+    Text(
+        'My bold and italic text in a box with blue background',
+        raw_css={'font-weight': 'bold', 'font-style': 'italic'}
+    ),
+    raw_css={'background-color': 'powderblue'}
+)
+```
+
 
 Your app will look like the following:
 

@@ -30,9 +30,8 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import ConfigDict
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
-from dara.core.base_definitions import BaseTask
+from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import PendingTask
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
@@ -112,7 +111,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         user_identity = None
 
         if current_user is not None:
-            user_identity = current_user.identity_id or current_user.identity_name
+            user_identity = current_user.identity_id
         elif isinstance(auth_config, BasicAuthConfig):
             # basic auth - assume it's the single existing user
             user_identity = list(auth_config.users.keys())[0]
@@ -204,7 +203,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         for session, channels in session_channels.items():
             for ws in channels:
-
                 raw_result = raw_results[ws]
                 # Skip values from clients where the variable is not registered
                 if raw_result == NOT_REGISTERED:
@@ -238,12 +236,12 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         # If we're returning multiple values, in Jupyter environments print an explainer
         try:
-            from IPython import get_ipython
+            from IPython import get_ipython  # pyright: ignore[reportMissingImports]
         except ImportError:
             pass
         else:
             if get_ipython() is not None:
-                from IPython.display import HTML, display
+                from IPython.display import HTML, display  # pyright: ignore[reportMissingImports]
 
                 display(
                     HTML(
@@ -272,7 +270,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         return results
 
 
-class AnyVariable(BaseModel, abc.ABC):
+class AnyVariable(BaseModel, abc.ABC):  # noqa: PLW1641 # we override equals to create conditions, otherwise we should define hash
     """
     Base class for all variables. Used for typing to specify that any variable can be provided.
     """
@@ -282,7 +280,6 @@ class AnyVariable(BaseModel, abc.ABC):
     uid: str
 
     def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
-
         new_uid = uid
         if new_uid is None:
             new_uid = str(uuid.uuid4())

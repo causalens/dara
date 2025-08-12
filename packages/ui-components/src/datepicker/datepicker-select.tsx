@@ -14,8 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Placement, autoUpdate, flip, offset, shift, useFloating, useInteractions, useRole } from '@floating-ui/react';
-import { GetPropsCommonOptions, UseSelectGetToggleButtonPropsOptions, useSelect } from 'downshift';
+import {
+    type Placement,
+    autoUpdate,
+    flip,
+    offset,
+    shift,
+    useFloating,
+    useInteractions,
+    useRole,
+} from '@floating-ui/react';
+import { type GetPropsCommonOptions, type UseSelectGetToggleButtonPropsOptions, useSelect } from 'downshift';
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -23,7 +32,7 @@ import styled from '@darajs/styled-components';
 
 import DropdownList from '../shared/dropdown-list';
 import Tooltip from '../tooltip/tooltip';
-import { InteractiveComponentProps, Item } from '../types';
+import { type InteractiveComponentProps, type Item } from '../types';
 import { Chevron } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
 

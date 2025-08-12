@@ -35,7 +35,7 @@ import {
     useRole,
 } from '@floating-ui/react';
 import * as React from 'react';
-import { Ref } from 'react';
+import { type Ref } from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
 

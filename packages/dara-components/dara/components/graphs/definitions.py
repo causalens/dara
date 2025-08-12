@@ -64,7 +64,7 @@ class SpacerLegend(Legend):
     :param label: Optional label to show in the legend
     """
 
-    type: Literal['spacer'] = Field(default='spacer', frozen=True)   # type: ignore
+    type: Literal['spacer'] = Field(default='spacer', frozen=True)  # type: ignore
     label: Optional[str] = None
 
 
@@ -79,7 +79,7 @@ class EdgeLegend(Legend):
     :param dash_array: Optional [stroke-dasharray](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray) SVG path property - line will be dashed if specified
     """
 
-    type: Literal['edge'] = Field(default='edge', frozen=True)   # type: ignore
+    type: Literal['edge'] = Field(default='edge', frozen=True)  # type: ignore
     label: Optional[str] = None
     arrow_type: Optional[ArrowType] = ArrowType.NORMAL
     center_symbol: Optional[CenterSymbol] = CenterSymbol.NONE
@@ -96,7 +96,7 @@ class NodeLegend(Legend):
     :param highlight_color: Optional color for the node symbol rim in the legend
     """
 
-    type: Literal['node'] = Field(default='node', frozen=True)   # type: ignore
+    type: Literal['node'] = Field(default='node', frozen=True)  # type: ignore
     label: Optional[str] = None
     color: Optional[str] = 'theme.blue4'
     highlight_color: Optional[str] = 'theme.primary'

@@ -42,18 +42,21 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
             del self.cache[key]
             return entry
 
-    async def get(self, key: str, unpin: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
         """
         Retrieve a value from the cache.
 
         :param key: The key of the value to retrieve.
         :param unpin: This parameter is ignored in KeepAllCache as entries are never evicted.
+        :param raise_for_missing: If true, an exception will be raised if the entry is not found
         :return: The value associated with the key, or None if the key is not in the cache.
         """
         async with self.lock:
             entry = self.cache.get(key)
 
             if entry is None:
+                if raise_for_missing:
+                    raise KeyError(f'No cache entry found for {key}')
                 return None
 
             if unpin:

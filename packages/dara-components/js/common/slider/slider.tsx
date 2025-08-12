@@ -1,12 +1,12 @@
 import _debounce from 'lodash/debounce';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Slider as UISlider } from '@darajs/ui-components';
 import { useLatestRef } from '@darajs/ui-utils';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 interface SliderProps extends FormComponentProps {
     /** An optional flag to disable the input alternative switch render, its false by default */
@@ -60,7 +60,7 @@ function Slider(props: SliderProps): JSX.Element {
 
             // if we're supposed to output a number, unwrap the array
             if (isOutputNumber) {
-                [serialisedValues] = values;
+                serialisedValues = values[0]!;
             }
 
             // immediately update internal state

@@ -1,11 +1,11 @@
-import { StyledComponentProps, injectCss, prependBaseUrl, useComponentStyles } from '@darajs/core';
+import { type StyledComponentProps, injectCss, prependBaseUrl, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 interface ImageProps extends StyledComponentProps {
     /**
      * Src URL
      */
-    src?: string;
+    src: string;
 }
 
 const ImageComponent = styled.div<StyledComponentProps>`

@@ -16,7 +16,7 @@
  */
 import { faVideoSlash } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * VideoSlash icon from FontAwesome

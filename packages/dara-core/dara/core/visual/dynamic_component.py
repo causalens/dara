@@ -14,8 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
+import contextlib
 import json
 import uuid
+from collections import OrderedDict
+from collections.abc import Mapping
 from contextvars import ContextVar
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
@@ -24,24 +28,18 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Mapping,
     Optional,
-    OrderedDict,
     Union,
     overload,
 )
 
+import anyio
 from fastapi.encoders import jsonable_encoder
 
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
-from dara.core.interactivity import (
-    AnyDataVariable,
-    AnyVariable,
-    DerivedVariable,
-    UrlVariable,
-    Variable,
-)
+from dara.core.interactivity import AnyVariable
+from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
@@ -63,8 +61,7 @@ class PyComponentInstance(ComponentInstance):
 
 # sync/async simple
 @overload
-def py_component(function: Callable) -> Callable[..., PyComponentInstance]:
-    ...
+def py_component(function: Callable) -> Callable[..., PyComponentInstance]: ...
 
 
 # sync/async with args
@@ -72,19 +69,18 @@ def py_component(function: Callable) -> Callable[..., PyComponentInstance]:
 def py_component(
     function: None = None,
     *,
-    placeholder: Optional[BaseFallback] = None,
-    fallback: Optional[BaseFallback] = None,
+    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
-) -> Callable[[Callable], Callable[..., PyComponentInstance]]:
-    ...
+) -> Callable[[Callable], Callable[..., PyComponentInstance]]: ...
 
 
 def py_component(
     function: Optional[Callable] = None,
     *,
-    placeholder: Optional[BaseFallback] = None,
-    fallback: Optional[BaseFallback] = None,
+    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
+    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
     track_progress: Optional[bool] = False,
     polling_interval: Optional[int] = None,
 ) -> Union[Callable[..., PyComponentInstance], Callable[[Callable], Callable[..., PyComponentInstance]]]:
@@ -160,10 +156,9 @@ def py_component(
             for key, value in all_kwargs.items():
                 if key in func.__annotations__:
                     valid_value = True
-                    try:
+                    # The type is either not set or something tricky to verify, e.g. union
+                    with contextlib.suppress(Exception):
                         valid_value = isinstance(value, (func.__annotations__[key], AnyVariable))
-                    except Exception:
-                        pass  # The type is either not set or something tricky to verify, e.g. union
                     if not valid_value:
                         raise TypeError(
                             f'Argument: {key} was passed as a {type(value)}, but it should be '
@@ -174,6 +169,12 @@ def py_component(
             dynamic_kwargs: Dict[str, AnyVariable] = {}
             static_kwargs: Dict[str, Any] = {}
             for key, kwarg in all_kwargs.items():
+                if isinstance(kwarg, StateVariable):
+                    raise ValueError(
+                        'StateVariable cannot be used as input to py_component. '
+                        'StateVariables are internal variables for tracking DerivedVariable client state and using them as inputs would create complex dependencies that are '
+                        'difficult to debug. Consider using the StateVariable with an If component or SwitchVariable.'
+                    )
                 if isinstance(kwarg, AnyVariable):
                     dynamic_kwargs[key] = kwarg
                 else:
@@ -200,9 +201,7 @@ def py_component(
         params = OrderedDict()
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
-                new_type = Union[
-                    typ, Variable[typ], DerivedVariable[typ], UrlVariable[typ], AnyDataVariable  # type: ignore
-                ]
+                new_type = Union[typ, AnyVariable]
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)
                 new_annotations[var_name] = new_type
@@ -210,8 +209,8 @@ def py_component(
         _inner_func.__signature__ = Signature(  # type: ignore
             parameters=list(params.values()), return_annotation=old_signature.return_annotation
         )
-        _inner_func.__wrapped_by__ = py_component   # type: ignore
-        return _inner_func   # type: ignore
+        _inner_func.__wrapped_by__ = py_component  # type: ignore
+        return _inner_func  # type: ignore
 
     # If decorator is called with no optional argument then the function is passed as first argument
     if function:
@@ -251,11 +250,14 @@ async def render_component(
         annotations = definition.func.__annotations__
         resolved_dyn_kwargs = {}
 
-        for key, value in values.items():
-            val = await resolve_dependency(value, store, task_mgr)
+        async def _resolve_kwarg(val: Any, key: str):
+            val = await resolve_dependency(val, store, task_mgr)
             typ = annotations.get(key)
-
             resolved_dyn_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}
@@ -290,6 +292,7 @@ async def render_component(
             eng_logger.info(
                 f'PyComponent {definition.func.__name__} returning task', {'uid': definition.name, 'task_id': task}
             )
+            task_mgr.register_task(task)
 
             return task
 

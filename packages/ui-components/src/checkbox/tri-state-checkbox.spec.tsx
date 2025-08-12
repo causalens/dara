@@ -18,7 +18,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import TriStateCheckbox, { CheckboxProps, CheckboxState } from './tri-state-checkbox';
+import TriStateCheckbox, { type CheckboxProps, CheckboxState } from './tri-state-checkbox';
 
 function RenderTriStateCheckbox(props: CheckboxProps = {}): JSX.Element {
     return (

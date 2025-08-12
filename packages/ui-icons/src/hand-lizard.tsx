@@ -16,7 +16,7 @@
  */
 import { faHandLizard } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * HandLizard icon from FontAwesome

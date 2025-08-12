@@ -1,14 +1,14 @@
 import datetime
 import inspect
 import json
+from collections.abc import Awaitable, Mapping
 from contextlib import asynccontextmanager
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Dict,
     List,
-    Mapping,
+    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -28,6 +28,7 @@ from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.normalization import denormalize
 
 
@@ -59,6 +60,7 @@ DATA_FILES = {'TEST_DATA_CSV': 'test-data.csv'}
 TEST_TOKEN = jwt.encode(
     {
         'session_id': 'token2',
+        'identity_id': 'test_user_2',
         'identity_name': 'test_user_2',
         'groups': [],
         'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
@@ -76,11 +78,11 @@ def read_template_json(path: str, data: dict) -> dict:
     :param path: path to JSON file
     :param data: data to use for replacements
     """
-    with open(path, 'r', encoding='utf-8') as fp:
+    with open(path, encoding='utf-8') as fp:
         json_string = fp.read()
 
-        for key in data:
-            json_string = json_string.replace('{{' + key + '}}', data[key])
+        for key, val in data.items():
+            json_string = json_string.replace('{{' + key + '}}', val)
 
         return json.loads(json_string)
 
@@ -119,10 +121,10 @@ def _normalize_resolved_dv(resolved_dv: dict, definition: DerivedVariable[Any]) 
     return {**resolved_dv, 'values': normalized_values}, lookup
 
 
-def _get_at_index(l: List, idx: int):
+def _get_at_index(arr: List, idx: int):
     try:
-        return l[idx]
-    except:
+        return arr[idx]
+    except:  # noqa: E722
         return None
 
 
@@ -134,9 +136,7 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
     data: Union[Mapping, List[Any]] = {} if isinstance(values, dict) else [None for x in range(len(values))]
     lookup = {}
 
-    i = 0
-
-    for key, value in _loop(values):
+    for i, (key, value) in enumerate(_loop(values)):
         nested_def = cast(
             Union[DerivedVariable, DataVariable],
             definitions.get(key, None) if isinstance(definitions, dict) else _get_at_index(definitions, i),
@@ -148,18 +148,12 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
             nested_data, nested_lookup = _normalize_resolved_dv(value, nested_def)
             data[key] = nested_data
             lookup.update(nested_lookup)
-        elif isinstance(nested_def, DataVariable):
-            identifier = f'{nested_def.__class__.__name__}:{str(nested_def.uid)}:{str(hash(nested_def.filters))}'
-            lookup[identifier] = value
-            data[key] = {'__ref': identifier}
         elif isinstance(nested_def, Dict):
             identifier = f'{nested_def.__class__.__name__}:{str(nested_def.uid)}'
             lookup[identifier] = value
             data[key] = {'__ref': identifier}
         else:
             data[key] = value
-
-        i += 1
 
     return data, lookup
 
@@ -178,6 +172,45 @@ async def _get_template(
 
     # If we don't expect response to be 200 don't denormalize
     return response.json(), response.status_code
+
+
+async def _get_tabular_derived_variable(
+    client: AsyncClient,
+    dv: DerivedVariable,
+    data: dict,
+    headers=AUTH_HEADERS,
+    expect_success=True,
+):
+    # Denormalize data.dv_values
+    normalized_values, lookup = normalize_request(data['dv_values'], dv.variables)
+    data['dv_values'] = {'data': normalized_values, 'lookup': lookup}
+
+    response = await client.post(
+        f'/api/core/tabular-variable/{str(dv.uid)}',
+        json=data,
+        headers=headers,
+    )
+    if expect_success:
+        assert response.status_code == 200
+
+    return response
+
+
+async def _get_tabular_server_variable(
+    client: AsyncClient,
+    sv: ServerVariable,
+    data: dict,
+    headers=AUTH_HEADERS,
+    expect_success=True,
+    query_string: Optional[dict] = None,
+):
+    response = await client.post(
+        f'/api/core/tabular-variable/{str(sv.uid)}', json=data, headers=headers, query_string=query_string
+    )
+    if expect_success:
+        assert response.status_code == 200
+
+    return response
 
 
 async def _get_derived_variable(
@@ -290,6 +323,8 @@ async def wait_for(callback: Callable[[], WaitForResult], timeout: float = 1) ->
 
             try:
                 result = callback()
+                if inspect.iscoroutine(result):
+                    result = await result
             except BaseException:
                 continue
             else:
@@ -326,10 +361,10 @@ async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], tim
     result = condition()
     if inspect.iscoroutine(result):
         result = await result
-    assert result == True
+    assert result
 
 
-async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict]:
+async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: Optional[int] = None) -> List[dict]:
     """
     Wait for ws messages until timeout is passed.
     """
@@ -339,6 +374,9 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3) -> List[dict
         with anyio.move_on_after(timeout) as scope:
             msg = await ws.receive_json()
             messages.append(msg)
+
+            if count is not None and len(messages) == count:
+                break
 
         if scope.cancel_called:
             break
@@ -356,14 +394,12 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
         with anyio.move_on_after(timeout) as scope:
             msg = await ws.receive_json()
             # Valid message
-            if 'message' in msg:
-                # Action message
-                if 'action' in msg['message'] and msg['message']['uid'] == execution_id:
-                    # Sentinel to end listening
-                    if (action := msg['message']['action']) is None:
-                        break
-                    else:
-                        actions.append(action)
+            if 'message' in msg and 'action' in msg['message'] and msg['message']['uid'] == execution_id:
+                # Sentinel to end listening
+                if (action := msg['message']['action']) is None:
+                    break
+                else:
+                    actions.append(action)
 
         if scope.cancel_called:
             break

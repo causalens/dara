@@ -1,5 +1,7 @@
 ---
 title: Actions
+description: Learn how to add interactivity to your Dara app with `@action`s that respond to user interactions
+boost: 1.5
 ---
 
 Actions are a way to add interactivity to your Dara app in response to some user interaction. Components accept actions as arguments to their callbacks annotated with type `Action`, usually named `onclick`, `onchange` or similar. Actions can be used to update variables, trigger notifications, navigate to a different page, and more.
@@ -61,17 +63,15 @@ The `ActionCtx` instance injected into the decorated function has the following 
 
 ```python
 async def update(
-    variable: Variable | UrlVariable | DataVariable,
+    variable: Variable | ServerVariable,
     value: Any
 )
 ```
 
-`update` is a method to trigger an update of a `Variable`, `DataVariable` or `UrlVariable`. It takes the following arguments:
+`update` is a method to trigger an update of a `Variable` or `ServerVariable` . It takes the following arguments:
 
-- `variable` - a `Variable`, `DataVariable` or `UrlVariable` instance to update with a new value upon triggering the action
-- `value` - the new value to update the `Variable`, `DataVariable` or `UrlVariable` with
-
-Note that the value passed to `update` must be a valid value for the variable type. In particular, updating a `DataVariable` should be done with a `pandas.DataFrame` instance or `None`.
+- `variable` - a `Variable` or `ServerVariable` instance to update with a new value upon triggering the action
+- `value` - the new value to update the `Variable` or `ServerVariable` with
 
 To see how `update` works, consider the example below:
 
@@ -325,13 +325,12 @@ See the following example:
 ```python
 import os
 import pandas
-from dara.core import action, ConfigurationBuilder, DataVariable
+from dara.core import action, ConfigurationBuilder, ServerVariable
 from dara.components import Button, Stack
 from dara.core.definitions import ComponentInstance
 
-# generate data, alternatively you could load it from a file
 df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-my_var = DataVariable(df)
+my_var = ServerVariable(df)
 
 config = ConfigurationBuilder()
 
@@ -546,12 +545,6 @@ Select(
 In the above example, the `sync_action` action and the `sync` shortcut action have the same functionality - both update the `some_variable` variable with the value of the selected item in the `Select` component.
 Note that if you would like to transform the value coming from the component before updating the variable, you should use the `@action` decorator instead.
 
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.sync) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.sync).
-
-:::
-
 ### `update`
 
 `update` is a convenience method to update a given `Variable` with a new static value.
@@ -573,12 +566,6 @@ Button('set to True', onclick=var.update(value=True))
 In the above example, the `manual_action` action and the `update` shortcut action have the same functionality - both update the `var` variable with the value `True`.
 The shortcut action is useful in scenarios where you want to update a variable with a static value, without the need to compute it in an `@action`-annotated function.
 
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.update) and [DataVariable](dara.core.interactivity.data_variable.DataVariable.update) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.update).
-
-:::
-
 ### `toggle`
 
 `toggle` is a convenience method to toggle a given `Variable` between `True` and `False`.
@@ -598,12 +585,6 @@ Button('toggle', onclick=var.toggle())
 ```
 
 In the above example, the `toggle_action` action and the `toggle` shortcut action have the same functionality - both toggle the `var` variable between `True` and `False`.
-
-:::tip
-
-This method is also available for [UrlVariable](dara.core.interactivity.url_variable.UrlVariable.toggle) in addition to [Variable](dara.core.interactivity.plain_variable.Variable.toggle).
-
-:::
 
 ### `trigger`
 
@@ -640,12 +621,6 @@ config.add_page(name='Trigger Variable', content=test_page())
 ```
 
 In the above example, the `trigger_my_var` action and the `trigger` shortcut action have the same functionality - both trigger a recalculation of the `der_var` variable.
-
-:::tip
-
-This method is also available for [DerivedDataVariable](dara.core.interactivity.derived_data_variable.DerivedDataVariable.trigger) in addition to [DerivedVariable](dara.core.interactivity.derived_variable.DerivedVariable.trigger).
-
-:::
 
 ## Action implementation objects
 
@@ -776,8 +751,8 @@ Below are example of how to use the deprecated API and how to migrate to the new
 
 The `UpdateVariable` API takes the following arguments:
 
-- `resolver`: a function to resolve the new value for the `Variable`, `DataVariable` or `UrlVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
-- `variable`: the `Variable`, `DataVariable` or `UrlVariable` to update with a new value upon triggering the action
+- `resolver`: a function to resolve the new value for the `Variable` or `ServerVariable`. The resolver takes one argument: a context of type `UpdateVariable.Ctx`. The new value is given by the component and can be obtained with `ctx.inputs.new`. While the current value, or now previous value of the variable you are updating, can be obtained with `ctx.inputs.old`.
+- `variable`: the `Variable` or `ServerVariable`  to update with a new value upon triggering the action
 - `extras`: any extra variables to resolve and pass to the resolver function, you can obtain a list of the resolved values of all the extras passed with `ctx.extras` in the resolver function
 
 ```python
@@ -862,11 +837,11 @@ from dara.core import ConfigurationBuilder
 from dara.core.interactivity.actions import DownloadContent
 from dara.components import Button, Stack
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DataVariable
+from dara.core.interactivity import ServerVariable
 
 # generate data, alternatively you could load it from a file
 df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-my_var = DataVariable(df)
+my_var = ServerVariable(df)
 
 config = ConfigurationBuilder()
 

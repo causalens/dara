@@ -6,9 +6,8 @@ import isObject from 'lodash/isObject';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import {
-    SingleVariable,
-    UrlVariable,
-    Variable,
+    type SingleVariable,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
@@ -16,16 +15,16 @@ import {
 } from '@darajs/core';
 import {
     ComboBox,
-    Item,
-    ListItem,
-    ListSection,
+    type Item,
+    type ListItem,
+    type ListSection,
     MultiSelect,
     SectionedList,
     Select as UiSelect,
 } from '@darajs/ui-components';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 // Type guard for primitive values to avoid "[object Object]" string conversion
 const isPrimitive = (val: unknown): val is string | number | boolean | null | undefined => isNil(val) || !isObject(val);
@@ -54,7 +53,7 @@ const StyledComboBox = injectCss(ComboBox);
 const StyledSectionedList = injectCss(SectionedList);
 
 function hasListSection(items: Item[] | ListSection[]): items is ListSection[] {
-    return items.length > 0 && 'items' in items[0];
+    return items.length > 0 && 'items' in items[0]!;
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -63,7 +62,7 @@ function isStringArray(value: unknown): value is string[] {
 
 /** Type guard to check if an object is an Item */
 function isItem(obj: unknown): obj is Item {
-    return obj && Object.prototype.hasOwnProperty.call(obj, 'value');
+    return (obj && Object.prototype.hasOwnProperty.call(obj, 'value')) as boolean;
 }
 interface SelectProps extends FormComponentProps {
     /** Pass through the className property */
@@ -80,7 +79,7 @@ interface SelectProps extends FormComponentProps {
     searchable: boolean;
     /** The selectedItem variable to read and update */
     // eslint-disable-next-line react/no-unused-prop-types
-    value?: SingleVariable<any> | UrlVariable<any>;
+    value?: SingleVariable<any>;
 }
 
 // Disabling rules-of-hook as the assumption is that props changing the type of the select won't change
@@ -112,8 +111,8 @@ function Select(props: SelectProps): JSX.Element {
             return items.map(
                 (item) =>
                     ({
-                        badge: null,
-                        image: null,
+                        badge: undefined,
+                        image: undefined,
                         label: item,
                         value: item,
                     }) as Item
@@ -150,7 +149,7 @@ function Select(props: SelectProps): JSX.Element {
     const onChangeAction = useAction(props.onchange);
 
     //  if someone were to update the component rule of Hooks could be broken if items switched from having sections to not, so we use a ref for this to be only run once
-    const itemHasListSection = useRef(null);
+    const itemHasListSection = useRef<boolean | null>(null);
 
     if (itemHasListSection.current === null) {
         itemHasListSection.current = hasListSection(formattedItems);
@@ -178,8 +177,9 @@ function Select(props: SelectProps): JSX.Element {
             <StyledSectionedList
                 $rawCss={css}
                 items={formattedItems}
+                placeholder={props.placeholder}
                 onSelect={onSelect}
-                selectedItem={selectedItem}
+                selectedItem={selectedItem as any}
                 style={style}
             />
         );
@@ -247,7 +247,7 @@ function Select(props: SelectProps): JSX.Element {
                 items={itemArray}
                 onSelect={onSelect}
                 placeholder={props.placeholder}
-                selectedItem={selectedItem}
+                selectedItem={selectedItem as any}
                 style={style}
             />
         );
@@ -260,7 +260,7 @@ function Select(props: SelectProps): JSX.Element {
             items={itemArray}
             onSelect={onSelect}
             placeholder={props.placeholder}
-            selectedItem={selectedItem}
+            selectedItem={selectedItem as any}
             style={style}
         />
     );

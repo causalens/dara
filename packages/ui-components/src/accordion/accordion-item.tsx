@@ -18,7 +18,7 @@ import { Collapse } from 'react-collapse';
 
 import styled from '@darajs/styled-components';
 
-import { AccordionItemType } from '../types';
+import { type AccordionItemType } from '../types';
 import { Chevron } from '../utils';
 
 interface WrapperProps {

@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
+from collections.abc import Awaitable, Coroutine, Sequence
 from functools import wraps
 from importlib import import_module
 from importlib.util import find_spec
@@ -27,21 +28,21 @@ from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
-    Coroutine,
     Dict,
     Literal,
     Optional,
-    Sequence,
     Tuple,
+    Type,
+    TypeVar,
     Union,
 )
 
 import anyio
 from anyio import from_thread
-from exceptiongroup import ExceptionGroup
+from exceptiongroup import BaseExceptionGroup, ExceptionGroup
 from starlette.concurrency import run_in_threadpool
+from typing_extensions import ParamSpec
 
 from dara.core.auth.definitions import SESSION_ID, USER
 from dara.core.base_definitions import CacheType
@@ -79,7 +80,7 @@ def get_cache_scope(cache_type: Optional[CacheType]) -> CacheScope:
     return 'global'
 
 
-async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict = {}):
+async def run_user_handler(handler: Callable, args: Union[Sequence, None] = None, kwargs: Union[dict, None] = None):
     """
     Run a user-defined handler function. Runs sync functions in a threadpool.
     Handles SystemExits cleanly.
@@ -88,6 +89,10 @@ async def run_user_handler(handler: Callable, args: Sequence = [], kwargs: dict 
     :param args: list of arguments to pass to the function
     :param kwargs: dict of kwargs to past to the function
     """
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     with handle_system_exit('User defined function quit unexpectedly'):
         if inspect.iscoroutinefunction(handler):
             return await handler(*args, **kwargs)
@@ -164,17 +169,21 @@ def enforce_sso(conf: ConfigurationBuilder):
     Raises if SSO is not used
     """
     try:
-        from dara.enterprise import SSOAuthConfig
+        from dara.enterprise import SSOAuthConfig  # pyright: ignore[reportMissingImports]
 
         if conf.auth_config is None or not isinstance(conf.auth_config, SSOAuthConfig):
             raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')
-    except ImportError:
+    except ImportError as err:
         raise ValueError(
             'SSO is not enabled. Please install the dara_enterprise package and configure SSO to use this feature.'
-        )
+        ) from err
 
 
-def async_dedupe(fn: Callable[..., Awaitable]):
+P = ParamSpec('P')
+T = TypeVar('T')
+
+
+def async_dedupe(fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     """
     Decorator to deduplicate concurrent calls to asynchronous functions based on their arguments.
 
@@ -192,7 +201,7 @@ def async_dedupe(fn: Callable[..., Awaitable]):
     is_method = 'self' in inspect.signature(fn).parameters
 
     @wraps(fn)
-    async def wrapped(*args, **kwargs):
+    async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         non_self_args = args[1:] if is_method else args
         key = (non_self_args, frozenset(kwargs.items()))
         lock = locks.get(key)
@@ -228,8 +237,22 @@ def resolve_exception_group(error: Any):
 
     :param error: The error to resolve
     """
-    if isinstance(error, ExceptionGroup):
-        if len(error.exceptions) == 1:
-            return resolve_exception_group(error.exceptions[0])
+    if isinstance(error, ExceptionGroup) and len(error.exceptions) == 1:
+        return resolve_exception_group(error.exceptions[0])
 
     return error
+
+
+def exception_group_contains(err_type: Type[BaseException], group: BaseExceptionGroup) -> bool:
+    """
+    Check if an ExceptionGroup contains an error of a given type, recursively
+
+    :param err_type: The type of error to check for
+    :param group: The ExceptionGroup to check
+    """
+    for exc in group.exceptions:
+        if isinstance(exc, err_type):
+            return True
+        if isinstance(exc, BaseExceptionGroup):
+            return exception_group_contains(err_type, exc)
+    return False

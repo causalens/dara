@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import * as React from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
-import { default as NumericInputComponent, NumericInputProps } from './numeric-input';
+import { default as NumericInputComponent, type NumericInputProps } from './numeric-input';
 
-export default {
+const meta: Meta<NumericInputProps> = {
     component: NumericInputComponent,
     title: 'UI Components/Numeric Input',
-} as Meta;
+};
 
-export const NumericInput = (args: NumericInputProps): JSX.Element => <NumericInputComponent {...args} />;
+export default meta;
+type Story = StoryObj<NumericInputProps>;
 
-NumericInput.args = {
-    stepper: true,
-} as NumericInputProps;
+export const NumericInput: Story = {
+    args: {
+        stepper: true,
+    },
+};
 
 export const ControlledNumericInput = (args: NumericInputProps): JSX.Element => {
     const [value, setValue] = React.useState<number | undefined>(undefined);

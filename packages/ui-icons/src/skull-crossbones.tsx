@@ -16,7 +16,7 @@
  */
 import { faSkullCrossbones } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * SkullCrossbones icon from FontAwesome

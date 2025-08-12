@@ -1,44 +1,27 @@
 import { Observable, Subject } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
-import { ActionImpl } from '@/types/core';
+import type { ActionImpl } from '@/types/core';
 
 import {
-    BackendStoreMessage,
-    BackendStorePatchMessage,
-    CustomMessage,
-    ProgressNotificationMessage,
-    ServerErrorMessage,
+    type BackendStoreMessage,
+    type BackendStorePatchMessage,
+    type CustomMessage,
+    type ProgressNotificationMessage,
+    type ServerErrorMessage,
+    type ServerVariableMessage,
     TaskStatus,
-    VariableRequestMessage,
-    WebSocketClientInterface,
-    WebSocketMessage,
+    type VariableRequestMessage,
+    type WebSocketClientInterface,
+    type WebSocketMessage,
+    isBackendStoreMessage,
+    isBackendStorePatchMessage,
+    isCustomMessage,
+    isInitMessage,
+    isServerErrorMessage,
+    isServerVariableMessage,
+    isVariableRequestMessage,
 } from '../../../js/api/websocket';
-
-// Type guard functions
-function isInitMessage(message: WebSocketMessage): message is { type: 'init'; message: { channel: string } } {
-    return message.type === 'init';
-}
-
-function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
-    return message.type === 'message' && 'store_uid' in (message.message as any) && 'value' in (message.message as any);
-}
-
-function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
-    return message.type === 'message' && 'store_uid' in (message.message as any) && 'patches' in (message.message as any);
-}
-
-function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
-    return message.type === 'custom';
-}
-
-function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
-    return message.type === 'message' && 'variable' in (message.message as any);
-}
-
-function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
-    return message.type === 'message' && 'error' in (message.message as any);
-}
 
 export interface MockWebSocketClientInterface extends WebSocketClientInterface {
     receiveMessage: (message: WebSocketMessage) => void;
@@ -71,6 +54,13 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']> {
         return this.messages$.pipe(
             filter(isBackendStorePatchMessage),
+            map((msg) => msg.message)
+        );
+    }
+
+    serverVariableMessages$(): Observable<ServerVariableMessage['message']> {
+        return this.messages$.pipe(
+            filter(isServerVariableMessage),
             map((msg) => msg.message)
         );
     }
@@ -124,9 +114,6 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
-    serverTriggers$(dataId: string): Observable<any> {
-        return this.messages$.pipe(filter((msg: any) => msg.message.data_id === dataId));
-    }
 
     /**
      * Get the observable to receive variable request messages

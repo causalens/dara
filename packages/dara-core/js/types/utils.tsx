@@ -6,16 +6,15 @@ import {
     type AnyVariable,
     type ComponentInstance,
     type Condition,
-    type DataVariable,
-    type DerivedDataVariable,
     type DerivedVariable,
     type LoopVariable,
-    type ResolvedDataVariable,
-    type ResolvedDerivedDataVariable,
     type ResolvedDerivedVariable,
+    type ResolvedServerVariable,
     type ResolvedSwitchVariable,
+    type ServerVariable,
+    type SingleVariable,
+    type StateVariable,
     type SwitchVariable,
-    type UrlVariable,
 } from './core';
 
 /**
@@ -34,12 +33,12 @@ export function isVariable<T>(variable: AnyVariable<T> | T): variable is AnyVari
 }
 
 /**
- * Check if a value is a UrlVariable instance and type guard the response
+ * Check if a value is a single variable instance and type guard the response
  *
  * @param variable the potential variable to check
  */
-export function isUrlVariable<T>(variable: AnyVariable<T> | T): variable is UrlVariable<T> {
-    return isVariable(variable) && variable.__typename === 'UrlVariable';
+export function isSingleVariable<T>(variable: AnyVariable<T> | T): variable is SingleVariable<T> {
+    return isVariable(variable) && variable.__typename === 'Variable';
 }
 
 /**
@@ -51,22 +50,9 @@ export function isDerivedVariable<T>(variable: AnyVariable<T> | T): variable is 
     return isVariable(variable) && variable.__typename === 'DerivedVariable';
 }
 
-/**
- * Check if a value is a data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDataVariable<T>(variable: AnyVariable<T> | T): variable is DataVariable {
-    return isVariable(variable) && variable.__typename === 'DataVariable';
-}
-
-/**
- * Check if a value is a derived data variable instance and type guard the response
- *
- * @param variable the potential variable to check
- */
-export function isDerivedDataVariable<T>(variable: AnyVariable<T> | T): variable is DerivedDataVariable {
-    return isVariable(variable) && variable.__typename === 'DerivedDataVariable';
+/** Check if a value is a server variable instance and type guard the response */
+export function isServerVariable(variable: any): variable is ServerVariable {
+    return isVariable(variable) && variable.__typename === 'ServerVariable';
 }
 
 /**
@@ -94,6 +80,15 @@ export function isSwitchVariable<T>(variable: AnyVariable<T> | T): variable is S
 }
 
 /**
+ * Check if a value is a state variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isStateVariable<T>(variable: AnyVariable<T> | T): variable is StateVariable {
+    return isVariable(variable) && variable.__typename === 'StateVariable';
+}
+
+/**
  * Check if a value is a ResolvedDerivedVariable
  *
  * @param value value to check
@@ -109,38 +104,14 @@ export function isResolvedDerivedVariable(value: any | ResolvedDerivedVariable):
     );
 }
 
-/**
- * Check if a value is a ResolvedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDataVariable(value: any | ResolvedDataVariable): value is ResolvedDataVariable {
+export function isResolvedServerVariable(value: any | ResolvedServerVariable): value is ResolvedServerVariable {
     return (
         value &&
         typeof value === 'object' &&
-        'filters' in value &&
         'type' in value &&
-        value.type === 'data' &&
-        'uid' in value
-    );
-}
-
-/**
- * Check if a value is a ResolvedDerivedDataVariable
- *
- * @param value value to check
- */
-export function isResolvedDerivedDataVariable(
-    value: any | ResolvedDerivedDataVariable
-): value is ResolvedDerivedDataVariable {
-    return (
-        value &&
-        typeof value === 'object' &&
-        'filters' in value &&
-        'values' in value &&
-        'type' in value &&
-        value.type === 'derived-data' &&
-        'uid' in value
+        value.type === 'server' &&
+        'uid' in value &&
+        'sequence_number' in value
     );
 }
 
@@ -165,7 +136,7 @@ export function isActionImpl(action: any): action is ActionImpl {
 }
 
 export function isAnnotatedAction(action: any): action is AnnotatedAction {
-    return action && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
+    return action && isObject(action) && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
 }
 
 export const isPyComponent = (value: unknown): value is ComponentInstance =>

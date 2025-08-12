@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.19.1
+
+-   Pinned @fortawesome/react-fontawesome to `0.2.2`
+
 ## 1.4.2
 
 -   Pinned fortawesome to `~6.4.0`

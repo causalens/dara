@@ -17,16 +17,17 @@ limitations under the License.
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import math
 import uuid
+from collections.abc import Awaitable
 from contextvars import ContextVar
 from enum import Enum
 from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     ClassVar,
     Dict,
@@ -43,17 +44,18 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import ConfigDict
-from typing_extensions import deprecated
+from typing_extensions import TypeAlias, deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
+    TaskProgressUpdate,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.base_definitions import TaskProgressUpdate
-from dara.core.interactivity.data_variable import DataVariable
+from dara.core.interactivity.server_variable import ServerVariable
+from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.download import generate_download_code
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
@@ -63,10 +65,8 @@ if TYPE_CHECKING:
     from dara.core.interactivity import (
         AnyVariable,
         DerivedVariable,
-        UrlVariable,
         Variable,
     )
-    from dara.core.internal.cache_store import CacheStore
 
 
 class ActionInputs(BaseModel):
@@ -97,7 +97,7 @@ class ComponentActionContext(ActionContext):
     ActionContext for actions that only require component value
     """
 
-    inputs: ComponentActionInputs   # type: ignore
+    inputs: ComponentActionInputs  # type: ignore
 
 
 class UpdateVariableImpl(ActionImpl):
@@ -124,7 +124,7 @@ class UpdateVariableImpl(ActionImpl):
 
     py_name = 'UpdateVariable'
 
-    variable: Union[Variable, UrlVariable, DataVariable]
+    variable: Union[Variable, ServerVariable]
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -134,19 +134,18 @@ class UpdateVariableImpl(ActionImpl):
     """Special value for `value` that will toggle the variable value"""
 
     async def execute(self, ctx: ActionCtx) -> Any:
-        if isinstance(self.variable, DataVariable):
+        if isinstance(self.variable, ServerVariable):
             # Update on the backend
             from dara.core.internal.registries import (
-                data_variable_registry,
+                server_variable_registry,
                 utils_registry,
             )
 
-            store: CacheStore = utils_registry.get('Store')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-            var_entry = await registry_mgr.get(data_variable_registry, self.variable.uid)
-            DataVariable.update_value(var_entry, store, self.value)
-            # Don't notify frontend explicitly, all clients will be notified by update_value above
+            var_entry = await registry_mgr.get(server_variable_registry, self.variable.uid)
+            await ServerVariable.write_value(var_entry, self.value)
+            # Don't notify frontend explicitly, all clients will be notified by write_value above
             return None
 
         # for non-data variables just ping frontend with the new value
@@ -162,7 +161,7 @@ class UpdateVariableInputs(ActionInputs):
 
 
 class UpdateVariableContext(ActionContext):
-    inputs: UpdateVariableInputs   # type: ignore
+    inputs: UpdateVariableInputs  # type: ignore
 
 
 @deprecated('Use @action or `UpdateVariableImpl` for simple cases')
@@ -171,7 +170,7 @@ class UpdateVariable(AnnotatedAction):
     @deprecated: Passing in resolvers is deprecated, use `ctx.update` in an `@action` or `UpdateVariableImpl` instead.
     `UpdateVariableImpl` will be renamed to `UpdateVariable` in Dara 2.0.
 
-    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable, UrlVariable or DataVariable.
+    The UpdateVariable action can be passed to any `ComponentInstance` prop accepting an action and trigger the update of a Variable or ServerVariable.
     The resolver function takes a Context param which will feed the `inputs`: `old` and `new` as well as any `extras` passed through.
 
     Below an example of how a resolver might look:
@@ -239,13 +238,13 @@ class UpdateVariable(AnnotatedAction):
 
     Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
-    variable: Union[Variable, DataVariable, UrlVariable]
+    variable: Union[Variable, ServerVariable]
     extras: Optional[List[AnyVariable]]
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
-        variable: Union[Variable, DataVariable, UrlVariable],
+        variable: Union[Variable, ServerVariable],
         extras: Optional[List[AnyVariable]] = None,
     ):
         """
@@ -254,8 +253,8 @@ class UpdateVariable(AnnotatedAction):
         :param extras: any extra variables to resolve and pass to the resolution function context
         """
 
-        async def _update(ctx: action.Ctx, **kwargs):   # type: ignore
-            ctx = cast(ActionCtx, ctx)   # type: ignore
+        async def _update(ctx: action.Ctx, **kwargs):  # type: ignore
+            ctx = cast(ActionCtx, ctx)  # type: ignore
             old = kwargs.pop('old')
             extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
             old_ctx = UpdateVariableContext(inputs=UpdateVariableInputs(old=old, new=ctx.input), extras=extras)
@@ -271,7 +270,7 @@ class UpdateVariable(AnnotatedAction):
                 for idx in range(len(extras or []))
             ],
         ]
-        _update.__signature__ = inspect.Signature(params)   # type: ignore
+        _update.__signature__ = inspect.Signature(params)  # type: ignore
 
         # Pass in variable and extras as kwargs
         kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -428,11 +427,11 @@ def NavigateTo(
         return NavigateToImpl(url=url, new_tab=new_tab)
 
     # Otherwise create a new @action with the provided resolver
-    async def _navigate(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _navigate(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
-        result = await run_user_handler(url, args=(old_ctx,))   # type: ignore
+        result = await run_user_handler(url, args=(old_ctx,))  # type: ignore
         # Navigate to resulting url
         await ctx.navigate(result, new_tab)
 
@@ -444,14 +443,14 @@ def NavigateTo(
             for idx in range(len(extras or []))
         ],
     ]
-    _navigate.__signature__ = inspect.Signature(params)   # type: ignore
+    _navigate.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in variable and extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
     return action(_navigate)(**kwargs)
 
 
-NavigateTo.Ctx = ComponentActionContext   # type: ignore
+NavigateTo.Ctx = ComponentActionContext  # type: ignore
 
 
 def Logout():
@@ -627,13 +626,13 @@ def DownloadContent(
 
     ```python
 
-    from dara.core import action, ConfigurationBuilder, DataVariable, DownloadContent
+    from dara.core import action, ConfigurationBuilder, ServerVariable, DownloadContent
     from dara.components.components import Button, Stack
 
 
     # generate data, alternatively you could load it from a file
     df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-    my_var = DataVariable(df)
+    my_var = ServerVariable(df)
 
     config = ConfigurationBuilder()
 
@@ -663,8 +662,8 @@ def DownloadContent(
     ```
     """
 
-    async def _download(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _download(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         result = await run_user_handler(resolver, args=(old_ctx,))
@@ -678,7 +677,7 @@ def DownloadContent(
             for idx in range(len(extras or []))
         ],
     ]
-    _download.__signature__ = inspect.Signature(params)   # type: ignore
+    _download.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -686,7 +685,7 @@ def DownloadContent(
     return action(_download)(**kwargs)
 
 
-DownloadContent.Ctx = ComponentActionContext   # type: ignore
+DownloadContent.Ctx = ComponentActionContext  # type: ignore
 """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
@@ -769,8 +768,8 @@ def SideEffect(
     ```
     """
 
-    async def _effect(ctx: action.Ctx, **kwargs):   # type: ignore
-        ctx = cast(ActionCtx, ctx)   # type: ignore
+    async def _effect(ctx: action.Ctx, **kwargs):  # type: ignore
+        ctx = cast(ActionCtx, ctx)  # type: ignore
         extras = [kwargs[f'kwarg_{idx}'] for idx in range(len(kwargs))]
         old_ctx = ComponentActionContext(inputs=ComponentActionInputs(value=ctx.input), extras=extras)
         # Simply run the user handler
@@ -784,7 +783,7 @@ def SideEffect(
             for idx in range(len(extras or []))
         ],
     ]
-    _effect.__signature__ = inspect.Signature(params)   # type: ignore
+    _effect.__signature__ = inspect.Signature(params)  # type: ignore
 
     # Pass in extras as kwargs
     kwargs = {f'kwarg_{idx}': value for idx, value in enumerate(extras or [])}
@@ -792,7 +791,7 @@ def SideEffect(
     return action(_effect)(**kwargs)
 
 
-SideEffect.Ctx = ComponentActionContext   # type: ignore
+SideEffect.Ctx = ComponentActionContext  # type: ignore
 """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 VariableT = TypeVar('VariableT')
@@ -825,14 +824,12 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: DataVariable, value: Optional[DataFrame]):
-        ...
+    async def update(self, variable: ServerVariable, value: Optional[DataFrame]): ...
 
     @overload
-    async def update(self, variable: Union[Variable[VariableT], UrlVariable[VariableT]], value: VariableT):
-        ...
+    async def update(self, variable: Variable[VariableT], value: VariableT): ...
 
-    async def update(self, variable: Union[Variable, UrlVariable, DataVariable], value: Any):
+    async def update(self, variable: Union[Variable, ServerVariable], value: Any):
         """
         Update a given variable to provided value.
 
@@ -1115,12 +1112,12 @@ class ActionCtx:
 
         ```python
 
-        from dara.core import action, ConfigurationBuilder, DataVariable
+        from dara.core import action, ConfigurationBuilder, ServerVariable
         from dara.components.components import Button, Stack
 
         # generate data, alternatively you could load it from a file
         df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-        my_var = DataVariable(df)
+        my_var = ServerVariable(df)
 
         config = ConfigurationBuilder()
 
@@ -1246,6 +1243,7 @@ class ActionCtx:
         task_mgr: TaskManager = utils_registry.get('TaskManager')
 
         task = Task(func=func, args=args, kwargs=kwargs, on_progress=on_progress)
+        task_mgr.register_task(task)
         pending_task = await task_mgr.run_task(task)
         return await pending_task.value()
 
@@ -1330,7 +1328,7 @@ class action:
     ```
     """
 
-    Ctx: ClassVar[type[ActionCtx]] = ActionCtx
+    Ctx: TypeAlias = ActionCtx
 
     def __init__(self, func: Callable[..., Any]):
         from dara.core.internal.execute_action import execute_action
@@ -1389,11 +1387,10 @@ class action:
         return bound_f
 
     @overload
-    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, ctx: ActionCtx, *args: Any, **kwargs: Any) -> Any: ...
 
     @overload
-    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:   # type: ignore
+    def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore
         ...
 
     def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
@@ -1444,10 +1441,10 @@ class action:
         for key, value in all_kwargs.items():
             if key in self.func.__annotations__:
                 valid_value = True
-                try:
+                # The type is either not set or something tricky to verify, e.g. union
+                with contextlib.suppress(Exception):
                     valid_value = isinstance(value, (self.func.__annotations__[key], AnyVariable))
-                except Exception:
-                    pass  # The type is either not set or something tricky to verify, e.g. union
+
                 if not valid_value:
                     raise TypeError(
                         f'Argument: {key} was passed as a {type(value)}, but it should be '
@@ -1458,6 +1455,11 @@ class action:
         dynamic_kwargs: Dict[str, AnyVariable] = {}
         static_kwargs: Dict[str, Any] = {}
         for key, kwarg in all_kwargs.items():
+            if isinstance(kwarg, StateVariable):
+                raise ValueError(
+                    'StateVariable cannot be used as input to actions. '
+                    "StateVariables are internal variables for tracking DerivedVariable ephemeral client state shouldn't be used as action payloads."
+                )
             if isinstance(kwarg, AnyVariable):
                 dynamic_kwargs[key] = kwarg
             else:

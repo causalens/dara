@@ -16,7 +16,7 @@
  */
 import { faLocationPin } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * LocationPin icon from FontAwesome

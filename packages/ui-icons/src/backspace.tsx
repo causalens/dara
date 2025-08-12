@@ -16,7 +16,7 @@
  */
 import { faBackspace } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Backspace icon from FontAwesome

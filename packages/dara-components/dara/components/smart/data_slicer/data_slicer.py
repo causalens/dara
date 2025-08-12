@@ -51,29 +51,29 @@ from dara.components.smart.data_slicer.utils.plotting import render_input_plot
 from dara.core import DerivedVariable, Variable, py_component
 from dara.core.actions import UpdateVariable
 from dara.core.definitions import ComponentInstance, discover
-from dara.core.interactivity import AnyDataVariable, DataVariable, DerivedDataVariable
+from dara.core.interactivity import AnyVariable, ServerVariable
 
 NO_RESULTS_FOUND = Stack(Text('No results found'))
 TABLE_ROWS = 5
 
 
-def increment(ctx: UpdateVariable.Ctx):
+def increment(ctx: UpdateVariable.Ctx):  # type: ignore
     return ctx.inputs.old + 1
 
 
 @discover
 class DataSlicer:
-    def __init__(self, data: Union[DataFrame, AnyDataVariable], rows_to_show: int = 10):
+    def __init__(self, data: Union[DataFrame, AnyVariable], rows_to_show: int = 10):
         """
         DataSlicer component allows the user to select a subset of a dataset by variable ranges or individual rows.
-        Once instantiated, the `DerivedDataVariable` returned by `get_output()` will contain the filtered data.
+        Once instantiated, the `DerivedVariable` returned by `get_output()` will contain the filtered data.
 
         Displayed inline.
 
         :param data: input data
         :param rows_to_show: number of rows to show in the 'Head' and 'Tail' sections of filter preview
         """
-        self.data_var = data if isinstance(data, AnyDataVariable) else DataVariable(data)
+        self.data_var = data if isinstance(data, AnyVariable) else ServerVariable(data)
         self.selected_column = Variable(None)
         self.rows_to_show = Variable(rows_to_show)
 
@@ -82,14 +82,12 @@ class DataSlicer:
         self.table_columns = DerivedVariable(get_columns, variables=[self.column_definitions])
 
         self.current_variable_filters = Variable([])
-        self.preview_output = DerivedDataVariable(
-            apply_filters, variables=[self.current_variable_filters, self.data_var]
-        )
+        self.preview_output = DerivedVariable(apply_filters, variables=[self.current_variable_filters, self.data_var])
 
         # Table preview outputs
-        self.describe_data = DerivedDataVariable(get_describe_data, variables=[self.preview_output])
-        self.head_data = DerivedDataVariable(get_head_data, variables=[self.preview_output, self.rows_to_show])
-        self.tail_data = DerivedDataVariable(get_tail_data, variables=[self.preview_output, self.rows_to_show])
+        self.describe_data = DerivedVariable(get_describe_data, variables=[self.preview_output])
+        self.head_data = DerivedVariable(get_head_data, variables=[self.preview_output, self.rows_to_show])
+        self.tail_data = DerivedVariable(get_tail_data, variables=[self.preview_output, self.rows_to_show])
 
         # This is a workaround for issues in DO-230
         self.manual_output_trigger = Variable(0)
@@ -99,13 +97,13 @@ class DataSlicer:
             variables=[self.current_variable_filters, self.manual_output_trigger],
             deps=[self.manual_output_trigger],
         )
-        self.final_output = DerivedDataVariable(
+        self.final_output = DerivedVariable(
             lambda x, _y: x,
             variables=[self.preview_output, self.manual_output_trigger],
             deps=[self.manual_output_trigger],
         )
 
-    def get_output(self) -> DerivedDataVariable:
+    def get_output(self) -> DerivedVariable:
         """
         Get the DerivedVariable containing filtered data
         """

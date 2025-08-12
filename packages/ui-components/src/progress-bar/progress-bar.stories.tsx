@@ -14,26 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as ProgressBarComponent, ProgressBarProps } from './progress-bar';
+import { default as ProgressBarComponent, type ProgressBarProps } from './progress-bar';
 
-export default {
+const meta: Meta<ProgressBarProps> = {
     component: ProgressBarComponent,
     title: 'UI Components/Progress Bar',
-} as Meta;
+};
 
-export const ProgressBar = (args: ProgressBarProps): JSX.Element => <ProgressBarComponent {...args} />;
-ProgressBar.args = {
-    progress: 33,
-    small: false,
+export default meta;
+type Story = StoryObj<ProgressBarProps>;
+
+export const ProgressBar: Story = {
+    args: {
+        progress: 33,
+        small: false,
+    },
 };
 
 // Now that we have multi as well, could we have two stories one for multi and one for single bars?
 
-export const ProgressBarMulti = (args: ProgressBarProps): JSX.Element => <ProgressBarComponent {...args} />;
-ProgressBarMulti.args = {
-    label: ['Available', 'Used', 'Limit', 'Total'],
-    progress: [10, 5, 30, 80],
-    small: false,
+export const ProgressBarMulti: Story = {
+    args: {
+        label: ['Available', 'Used', 'Limit', 'Total'],
+        progress: [10, 5, 30, 80],
+        small: false,
+    },
 };

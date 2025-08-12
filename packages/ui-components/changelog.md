@@ -2,6 +2,19 @@
 title: Changelog
 ---
 
+## 1.20.0
+
+- Fixed an issue where `SectionedList` would not update the input value when clicking on an item.
+- Updated the `SectionedList` component to support placeholder text.
+
+## 1.19.1
+
+- Added a new `Dropdown` and `DropdownMenu` components which now match the rest of the UI kit
+- Visual upgrade to `ContextMenu` to use the new `Dropdown` component
+- Added `useContextMenu` hook for non-HOC usage of `ContextMenu`
+- Fixed versioning issues with `react-aria-components`
+- Pinned `@fortawesome/react-fontawesome` to `0.2.2`
+
 ## 1.17.4
 
 - Fixed an issue where `Table`'s filter components would not show when clicking on the filter icon.

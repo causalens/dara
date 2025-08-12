@@ -1,13 +1,21 @@
-import { Matcher, MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
+import { type Matcher, type MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { rest } from 'msw';
-import hash from 'object-hash';
 import { useRecoilCallback } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
-import { DaraEventMap, DataVariable, TriggerVariableImpl } from '@/types/core';
+import type {
+    Action,
+    BrowserStore,
+    DaraEventMap,
+    DerivedVariable,
+    QueryParamStore,
+    SingleVariable,
+    TriggerVariableImpl,
+    Variable,
+} from '@/types/core';
 
 import { RequestExtrasProvider, useAction, useVariable } from '../../js/shared';
 import {
@@ -16,8 +24,7 @@ import {
     clearRegistries_TEST,
 } from '../../js/shared/interactivity/store';
 import { getIdentifier } from '../../js/shared/utils/normalization';
-import { Action, DerivedVariable, SingleVariable, UrlVariable, Variable } from '../../js/types';
-import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
+import { Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
@@ -52,13 +59,17 @@ async function initComponent(
     const { getByTestId } = wrappedRender(<MockComponent derivedVar={derivedVar} variableA={varA} variableB={varB} />);
     await waitFor(() => expect(getByTestId('c')).toBeVisible());
     const result = getByTestId('c').innerHTML;
-    expect(result).toEqual(
-        `{"force":false,"is_data_variable":false,"values":{"data":[{"__ref":"${getIdentifier(
-            varA
-        )}"},{"__ref":"${getIdentifier(varB)}"}],"lookup":{"${getIdentifier(varA)}":1,"${getIdentifier(
-            varB
-        )}":2}},"ws_channel":"uid"}`
-    );
+    expect(JSON.parse(result)).toEqual({
+        force_key: null,
+        values: {
+            data: [{ __ref: getIdentifier(varA) }, { __ref: getIdentifier(varB) }],
+            lookup: {
+                [getIdentifier(varA)]: 1,
+                [getIdentifier(varB)]: 2,
+            },
+        },
+        ws_channel: 'uid',
+    });
     return getByTestId;
 }
 // Helper to update a given input in the component
@@ -102,7 +113,7 @@ describe('useVariable', () => {
     beforeEach(() => {
         server.listen();
         window.localStorage.clear();
-        jest.useFakeTimers();
+        // jest.useFakeTimers();
         jest.restoreAllMocks();
 
         setSessionToken(SESSION_TOKEN);
@@ -114,7 +125,7 @@ describe('useVariable', () => {
     afterEach(() => {
         setSessionToken(null);
         jest.clearAllTimers();
-        jest.useRealTimers();
+        // jest.useRealTimers();
         server.resetHandlers();
     });
     afterAll(() => server.close());
@@ -123,12 +134,12 @@ describe('useVariable', () => {
         it('should accept a variable as an argument and create a recoil state for it', () => {
             const { result } = renderHook(
                 () =>
-                    useVariable<string>({
+                    useVariable<string | undefined>({
                         __typename: 'Variable',
                         default: undefined,
                         nested: [],
                         uid: 'test',
-                    } satisfies Variable<string>),
+                    } satisfies Variable<string | undefined>),
                 {
                     wrapper: Wrapper,
                 }
@@ -231,9 +242,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: [],
-                        persist_value: true,
                         uid: 'session-test-1',
-                    } as SingleVariable<any>),
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -261,9 +274,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: ['val'],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-2',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -296,9 +311,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: [],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-3',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -324,9 +341,11 @@ describe('useVariable', () => {
                         __typename: 'Variable',
                         default: defaultValue,
                         nested: ['val'],
-                        persist_value: true,
+                        store: {
+                            __typename: 'BrowserStore',
+                        },
                         uid: 'session-test-4',
-                    } as SingleVariable<any>),
+                    } as SingleVariable<any, BrowserStore>),
                 {
                     wrapper: Wrapper,
                 }
@@ -651,8 +670,7 @@ describe('useVariable', () => {
             );
             await waitFor(() => {
                 expect(result.current[0]).toStrictEqual({
-                    force: false,
-                    is_data_variable: false,
+                    force_key: null,
                     values: {
                         data: [{ __ref: 'Variable:dep1' }, { __ref: 'Variable:dep2' }],
                         lookup: { 'Variable:dep1': '1', 'Variable:dep2': '2' },
@@ -695,8 +713,8 @@ describe('useVariable', () => {
             await waitFor(() => {
                 expect(receivedData).toHaveLength(1);
             });
-            expect(receivedData[0].variable).toEqual(variable);
-            expect(receivedData[0].value).toEqual({
+            expect(receivedData[0]!.variable).toEqual(variable);
+            expect(receivedData[0]!.value).toEqual({
                 value: result.current[0],
                 cache_key: expect.any(String),
             });
@@ -737,6 +755,7 @@ describe('useVariable', () => {
         });
 
         it('should keep on updating the derived variable if polling_interval is set', async () => {
+            jest.useFakeTimers();
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
@@ -758,8 +777,7 @@ describe('useVariable', () => {
             );
             await waitFor(() => {
                 expect(result.current[0]).toStrictEqual({
-                    force: false,
-                    is_data_variable: false,
+                    force_key: null,
                     values: {
                         data: [
                             {
@@ -785,8 +803,8 @@ describe('useVariable', () => {
 
             await waitFor(() => {
                 expect(result.current[0]).toStrictEqual({
-                    force: true,
-                    is_data_variable: false,
+                    // force_key is set
+                    force_key: expect.any(String),
                     values: {
                         data: [
                             {
@@ -821,8 +839,7 @@ describe('useVariable', () => {
             // Updating both inputs should update the derived var
             let result = await updateInput('a', 2, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 2, 'Variable:b': 2 },
@@ -831,8 +848,7 @@ describe('useVariable', () => {
             });
             result = await updateInput('b', 3, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 2, 'Variable:b': 3 },
@@ -855,8 +871,7 @@ describe('useVariable', () => {
             // Updating either of the inputs should NOT update the derived var
             let result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 1, 'Variable:b': 2 },
@@ -865,8 +880,7 @@ describe('useVariable', () => {
             });
             result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 1, 'Variable:b': 2 },
@@ -889,8 +903,7 @@ describe('useVariable', () => {
             // Updating b should not update the result
             let result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 1, 'Variable:b': 2 },
@@ -901,8 +914,7 @@ describe('useVariable', () => {
             // Updating a should update the result
             result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 5, 'Variable:b': 5 },
@@ -974,8 +986,7 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
                     lookup: { 'Variable:a': 1, 'Variable:d': { first: 1, second: 2 }, 'Variable:d:first': 1 },
@@ -986,8 +997,7 @@ describe('useVariable', () => {
             // Updating A should not update result
             result = await updateInput('a', 5, getByTestId);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
                     lookup: { 'Variable:a': 1, 'Variable:d': { first: 1, second: 2 }, 'Variable:d:first': 1 },
@@ -998,8 +1008,7 @@ describe('useVariable', () => {
             // Updating nested.second should not update result
             result = await updateInput('b.second', 5, getByTestId);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
                     lookup: { 'Variable:a': 1, 'Variable:d': { first: 1, second: 2 }, 'Variable:d:first': 1 },
@@ -1010,8 +1019,7 @@ describe('useVariable', () => {
             // Updating nested.first should update result
             result = await updateInput('b.first', 5, getByTestId);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:d' }, { __ref: 'Variable:d:first' }],
                     lookup: { 'Variable:a': 5, 'Variable:d': { first: 5, second: 5 }, 'Variable:d:first': 5 },
@@ -1071,12 +1079,11 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('result')).toBeVisible());
             let result = JSON.parse(getByTestId('result').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1091,12 +1098,11 @@ describe('useVariable', () => {
             // Updating C should not update result
             result = await updateInput('c', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1111,12 +1117,11 @@ describe('useVariable', () => {
             // Updating B should not update result
             result = await updateInput('b', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1131,12 +1136,11 @@ describe('useVariable', () => {
             // Updating A should update result as it's a dependency of intermediateVariable which is in deps
             result = await updateInput('a', 5, getByTestId, 'result');
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1206,8 +1210,7 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 1, 'Variable:b': 2 },
@@ -1220,8 +1223,7 @@ describe('useVariable', () => {
             await updateInput('b', 7, getByTestId);
             result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                     lookup: { 'Variable:a': 1, 'Variable:b': 2 },
@@ -1235,8 +1237,7 @@ describe('useVariable', () => {
             });
             await waitFor(() =>
                 expect(JSON.parse(getByTestId('c').innerHTML)).toEqual({
-                    force: true,
-                    is_data_variable: false,
+                    force_key: expect.any(String),
                     values: {
                         data: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
                         lookup: { 'Variable:a': 6, 'Variable:b': 7 },
@@ -1311,12 +1312,11 @@ describe('useVariable', () => {
             await waitFor(() => expect(getByTestId('c')).toBeVisible());
             let result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1331,12 +1331,11 @@ describe('useVariable', () => {
             await updateInput('a', 6, getByTestId);
             result = JSON.parse(getByTestId('c').innerHTML);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [
                         {
-                            force: false,
+                            force_key: null,
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1353,12 +1352,12 @@ describe('useVariable', () => {
             });
             await waitFor(() =>
                 expect(JSON.parse(getByTestId('c').innerHTML)).toEqual({
-                    force: true,
-                    is_data_variable: false,
+                    force_key: null,
                     values: {
                         data: [
                             {
-                                force: false,
+                                // Nested variable is forced, not top-level
+                                force_key: expect.any(String),
                                 type: 'derived',
                                 uid: 'intermediate_variable',
                                 values: [{ __ref: 'Variable:base_variable' }],
@@ -1369,6 +1368,116 @@ describe('useVariable', () => {
                     ws_channel: 'uid',
                 })
             );
+        });
+
+        it('should embed force key only in triggered variable, not parent derived variable', async () => {
+            const baseVariable: Variable<number> = {
+                __typename: 'Variable',
+                default: 10,
+                nested: [],
+                uid: 'base_variable',
+            };
+
+            const intermediateVariable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'intermediate_variable',
+                variables: [baseVariable],
+            };
+
+            const finalVariable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [intermediateVariable],
+                nested: [],
+                uid: 'final_variable',
+                variables: [intermediateVariable],
+            };
+
+            // Trigger action that forces the intermediate variable
+            const triggerAction: TriggerVariableImpl = {
+                __typename: 'ActionImpl',
+                force: true,
+                name: 'TriggerVariable',
+                variable: intermediateVariable,
+            };
+
+            const MockComponentForceKeyTest = (props: {
+                action: Action;
+                finalVar: DerivedVariable;
+                baseVar: Variable<any>;
+            }): JSX.Element => {
+                const [base, setBase] = useVariable(props.baseVar);
+                const [final] = useVariable(props.finalVar);
+                const callAction = useAction(props.action);
+
+                return (
+                    <div>
+                        <input data-testid="base" onChange={(e) => setBase(Number(e.target.value))} value={base} />
+                        <span data-testid="final">{JSON.stringify(final)}</span>
+                        <button
+                            data-testid="trigger"
+                            onClick={(e) => {
+                                callAction(e);
+                            }}
+                            type="button"
+                        >
+                            trigger intermediate
+                        </button>
+                    </div>
+                );
+            };
+
+            const { getByTestId } = render(
+                <MockComponentForceKeyTest action={triggerAction} finalVar={finalVariable} baseVar={baseVariable} />,
+                { wrapper: Wrapper }
+            );
+
+            // Wait for initial render
+            await waitFor(() => expect(getByTestId('final')).toBeVisible());
+
+            // Verify initial state - no force keys
+            const result = JSON.parse(getByTestId('final').innerHTML);
+            expect(result).toEqual({
+                force_key: null,
+                values: {
+                    data: [
+                        {
+                            force_key: null, // Initially no force key
+                            type: 'derived',
+                            uid: 'intermediate_variable',
+                            values: [{ __ref: 'Variable:base_variable' }],
+                        },
+                    ],
+                    lookup: { 'Variable:base_variable': 10 },
+                },
+                ws_channel: 'uid',
+            });
+
+            // Trigger the intermediate variable with force=true
+            fireEvent.click(getByTestId('trigger'));
+
+            // Wait for the update and verify force key embedding
+            await waitFor(() => {
+                const updatedResult = JSON.parse(getByTestId('final').innerHTML);
+
+                // The key insight: intermediate variable should have force_key, but final variable should NOT
+                expect(updatedResult).toEqual({
+                    force_key: null,
+                    values: {
+                        data: [
+                            {
+                                force_key: expect.any(String), // intermediate variable gets force key
+                                type: 'derived',
+                                uid: 'intermediate_variable',
+                                values: [{ __ref: 'Variable:base_variable' }],
+                            },
+                        ],
+                        lookup: { 'Variable:base_variable': 10 },
+                    },
+                    ws_channel: 'uid',
+                });
+            });
         });
 
         it('should respect `nested` inside deps array', async () => {
@@ -1400,8 +1509,7 @@ describe('useVariable', () => {
             // Updating B should not update derived variable
             let result = await updateInput('b', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:nested-variable:a' }, { __ref: 'Variable:nested-variable:b' }],
                     lookup: { 'Variable:nested-variable:a': 1, 'Variable:nested-variable:b': 2 },
@@ -1412,8 +1520,7 @@ describe('useVariable', () => {
             // Updating A should update derived variable
             result = await updateInput('a', 5, getter);
             expect(result).toEqual({
-                force: false,
-                is_data_variable: false,
+                force_key: null,
                 values: {
                     data: [{ __ref: 'Variable:nested-variable:a' }, { __ref: 'Variable:nested-variable:b' }],
                     lookup: { 'Variable:nested-variable:a': 5, 'Variable:nested-variable:b': 5 },
@@ -1510,617 +1617,8 @@ describe('useVariable', () => {
         });
     });
 
-    describe('DataVariable', () => {
-        it('can be used in a DerivedVariable', async () => {
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const { result } = renderHook(
-                () =>
-                    useVariable<string>({
-                        __typename: 'DerivedVariable',
-                        default: 'test',
-                        deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-                        nested: [],
-                        uid: 'uid',
-                        variables: [
-                            { __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>,
-                            dataVariable,
-                        ],
-                    } as DerivedVariable),
-                { wrapper: Wrapper }
-            );
-
-            await waitFor(() => {
-                const expectedHash = `DataVariable:dep2:${hash(dataVariable.filters, { unorderedArrays: true })}`;
-                expect(result.current[0]).toStrictEqual({
-                    force: false,
-                    is_data_variable: false,
-                    values: {
-                        data: [{ __ref: 'Variable:dep1' }, { __ref: expectedHash }],
-                        lookup: {
-                            'Variable:dep1': '1',
-                            // ResolvedDataVariable structure
-                            [expectedHash]: { filters: dataVariable.filters, type: 'data', uid: 'dep2' },
-                        },
-                    },
-                    ws_channel: 'uid',
-                });
-            });
-        });
-
-        it('server trigger forces update of parent DerivedVariable', async () => {
-            const wsClient = new MockWebSocketClient('wsuid');
-
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const derivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-                deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-                nested: [],
-                uid: 'uid',
-                variables: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-            };
-
-            function Component(): JSX.Element {
-                const [data] = useVariable<string>(derivedVariable);
-
-                return (
-                    <div>
-                        <span data-testid="data">{JSON.stringify(data)}</span>
-                        <button
-                            data-testid="trigger"
-                            onClick={() =>
-                                wsClient.receiveMessage({
-                                    message: {
-                                        data_id: 'dep2',
-                                    },
-                                    type: 'message',
-                                })
-                            }
-                            type="button"
-                        >
-                            trigger
-                        </button>
-                    </div>
-                );
-            }
-
-            const { getByTestId } = render(<Component />, {
-                wrapper: (props) => <Wrapper client={wsClient} {...props} />,
-            });
-
-            await waitFor(() => expect(getByTestId('data')).toBeVisible());
-            const result1 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result1).toEqual({
-                force: false,
-                is_data_variable: false,
-                values: {
-                    data: [
-                        { __ref: 'Variable:dep1' },
-                        { __ref: 'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18' },
-                    ],
-                    lookup: {
-                        'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18': {
-                            filters: {
-                                clauses: [
-                                    { column: 'col1', operator: 'EQ', value: 'val1' },
-                                    { column: 'col2', operator: 'EQ', value: 'val2' },
-                                ],
-                                combinator: 'AND',
-                            },
-                            type: 'data',
-                            uid: 'dep2',
-                        },
-                        'Variable:dep1': '1',
-                    },
-                },
-                ws_channel: 'wsuid',
-            });
-
-            act(() => {
-                fireEvent.click(getByTestId('trigger'));
-            });
-
-            await waitFor(() => expect(JSON.parse(getByTestId('data').innerHTML)).not.toEqual(result1));
-            const result2 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result2).toEqual({
-                ...result1,
-                force: true,
-            });
-        });
-
-        it('server trigger forces update of grandparent DerivedVariable', async () => {
-            const wsClient = new MockWebSocketClient('wsuid');
-
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const derivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-
-                deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-                nested: [],
-                uid: 'uid',
-                variables: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-            };
-
-            const grandparentDerivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-                deps: [derivedVariable],
-                nested: [],
-                uid: 'uid2',
-                variables: [derivedVariable],
-            };
-
-            function Component(): JSX.Element {
-                const [data] = useVariable<string>(grandparentDerivedVariable);
-
-                return (
-                    <div>
-                        <span data-testid="data">{JSON.stringify(data)}</span>
-                        <button
-                            data-testid="trigger"
-                            onClick={() =>
-                                wsClient.receiveMessage({
-                                    message: {
-                                        data_id: 'dep2',
-                                    },
-                                    type: 'message',
-                                })
-                            }
-                            type="button"
-                        >
-                            trigger
-                        </button>
-                    </div>
-                );
-            }
-
-            const { getByTestId } = render(<Component />, {
-                wrapper: (props) => <Wrapper client={wsClient} {...props} />,
-            });
-
-            await waitFor(() => expect(getByTestId('data')).toBeVisible());
-            const result1 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result1).toEqual({
-                force: false,
-                is_data_variable: false,
-                values: {
-                    data: [
-                        {
-                            force: false,
-                            type: 'derived',
-                            uid: 'uid',
-                            values: [
-                                { __ref: 'Variable:dep1' },
-                                { __ref: 'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18' },
-                            ],
-                        },
-                    ],
-                    lookup: {
-                        'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18': {
-                            filters: {
-                                clauses: [
-                                    { column: 'col1', operator: 'EQ', value: 'val1' },
-                                    { column: 'col2', operator: 'EQ', value: 'val2' },
-                                ],
-                                combinator: 'AND',
-                            },
-                            type: 'data',
-                            uid: 'dep2',
-                        },
-                        'Variable:dep1': '1',
-                    },
-                },
-                ws_channel: 'wsuid',
-            });
-
-            // grandparent should be updated just like parent
-            act(() => {
-                fireEvent.click(getByTestId('trigger'));
-            });
-
-            await waitFor(() => expect(JSON.parse(getByTestId('data').innerHTML)).not.toEqual(result1));
-            const result2 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result2).toEqual({
-                ...result1,
-                force: true,
-            });
-        });
-
-        it('server trigger should update parent DerivedVariable even when not in deps', async () => {
-            const wsClient = new MockWebSocketClient('wsuid');
-
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const derivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-                deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>],
-                nested: [],
-                uid: 'uid',
-                variables: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-            };
-
-            function Component(): JSX.Element {
-                const [data] = useVariable<string>(derivedVariable);
-
-                return (
-                    <div>
-                        <span data-testid="data">{JSON.stringify(data)}</span>
-                        <button
-                            data-testid="trigger"
-                            onClick={() =>
-                                wsClient.receiveMessage({
-                                    message: {
-                                        data_id: 'dep2',
-                                    },
-                                    type: 'message',
-                                })
-                            }
-                            type="button"
-                        >
-                            trigger
-                        </button>
-                    </div>
-                );
-            }
-
-            const { getByTestId } = render(<Component />, {
-                wrapper: (props) => <Wrapper client={wsClient} {...props} />,
-            });
-
-            await waitFor(() => expect(getByTestId('data')).toBeVisible());
-            const result1 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result1).toEqual({
-                force: false,
-                is_data_variable: false,
-                values: {
-                    data: [
-                        { __ref: 'Variable:dep1' },
-                        { __ref: 'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18' },
-                    ],
-                    lookup: {
-                        'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18': {
-                            filters: {
-                                clauses: [
-                                    { column: 'col1', operator: 'EQ', value: 'val1' },
-                                    { column: 'col2', operator: 'EQ', value: 'val2' },
-                                ],
-                                combinator: 'AND',
-                            },
-                            type: 'data',
-                            uid: 'dep2',
-                        },
-                        'Variable:dep1': '1',
-                    },
-                },
-                ws_channel: 'wsuid',
-            });
-
-            act(() => {
-                fireEvent.click(getByTestId('trigger'));
-            });
-
-            await waitFor(() => expect(JSON.parse(getByTestId('data').innerHTML)).not.toEqual(result1));
-            const result2 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result2).toEqual({
-                ...result1,
-                force: true,
-            });
-        });
-
-        it('server trigger should update grandparent DerivedVariable even when not in parent deps', async () => {
-            const wsClient = new MockWebSocketClient('wsuid');
-
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const derivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-
-                deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>],
-                nested: [],
-                uid: 'uid',
-                variables: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-            };
-
-            const grandparentDerivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-                deps: [derivedVariable],
-                nested: [],
-                uid: 'uid2',
-                variables: [derivedVariable],
-            };
-
-            function Component(): JSX.Element {
-                const [data] = useVariable<string>(grandparentDerivedVariable);
-
-                return (
-                    <div>
-                        <span data-testid="data">{JSON.stringify(data)}</span>
-                        <button
-                            data-testid="trigger"
-                            onClick={() =>
-                                wsClient.receiveMessage({
-                                    message: {
-                                        data_id: 'dep2',
-                                    },
-                                    type: 'message',
-                                })
-                            }
-                            type="button"
-                        >
-                            trigger
-                        </button>
-                    </div>
-                );
-            }
-
-            const { getByTestId } = render(<Component />, {
-                wrapper: (props) => <Wrapper client={wsClient} {...props} />,
-            });
-
-            await waitFor(() => expect(getByTestId('data')).toBeVisible());
-            const result1 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result1).toEqual({
-                force: false,
-                is_data_variable: false,
-                values: {
-                    data: [
-                        {
-                            force: false,
-                            type: 'derived',
-                            uid: 'uid',
-                            values: [
-                                { __ref: 'Variable:dep1' },
-                                { __ref: 'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18' },
-                            ],
-                        },
-                    ],
-                    lookup: {
-                        'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18': {
-                            filters: {
-                                clauses: [
-                                    { column: 'col1', operator: 'EQ', value: 'val1' },
-                                    { column: 'col2', operator: 'EQ', value: 'val2' },
-                                ],
-                                combinator: 'AND',
-                            },
-                            type: 'data',
-                            uid: 'dep2',
-                        },
-                        'Variable:dep1': '1',
-                    },
-                },
-                ws_channel: 'wsuid',
-            });
-
-            // grandparent should be updated just like parent
-            act(() => {
-                fireEvent.click(getByTestId('trigger'));
-            });
-
-            await waitFor(() => expect(JSON.parse(getByTestId('data').innerHTML)).not.toEqual(result1));
-            const result2 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result2).toEqual({
-                ...result1,
-                force: true,
-            });
-        });
-
-        it('server trigger should update grandparent DerivedVariable even when parent not in grandparent deps', async () => {
-            const wsClient = new MockWebSocketClient('wsuid');
-
-            const dataVariable: DataVariable = {
-                __typename: 'DataVariable',
-                cache: 'global',
-                filters: {
-                    clauses: [
-                        {
-                            column: 'col1',
-                            operator: 'EQ',
-                            value: 'val1',
-                        },
-                        {
-                            column: 'col2',
-                            operator: 'EQ',
-                            value: 'val2',
-                        },
-                    ],
-                    combinator: 'AND',
-                },
-                uid: 'dep2',
-            };
-
-            const derivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-
-                deps: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-                nested: [],
-                uid: 'uid',
-                variables: [{ __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>, dataVariable],
-            };
-
-            const grandparentDerivedVariable: DerivedVariable = {
-                __typename: 'DerivedVariable',
-                deps: [],
-                nested: [],
-                uid: 'uid2',
-                variables: [derivedVariable],
-            };
-
-            function Component(): JSX.Element {
-                const [data] = useVariable<string>(grandparentDerivedVariable);
-
-                return (
-                    <div>
-                        <span data-testid="data">{JSON.stringify(data)}</span>
-                        <button
-                            data-testid="trigger"
-                            onClick={() =>
-                                wsClient.receiveMessage({
-                                    message: {
-                                        data_id: 'dep2',
-                                    },
-                                    type: 'message',
-                                })
-                            }
-                            type="button"
-                        >
-                            trigger
-                        </button>
-                    </div>
-                );
-            }
-
-            const { getByTestId } = render(<Component />, {
-                wrapper: (props) => <Wrapper client={wsClient} {...props} />,
-            });
-
-            await waitFor(() => expect(getByTestId('data')).toBeVisible());
-            const result1 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result1).toEqual({
-                force: false,
-                is_data_variable: false,
-                values: {
-                    data: [
-                        {
-                            force: false,
-                            type: 'derived',
-                            uid: 'uid',
-                            values: [
-                                { __ref: 'Variable:dep1' },
-                                { __ref: 'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18' },
-                            ],
-                        },
-                    ],
-                    lookup: {
-                        'DataVariable:dep2:08ee1b0d5bda35d0b69848e31c471755ef6f5a18': {
-                            filters: {
-                                clauses: [
-                                    { column: 'col1', operator: 'EQ', value: 'val1' },
-                                    { column: 'col2', operator: 'EQ', value: 'val2' },
-                                ],
-                                combinator: 'AND',
-                            },
-                            type: 'data',
-                            uid: 'dep2',
-                        },
-                        'Variable:dep1': '1',
-                    },
-                },
-                ws_channel: 'wsuid',
-            });
-
-            // grandparent should be updated just like parent
-            act(() => {
-                fireEvent.click(getByTestId('trigger'));
-            });
-
-            await waitFor(() => expect(JSON.parse(getByTestId('data').innerHTML)).not.toEqual(result1));
-            const result2 = JSON.parse(getByTestId('data').innerHTML);
-            expect(result2).toEqual({
-                ...result1,
-                force: true,
-            });
-        });
-    });
-
-    describe('UrlVariable', () => {
-        it('should manage the state of a UrlVariable by using the history api', async () => {
+    describe('Variable with QueryParamStore', () => {
+        it('should manage the state of a Variable with QueryParamStore by using the history api', async () => {
             const history = createMemoryHistory();
 
             act(() => {
@@ -2130,11 +1628,15 @@ describe('useVariable', () => {
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
-                        __typename: 'UrlVariable',
+                        __typename: 'Variable',
                         default: 'test',
-                        query: 'q',
+                        store: {
+                            __typename: 'QueryParamStore',
+                            query: 'q',
+                        },
                         uid: 'uid',
-                    } as UrlVariable<string>),
+                        nested: [],
+                    } as SingleVariable<string, QueryParamStore>),
                 { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
             );
             await waitFor(() => {
@@ -2158,7 +1660,7 @@ describe('useVariable', () => {
             });
         });
 
-        it('should pick up the state of the url by first render of a UrlVariable', () => {
+        it('should pick up the state of the url by first render of a Variable with QueryParamStore', () => {
             const history = createMemoryHistory();
 
             act(() => {
@@ -2167,11 +1669,15 @@ describe('useVariable', () => {
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
-                        __typename: 'UrlVariable',
+                        __typename: 'Variable',
                         default: 'test',
-                        query: 'q',
+                        store: {
+                            __typename: 'QueryParamStore',
+                            query: 'q',
+                        },
                         uid: 'uid',
-                    } as UrlVariable<string>),
+                        nested: [],
+                    } as SingleVariable<string, QueryParamStore>),
                 { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
             );
             expect(result.current[0]).toBe('initial');
@@ -2184,20 +1690,24 @@ describe('useVariable', () => {
                 history.push('/target');
             });
 
-            const receivedData: Array<DaraEventMap['URL_VARIABLE_LOADED']> = [];
+            const receivedData: Array<DaraEventMap['PLAIN_VARIABLE_LOADED']> = [];
 
             const variable = {
-                __typename: 'UrlVariable',
+                __typename: 'Variable',
                 default: 'test',
-                query: 'q',
+                store: {
+                    __typename: 'QueryParamStore',
+                    query: 'q',
+                },
                 uid: 'uid',
-            } satisfies UrlVariable<string>;
+                nested: [],
+            } satisfies SingleVariable<string, QueryParamStore>;
 
             const { result } = renderHook(() => useVariable<string>(variable), {
                 wrapper: ({ children }) => (
                     <EventCapturer
                         onEvent={(ev) => {
-                            if (ev.type === 'URL_VARIABLE_LOADED') {
+                            if (ev.type === 'PLAIN_VARIABLE_LOADED') {
                                 receivedData.push(ev.data);
                             }
                         }}

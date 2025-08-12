@@ -16,14 +16,14 @@
  */
 export { Key, CONTROL_KEYS } from './constants';
 export {
-    AccordionItemType,
-    JSONData,
-    Item,
-    ComponentSelectItem,
-    InteractiveComponentProps,
-    CarouselItem,
-    Message,
-    UserData,
+    type AccordionItemType,
+    type JSONData,
+    type Item,
+    type ComponentSelectItem,
+    type InteractiveComponentProps,
+    type CarouselItem,
+    type Message,
+    type UserData,
 } from './types';
 
 export { default as Accordion } from './accordion/accordion';
@@ -37,13 +37,14 @@ export { default as Checkbox } from './checkbox/checkbox';
 export { default as CheckboxGroup } from './checkbox/checkbox-group';
 export { default as CodeViewer, CodeComponentThemes } from './code-viewer/code-viewer';
 export { default as ComboBox } from './combo-box/combo-box';
-export { default as ContextMenu, MenuAction } from './context-menu/context-menu';
+export { default as ContextMenu, type MenuAction, useContextMenu } from './context-menu/context-menu';
+export { default as DropdownMenu, Dropdown, type MenuItem } from './dropdown-menu/dropdown-menu';
 export { default as DatePicker } from './datepicker/datepicker';
 export { default as UploadDropzone } from './dropzone/dropzone';
 export { default as ErrorBoundary } from './error-boundary/error-boundary';
-export { default as HierarchySelector, HierarchyNode } from './hierarchy-selector/hierarchy-selector';
+export { default as HierarchySelector, type HierarchyNode } from './hierarchy-selector/hierarchy-selector';
 export { default as Input } from './input/input';
-export { InputProps } from './input/input';
+export { type InputProps } from './input/input';
 export { default as Markdown } from './markdown/markdown';
 export { default as Modal, ModalFooter, ModalHeader } from './modal/modal';
 export { default as MultiSelect } from './multiselect/multiselect';
@@ -51,9 +52,9 @@ export { default as NumericFilter } from './filter/numeric-filter';
 export { default as NumericInput } from './numeric-input/numeric-input';
 export { default as ComponentSelectList } from './component-select-list/component-select-list';
 export { default as ProgressBar } from './progress-bar/progress-bar';
-export { default as RadioGroup, RadioItem } from './radio/radio-group';
+export { default as RadioGroup, type RadioItem } from './radio/radio-group';
 export { default as SeachBar } from './search-bar/search-bar';
-export { default as SectionedList, ListItem, ListSection } from './sectioned-list/sectioned-list';
+export { default as SectionedList, type ListItem, type ListSection } from './sectioned-list/sectioned-list';
 export { default as Select } from './select/select';
 export { CategoricalSlider, Slider } from './slider/slider';
 export { default as Spinner } from './spinner/spinner';
@@ -63,4 +64,4 @@ export { default as Tabs } from './tabs/tabs';
 export { default as Textarea } from './textarea/textarea';
 export { default as Tooltip } from './tooltip/tooltip';
 export { default as TriStateCheckbox } from './checkbox/tri-state-checkbox';
-export { Chevron, SubtleLabel, useInfiniteLoader, InfiniteLoader } from './utils';
+export { Chevron, SubtleLabel, useInfiniteLoader, type InfiniteLoader } from './utils';

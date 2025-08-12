@@ -7,9 +7,12 @@ import { useFallbackCtx } from '../context/fallback-context';
  * A hook that allows you to defer the loading of a loadable depending on the suspend setting in FallbackCtx.
  *
  * @param loadable The loadable to defer
+ * @param suspendOverride Optional override for suspend setting in FallbackCtx
  */
-export default function useDeferLoadable<T>(loadable: Loadable<T>): T {
-    const { suspend } = useFallbackCtx();
+export default function useDeferLoadable<T>(loadable: Loadable<T>, suspendOverride?: boolean | number): T {
+    const { suspend: ctxSuspend } = useFallbackCtx();
+    const suspend = suspendOverride ?? ctxSuspend;
+
     // Suspend on first render with getValue()
     const [availableState, setAvailableState] = useState(() => loadable.getValue());
 

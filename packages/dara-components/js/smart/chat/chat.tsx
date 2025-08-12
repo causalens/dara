@@ -1,10 +1,10 @@
 import * as React from 'react';
 
 import {
-    RequestExtras,
-    StyledComponentProps,
-    UserData,
-    Variable,
+    type RequestExtras,
+    type StyledComponentProps,
+    type UserData,
+    type Variable,
     handleAuthErrors,
     injectCss,
     request,
@@ -14,7 +14,7 @@ import {
     useVariable,
 } from '@darajs/core';
 import styled, { useTheme } from '@darajs/styled-components';
-import { Message, Chat as UiChat, UserData as UiUserData } from '@darajs/ui-components';
+import { type Message, Chat as UiChat, type UserData as UiUserData } from '@darajs/ui-components';
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 interface ChatProps extends StyledComponentProps {
@@ -174,8 +174,8 @@ function Chat(props: ChatProps): JSX.Element {
     const onUpdate = (newValue: Message[]): void => {
         // If the new value is longer than the old value, we can assume that a new message was added
         // or if newValue is defined and value is not.
-        if ((newValue && !value) || newValue?.length > value?.length) {
-            const newMessage = newValue[newValue.length - 1];
+        if ((newValue && !value) || newValue?.length > (value?.length ?? 0)) {
+            const newMessage = newValue[newValue.length - 1]!;
             const users = getAllUsersInChat(newValue);
             const notificationPayload: MessageNotificationPayload = {
                 app_url: window.location.href,

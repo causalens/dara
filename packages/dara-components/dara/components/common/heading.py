@@ -19,7 +19,7 @@ import re
 from typing import Union
 
 from dara.components.common.base_component import ContentComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class Heading(ContentComponent):
@@ -69,12 +69,14 @@ class Heading(ContentComponent):
     :param level: The level of heading to display, defaults to 1
     """
 
-    heading: Union[str, NonDataVariable]
+    heading: Union[str, ClientVariable]
     level: int = 1
 
     @property
     def anchor_name(self):
+        if isinstance(self.heading, ClientVariable):
+            raise ValueError('Heading anchor name cannot be accessed directly from a variable')
         return re.sub(r'\s+', '-', self.heading.lower())
 
-    def __init__(self, heading: Union[str, NonDataVariable], **kwargs):
+    def __init__(self, heading: Union[str, ClientVariable], **kwargs):
         super().__init__(heading=heading, **kwargs)

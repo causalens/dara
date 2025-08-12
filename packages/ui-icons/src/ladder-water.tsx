@@ -16,7 +16,7 @@
  */
 import { faLadderWater } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * LadderWater icon from FontAwesome

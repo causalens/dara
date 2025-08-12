@@ -22,7 +22,7 @@ from pydantic import Field, ValidationInfo, field_validator
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
-from dara.core.interactivity import UrlVariable, Variable
+from dara.core.interactivity import Variable
 
 
 def compute_step(difference: Decimal) -> Decimal:
@@ -138,7 +138,7 @@ class Slider(FormComponent):
     rail_to_end: bool = False
     thumb_labels: Optional[List[str]] = None
     ticks: Optional[List[Union[float, int]]] = None
-    value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
+    value: Optional[Variable[Any]] = None
     disable_input_alternative: bool = False
     id: Optional[str] = None
 
@@ -168,10 +168,7 @@ class Slider(FormComponent):
         # If step is not provided, run inference to check if the
         # client-side computed step is compatible with the domain range.
         # The actual step is computed in the client-side but we check it here to fail early.
-        if v is None:
-            step = compute_step(domain_range)
-        else:
-            step = Decimal(str(v))
+        step = compute_step(domain_range) if v is None else Decimal(str(v))
 
         # Not divisible
         if domain_range % step != 0:

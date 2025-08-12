@@ -22,7 +22,7 @@ from pydantic import field_validator
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
-from dara.core.interactivity import NonDataVariable, UrlVariable, Variable
+from dara.core.interactivity import ClientVariable, Variable
 
 
 class CheckboxGroup(FormComponent):
@@ -97,18 +97,18 @@ class CheckboxGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[Item], NonDataVariable]
+    items: Union[List[Item], ClientVariable]
     select_max: Optional[int] = None
     select_min: Optional[int] = None
     list_styling: bool = False
-    value: Optional[Union[Variable[Any], UrlVariable[Any]]] = None
+    value: Optional[Variable[Any]] = None
     onchange: Optional[Action] = None
     id: Optional[str] = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[Item], NonDataVariable]:
-        if isinstance(items, NonDataVariable):
+    def validate_items(cls, items: Any) -> Union[List[Item], ClientVariable]:
+        if isinstance(items, ClientVariable):
             return items
         if not isinstance(items, list):
             raise ValueError('Items must be passed as a list to the CheckboxGroup component')

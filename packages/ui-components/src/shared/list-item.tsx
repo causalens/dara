@@ -1,9 +1,9 @@
-import { UseComboboxGetItemPropsOptions } from 'downshift';
+import { type UseComboboxGetItemPropsOptions } from 'downshift';
 import React from 'react';
 
 import styled from '@darajs/styled-components';
 
-import { Item } from '../types';
+import { type Item } from '../types';
 
 interface ListItemProps {
     isHighlighted?: boolean;

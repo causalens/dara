@@ -3,7 +3,14 @@ import type * as BokehLib from '@bokeh/bokehjs/build/js/lib';
 import type { DocJson } from '@bokeh/bokehjs/build/js/lib/document';
 import { useEffect, useId, useMemo, useState } from 'react';
 
-import { Action, DefaultFallback, StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
+import {
+    type Action,
+    DefaultFallback,
+    type StyledComponentProps,
+    injectCss,
+    useAction,
+    useComponentStyles,
+} from '@darajs/core';
 import styled from '@darajs/styled-components';
 
 const BOKEH_LIBRARIES = [
@@ -53,7 +60,7 @@ function Bokeh(props: BokehProps): JSX.Element {
     const [isLoading, setIsLoading] = useState(true);
 
     const docJson = useMemo<DocJson>(() => JSON.parse(props.document), [props.document]);
-    const rootId = useMemo(() => docJson.roots[0].id, [docJson]);
+    const rootId = useMemo(() => docJson.roots[0]!.id, [docJson]);
     const id = useId();
 
     const events: [string, (...args: any) => any][] = [];
@@ -62,7 +69,7 @@ function Bokeh(props: BokehProps): JSX.Element {
 
     if (props.events) {
         for (let i = 0; i < props.events.length; i++) {
-            const [name, action] = props.events[i];
+            const [name, action] = props.events[i]!;
             // eslint-disable-next-line react-hooks/rules-of-hooks
             eventActions.push([name, useAction(action)]);
         }
@@ -82,15 +89,23 @@ function Bokeh(props: BokehProps): JSX.Element {
         });
     }
 
-    function loadBokehLibrary(url: string, version: string): void {
+    function loadBokehLibrary(url: string, version: string): Promise<void> {
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => {
+            resolve = r;
+        });
         const script = document.createElement('script');
         script.src = url.replace('{version}', version);
         script.async = true;
+        script.onload = () => {
+            resolve();
+        };
         document.head.appendChild(script);
+        return promise;
     }
 
     async function initializeBokeh(): Promise<void> {
-        const bokehVersion = docJson.version;
+        const bokehVersion = docJson.version!;
 
         // if it's already loading, wait for it to be available
         if (window.bokehLoading) {
@@ -100,13 +115,9 @@ function Bokeh(props: BokehProps): JSX.Element {
             const [core, ...libraries] = BOKEH_LIBRARIES;
 
             // Core needs to be loaded before all the other libraries
-            loadBokehLibrary(core, bokehVersion);
+            await loadBokehLibrary(core!, bokehVersion);
 
-            await waitForBokeh();
-
-            libraries.forEach((url) => {
-                loadBokehLibrary(url, bokehVersion);
-            });
+            await Promise.all(libraries.map((url) => loadBokehLibrary(url, bokehVersion)));
         }
 
         events.forEach(([ev, handler]) => {
@@ -114,11 +125,11 @@ function Bokeh(props: BokehProps): JSX.Element {
         });
 
         eventActions.forEach(([name, action]) => {
-            const handler: EventListener = (e: CustomEvent) => {
-                action(e.detail);
+            const handler: EventListener = (e) => {
+                action((e as any).detail);
             };
 
-            const evtName = createEventName(name, docJson.roots[0].id);
+            const evtName = createEventName(name, docJson.roots[0]!.id);
             document.addEventListener(evtName, handler);
             events.push([evtName, handler]);
         });
@@ -138,9 +149,9 @@ function Bokeh(props: BokehProps): JSX.Element {
         initializeBokeh();
 
         return () => {
-            const index = window.Bokeh.documents.findIndex((doc) => doc.roots()[0].id === docJson.roots[0].id);
+            const index = window.Bokeh.documents.findIndex((doc) => doc.roots()[0]!.id === docJson.roots[0]!.id);
             if (index > -1) {
-                const doc = window.Bokeh.documents[index];
+                const doc = window.Bokeh.documents[index]!;
                 doc.clear();
                 window.Bokeh.documents.splice(index, 1);
             }

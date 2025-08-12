@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import { autoUpdate, flip, shift, useFloating, useInteractions, useRole } from '@floating-ui/react';
-import { UseMultipleSelectionStateChange, useCombobox, useMultipleSelection } from 'downshift';
-import { ChangeEvent, useCallback, useMemo, useState } from 'react';
+import { type UseMultipleSelectionStateChange, useCombobox, useMultipleSelection } from 'downshift';
+import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import styled from '@darajs/styled-components';
@@ -26,7 +26,7 @@ import { useIME } from '@darajs/ui-utils';
 import ChevronButton from '../shared/chevron-button';
 import DropdownList from '../shared/dropdown-list';
 import Tooltip from '../tooltip/tooltip';
-import { InteractiveComponentProps, Item } from '../types';
+import { type InteractiveComponentProps, type Item } from '../types';
 import { matchWidthToReference } from '../utils';
 import { syncKbdHighlightIdx } from '../utils/syncKbdHighlightIdx';
 

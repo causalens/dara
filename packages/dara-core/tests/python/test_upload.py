@@ -1,4 +1,3 @@
-import base64
 import io
 import os
 import re
@@ -6,21 +5,21 @@ from typing import Optional, Union
 
 import numpy
 import pytest
+from async_asgi_testclient import TestClient
+from async_asgi_testclient.multipart import encode_multipart_formdata
+from pandas import DataFrame, Timestamp, read_csv, read_excel, to_datetime
+
 from dara.core.auth import BasicAuthConfig
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DataVariable
+from dara.core.interactivity import DataVariable, Variable  # noqa: F401
 from dara.core.interactivity.any_data_variable import upload as upload_impl
 from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.internal.pandas_utils import DataResponse
 from dara.core.main import _start_application
-from async_asgi_testclient import TestClient
-from async_asgi_testclient.multipart import encode_multipart_formdata
 
-
-from pandas import DataFrame, read_csv, read_excel, to_datetime, Timestamp
-
-pytestmark = pytest.mark.anyio
+pytestmark = [pytest.mark.anyio, pytest.mark.xdist_group(name='upload')]
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
@@ -45,9 +44,9 @@ def reset_data_variable_cache():
     """
     Reset the data variable cache between tests
     """
-    from dara.core.internal.registries import data_variable_registry
+    from dara.core.internal.registries import server_variable_registry
 
-    data_variable_registry.replace({})
+    server_variable_registry.replace({})
     yield
 
 
@@ -57,6 +56,9 @@ class MockComponent(ComponentInstance):
 
     def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
         super().__init__(text=text, uid='uid', action=action)
+
+
+MockComponent.model_rebuild()
 
 
 async def test_upload_data_variable_default_csv():
@@ -85,10 +87,13 @@ async def test_upload_data_variable_default_csv():
             assert response.json()['status'] == 'SUCCESS'
 
         # Check file can be retrieved
-        response = await client.post('/api/core/data-variable/uid?limit=15', headers=AUTH_HEADERS, json={})
+        response = await client.post(
+            '/api/core/tabular-variable/uid?limit=15', headers=AUTH_HEADERS, json={'ws_channel': 'ws'}
+        )
         assert response.status_code == 200
+        data_response: DataResponse = response.json()
 
-        response_data = DataFrame.from_records(response.json())
+        response_data = DataFrame.from_records(data_response['data'])
 
         # Response should have a generated index column
         assert '__index__' in response_data.columns
@@ -156,9 +161,13 @@ async def test_upload_data_variable_resolver_csv():
             assert response.json()['status'] == 'SUCCESS'
 
         # Check file can be retrieved
-        response = await client.post('/api/core/data-variable/uid?limit=15', headers=AUTH_HEADERS, json={})
+        response = await client.post(
+            '/api/core/tabular-variable/uid?limit=15', headers=AUTH_HEADERS, json={'ws_channel': 'ws'}
+        )
         assert response.status_code == 200
-        response_data = DataFrame.from_records(response.json())
+        data_response: DataResponse = response.json()
+
+        response_data = DataFrame.from_records(data_response['data'])
 
         # Response should have a generated index column
         assert '__index__' in response_data.columns
@@ -210,9 +219,13 @@ async def test_upload_data_variable_default_xlsx():
             assert response.json()['status'] == 'SUCCESS'
 
         # Check file can be retrieved
-        response = await client.post('/api/core/data-variable/uid?limit=15', headers=AUTH_HEADERS, json={})
+        response = await client.post(
+            '/api/core/tabular-variable/uid?limit=15', headers=AUTH_HEADERS, json={'ws_channel': 'ws'}
+        )
         assert response.status_code == 200
-        response_data = DataFrame.from_records(response.json())
+        data_response: DataResponse = response.json()
+
+        response_data = DataFrame.from_records(data_response['data'])
 
         # Response should have a generated index column
         assert '__index__' in response_data.columns
@@ -236,7 +249,7 @@ async def test_upload_data_variable_default_xlsx():
                 assert numpy.allclose(list_1, list_2)
             # hanadle timestamp
             elif isinstance(list_2[0], Timestamp):
-                list_1_as_date = to_datetime(list_1, unit='ms')  # Convert Unix time in milliseconds to datetime
+                list_1_as_date = to_datetime(list_1, unit='ns')  # Convert Unix time in nanoseconds to datetime
                 assert list_1_as_date.to_list() == list_2  # Assert that they are equal
             else:
                 assert list_1 == list_2

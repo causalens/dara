@@ -20,33 +20,27 @@
                   "max_size": 10
                 },
                 "uid": "{{dv_1_uid}}",
+                "nested": [],
                 "variables": [
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
                 "polling_interval": null,
                 "deps": [
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               },
               {
                 "cache": {
@@ -59,36 +53,26 @@
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
                 "polling_interval": null,
+                "nested": [],
                 "deps": [
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               }
             ],
-            "filters": {
-              "column": "col1",
-              "value": "val1",
-              "operator": "EQ"
-            },
+            "nested": [],
             "polling_interval": null,
             "deps": [
               {
@@ -102,29 +86,23 @@
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
+                "nested": [],
                 "polling_interval": null,
                 "deps": [
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               },
               {
                 "cache": {
@@ -137,32 +115,26 @@
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "filters": {
-                  "column": "col1",
-                  "value": "val1",
-                  "operator": "EQ"
-                },
+                "nested": [],
                 "polling_interval": null,
                 "deps": [
                   {
                     "default": "test",
                     "nested": [],
-                    "persist_value": false,
                     "uid": "{{root_var_uid}}",
                     "__typename": "Variable",
                     "store": null
                   }
                 ],
-                "__typename": "DerivedDataVariable"
+                "__typename": "DerivedVariable"
               }
             ],
-            "__typename": "DerivedDataVariable"
+            "__typename": "DerivedVariable"
           }
         },
         "uid": "{{mock_text_uid}}"

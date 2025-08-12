@@ -204,28 +204,27 @@ class WebSocketHandler:
             message_id = message.channel
 
             # If the message has a channel ID, it's a response to a previous message
-            if message_id:
-                if message_id in self.pending_responses:
-                    event, existing_messages = self.pending_responses[message_id]
+            if message_id and message_id in self.pending_responses:
+                event, existing_messages = self.pending_responses[message_id]
 
-                    # If the response is chunked then collect the messages in pending responses
-                    if message.chunk_count is not None:
-                        if existing_messages is not None and isinstance(existing_messages, list):
-                            existing_messages.append(message.message)
-                        else:
-                            existing_messages = [message.message]
-                            self.pending_responses[message_id] = (
-                                event,
-                                existing_messages,
-                            )
-
-                        # If all chunks have been received, set the event to notify the waiting coroutine
-                        if len(existing_messages) == message.chunk_count:
-                            event.set()
+                # If the response is chunked then collect the messages in pending responses
+                if message.chunk_count is not None:
+                    if existing_messages is not None and isinstance(existing_messages, list):
+                        existing_messages.append(message.message)
                     else:
-                        # Store the response and set the event to notify the waiting coroutine
-                        self.pending_responses[message_id] = (event, message.message)
+                        existing_messages = [message.message]
+                        self.pending_responses[message_id] = (
+                            event,
+                            existing_messages,
+                        )
+
+                    # If all chunks have been received, set the event to notify the waiting coroutine
+                    if len(existing_messages) == message.chunk_count:
                         event.set()
+                else:
+                    # Store the response and set the event to notify the waiting coroutine
+                    self.pending_responses[message_id] = (event, message.message)
+                    event.set()
 
             return None
 
@@ -475,7 +474,7 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
     if pending_tokens_registry.has(token):
         pending_tokens_registry.remove(token)
 
-    user_identifier = token_content.identity_id or token_content.identity_name
+    user_identifier = token_content.identity_id
 
     # Add the new session ID to known sessions for that user
     if sessions_registry.has(user_identifier):
@@ -496,6 +495,8 @@ async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=
         )
         SESSION_ID.set(token_data.session_id)
         ID_TOKEN.set(token_data.id_token)
+
+    WS_CHANNEL.set(channel)
 
     # Set initial Auth context vars for the WS connection
     update_context(token_content)

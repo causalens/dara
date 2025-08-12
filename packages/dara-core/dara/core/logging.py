@@ -74,7 +74,7 @@ class Logger:
 
         self._logger.warning(payload, extra={'content': extra})
 
-    def error(self, title: str, error: Exception, extra: Optional[Dict[str, Any]] = None):
+    def error(self, title: str, error: BaseException, extra: Optional[Dict[str, Any]] = None):
         """
         Log a message at the ERROR level
 
@@ -135,6 +135,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # This is required so that requesting the body content doesn't hang the request
             if request.headers.get('Content-Type') == 'application/json' and content_length < one_mb:
                 old_recieve = request._receive
+
                 # Add the debug logging into a new receive call that wraps the old one. This is required to make
                 # streaming requests and responses work as streaming sends further messages to trigger
                 # sending/receiving further data
@@ -170,11 +171,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def _print_stacktrace():
+def _print_stacktrace(err: Optional[BaseException] = None) -> str:
     """
     Prints out the current stack trace whilst unwinding all the logging calls on the way so it just shows the relevant
     parts. Will also extract any exceptions and print them at the end.
     """
+    if err is not None:
+        return ''.join(traceback.format_exception(type(err), err, err.__traceback__))
+
     exc = sys.exc_info()[0]
     stack = traceback.extract_stack()[:-1]
     if exc is not None:
@@ -192,7 +196,7 @@ def _print_stacktrace():
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)   # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)
     return stackstr
 
 
@@ -204,11 +208,7 @@ class DaraProdFormatter(logging.Formatter):
 
     @staticmethod
     def _get_payload(record: logging.LogRecord) -> Dict[str, JsonSerializable]:
-        timestamp = time.strftime(
-            '%Y-%m-%dT%H:%M:%S', time.localtime(record.created)
-        ) + '.%s' % int(  # pylint:disable=consider-using-f-string
-            record.msecs
-        )
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(record.msecs)
         if isinstance(record.msg, dict):
             payload: Dict[str, JsonSerializable] = {
                 'timestamp': timestamp,
@@ -218,8 +218,9 @@ class DaraProdFormatter(logging.Formatter):
             }
 
             if record.levelname == 'ERROR':
-                payload['error'] = str(payload.pop('error'))
-                payload['stacktrace'] = _print_stacktrace()
+                err = payload.pop('error')
+                payload['error'] = str(err)
+                payload['stacktrace'] = _print_stacktrace(err if isinstance(err, BaseException) else None)
 
             return payload
 
@@ -284,8 +285,8 @@ class DaraDevFormatter(logging.Formatter):
 
             if record.levelname == 'ERROR':
                 error = ''
-                if payload.get('error'):
-                    error = _print_stacktrace()
+                if err := payload.get('error'):
+                    error = _print_stacktrace(err if isinstance(err, BaseException) else None)
                 content = base_msg
                 if record.__dict__.get('content'):
                     content = content + '\r\n' + self.extra_template % (spacer, record.__dict__['content'])

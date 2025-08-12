@@ -25,7 +25,6 @@ from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
     INVALID_CREDENTIALS_ERROR,
     INVALID_TOKEN_ERROR,
-    JWT_ALGO,
     SESSION_ID,
     USER,
     AuthError,
@@ -35,7 +34,6 @@ from dara.core.auth.definitions import (
     UserData,
 )
 from dara.core.auth.utils import decode_token, sign_jwt
-from dara.core.internal.settings import get_settings
 
 DefaultAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='DefaultAuthLogin')
 
@@ -69,7 +67,7 @@ class BaseBasicAuthConfig(BaseAuthConfig):
 
         return {
             'token': sign_jwt(
-                identity_id=None,
+                identity_id=body.username,
                 identity_name=body.username,
                 identity_email=None,
                 groups=[],
@@ -87,14 +85,15 @@ class BaseBasicAuthConfig(BaseAuthConfig):
             SESSION_ID.set(decoded.session_id)
             USER.set(
                 UserData(
+                    identity_id=decoded.identity_name,
                     identity_name=decoded.identity_name,
                 )
             )
             return decoded
-        except jwt.ExpiredSignatureError:
-            raise AuthError(EXPIRED_TOKEN_ERROR, 401)
-        except jwt.DecodeError:
-            raise AuthError(INVALID_TOKEN_ERROR, 401)
+        except jwt.ExpiredSignatureError as e:
+            raise AuthError(EXPIRED_TOKEN_ERROR, 401) from e
+        except jwt.DecodeError as e:
+            raise AuthError(INVALID_TOKEN_ERROR, 401) from e
 
 
 class BasicAuthConfig(BaseBasicAuthConfig):
@@ -121,13 +120,13 @@ class DefaultAuthConfig(BaseAuthConfig):
         logout=BasicAuthLogout,
     )
 
-    def get_token(self, _: SessionRequestBody) -> TokenResponse:
+    def get_token(self, body: SessionRequestBody) -> TokenResponse:
         """
         Get a session token.
 
         In default auth a new token is returned every time.
         """
-        token = sign_jwt(identity_id=None, identity_name='user', identity_email=None, groups=[])
+        token = sign_jwt(identity_id='user', identity_name='user', identity_email=None, groups=[])
         return {'token': token}
 
     def verify_token(self, token: str) -> TokenData:
@@ -139,10 +138,17 @@ class DefaultAuthConfig(BaseAuthConfig):
         :param token: the token to verify
         """
         try:
-            decoded = jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGO])
-            SESSION_ID.set(decoded.get('session_id'))
-            return TokenData.parse_obj(decoded)
-        except jwt.ExpiredSignatureError:
-            raise AuthError(EXPIRED_TOKEN_ERROR, 401)
-        except jwt.DecodeError:
-            raise AuthError(INVALID_TOKEN_ERROR, 401)
+            decoded = decode_token(token)
+            SESSION_ID.set(decoded.session_id)
+            # Implicit auth assumes used by one user so all users are the same
+            USER.set(
+                UserData(
+                    identity_id=decoded.identity_id,
+                    identity_name=decoded.identity_id,
+                )
+            )
+            return decoded
+        except jwt.ExpiredSignatureError as e:
+            raise AuthError(EXPIRED_TOKEN_ERROR, 401) from e
+        except jwt.DecodeError as e:
+            raise AuthError(INVALID_TOKEN_ERROR, 401) from e

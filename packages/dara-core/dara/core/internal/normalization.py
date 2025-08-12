@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Mapping
 from typing import (
     Any,
     Generic,
     List,
-    Mapping,
     Optional,
     Tuple,
     TypeVar,
@@ -31,7 +31,6 @@ from typing import (
 from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
-from dara.core.internal.hashing import hash_object
 
 JsonLike = Union[Mapping, List]
 
@@ -48,7 +47,7 @@ class Placeholder(TypedDict):
     Placeholder object 'Referrable' objects are replaced with
     """
 
-    __ref: str   # pylint: disable=unused-private-member
+    __ref: str
 
 
 class Referrable(TypedDict):
@@ -56,7 +55,7 @@ class Referrable(TypedDict):
     Describes an object which can be replaced by a Placeholder.
     """
 
-    __typename: str   # pylint: disable=unused-private-member
+    __typename: str
     uid: str
 
 
@@ -80,10 +79,6 @@ def _get_identifier(obj: Referrable) -> str:
     if _is_referrable_nested(obj) and len(obj['nested']) > 0:
         nested = ','.join(cast(List[str], obj['nested']))
         identifier = f'{identifier}:{nested}'
-
-    if _is_referrable_with_filters(obj):
-        filter_hash = hash_object(obj['filters'])
-        identifier = f'{identifier}:{filter_hash}'
 
     return identifier
 
@@ -133,13 +128,11 @@ def _loop(iterable: JsonLike):
 
 
 @overload
-def normalize(obj: Mapping, check_root: bool = True) -> Tuple[Mapping, Mapping]:
-    ...
+def normalize(obj: Mapping, check_root: bool = True) -> Tuple[Mapping, Mapping]: ...
 
 
 @overload
-def normalize(obj: List, check_root: bool = True) -> Tuple[List, Mapping]:
-    ...
+def normalize(obj: List, check_root: bool = True) -> Tuple[List, Mapping]: ...
 
 
 def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping]:
@@ -169,7 +162,7 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
         for key, value in _loop(obj):
             # For iterables, recursively call normalize
             if isinstance(value, (dict, list)):
-                _normalized, _lookup = normalize(value)   # type: ignore
+                _normalized, _lookup = normalize(value)  # type: ignore
                 output[key] = _normalized  # type: ignore
                 lookup.update(_lookup)
             else:
@@ -180,13 +173,11 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
 
 
 @overload
-def denormalize(normalized_obj: Mapping, lookup: Mapping) -> Mapping:
-    ...
+def denormalize(normalized_obj: Mapping, lookup: Mapping) -> Mapping: ...
 
 
 @overload
-def denormalize(normalized_obj: List, lookup: Mapping) -> List:
-    ...
+def denormalize(normalized_obj: List, lookup: Mapping) -> List: ...
 
 
 def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]:
@@ -206,7 +197,7 @@ def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]
     # Whole object is a placeholder
     if _is_placeholder(normalized_obj):
         ref = normalized_obj['__ref']
-        referrable = lookup[ref] if ref in lookup else None
+        referrable = lookup.get(ref, None)
 
         if isinstance(referrable, (list, dict)):
             return denormalize(referrable, lookup)

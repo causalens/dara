@@ -1,13 +1,13 @@
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 
-import { BackendStoreMessage, BackendStorePatchMessage } from '@/api/websocket';
+import { type BackendStoreMessage, type BackendStorePatchMessage } from '@/api/websocket';
 import { setSessionToken } from '@/auth/use-session-token';
 import { RequestExtrasProvider } from '@/shared';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { useVariable } from '@/shared/interactivity/use-variable';
-import { BackendStore, SingleVariable } from '@/types/core';
+import { type BackendStore, type BrowserStore, type SingleVariable } from '@/types/core';
 
 import { MockWebSocketClient, Wrapper, server } from './utils';
 
@@ -36,7 +36,7 @@ describe('Variable Persistence', () => {
     });
     afterAll(() => server.close());
 
-    test('variable with persist_value updates when storage event is triggered', async () => {
+    test('variable with BrowserStore updates when storage event is triggered', async () => {
         // We're using an object to make sure the serialisation works correctly
         const defaultValue = { val: 0 };
         const newValue = { val: 5 };
@@ -47,9 +47,11 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: defaultValue,
                     nested: [],
-                    persist_value: true,
+                    store: {
+                        __typename: 'BrowserStore',
+                    },
                     uid: 'session-test-1',
-                } as SingleVariable<any>),
+                } as SingleVariable<any, BrowserStore>),
             {
                 wrapper: Wrapper,
             }

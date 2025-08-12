@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, cast
 
 from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
@@ -53,6 +53,7 @@ from dara.core.visual.components import (
     TopBarFrame,
     TopBarFrameDef,
 )
+from dara.core.visual.components.fallback import CustomFallbackDef
 from dara.core.visual.template import TemplateBuilder
 
 if TYPE_CHECKING:
@@ -77,8 +78,9 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     RouterContent.__name__: RouterContentDef,
     SideBarFrame.__name__: SideBarFrameDef,
     TopBarFrame.__name__: TopBarFrameDef,
-    Fallback.Default.py_component: DefaultFallbackDef,
-    Fallback.Row.py_component: RowFallbackDef,
+    cast(str, Fallback.Default.py_component): DefaultFallbackDef,
+    cast(str, Fallback.Row.py_component): RowFallbackDef,
+    cast(str, Fallback.Custom.py_component): CustomFallbackDef,
     For.__name__: ForDef,
 }
 
@@ -93,9 +95,9 @@ CORE_ACTIONS: Dict[str, ActionDef] = {
     Notify.__name__: NotifyDef,
 }
 
+
 # Define a default layout template
 def default_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -107,7 +109,6 @@ def default_template(config: Configuration) -> Template:
 
 # Define a blank template
 def blank_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -119,7 +120,6 @@ def blank_template(config: Configuration) -> Template:
 
 # Define a top layout template
 def top_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))
@@ -131,7 +131,6 @@ def top_template(config: Configuration) -> Template:
 
 # Define a top layout template with menu
 def top_menu_template(config: Configuration) -> Template:
-
     template = TemplateBuilder(name='default')
 
     router = template.add_router_from_pages(list(config.pages.values()))

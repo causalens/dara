@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 import * as React from 'react';
-import { ForwardedRef, forwardRef } from 'react';
+import { type ForwardedRef, forwardRef } from 'react';
 
 import styled from '@darajs/styled-components';
 import { useIME } from '@darajs/ui-utils';
 
 import { Key } from '../constants';
-import { InteractiveComponentProps } from '../types';
+import { type InteractiveComponentProps } from '../types';
 
 interface PrimaryInputProps {
     isErrored: boolean;

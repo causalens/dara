@@ -18,7 +18,7 @@ limitations under the License.
 from typing import Optional
 
 from dara.components.common.base_component import LayoutComponent
-from dara.core.interactivity import NonDataVariable
+from dara.core.interactivity import ClientVariable
 
 
 class TabbedCard(LayoutComponent):
@@ -64,7 +64,7 @@ class TabbedCard(LayoutComponent):
     """
 
     initial_tab: Optional[str] = None
-    selected_tab: Optional[NonDataVariable] = None
+    selected_tab: Optional[ClientVariable] = None
 
 
 class Tab(LayoutComponent):

@@ -23,7 +23,7 @@ from pydantic import ConfigDict
 
 from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import DataVariable
+from dara.core.interactivity import ServerVariable
 
 DropzoneResolver = Union[
     Callable[[bytes, str], DataFrame],
@@ -35,7 +35,7 @@ class UploadDropzone(StyledComponentInstance):
     """
     ![UploadDropzone](../../../../docs/packages/dara-components/common/assets/UploadDropzone.png)
 
-    A component that exposes a dropzone for uploading files. Takes a DataVariable instance
+    A component that exposes a dropzone for uploading files. Takes a ServerVariable instance
     that will store the dataset uploaded and an on_drop action that is triggered when
     a file is successfully uploaded after being dropped or pasted.
 
@@ -56,7 +56,7 @@ class UploadDropzone(StyledComponentInstance):
 
     :param accept: optional comma-separated list of MIME-types or filename extensions accepted by the frontend; see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#unique_file_type_specifiers for detail.
         When not specified, defaults to accepting csv/xlsx; more specifically: `.csv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/csv, text/x-csv, application/x-csv, text/comma-separated-values, text/x-comma-separated-values`
-    :param target: data variable storing the data
+    :param target: server variable storing the data
     :param resolver: optional resolver accepting `bytes` and filename as a string
         - if a target is specified, can be used to customise how the `bytes` received are turned into a `DataFrame`
         - if a target is not specified, can be treated as a side effect function to run on the `bytes` received (to i.e. store on disk)
@@ -67,7 +67,7 @@ class UploadDropzone(StyledComponentInstance):
     js_module = '@darajs/components'
 
     accept: Optional[str] = None
-    target: Optional[DataVariable] = None
+    target: Optional[ServerVariable] = None
     resolver: Optional[DropzoneResolver] = None
     on_drop: Optional[Action] = None
     enable_paste: bool = False
@@ -76,12 +76,12 @@ class UploadDropzone(StyledComponentInstance):
 
     def __init__(
         self,
-        target: Optional[DataVariable] = None,
+        target: Optional[ServerVariable] = None,
         resolver: Optional[DropzoneResolver] = None,
         on_drop: Optional[Action] = None,
         accept: Optional[str] = None,
         enable_paste: Optional[bool] = False,
-        **kwargs
+        **kwargs,
     ):
         from dara.core.interactivity.any_data_variable import upload
         from dara.core.internal.registries import upload_resolver_registry

@@ -74,7 +74,7 @@ def generate_env_file(filename='.env'):
         f.write(env_content)
 
 
-@lru_cache()
+@lru_cache
 def get_settings():
     """
     Get a cached instance of the settings, loading values from the .env if present.
@@ -83,7 +83,7 @@ def get_settings():
 
     # Test purposes - if DARA_TEST_FLAG is set then override env with .env.test
     if os.environ.get('DARA_TEST_FLAG', None) is not None:
-        return Settings(**dotenv_values('.env.test'))
+        return Settings(**dotenv_values('.env.test'))  # type: ignore
 
     env_error = False
 

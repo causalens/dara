@@ -1,15 +1,15 @@
 import { useRef } from 'react';
 
 import {
-    Action,
-    StyledComponentProps,
-    Variable,
+    type Action,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
-import { Node, NodeHierarchyBuilder as UINodeHierarchyBuilder } from '@darajs/ui-causal-graph-editor';
+import { type Node, NodeHierarchyBuilder as UINodeHierarchyBuilder } from '@darajs/ui-causal-graph-editor';
 
 type NodeType = Node | string;
 
@@ -77,7 +77,7 @@ function NodeHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
             nodeFontSize={props.node_font_size}
             nodeSize={props.node_size}
             nodes={nodes}
-            onUpdate={onUpdate}
+            onUpdate={onUpdate as any}
             style={style}
             viewOnly={!props.editable}
             wrapNodeText={props.wrap_node_text}

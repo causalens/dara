@@ -1,12 +1,12 @@
-import { Matcher, MatcherOptions, act, fireEvent, render, waitFor } from '@testing-library/react';
+import { type Matcher, type MatcherOptions, act, fireEvent, render, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 
 import { useVariable } from '../../js/shared';
 import { VariableCtx } from '../../js/shared/context';
-import GlobalTaskProvider, { VariableTaskEntry } from '../../js/shared/context/global-task-context';
-import { VariableContext } from '../../js/shared/context/variable-context';
+import GlobalTaskProvider, { type VariableTaskEntry } from '../../js/shared/context/global-task-context';
+import { type VariableContext } from '../../js/shared/context/variable-context';
 import { getIdentifier } from '../../js/shared/utils/normalization';
-import { DerivedDataVariable, DerivedVariable, SingleVariable, Variable } from '../../js/types';
+import type { DerivedVariable, SingleVariable, Variable } from '../../js/types';
 import { Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
@@ -16,10 +16,7 @@ jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
 mockLocalStorage();
 
 // Mock component to test interaction between variables
-const MockComponent = (props: {
-    derivedVar: DerivedVariable | DerivedDataVariable;
-    variableA: Variable<number>;
-}): JSX.Element => {
+const MockComponent = (props: { derivedVar: DerivedVariable; variableA: Variable<number> }): JSX.Element => {
     const [a, setA] = useVariable(props.variableA);
     const [c] = useVariable(props.derivedVar);
 
@@ -53,7 +50,7 @@ const mockTaskResponse = (varAValue: number): void => {
             return res(
                 ctx.json(
                     JSON.parse(
-                        `{"force":false,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
+                        `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
                     )
                 )
             );
@@ -64,7 +61,7 @@ const mockTaskResponse = (varAValue: number): void => {
 // Helper to init the MockComponent and check its initial state
 async function initComponent(
     varA: Variable<any>,
-    derivedVar: DerivedVariable | DerivedDataVariable
+    derivedVar: DerivedVariable
 ): Promise<(id: Matcher, options?: MatcherOptions) => HTMLElement> {
     mockTaskResponse(1);
     const [taskCtx, variablesCtx] = getMockTaskContexts([derivedVar.uid]);
@@ -80,7 +77,7 @@ async function initComponent(
     await waitFor(() => expect(getByTestId('c')).toBeVisible());
     const result = getByTestId('c').innerHTML;
     expect(result).toContain(
-        `{"force":false,"values":{"data":[{"__ref":"${getIdentifier(varA)}"}],"lookup":{"${getIdentifier(
+        `{"force_key":null,"values":{"data":[{"__ref":"${getIdentifier(varA)}"}],"lookup":{"${getIdentifier(
             varA
         )}":1}},"ws_channel":"uid","task_id":"t_${derivedVar.uid}"}`
     );
@@ -119,7 +116,7 @@ describe('useVariableRunAsTask', () => {
                 const { uid } = req.params;
                 return res(
                     ctx.json({
-                        cache_key: JSON.stringify(req.body.values),
+                        cache_key: JSON.stringify(req.body!.values),
                         task_id: `t_${String(uid)}`,
                     })
                 );
@@ -143,7 +140,7 @@ describe('useVariableRunAsTask', () => {
 
         const result = await updateInput('a', 2, getter);
         expect(result).toEqual({
-            force: false,
+            force_key: null,
             task_id: 't_none',
             values: { data: [{ __ref: 'Variable:a' }], lookup: { 'Variable:a': 2 } },
             ws_channel: 'uid',

@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
@@ -10,6 +11,24 @@ const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
 const interPingInterval = 5000;
 const maxAttempts = Math.round(maxDisconnectedTime / interAttemptTimeout);
+
+export class TaskCancelledError extends Error {
+    task_id: string;
+
+    constructor(message: string, task_id: string) {
+        super(message);
+        this.task_id = task_id;
+    }
+}
+
+export class TaskError extends Error {
+    task_id: string;
+
+    constructor(message: string, task_id: string) {
+        super(message);
+        this.task_id = task_id;
+    }
+}
 
 interface InitMessage {
     message: {
@@ -35,29 +54,20 @@ export enum TaskStatus {
     PROGRESS = 'PROGRESS',
 }
 
-export interface ProgressNotificationMessage {
-    message: {
-        message: string;
-        progress: number;
-        status: TaskStatus.PROGRESS;
-        task_id: string;
-    };
-    type: 'message';
-}
+type TaskNotificationMessageContent =
+    | { status: TaskStatus.COMPLETE; task_id: string }
+    | { status: TaskStatus.ERROR; task_id: string; error: string }
+    | { status: TaskStatus.PROGRESS; task_id: string; progress: number; message: string }
+    | { status: TaskStatus.CANCELED; task_id: string };
 
 export interface TaskNotificationMessage {
-    message: {
-        status: TaskStatus;
-        task_id: string;
-    };
+    message: TaskNotificationMessageContent;
     type: 'message';
 }
 
-export interface ServerTriggerMessage {
-    message: {
-        data_id: string;
-    };
+export interface ProgressNotificationMessage {
     type: 'message';
+    message: Extract<TaskNotificationMessageContent, { status: TaskStatus.PROGRESS }>;
 }
 
 export interface ServerErrorMessage {
@@ -82,7 +92,7 @@ export interface ActionMessage {
         /**
          * Action implementation instance
          */
-        action: ActionImpl;
+        action: ActionImpl | null;
         /**
          * Execution uid
          */
@@ -114,6 +124,15 @@ export interface BackendStorePatchMessage {
     type: 'message';
 }
 
+export interface ServerVariableMessage {
+    message: {
+        __type: 'ServerVariable';
+        uid: string;
+        sequence_number: number;
+    };
+    type: 'message';
+}
+
 export interface CustomMessage {
     message: {
         data: any;
@@ -132,47 +151,47 @@ export type WebSocketMessage =
     | TokenUpdateMessage
     | TaskNotificationMessage
     | ProgressNotificationMessage
-    | ServerTriggerMessage
     | ServerErrorMessage
+    | ServerVariableMessage
     | VariableRequestMessage
     | ActionMessage
     | BackendStoreMessage
     | BackendStorePatchMessage
     | CustomMessage;
 
-function isInitMessage(message: WebSocketMessage): message is InitMessage {
+export function isInitMessage(message: WebSocketMessage): message is InitMessage {
     return message.type === 'init';
 }
 
-function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
+export function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
     return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
 }
 
-function isServerTriggerMessage(message: WebSocketMessage): message is ServerTriggerMessage {
-    return message.type === 'message' && 'data_id' in message.message;
+export function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
+    return message.type === 'message' && '__type' in message.message && message.message.__type === 'ServerVariable';
 }
 
-function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
+export function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
     return message.type === 'message' && 'error' in message.message;
 }
 
-function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
+export function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
     return message.type === 'message' && 'variable' in message.message;
 }
 
-function isActionMessage(message: WebSocketMessage): message is ActionMessage {
+export function isActionMessage(message: WebSocketMessage): message is ActionMessage {
     return message.type === 'message' && 'action' in message.message;
 }
 
-function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
+export function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
     return message.type === 'message' && 'store_uid' in message.message && 'value' in message.message;
 }
 
-function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
+export function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
     return message.type === 'message' && 'store_uid' in message.message && 'patches' in message.message;
 }
 
-function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
+export function isCustomMessage(message: WebSocketMessage): message is CustomMessage {
     return message.type === 'custom';
 }
 
@@ -182,9 +201,10 @@ const pingMessage: PingPongMessage = {
 };
 
 export interface WebSocketClientInterface {
-    actionMessages$: (executionId: string) => Observable<ActionImpl>;
+    actionMessages$: (executionId: string) => Observable<ActionImpl | null>;
     backendStoreMessages$(): Observable<BackendStoreMessage['message']>;
     backendStorePatchMessages$(): Observable<BackendStorePatchMessage['message']>;
+    serverVariableMessages$(): Observable<ServerVariableMessage['message']>;
     channel$: () => Observable<string>;
     customMessages$: () => Observable<CustomMessage>;
     getChannel: () => Promise<string>;
@@ -193,7 +213,6 @@ export interface WebSocketClientInterface {
     sendMessage(value: any, channel: string, chunkCount?: number): void;
     sendVariable: (value: any, channel: string) => void;
     serverErrors$: () => Observable<ServerErrorMessage>;
-    serverTriggers$: (data_id: string) => Observable<ServerTriggerMessage>;
     taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
     variableRequests$: () => Observable<VariableRequestMessage>;
     waitForTask: (task_id: string) => Promise<any>;
@@ -356,6 +375,13 @@ export class WebSocketClient implements WebSocketClientInterface {
         );
     }
 
+    serverVariableMessages$(): Observable<ServerVariableMessage['message']> {
+        return this.messages$.pipe(
+            filter(isServerVariableMessage),
+            map((msg) => msg.message)
+        );
+    }
+
     /**
      * Get the observable to receive the new channel when the socket reconnects
      */
@@ -398,18 +424,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
-     * Get the observable to receive server trigger messages for a given data variable
-     *
-     * @param dataId id of the data variable triggered
-     */
-    serverTriggers$(dataId: string): Observable<ServerTriggerMessage> {
-        return this.messages$.pipe(
-            filter(isServerTriggerMessage),
-            filter((msg) => msg.message?.data_id === dataId)
-        );
-    }
-
-    /**
      * Get the observable to receive server error messages
      */
     serverErrors$(): Observable<ServerErrorMessage> {
@@ -428,7 +442,7 @@ export class WebSocketClient implements WebSocketClientInterface {
      *
      * @param executionId id of the execution to receive action implementations for
      */
-    actionMessages$(executionId: string): Observable<ActionImpl> {
+    actionMessages$(executionId: string): Observable<ActionImpl | null> {
         return this.messages$.pipe(
             filter((msg): msg is ActionMessage => isActionMessage(msg) && msg.message.uid === executionId),
             map((msg) => msg.message.action)
@@ -443,7 +457,7 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
-     * Returns a promise that will resolve when the task is completed. If the task is cancelled then this will throw an
+     * Returns a promise that will resolve when the task is completed. If the task is cancelled or errored then this will throw an
      * error to signify that.
      *
      * @param task_id the id of the task to wait for
@@ -451,16 +465,20 @@ export class WebSocketClient implements WebSocketClientInterface {
     waitForTask(task_id: string): Promise<any> {
         return this.messages$
             .pipe(
-                filter(
-                    (msg) =>
+                filter((msg): msg is TaskNotificationMessage => {
+                    return (
                         isTaskNotification(msg) &&
                         msg.message?.task_id === task_id &&
-                        msg.message.status !== TaskStatus.PROGRESS // don't take progress updates
-                ),
+                        msg.message.status !== TaskStatus.PROGRESS
+                    ); // don't take progress updates
+                }),
                 map((msg) => {
-                    if (isTaskNotification(msg) && msg.message.status === TaskStatus.CANCELED) {
-                        throw new Error('CANCELED');
+                    if (msg.message.status === TaskStatus.CANCELED) {
+                        throw new TaskCancelledError('Task was cancelled', msg.message.task_id);
+                    } else if (msg.message.status === TaskStatus.ERROR) {
+                        throw new TaskError(msg.message.error, msg.message.task_id);
                     }
+
                     return msg;
                 }),
                 take(1)

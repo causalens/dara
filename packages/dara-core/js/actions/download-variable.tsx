@@ -1,13 +1,61 @@
 import * as xl from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { getVariableValue } from '@/shared/interactivity/use-variable-value';
-import { type ActionHandler, type DownloadVariableImpl } from '@/types/core';
+import { Status } from '@darajs/ui-utils';
+
+import { getTabularVariableValue } from '@/shared';
+import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '@/types/core';
+
+const COL_PATTERN = /^__col__\d+__(.+)$/;
+const INDEX_PATTERN = /^__index__\d+__(.+)$/;
+
+/**
+ * Restore original column names by inverting pandas_utils transformations
+ */
+export const restoreColumnName = (colName: string): string => {
+    // Handle __col__N__originalName format
+    const colMatch = colName.match(COL_PATTERN);
+    if (colMatch) {
+        return colMatch[1]!;
+    }
+
+    // Handle __index__N__originalName format
+    const indexMatch = colName.match(INDEX_PATTERN);
+    if (indexMatch) {
+        return indexMatch[1]!;
+    }
+
+    return colName;
+};
+
+/**
+ * Process data to restore original column structure before creating matrix
+ */
+export const processDataForDownload = (content: DataFrame): DataFrame => {
+    return content.map((row) => {
+        const processedRow: Record<string, any> = {};
+
+        Object.entries(row).forEach(([key, value]) => {
+            // Skip __index__ columns entirely for downloads, keep the `__index__N__originalName` format
+            if (key === '__index__') {
+                return;
+            }
+
+            const restoredKey = restoreColumnName(key);
+            processedRow[restoredKey] = value;
+        });
+
+        return processedRow;
+    });
+};
 
 const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
+    // Process the data to restore original column names and remove index columns
+    const processedContent = processDataForDownload(content);
+
     const headings: string[] = [];
     const indexes: Record<string, number> = {};
-    content.forEach((c) => {
+    processedContent.forEach((c) => {
         Object.keys(c).forEach((k) => {
             if (!headings.includes(k)) {
                 headings.push(k);
@@ -20,7 +68,7 @@ const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): an
 
     const matrix: any[][] = [];
 
-    content.forEach((c) => {
+    processedContent.forEach((c) => {
         const row: any[] = new Array(headingsLength);
         Object.entries(c).forEach(([k, v]) => {
             row[indexes[k]!] = v;
@@ -122,7 +170,7 @@ const createMatrixFromValue = (val: Array<Record<string, any>> | any[][]): any[]
  * Retrieves the variable value and downloads the variable as either a csv, json or xl file
  */
 const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, actionImpl): Promise<void> => {
-    let value = getVariableValue(actionImpl.variable, true, {
+    let value = await getTabularVariableValue(actionImpl.variable, {
         client: ctx.wsClient,
         extras: ctx.extras,
         search: ctx.location.search,
@@ -130,17 +178,20 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         taskContext: ctx.taskCtx,
     });
 
-    if (value instanceof Promise) {
-        value = await value;
+    if (value === null) {
+        ctx.notificationCtx.pushNotification({
+            key: '_downloadVariable',
+            message: 'Failed to fetch the variable value',
+            status: Status.ERROR,
+            title: 'Error fetching variable value',
+        });
+        return;
     }
 
-    // strip the __index__ column from data vars
-    if (actionImpl.variable.__typename === 'DataVariable' || actionImpl.variable.__typename === 'DerivedDataVariable') {
-        for (const row of value) {
-            if ('__index__' in row) {
-                delete row.__index__;
-            }
-        }
+    // Process data to restore original column structure and remove internal columns if it's in tabular format
+    // this simply cleans keys in [{record1}, {record2}] format
+    if (Array.isArray(value)) {
+        value = processDataForDownload(value);
     }
 
     const fileName = actionImpl.file_name || 'Data';

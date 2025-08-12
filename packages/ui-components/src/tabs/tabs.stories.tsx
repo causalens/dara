@@ -14,28 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 
-import { default as TabsComponent, TabsProps } from './tabs';
+import { default as TabsComponent, type TabsProps } from './tabs';
 
-export default {
+const meta: Meta<TabsProps<string>> = {
     component: TabsComponent,
     title: 'UI Components/Tabs',
-} as Meta;
+};
+
+export default meta;
+type Story = StoryObj<TabsProps<string>>;
 
 const sampleTabs = ['Tab 1', 'Tab 2', 'Tab 3'];
 
-export const Tabs = (args: TabsProps): JSX.Element => {
-    const [selectedTab, setSelectedTab] = useState<string>(sampleTabs[0]);
+export const Tabs: Story = {
+    args: {
+        tabs: sampleTabs,
+    },
+    render: (args: TabsProps<string>): JSX.Element => {
+        const [selectedTab, setSelectedTab] = useState<string>(sampleTabs[0]);
 
-    const onSelectTab = (tab: string): void => {
-        setSelectedTab(tab);
-    };
+        const onSelectTab = (tab: any): void => {
+            setSelectedTab(tab);
+        };
 
-    return <TabsComponent {...args} onSelectTab={onSelectTab} selectedTab={selectedTab} />;
-};
-
-Tabs.args = {
-    tabs: sampleTabs,
+        return <TabsComponent {...args} onSelectTab={onSelectTab} selectedTab={selectedTab} />;
+    },
 };

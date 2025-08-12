@@ -57,7 +57,8 @@ class StdoutLogger:
             self.channel.worker_api.log(self.task_uid, msg)
 
     def flush(self):
-        sys.__stdout__.flush()
+        if sys.__stdout__:
+            sys.__stdout__.flush()
 
 
 def execute_function(func: Callable, args: tuple, kwargs: dict):
@@ -164,7 +165,7 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
 
         # Redirect logs via the channel
         stdout_logger = StdoutLogger(task_uid, channel)
-        sys.stdout = stdout_logger   # type: ignore
+        sys.stdout = stdout_logger  # type: ignore
 
         try:
             payload_pointer = task['payload']

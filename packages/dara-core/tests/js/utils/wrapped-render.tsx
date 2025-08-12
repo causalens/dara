@@ -19,7 +19,7 @@ import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
 import { WebSocketClientInterface } from '../../../js/api/websocket';
-import { ImportersCtx } from '../../../js/shared';
+import { ImportersCtx, ServerVariableSyncProvider } from '../../../js/shared';
 import { FallbackCtx, GlobalTaskProvider, RegistriesCtx, VariableCtx, WebSocketCtx } from '../../../js/shared/context';
 import { ComponentInstance } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
@@ -114,9 +114,11 @@ export const Wrapper = ({
                                         }}
                                     >
                                         <StoreProviders>
-                                            <FallbackCtx.Provider value={{ suspend: true }}>
-                                                {child}
-                                            </FallbackCtx.Provider>
+                                            <ServerVariableSyncProvider>
+                                                <FallbackCtx.Provider value={{ suspend: true }}>
+                                                    {child}
+                                                </FallbackCtx.Provider>
+                                            </ServerVariableSyncProvider>
                                         </StoreProviders>
                                     </RegistriesCtx.Provider>
                                 </QueryClientProvider>

@@ -21,22 +21,26 @@ import sys
 import traceback
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Optional
 
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
 
-def print_stacktrace():
+def print_stacktrace(err: Optional[BaseException] = None) -> str:
     """
     Prints out the current stack trace. Will also extract any exceptions and print them at the end.
     """
+    if err is not None:
+        return ''.join(traceback.format_exception(type(err), err, err.__traceback__))
+
     exc = sys.exc_info()[0]
     stack = traceback.extract_stack()[:-1]
 
     trc = 'Traceback (most recent call last):\n'
     stackstr = trc + ''.join(traceback.format_list(stack))
     if exc is not None:
-        stackstr += '  ' + traceback.format_exc().lstrip(trc)   # pylint:disable=bad-str-strip-call
+        stackstr += '  ' + traceback.format_exc().lstrip(trc)
     else:
         stackstr += '   Exception'
 
@@ -52,14 +56,17 @@ def handle_system_exit(error_msg: str):
     try:
         yield
     except SystemExit as e:
-        raise InterruptedError(error_msg).with_traceback(e.__traceback__)
+        raise InterruptedError(error_msg) from e
 
 
-def get_error_for_channel() -> dict:
+def get_error_for_channel(err: Optional[BaseException] = None) -> dict:
     """
     Get error from current stacktrace to send to the client
     """
-    return {'error': print_stacktrace(), 'time': str(datetime.now())}
+    return {
+        'error': print_stacktrace(err),
+        'time': str(datetime.now()),
+    }
 
 
 async def send_error_for_session(ws_mgr: WebsocketManager, session_id: str):

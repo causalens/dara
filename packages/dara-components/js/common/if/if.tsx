@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 
 import {
-    ComponentInstance,
-    Condition,
+    type ComponentInstance,
+    type Condition,
     DynamicComponent,
-    StyledComponentProps,
+    type StyledComponentProps,
     isConditionTrue,
-    useAnyVariable,
+    useVariable,
 } from '@darajs/core';
 
 interface IfProps extends StyledComponentProps {
@@ -25,8 +25,8 @@ interface IfProps extends StyledComponentProps {
  * @param props the component props
  */
 function If(props: IfProps): JSX.Element {
-    const value = useAnyVariable(props.condition.variable);
-    const other = useAnyVariable(props.condition.other);
+    const [value] = useVariable(props.condition.variable, { suspend: false, serverVariable: 'one-row' });
+    const [other] = useVariable(props.condition.other, { suspend: false });
 
     const conditionResult = useMemo(
         () => isConditionTrue(props.condition.operator, value, other),

@@ -17,9 +17,9 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from cai_causal_graph import CausalGraph, Skeleton
 from pydantic import ConfigDict, SerializerFunctionWrapHandler, field_serializer
 
+from cai_causal_graph import CausalGraph, Skeleton
 from dara.components.graphs.definitions import (
     DEFAULT_LEGENDS,
     EditorMode,

@@ -7,9 +7,9 @@ import debounce from 'lodash/debounce';
 import { nanoid } from 'nanoid';
 import { useMemo } from 'react';
 
-import { Variable, useVariable } from '@darajs/core';
+import { type Variable, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
-import { Button, DatePicker, Input, Item, Select } from '@darajs/ui-components';
+import { Button, DatePicker, Input, type Item, Select } from '@darajs/ui-components';
 import { Cross, Plus } from '@darajs/ui-icons';
 
 enum ColumnType {
@@ -28,7 +28,7 @@ interface FilterInstance {
      * Used internally to uniquely identify filters - prevents us from having to rely on indexes
      */
     __id: string;
-    column: string;
+    column: string | null;
     from_date: string;
     range: string;
     to_date: string;
@@ -92,16 +92,16 @@ const FilterRow = styled.div`
  *
  * @param date date to parse
  */
-export function parseDateString(date: string | Date): Date {
+export function parseDateString(date: string | Date): Date | undefined {
     if (!date) {
-        return;
+        return undefined;
     }
     if (date instanceof Date) {
         return date;
     }
     const parsed = parseISO(date);
     if (Number.isNaN(parsed.getTime())) {
-        return;
+        return undefined;
     }
     return parsed;
 }
@@ -144,7 +144,7 @@ function DataSlicerFilter(props: DataSlicerFilterProps): JSX.Element {
                 // Note: This will only work for plain variables!
                 (setFilters as unknown as FilterUpdater)((currentFilters) =>
                     produce(currentFilters, (draft) => {
-                        const filter = draft.find((d) => d.__id === id);
+                        const filter = draft.find((d) => d.__id === id)!;
                         filter[property] = value;
                     })
                 );
@@ -209,7 +209,7 @@ function DataSlicerFilter(props: DataSlicerFilterProps): JSX.Element {
                                         />
                                     </>
                                 )}
-                                {[ColumnType.CATEGORICAL, ColumnType.NUMERICAL].includes(columnMap.get(f.column)) && (
+                                {[ColumnType.CATEGORICAL, ColumnType.NUMERICAL].includes(columnMap.get(f.column)!) && (
                                     <>
                                         <FilterLabel>Values</FilterLabel>
                                         <Input

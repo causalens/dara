@@ -1,5 +1,5 @@
-import { StyledComponentProps, Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
-import { HierarchyNode, HierarchySelector as UIHierarchySelector } from '@darajs/ui-components';
+import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
+import { type HierarchyNode, HierarchySelector as UIHierarchySelector } from '@darajs/ui-components';
 
 interface HierarchySelectorProps extends StyledComponentProps {
     /** Allow selection of categories from the selector */

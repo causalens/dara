@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 import { transparentize } from 'polished';
-import { ButtonHTMLAttributes, ForwardedRef, forwardRef } from 'react';
+import { type ButtonHTMLAttributes, type ForwardedRef, forwardRef } from 'react';
 
-import styled, { DefaultTheme, useTheme } from '@darajs/styled-components';
+import styled, { type DefaultTheme, useTheme } from '@darajs/styled-components';
 
 import Spinner from '../spinner/spinner';
 
@@ -42,6 +42,10 @@ export const BaseButton = styled.button<BaseButtonProps>`
 
     border: none;
     border-radius: 0.25rem;
+
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
 `;
 
 /**

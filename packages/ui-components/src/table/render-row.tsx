@@ -1,11 +1,11 @@
 import { transparentize } from 'polished';
 import * as React from 'react';
-import { HeaderGroup } from 'react-table';
+import { type HeaderGroup } from 'react-table';
 import { areEqual } from 'react-window';
 
 import styled from '@darajs/styled-components';
 
-import { TableColumn } from './types';
+import { type TableColumn } from './types';
 
 interface RowProps {
     onClickRow?: (row: any) => void | Promise<void>;

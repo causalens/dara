@@ -16,7 +16,7 @@
  */
 import { mdiEye } from '@mdi/js';
 
-import { IconProps, StyledMDIcon } from './icon-utils';
+import { type IconProps, StyledMDIcon } from './icon-utils';
 
 /**
  * Eye icon from Material Design

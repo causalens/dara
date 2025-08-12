@@ -20,7 +20,7 @@ import styled, { theme } from '@darajs/styled-components';
 import { CircleCheck, CircleInfo, CircleXmark, Cross, TriangleExclamation } from '@darajs/ui-icons';
 import { Status, getStatusColor } from '@darajs/ui-utils';
 
-import { NotificationPayload } from './notification-payload';
+import { type NotificationPayload } from './notification-payload';
 
 interface NotificationWrapperProps {
     hasTitle: boolean;

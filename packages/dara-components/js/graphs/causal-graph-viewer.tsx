@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 
 import {
-    Action,
+    type Action,
     Notifications,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
@@ -12,14 +12,14 @@ import {
 } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
 import {
-    CausalGraph,
+    type CausalGraph,
     EditorMode,
-    GraphLegendDefinition,
+    type GraphLegendDefinition,
     CausalGraphViewer as UICausalGraphViewer,
-    ZoomThresholds,
+    type ZoomThresholds,
 } from '@darajs/ui-causal-graph-editor';
 
-import { GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
+import { type GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
 import { transformLegendColor } from './utils';
 
 export interface CausalGraphViewerProps extends StyledComponentProps {
@@ -32,7 +32,7 @@ export interface CausalGraphViewerProps extends StyledComponentProps {
     /** The graph data to render */
     causal_graph: Variable<CausalGraph> | CausalGraph;
     /** Default legends dict for each editor mode available */
-    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
+    default_legends: Record<EditorMode, GraphLegendDefinition[]>;
     /** Flag for disabling edge addition */
     disable_edge_add?: boolean;
     /** Flag for disabling latent node addition */
@@ -74,7 +74,7 @@ const StyledGraphViewer = injectCss(UICausalGraphViewer);
  * @param props the component props
  * @returns
  */
-function CausalGraphViewer(props: CausalGraphViewerProps): JSX.Element {
+function CausalGraphViewer(props: CausalGraphViewerProps): React.ReactNode {
     const { pushNotification } = Notifications.useNotifications();
     const [style, css] = useComponentStyles(props);
     const theme = useTheme();

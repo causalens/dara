@@ -1,12 +1,12 @@
-import { ForwardedRef, forwardRef } from 'react';
+import { type ForwardedRef, forwardRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DisplayCtx,
     DynamicComponent,
-    LayoutComponentProps,
-    Variable,
+    type LayoutComponentProps,
+    type Variable,
     injectCss,
     useComponentStyles,
     useVariable,

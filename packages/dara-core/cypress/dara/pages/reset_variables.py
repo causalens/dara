@@ -1,7 +1,7 @@
 from random import random
 
-from dara.core.interactivity import DerivedVariable, ResetVariables, Variable
 from dara.components import Button, Card, Input, Stack, Text
+from dara.core.interactivity import DerivedVariable, ResetVariables, Variable
 
 
 def reset_variables():

@@ -17,9 +17,9 @@ limitations under the License.
 
 from typing import Optional, Union
 
-from cai_causal_graph import CausalGraph, Skeleton
 from pydantic import field_validator, model_validator
 
+from cai_causal_graph import CausalGraph, Skeleton
 from dara.components.graphs.components.base_graph_component import BaseGraphComponent
 from dara.components.graphs.definitions import EditorMode
 from dara.components.graphs.graph_layout import PlanarLayout

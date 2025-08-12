@@ -16,7 +16,7 @@
  */
 import { faMap } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * Map icon from FontAwesome

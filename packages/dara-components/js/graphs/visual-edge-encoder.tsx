@@ -2,10 +2,10 @@
 import { useMemo } from 'react';
 
 import {
-    Action,
+    type Action,
     Notifications,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useAction,
     useComponentStyles,
@@ -13,18 +13,18 @@ import {
 } from '@darajs/core';
 import { useTheme } from '@darajs/styled-components';
 import {
-    CausalGraph,
-    CausalGraphEdge,
-    CausalGraphNode,
+    type CausalGraph,
+    type CausalGraphEdge,
+    type CausalGraphNode,
     CausalGraphViewer,
-    EdgeConstraint,
+    type EdgeConstraint,
     EdgeType,
     EditorMode,
-    GraphLegendDefinition,
-    ZoomThresholds,
+    type GraphLegendDefinition,
+    type ZoomThresholds,
 } from '@darajs/ui-causal-graph-editor';
 
-import { GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
+import { type GraphLayoutDefinition, parseLayoutDefinition } from './graph-layout';
 import { transformLegendColor } from './utils';
 
 interface VisualEdgeEncoderProps extends StyledComponentProps {
@@ -33,7 +33,7 @@ interface VisualEdgeEncoderProps extends StyledComponentProps {
     /** Whether to allow node/edge selection even when editable = false */
     allow_selection_when_not_editable?: boolean;
     /** Default legends dict for each editor mode available */
-    default_legends?: Record<EditorMode, GraphLegendDefinition[]>;
+    default_legends: Record<EditorMode, GraphLegendDefinition[]>;
     /** Allow editing */
     editable?: boolean;
     /** Graph layout definition object */
@@ -145,11 +145,11 @@ function VisualEdgeEncoder(props: VisualEdgeEncoderProps): JSX.Element {
                             acc[c.source] = {};
                         }
 
-                        acc[c.source][c.target] = {
-                            destination: parsedNodes[c.target],
+                        acc[c.source]![c.target] = {
+                            destination: parsedNodes[c.target]!,
                             edge_type: EdgeType.UNDIRECTED_EDGE,
                             meta: {},
-                            source: parsedNodes[c.source],
+                            source: parsedNodes[c.source]!,
                         };
                     }
 

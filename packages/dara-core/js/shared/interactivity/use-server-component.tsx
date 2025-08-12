@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+import { nanoid } from 'nanoid';
 import { useContext, useEffect } from 'react';
 import {
     type RecoilState,
@@ -103,9 +104,9 @@ function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string):
             triggerKey,
             atom({
                 default: {
-                    force: false,
+                    force_key: null,
                     inc: 0,
-                },
+                } satisfies TriggerIndexValue,
                 key: triggerKey,
             })
         );
@@ -155,17 +156,15 @@ function getOrRegisterServerComponent({
                     (extrasSerializable: RequestExtrasSerializable) =>
                     async ({ get }) => {
                         // Kwargs resolved to their simple values
-                        const resolvedKwargs = Object.keys(dynamicKwargs).reduce(
-                            (acc, k) => {
-                                const value = dynamicKwargs[k]!;
-                                acc[k] =
+                        const resolvedKwargs = await Promise.all(
+                            Object.entries(dynamicKwargs).map(async ([k, value]) => {
+                                const resolvedValue =
                                     isVariable(value) ?
-                                        resolveVariable(value, wsClient, taskContext, currentExtras)
+                                        await resolveVariable(value, wsClient, taskContext, currentExtras)
                                     :   value;
-                                return acc;
-                            },
-                            {} as Record<string, any>
-                        );
+                                return [k, resolvedValue];
+                            })
+                        ).then((entries) => Object.fromEntries(entries));
 
                         // Turn kwargs into lists so we can re-use the DerivedVariable logic
                         const resolvedKwargsList = Object.values(resolvedKwargs);
@@ -176,12 +175,11 @@ function getOrRegisterServerComponent({
 
                         const { extras } = extrasSerializable;
 
-                        const derivedResult = await resolveDerivedValue(
+                        const derivedResult = resolveDerivedValue(
                             key,
                             kwargsList,
                             kwargsList, // pass deps=kwargs
                             resolvedKwargsList,
-                            wsClient,
                             get,
                             selfTrigger
                         );
@@ -201,8 +199,7 @@ function getOrRegisterServerComponent({
                                     return acc;
                                 },
                                 {} as Record<string, any>
-                            ),
-                            derivedResult.force
+                            )
                         );
 
                         let result = null;
@@ -232,8 +229,10 @@ function getOrRegisterServerComponent({
 
                             try {
                                 await wsClient.waitForTask(taskId);
-                            } catch {
-                                return null;
+                            } catch (e: unknown) {
+                                (e as any).selectorId = key;
+                                (e as any).selectorExtras = extrasSerializable.toJSON();
+                                throw e;
                             } finally {
                                 taskContext.endTask(taskId);
                             }
@@ -346,7 +345,7 @@ export function useRefreshServerComponent(uid: string, loop_instance_uid?: strin
                 const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
 
                 set(triggerAtom, (triggerIndexValue) => ({
-                    force: false,
+                    force_key: nanoid(),
                     inc: triggerIndexValue.inc + 1,
                 }));
             },

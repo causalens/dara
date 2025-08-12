@@ -16,7 +16,7 @@
  */
 import { faVialVirus } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * VialVirus icon from FontAwesome

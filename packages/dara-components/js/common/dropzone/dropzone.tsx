@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { type FileRejection } from 'react-dropzone';
 
 import {
-    Action,
+    type Action,
     Center,
-    DataVariable,
     DefaultFallback,
-    RequestExtras,
-    StyledComponentProps,
+    type RequestExtras,
+    type ServerVariable,
+    type StyledComponentProps,
     handleAuthErrors,
     injectCss,
     request,
@@ -79,7 +79,7 @@ interface DropzoneProps extends StyledComponentProps {
     /** optional resolver to use for the data */
     resolver_id?: string;
     /** variable to store data in */
-    target?: DataVariable;
+    target?: ServerVariable;
 }
 
 const StyledDropzone = injectCss(UIUploadDropzone);
@@ -104,14 +104,14 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
 
             try {
                 const { newStatus } = await uploadFileToExtension(
-                    acceptedFiles[0],
+                    acceptedFiles[0]!,
                     extras,
                     props.target?.uid,
                     props.resolver_id
                 );
                 setCurrentStatus(newStatus);
             } catch (err) {
-                setErrorMessage(err.message);
+                setErrorMessage((err as Error).message);
                 setCurrentStatus(status.FAILED);
                 throw err;
             }

@@ -1,4 +1,4 @@
-import {
+import type {
     BeforePlotEvent,
     ClickAnnotationEvent,
     FrameAnimationEvent,
@@ -14,11 +14,23 @@ import {
     SliderStartEvent,
     SunburstClickEvent,
 } from 'plotly.js';
-import { useState } from 'react';
-import Plot, { PlotParams } from 'react-plotly.js';
+import * as React from 'react';
+import type { PlotParams } from 'react-plotly.js';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
-import { Action, StyledComponentProps, injectCss, useAction, useComponentStyles } from '@darajs/core';
+import {
+    type Action,
+    DefaultFallback,
+    type StyledComponentProps,
+    injectCss,
+    useAction,
+    useComponentStyles,
+} from '@darajs/core';
+
+// eslint-disable-next-line import/extensions
+import createPlotlyComponent from './plotly-factory';
+
+const PLOTLY_URL = 'https://cdn.plot.ly/plotly-2.28.0.min.js';
 
 /**
  * Names defined by plotly.js, this is what Python will send us
@@ -142,6 +154,12 @@ interface ActionEvent {
     handler?: (value: any) => Promise<void>;
 }
 
+declare global {
+    interface Window {
+        plotlyLoading?: boolean;
+    }
+}
+
 /**
  *
  * Filters the event data received from plotly to remove large objects that cause JSON stringify circular structure errors.
@@ -154,10 +172,10 @@ interface ActionEvent {
  */
 function filterEventData<T extends PlotlyEventName>(
     figure: any,
-    eventData: Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0],
+    eventData: NonNullable<Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0]>,
     event: T
 ): any {
-    let filteredEventData: Record<string, any>;
+    let filteredEventData: Record<string, any> | undefined;
 
     if ([PlotlyEventName.Click, PlotlyEventName.Hover, PlotlyEventName.Selected].includes(event)) {
         const points = [];
@@ -179,10 +197,10 @@ function filterEventData<T extends PlotlyEventName>(
         const { data } = figure;
 
         for (let i = 0; i < pointEventData.points.length; i++) {
-            const fullPoint = pointEventData.points[i];
+            const fullPoint = pointEventData.points[i]!;
 
             const pointData = Object.fromEntries(
-                Object.entries(fullPoint).filter(([, value]: [keyof PlotDatum, PlotDatum[keyof PlotDatum]]) => {
+                Object.entries(fullPoint).filter(([, value]: [string, PlotDatum[keyof PlotDatum]]) => {
                     return typeof value !== 'object' && !Array.isArray(value);
                 })
             ) as PlotDatum & Record<'bbox' | 'pointNumbers', any>;
@@ -224,10 +242,10 @@ function filterEventData<T extends PlotlyEventName>(
         filteredEventData = eventData;
     }
     if ('range' in eventData) {
-        filteredEventData.range = eventData.range;
+        filteredEventData!.range = eventData.range;
     }
     if ('lassoPoints' in eventData) {
-        filteredEventData.lassoPoints = eventData.lassoPoints;
+        filteredEventData!.lassoPoints = eventData.lassoPoints;
     }
     return filteredEventData;
 }
@@ -269,7 +287,7 @@ function executeCustomJs(customJs: string, eventData: Readonly<PlotlyEventData>,
  */
 function handleEvent<T extends PlotlyEventName>(
     eventType: T,
-    eventData: Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0],
+    eventData: NonNullable<Parameters<RequiredPlotParams[EventHandlersMap[T]]>[0]>,
     eventActions: Array<ActionEvent>,
     figure: any,
     setFigure: React.Dispatch<any>
@@ -295,8 +313,11 @@ const StyledPlotly = injectCss('div');
  * @param {PlotlyProps} props - the component props
  */
 function Plotly(props: PlotlyProps): JSX.Element {
+    const [Component, setComponent] = React.useState<React.ComponentType<PlotParams> | null>(() =>
+        window.Plotly ? createPlotlyComponent(window.Plotly) : null
+    );
     const [style, css] = useComponentStyles(props);
-    const [figure, setFigure] = useState(() => JSON.parse(props.figure));
+    const [figure, setFigure] = React.useState(() => JSON.parse(props.figure));
     const eventActions = new Map<string, Array<ActionEvent>>();
 
     if (props.events) {
@@ -313,15 +334,60 @@ function Plotly(props: PlotlyProps): JSX.Element {
     }
 
     // add an event handler for each Plot event, e.g. onClick, onHover, etc
-    const eventHandlers = Object.keys(eventHandlersMap).reduce((acc, key: keyof EventHandlersMap) => {
-        const eventHandlerName = eventHandlersMap[key];
+    const eventHandlers = Object.keys(eventHandlersMap).reduce((acc, key: string) => {
+        const eventHandlerName = eventHandlersMap[key as keyof EventHandlersMap];
         const eventHandler = (e: PlotlyEventData): void => {
-            handleEvent(key, e, eventActions.get(key), figure, setFigure);
+            handleEvent(key as keyof EventHandlersMap, e, eventActions.get(key)!, figure, setFigure);
         };
         // we are casting to any here because there is an issue with union vs intersection of types
         acc[eventHandlerName] = eventHandler as any;
         return acc;
     }, {} as RequiredPlotParams);
+
+    async function waitForPlotly(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+                if (window.Plotly) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function loadPlotlyLibrary(url: string): Promise<void> {
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => {
+            resolve = r;
+        });
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = () => {
+            resolve();
+        };
+        document.head.appendChild(script);
+        return promise;
+    }
+
+    const initializePlotly = React.useCallback(async (): Promise<void> => {
+        if (window.plotlyLoading) {
+            await waitForPlotly();
+        } else if (!window.Plotly) {
+            window.plotlyLoading = true;
+            await loadPlotlyLibrary(PLOTLY_URL);
+            window.plotlyLoading = false;
+        }
+
+        const newComponent = createPlotlyComponent(window.Plotly);
+        // important to use the function form, otherwise component is interpreted as a function and invoked
+        setComponent(() => newComponent);
+    }, []);
+
+    React.useEffect(() => {
+        if (!Component) {
+            initializePlotly();
+        }
+    }, [Component, initializePlotly]);
 
     return (
         <StyledPlotly
@@ -337,15 +403,20 @@ function Plotly(props: PlotlyProps): JSX.Element {
         >
             <AutoSizer>
                 {({ height, width }) => (
-                    <Plot
-                        config={{ responsive: true }}
-                        data={figure.data}
-                        frames={figure.frames}
-                        layout={figure.layout}
-                        {...eventHandlers}
-                        style={{ height, width }}
-                        useResizeHandler
-                    />
+                    <>
+                        {!Component && <DefaultFallback style={{ height, width }} />}
+                        {Component && (
+                            <Component
+                                config={{ responsive: true }}
+                                data={figure.data}
+                                frames={figure.frames}
+                                layout={figure.layout}
+                                {...eventHandlers}
+                                style={{ height, width }}
+                                useResizeHandler
+                            />
+                        )}
+                    </>
                 )}
             </AutoSizer>
         </StyledPlotly>

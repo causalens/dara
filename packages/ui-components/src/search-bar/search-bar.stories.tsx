@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { default as SearchBarComponent, SearchBarProps } from './search-bar';
+import { default as SearchBarComponent, type SearchBarProps } from './search-bar';
 
-export default {
+const meta: Meta<SearchBarProps> = {
     component: SearchBarComponent,
     title: 'UI Components/Search Bar',
-} as Meta;
+};
 
-export const SearchBar = (props: SearchBarProps): JSX.Element => <SearchBarComponent {...props} />;
+export default meta;
+type Story = StoryObj<SearchBarProps>;
+
+export const SearchBar: Story = {};

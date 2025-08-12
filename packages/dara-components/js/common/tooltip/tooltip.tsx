@@ -1,8 +1,8 @@
 import {
-    ComponentInstance,
+    type ComponentInstance,
     DynamicComponent,
-    StyledComponentProps,
-    Variable,
+    type StyledComponentProps,
+    type Variable,
     injectCss,
     useComponentStyles,
     useVariable,
@@ -45,7 +45,7 @@ function Tooltip(props: TooltipProps): JSX.Element {
             styling={props.styling}
         >
             {/* Python side makes sure there's only one child and it is Stack */}
-            <Stack {...props.children[0].props} />
+            <Stack {...props.children![0]!.props} />
         </StyledTooltip>
     );
 }

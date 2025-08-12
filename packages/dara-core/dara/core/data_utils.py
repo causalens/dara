@@ -25,10 +25,9 @@ from pandas import DataFrame
 from dara.core.base_definitions import CacheType
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity import (
-    DerivedDataVariable,
+    ClientVariable,
     DerivedVariable,
     DownloadContent,
-    NonDataVariable,
     SideEffect,
     Variable,
 )
@@ -116,7 +115,7 @@ class FileStore(BaseModel):
         if not os.path.exists(file_path):
             return None
 
-        return io.open(file_path, 'rb')
+        return open(file_path, 'rb')
 
     def write_file(self, cache_type: CacheType, name: str) -> io.BufferedWriter:
         """
@@ -130,7 +129,7 @@ class FileStore(BaseModel):
         """
         scope_path = self.get_scoped_path(cache_type)
         os.makedirs(scope_path, exist_ok=True)
-        return io.open(os.path.join(scope_path, name), 'wb')
+        return open(os.path.join(scope_path, name), 'wb')
 
     def delete_file(self, cache_type: CacheType, name: str) -> None:
         """
@@ -172,7 +171,7 @@ class DataFactory(BaseModel):
 
     def list_datasets_var(
         self,
-        cache: Union[CacheType, NonDataVariable] = CacheType.GLOBAL,
+        cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL,
         polling_interval: Optional[int] = None,
     ) -> DerivedVariable[List[str]]:
         """
@@ -181,7 +180,7 @@ class DataFactory(BaseModel):
         :param cache: cache type to get the list of datasets for
         :param polling_interval: optional polling_interval in seconds for the derived variable
         """
-        cache_var = cache if isinstance(cache, NonDataVariable) else Variable(cache)
+        cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)
 
         return DerivedVariable(
             lambda cache_val: self.file_store.list_files(cache_val or CacheType.GLOBAL),
@@ -289,21 +288,21 @@ class DataFactory(BaseModel):
 
     def read_dataset_var(
         self,
-        name: Union[str, NonDataVariable],
-        cache: Union[CacheType, NonDataVariable] = CacheType.GLOBAL,
+        name: Union[str, ClientVariable],
+        cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL,
         polling_interval: Optional[int] = None,
-    ) -> DerivedDataVariable:
+    ) -> DerivedVariable:
         """
-        Create a DerivedDataVariable which reads a specific dataset from disk
+        Create a DerivedVariable which reads a specific dataset from disk
 
         :param name: name of the dataset
         :param cache: cache to get the dataset for
         :param polling_interval: optional polling interval in seconds for the derived variable
         """
-        name_var = name if isinstance(name, NonDataVariable) else Variable(name)
-        cache_var = cache if isinstance(cache, NonDataVariable) else Variable(cache)
+        name_var = name if isinstance(name, ClientVariable) else Variable(name)
+        cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)
 
-        return DerivedDataVariable(
+        return DerivedVariable(
             self.read_dataset,
             variables=[name_var, cache_var],
             cache=CacheType.SESSION,
@@ -320,7 +319,7 @@ class DataFactory(BaseModel):
         self.file_store.delete_file(cache, name)
 
     def delete_dataset_action(
-        self, name: Union[str, NonDataVariable], cache: Union[CacheType, NonDataVariable] = CacheType.GLOBAL
+        self, name: Union[str, ClientVariable], cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL
     ):
         """
         Get a SideEffect action which deletes a given dataset
@@ -328,13 +327,13 @@ class DataFactory(BaseModel):
         :param name: name of the dataset
         :param cache: cache to remove the daatset for
         """
-        name_var = name if isinstance(name, NonDataVariable) else Variable(name)
-        cache_var = cache if isinstance(cache, NonDataVariable) else Variable(cache)
+        name_var = name if isinstance(name, ClientVariable) else Variable(name)
+        cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)
 
         return SideEffect(lambda ctx: self.delete_dataset(ctx.extras[0], ctx.extras[1]), extras=[name_var, cache_var])
 
     def download_dataset_action(
-        self, name: Union[str, NonDataVariable], cache: Union[CacheType, NonDataVariable] = CacheType.GLOBAL
+        self, name: Union[str, ClientVariable], cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL
     ):
         """
         Get a DownloadContent action which downloads a dataset with a given name as a .csv
@@ -342,8 +341,8 @@ class DataFactory(BaseModel):
         :param name: name of the dataset to download
         :param cache: cache to download dataset for
         """
-        name_var = name if isinstance(name, NonDataVariable) else Variable(name)
-        cache_var = cache if isinstance(cache, NonDataVariable) else Variable(cache)
+        name_var = name if isinstance(name, ClientVariable) else Variable(name)
+        cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)
 
         def _resolver(ctx: DownloadContent.Ctx):  # type: ignore
             ds_name, sel_cache = ctx.extras  # type: ignore

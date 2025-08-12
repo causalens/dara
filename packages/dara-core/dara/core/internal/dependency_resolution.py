@@ -20,36 +20,25 @@ from typing import Any, List, Literal, Optional, Union
 from typing_extensions import TypedDict, TypeGuard
 
 from dara.core.base_definitions import BaseTask, PendingTask
-from dara.core.interactivity import DataVariable, DerivedDataVariable, DerivedVariable
-from dara.core.interactivity.filtering import FilterQuery
+from dara.core.interactivity import DerivedVariable
+from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
-from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.tasks import TaskManager
 from dara.core.logging import dev_logger
 
 
 class ResolvedDerivedVariable(TypedDict):
-    deps: List[int]
     type: Literal['derived']
     uid: str
     values: List[Any]
-    force: bool
+    force_key: Optional[str]
 
 
-class ResolvedDerivedDataVariable(TypedDict):
-    deps: List[int]
-    type: Literal['derived-data']
+class ResolvedServerVariable(TypedDict):
+    type: Literal['server']
     uid: str
-    values: List[Any]
-    filters: Optional[Union[FilterQuery, dict]]
-    force: bool
-
-
-class ResolvedDataVariable(TypedDict):
-    filters: Optional[Union[FilterQuery, dict]]
-    type: Literal['data']
-    uid: str
+    sequence_number: int
 
 
 class ResolvedSwitchVariable(TypedDict):
@@ -64,21 +53,47 @@ def is_resolved_derived_variable(obj: Any) -> TypeGuard[ResolvedDerivedVariable]
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'derived'
 
 
-def is_resolved_derived_data_variable(obj: Any) -> TypeGuard[ResolvedDerivedDataVariable]:
-    return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'derived-data'
-
-
-def is_resolved_data_variable(obj: Any) -> TypeGuard[ResolvedDataVariable]:
-    return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'data'
+def is_resolved_server_variable(obj: Any) -> TypeGuard[ResolvedServerVariable]:
+    return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'server'
 
 
 def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
+def is_forced(value: Any) -> bool:
+    """
+    Whether a value is a Derived(Data)Variable with a force_key or any of its values are forced
+    """
+    if not is_resolved_derived_variable(value):
+        return False
+
+    return value.get('force_key') is not None or any(is_forced(v) for v in value.get('values', []))
+
+
+def clean_force_key(value: Any) -> Any:
+    """
+    Clean an argument to a value to remove force keys
+    """
+    if value is None:
+        return value
+
+    if isinstance(value, dict):
+        # clone the dict to avoid mutating the original
+        value = value.copy()
+        # Remove force key from the value
+        value.pop('force_key', None)
+        return {k: clean_force_key(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [clean_force_key(v) for v in value]
+    return value
+
+
 async def resolve_dependency(
     entry: Union[
-        ResolvedDerivedDataVariable, ResolvedDataVariable, ResolvedDerivedVariable, ResolvedSwitchVariable, Any
+        ResolvedDerivedVariable,
+        ResolvedSwitchVariable,
+        Any,
     ],
     store: CacheStore,
     task_mgr: TaskManager,
@@ -91,14 +106,11 @@ async def resolve_dependency(
     :param store: store instance
     :param task_mgr: task manager instance
     """
-    if is_resolved_derived_data_variable(entry):
-        return await _resolve_derived_data_var(entry, store, task_mgr)
-
     if is_resolved_derived_variable(entry):
         return await _resolve_derived_var(entry, store, task_mgr)
 
-    if is_resolved_data_variable(entry):
-        return await _resolve_data_var(entry, store)
+    if is_resolved_server_variable(entry):
+        return await _resolve_server_var(entry)
 
     if is_resolved_switch_variable(entry):
         return await _resolve_switch_var(entry, store, task_mgr)
@@ -106,34 +118,10 @@ async def resolve_dependency(
     return entry
 
 
-async def _resolve_derived_data_var(entry: ResolvedDerivedDataVariable, store: CacheStore, task_mgr: TaskManager):
-    """
-    Resolve a derived data variable from the registry
-
-    :param entry: derived data variable entry
-    :param store: store instance to use for caching
-    :param task_mgr: task manager instance
-    """
-    from dara.core.internal.registries import (
-        data_variable_registry,
-        derived_variable_registry,
-        utils_registry,
-    )
-
-    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    dv_var = await registry_mgr.get(derived_variable_registry, str(entry.get('uid')))
-    data_var = await registry_mgr.get(data_variable_registry, str(entry.get('uid')))
-
-    input_values: List[Any] = entry.get('values', [])
-
-    result = await DerivedDataVariable.resolve_value(
-        data_var, dv_var, store, task_mgr, input_values, entry.get('force', False), entry.get('filters', None)
-    )
-    return remove_index(result)
-
-
 async def _resolve_derived_var(
-    derived_variable_entry: ResolvedDerivedVariable, store: CacheStore, task_mgr: TaskManager
+    derived_variable_entry: ResolvedDerivedVariable,
+    store: CacheStore,
+    task_mgr: TaskManager,
 ):
     """
     Resolve a derived variable from the registry and get it's new value based on the dynamic variable mapping passed
@@ -149,25 +137,27 @@ async def _resolve_derived_var(
     var = await registry_mgr.get(derived_variable_registry, str(derived_variable_entry.get('uid')))
     input_values: List[Any] = derived_variable_entry.get('values', [])
     result = await DerivedVariable.get_value(
-        var, store, task_mgr, input_values, derived_variable_entry.get('force', False)
+        var_entry=var,
+        store=store,
+        task_mgr=task_mgr,
+        args=input_values,
+        force_key=derived_variable_entry.get('force_key'),
     )
     return result['value']
 
 
-async def _resolve_data_var(data_variable_entry: ResolvedDataVariable, store: CacheStore):
+async def _resolve_server_var(resolved_server_variable: ResolvedServerVariable) -> Any:
     """
-    Resolve a data variable from the registry and get it's new value based on the dynamic variable mapping passed
-    in.
+    Resolve a server variable.
 
-    :param data_variable_entry: data var entry
+    :param server_variable_entry: server var entry
     :param store: the store instance to use for caching
     """
-    from dara.core.internal.registries import data_variable_registry, utils_registry
+    from dara.core.internal.registries import server_variable_registry, utils_registry
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    var = await registry_mgr.get(data_variable_registry, str(data_variable_entry.get('uid')))
-    result = await DataVariable.get_value(var, store, data_variable_entry.get('filters', None))
-    return remove_index(result)
+    server_var_entry = await registry_mgr.get(server_variable_registry, resolved_server_variable['uid'])
+    return await ServerVariable.get_value(server_var_entry)
 
 
 def _normalize_lookup_key(value: Any) -> str:
@@ -228,7 +218,11 @@ def _evaluate_condition(condition: dict) -> bool:
             raise ValueError(f'Unknown condition operator: {operator}')
 
 
-async def _resolve_switch_var(switch_variable_entry: ResolvedSwitchVariable, store: CacheStore, task_mgr: TaskManager):
+async def _resolve_switch_var(
+    switch_variable_entry: ResolvedSwitchVariable,
+    store: CacheStore,
+    task_mgr: TaskManager,
+):
     """
     Resolve a switch variable by evaluating its constituent parts and returning the appropriate value.
 

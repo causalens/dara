@@ -16,7 +16,7 @@
  */
 import { faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * BoxArchive icon from FontAwesome

@@ -1,12 +1,12 @@
 import _debounce from 'lodash/debounce';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
+import { type Variable, injectCss, useAction, useComponentStyles, useVariable } from '@darajs/core';
 import { Input as UiInput, NumericInput as UiNumericInput } from '@darajs/ui-components';
 import { useLatestRef } from '@darajs/ui-utils';
 
 import { useFormContext } from '../context';
-import { FormComponentProps } from '../types';
+import { type FormComponentProps } from '../types';
 
 interface InputProps extends FormComponentProps {
     /** Passthrough the className property */
@@ -23,7 +23,7 @@ interface InputProps extends FormComponentProps {
 const StyledInput = injectCss(UiInput);
 const StyledNumericInput = injectCss(UiNumericInput);
 
-function getNumericValue(value: string | number): number {
+function getNumericValue(value: string | number): number | null {
     return value == null || Number.isNaN(Number(value)) ? null : Number(value);
 }
 /**
@@ -35,7 +35,7 @@ function Input(props: InputProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [style, css] = useComponentStyles(props);
     const [value, setValue] = useVariable(formCtx.resolveInitialValue());
-    const [internalValue, setInternalValue] = useState(value);
+    const [internalValue, setInternalValue] = useState<string | number | null>(value);
     const onInputAction = useAction(props.onchange);
 
     const debouncedAction = useMemo(() => _debounce(onInputAction, 300), [onInputAction]);
@@ -43,7 +43,7 @@ function Input(props: InputProps): JSX.Element {
     const debouncedUpdateForm = useMemo(() => _debounce(formCtx.updateForm, 300), [formCtx.updateForm]);
 
     function handleChange(val: string | number): void {
-        let newValue = val;
+        let newValue: string | number | null = val;
         if (props.type === 'number') {
             newValue = getNumericValue(newValue);
         }

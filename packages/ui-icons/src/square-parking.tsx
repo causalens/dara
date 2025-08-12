@@ -16,7 +16,7 @@
  */
 import { faSquareParking } from '@fortawesome/free-solid-svg-icons';
 
-import { IconProps, StyledFAIcon } from './icon-utils';
+import { type IconProps, StyledFAIcon } from './icon-utils';
 
 /**
  * SquareParking icon from FontAwesome

@@ -1,5 +1,4 @@
 # This file contains some dummy tasks that can be run in tests and pass the task validation logic
-import sys
 import time
 
 import anyio
@@ -120,3 +119,32 @@ async def data_task(a: int):
     numeric_cols = [col for col in df if df[col].dtype == 'int64']
     df[numeric_cols] += int(a)
     return df
+
+
+# Tasks for testing error and cancellation propagation in chains
+async def slow_task_a(value):
+    """Task A that takes some time - used as dependency for B and C"""
+    await anyio.sleep(0.5)
+    return f'A_result_{value}'
+
+
+async def failing_task_a(value):
+    """Task A that fails after some time - used to test error propagation"""
+    await anyio.sleep(0.2)
+    raise Exception(f'Task A failed with value {value}')
+
+
+async def very_slow_task_a(value):
+    """Task A that takes a long time - used for cancellation testing"""
+    await anyio.sleep(10)  # Long enough to be cancelled
+    return f'A_result_{value}'
+
+
+def task_b(a_result):
+    """Task B that depends on A"""
+    return f'B_processed_{a_result}'
+
+
+def task_c(a_result):
+    """Task C that depends on A"""
+    return f'C_processed_{a_result}'

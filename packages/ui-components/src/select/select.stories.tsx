@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Meta } from '@storybook/react';
-import * as React from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 
 import { AddressBook } from '@darajs/ui-icons';
 
-import { Item } from '../types';
-import { default as SelectComponent, SelectProps } from './select';
+import { type Item } from '../types';
+import { default as SelectComponent, type SelectProps } from './select';
 
-export default {
+const meta: Meta<SelectProps> = {
     component: SelectComponent,
     title: 'UI Components/Select',
-} as Meta;
+};
+
+export default meta;
+type Story = StoryObj<SelectProps>;
 
 const simpleItems: Item[] = [
     {
@@ -60,15 +63,17 @@ const simpleItems: Item[] = [
     },
 ];
 
-export const Select = (props: SelectProps): JSX.Element => (
-    <div style={{ width: '12.5em' }}>
-        <SelectComponent {...props} />
-    </div>
-);
-Select.args = {
-    items: simpleItems,
-    placeholder: 'Select an item',
-    size: 1,
+export const Select: Story = {
+    args: {
+        items: simpleItems,
+        placeholder: 'Select an item',
+        size: 1,
+    },
+    render: (props: SelectProps): JSX.Element => (
+        <div style={{ width: '12.5em' }}>
+            <SelectComponent {...props} />
+        </div>
+    ),
 };
 
 export const ControlledSelect = (props: SelectProps): JSX.Element => {

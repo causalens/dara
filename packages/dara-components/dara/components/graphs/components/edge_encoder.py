@@ -17,8 +17,6 @@ limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
 
-from cai_causal_graph.graph_components import Node
-from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
     ConfigDict,
@@ -28,6 +26,8 @@ from pydantic import (
 )
 from typing_extensions import TypedDict
 
+from cai_causal_graph.graph_components import Node
+from cai_causal_graph.type_definitions import EdgeConstraint as EdgeConstraintType
 from dara.components.graphs.definitions import DEFAULT_LEGENDS, EditorMode, GraphLegend
 from dara.components.graphs.graph_layout import (
     GraphLayout,
@@ -36,7 +36,7 @@ from dara.components.graphs.graph_layout import (
 )
 from dara.core.base_definitions import Action
 from dara.core.definitions import StyledComponentInstance
-from dara.core.interactivity import AnyVariable, NonDataVariable
+from dara.core.interactivity import AnyVariable, ClientVariable
 
 
 class EdgeConstraint(TypedDict):
@@ -134,8 +134,8 @@ class VisualEdgeEncoder(StyledComponentInstance):
     default_legends: Dict[Union[EditorMode, str], List[GraphLegend]] = DEFAULT_LEGENDS
     editable: Optional[bool] = False
     graph_layout: Optional[GraphLayout] = MarketingLayout()
-    initial_constraints: Optional[Union[List[EdgeConstraint], NonDataVariable]] = None
-    nodes: Union[List[str], Dict[str, Node], NonDataVariable]
+    initial_constraints: Optional[Union[List[EdgeConstraint], ClientVariable]] = None
+    nodes: Union[List[str], Dict[str, Node], ClientVariable]
     on_click_edge: Optional[Action] = None
     on_click_node: Optional[Action] = None
     on_update: Optional[Action] = None
