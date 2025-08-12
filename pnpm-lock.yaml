@@ -7,7 +7,7 @@ settings:
 overrides:
   headers-polyfill: 3.1.2
 
-packageExtensionsChecksum: sha256-d0MaAdE+NkQopK9hmcIUXvQUzPC6ZG4RFX8p93zI/fM=
+packageExtensionsChecksum: 06dabbf5eaefc0936daec70d7eb8bad3
 
 importers:
 
