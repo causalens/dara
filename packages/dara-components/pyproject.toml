@@ -1,8 +1,7 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-[tool.blue]
-line-length = 120
+
 [tool.anthology.scripts]
 format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
