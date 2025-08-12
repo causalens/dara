@@ -857,6 +857,7 @@ class Table(ContentComponent):
     searchable: bool = False
     include_index: bool = True
     max_rows: Optional[int] = None
+    supress_click_events_for_selection: Optional[bool] = False
 
     TableFormatterType = TableFormatterType
     TableFilter = TableFilter
