@@ -54,18 +54,18 @@ function run(importers: { [k: string]: () => Promise<any> }): void {
                     <ErrorBoundary>
                         <ImportersCtx.Provider value={importers}>
                             <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                <RecoilRoot>
-                                    <RecoilURLSync {...syncOptions}>
-                                        <GlobalTaskProvider>
-                                            <Router history={history}>
-                                                <AuthWrapper>
-                                                    <NotificationWrapper />
-                                                    <TemplateRoot />
-                                                </AuthWrapper>
-                                            </Router>
-                                        </GlobalTaskProvider>
-                                    </RecoilURLSync>
-                                </RecoilRoot>
+                                <Router history={history}>
+                                    <RecoilRoot>
+                                        <RecoilURLSync {...syncOptions}>
+                                            <GlobalTaskProvider>
+                                                    <AuthWrapper>
+                                                        <NotificationWrapper />
+                                                        <TemplateRoot />
+                                                    </AuthWrapper>
+                                            </GlobalTaskProvider>
+                                        </RecoilURLSync>
+                                    </RecoilRoot>
+                                </Router>
                             </DirectionCtx.Provider>
                         </ImportersCtx.Provider>
                     </ErrorBoundary>
