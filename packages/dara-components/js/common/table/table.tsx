@@ -59,6 +59,10 @@ interface TableProps extends StyledComponentProps {
      */
     onclick_row?: Action;
     /**
+     * Onselect handler; when provided, is called when a row is selected
+     */
+    onselect_row?: Action;
+    /**
      * List of searchable columns
      */
     search_columns?: Array<string>;
@@ -74,6 +78,11 @@ interface TableProps extends StyledComponentProps {
      * When set to true hides the checkboxes column of table
      */
     show_checkboxes?: boolean;
+    /**
+     * A flag to suppress click events for clicks in select boxes. This will be come the default behavior in a future
+     * version but it would be a breaking change so under a flag for now.
+     */
+    supress_click_events_for_selection?: boolean;
     /**
      * Whether to render the index column
      */
@@ -512,30 +521,38 @@ function Table(props: TableProps): JSX.Element {
         [onClickRowRaw]
     );
 
+    const onSelectRowRaw = useAction(props.onselect_row);
+    const onSelectRow = useCallback(
+        (rows: Omit<DataRow, '__index__'>[]) =>
+            onSelectRowRaw(
+                // Preserve original data column names on click
+                // Limitation: If there are columns with duplicate names, data from only one of them will be returned
+                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))))
+            ),
+        [onClickRowRaw]
+    );
+
     const columns = useMemo(() => {
         const mappedCols = mapColumns(resolvedColumns);
 
-        if ((props.show_checkboxes && props.onclick_row) || props.selected_indices) {
+        if ((props.show_checkboxes && (props.onclick_row || props.onselect_row)) || props.selected_indices) {
             mappedCols?.unshift(UiTable.ActionColumn([UiTable.Actions.SELECT], 'select_box_col', 'left', true));
         }
         return mappedCols;
     }, [resolvedColumns, props.onclick_row]);
 
     const onSelect = useCallback(
-        async (row: any): Promise<void> => {
+        async (row: any, isCheckboxSelect: boolean = false): Promise<void> => {
             // If selected row has already been selected
+            let selectedRows: Omit<DataRow, '__index__'>[] | null = null;
             if ((selectedRowIndices ?? []).find((idx) => row[INDEX_COL] === idx) !== undefined) {
                 // Remove it from selected indices
                 const newSelectedIndices = (selectedRowIndices ?? []).filter((idx) => row[INDEX_COL] !== idx);
                 setSelectedRowIndices(newSelectedIndices);
 
                 if (props.multi_select) {
-                    const selectedRows = await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx)));
-
                     // In multiselect mode, send selected rows
-                    onClickRow(cleanIndex(selectedRows));
-                } else {
-                    onClickRow(null);
+                    selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
                 }
             } else {
                 let newSelectedIndices = [...(selectedRowIndices ?? []), row[INDEX_COL]];
@@ -546,8 +563,13 @@ function Table(props: TableProps): JSX.Element {
                 }
 
                 setSelectedRowIndices(newSelectedIndices);
-                const selectedRows = await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx)));
-                onClickRow(cleanIndex(selectedRows));
+                selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
+            }
+            if (isCheckboxSelect) {
+                onSelectRow(selectedRows);
+            }
+            if (!props.supress_click_events_for_selection) {
+                onClickRow(selectedRows);
             }
         },
         [selectedRowIndices, getItem]
@@ -556,7 +578,7 @@ function Table(props: TableProps): JSX.Element {
     const onAction = useCallback(
         (actionId: string, row: any): void => {
             if (actionId === UiTable.Actions.SELECT.id) {
-                onSelect(row);
+                onSelect(row, true);
             }
         },
         [onSelect]
