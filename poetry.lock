@@ -487,7 +487,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -584,7 +584,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -595,7 +595,7 @@ develop = true
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.20.1-alpha.7"
+dara-core = "1.20.1-alpha.8"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -609,7 +609,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -653,7 +653,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.20.1-alpha.7)"]
+all = ["dara-components (==1.20.1-alpha.8)"]
 
 [package.source]
 type = "directory"
@@ -687,7 +687,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -1759,13 +1759,13 @@ xml = ["lxml (>=4.9.2)"]
 
 [[package]]
 name = "pbr"
-version = "6.1.1"
+version = "7.0.0"
 description = "Python Build Reasonableness"
 optional = false
 python-versions = ">=2.6"
 files = [
-    {file = "pbr-6.1.1-py2.py3-none-any.whl", hash = "sha256:38d4daea5d9fa63b3f626131b9d34947fd0c8be9b05a29276870580050a25a76"},
-    {file = "pbr-6.1.1.tar.gz", hash = "sha256:93ea72ce6989eb2eed99d0f75721474f69ad88128afdef5ac377eb797c4bf76b"},
+    {file = "pbr-7.0.0-py2.py3-none-any.whl", hash = "sha256:b447e63a2bc04fd975fc0480b8d5ebf979179e2c0ae203bf1eff9ea20073bc38"},
+    {file = "pbr-7.0.0.tar.gz", hash = "sha256:cf4127298723dafbce3afd13775ccf3885be5d3c8435751b867f9a6a10b71a39"},
 ]
 
 [package.dependencies]
@@ -1927,7 +1927,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2696,7 +2696,7 @@ pbr = ">=2.0.0"
 
 [[package]]
 name = "styled-components"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2709,7 +2709,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2915,7 +2915,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2928,7 +2928,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2941,7 +2941,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2954,7 +2954,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2967,7 +2967,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2980,7 +2980,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -2993,7 +2993,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.20.1-alpha.7"
+version = "1.20.1-alpha.8"
 description = ""
 optional = false
 python-versions = "*"
@@ -3343,4 +3343,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.13.0"
-content-hash = "5f5940168a492b4144edcff877a13fed50d06547dc7d574ea6a443412dcf3d65"
+content-hash = "610453b9c5f9a39e5a848950b0e49088e4eb9f300251d598017e52e25228f403"
