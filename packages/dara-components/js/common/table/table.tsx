@@ -597,8 +597,12 @@ function Table(props: TableProps): JSX.Element {
     );
 
     const onClickRowSingle = useCallback(
-        (row: Omit<DataRow, '__index__'>) =>
-            onClickRowRaw(row),
+        (rows: Omit<DataRow, '__index__'>[]) =>
+            onSelectRowRaw(
+                // Preserve original data column names on click
+                // Limitation: If there are columns with duplicate names, data from only one of them will be returned
+                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))))
+            ),
         [onClickRowRaw]
     );
 
@@ -662,7 +666,7 @@ function Table(props: TableProps): JSX.Element {
 
             // If suppression is enabled, we want to trigger the click event and return the whole row
             else if (!isCheckboxSelect) {
-                onClickRowSingle(cleanIndex([await getRowByIndex(row[INDEX_COL])]))
+                onClickRowSingle(cleanIndex([row]))
             }
             
         },
