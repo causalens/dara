@@ -662,7 +662,7 @@ function Table(props: TableProps): JSX.Element {
 
             // If suppression is enabled, we want to trigger the click event and return the whole row
             else if (!isCheckboxSelect) {
-                onClickRowSingle(row[INDEX_COL])
+                onClickRowSingle(cleanIndex([await getRowByIndex(row[INDEX_COL])]))
             }
             
         },
