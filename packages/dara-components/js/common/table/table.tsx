@@ -88,7 +88,7 @@ interface TableProps extends StyledComponentProps {
      * A flag to suppress click events for clicks in select boxes. This will be come the default behavior in a future
      * version but it would be a breaking change so under a flag for now.
      */
-    supress_click_events_for_selection?: boolean;
+    suppress_click_events_for_selection?: boolean;
     /**
      * Whether to render the index column
      */
@@ -596,6 +596,12 @@ function Table(props: TableProps): JSX.Element {
         [onClickRowRaw]
     );
 
+    const onClickRowSingle = useCallback(
+        (row: Omit<DataRow, '__index__'>) =>
+            onClickRowRaw(row),
+        [onClickRowRaw]
+    );
+
     const onSelectRowRaw = useAction(props.onselect_row);
     const onSelectRow = useCallback(
         (rows: Omit<DataRow, '__index__'>[]) =>
@@ -648,12 +654,17 @@ function Table(props: TableProps): JSX.Element {
             if (isCheckboxSelect && selectedRows !== null) {
                 onSelectRow(selectedRows);
             }
-            // If the flag is set and the click is from a checkbox, we don't want to trigger the click event
-            const shouldSuppressClick = props.supress_click_events_for_selection && isCheckboxSelect;
-            
-            if (!shouldSuppressClick) {
+
+            // If we don't want to suppress click events for selection, we want to trigger the click event as is before
+            if (!props.suppress_click_events_for_selection) {
                 onClickRow(selectedRows);
             }
+
+            // If suppression is enabled, we want to trigger the click event and return the whole row
+            else if (!isCheckboxSelect) {
+                onClickRowSingle(row[INDEX_COL])
+            }
+            
         },
         [selectedRowIndices, setSelectedRowIndices, props.multi_select, onClickRow, getRowByIndex]
     );
