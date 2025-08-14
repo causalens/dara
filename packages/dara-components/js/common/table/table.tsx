@@ -596,16 +596,6 @@ function Table(props: TableProps): JSX.Element {
         [onClickRowRaw]
     );
 
-    const onClickRowSingle = useCallback(
-        (rows: Omit<DataRow, '__index__'>[]) =>
-            onSelectRowRaw(
-                // Preserve original data column names on click
-                // Limitation: If there are columns with duplicate names, data from only one of them will be returned
-                rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))))
-            ),
-        [onClickRowRaw]
-    );
-
     const onSelectRowRaw = useAction(props.onselect_row);
     const onSelectRow = useCallback(
         (rows: Omit<DataRow, '__index__'>[]) =>
@@ -655,8 +645,8 @@ function Table(props: TableProps): JSX.Element {
                 setSelectedRowIndices(newSelectedIndices);
                 selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
             }
-            if (isCheckboxSelect && selectedRows !== null) {
-                onSelectRow(selectedRows);
+            if (isCheckboxSelect) {
+                onSelectRow(selectedRows || []);
             }
 
             // If we don't want to suppress click events for selection, we want to trigger the click event as is before
@@ -666,11 +656,11 @@ function Table(props: TableProps): JSX.Element {
 
             // If suppression is enabled, we want to trigger the click event and return the whole row
             else if (!isCheckboxSelect) {
-                onClickRowSingle(cleanIndex([row]))
+                onClickRow(cleanIndex([row]))
             }
             
         },
-        [selectedRowIndices, setSelectedRowIndices, props.multi_select, onClickRow, getRowByIndex]
+        [selectedRowIndices, setSelectedRowIndices, props.multi_select, onClickRow, getRowByIndex, onSelectRow, props.suppress_click_events_for_selection]
     );
 
     const onAction = useCallback(

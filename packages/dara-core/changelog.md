@@ -2,8 +2,9 @@
 title: Changelog
 ---
 
-## 1.20.1-alpha.2
- - Add flag on the table column to allow selection even if the clicking of the row is done
+## NEXT
+ - Fixed URLVariable and Variable with a ParamStore loading of data at first load of the page
+
 
 ## 1.20.0-alpha.1
 
