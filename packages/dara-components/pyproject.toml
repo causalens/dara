@@ -20,7 +20,7 @@ license = "Apache-2.0"
 name = "dara-components"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.20.1-alpha.9"
+version = "1.20.1-alpha.10"
 source = []
 
 [[tool.poetry.packages]]
@@ -30,7 +30,7 @@ include = "dara"
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.20.1-alpha.9"
+dara-core = "1.20.1-alpha.10"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
