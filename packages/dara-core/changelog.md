@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+ - Fixed URLVariable and Variable with a ParamStore loading of data at first load of the page
+
+
 ## 1.20.0-alpha.1
 
 -  Deprecated `UrlVariable` in favour of using `Variable(store=QueryParamStore(query=...))`

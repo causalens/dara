@@ -21,7 +21,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.20.0"
+version = "1.20.1-alpha.10"
 source = []
 
 [[tool.poetry.packages]]
@@ -65,11 +65,11 @@ jsonpatch = ">=1.33"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.20.0"
+version = "1.20.1-alpha.10"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.20.0"
+version = "1.20.1-alpha.10"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
@@ -82,12 +82,12 @@ ruff = ">=0.12.2"
 pyright = "^1.1.400"
 pytest = "^7.0.0"
 pytest-timeout = "^2.1.0"
+pytest-xdist = "^3.8.0"
 requests = ">=2.25.1, <3.0.0"
 types-cachetools = "^6.0.0.20250525"
 types-croniter = "^1.0.10"
 types-requests = "^2.27.29"
 google-auth = "^2.37.0"
-pytest-xdist = "^3.8.0"
 
 [tool.poetry.extras]
 all = ["dara-components"]

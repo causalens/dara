@@ -836,6 +836,7 @@ class Table(ContentComponent):
     :param multi_select: Whether to allow selection of multiple rows, works with onclick_row and defaults to False
     :param show_checkboxes: Whether to show or hide checkboxes column when onclick_row is set. Defaults to True
     :param onclick_row: An action handler for when a row is clicked on the table
+    :param onselect_row: An action handler for when a row is selected via the checkbox column
     :param selected_indices: Optional variable to store the selected rows indices, must be a list of numbers. Note that these indices are
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value. If you would like the selection to persist over
     page reloads, you must use a `BrowserStore` on a `Variable`.
@@ -843,6 +844,7 @@ class Table(ContentComponent):
     :param searchable: Boolean, if True table can be searched via Input and will only render matching rows
     :param include_index: Boolean, if True the table will render the index column(s), defaults to True
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
+    :param suppress_click_events_for_selection: Whether to suppress click events for clicks in select boxes. Defaults to False
     """
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
@@ -852,11 +854,13 @@ class Table(ContentComponent):
     multi_select: bool = False
     show_checkboxes: bool = True
     onclick_row: Optional[Action] = None
+    onselect_row: Optional[Action] = None
     selected_indices: Optional[Union[List[int], Variable]] = None
     search_columns: Optional[List[str]] = None
     searchable: bool = False
     include_index: bool = True
     max_rows: Optional[int] = None
+    suppress_click_events_for_selection: Optional[bool] = False
 
     TableFormatterType = TableFormatterType
     TableFilter = TableFilter

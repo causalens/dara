@@ -59,6 +59,7 @@ class TestTableComponent(unittest.TestCase):
                 'multi_select': False,
                 'show_checkboxes': True,
                 'searchable': False,
+                'suppress_click_events_for_selection': False,
             },
             'uid': 'uid',
         }
@@ -98,6 +99,7 @@ class TestTableComponent(unittest.TestCase):
                 'multi_select': False,
                 'show_checkboxes': True,
                 'searchable': False,
+                'suppress_click_events_for_selection': False,
             },
             'uid': 'uid',
         }
