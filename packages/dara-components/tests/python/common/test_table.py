@@ -100,7 +100,6 @@ class TestTableComponent(unittest.TestCase):
                 'show_checkboxes': True,
                 'searchable': False,
                 'suppress_click_events_for_selection': False,
-
             },
             'uid': 'uid',
         }
