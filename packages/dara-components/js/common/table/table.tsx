@@ -604,7 +604,7 @@ function Table(props: TableProps): JSX.Element {
                 // Limitation: If there are columns with duplicate names, data from only one of them will be returned
                 rows.map((row) => mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))))
             ),
-        [onClickRowRaw]
+        [onSelectRowRaw]
     );
 
     const columns = useMemo(() => {
@@ -619,7 +619,7 @@ function Table(props: TableProps): JSX.Element {
         }
 
         return mappedCols;
-    }, [resolvedColumns, props.show_checkboxes, props.onclick_row, props.selected_indices]);
+    }, [resolvedColumns, props.show_checkboxes, props.onclick_row, props.selected_indices, props.onselect_row]);
 
     const onSelect = useCallback(
         async (row: any, isCheckboxSelect: boolean = false): Promise<void> => {
