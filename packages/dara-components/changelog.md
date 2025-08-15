@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.1
  - Add flag `suppress_click_events_for_selection` and `onselect_row` event to the table which makes sure that selection can work along with onClickRow even if they do something different, i.e.
 
  ```python

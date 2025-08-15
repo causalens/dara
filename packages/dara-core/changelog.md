@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.20.1
  - Fixed URLVariable and Variable with a ParamStore loading of data at first load of the page
 
 
