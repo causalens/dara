@@ -58,10 +58,10 @@ function run(importers: { [k: string]: () => Promise<any> }): void {
                                     <RecoilRoot>
                                         <RecoilURLSync {...syncOptions}>
                                             <GlobalTaskProvider>
-                                                    <AuthWrapper>
-                                                        <NotificationWrapper />
-                                                        <TemplateRoot />
-                                                    </AuthWrapper>
+                                                <AuthWrapper>
+                                                    <NotificationWrapper />
+                                                    <TemplateRoot />
+                                                </AuthWrapper>
                                             </GlobalTaskProvider>
                                         </RecoilURLSync>
                                     </RecoilRoot>

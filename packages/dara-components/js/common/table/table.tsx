@@ -656,11 +656,18 @@ function Table(props: TableProps): JSX.Element {
 
             // If suppression is enabled, we want to trigger the click event and return the whole row
             else if (!isCheckboxSelect) {
-                onClickRow(cleanIndex([row]))
+                onClickRow(cleanIndex([row]));
             }
-            
         },
-        [selectedRowIndices, setSelectedRowIndices, props.multi_select, onClickRow, getRowByIndex, onSelectRow, props.suppress_click_events_for_selection]
+        [
+            selectedRowIndices,
+            setSelectedRowIndices,
+            props.multi_select,
+            onClickRow,
+            getRowByIndex,
+            onSelectRow,
+            props.suppress_click_events_for_selection,
+        ]
     );
 
     const onAction = useCallback(
