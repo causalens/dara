@@ -29,7 +29,7 @@
     "lint:fix": "tsc --noemit && eslint js tests cypress --ext .tsx,.ts --max-warnings 0 --fix  && stylelint --fix './js/**/*.tsx'",
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "jest --watch",
-    "test": "jest",
+    "test": "vitest --run",
     "test:e2e": "start-server-and-test 'poetry run dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run'"
   },
   "prettier": "@darajs/prettier-config",
@@ -43,7 +43,7 @@
     "@darajs/stylelint-config": "1.20.1",
     "@rollup/plugin-inject": "^4.0.4",
     "@testing-library/dom": "^9.3.0",
-    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.5.2",
     "@types/file-saver": "^2.0.5",
@@ -77,7 +77,8 @@
     "stylelint": "^15.0.0",
     "tsc-alias": "^1.8.5",
     "vite": "7.0.4",
-    "whatwg-fetch": "^3.6.2"
+    "vitest": "^3.2.4",
+    "whatwg-fetch": "^3.6.20"
   },
   "dependencies": {
     "@darajs/styled-components": "1.20.1",
@@ -88,7 +89,7 @@
     "@recoiljs/refine": "^0.1.1",
     "@tanstack/query-core": "^4.40.0",
     "@tanstack/react-query": "^4.40.1",
-    "date-fns": "2.9.0",
+    "date-fns": "2.30.0",
     "exceljs": "^4.3.0",
     "fast-json-patch": "^3.1.1",
     "file-saver": "^2.0.5",

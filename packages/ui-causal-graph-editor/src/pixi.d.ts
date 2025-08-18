@@ -14,8 +14,9 @@ declare global {
     namespace pixi_viewport {
         export = PixiViewport;
     }
-    namespace Window {
+    interface Window {
         pixi_js: typeof PIXI;
+        pixiLoading?: boolean;
     }
 }
 

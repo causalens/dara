@@ -864,11 +864,6 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         </SettingsProvider>
     );
 }
-declare global {
-    interface Window {
-        pixiLoading?: boolean;
-    }
-}
 
 const PIXI_CORE = 'https://cdn.jsdelivr.net/npm/pixi.js@8.5.0/dist/pixi.min.js';
 const PIXI_VIEWPORT = 'https://unpkg.com/pixi-viewport@5.0.3/dist/pixi_viewport.umd.cjs';

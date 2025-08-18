@@ -46,7 +46,7 @@ export class Background extends EventEmitter<'click'> {
      *
      * @param viewport viewport to listen to
      */
-    private setupListeners(viewport: Viewport): void {
+    private setupListeners(viewport: pixi_viewport.Viewport): void {
         let bgClickLocation: PIXI.PointData = null;
         viewport.on('mousedown', (ev) => {
             if (ev.target === viewport) {
