@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { EventEmitter } from 'eventemitter3';
 import FontFaceObserver from 'fontfaceobserver';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import { assignLayout } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
-import { Viewport } from 'pixi-viewport';
-import * as PIXI from 'pixi.js';
 
 import type { DefaultTheme } from '@darajs/styled-components';
 import type { NotificationPayload } from '@darajs/ui-notifications';
@@ -97,7 +96,7 @@ export const ENGINE_EVENTS: Array<keyof EngineEvents> = [
     'layoutComputationEnd',
 ];
 
-export class Engine extends PIXI.EventEmitter<EngineEvents> {
+export class Engine extends EventEmitter<EngineEvents> {
     /** App instance */
     private app: PIXI.Application;
 
@@ -257,7 +256,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
     private uid: string;
 
     /** Viewport instance */
-    private viewport: Viewport;
+    private viewport: pixi_viewport.Viewport;
 
     /** Optional user-provided zoom thresholds */
     private zoomThresholds?: ZoomThresholds;
@@ -810,7 +809,7 @@ export class Engine extends PIXI.EventEmitter<EngineEvents> {
         this.textureCache = new TextureCache(this.app.renderer);
 
         // Create viewport and add it to the app
-        this.viewport = new Viewport({
+        this.viewport = new pixi_viewport.Viewport({
             events: this.app.renderer.events,
         });
 

@@ -183,7 +183,7 @@ export interface CausalGraphEditorProps extends Settings {
  *
  * @param props the component props
  */
-function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphEditorProps): JSX.Element {
+function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: CausalGraphEditorProps): JSX.Element {
     const theme = useTheme();
 
     const canvasParentRef = React.useRef<HTMLDivElement>(null);
@@ -863,6 +863,73 @@ function CausalGraphEditor({ requireFocusToZoom = true, ...props }: CausalGraphE
             </PointerContext.Provider>
         </SettingsProvider>
     );
+}
+declare global {
+    interface Window {
+        pixiLoading?: boolean;
+    }
+}
+
+const PIXI_CORE = 'https://cdn.jsdelivr.net/npm/pixi.js@8.5.0/dist/pixi.min.js';
+const PIXI_VIEWPORT = 'https://unpkg.com/pixi-viewport@5.0.3/dist/pixi_viewport.umd.cjs';
+const PIXI_FILTERS = 'https://cdn.jsdelivr.net/npm/pixi-filters@6.0.4/dist/pixi-filters.min.js';
+
+function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
+    const [isPixiLoaded, setIsPixiLoaded] = React.useState(() => !!window.PIXI);
+
+    async function waitForPixi(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+                if (window.PIXI) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function loadPixiLibrary(url: string): Promise<void> {
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => {
+            resolve = r;
+        });
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = () => {
+            resolve();
+        };
+        document.head.appendChild(script);
+        return promise;
+    }
+
+    const initializePixi = React.useCallback(async (): Promise<void> => {
+        if (window.pixiLoading) {
+            await waitForPixi();
+        } else if (!window.PIXI) {
+            window.pixiLoading = true;
+            await loadPixiLibrary(PIXI_CORE);
+            // required for pixi-viewport/plugins
+            window.pixi_js = PIXI;
+            await loadPixiLibrary(PIXI_VIEWPORT);
+            await loadPixiLibrary(PIXI_FILTERS);
+            window.pixiLoading = false;
+        }
+
+        setIsPixiLoaded(true);
+    }, []);
+
+    React.useEffect(() => {
+        console.log('efffect is loaded', isPixiLoaded);
+        if (!isPixiLoaded) {
+            initializePixi();
+        }
+    }, [isPixiLoaded, initializePixi]);
+
+    if (!isPixiLoaded) {
+        return 'loading...';
+    }
+
+    return <CausalGraphEditorComponent {...props} />;
 }
 
 export default CausalGraphEditor;

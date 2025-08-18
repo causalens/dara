@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as PIXI from 'pixi.js';
+import { EventEmitter } from 'eventemitter3';
 
 import type { DefaultTheme } from '@darajs/styled-components';
 
@@ -31,7 +31,7 @@ const GROUP_BORDER = 'GROUP_BORDER';
 /**
  * Represents a drawn Group Container object
  */
-export class GroupContainerObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
+export class GroupContainerObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     groupContainerGfx: PIXI.Container;
 
     constructor() {
