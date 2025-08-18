@@ -5,8 +5,8 @@ import type { ComponentInstance, DerivedVariable, LoopVariable } from '@/types/c
 import { type Marker, applyMarkers, getInjectionMarkers, hasMarkers } from '../../js/components/for/templating';
 
 // Mock the nanoid function to return predictable values for testing
-jest.mock('nanoid', () => ({
-    nanoid: jest.fn(() => 'mock-nanoid-123'),
+vi.mock('nanoid', () => ({
+    nanoid: vi.fn(() => 'mock-nanoid-123'),
 }));
 
 describe('templating utilities', () => {
@@ -206,7 +206,7 @@ describe('templating utilities', () => {
 
     describe('applyMarkers', () => {
         beforeEach(() => {
-            (nanoid as jest.Mock).mockReturnValue('mock-nanoid-123');
+            (nanoid as vi.Mock).mockReturnValue('mock-nanoid-123');
         });
 
         it('should return original renderer when no markers provided', () => {

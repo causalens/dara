@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 
 import type { ServerVariableMessage } from '@/api/websocket';
 import { setSessionToken } from '@/auth/use-session-token';
@@ -13,7 +13,7 @@ import { mockLocalStorage } from './utils/mock-storage';
 const SESSION_TOKEN = 'TEST_TOKEN';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 mockLocalStorage();
 
@@ -21,7 +21,7 @@ describe('ServerVariable', () => {
     beforeEach(() => {
         server.listen();
         window.localStorage.clear();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
 
         setSessionToken(SESSION_TOKEN);
 
@@ -31,7 +31,7 @@ describe('ServerVariable', () => {
     });
     afterEach(() => {
         setSessionToken(null);
-        jest.clearAllTimers();
+        vi.clearAllTimers();
         server.resetHandlers();
     });
 
@@ -40,8 +40,8 @@ describe('ServerVariable', () => {
     it('can be used in a DerivedVariable', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
 
@@ -90,8 +90,8 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing updates parent DerivedVariable without forcing', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
 
@@ -182,8 +182,8 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing updates grandparent DerivedVariable without forcing', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
 
@@ -292,8 +292,8 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing should not update parent DerivedVariable when not in deps', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
         const wsClient = new MockWebSocketClient('wsuid');
@@ -369,8 +369,8 @@ describe('ServerVariable', () => {
     it('server variable sequence number updating should not update grandparent DerivedVariable when not in parent deps', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
         const wsClient = new MockWebSocketClient('wsuid');
@@ -464,8 +464,8 @@ describe('ServerVariable', () => {
     it('server trigger should update grandparent DerivedVariable even when parent not in grandparent deps', async () => {
         // required for the server variable to resolve
         server.use(
-            rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                return res(ctx.json({ sequence_number: 1 }));
+            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                return HttpResponse.json({ sequence_number: 1 });
             })
         );
         const wsClient = new MockWebSocketClient('wsuid');

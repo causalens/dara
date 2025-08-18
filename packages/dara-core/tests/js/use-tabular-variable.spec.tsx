@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 
 import type { ServerVariableMessage } from '@/api/websocket';
 import {
@@ -55,7 +55,7 @@ const createMockDataResponse = async (req: any): Promise<DataResponse> => {
 };
 
 // Handler specifically for tabular Derived Variable tests
-const tabularDvHandler = rest.post('/api/core/tabular-variable/:uid', async (req, res, ctx) => {
+const tabularDvHandler = http.post('/api/core/tabular-variable/:uid', async (info) => {
     const body = await req.json();
     return res(
         ctx.json({
@@ -96,7 +96,7 @@ const tabularDvHandler = rest.post('/api/core/tabular-variable/:uid', async (req
 });
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 mockLocalStorage();
 
@@ -104,7 +104,7 @@ describe('useTabularVariable', () => {
     beforeEach(() => {
         server.listen();
         window.localStorage.clear();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());
@@ -113,14 +113,14 @@ describe('useTabularVariable', () => {
         beforeEach(() => {
             // required for the server variable to resolve
             server.use(
-                rest.get('/api/core/server-variable/dep2/sequence', (req, res, ctx) => {
-                    return res(ctx.json({ sequence_number: 1 }));
+                http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                    return HttpResponse.json({ sequence_number: 1 });
                 })
             );
             // returns actual data
             server.use(
-                rest.post('/api/core/tabular-variable/dep2', async (req, res, ctx) => {
-                    return res(ctx.json(await createMockDataResponse(req)));
+                http.post('/api/core/tabular-variable/dep2', async (info) => {
+                    return HttpResponse.json(await createMockDataResponse(req));
                 })
             );
         });
@@ -231,9 +231,9 @@ describe('useTabularVariable', () => {
 
             // Force the tabular endpoint to signify that a task has started
             server.use(
-                rest.post('/api/core/tabular-variable/:uid', async (req, res, ctx) => {
+                http.post('/api/core/tabular-variable/:uid', async (info) => {
                     originalRequest = req;
-                    const { uid } = req.params;
+                    const { uid } = info.params;
                     return res(
                         ctx.json({
                             task_id: `t_${String(uid)}_MetaTask`,
@@ -244,8 +244,8 @@ describe('useTabularVariable', () => {
 
             // Mock task result - same as usual tabular response
             server.use(
-                rest.get('/api/core/tasks/:taskId', async (req, res, ctx) => {
-                    return res(ctx.json(await createMockDataResponse(originalRequest)));
+                http.get('/api/core/tasks/:taskId', async (info) => {
+                    return HttpResponse.json(await createMockDataResponse(originalRequest));
                 })
             );
 

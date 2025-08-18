@@ -1,6 +1,7 @@
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, queryByAttribute, waitFor, waitForElementToBeRemoved } from '@testing-library/dom';
 import { act } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import * as React from 'react';
 
 import { FallbackCtx } from '@/shared/context';
@@ -196,7 +197,7 @@ describe('DynamicComponent', () => {
 
     it('should render RawString py_component directly', async () => {
         server.use(
-            rest.post('/api/core/components/:component', async (req, res, ctx) => {
+            http.post('/api/core/components/:component', async (info) => {
                 return res(
                     ctx.json({
                         data: {
@@ -232,7 +233,7 @@ describe('DynamicComponent', () => {
 
     it('should render InvalidComponent py_component directly as an error', async () => {
         server.use(
-            rest.post('/api/core/components/:component', async (req, res, ctx) => {
+            http.post('/api/core/components/:component', async (info) => {
                 return res(
                     ctx.json({
                         data: {

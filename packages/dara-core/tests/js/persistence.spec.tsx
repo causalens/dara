@@ -1,5 +1,5 @@
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 
 import { type BackendStoreMessage, type BackendStorePatchMessage } from '@/api/websocket';
 import { setSessionToken } from '@/auth/use-session-token';
@@ -12,7 +12,7 @@ import { type BackendStore, type BrowserStore, type SingleVariable } from '@/typ
 import { MockWebSocketClient, Wrapper, server } from './utils';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 const SESSION_TOKEN = 'TEST_TOKEN';
 
@@ -20,8 +20,8 @@ describe('Variable Persistence', () => {
     beforeEach(() => {
         server.listen();
         window.localStorage.clear();
-        jest.useFakeTimers();
-        jest.restoreAllMocks();
+        vi.useFakeTimers();
+        vi.restoreAllMocks();
         setSessionToken(SESSION_TOKEN);
 
         // This is necessary to avoid data bleeding between tests
@@ -29,8 +29,8 @@ describe('Variable Persistence', () => {
         clearRegistries_TEST();
     });
     afterEach(() => {
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
         server.resetHandlers();
         setSessionToken(null);
     });
@@ -89,7 +89,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore reads initial value from remote', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -126,7 +126,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore sends request to update remote', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -138,13 +138,13 @@ describe('Variable Persistence', () => {
             })
         );
 
-        const onSave = jest.fn();
+        const onSave = vi.fn();
 
         // Mock endpoint to save store value
         server.use(
-            rest.post('/api/core/store', (req, res, ctx) => {
-                onSave(req.body);
-                return res(ctx.json({}));
+            http.post('/api/core/store', (info) => {
+                onSave(await info.request.json() as any);
+                return HttpResponse.json({});
             })
         );
 
@@ -187,7 +187,7 @@ describe('Variable Persistence', () => {
     test('variable with readonly BackendStore does not send request on update', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -199,13 +199,13 @@ describe('Variable Persistence', () => {
             })
         );
 
-        const onSave = jest.fn();
+        const onSave = vi.fn();
 
         // Mock endpoint to save store value
         server.use(
-            rest.post('/api/core/store', (req, res, ctx) => {
-                onSave(req.body);
-                return res(ctx.json({}));
+            http.post('/api/core/store', (info) => {
+                onSave(await info.request.json() as any);
+                return HttpResponse.json({});
             })
         );
 
@@ -270,7 +270,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore sends separate request for different extras context', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -282,13 +282,13 @@ describe('Variable Persistence', () => {
             })
         );
 
-        const onSave = jest.fn();
+        const onSave = vi.fn();
 
         // Mock endpoint to save store value
         server.use(
-            rest.post('/api/core/store', (req, res, ctx) => {
-                onSave(Object.fromEntries(req.headers.entries())['x-dara-extras'], req.body);
-                return res(ctx.json({}));
+            http.post('/api/core/store', (info) => {
+                onSave(Object.fromEntries(info.request.headers.entries())['x-dara-extras'], await info.request.json() as any);
+                return HttpResponse.json({});
             })
         );
 
@@ -380,7 +380,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore updates on received WS message', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -453,7 +453,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore applies JSON patches on received WS message', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {
@@ -722,12 +722,12 @@ describe('Variable Persistence', () => {
     });
 
     test('BackendStore validates sequence numbers', async () => {
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
-                return res(ctx.json({ value: { count: 0 }, sequence_number: 0 }));
+            http.get('/api/core/store/:store_uid', (info) => {
+                return HttpResponse.json({ value: { count: 0 }, sequence_number: 0 });
             })
         );
 
@@ -791,7 +791,7 @@ describe('Variable Persistence', () => {
     test('BackendStore resets sequence number on full value update', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            rest.get('/api/core/store/:store_uid', (req, res, ctx) => {
+            http.get('/api/core/store/:store_uid', (info) => {
                 return res(
                     ctx.json({
                         value: {

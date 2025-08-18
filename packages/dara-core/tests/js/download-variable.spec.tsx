@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { processDataForDownload, restoreColumnName } from '../../js/actions/download-variable';
 
 describe('Download Variable Processing Utils', () => {

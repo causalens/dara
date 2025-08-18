@@ -1,6 +1,7 @@
 import { waitFor } from '@testing-library/dom';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { request } from '@/api';
 import globalStore from '@/shared/global-state-store';
@@ -10,51 +11,55 @@ const VALID_TOKEN = 'VALID';
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
 const REFRESH_TOKEN = 'REFRESH';
 
-const refreshAttempted = jest.fn();
-const requested401 = jest.fn();
-const requested403 = jest.fn();
+const refreshAttempted = vi.fn();
+const requested401 = vi.fn();
+const requested403 = vi.fn();
 
 let delay: Promise<void> | null = null;
 
 const server = setupServer(
     // example authenticated endpoints
-    rest.get('/error-401', (req, res, ctx) => {
+    http.get('/error-401', (info) => {
         requested401();
-        if (req.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
-            return res(ctx.json({ success: true }));
+        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+            return HttpResponse.json({ success: true });
         }
 
-        return res(ctx.status(401), ctx.json({ detail: 'Authentication error' }));
+        return HttpResponse.json({ detail: 'Authentication error' }, { status: 401 });
     }),
-    rest.get('/error-403', (req, res, ctx) => {
+    http.get('/error-403', (info) => {
         requested403();
-        if (req.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
-            return res(ctx.json({ success: true }));
+        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+            return HttpResponse.json({ success: true });
         }
 
-        return res(ctx.status(403), ctx.json({ detail: 'Authorization error' }));
+        return HttpResponse.json({ detail: 'Authorization error' }, { status: 403 });
     }),
 
     // mock refresh token endpoint
-    rest.post('/api/auth/refresh-token', async (req, res, ctx) => {
+    http.post('/api/auth/refresh-token', async (info) => {
         refreshAttempted();
 
-        if (req.cookies.dara_refresh_token === REFRESH_TOKEN) {
+        if (info.cookies.dara_refresh_token === REFRESH_TOKEN) {
             if (delay) {
                 // simulate a delay in refreshing the token
                 await delay;
             }
-            return res(ctx.json({ token: VALID_TOKEN }));
+            return HttpResponse.json({ token: VALID_TOKEN });
         }
 
-        return res(ctx.status(400));
+        return HttpResponse.json({}, { status: 400 });
     })
 );
 
 describe('HTTP Utils', () => {
-    beforeEach(() => {
-        delay = null;
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        delay = null;
     });
 
     afterEach(() => {
@@ -62,14 +67,15 @@ describe('HTTP Utils', () => {
         document.cookie = `${REFRESH_TOKEN_NAME}=; Expires=1 Jan 1970 00:00:00 GMT`;
         globalStore.clear();
         globalStore.setValue(getTokenKey(), null);
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
+        vi.clearAllMocks();
         server.resetHandlers();
     });
 
     afterAll(() => server.close());
 
-    it('attempts to refresh the token if 401 or 403 occurs, failing if no refresh token is present', async () => {
+    it('attempts to refresh the token if 402 or 403 occurs, failing if no refresh token is present', async () => {
         const res = await request('/error-401', { method: 'GET' });
         expect(res.status).toBe(401);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);

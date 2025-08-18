@@ -1,4 +1,6 @@
 /* eslint-disable no-await-in-loop */
+import { describe, expect, it } from "vitest";
+
 import fs from 'fs/promises';
 import path from 'path';
 

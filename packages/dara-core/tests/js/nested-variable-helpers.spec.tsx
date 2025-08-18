@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { resolveNested, setNested } from '../../js/shared/interactivity/nested';
 
 describe('Nested variable helpers', () => {

@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilCallback } from 'recoil';
@@ -50,7 +50,7 @@ function useVariableValue<VV>(
 const SESSION_TOKEN = 'TEST_TOKEN';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 mockLocalStorage();
 
@@ -58,14 +58,14 @@ describe('getTabularVariableValue', () => {
     beforeEach(() => {
         server.listen();
         window.localStorage.clear();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
 
         setSessionToken(SESSION_TOKEN);
     });
     afterEach(() => {
         clearRegistries_TEST();
         setSessionToken(null);
-        jest.clearAllTimers();
+        vi.clearAllTimers();
         server.resetHandlers();
     });
     afterAll(() => server.close());
@@ -143,7 +143,7 @@ describe('getTabularVariableValue', () => {
         ];
 
         server.use(
-            rest.post('/api/core/tabular-variable/dep2', async (req, res, ctx) => {
+            http.post('/api/core/tabular-variable/dep2', async (info) => {
                 return res(
                     ctx.json({
                         data: mockData,
@@ -200,7 +200,7 @@ describe('getTabularVariableValue', () => {
         ];
 
         server.use(
-            rest.post('/api/core/derived-variable/dep2', async (req, res, ctx) => {
+            http.post('/api/core/derived-variable/dep2', async (info) => {
                 return res(
                     ctx.json({
                         value: {

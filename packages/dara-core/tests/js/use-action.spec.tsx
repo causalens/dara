@@ -1,7 +1,8 @@
 import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
@@ -34,7 +35,7 @@ describe('useAction', () => {
     beforeEach(() => {
         server.listen({ onUnhandledRequest: 'error' });
         window.localStorage.clear();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
 
         clearRegistries_TEST();
         clearActionHandlerCache_TEST();
@@ -860,13 +861,11 @@ describe('useAction', () => {
         let serverReceivedMessage: Record<string, any> | null = null;
 
         server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                serverReceivedMessage = req.body as object;
-                return res(
-                    ctx.json({
-                        execution_id: 'execution_uid',
-                    })
-                );
+            http.post('/api/core/action/:uid', async (info) => {
+                serverReceivedMessage = await info.request.json();
+                return HttpResponse.json({
+                    execution_id: 'execution_uid',
+                });
             })
         );
 
@@ -1020,7 +1019,7 @@ describe('useAction', () => {
             other: 'other',
         };
 
-        const onUnhandledAction = jest.fn();
+        const onUnhandledAction = vi.fn();
 
         // Use render hook and pass in a custom action handler
         const { result } = renderHook(
@@ -1097,7 +1096,7 @@ describe('useAction', () => {
             uid: 'uid',
         };
 
-        const onUnhandledAction = jest.fn();
+        const onUnhandledAction = vi.fn();
 
         const wsClient = new MockWebSocketClient('uid');
 
@@ -1116,8 +1115,8 @@ describe('useAction', () => {
         let serverReceivedMessage: Record<string, any> | null = null;
 
         server.use(
-            rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-                serverReceivedMessage = req.body as Record<string, any>;
+            http.post('/api/core/action/:uid', async (info) => {
+                serverReceivedMessage = await info.request.json() as any as Record<string, any>;
                 return res(
                     ctx.json({
                         execution_id: 'execution_uid',
