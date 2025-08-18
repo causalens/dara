@@ -42,21 +42,21 @@ function prependBaseUrlToStaticUrls() {
             for (const attr of urlAttrs) {
                 const value = node.properties[attr];
                 if (typeof value === 'string') {
-                    node.properties[attr] = prependBaseUrl(value);
-                }
-
-                // Special case: srcset can contain multiple URLs
-                if (attr === 'srcset' && typeof value === 'string') {
-                    node.properties[attr] = value
-                        .split(',')
-                        .map((part) => {
-                            const [url, size] = part.trim().split(/\s+/, 2);
-                            if (url) {
-                                return `${prependBaseUrl(url)}${size ? ` ${size}` : ''}`;
-                            }
-                            return part.trim();
-                        })
-                        .join(', ');
+                    // Special case: srcset can contain multiple URLs
+                    if (attr === 'srcset') {
+                        node.properties[attr] = value
+                            .split(',')
+                            .map((part) => {
+                                const [url, size] = part.trim().split(/\s+/, 2);
+                                if (url) {
+                                    return `${prependBaseUrl(url)}${size ? ` ${size}` : ''}`;
+                                }
+                                return part.trim();
+                            })
+                            .join(', ');
+                    } else {
+                        node.properties[attr] = prependBaseUrl(value);
+                    }
                 }
             }
         });
