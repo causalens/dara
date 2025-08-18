@@ -3,14 +3,14 @@ import path from 'path';
 import { URL, fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         react({
             jsxRuntime: 'classic',
         }),
     ],
     define: {
-        'process.env.NODE_ENV': '"production"',
+        'process.env.NODE_ENV': mode === 'test' ? '"development"' : '"production"',
     },
     build: {
         minify: false,
@@ -53,4 +53,4 @@ export default defineConfig({
             },
         },
     },
-});
+}));
