@@ -46,7 +46,7 @@ const getMockTaskContexts = (
 // Mocks task response based on variable value
 const mockTaskResponse = (varAValue: number): void => {
     server.use(
-        http.get('/api/core/tasks/:taskId', async (info) => {
+        http.get('/api/core/tasks/:taskId', () => {
             return HttpResponse.json(
                 JSON.parse(
                     `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`

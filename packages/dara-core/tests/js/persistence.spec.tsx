@@ -78,7 +78,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore reads initial value from remote', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         foo: 'bar',
@@ -113,7 +113,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore sends request to update remote', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         foo: 'bar',
@@ -172,7 +172,7 @@ describe('Variable Persistence', () => {
     test('variable with readonly BackendStore does not send request on update', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         foo: 'bar',
@@ -253,7 +253,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore sends separate request for different extras context', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         foo: 'bar',
@@ -364,7 +364,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore updates on received WS message', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         foo: 'bar',
@@ -435,7 +435,7 @@ describe('Variable Persistence', () => {
     test('variable with BackendStore applies JSON patches on received WS message', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         user: {
@@ -706,7 +706,7 @@ describe('Variable Persistence', () => {
 
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({ value: { count: 0 }, sequence_number: 0 });
             })
         );
@@ -771,7 +771,7 @@ describe('Variable Persistence', () => {
     test('BackendStore resets sequence number on full value update', async () => {
         // Mock endpoint to retrieve store value
         server.use(
-            http.get('/api/core/store/:store_uid', async (info) => {
+            http.get('/api/core/store/:store_uid', () => {
                 return HttpResponse.json({
                     value: {
                         count: 0,

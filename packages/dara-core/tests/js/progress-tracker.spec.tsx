@@ -530,7 +530,7 @@ describe('ProgressTracker', () => {
         };
 
         server.use(
-            http.post('/api/core/components/:componentId', async (info) => {
+            http.post('/api/core/components/:componentId', () => {
                 return HttpResponse.json({
                     task_id: tuid,
                 });
@@ -538,7 +538,7 @@ describe('ProgressTracker', () => {
         );
 
         server.use(
-            http.get('/api/core/tasks/:taskId', async (info) => {
+            http.get('/api/core/tasks/:taskId', () => {
                 return HttpResponse.json({
                     data: {
                         name: 'RawString',

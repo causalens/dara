@@ -198,7 +198,7 @@ describe('DynamicComponent', () => {
 
     it('should render RawString py_component directly', async () => {
         server.use(
-            http.post('/api/core/components/:component', async (info) => {
+            http.post('/api/core/components/:component', () => {
                 return HttpResponse.json({
                     data: {
                         name: 'RawString',
@@ -232,7 +232,7 @@ describe('DynamicComponent', () => {
 
     it('should render InvalidComponent py_component directly as an error', async () => {
         server.use(
-            http.post('/api/core/components/:component', async (info) => {
+            http.post('/api/core/components/:component', () => {
                 return HttpResponse.json({
                     data: {
                         name: 'InvalidComponent',
@@ -281,7 +281,9 @@ describe('DynamicComponent', () => {
                         },
                         fallback: {
                             name: 'TestComponent',
-                            props: {},
+                            props: {
+                                suspend_render: true,
+                            },
                             uid: 'uid3',
                         },
                     },

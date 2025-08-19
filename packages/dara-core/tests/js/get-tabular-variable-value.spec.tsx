@@ -146,7 +146,7 @@ describe('getTabularVariableValue', () => {
         ];
 
         server.use(
-            http.post('/api/core/tabular-variable/dep2', async (info) => {
+            http.post('/api/core/tabular-variable/dep2', () => {
                 return HttpResponse.json({
                     data: mockData,
                     count: 10,
@@ -201,7 +201,7 @@ describe('getTabularVariableValue', () => {
         ];
 
         server.use(
-            http.post('/api/core/derived-variable/dep2', async (info) => {
+            http.post('/api/core/derived-variable/dep2', () => {
                 return HttpResponse.json({
                     value: {
                         data: mockData,

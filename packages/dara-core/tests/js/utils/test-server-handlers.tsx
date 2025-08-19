@@ -87,15 +87,15 @@ const mockSchema: DataFrameSchema = {
 
 // These handlers return mock responses for all the requests made by the application
 const handlers = [
-    http.get('/api/core/config', async () => {
+    http.get('/api/core/config', () => {
         return HttpResponse.json({
             template: 'default',
         });
     }),
-    http.get('/api/core/actions', async () => {
+    http.get('/api/core/actions', () => {
         return HttpResponse.json(mockActions);
     }),
-    http.get('/api/core/components', async () => {
+    http.get('/api/core/components', () => {
         return HttpResponse.json(mockComponents);
     }),
     http.post('/api/core/components/:component', async (info) => {
@@ -108,7 +108,7 @@ const handlers = [
             lookup: {},
         });
     }),
-    http.get('/api/core/template/:template', async () => {
+    http.get('/api/core/template/:template', () => {
         return HttpResponse.json({
             data: {
                 layout: {
@@ -129,7 +129,7 @@ const handlers = [
             lookup: {},
         });
     }),
-    http.post('/api/core/action/:uid', async () => {
+    http.post('/api/core/action/:uid', () => {
         return HttpResponse.json({
             execution_id: 'uid',
         });
@@ -141,10 +141,10 @@ const handlers = [
             value: body,
         });
     }),
-    http.delete('/api/core/tasks/:taskId', async () => {
+    http.delete('/api/core/tasks/:taskId', () => {
         return new HttpResponse(null, { status: 200 });
     }),
-    http.get('/api/auth/user', async () => {
+    http.get('/api/auth/user', () => {
         return HttpResponse.json({
             identity_email: 'test@causalens.com',
             identity_id: 'TEST_ID',

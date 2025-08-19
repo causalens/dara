@@ -43,7 +43,7 @@ describe('ServerVariable', () => {
     it('can be used in a DerivedVariable', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );
@@ -93,7 +93,7 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing updates parent DerivedVariable without forcing', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );
@@ -185,7 +185,7 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing updates grandparent DerivedVariable without forcing', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );
@@ -295,7 +295,7 @@ describe('ServerVariable', () => {
     it('server variable sequence number changing should not update parent DerivedVariable when not in deps', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );
@@ -372,7 +372,7 @@ describe('ServerVariable', () => {
     it('server variable sequence number updating should not update grandparent DerivedVariable when not in parent deps', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );
@@ -467,7 +467,7 @@ describe('ServerVariable', () => {
     it('server trigger should update grandparent DerivedVariable even when parent not in grandparent deps', async () => {
         // required for the server variable to resolve
         server.use(
-            http.get('/api/core/server-variable/dep2/sequence', (info) => {
+            http.get('/api/core/server-variable/dep2/sequence', () => {
                 return HttpResponse.json({ sequence_number: 1 });
             })
         );

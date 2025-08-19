@@ -117,7 +117,7 @@ describe('useTabularVariable', () => {
         beforeEach(() => {
             // required for the server variable to resolve
             server.use(
-                http.get('/api/core/server-variable/dep2/sequence', (info) => {
+                http.get('/api/core/server-variable/dep2/sequence', () => {
                     return HttpResponse.json({ sequence_number: 1 });
                 })
             );
@@ -235,7 +235,7 @@ describe('useTabularVariable', () => {
 
             // Force the tabular endpoint to signify that a task has started
             server.use(
-                http.post('/api/core/tabular-variable/:uid', async (info) => {
+                http.post('/api/core/tabular-variable/:uid', (info) => {
                     originalRequest = info;
                     const { uid } = info.params;
                     return HttpResponse.json({
@@ -246,7 +246,7 @@ describe('useTabularVariable', () => {
 
             // Mock task result - same as usual tabular response
             server.use(
-                http.get('/api/core/tasks/:taskId', async (info) => {
+                http.get('/api/core/tasks/:taskId', async () => {
                     return HttpResponse.json(await createMockDataResponse(originalRequest));
                 })
             );
