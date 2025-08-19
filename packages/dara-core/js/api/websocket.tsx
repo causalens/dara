@@ -331,11 +331,11 @@ export class WebSocketClient implements WebSocketClientInterface {
                 if (document.visibilityState === 'visible') {
                     // Reset the retry loop and attempt to initialize the socket again
                     this.#reconnectCount = 0;
+                    this.maxAttemptsReached = false;
                     this.socket = this.initialize();
 
                     // Remove the visibility change listener after we enter the retry loop again
                     document.removeEventListener('visibilitychange', handler);
-                    this.maxAttemptsReached = false;
                 }
             };
             document.addEventListener('visibilitychange', handler);

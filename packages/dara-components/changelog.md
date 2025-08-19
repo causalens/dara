@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  The `pixi.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~8.3MB to ~6.9MB
+
 ## 1.20.1
  - Add flag `suppress_click_events_for_selection` and `onselect_row` event to the table which makes sure that selection can work along with onClickRow even if they do something different, i.e.
 
@@ -13,7 +17,7 @@ title: Changelog
 @action
 async def onclick_row(ctx: ActionCtx):
     print("This will only run if the row is click, and not selected via the checkbox")
-    
+
 # This will only run if the selection happens via the checkbox
 # ctx.input will be an array of all the selected rows
 @action
