@@ -78,6 +78,7 @@
     "tsc-alias": "^1.8.5",
     "vite": "7.0.4",
     "vitest": "^3.2.4",
+    "vitest-websocket-mock": "^0.5.0",
     "whatwg-fetch": "^3.6.20"
   },
   "dependencies": {

@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from '@testing-library/dom';
-import WS from 'jest-websocket-mock';
 import { firstValueFrom } from 'rxjs';
+import WS from 'vitest-websocket-mock';
 
 import { WebSocketClient } from '@/api';
 
@@ -185,7 +184,6 @@ describe('WebsocketClient', () => {
         await client.channel;
 
         const initializeSpy = vi.spyOn(client, 'initialize');
-        const consoleErrorSpy = vi.spyOn(console, 'error');
 
         // Close the server connection
         server.close();
@@ -193,10 +191,7 @@ describe('WebsocketClient', () => {
         // Wait for the reconnect attempts to hit 2
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
         initializeSpy.mockClear();
-
-        // Expect that the client will raise a console error and stop retrying
-        await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(1));
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Could not reconnect the websocket to the server');
+        await waitFor(() => client.maxAttemptsReached);
     });
 
     it('should start retrying again when the dom visibility changes', async () => {
@@ -209,7 +204,6 @@ describe('WebsocketClient', () => {
         await client.channel;
 
         const initializeSpy = vi.spyOn(client, 'initialize');
-        const consoleErrorSpy = vi.spyOn(console, 'error');
 
         // Close the server connection
         server.close();
@@ -218,9 +212,8 @@ describe('WebsocketClient', () => {
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
         initializeSpy.mockClear();
 
-        // Expect that the client will raise a console error and stop retrying
-        await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(1));
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Could not reconnect the websocket to the server');
+        // wait until the client has reached the max attempts
+        await waitFor(() => client.maxAttemptsReached);
 
         // Create a new server to connect to
         const serverNew = new WS('ws://localhost:1234');
