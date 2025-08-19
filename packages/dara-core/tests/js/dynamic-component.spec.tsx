@@ -1,4 +1,3 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, queryByAttribute, waitFor, waitForElementToBeRemoved } from '@testing-library/dom';
 import { act } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
@@ -10,13 +9,15 @@ import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
 import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
-import { type DaraEventMap,  type TriggerVariableImpl } from '../../js/types/core';
+import { type DaraEventMap, type TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
 
 describe('DynamicComponent', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
 
+    beforeEach(() => {
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
@@ -198,22 +199,20 @@ describe('DynamicComponent', () => {
     it('should render RawString py_component directly', async () => {
         server.use(
             http.post('/api/core/components/:component', async (info) => {
-                return res(
-                    ctx.json({
-                        data: {
-                            name: 'RawString',
-                            props: {
-                                content: 'test_content',
-                            },
-                            uid: 'uid',
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: {
+                            content: 'test_content',
                         },
-                        lookup: {},
-                    })
-                );
+                        uid: 'uid',
+                    },
+                    lookup: {},
+                });
             })
         );
 
-        const { getByTestId } = wrappedRender(
+        const { getByTestId, queryByTestId } = wrappedRender(
             <div data-testid="content">
                 <DynamicComponent
                     component={{
@@ -227,25 +226,23 @@ describe('DynamicComponent', () => {
             </div>
         );
         await waitFor(() => expect(getByTestId('content').firstChild).not.toBe(null));
-        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
         await waitFor(() => expect(getByTestId('content').textContent).toBe('test_content'));
     });
 
     it('should render InvalidComponent py_component directly as an error', async () => {
         server.use(
             http.post('/api/core/components/:component', async (info) => {
-                return res(
-                    ctx.json({
-                        data: {
-                            name: 'InvalidComponent',
-                            props: {
-                                error: 'test_error',
-                            },
-                            uid: 'uid',
+                return HttpResponse.json({
+                    data: {
+                        name: 'InvalidComponent',
+                        props: {
+                            error: 'test_error',
                         },
-                        lookup: {},
-                    })
-                );
+                        uid: 'uid',
+                    },
+                    lookup: {},
+                });
             })
         );
 
@@ -297,7 +294,7 @@ describe('DynamicComponent', () => {
             expect(queryByAttribute('uid', container, 'uid3')).toBeInTheDocument();
         });
 
-        await waitForElementToBeRemoved(() => queryByAttribute('uid', container, 'uid3'));
+        await waitFor(() => expect(queryByAttribute('uid', container, 'uid3')).not.toBeInTheDocument());
         // This also checks that the payload is passed to the mock backend correctly (the values object)
         expect(
             getByText(
@@ -356,7 +353,6 @@ describe('DynamicComponent', () => {
             });
         });
     });
-
 
     it('should handle deps correctly', async () => {
         const variableA: SingleVariable<number> = {
@@ -509,7 +505,7 @@ describe('DynamicComponent', () => {
         );
 
         await waitFor(() => expect(getByTestId('dynamic-wrapper').innerHTML).not.toBe(''));
-        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
 
         expect(getByTestId('dynamic-wrapper').innerHTML).toBe(
             'TestComponent2: {"uid":"uid","values":{"data":{"test":{"type":"derived","uid":"empty","values":[{"__ref":"Variable:a"},{"__ref":"Variable:b"}],"force_key":null}},"lookup":{"Variable:a":1,"Variable:b":2}},"ws_channel":"uid"}'
@@ -617,7 +613,7 @@ describe('DynamicComponent', () => {
         );
 
         await waitFor(() => expect(getByTestId('dynamic-wrapper').innerHTML).not.toBe(''));
-        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
+        await waitFor(() => expect(queryByTestId('LOADING')).not.toBeInTheDocument());
 
         const getContent = (): object =>
             JSON.parse(getByTestId('dynamic-wrapper').innerHTML.replace('TestComponent2: ', ''));

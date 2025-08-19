@@ -55,8 +55,11 @@ vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 mockLocalStorage();
 
 describe('getTabularVariableValue', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
@@ -144,13 +147,11 @@ describe('getTabularVariableValue', () => {
 
         server.use(
             http.post('/api/core/tabular-variable/dep2', async (info) => {
-                return res(
-                    ctx.json({
-                        data: mockData,
-                        count: 10,
-                        schema: mockSchema,
-                    })
-                );
+                return HttpResponse.json({
+                    data: mockData,
+                    count: 10,
+                    schema: mockSchema,
+                });
             })
         );
 
@@ -201,16 +202,14 @@ describe('getTabularVariableValue', () => {
 
         server.use(
             http.post('/api/core/derived-variable/dep2', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            data: mockData,
-                            count: 10,
-                            schema: mockSchema,
-                        },
-                        cache_key: 'cache key',
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        data: mockData,
+                        count: 10,
+                        schema: mockSchema,
+                    },
+                    cache_key: 'cache key',
+                });
             })
         );
 

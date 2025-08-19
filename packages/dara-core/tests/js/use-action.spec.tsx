@@ -2,7 +2,6 @@ import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/re
 import { createMemoryHistory } from 'history';
 import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
@@ -32,8 +31,11 @@ const LOADING_VARIABLE: SingleVariable<boolean> = {
 };
 
 describe('useAction', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen({ onUnhandledRequest: 'error' });
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
@@ -545,7 +547,7 @@ describe('useAction', () => {
             __typename: 'Variable',
             default: 'value',
             nested: [],
-            uid: 'uid',
+            uid: 'sync-uid',
         };
 
         const action: UpdateVariableImpl = {
@@ -576,10 +578,8 @@ describe('useAction', () => {
 
         await waitFor(() => expect(getContent()).toEqual(variable.default));
 
-        act(() => {
-            const button = getByTestId('update');
-            fireEvent.click(button);
-        });
+        const button = getByTestId('update');
+        fireEvent.click(button);
 
         await waitFor(() => expect(getContent()).not.toEqual(variable.default));
 
@@ -1117,10 +1117,9 @@ describe('useAction', () => {
         server.use(
             http.post('/api/core/action/:uid', async (info) => {
                 serverReceivedMessage = await info.request.json() as any as Record<string, any>;
-                return res(
-                    ctx.json({
+                return HttpResponse.json({
                         execution_id: 'execution_uid',
-                    })
+                    }
                 );
             })
         );

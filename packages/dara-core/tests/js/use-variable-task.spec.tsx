@@ -47,11 +47,9 @@ const getMockTaskContexts = (
 const mockTaskResponse = (varAValue: number): void => {
     server.use(
         http.get('/api/core/tasks/:taskId', async (info) => {
-            return res(
-                ctx.json(
-                    JSON.parse(
-                        `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
-                    )
+            return HttpResponse.json(
+                JSON.parse(
+                    `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
                 )
             );
         })
@@ -108,18 +106,19 @@ const variableA: SingleVariable<number> = {
 };
 
 describe('useVariableRunAsTask', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         server.use(
             http.post('/api/core/derived-variable/:uid', async (info) => {
                 const { uid } = info.params;
-                return res(
-                    ctx.json({
-                        cache_key: JSON.stringify(await info.request.json() as any!.values),
-                        task_id: `t_${String(uid)}`,
-                    })
-                );
+                return HttpResponse.json({
+                    cache_key: JSON.stringify(((await info.request.json()) as any)!.values),
+                    task_id: `t_${String(uid)}`,
+                });
             })
         );
         vi.restoreAllMocks();

@@ -10,20 +10,19 @@ import { useVariable } from '@/shared/interactivity/use-variable';
 import { type BackendStore, type BrowserStore, type SingleVariable } from '@/types/core';
 
 import { MockWebSocketClient, Wrapper, server } from './utils';
-import { mockLocalStorage } from './utils/mock-storage';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
-mockLocalStorage();
-
 const SESSION_TOKEN = 'TEST_TOKEN';
 
 describe('Variable Persistence', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
-        vi.useFakeTimers();
         vi.restoreAllMocks();
         setSessionToken(SESSION_TOKEN);
 
@@ -62,27 +61,14 @@ describe('Variable Persistence', () => {
         expect(result.current[0]).toEqual(defaultValue);
         expect(result.current[1]).toBeInstanceOf(Function);
 
-        // @ts-expect-error hacky fix as our more sophisticated localStorage proxy mock does not work with storageevent
-        // eslint-disable-next-line no-multi-assign
-        window.localStorage = window.sessionStorage = {
-            getItem(key) {
-                return this[key];
-            },
-            setItem(key, value) {
-                this[key] = value;
-            },
-        };
-
-        act(() => {
-            fireEvent(
-                window,
-                new StorageEvent('storage', {
-                    key: getSessionKey('session-test-1'),
-                    newValue: JSON.stringify(newValue),
-                    storageArea: localStorage,
-                })
-            );
-        });
+        fireEvent(
+            window,
+            new StorageEvent('storage', {
+                key: getSessionKey('session-test-1'),
+                newValue: JSON.stringify(newValue),
+                storageArea: localStorage,
+            })
+        );
 
         await waitFor(() => {
             expect(result.current[0]).toEqual(newValue);
@@ -93,14 +79,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            foo: 'bar',
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        foo: 'bar',
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -130,14 +114,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            foo: 'bar',
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        foo: 'bar',
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -191,14 +173,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            foo: 'bar',
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        foo: 'bar',
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -274,14 +254,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            foo: 'bar',
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        foo: 'bar',
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -387,14 +365,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            foo: 'bar',
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        foo: 'bar',
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -460,18 +436,16 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            user: {
-                                name: 'John',
-                                age: 30,
-                            },
-                            items: ['apple', 'banana'],
+                return HttpResponse.json({
+                    value: {
+                        user: {
+                            name: 'John',
+                            age: 30,
                         },
-                        sequence_number: 0,
-                    })
-                );
+                        items: ['apple', 'banana'],
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 
@@ -798,14 +772,12 @@ describe('Variable Persistence', () => {
         // Mock endpoint to retrieve store value
         server.use(
             http.get('/api/core/store/:store_uid', async (info) => {
-                return res(
-                    ctx.json({
-                        value: {
-                            count: 0,
-                        },
-                        sequence_number: 0,
-                    })
-                );
+                return HttpResponse.json({
+                    value: {
+                        count: 0,
+                    },
+                    sequence_number: 0,
+                });
             })
         );
 

@@ -12,8 +12,11 @@ vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 mockLocalStorage();
 
 describe('useVariable - SwitchVariable', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         vi.useFakeTimers();
         vi.restoreAllMocks();
@@ -220,7 +223,7 @@ describe('useVariable - SwitchVariable', () => {
             });
 
             expect(result.current[1]).toBeInstanceOf(Function);
-            
+
             // Test that calling the update function logs a warning
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
             act(() => {

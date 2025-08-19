@@ -15,9 +15,12 @@ import { mockLocalStorage } from './utils/mock-storage';
 mockLocalStorage();
 
 describe('TemplateRoot', () => {
+    beforeAll(() => {
+        server.listen();
+    });
+
     beforeEach(() => {
         clearCaches_TEST();
-        server.listen();
         localStorage.clear();
         vi.restoreAllMocks();
         setSessionToken('TEST_TOKEN');

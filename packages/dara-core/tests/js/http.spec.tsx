@@ -1,7 +1,6 @@
 import { waitFor } from '@testing-library/dom';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { request } from '@/api';
 import globalStore from '@/shared/global-state-store';

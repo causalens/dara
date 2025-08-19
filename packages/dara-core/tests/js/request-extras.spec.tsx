@@ -40,8 +40,9 @@ const server = setupServer(
 );
 
 describe('Request Extras', () => {
+    beforeAll(() => server.listen());
+
     beforeEach(() => {
-        server.listen();
         setSessionToken('TEST_TOKEN');
     });
 

@@ -18,8 +18,11 @@ vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 mockLocalStorage();
 
 describe('ServerVariable', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 

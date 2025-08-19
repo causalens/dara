@@ -1,10 +1,11 @@
 /* eslint-disable no-loop-func */
-/* eslint-disable jsx-a11y/control-has-associated-label */
-/* eslint-disable react/button-has-type */
-/* eslint-disable no-await-in-loop */
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RenderResult, act, fireEvent, render, waitFor } from '@testing-library/react';
+/* eslint-disable jsx-a11y/control-has-associated-label */
+
+/* eslint-disable react/button-has-type */
+
+/* eslint-disable no-await-in-loop */
+import { type RenderResult, act, fireEvent, render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { useRef, useState } from 'react';
 import { filter, take } from 'rxjs/operators';
@@ -530,28 +531,24 @@ describe('ProgressTracker', () => {
 
         server.use(
             http.post('/api/core/components/:componentId', async (info) => {
-                return res(
-                    ctx.json({
-                        task_id: tuid,
-                    })
-                );
+                return HttpResponse.json({
+                    task_id: tuid,
+                });
             })
         );
 
         server.use(
             http.get('/api/core/tasks/:taskId', async (info) => {
-                return res(
-                    ctx.json({
-                        data: {
-                            name: 'RawString',
-                            props: {
-                                content: 'success',
-                            },
-                            uid: vuid,
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: {
+                            content: 'success',
                         },
-                        lookup: {},
-                    })
-                );
+                        uid: vuid,
+                    },
+                    lookup: {},
+                });
             })
         );
 
