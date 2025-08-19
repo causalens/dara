@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
         }),
     ],
     define: {
-        'process.env.NODE_ENV': mode === 'test' ? '"development"' : '"production"',
+        'process.env.NODE_ENV': mode === 'test' ? '"test"' : '"production"',
     },
     build: {
         minify: false,

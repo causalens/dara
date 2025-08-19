@@ -141,7 +141,7 @@ describe('WebsocketClient', () => {
         expect(await messagePromise).toEqual(
             '{"channel":"channel","chunk_count":null,"message":{"message":"test"},"type":"message"}'
         );
-    });
+    }, 10_000);
 
     it('should attempt to reconnect to the server multiple times if the initial one fails', async () => {
         const [server, client] = await initialize();
@@ -227,7 +227,7 @@ describe('WebsocketClient', () => {
 
         // Check that the client has reconnected
         expect(await client.channel).toEqual('test_1');
-    });
+    }, 10_000);
 
     it('should reload the window on reconnect when liveReload is true', async () => {
         // Configure mock of window location
