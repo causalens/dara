@@ -121,12 +121,15 @@ describe('WebsocketClient', () => {
 
         // Close the server connection and then create new one
         server.close();
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const serverNew = new WS('ws://localhost:1234');
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
 
         // Wait for the client to reconnect
         await serverNew.connected;
+        await new Promise((resolve) => setTimeout(resolve, 100));
         serverNew.send(toMsg('init', { channel: 'test_1' }));
 
         // Check that the client has reconnected
