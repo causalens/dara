@@ -1,7 +1,7 @@
+import { Dots } from '@darajs/ui-components';
+
 import { injectCss, useComponentStyles } from '@/shared/utils';
 import { type StyledComponentProps } from '@/types';
-
-import Dots from './dots';
 
 const StyledDots = injectCss(Dots);
 

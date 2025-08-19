@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import * as React from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
-import { Spinner, Tooltip } from '@darajs/ui-components';
+import { Dots, Spinner, Tooltip } from '@darajs/ui-components';
 import type { NotificationPayload } from '@darajs/ui-notifications';
 import { Notification } from '@darajs/ui-notifications';
 import { Status, useOnClickOutside, useUpdateEffect } from '@darajs/ui-utils';
@@ -914,14 +914,13 @@ function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
     }, []);
 
     React.useEffect(() => {
-        console.log('efffect is loaded', isPixiLoaded);
         if (!isPixiLoaded) {
             initializePixi();
         }
     }, [isPixiLoaded, initializePixi]);
 
     if (!isPixiLoaded) {
-        return 'loading...';
+        return <Dots />;
     }
 
     return <CausalGraphEditorComponent {...props} />;
