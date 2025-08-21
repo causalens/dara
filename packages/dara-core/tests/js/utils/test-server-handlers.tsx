@@ -1,8 +1,10 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 
-import { ActionDef, ComponentType, JsComponent, PyComponent } from '../../../js/types';
 import type { DataFrameSchema } from '@/shared';
+
+import type { ActionDef, JsComponent, PyComponent } from '../../../js/types';
+import { ComponentType } from '../../../js/types';
 
 const mockComponents: Record<string, JsComponent | PyComponent> = {
     ProgressTracker: {
@@ -85,80 +87,69 @@ const mockSchema: DataFrameSchema = {
 
 // These handlers return mock responses for all the requests made by the application
 const handlers = [
-    rest.get('/api/core/config', async (req, res, ctx) => {
-        return res(
-            ctx.json({
-                template: 'default',
-            })
-        );
+    http.get('/api/core/config', () => {
+        return HttpResponse.json({
+            template: 'default',
+        });
     }),
-    rest.get('/api/core/actions', async (req, res, ctx) => {
-        return res(ctx.json(mockActions));
+    http.get('/api/core/actions', () => {
+        return HttpResponse.json(mockActions);
     }),
-    rest.get('/api/core/components', async (req, res, ctx) => {
-        return res(ctx.json(mockComponents));
+    http.get('/api/core/components', () => {
+        return HttpResponse.json(mockComponents);
     }),
-    rest.post('/api/core/components/:component', async (req, res, ctx) => {
-        return res(
-            ctx.json({
-                data: {
-                    name: 'RawString',
-                    props: { content: `${String(req.params.component)}: ${JSON.stringify(req.body)}` },
-                },
-                lookup: {},
-            })
-        );
+    http.post('/api/core/components/:component', async (info) => {
+        const body = await info.request.json();
+        return HttpResponse.json({
+            data: {
+                name: 'RawString',
+                props: { content: `${String(info.params.component)}: ${JSON.stringify(body)}` },
+            },
+            lookup: {},
+        });
     }),
-    rest.get('/api/core/template/:template', async (req, res, ctx) => {
-        return res(
-            ctx.json({
-                data: {
-                    layout: {
-                        name: 'TemplateRoot',
-                        props: {
-                            frame: {
-                                name: 'Frame',
-                                props: {},
-                            },
-                            menu: {
-                                name: 'Menu',
-                                props: {},
-                            },
+    http.get('/api/core/template/:template', () => {
+        return HttpResponse.json({
+            data: {
+                layout: {
+                    name: 'TemplateRoot',
+                    props: {
+                        frame: {
+                            name: 'Frame',
+                            props: {},
+                        },
+                        menu: {
+                            name: 'Menu',
+                            props: {},
                         },
                     },
-                    name: 'default',
                 },
-                lookup: {},
-            })
-        );
+                name: 'default',
+            },
+            lookup: {},
+        });
     }),
-    rest.post('/api/core/action/:uid', async (req, res, ctx) => {
-        return res(
-            ctx.json({
-                execution_id: 'uid',
-            })
-        );
+    http.post('/api/core/action/:uid', () => {
+        return HttpResponse.json({
+            execution_id: 'uid',
+        });
     }),
-    rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
-        const body = await req.json();
-        return res(
-            ctx.json({
-                cache_key: JSON.stringify(body.values),
-                value: body,
-            })
-        );
+    http.post('/api/core/derived-variable/:uid', async (info) => {
+        const body = (await info.request.json()) as any;
+        return HttpResponse.json({
+            cache_key: JSON.stringify(body.values),
+            value: body,
+        });
     }),
-    rest.delete('/api/core/tasks/:taskId', async (req, res, ctx) => {
-        return res(ctx.status(200));
+    http.delete('/api/core/tasks/:taskId', () => {
+        return new HttpResponse(null, { status: 200 });
     }),
-    rest.get('/api/auth/user', async (req, res, ctx) => {
-        return res(
-            ctx.json({
-                identity_email: 'test@causalens.com',
-                identity_id: 'TEST_ID',
-                identity_name: 'Test User',
-            })
-        );
+    http.get('/api/auth/user', () => {
+        return HttpResponse.json({
+            identity_email: 'test@causalens.com',
+            identity_id: 'TEST_ID',
+            identity_name: 'Test User',
+        });
     }),
 ];
 

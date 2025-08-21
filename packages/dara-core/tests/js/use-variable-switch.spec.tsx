@@ -7,22 +7,25 @@ import { Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 mockLocalStorage();
 
 describe('useVariable - SwitchVariable', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
-        jest.useFakeTimers();
-        jest.restoreAllMocks();
+        vi.useFakeTimers();
+        vi.restoreAllMocks();
         clearRegistries_TEST();
     });
 
     afterEach(() => {
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
         server.resetHandlers();
     });
 
@@ -220,9 +223,9 @@ describe('useVariable - SwitchVariable', () => {
             });
 
             expect(result.current[1]).toBeInstanceOf(Function);
-            
+
             // Test that calling the update function logs a warning
-            const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
             act(() => {
                 result.current[1]('new_value');
             });

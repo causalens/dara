@@ -9,13 +9,13 @@ import { useVariable } from '@/shared/interactivity/use-variable';
 import { Wrapper } from './utils';
 
 // Mock the API calls
-jest.mock('@/api/core', () => ({
-    fetchDerivedVariable: jest.fn(),
+vi.mock('@/api/core', () => ({
+    fetchDerivedVariable: vi.fn(),
 }));
 
 describe('useVariable with StateVariable', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     const createDerivedVariable = (): DerivedVariable => ({
@@ -83,7 +83,7 @@ describe('useVariable with StateVariable', () => {
         const derivedVar = createDerivedVariable();
         const loadingStateVar = createStateVariable(derivedVar, 'loading');
 
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
 
         const { result } = renderHook(() => useVariable(loadingStateVar), {
             wrapper: Wrapper,

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Graphics } from 'pixi.js';
 import { makeAbsolute, parseSVG } from 'svg-path-parser';
 
 export const QUESTION_MARK =
@@ -26,7 +25,7 @@ export const QUESTION_MARK =
  * @param d SVG path `d` attribute
  * @param gfx graphics object
  */
-export function drawPath(d: string, gfx: Graphics): void {
+export function drawPath(d: string, gfx: PIXI.Graphics): void {
     const relativeCommands = parseSVG(d.trim());
     const absoluteCommands = makeAbsolute(relativeCommands);
 

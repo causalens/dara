@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DropShadowFilter } from 'pixi-filters';
-import * as PIXI from 'pixi.js';
-import { EventEmitter } from 'pixi.js';
+import { EventEmitter } from 'eventemitter3';
 
 import type { ZoomState } from '@types';
 
@@ -143,12 +141,12 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
 
         // Create filter the first time
         if (!nodeGfx.filters || (Array.isArray(nodeGfx.filters) && nodeGfx.filters.length === 0)) {
-            nodeGfx.filters = [new DropShadowFilter({ offset: { x: 0, y: 0 } })];
+            nodeGfx.filters = [new PIXI.filters.DropShadowFilter({ offset: { x: 0, y: 0 } })];
         }
         const dropShadow =
             Array.isArray(nodeGfx.filters) ?
-                (nodeGfx.filters[0] as DropShadowFilter)
-            :   (nodeGfx.filters as DropShadowFilter);
+                (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            :   (nodeGfx.filters as PIXI.filters.DropShadowFilter);
 
         const nodeTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE : NODE_CIRCLE;
         const nodeBorderTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE_BORDER : NODE_BORDER;
@@ -275,8 +273,8 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     static updateNodeVisibility(nodeGfx: PIXI.Container, zoomState: ZoomState, state: NodeState): void {
         const shadow =
             Array.isArray(nodeGfx.filters) ?
-                (nodeGfx.filters[0] as DropShadowFilter)
-            :   (nodeGfx.filters as DropShadowFilter);
+                (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            :   (nodeGfx.filters as PIXI.filters.DropShadowFilter);
 
         // keep shadow if node is selected
         shadow.enabled = zoomState.shadow || state.selected;

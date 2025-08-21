@@ -1,3 +1,4 @@
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from '@testing-library/dom';
 import { act } from '@testing-library/react';
 import * as React from 'react';
@@ -14,11 +15,14 @@ import { mockLocalStorage } from './utils/mock-storage';
 mockLocalStorage();
 
 describe('TemplateRoot', () => {
+    beforeAll(() => {
+        server.listen();
+    });
+
     beforeEach(() => {
         clearCaches_TEST();
-        server.listen();
         localStorage.clear();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
         setSessionToken('TEST_TOKEN');
     });
     afterEach(() => {
@@ -67,7 +71,7 @@ describe('TemplateRoot', () => {
 
     it('should subscribe to changes in the websocket token and trigger an update in the client', async () => {
         const wsClient = new MockWebSocketClient('uid');
-        const updateTokenSpy = jest.spyOn(wsClient, 'updateToken');
+        const updateTokenSpy = vi.spyOn(wsClient, 'updateToken');
 
         const { getByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient as any} />);
         // Wait for the page to be rendered

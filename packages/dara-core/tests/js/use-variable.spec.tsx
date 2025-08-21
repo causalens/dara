@@ -1,6 +1,6 @@
 import { type Matcher, type MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { useRecoilCallback } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';
@@ -28,7 +28,7 @@ import { Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => ({ default: vi.fn((fn) => fn) }));
 
 mockLocalStorage();
 
@@ -110,11 +110,13 @@ const variableC: SingleVariable<number> = {
 const SESSION_TOKEN = 'TEST_TOKEN';
 
 describe('useVariable', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
-        // jest.useFakeTimers();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
 
         setSessionToken(SESSION_TOKEN);
 
@@ -124,8 +126,8 @@ describe('useVariable', () => {
     });
     afterEach(() => {
         setSessionToken(null);
-        jest.clearAllTimers();
-        // jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
         server.resetHandlers();
     });
     afterAll(() => server.close());
@@ -230,7 +232,7 @@ describe('useVariable', () => {
         });
 
         it('should save values to localStorage for a Variable', () => {
-            const setItemSpy = jest.spyOn(window.localStorage, 'setItem');
+            const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
 
             // We're using an object to make sure the serialisation works correctly
             const defaultValue = { val: 0 };
@@ -263,7 +265,7 @@ describe('useVariable', () => {
         });
 
         it('should save values to localStorage for a Variable with nested', () => {
-            const setItemSpy = jest.spyOn(window.localStorage, 'setItem');
+            const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
 
             // We're using an object to make sure the serialisation works correctly
             const defaultValue = { val: 0 };
@@ -297,7 +299,7 @@ describe('useVariable', () => {
         });
 
         it('should restore values from localStorage for a Variable', () => {
-            const getItemSpy = jest.spyOn(window.localStorage, 'getItem');
+            const getItemSpy = vi.spyOn(window.localStorage, 'getItem');
 
             // We're using an object to make sure the serialisation works correctly
             const defaultValue = { val: 0 };
@@ -327,7 +329,7 @@ describe('useVariable', () => {
         });
 
         it('should restore values from localStorage for a Variable with nested', () => {
-            const getItemSpy = jest.spyOn(localStorage, 'getItem');
+            const getItemSpy = vi.spyOn(localStorage, 'getItem');
 
             // We're using an object to make sure the serialisation works correctly
             const defaultValue = { val: 0 };
@@ -475,14 +477,13 @@ describe('useVariable', () => {
             const receivedHeaders: Headers[] = [];
 
             server.use(
-                rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
-                    receivedHeaders.push(req.headers);
-                    return res(
-                        ctx.json({
-                            cache_key: JSON.stringify(req.body.values),
-                            value: req.body,
-                        })
-                    );
+                http.post('/api/core/derived-variable/:uid', async (info) => {
+                    receivedHeaders.push(info.request.headers);
+                    const body = await info.request.json() as any;
+                    return HttpResponse.json({
+                        cache_key: JSON.stringify(body.values),
+                        value: body,
+                    });
                 })
             );
 
@@ -588,9 +589,7 @@ describe('useVariable', () => {
             receivedHeaders.length = 0;
 
             // update the input variable for the DV
-            act(() => {
-                fireEvent.click(getByTestId('dv-1-set-input'));
-            });
+            fireEvent.click(getByTestId('dv-1-set-input'));
 
             // wait for both components to be rendered
             await waitFor(() => {
@@ -614,9 +613,7 @@ describe('useVariable', () => {
             receivedHeaders.length = 0;
 
             // Update one of the variables directly
-            act(() => {
-                fireEvent.click(getByTestId('dv-1-set-var-from-derived'));
-            });
+            fireEvent.click(getByTestId('dv-1-set-var-from-derived'));
 
             // wait for both components to be rendered
             await waitFor(() => {
@@ -629,9 +626,7 @@ describe('useVariable', () => {
             expect(getByTestId('dv-2-var-from-derived').innerHTML).toEqual('"test3"');
 
             // Reset one of the variables
-            act(() => {
-                fireEvent.click(getByTestId('dv-1-reset'));
-            });
+            fireEvent.click(getByTestId('dv-1-reset'));
 
             // wait for both components to be rendered
             await waitFor(() => {
@@ -755,7 +750,7 @@ describe('useVariable', () => {
         });
 
         it('should keep on updating the derived variable if polling_interval is set', async () => {
-            jest.useFakeTimers();
+            vi.useFakeTimers();
             const { result } = renderHook(
                 () =>
                     useVariable<string>({
@@ -798,7 +793,7 @@ describe('useVariable', () => {
             });
 
             act(() => {
-                jest.advanceTimersByTime(2500);
+                vi.advanceTimersByTime(2500);
             });
 
             await waitFor(() => {
@@ -1559,14 +1554,13 @@ describe('useVariable', () => {
             const receivedHeaders: Headers[] = [];
 
             server.use(
-                rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
-                    receivedHeaders.push(req.headers);
-                    return res(
-                        ctx.json({
-                            cache_key: JSON.stringify(req.body.values),
-                            value: req.body,
-                        })
-                    );
+                http.post('/api/core/derived-variable/:uid', async (info) => {
+                    receivedHeaders.push(info.request.headers);
+                    const body = await info.request.json();
+                    return HttpResponse.json({
+                        cache_key: JSON.stringify((body as any).values),
+                        value: body,
+                    });
                 })
             );
 

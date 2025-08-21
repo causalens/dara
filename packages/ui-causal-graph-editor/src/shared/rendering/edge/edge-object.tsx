@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { EventEmitter } from 'eventemitter3';
 import clone from 'lodash/cloneDeep';
-import { DropShadowFilter } from 'pixi-filters';
-import type { Viewport } from 'pixi-viewport';
-import * as PIXI from 'pixi.js';
 
 import type { ZoomState } from '@types';
 import { EdgeType, EditorMode } from '@types';
@@ -44,7 +42,7 @@ const EDGE_OFFSET = 10;
  */
 const LOCAL_MULTIPLIER = 1.5;
 
-export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]> {
+export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
     edgeGfx: PIXI.Container;
 
     edgeSymbolsGfx: PIXI.Container;
@@ -391,14 +389,14 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
 
         // Create filter the first time
         if (!edgeGfx.filters || (Array.isArray(edgeGfx.filters) && edgeGfx.filters.length === 0)) {
-            const shadowFilter = new DropShadowFilter({ blur: 3, offset: { x: 0, y: 0 } });
+            const shadowFilter = new PIXI.filters.DropShadowFilter({ blur: 3, offset: { x: 0, y: 0 } });
             [shadowFilter.color, shadowFilter.alpha] = colorToPixi('rgba(0, 0, 0, 0.5)');
             edgeGfx.filters = [shadowFilter];
         }
         const dropShadow =
             Array.isArray(edgeGfx.filters) ?
-                (edgeGfx.filters[0] as DropShadowFilter)
-            :   (edgeGfx.filters as DropShadowFilter);
+                (edgeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            :   (edgeGfx.filters as PIXI.filters.DropShadowFilter);
 
         // Only show at high zoom and when hovered
         dropShadow.enabled = state.hover && zoomState.shadow;
@@ -440,7 +438,7 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         targetNodePosition: PIXI.PointData,
         sourceSize: number,
         targetSize: number,
-        viewport: Viewport,
+        viewport: pixi_viewport.Viewport,
         textureCache: TextureCache,
         isSourceSquare?: boolean,
         isTargetSquare?: boolean
@@ -541,7 +539,7 @@ export class EdgeObject extends PIXI.EventEmitter<(typeof MOUSE_EVENTS)[number]>
         edgeStyle: PixiEdgeStyle,
         sourceBoundPosition: PIXI.PointData,
         targetBoundPosition: PIXI.PointData,
-        viewport: Viewport
+        viewport: pixi_viewport.Viewport
     ): void {
         if (!edgeStyle.points) {
             return;

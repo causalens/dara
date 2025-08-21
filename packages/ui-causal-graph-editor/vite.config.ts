@@ -1,6 +1,6 @@
-import { fileURLToPath, URL } from 'url';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { URL, fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -34,6 +34,6 @@ export default defineConfig({
         ],
     },
     worker: {
-        format: 'es'
-    }
+        format: 'es',
+    },
 });

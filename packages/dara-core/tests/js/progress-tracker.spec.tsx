@@ -1,9 +1,12 @@
 /* eslint-disable no-loop-func */
+
 /* eslint-disable jsx-a11y/control-has-associated-label */
+
 /* eslint-disable react/button-has-type */
+
 /* eslint-disable no-await-in-loop */
-import { RenderResult, act, fireEvent, render, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { type RenderResult, act, fireEvent, render, waitFor } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import { useRef, useState } from 'react';
 import { filter, take } from 'rxjs/operators';
 
@@ -132,14 +135,14 @@ function renderProgressTracker(ProgressWrapper: () => JSX.Element = ProgressTrac
 describe('ProgressTracker', () => {
     beforeEach(() => {
         server.listen();
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         clearRegistries_TEST();
     });
 
     afterEach(() => {
         server.resetHandlers();
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
     });
     afterAll(() => server.close());
 
@@ -160,7 +163,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         });
 
         await waitFor(() => expect(getByText('Task in progress')).toBeInTheDocument());
@@ -172,7 +175,7 @@ describe('ProgressTracker', () => {
 
         // Start task and send first progress update
         act(() => {
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             const startButton = getByTestId('start-button');
             fireEvent.click(startButton);
@@ -180,7 +183,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         });
 
         // Track progress
@@ -198,7 +201,7 @@ describe('ProgressTracker', () => {
         await waitFor(() => expect(getByTestId('LOADING')).toBeInTheDocument());
 
         act(() => {
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Start task and send first progress update
             const startButton = getByTestId('start-button');
@@ -207,7 +210,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         });
 
         // Track progress for 2 steps
@@ -235,7 +238,7 @@ describe('ProgressTracker', () => {
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
         for (let i = 0; i < 5; i++) {
             act(() => {
-                jest.advanceTimersByTime(100);
+                vi.advanceTimersByTime(100);
             });
 
             // Make sure it increases, i.e. it doesn't start over from 0
@@ -248,7 +251,7 @@ describe('ProgressTracker', () => {
 
         // Advance by a minute - it should evenually reach almost 100
         act(() => {
-            jest.advanceTimersByTime(60000);
+            vi.advanceTimersByTime(60000);
         });
         await waitFor(() => {
             expect(getProgress()).toBeGreaterThan(95);
@@ -264,7 +267,7 @@ describe('ProgressTracker', () => {
 
         // Progress faking should stop - increasing timers further has no effect
         act(() => {
-            jest.advanceTimersByTime(30000);
+            vi.advanceTimersByTime(30000);
         });
         await waitFor(() => {
             expect(getProgress()).toBe(99);
@@ -277,7 +280,7 @@ describe('ProgressTracker', () => {
         await waitFor(() => expect(getByTestId('LOADING')).toBeInTheDocument());
 
         act(() => {
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Start task and send first progress update
             const startButton = getByTestId('start-button');
@@ -286,7 +289,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Fake progress till 50
             const fakeInput = getByTestId('fake-until');
@@ -296,7 +299,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(fakeButton);
 
             // Make sure faking process started
-            jest.advanceTimersByTime(200);
+            vi.advanceTimersByTime(200);
         });
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
@@ -307,7 +310,7 @@ describe('ProgressTracker', () => {
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
         for (let i = 0; i < 5; i++) {
             act(() => {
-                jest.advanceTimersByTime(100);
+                vi.advanceTimersByTime(100);
             });
 
             // Wait for progress to increase over 50
@@ -320,7 +323,7 @@ describe('ProgressTracker', () => {
 
         // Advance by 90s - it shouldn't increase above 50
         act(() => {
-            jest.advanceTimersByTime(90000);
+            vi.advanceTimersByTime(90000);
         });
         await waitFor(() => {
             expect(getProgress()).toBeGreaterThan(45);
@@ -336,7 +339,7 @@ describe('ProgressTracker', () => {
 
         // Progress faking should stop - increasing timers further has no effect
         act(() => {
-            jest.advanceTimersByTime(30000);
+            vi.advanceTimersByTime(30000);
         });
         await waitFor(() => {
             expect(getProgress()).toBe(99);
@@ -348,7 +351,7 @@ describe('ProgressTracker', () => {
         await waitFor(() => expect(getByTestId('LOADING')).toBeInTheDocument());
 
         act(() => {
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Start task and send first progress update
             const startButton = getByTestId('start-button');
@@ -357,7 +360,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Fake progress till 50
             const fakeInput = getByTestId('fake-until');
@@ -367,7 +370,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(fakeButton);
 
             // Make sure faking process started
-            jest.advanceTimersByTime(200);
+            vi.advanceTimersByTime(200);
         });
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
@@ -378,7 +381,7 @@ describe('ProgressTracker', () => {
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
         for (let i = 0; i < 5; i++) {
             act(() => {
-                jest.advanceTimersByTime(100);
+                vi.advanceTimersByTime(100);
             });
 
             // Wait for progress to increase over 50
@@ -391,7 +394,7 @@ describe('ProgressTracker', () => {
 
         // Advance by 90s - it shouldn't increase above 50
         act(() => {
-            jest.advanceTimersByTime(90000);
+            vi.advanceTimersByTime(90000);
         });
         await waitFor(() => {
             expect(getProgress()).toBeGreaterThan(45);
@@ -412,7 +415,7 @@ describe('ProgressTracker', () => {
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
         for (let i = 0; i < 5; i++) {
             act(() => {
-                jest.advanceTimersByTime(100);
+                vi.advanceTimersByTime(100);
             });
 
             // Wait for progress to increase
@@ -425,7 +428,7 @@ describe('ProgressTracker', () => {
 
         // Advance by 90s - it shouldn't increase above 90
         act(() => {
-            jest.advanceTimersByTime(90000);
+            vi.advanceTimersByTime(90000);
         });
         await waitFor(() => {
             expect(getProgress()).toBeGreaterThan(85);
@@ -441,7 +444,7 @@ describe('ProgressTracker', () => {
 
         // Progress faking should stop - increasing timers further has no effect
         act(() => {
-            jest.advanceTimersByTime(30000);
+            vi.advanceTimersByTime(30000);
         });
         await waitFor(() => {
             expect(getProgress()).toBe(99);
@@ -454,7 +457,7 @@ describe('ProgressTracker', () => {
         await waitFor(() => expect(getByTestId('LOADING')).toBeInTheDocument());
 
         act(() => {
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
 
             // Start task and send first progress update
             const startButton = getByTestId('start-button');
@@ -463,7 +466,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         });
 
         // Track progress 2 times
@@ -493,7 +496,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(progressButton);
 
             // Advance timers to trigger a check for task running
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         });
 
         // Track progress
@@ -527,29 +530,25 @@ describe('ProgressTracker', () => {
         };
 
         server.use(
-            rest.post('/api/core/components/:componentId', async (req, res, ctx) => {
-                return res(
-                    ctx.json({
-                        task_id: tuid,
-                    })
-                );
+            http.post('/api/core/components/:componentId', () => {
+                return HttpResponse.json({
+                    task_id: tuid,
+                });
             })
         );
 
         server.use(
-            rest.get('/api/core/tasks/:taskId', async (req, res, ctx) => {
-                return res(
-                    ctx.json({
-                        data: {
-                            name: 'RawString',
-                            props: {
-                                content: 'success',
-                            },
-                            uid: vuid,
+            http.get('/api/core/tasks/:taskId', () => {
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: {
+                            content: 'success',
                         },
-                        lookup: {},
-                    })
-                );
+                        uid: vuid,
+                    },
+                    lookup: {},
+                });
             })
         );
 

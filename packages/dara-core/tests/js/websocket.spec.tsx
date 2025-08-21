@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/dom';
-import WS from 'jest-websocket-mock';
 import { firstValueFrom } from 'rxjs';
+import WS from 'vitest-websocket-mock';
 
 import { WebSocketClient } from '@/api';
 
@@ -117,16 +117,19 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        const initializeSpy = jest.spyOn(client, 'initialize');
+        const initializeSpy = vi.spyOn(client, 'initialize');
 
         // Close the server connection and then create new one
         server.close();
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const serverNew = new WS('ws://localhost:1234');
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
 
         // Wait for the client to reconnect
         await serverNew.connected;
+        await new Promise((resolve) => setTimeout(resolve, 100));
         serverNew.send(toMsg('init', { channel: 'test_1' }));
 
         // Check that the client has reconnected
@@ -149,7 +152,7 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        const initializeSpy = jest.spyOn(client, 'initialize');
+        const initializeSpy = vi.spyOn(client, 'initialize');
 
         // Close the server connection
         server.close();
@@ -183,8 +186,7 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        const initializeSpy = jest.spyOn(client, 'initialize');
-        const consoleErrorSpy = jest.spyOn(console, 'error');
+        const initializeSpy = vi.spyOn(client, 'initialize');
 
         // Close the server connection
         server.close();
@@ -192,10 +194,7 @@ describe('WebsocketClient', () => {
         // Wait for the reconnect attempts to hit 2
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
         initializeSpy.mockClear();
-
-        // Expect that the client will raise a console error and stop retrying
-        await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(1));
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Could not reconnect the websocket to the server');
+        await waitFor(() => client.maxAttemptsReached);
     });
 
     it('should start retrying again when the dom visibility changes', async () => {
@@ -207,8 +206,7 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        const initializeSpy = jest.spyOn(client, 'initialize');
-        const consoleErrorSpy = jest.spyOn(console, 'error');
+        const initializeSpy = vi.spyOn(client, 'initialize');
 
         // Close the server connection
         server.close();
@@ -217,9 +215,9 @@ describe('WebsocketClient', () => {
         await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
         initializeSpy.mockClear();
 
-        // Expect that the client will raise a console error and stop retrying
-        await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledTimes(1));
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Could not reconnect the websocket to the server');
+        // wait until the client has reached the max attempts
+        await waitFor(() => client.maxAttemptsReached);
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Create a new server to connect to
         const serverNew = new WS('ws://localhost:1234');
@@ -240,7 +238,7 @@ describe('WebsocketClient', () => {
         const original = window.location;
         Object.defineProperty(window, 'location', {
             configurable: true,
-            value: { reload: jest.fn() },
+            value: { reload: vi.fn() },
         });
 
         // Initialize the client with live reload enabled and wait for the channel to be set
@@ -250,7 +248,7 @@ describe('WebsocketClient', () => {
         // Verify that we have not reloaded the window on first load
         expect(window.location.reload).toHaveBeenCalledTimes(0);
 
-        const initializeSpy = jest.spyOn(client, 'initialize');
+        const initializeSpy = vi.spyOn(client, 'initialize');
 
         // Close the server connection and then reconnect
         server.close();

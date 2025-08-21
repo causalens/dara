@@ -1,6 +1,6 @@
 import * as Comlink from 'comlink';
+import { EventEmitter } from 'eventemitter3';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
-import * as PIXI from 'pixi.js';
 
 import { type SimulationGraph } from '@types';
 
@@ -20,7 +20,7 @@ interface LayoutEvents {
  * Worker class that handles the layout computation.
  * Creates a web worker and uses it to compute the layout.
  */
-export class LayoutWorker extends PIXI.EventEmitter<LayoutEvents> {
+export class LayoutWorker extends EventEmitter<LayoutEvents> {
     private worker: Worker;
 
     private remoteApi: Comlink.Remote<RemoteWorker>;

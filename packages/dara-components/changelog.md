@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- The `pixi.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~8.3MB to ~6.9MB
 - Fixed an issue where images included in the `Markdown` component would not work correctly when running the app behind a proxy, i.e. with a custom base url
 
 ## 1.20.1

@@ -1,5 +1,5 @@
 import { type Matcher, type MatcherOptions, act, fireEvent, render, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 
 import { useVariable } from '../../js/shared';
 import { VariableCtx } from '../../js/shared/context';
@@ -11,7 +11,7 @@ import { Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
-jest.mock('lodash/debounce', () => jest.fn((fn) => fn));
+vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 mockLocalStorage();
 
@@ -46,12 +46,10 @@ const getMockTaskContexts = (
 // Mocks task response based on variable value
 const mockTaskResponse = (varAValue: number): void => {
     server.use(
-        rest.get('/api/core/tasks/:taskId', async (req, res, ctx) => {
-            return res(
-                ctx.json(
-                    JSON.parse(
-                        `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
-                    )
+        http.get('/api/core/tasks/:taskId', () => {
+            return HttpResponse.json(
+                JSON.parse(
+                    `{"force_key":null,"values":{"data":[{"__ref":"Variable:a"}],"lookup":{"Variable:a":${varAValue.toString()}}},"ws_channel":"uid","task_id":"t_none"}`
                 )
             );
         })
@@ -108,21 +106,22 @@ const variableA: SingleVariable<number> = {
 };
 
 describe('useVariableRunAsTask', () => {
-    beforeEach(() => {
+    beforeAll(() => {
         server.listen();
+    });
+
+    beforeEach(() => {
         window.localStorage.clear();
         server.use(
-            rest.post('/api/core/derived-variable/:uid', async (req, res, ctx) => {
-                const { uid } = req.params;
-                return res(
-                    ctx.json({
-                        cache_key: JSON.stringify(req.body!.values),
-                        task_id: `t_${String(uid)}`,
-                    })
-                );
+            http.post('/api/core/derived-variable/:uid', async (info) => {
+                const { uid } = info.params;
+                return HttpResponse.json({
+                    cache_key: JSON.stringify(((await info.request.json()) as any)!.values),
+                    task_id: `t_${String(uid)}`,
+                });
             })
         );
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());

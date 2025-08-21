@@ -3,13 +3,13 @@ import { userEvent } from '@testing-library/user-event';
 
 import { EventBus, useEventBus } from '@/shared';
 import { DEFAULT_BUS, EventCapturer } from '@/shared/event-bus/event-bus';
-import { DaraEventMap } from '@/types/core';
+import type { DaraEventMap } from '@/types/core';
 
 describe('Event Bus', () => {
     it('should invoke provided callback when subscribed', () => {
         const bus = new EventBus();
 
-        const callback = jest.fn();
+        const callback = vi.fn();
 
         const unsub = bus.subscribe(callback);
 
@@ -29,8 +29,8 @@ describe('Event Bus', () => {
         const parentBus = new EventBus();
         const childBus = new EventBus(parentBus);
 
-        const callback = jest.fn();
-        const childCallback = jest.fn();
+        const callback = vi.fn();
+        const childCallback = vi.fn();
 
         parentBus.subscribe(callback);
         childBus.subscribe(childCallback);
@@ -61,7 +61,7 @@ function TestComponent(props: { eventType: keyof DaraEventMap; eventData: any })
 describe('EventCapturer', () => {
     it('should call onEvent with the event data', async () => {
         const user = userEvent.setup();
-        const callback = jest.fn();
+        const callback = vi.fn();
 
         const daraEvent = {
             type: 'DERIVED_VARIABLE_LOADED',
@@ -87,9 +87,9 @@ describe('EventCapturer', () => {
     it('should bubble up events', async () => {
         const user = userEvent.setup();
 
-        const callback = jest.fn();
-        const parentCallback = jest.fn();
-        const rootCallback = jest.fn();
+        const callback = vi.fn();
+        const parentCallback = vi.fn();
+        const rootCallback = vi.fn();
 
         const daraEvent = {
             type: 'DERIVED_VARIABLE_LOADED',

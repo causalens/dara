@@ -237,6 +237,8 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     maxAttempts: number;
 
+    maxAttemptsReached: boolean;
+
     #pingInterval: NodeJS.Timeout | null;
 
     #socketUrl: string;
@@ -249,6 +251,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.messages$ = new Subject();
         this.closeHandler = this.onClose.bind(this);
         this.maxAttempts = maxAttempts;
+        this.maxAttemptsReached = false;
         this.#socketUrl = _socketUrl;
         this.#reconnectCount = 0;
         this.#pingInterval = null;
@@ -328,6 +331,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                 if (document.visibilityState === 'visible') {
                     // Reset the retry loop and attempt to initialize the socket again
                     this.#reconnectCount = 0;
+                    this.maxAttemptsReached = false;
                     this.socket = this.initialize();
 
                     // Remove the visibility change listener after we enter the retry loop again
@@ -335,6 +339,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                 }
             };
             document.addEventListener('visibilitychange', handler);
+            this.maxAttemptsReached = true;
             return;
         }
         setTimeout(() => {

@@ -1,5 +1,6 @@
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import { rest } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { useState } from 'react';
 
@@ -33,14 +34,15 @@ function TestComponent(): JSX.Element {
 }
 
 const server = setupServer(
-    rest.get('/foo', (req, res, ctx) => {
-        return res(ctx.json(Object.fromEntries(req.headers.entries())));
+    http.get('/foo', (info) => {
+        return HttpResponse.json(Object.fromEntries(info.request.headers.entries()));
     })
 );
 
 describe('Request Extras', () => {
+    beforeAll(() => server.listen());
+
     beforeEach(() => {
-        server.listen();
         setSessionToken('TEST_TOKEN');
     });
 

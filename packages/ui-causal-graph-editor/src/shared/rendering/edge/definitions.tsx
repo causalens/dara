@@ -14,8 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type * as PIXI from 'pixi.js';
-
 import type { DefaultTheme } from '@darajs/styled-components';
 
 import type { EdgeConstraint, EdgeType, EditorMode } from '../../../types';

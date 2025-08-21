@@ -1,5 +1,5 @@
 import { getDeps } from '../../js/shared/interactivity/derived-variable';
-import { ResolvedDerivedVariable } from '../../js/types';
+import { type ResolvedDerivedVariable } from '../../js/types';
 
 describe('Deps helpers', () => {
     it('`getDeps` should correctly build deps array', () => {

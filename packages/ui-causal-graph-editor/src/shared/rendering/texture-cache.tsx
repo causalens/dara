@@ -14,18 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Container, Renderer, Texture } from 'pixi.js';
-import { Rectangle } from 'pixi.js';
-
 /**
  * Utility cache to create and store textures
  */
 export class TextureCache {
-    renderer: Renderer;
+    renderer: PIXI.Renderer;
 
-    private textures = new Map<string, Texture>();
+    private textures = new Map<string, PIXI.Texture>();
 
-    constructor(renderer: Renderer) {
+    constructor(renderer: PIXI.Renderer) {
         this.renderer = renderer;
     }
 
@@ -35,12 +32,12 @@ export class TextureCache {
      * @param key unique key to identify the texture
      * @param defaultCallback callback to create a new texture if one doesn't exist
      */
-    get(key: string, defaultCallback: () => Container, padding = 0): Texture {
+    get(key: string, defaultCallback: () => PIXI.Container, padding = 0): PIXI.Texture {
         let texture = this.textures.get(key);
         if (!texture) {
             const container = defaultCallback();
             const region = container.getLocalBounds(undefined);
-            const roundedRegion = new Rectangle(
+            const roundedRegion = new PIXI.Rectangle(
                 Math.floor(region.x) - padding / 2,
                 Math.floor(region.y) - padding / 2,
                 Math.ceil(region.width) + padding,

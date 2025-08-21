@@ -27,9 +27,6 @@
           "@types/react": "18.2.60"
         }
       }
-    },
-    "overrides": {
-      "headers-polyfill": "3.1.2"
     }
   }
 }

@@ -40,6 +40,7 @@ export { default as ComboBox } from './combo-box/combo-box';
 export { default as ContextMenu, type MenuAction, useContextMenu } from './context-menu/context-menu';
 export { default as DropdownMenu, Dropdown, type MenuItem } from './dropdown-menu/dropdown-menu';
 export { default as DatePicker } from './datepicker/datepicker';
+export { default as Dots } from './dots/dots';
 export { default as UploadDropzone } from './dropzone/dropzone';
 export { default as ErrorBoundary } from './error-boundary/error-boundary';
 export { default as HierarchySelector, type HierarchyNode } from './hierarchy-selector/hierarchy-selector';

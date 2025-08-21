@@ -14,8 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type * as PIXI from 'pixi.js';
-
 interface SegmentData {
     c1: number;
     c2: number;

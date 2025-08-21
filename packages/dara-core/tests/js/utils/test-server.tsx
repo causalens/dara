@@ -1,5 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { rest } from 'msw';
+import { http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { handlers } from './test-server-handlers';
@@ -9,4 +9,4 @@ import { handlers } from './test-server-handlers';
 // would be used in production. See https://kentcdodds.com/blog/stop-mocking-fetch for more info on this technique.
 const server = setupServer(...handlers);
 
-export { server, rest };
+export { server, http };
