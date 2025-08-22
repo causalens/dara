@@ -14,6 +14,37 @@ class BaseRoute(BaseModel):
 class HasChildRoutes(BaseModel):
     children: List['BaseRoute'] = Field(default_factory=list)
 
+    def add_page(
+        self,
+        *,
+        path: str,
+        content: Callable[..., ComponentInstance],
+        case_sensitive: bool = False,
+        id: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ):
+        """
+        Standard route with a unique URL segment and content to render
+
+        :param path: URL segment
+        :param content: component to render
+        :param case_sensitive: whether the route is case sensitive
+        :param id: unique id for the route
+        :param metadata: metadata for the route
+        """
+        if metadata is None:
+            metadata = {}
+
+        route = PageRoute(
+            path=path,
+            content=content,
+            case_sensitive=case_sensitive,
+            id=id,
+            metadata=metadata,
+        )
+        self.children.append(route)
+        return route
+
     def add_layout(
         self,
         *,
@@ -224,8 +255,64 @@ class Router(HasChildRoutes):
     Router is the main class for defining routes in a Dara application.
     You can choose to construct a Router with the object API or a fluent API.
 
-    Fluent API:
+    Fluent API (building routes gradually using methods):
 
+    ```python
+    from dara.core.router import Router
+
+    router = Router()
+
+    # Add a home page at '/'
+    router.add_index(content=HomePage)
+
+    # Add a regular page at '/about'
+    router.add_page(path='about', content=AboutPage)
+
+    # Add a layout that wraps child routes without adding URL segments
+    dashboard_layout = router.add_layout(content=DashboardLayout)
+    dashboard_layout.add_index(content=DashboardHome)  # renders at '/dashboard'
+    dashboard_layout.add_page(path='settings', content=DashboardSettings)  # renders at '/settings'
+
+    # Add a prefix group for related routes
+    api_group = router.add_prefix(path='my-api')
+    api_group.add_page(path='users', content=UsersPage)  # renders at '/my-api/users'
+    api_group.add_page(path='posts/:id', content=PostDetail)  # renders at '/my-api/posts/:id'
+    ```
+
+    Object API (defining children directly):
+
+    ```python
+    from dara.core.router import Router, IndexRoute, PageRoute, LayoutRoute, PrefixRoute
+
+    router = Router(children=[
+        # Home page at '/'
+        IndexRoute(content=HomePage),
+
+        # Regular page at '/about'
+        PageRoute(path='about', content=AboutPage),
+
+        # Layout that wraps child routes
+        LayoutRoute(
+            content=DashboardLayout,
+            children=[
+                IndexRoute(content=DashboardHome),  # renders at '/dashboard'
+                PageRoute(path='settings', content=DashboardSettings)  # renders at '/settings'
+            ]
+        ),
+
+        # Prefix group for related routes
+        PrefixRoute(
+            path='my-api',
+            children=[
+                PageRoute(path='users', content=UsersPage),  # renders at '/myapi/users'
+                PageRoute(path='posts/:id', content=PostDetail)  # renders at '/myapi/posts/:id'
+            ]
+        )
+    ])
+    ```
+
+    Both approaches create the same routing structure. The fluent API is more readable for
+    building routes step by step, while the object API is more declarative and compact.
     """
 
     pass
