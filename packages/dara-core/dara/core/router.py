@@ -262,16 +262,13 @@ class Router(HasChildRoutes):
 
     router = Router()
 
-    # Add a home page at '/'
-    router.add_index(content=HomePage)
-
     # Add a regular page at '/about'
     router.add_page(path='about', content=AboutPage)
 
     # Add a layout that wraps child routes without adding URL segments
-    dashboard_layout = router.add_layout(content=DashboardLayout)
-    dashboard_layout.add_index(content=DashboardHome)  # renders at '/dashboard'
-    dashboard_layout.add_page(path='settings', content=DashboardSettings)  # renders at '/settings'
+    marketing_group = router.add_layout(content=MarketingLayout)
+    marketing_group.add_index(content=MarketingHome) # renders at '/'
+    marketing_group.add_page(path='contact', content=MarketingContact) # renders at '/contact'
 
     # Add a prefix group for related routes
     api_group = router.add_prefix(path='my-api')
@@ -285,18 +282,15 @@ class Router(HasChildRoutes):
     from dara.core.router import Router, IndexRoute, PageRoute, LayoutRoute, PrefixRoute
 
     router = Router(children=[
-        # Home page at '/'
-        IndexRoute(content=HomePage),
-
         # Regular page at '/about'
         PageRoute(path='about', content=AboutPage),
 
-        # Layout that wraps child routes
+        # Layout that wraps child routes without adding URL segments
         LayoutRoute(
-            content=DashboardLayout,
+            content=MarketingLayout,
             children=[
-                IndexRoute(content=DashboardHome),  # renders at '/dashboard'
-                PageRoute(path='settings', content=DashboardSettings)  # renders at '/settings'
+                IndexRoute(content=MarketingHome),  # renders at '/'
+                PageRoute(path='contact', content=MarketingContact)  # renders at '/contact'
             ]
         ),
 
