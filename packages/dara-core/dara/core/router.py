@@ -314,5 +314,3 @@ class Router(HasChildRoutes):
     Both approaches create the same routing structure. The fluent API is more readable for
     building routes step by step, while the object API is more declarative and compact.
     """
-
-    pass
