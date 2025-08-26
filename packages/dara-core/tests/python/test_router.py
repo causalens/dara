@@ -1,7 +1,3 @@
-from typing import Union
-
-import pytest
-
 from dara.core.definitions import ComponentInstance
 from dara.core.router import IndexRoute, LayoutRoute, PageRoute, PrefixRoute, Router
 
@@ -93,15 +89,26 @@ class TestRouterObjectAPI:
             ),
         )
 
-        # Extract routes for testing - need to cast because type checker doesn't know about children
-        home: IndexRoute = router.children[0]  # type: ignore
-        about: PageRoute = router.children[1]  # type: ignore
-        marketing_layout: LayoutRoute = router.children[2]  # type: ignore
-        marketing_home: IndexRoute = marketing_layout.children[0]  # type: ignore
-        marketing_contact: PageRoute = marketing_layout.children[1]  # type: ignore
-        api_prefix: PrefixRoute = router.children[3]  # type: ignore
-        users: PageRoute = api_prefix.children[0]  # type: ignore
-        posts: PageRoute = api_prefix.children[1]  # type: ignore
+        # Extract routes for testing using isinstance assertions for type safety
+        home = router.children[0]
+        about = router.children[1]
+        marketing_layout = router.children[2]
+        api_prefix = router.children[3]
+
+        assert isinstance(home, IndexRoute)
+        assert isinstance(about, PageRoute)
+        assert isinstance(marketing_layout, LayoutRoute)
+        assert isinstance(api_prefix, PrefixRoute)
+
+        marketing_home = marketing_layout.children[0]
+        marketing_contact = marketing_layout.children[1]
+        users = api_prefix.children[0]
+        posts = api_prefix.children[1]
+
+        assert isinstance(marketing_home, IndexRoute)
+        assert isinstance(marketing_contact, PageRoute)
+        assert isinstance(users, PageRoute)
+        assert isinstance(posts, PageRoute)
 
         # Validate full paths
         assert home.full_path == '/'
@@ -137,9 +144,14 @@ class TestRouteAttachment:
             ]
         )
 
-        level1: PrefixRoute = router.children[0]  # type: ignore
-        level2: PrefixRoute = level1.children[0]  # type: ignore
-        deep_route: PageRoute = level2.children[0]  # type: ignore
+        level1 = router.children[0]
+        assert isinstance(level1, PrefixRoute)
+
+        level2 = level1.children[0]
+        assert isinstance(level2, PrefixRoute)
+
+        deep_route = level2.children[0]
+        assert isinstance(deep_route, PageRoute)
 
         assert deep_route.full_path == '/level1/level2/deep'
         assert deep_route.is_attached
@@ -167,3 +179,88 @@ class TestEdgeCases:
         # Should clean up any potential double slashes
         assert page.full_path == '/api/users'
         assert '//' not in page.full_path
+
+
+class TestRouteTreePrinting:
+    """Test the print_route_tree functionality"""
+
+    def test_print_route_tree_realistic_app(self, capsys):
+        """Test route tree with a realistic application structure"""
+        router = Router()
+
+        # Home page
+        router.add_index(content=HomePage)
+
+        # Public pages
+        router.add_page(path='about', content=AboutPage)
+
+        # Blog section
+        blog_group = router.add_prefix(path='blog')
+        blog_group.add_index(content=BlogHomePage)
+        blog_group.add_page(path='post/:id', content=BlogPostPage)
+
+        # Dashboard with authentication layout
+        dashboard_layout = router.add_layout(content=DashboardLayout)
+        dashboard_layout.add_page(path='dashboard', content=DashboardHomePage)
+        dashboard_layout.add_page(path='settings', content=SettingsPage)
+
+        # Admin section
+        admin_group = router.add_prefix(path='admin')
+        admin_group.add_index(content=AdminHomePage)
+        users_group = admin_group.add_prefix(path='users')
+        users_group.add_page(path='create', content=UserCreatePage)
+
+        # Call print_route_tree
+        router.print_route_tree()
+
+        # Capture output
+        captured = capsys.readouterr()
+
+        # Verify new format structure
+        assert 'Router' in captured.out
+        assert '/ (index) [HomePage]' in captured.out
+        assert '/about [AboutPage]' in captured.out
+        assert '/blog/' in captured.out
+        assert '/blog (index) [BlogHomePage]' in captured.out
+        assert '/blog/post/:id [BlogPostPage]' in captured.out
+        assert '<DashboardLayout>' in captured.out
+        assert '/dashboard [DashboardHomePage]' in captured.out
+        assert '/settings [SettingsPage]' in captured.out
+        assert '/admin/' in captured.out
+        assert '/admin (index) [AdminHomePage]' in captured.out
+        assert '/admin/users/' in captured.out
+        assert '/admin/users/create [UserCreatePage]' in captured.out
+
+        # Verify tree structure characters exist
+        assert '├─' in captured.out
+        assert '└─' in captured.out
+        assert '│' in captured.out
+
+
+# Additional mock functions for the realistic test
+def BlogHomePage():
+    return ComponentInstance()
+
+
+def BlogPostPage():
+    return ComponentInstance()
+
+
+def DashboardLayout():
+    return ComponentInstance()
+
+
+def DashboardHomePage():
+    return ComponentInstance()
+
+
+def SettingsPage():
+    return ComponentInstance()
+
+
+def AdminHomePage():
+    return ComponentInstance()
+
+
+def UserCreatePage():
+    return ComponentInstance()

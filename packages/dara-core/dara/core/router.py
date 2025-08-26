@@ -351,18 +351,19 @@ class Router(HasChildRoutes):
 
     router = Router()
 
-    # Add a regular page at '/about'
+    # Add home and public pages
+    router.add_index(content=HomePage)
     router.add_page(path='about', content=AboutPage)
 
-    # Add a layout that wraps child routes without adding URL segments
-    marketing_group = router.add_layout(content=MarketingLayout)
-    marketing_group.add_index(content=MarketingHome) # renders at '/'
-    marketing_group.add_page(path='contact', content=MarketingContact) # renders at '/contact'
+    # Add a layout that wraps authenticated routes
+    dashboard_layout = router.add_layout(content=DashboardLayout)
+    dashboard_layout.add_page(path='dashboard', content=DashboardHome)
+    dashboard_layout.add_page(path='profile', content=UserProfile)
 
-    # Add a prefix group for related routes
-    api_group = router.add_prefix(path='my-api')
-    api_group.add_page(path='users', content=UsersPage)  # renders at '/my-api/users'
-    api_group.add_page(path='posts/:id', content=PostDetail)  # renders at '/my-api/posts/:id'
+    # Add a prefix group for blog routes
+    blog_group = router.add_prefix(path='blog')
+    blog_group.add_index(content=BlogHome)  # renders at '/blog'
+    blog_group.add_page(path='post/:id', content=BlogPost)  # renders at '/blog/post/:id'
     ```
 
     Object API (defining children directly):
@@ -371,24 +372,27 @@ class Router(HasChildRoutes):
     from dara.core.router import Router, IndexRoute, PageRoute, LayoutRoute, PrefixRoute
 
     router = Router(children=[
-        # Regular page at '/about'
+        # Home page
+        IndexRoute(content=HomePage),
+
+        # Public pages
         PageRoute(path='about', content=AboutPage),
 
-        # Layout that wraps child routes without adding URL segments
+        # Layout that wraps authenticated routes
         LayoutRoute(
-            content=MarketingLayout,
+            content=DashboardLayout,
             children=[
-                IndexRoute(content=MarketingHome),  # renders at '/'
-                PageRoute(path='contact', content=MarketingContact)  # renders at '/contact'
+                PageRoute(path='dashboard', content=DashboardHome),
+                PageRoute(path='profile', content=UserProfile)
             ]
         ),
 
-        # Prefix group for related routes
+        # Prefix group for blog routes
         PrefixRoute(
-            path='my-api',
+            path='blog',
             children=[
-                PageRoute(path='users', content=UsersPage),  # renders at '/myapi/users'
-                PageRoute(path='posts/:id', content=PostDetail)  # renders at '/myapi/posts/:id'
+                IndexRoute(content=BlogHome),  # renders at '/blog'
+                PageRoute(path='post/:id', content=BlogPost)  # renders at '/blog/post/:id'
             ]
         )
     ])
@@ -403,6 +407,82 @@ class Router(HasChildRoutes):
         if 'children' not in kwargs:
             kwargs['children'] = routes
         super().__init__(**kwargs)
+
+    def print_route_tree(self):
+        """
+        Print a visual representation of the route tree showing:
+        - Route hierarchy with indentation
+        - Full paths for each route
+        - Content/layout functions
+        - Index routes marked with (index)
+
+        Example output:
+        ```
+        Router
+        ├─ / (index) [HomePage]
+        ├─ /about [AboutPage]
+        ├─ <MarketingLayout>
+        │  ├─ / (index) [MarketingHome]
+        │  └─ /contact [MarketingContact]
+        └─ /my-api/
+           ├─ /my-api/users [UsersPage]
+           └─ /my-api/posts/:id [PostDetail]
+        ```
+        """
+        print('Router')
+        self._print_routes(self.children, prefix='', is_last_child=True)
+
+    def _print_routes(self, routes: List['BaseRoute'], prefix: str = '', is_last_child: bool = True):
+        """Helper method to recursively print route tree structure"""
+        for i, route in enumerate(routes):
+            is_last = i == len(routes) - 1
+
+            # Determine the tree characters
+            if is_last:
+                current_prefix = prefix + '└─ '
+                next_prefix = prefix + '   '
+            else:
+                current_prefix = prefix + '├─ '
+                next_prefix = prefix + '│  '
+
+            # Build the route description based on route type
+            route_content = getattr(route, 'content', None)
+            route_path = getattr(route, 'path', None)
+
+            if isinstance(route, IndexRoute):
+                # Index route: show path with (index) marker
+                full_path = route.full_path or '/'
+                route_info = f'{full_path} (index)'
+                if route_content:
+                    content_name = getattr(route_content, '__name__', str(route_content))
+                    route_info += f' [{content_name}]'
+            elif isinstance(route, LayoutRoute):
+                # Layout route: show in angle brackets
+                if route_content:
+                    content_name = getattr(route_content, '__name__', str(route_content))
+                    route_info = f'<{content_name}>'
+                else:
+                    route_info = '<Layout>'
+            elif isinstance(route, PrefixRoute):
+                # Prefix route: show path with trailing slash
+                full_path = route.full_path or f'/{route_path}'
+                if not full_path.endswith('/'):
+                    full_path += '/'
+                route_info = full_path
+            else:
+                # Page route: show path and content
+                full_path = route.full_path or f'/{route_path}'
+                route_info = full_path
+                if route_content:
+                    content_name = getattr(route_content, '__name__', str(route_content))
+                    route_info += f' [{content_name}]'
+
+            print(current_prefix + route_info)
+
+            # Recursively print children if they exist
+            route_children = getattr(route, 'children', None)
+            if route_children:
+                self._print_routes(route_children, next_prefix, is_last)
 
 
 OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
