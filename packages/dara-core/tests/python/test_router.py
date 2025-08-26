@@ -1,5 +1,12 @@
+from typing import List
+
+from dara.core.configuration import ConfigurationBuilder
+from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
-from dara.core.router import IndexRoute, LayoutRoute, PageRoute, PrefixRoute, Router
+from dara.core.router import IndexRoute, LayoutRoute, Outlet, PageRoute, PrefixRoute, Router, convert_template_to_router
+from dara.core.visual.components.router_content import RouterContent
+from dara.core.visual.components.sidebar_frame import SideBarFrame
+from dara.core.visual.template import TemplateBuilder
 
 
 # Mock component functions for testing - return ComponentInstance objects
@@ -264,3 +271,128 @@ def AdminHomePage():
 
 def UserCreatePage():
     return ComponentInstance()
+
+
+class TestTemplateToRouterConversion:
+    """Test conversion from old template system to new Router structure"""
+
+    def test_default_template_conversion(self):
+        """Test converting a template with RouterContent to Router"""
+        # Create template routes (what would be in RouterContent)
+        builder = ConfigurationBuilder()
+        builder.add_page('Home', HomePage())
+        builder.add_page('About', AboutPage())
+        config = builder._to_configuration()
+
+        template = default_template(config)
+
+        # Convert to router
+        router = convert_template_to_router(template)
+
+        # Verify structure: should be a root LayoutRoute with PageRoute children
+        assert len(router.children) == 1
+
+        root_layout = router.children[0]
+        assert isinstance(root_layout, LayoutRoute)
+
+        # The layout content should be transformed (where frame's content is converted RouterContent → Outlet)
+        assert callable(root_layout.content)
+        layout_result = root_layout.content()
+        assert isinstance(layout_result, SideBarFrame)
+        assert isinstance(layout_result.content, Outlet)
+
+        # Should have page children extracted from RouterContent.routes
+        assert len(root_layout.children) == 2
+
+        home_route = root_layout.children[0]
+        about_route = root_layout.children[1]
+
+        assert isinstance(home_route, PageRoute)
+        assert isinstance(about_route, PageRoute)
+
+        assert home_route.path == 'home'
+        assert home_route.full_path == '/home'
+
+        assert about_route.path == 'about'
+        assert about_route.full_path == '/about'
+
+    def test_template_with_index_route_conversion(self):
+        """Test converting template with index route (root path)"""
+
+        builder = ConfigurationBuilder()
+        builder.add_page('', HomePage())
+        builder.add_page('About', AboutPage())
+        config = builder._to_configuration()
+
+        template = default_template(config)
+
+        router = convert_template_to_router(template)
+
+        root_layout = router.children[0]
+        assert isinstance(root_layout, LayoutRoute)
+        assert len(root_layout.children) == 2
+
+        index_route = root_layout.children[0]
+        about_route = root_layout.children[1]
+
+        assert isinstance(index_route, IndexRoute)
+        assert index_route.full_path == '/'
+
+        assert isinstance(about_route, PageRoute)
+        assert about_route.path == 'about'
+        assert about_route.full_path == '/about'
+
+    def test_custom_template_conversion(self):
+        """Test conversion of a custom template"""
+        builder = ConfigurationBuilder()
+
+        class Stack(ComponentInstance):
+            children: List[ComponentInstance]
+
+        def template_renderer(config):
+            builder = TemplateBuilder(name='side-bar')
+
+            # Using the TemplateBuilder's helper method - add_router_from_pages
+            # to construct a router of page definitions
+            router = builder.add_router_from_pages(list(config.pages.values()))
+
+            builder.layout = Stack(
+                children=[
+                    Stack(children=[RouterContent(routes=router.content)]),
+                ]
+            )
+
+            return builder.to_template()
+
+        builder.add_template_renderer('custom', template_renderer)
+        builder.template = 'custom'
+
+        builder.add_page('Home', HomePage())
+
+        config = builder._to_configuration()
+
+        template = template_renderer(config)
+
+        router = convert_template_to_router(template)
+
+        # Should extract routes from nested RouterContent
+        root_layout = router.children[0]
+        assert isinstance(root_layout, LayoutRoute)
+        assert len(root_layout.children) == 1
+
+        root_layout_result = root_layout.content()
+        assert isinstance(root_layout_result, Stack)
+        assert len(root_layout_result.children) == 1
+
+        root_layout_result_child = root_layout_result.children[0]
+        assert isinstance(root_layout_result_child, Stack)
+        assert len(root_layout_result_child.children) == 1
+
+        router_content = root_layout_result_child.children[0]
+        assert isinstance(router_content, Outlet)
+
+        home_route = root_layout.children[0]
+        assert isinstance(home_route, PageRoute)
+        assert home_route.path == 'home'
+        assert home_route.full_path == '/home'
+        assert isinstance(home_route.content(), ComponentInstance)

@@ -36,6 +36,7 @@ from typing import (
 from fastapi.middleware import Middleware
 from pydantic import ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
+from typing_extensions import deprecated
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
@@ -165,7 +166,7 @@ class ConfigurationBuilder:
     startup_functions: List[Callable]
     context_components: List[ComponentInstance]
     task_module: Optional[str]
-    template: str
+    _template: str
     theme: BaseTheme
     title: str
 
@@ -197,9 +198,19 @@ class ConfigurationBuilder:
         self._custom_ws_handlers = {}
         self._custom_encoders = {}
 
-        self.template = 'default'
+        self._template = 'default'
         self.theme = BaseTheme(main='light')
         self.title = 'decisionApp'
+
+    @property
+    @deprecated('Use `config.router` instead and set a root layout route.')
+    def template(self):
+        return self._template
+
+    @template.setter
+    @deprecated('Use `config.router = Router()` instead and set a root layout route.')
+    def template(self, value):
+        self._template = value
 
     def add_action(self, action: Type[ActionImpl], local: bool = False):
         """
@@ -384,6 +395,7 @@ class ConfigurationBuilder:
         """
         self._package_tags_processors.append(processor)
 
+    @deprecated('Use `config.router = Router()` instead.')
     def add_page(
         self,
         name: str,
@@ -440,6 +452,7 @@ class ConfigurationBuilder:
         self._pages[name] = page
         return page
 
+    @deprecated('Use `config.router = Router()` and set a root layout route instead.')
     def add_template_renderer(self, name: str, template_renderer: Callable[..., Template]) -> str:
         """
         Add a new template renderer that can be selected by name as part of the configuration. By default calling this
