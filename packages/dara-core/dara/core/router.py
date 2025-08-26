@@ -1,8 +1,25 @@
-from typing import Callable, List, Literal, Optional
+from typing import Callable, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
-from dara.core.definitions import ComponentInstance
+from dara.core.definitions import ComponentInstance, JsComponentDef
+
+
+class RouterPath(BaseModel):
+    path: str
+    """
+    A URL pathname, beginning with '/'.
+    """
+
+    search: str
+    """
+    A URL search string, beginning with '?'.
+    """
+
+    hash: str
+    """
+    A URL hash string, beginning with '#'.
+    """
 
 
 class BaseRoute(BaseModel):
@@ -10,9 +27,58 @@ class BaseRoute(BaseModel):
     id: Optional[str] = None
     metadata: dict = Field(default_factory=dict)
 
+    _parent: Optional['BaseRoute'] = PrivateAttr(default=None)
+
+    def _attach_to_parent(self, parent):
+        """Internal method to attach route to parent"""
+        self._parent = parent
+        # Recursively attach any existing children
+        children = getattr(self, 'children', None)
+        if children:
+            for child in children:
+                child._attach_to_parent(self)
+
+    @property
+    def full_path(self) -> Optional[str]:
+        """
+        Compute the full path from root to this route.
+        Returns None if route is not attached to a router.
+        """
+        if not hasattr(self, '_parent') or self._parent is None:
+            return None  # Route is not attached
+
+        path_segments = []
+        current = self
+
+        while current is not None:
+            route_path = getattr(current, 'path', None)
+            if route_path:
+                path_segments.append(route_path)
+            current = getattr(current, '_parent', None)
+
+        path_segments.reverse()
+        full = '/' + '/'.join(path_segments) if path_segments else '/'
+        return full.replace('//', '/')
+
+    @property
+    def is_attached(self) -> bool:
+        """Check if this route is attached to a router"""
+        return hasattr(self, '_parent') and self._parent is not None
+
 
 class HasChildRoutes(BaseModel):
     children: List['BaseRoute'] = Field(default_factory=list)
+
+    def __init__(self, *children: list[BaseRoute], **kwargs):
+        routes = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = routes
+        super().__init__(**kwargs)
+
+    def model_post_init(self, __context):
+        """Automatically attach all children after construction"""
+        for child in self.children:
+            child._attach_to_parent(self)
 
     def add_page(
         self,
@@ -42,6 +108,7 @@ class HasChildRoutes(BaseModel):
             id=id,
             metadata=metadata,
         )
+        route._attach_to_parent(self)
         self.children.append(route)
         return route
 
@@ -92,6 +159,7 @@ class HasChildRoutes(BaseModel):
             id=id,
             metadata=metadata,
         )
+        route._attach_to_parent(self)
         self.children.append(route)
         return route
 
@@ -128,12 +196,14 @@ class HasChildRoutes(BaseModel):
         if metadata is None:
             metadata = {}
         route = PrefixRoute(path=path, case_sensitive=case_sensitive, id=id, metadata=metadata)
+        route._attach_to_parent(self)
         self.children.append(route)
         return route
 
     def add_index(
         self,
         *,
+        content: Optional[Callable[..., ComponentInstance]] = None,
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
@@ -161,7 +231,8 @@ class HasChildRoutes(BaseModel):
         """
         if metadata is None:
             metadata = {}
-        route = IndexRoute(case_sensitive=case_sensitive, id=id, metadata=metadata)
+        route = IndexRoute(content=content, case_sensitive=case_sensitive, id=id, metadata=metadata)
+        route._attach_to_parent(self)
         self.children.append(route)
         return route
 
@@ -197,6 +268,12 @@ class PageRoute(BaseRoute, HasChildRoutes):
     path: str
     content: Callable[..., ComponentInstance]
 
+    def __init__(self, *children: BaseRoute, **kwargs):
+        routes = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = routes
+        super().__init__(**kwargs)
+
 
 class LayoutRoute(BaseRoute, HasChildRoutes):
     """
@@ -227,6 +304,12 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
 
     content: Callable[..., ComponentInstance]
 
+    def __init__(self, *children: BaseRoute, **kwargs):
+        routes = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = routes
+        super().__init__(**kwargs)
+
 
 class PrefixRoute(BaseRoute, HasChildRoutes):
     """
@@ -248,6 +331,12 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
     """
 
     path: str
+
+    def __init__(self, *children: BaseRoute, **kwargs):
+        routes = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = routes
+        super().__init__(**kwargs)
 
 
 class Router(HasChildRoutes):
@@ -308,3 +397,88 @@ class Router(HasChildRoutes):
     Both approaches create the same routing structure. The fluent API is more readable for
     building routes step by step, while the object API is more declarative and compact.
     """
+
+    def __init__(self, *children: BaseRoute, **kwargs):
+        routes = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = routes
+        super().__init__(**kwargs)
+
+
+OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
+
+
+class Outlet(ComponentInstance):
+    """
+    Outlet component is a placeholder for the content of the current route.
+    """
+
+
+LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
+
+
+class Link(ComponentInstance):
+    """
+    Link component is a wrapper around the NavLink component that displays a link to the specified route.
+    """
+
+    case_sensitive: bool = False
+
+    children: List[ComponentInstance]
+
+    end: bool = False
+    """
+    Changes the matching logic for the 'active' state to only match the end of the 'to' prop.
+    If the URL is longer, it will not be considered active.
+
+    For example, NavLink(to='/tasks') while on '/tasks/123' will:
+    - with `end=False`, be considered active because of the partial match of the `/tasks` part
+    - with `end=True`, be considered inactive because of the missing '123' part
+    """
+
+    prefetch: Literal['none', 'intent', 'render', 'viewport'] = 'none'
+    """
+    Defines the data and module prefetching behavior for the link.
+    - none — default, no prefetching
+    - intent — prefetches when the user hovers or focuses the link
+    - render — prefetches when the link renders
+    - viewport — prefetches when the link is in the viewport, very useful for mobile
+    """
+
+    relative: Literal['route', 'path'] = 'route'
+    """
+    Defines the relative path behavior for the link.
+
+    ```python
+    Link(to='..') # default, relative='route'
+    Link(to='..', relative='path')
+    ```
+
+    Consider a route hierarchy where a parent route pattern is "blog" and a child route pattern is "blog/:slug/edit".
+    - route — default, resolves the link relative to the route pattern. In the example above, a relative link of "..." will remove both :slug/edit segments back to "/blog".
+    - path — relative to the path so "..." will only remove one URL segment up to "/blog/:slug"
+    Note that index routes and layout routes do not have paths so they are not included in the relative path calculation.
+    """
+
+    replace: bool = False
+    """
+    Replaces the current entry in the history stack instead of pushing a new one.
+
+    ```
+    # with a history stack like this
+    A -> B
+
+    # normal link click pushes a new entry
+    A -> B -> C
+
+    # but with `replace`, B is replaced by C
+    A -> C
+    ```
+    """
+
+    to: Union[str, RouterPath]
+    """
+    Can be a string or RouterPath object
+    """
+
+    # TODO: add scroll restoration if it works?

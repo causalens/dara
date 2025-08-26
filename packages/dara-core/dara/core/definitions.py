@@ -38,12 +38,14 @@ from typing import (
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Depends
 from pydantic import (
+    BeforeValidator,
     ConfigDict,
     Field,
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
 )
+from typing_extensions import Annotated
 
 from dara.core.base_definitions import Action, ComponentType
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -74,6 +76,25 @@ def _kebab_to_camel(string: str):
     return chunks[0] + ''.join([chunk[0].upper() + chunk[1:].lower() for chunk in chunks[1:]])
 
 
+# TODO:  add reusable validator for raw_css, use for active/inactive links in navlink
+
+
+def transform_raw_css(value: Any):
+    """
+    Transform and validate a raw_css value.
+    """
+    from dara.core.interactivity.client_variable import ClientVariable
+
+    if value is None:
+        return None
+    if isinstance(value, (str, ClientVariable, CSSProperties)):
+        return value
+    if isinstance(value, dict):
+        return {_kebab_to_camel(k): v for k, v in value.items()}
+
+    raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(value)}')
+
+
 class ErrorHandlingConfig(BaseModel):
     title: str = DEFAULT_ERROR_TITLE
     """Title to display in the error boundary"""
@@ -81,25 +102,11 @@ class ErrorHandlingConfig(BaseModel):
     description: str = DEFAULT_ERROR_DESCRIPTION
     """Description to display in the error boundary"""
 
-    raw_css: Optional[Any] = None
+    raw_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
     """
     Raw styling to apply to the displayed error boundary.
     Accepts a CSSProperties, dict, str, or ClientVariable.
     """
-
-    @field_validator('raw_css', mode='before')
-    @classmethod
-    def validate_raw_css(cls, value):
-        from dara.core.interactivity.client_variable import ClientVariable
-
-        if value is None:
-            return None
-        if isinstance(value, (str, ClientVariable, CSSProperties)):
-            return value
-        if isinstance(value, dict):
-            return {_kebab_to_camel(k): v for k, v in value.items()}
-
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(value)}')
 
     def model_dump(self, *args, **kwargs):
         result = super().model_dump(*args, **kwargs)
@@ -141,7 +148,7 @@ class ComponentInstance(BaseModel):
     required_routes: ClassVar[List[ApiRoute]] = []
     """List of routes the component depends on. Will be implicitly added to the app if this component is used"""
 
-    raw_css: Optional[Any] = None
+    raw_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
     """
     Raw styling to apply to the component.
     Can be an dict/CSSProperties instance representing the `styles` tag, a string injected directly into the CSS of the wrapping component,
@@ -212,23 +219,6 @@ class ComponentInstance(BaseModel):
             return Fallback.Custom(component=fallback)
 
         raise ValueError(f'fallback must be a BaseFallback or ComponentInstance, got {type(fallback)}')
-
-    @field_validator('raw_css', mode='before')
-    @classmethod
-    def parse_css(cls, css: Optional[Any]):
-        from dara.core.interactivity.client_variable import ClientVariable
-
-        if css is None:
-            return None
-
-        # If it's a plain dict, change kebab case to camel case
-        if isinstance(css, dict):
-            return {_kebab_to_camel(k): v for k, v in css.items()}
-
-        if isinstance(css, (ClientVariable, CSSProperties, str)):
-            return css
-
-        raise ValueError(f'raw_css must be a CSSProperties, dict, str, None or ClientVariable, got {type(css)}')
 
     @classmethod
     def isinstance(cls, obj: Any) -> bool:

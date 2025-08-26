@@ -63,6 +63,7 @@ from dara.core.internal.import_discovery import (
 from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
+from dara.core.router import Router
 from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
 
@@ -80,6 +81,7 @@ class Configuration(BaseModel):
     module_dependencies: Dict[str, str]
     live_reload: bool
     powered_by_causalens: bool
+    router: Optional[Router]
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -157,6 +159,7 @@ class ConfigurationBuilder:
     _custom_encoders: Dict[Type[Any], Encoder]
     _middlewares: List[Middleware]
     routes: Set[ApiRoute]
+    router: Optional[Router]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
     startup_functions: List[Callable]
@@ -182,6 +185,7 @@ class ConfigurationBuilder:
         self._template_renderers = {}
         self._endpoint_configurations = []
         self.routes = set()
+        self.router = None
         self.static_files_dir = os.path.join(pathlib.Path().parent.parent.absolute(), 'dist')
         self._static_folders = []
         self._middlewares = []
@@ -570,10 +574,11 @@ class ConfigurationBuilder:
             enable_devtools=self.enable_devtools,
             module_dependencies=self._module_dependencies,
             live_reload=self.live_reload,
+            pages=self._pages,
             powered_by_causalens=self.powered_by_causalens,
             package_tag_processors=self._package_tags_processors,
-            pages=self._pages,
             routes=self.routes,
+            router=self.router,
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,
             startup_functions=self.startup_functions,

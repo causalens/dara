@@ -259,6 +259,62 @@ def _start_application(config: Configuration):
     for key, value in encoder_registry.items():
         ENCODERS_BY_TYPE[key] = value['serialize']
 
+    # Loop over registered components and add to the registry
+    eng_logger.info(f'Registering components [{", ".join([c.name for c in config.components])}]')
+    for component in config.components:
+        component_registry.register(component.name, component)
+
+    # Loop over registered actions and add to the registry
+    eng_logger.info(f'Registering actions [{", ".join([a.name for a in config.actions])}]')
+    for action in config.actions:
+        action_def_registry.register(action.name, action)
+
+    dev_logger.info(f'Using {config.auth_config.__class__.__name__} auth configuration')
+    auth_registry.register('auth_config', config.auth_config)
+
+    # Handle pages/router compatibility
+    if len(config.pages) > 0:
+        if config.router is None:
+            # TODO: legacy logic, transform template to a router
+            try:
+                eng_logger.info('Registering template')
+
+                # Add the default templates
+                if config.template == 'default':
+                    eng_logger.info('Registering template "default"')
+                    template_registry.register('default', default_template(config))
+                elif config.template == 'blank':
+                    eng_logger.info('Registering template "blank"')
+                    template_registry.register('blank', blank_template(config))
+                elif config.template == 'top':
+                    eng_logger.info('Registering template "top"')
+                    template_registry.register('top', top_template(config))
+                elif config.template == 'top-menu':
+                    eng_logger.info('Registering template "top-menu"')
+                    template_registry.register('top-menu', top_menu_template(config))
+                else:
+                    # Loop over user defined templates and add to the registry
+                    for name, renderer in config.template_renderers.items():
+                        if name == config.template:
+                            eng_logger.info(f'Registering custom template "{name}"')
+                            template_registry.register(name, renderer(config))
+                            break
+                    else:
+                        raise ValueError(f'Unknown template renderer: {config.template}')
+            except Exception as e:
+                import traceback
+
+                traceback.print_exc()
+                dev_logger.error(
+                    'Something went wrong when building application template, there is most likely an issue in the application logic',
+                    e,
+                )
+                sys.exit(1)
+        else:
+            raise ValueError(
+                'ConfigurationBuilder.add_page is not compatible with a custom router, add_page is supported for backwards compatibility but the preferred API going forward is setting `config.router`'
+            )
+
     # Generate a new build_cache
     try:
         build_cache = BuildCache.from_config(config)
@@ -274,55 +330,8 @@ def _start_application(config: Configuration):
                 },
             )
             rebuild_js(build_cache, build_diff)
-
     except Exception as e:
         dev_logger.error('Error building JS', error=e)
-        sys.exit(1)
-
-    # Loop over registered components and add to the registry
-    eng_logger.info(f'Registering components [{", ".join([c.name for c in config.components])}]')
-    for component in config.components:
-        component_registry.register(component.name, component)
-
-    # Loop over registered actions and add to the registry
-    eng_logger.info(f'Registering actions [{", ".join([a.name for a in config.actions])}]')
-    for action in config.actions:
-        action_def_registry.register(action.name, action)
-
-    dev_logger.info(f'Using {config.auth_config.__class__.__name__} auth configuration')
-    auth_registry.register('auth_config', config.auth_config)
-
-    try:
-        eng_logger.info('Registering template')
-
-        # Add the default templates
-        if config.template == 'default':
-            eng_logger.info('Registering template "default"')
-            template_registry.register('default', default_template(config))
-        elif config.template == 'blank':
-            eng_logger.info('Registering template "blank"')
-            template_registry.register('blank', blank_template(config))
-        elif config.template == 'top':
-            eng_logger.info('Registering template "top"')
-            template_registry.register('top', top_template(config))
-        elif config.template == 'top-menu':
-            eng_logger.info('Registering template "top-menu"')
-            template_registry.register('top-menu', top_menu_template(config))
-        else:
-            # Loop over user defined templates and add to the registry
-            for name, renderer in config.template_renderers.items():
-                if name == config.template:
-                    eng_logger.info(f'Registering custom template "{name}"')
-                    template_registry.register(name, renderer(config))
-
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        dev_logger.error(
-            'Something went wrong when building application template, there is most likely an issue in the application logic',
-            e,
-        )
         sys.exit(1)
 
     # Root routes
