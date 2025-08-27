@@ -22,7 +22,7 @@ export interface VariableTaskEntry {
 }
 
 interface GlobalTaskProviderProps {
-    children: JSX.Element;
+    children: React.ReactNode;
     tasks?: Set<string>;
     variableTaskMap?: Map<string, Array<VariableTaskEntry>>;
 }

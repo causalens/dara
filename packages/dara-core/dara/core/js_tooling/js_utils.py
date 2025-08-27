@@ -631,7 +631,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
             shutil.copy(css_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.css'))
 
 
-def build_autojs_template(html_template: str, build_cache: BuildCache, config: Configuration) -> str:
+def build_autojs_template(html_template: str, build_cache: BuildCache, config: Configuration, dara_data: str) -> str:
     """
     Build the autojs html template by replacing $$assets$$ with required tags based on packages loaded
     and including the startup script
@@ -639,6 +639,7 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
     :param html_template: html template to fill out
     :param build_cache: build cache
     :param config: app configuration
+    :param dara_data: initial data to inject into the template
     """
     settings = get_settings()
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
@@ -693,4 +694,11 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
         f'<link id="favicon" rel="icon" type="image/x-icon" href="{settings.dara_base_url}/static/favicon.ico"></link>'
     )
 
-    return html_template.replace('$$assets$$', '\n'.join(tags)).replace('$$baseUrl$$', settings.dara_base_url)
+    # add a tag with template data
+    dara_data_tag = f'<script id="__DARA_DATA__" type="application/json">{dara_data}</script>'
+
+    return (
+        html_template.replace('$$assets$$', '\n'.join(tags))
+        .replace('$$baseUrl$$', settings.dara_base_url)
+        .replace('$$dara_data$$', dara_data_tag)
+    )

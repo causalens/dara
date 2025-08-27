@@ -13,4 +13,8 @@ function DefaultFallback(props: DefaultFallbackProps): JSX.Element {
     return <StyledDots $rawCss={css} style={style} />;
 }
 
+export function DefaultFallbackStatic(): JSX.Element {
+    return <StyledDots />;
+}
+
 export default DefaultFallback;

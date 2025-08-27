@@ -57,42 +57,6 @@ function shouldRedirectToLogin(message: AuthenticationError): boolean {
     );
 }
 
-/**
- * Separate from the main component system, since we can't use component registry
- */
-export interface AuthComponent {
-    js_module: string;
-    js_name: string;
-    py_module: string;
-}
-
-interface AuthComponents {
-    [route: string]: AuthComponent;
-    login: AuthComponent;
-    logout: AuthComponent;
-}
-
-interface AuthConfig {
-    auth_components: AuthComponents;
-}
-
-/**
- * Fetch components to use for authentication
- */
-export function useAuthConfig(): UseQueryResult<AuthConfig> {
-    return useQuery(
-        ['auth-config'],
-        async () => {
-            const response = await request('/api/core/auth-config', {
-                method: HTTP_METHOD.GET,
-            });
-
-            return response.json();
-        },
-        { refetchOnWindowFocus: false }
-    );
-}
-
 interface RedirectResponse {
     redirect_uri: string;
 }

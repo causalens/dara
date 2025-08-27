@@ -207,33 +207,12 @@ def create_router(config: Configuration):
         except (KeyError, ValueError) as e:
             raise ValueError('Invalid or expired download code') from e
 
-    @core_api_router.get('/config', dependencies=[Depends(verify_session)])
-    async def get_config():
-        return {
-            **config.model_dump(
-                include={
-                    'enable_devtools',
-                    'live_reload',
-                    'template',
-                    'theme',
-                    'title',
-                    'context_components',
-                    'powered_by_causalens',
-                }
-            ),
-            'application_name': get_settings().project_name,
-        }
-
-    @core_api_router.get('/auth-config')
-    async def get_auth_config():
-        return {
-            'auth_components': config.auth_config.component_config.model_dump(),
-        }
-
-    @core_api_router.get('/components', dependencies=[Depends(verify_session)])
-    async def get_components(name: Optional[str] = None):
+    @core_api_router.get('/components/{component}/definition', dependencies=[Depends(verify_session)])
+    async def get_component_definition(name: str):
         """
-        If name is passed, will try to register the component
+        Attempt to refetch a component definition from the backend.
+        This is used when a component isn't immediately available in the initial registry,
+        e.g. when it was added by a py_component.
 
         :param name: the name of component
         """

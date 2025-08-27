@@ -3,12 +3,11 @@ import { transparentize } from 'polished';
 import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { useConfig } from '@/api';
 import CausalensDark from '@/assets/causalens-dark.svg';
 import CausalensLight from '@/assets/causalens-light.svg';
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme, useConfig } from '@/shared';
 import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
 
@@ -118,7 +117,7 @@ const LogoutArrow = getIcon('fa-solid fa-arrow-right-from-bracket');
  */
 function SideBarFrame(props: SideBarFrameProps): JSX.Element {
     const theme = useTheme();
-    const { data: config } = useConfig();
+    const config = useConfig();
     const logo = props.logo_path && (
         <LogoImage alt="Logo" src={prependBaseUrl(props.logo_path)} width={props.logo_width} />
     );

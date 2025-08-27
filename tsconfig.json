@@ -11,8 +11,8 @@
       "DOM",
       "ESNext"
     ],
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "preserve",
+    "moduleDetection": "force",
     "noImplicitAny": true,
     "preserveSymlinks": true,
     "skipLibCheck": true,

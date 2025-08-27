@@ -14,11 +14,11 @@ import { ErrorBoundary } from 'react-error-boundary';
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker/progress-tracker';
-import { FallbackCtx, ImportersCtx, VariableCtx, useTaskContext } from '@/shared/context';
+import { FallbackCtx, ImportersCtx, VariableCtx, useRegistriesCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
+import { isJsComponent, useInterval } from '@/shared/utils';
 import { type Component, type ComponentInstance, type DerivedVariable, isDerivedVariable } from '@/types';
 import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
@@ -267,7 +267,7 @@ function getFallbackComponent(
 function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
-    const { get: getComponent } = useComponentRegistry();
+    const { getComponent } = useRegistriesCtx();
 
     // Try sync resolution first
     const [component, setComponent] = useState<JSX.Element | null>(() => resolveComponentSync(props.component));

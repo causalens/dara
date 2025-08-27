@@ -1,15 +1,11 @@
 import { useEffect } from 'react';
 
-import { useConfig } from '@/api';
+import { useConfig } from '../context/config-context';
 
 function useWindowTitle(pageTitle: string | undefined): void {
-    const { data: config } = useConfig();
+    const config = useConfig();
 
     useEffect(() => {
-        if (!config) {
-            return;
-        }
-
         if (!pageTitle) {
             document.title = config.title;
             return;

@@ -1,8 +1,14 @@
-from typing import Callable, List, Literal, Optional, Union
+from abc import abstractmethod
+from typing import Callable, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, SerializeAsAny, SerializerFunctionWrapHandler, model_serializer
 
+from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance, JsComponentDef
+from dara.core.interactivity import Variable
+
+# TODO: injection validation based on path :param parts
+# TODO: restrict /api top-level prefix?
 
 
 class RouterPath(BaseModel):
@@ -22,10 +28,22 @@ class RouterPath(BaseModel):
     """
 
 
+class RouteData(BaseModel):
+    """
+    Data structure representing a route in the router
+    """
+
+    content: Optional[ComponentInstance] = None
+    on_load: Optional[Action] = None
+
+
 class BaseRoute(BaseModel):
     case_sensitive: bool = False
     id: Optional[str] = None
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict = Field(default_factory=dict, exclude=True)
+    on_load: Optional[Action] = Field(exclude=True)
+
+    compiled_data: Optional[RouteData] = Field(default=None, exclude=True)
 
     _parent: Optional['BaseRoute'] = PrivateAttr(default=None)
 
@@ -37,6 +55,24 @@ class BaseRoute(BaseModel):
         if children:
             for child in children:
                 child._attach_to_parent(self)
+
+    def get_identifier(self):
+        if self.id:
+            return self.id
+
+        if path := self.full_path:
+            return self.__class__.__name__ + '_' + path
+
+        raise ValueError('Identifier cannot be determined, route is not attached to a router')
+
+    @abstractmethod
+    def compile(self): ...
+
+    @property
+    def route_data(self) -> RouteData:
+        if self.compiled_data is None:
+            raise ValueError(f'Route {self.full_path} has not been compiled')
+        return self.compiled_data
 
     @property
     def full_path(self) -> Optional[str]:
@@ -65,9 +101,18 @@ class BaseRoute(BaseModel):
         """Check if this route is attached to a router"""
         return hasattr(self, '_parent') and self._parent is not None
 
+    @model_serializer(mode='wrap')
+    def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
+        props = nxt(self)
+        props['__typename'] = self.__class__.__name__
+        # ID defaults to full path when serializing
+        if not props.get('id'):
+            props['id'] = self.get_identifier()
+        return props
+
 
 class HasChildRoutes(BaseModel):
-    children: List['BaseRoute'] = Field(default_factory=list)
+    children: SerializeAsAny[List['BaseRoute']] = Field(default_factory=list)
 
     def __init__(self, *children: list[BaseRoute], **kwargs):
         routes = list(children)
@@ -88,6 +133,7 @@ class HasChildRoutes(BaseModel):
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
+        on_load: Optional[Action] = None,
     ):
         """
         Standard route with a unique URL segment and content to render
@@ -107,6 +153,7 @@ class HasChildRoutes(BaseModel):
             case_sensitive=case_sensitive,
             id=id,
             metadata=metadata,
+            on_load=on_load,
         )
         route._attach_to_parent(self)
         self.children.append(route)
@@ -119,6 +166,7 @@ class HasChildRoutes(BaseModel):
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
+        on_load: Optional[Action] = None,
     ):
         """
         Layout route creates a route with a layout component to render without adding any segments to the URL
@@ -158,6 +206,7 @@ class HasChildRoutes(BaseModel):
             case_sensitive=case_sensitive,
             id=id,
             metadata=metadata,
+            on_load=on_load,
         )
         route._attach_to_parent(self)
         self.children.append(route)
@@ -170,6 +219,7 @@ class HasChildRoutes(BaseModel):
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
+        on_load: Optional[Action] = None,
     ):
         """
         Prefix route creates a group of routes with a common prefix without a specific component to render
@@ -195,7 +245,7 @@ class HasChildRoutes(BaseModel):
         """
         if metadata is None:
             metadata = {}
-        route = PrefixRoute(path=path, case_sensitive=case_sensitive, id=id, metadata=metadata)
+        route = PrefixRoute(path=path, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load)
         route._attach_to_parent(self)
         self.children.append(route)
         return route
@@ -203,10 +253,11 @@ class HasChildRoutes(BaseModel):
     def add_index(
         self,
         *,
-        content: Optional[Callable[..., ComponentInstance]] = None,
+        content: Callable[..., ComponentInstance],
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
+        on_load: Optional[Action] = None,
     ):
         """
         Index routes render into their parent's Outlet() at their parent URL (like a default child route).
@@ -231,7 +282,7 @@ class HasChildRoutes(BaseModel):
         """
         if metadata is None:
             metadata = {}
-        route = IndexRoute(content=content, case_sensitive=case_sensitive, id=id, metadata=metadata)
+        route = IndexRoute(content=content, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load)
         route._attach_to_parent(self)
         self.children.append(route)
         return route
@@ -257,7 +308,10 @@ class IndexRoute(BaseRoute):
     """
 
     index: Literal[True] = True
-    content: Optional[Callable[..., ComponentInstance]] = None
+    content: Callable[..., ComponentInstance] = Field(exclude=True)
+
+    def compile(self):
+        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
 
 
 class PageRoute(BaseRoute, HasChildRoutes):
@@ -266,13 +320,18 @@ class PageRoute(BaseRoute, HasChildRoutes):
     """
 
     path: str
-    content: Callable[..., ComponentInstance]
+    content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
         if 'children' not in kwargs:
             kwargs['children'] = routes
         super().__init__(**kwargs)
+
+    def compile(self):
+        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
+        for child in self.children:
+            child.compile()
 
 
 class LayoutRoute(BaseRoute, HasChildRoutes):
@@ -302,13 +361,18 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     - Project and EditProject will be rendered into the ProjectLayout outlet while ProjectsHome will not.
     """
 
-    content: Callable[..., ComponentInstance]
+    content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
         if 'children' not in kwargs:
             kwargs['children'] = routes
         super().__init__(**kwargs)
+
+    def compile(self):
+        self.compiled_data = RouteData(on_load=self.on_load)
+        for child in self.children:
+            child.compile()
 
 
 class PrefixRoute(BaseRoute, HasChildRoutes):
@@ -337,6 +401,11 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
         if 'children' not in kwargs:
             kwargs['children'] = routes
         super().__init__(**kwargs)
+
+    def compile(self):
+        self.compiled_data = RouteData(on_load=self.on_load)
+        for child in self.children:
+            child.compile()
 
 
 class Router(HasChildRoutes):
@@ -407,6 +476,32 @@ class Router(HasChildRoutes):
         if 'children' not in kwargs:
             kwargs['children'] = routes
         super().__init__(**kwargs)
+
+    def compile(self):
+        """
+        Compile the route tree into a data structure ready for matching:
+        - executes all page functions
+        - flattens the tree
+        """
+        for child in self.children:
+            child.compile()
+
+    def to_route_map(self) -> Dict[str, RouteData]:
+        routes: Dict[str, RouteData] = {}
+
+        def _walk(route: BaseRoute):
+            identifier = route.get_identifier()
+
+            routes[identifier] = route.route_data
+
+            if isinstance(route, HasChildRoutes):
+                for child in route.children:
+                    _walk(child)
+
+        for route in self.children:
+            _walk(route)
+
+        return routes
 
     def print_route_tree(self):
         """
@@ -563,6 +658,9 @@ class Link(ComponentInstance):
 
     # TODO: add scroll restoration if it works?
 
+def execute_route_func(func: Callable[..., ComponentInstance]):
+    # TODO: inject variables
+    return func()
 
 def convert_template_to_router(template):
     """
@@ -630,3 +728,12 @@ def convert_template_to_router(template):
             root_layout.add_page(path=route_path, content=content_wrapper)
 
     return router
+
+
+# required to make pydantic happy
+IndexRoute.model_rebuild()
+PageRoute.model_rebuild()
+LayoutRoute.model_rebuild()
+PrefixRoute.model_rebuild()
+RouteData.model_rebuild()
+Router.model_rebuild()

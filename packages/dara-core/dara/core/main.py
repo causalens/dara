@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import asyncio
+import json
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -26,12 +27,14 @@ from pathlib import Path
 from typing import Optional
 
 from anyio import create_task_group
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.encoders import ENCODERS_BY_TYPE
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
+from pydantic import BaseModel
 from starlette.templating import Jinja2Templates, _TemplateResponse
+from typing_extensions import Annotated
 
 from dara.core.auth import auth_router
 from dara.core.configuration import Configuration, ConfigurationBuilder
@@ -46,6 +49,7 @@ from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.normalization import normalize
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.registries import (
     action_def_registry,
@@ -72,6 +76,7 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+from dara.core.router import convert_template_to_router
 
 
 def _start_application(config: Configuration):
@@ -94,18 +99,9 @@ def _start_application(config: Configuration):
     import fastapi_vite_dara
     import fastapi_vite_dara.config
 
-    if len(config.pages) > 0:
-        BASE_DIR = Path(__file__).parent
-        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
-        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
-        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
-        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
-        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
-        jinja_templates.env.globals['entry'] = '_entry.tsx'
-
-        # If --enable-hmr or --reload enabled, set live reload to true
-        if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
-            config.live_reload = True
+    # If --enable-hmr or --reload enabled, set live reload to true
+    if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
+        config.live_reload = True
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
@@ -274,46 +270,45 @@ def _start_application(config: Configuration):
 
     # Handle pages/router compatibility
     if len(config.pages) > 0:
-        if config.router is None:
-            # TODO: legacy logic, transform template to a router
-            try:
-                eng_logger.info('Registering template')
-
-                # Add the default templates
-                if config.template == 'default':
-                    eng_logger.info('Registering template "default"')
-                    template_registry.register('default', default_template(config))
-                elif config.template == 'blank':
-                    eng_logger.info('Registering template "blank"')
-                    template_registry.register('blank', blank_template(config))
-                elif config.template == 'top':
-                    eng_logger.info('Registering template "top"')
-                    template_registry.register('top', top_template(config))
-                elif config.template == 'top-menu':
-                    eng_logger.info('Registering template "top-menu"')
-                    template_registry.register('top-menu', top_menu_template(config))
-                else:
-                    # Loop over user defined templates and add to the registry
-                    for name, renderer in config.template_renderers.items():
-                        if name == config.template:
-                            eng_logger.info(f'Registering custom template "{name}"')
-                            template_registry.register(name, renderer(config))
-                            break
-                    else:
-                        raise ValueError(f'Unknown template renderer: {config.template}')
-            except Exception as e:
-                import traceback
-
-                traceback.print_exc()
-                dev_logger.error(
-                    'Something went wrong when building application template, there is most likely an issue in the application logic',
-                    e,
-                )
-                sys.exit(1)
-        else:
+        if config.router is not None:
             raise ValueError(
                 'ConfigurationBuilder.add_page is not compatible with a custom router, add_page is supported for backwards compatibility but the preferred API going forward is setting `config.router`'
             )
+
+        try:
+            eng_logger.info('Registering template')
+
+            # Add the default templates
+            if config.template == 'default':
+                eng_logger.info('Registering template "default"')
+                config.router = convert_template_to_router(default_template(config))
+            elif config.template == 'blank':
+                eng_logger.info('Registering template "blank"')
+                config.router = convert_template_to_router(blank_template(config))
+            elif config.template == 'top':
+                eng_logger.info('Registering template "top"')
+                config.router = convert_template_to_router(top_template(config))
+            elif config.template == 'top-menu':
+                eng_logger.info('Registering template "top-menu"')
+                config.router = convert_template_to_router(top_menu_template(config))
+            else:
+                # Loop over user defined templates and add to the registry
+                for name, renderer in config.template_renderers.items():
+                    if name == config.template:
+                        eng_logger.info(f'Registering custom template "{name}"')
+                        config.router = convert_template_to_router(renderer(config))
+                        break
+                else:
+                    raise ValueError(f'Unknown template renderer: {config.template}')
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            dev_logger.error(
+                'Something went wrong when building application template, there is most likely an issue in the application logic',
+                e,
+            )
+            sys.exit(1)
 
     # Generate a new build_cache
     try:
@@ -321,7 +316,7 @@ def _start_application(config: Configuration):
         build_diff = build_cache.get_diff()
 
         # Only build if there's pages to build, otherwise assume Dara is only used for API
-        if len(config.pages) > 0:
+        if config.router is not None:
             dev_logger.debug(
                 'Building JS...',
                 extra={
@@ -368,12 +363,63 @@ def _start_application(config: Configuration):
     app.include_router(auth_router, prefix='/api/auth')
     app.include_router(core_api_router, prefix='/api/core')
 
-    @app.get('/api/{rest_of_path:path}')
-    async def not_found():
-        raise HTTPException(status_code=404, detail='API endpoint not found')
+    if config.router is not None:
+        BASE_DIR = Path(__file__).parent
+        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
+        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
+        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
+        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
+        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
+        jinja_templates.env.globals['entry'] = '_entry.tsx'
 
-    if len(config.pages) > 0:
-        dev_logger.info(f'Registering pages: [{", ".join(list(config.pages.keys()))}]')
+        # Compile the router, executing all page functions etc
+        try:
+            config.router.compile()
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            dev_logger.error('Error compiling router', error=e)
+            sys.exit(1)
+
+        dev_logger.info(f'Registering pages:')
+        # TODO: convert this to use the logger?
+        config.router.print_route_tree()
+        route_map = config.router.to_route_map()
+
+        class RouteDataRequestBody(BaseModel):
+            id: str
+
+        @app.post('/api/core/route')
+        async def get_route_data(body: RouteDataRequestBody):
+            # TODO: This will accept DV inputs etc and stream those back
+            route_data = route_map.get(body.id)
+
+            if route_data is None:
+                raise HTTPException(status_code=404, detail=f'Route {id} not found')
+
+            normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
+            return {'data': normalized_template, 'lookup': lookup}
+
+        # Prepare static template data
+        template_data = {
+            'auth_components': config.auth_config.component_config.model_dump(),
+            'actions': action_def_registry.get_all().items(),
+            'components': {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()},
+            'application_name': get_settings().project_name,
+            'enable_devtools': config.enable_devtools,
+            'live_reload': config.live_reload,
+            # TODO: this will become some backendstore-variable instead, prepopulated in here
+            'theme': config.theme,
+            'title': config.title,
+            'context_components': config.context_components,
+            # TODO: This could be part of the SidebarFrames itself...
+            # and exposed as a nice easy component
+            'powered_by_causalens': config.powered_by_causalens,
+            'router': config.router,
+        }
+        json_template_data = json.dumps(jsonable_encoder(template_data))
+
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
 
@@ -385,7 +431,7 @@ def _start_application(config: Configuration):
                 template = fp.read()
 
             # Generate tags for the template
-            template = build_autojs_template(template, build_cache, config)
+            template = build_autojs_template(template, build_cache, config, json_template_data)
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
             async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
@@ -396,7 +442,14 @@ def _start_application(config: Configuration):
 
             @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
             async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
-                return jinja_templates.TemplateResponse(request, 'index.html')  # type: ignore
+                return jinja_templates.TemplateResponse(
+                    request, 'index.html', context={'dara_data': json_template_data}
+                )
+
+    # Catch-all, must be at the very end
+    @app.get('/api/{rest_of_path:path}')
+    async def not_found():
+        raise HTTPException(status_code=404, detail='API endpoint not found')
 
     return app
 

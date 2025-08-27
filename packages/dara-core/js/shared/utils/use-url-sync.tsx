@@ -1,13 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { type History } from 'history';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useLocation, useNavigation } from 'react-router';
 import { type BrowserInterface, type RecoilURLSyncOptions } from 'recoil-sync';
 
 interface UrlSyncOptions {
-    /**
-     * History object to use
-     */
-    history: History;
     /**
      * Whether to use memory history overrides for testing
      */
@@ -20,6 +16,16 @@ interface UrlSyncOptions {
  * @param basename router basename
  */
 export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncOptions, 'children'> {
+    const location = useLocation();
+
+    const locationSubscribers = useRef<Array<() => void>>([]);
+
+    useEffect(() => {
+        for (const subscriber of locationSubscribers.current) {
+            subscriber();
+        }
+    }, [location]);
+
     /**
      * Custom URL query param serializer. This is used by
      * the RecoilURLSync component to convert a variable value into a URL query param
@@ -53,37 +59,37 @@ export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncO
     }, []);
 
     /**
-     * Custom URL change listener which utilises the history object to listen for changes. This is used by the
+     * Custom URL change listener which utilises the location to listen for changes. This is used by the
      * RecoilURLSync component to listen for changes to the URL and trigger Variables with QueryParamStore updates.
      *
      * This is required as by default the library only listens for 'popstate' events which are not triggered when
      * the URL is changed programmatically via history.push.
      */
     const listenChangeURL = useCallback((handler: () => void): (() => void) => {
-        const unregister = options.history.listen(() => {
-            handler();
-        });
-
-        return () => unregister();
+        locationSubscribers.current.push(handler);
+        return () => {
+            locationSubscribers.current = locationSubscribers.current.filter((item) => item !== handler);
+        };
     }, []);
 
+    // TODO: figure out testing setup with RR v7
     // overrides for memory mode
-    const memoryOptions: BrowserInterface = {
-        getURL: () => {
-            return window.location.origin + options.history.location.pathname + options.history.location.search;
-        },
-        pushURL: (url: string) => {
-            options.history.push(url.replace(window.location.origin, ''));
-        },
-        replaceURL: (url: string) => {
-            options.history.replace(url.replace(window.location.origin, ''));
-        },
-    };
+    // const memoryOptions: BrowserInterface = {
+    //     getURL: () => {
+    //         return window.location.origin + options.history.location.pathname + options.history.location.search;
+    //     },
+    //     pushURL: (url: string) => {
+    //         options.history.push(url.replace(window.location.origin, ''));
+    //     },
+    //     replaceURL: (url: string) => {
+    //         options.history.replace(url.replace(window.location.origin, ''));
+    //     },
+    // };
 
     return {
         browserInterface: {
             listenChangeURL,
-            ...(options.memory_TEST ? memoryOptions : {}),
+            // ...(options.memory_TEST ? memoryOptions : {}),
         },
         deserialize: urlDeserializer,
         location: { part: 'queryParams' },
