@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 // eslint-disable-next-line import/no-duplicates
-import { format, parse, type Month } from 'date-fns';
-
+import { type Month, format, parse } from 'date-fns';
 // eslint-disable-next-line import/no-duplicates
 import { enGB } from 'date-fns/locale/en-GB';
 import range from 'lodash/range';
