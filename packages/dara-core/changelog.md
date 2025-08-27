@@ -2,6 +2,9 @@
 title: Changelog
 ---
 
+## NEXT
+ - Updated date-fns version to 4.1.0
+
 ## 1.20.1
  - Fixed URLVariable and Variable with a ParamStore loading of data at first load of the page
 

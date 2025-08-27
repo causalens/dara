@@ -1,6 +1,8 @@
 ---
 title: Changelog
 ---
+## NEXT
+ - Updated date-fns version to 4.1.0
 
 ## 1.20.0
 
