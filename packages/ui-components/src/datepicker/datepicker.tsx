@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 // eslint-disable-next-line import/no-duplicates
-import { format, parse } from 'date-fns';
+import { format, parse, type Month } from 'date-fns';
+
 // eslint-disable-next-line import/no-duplicates
-import enGB from 'date-fns/locale/en-GB';
+import { enGB } from 'date-fns/locale/en-GB';
 import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -40,7 +41,7 @@ function getMonths(): Item[] {
     const months: Item[] = [];
 
     for (let i = 0; i < 12; i++) {
-        months.push({ label: enGB.localize.month(i), value: i });
+        months.push({ label: enGB.localize.month(i as Month), value: i });
     }
 
     return months;
@@ -487,7 +488,7 @@ function DatePickerHeader({
     const years = useMemo(() => getYears(minDate, maxDate), [minDate, maxDate]);
 
     const selectedMonth = useMemo(() => {
-        return { label: enGB.localize.month(date.getMonth()), value: date.getMonth() };
+        return { label: enGB.localize.month(date.getMonth() as Month), value: date.getMonth() };
     }, [date]);
     const selectedYear = useMemo(() => ({ label: date.getFullYear().toString(), value: date.getFullYear() }), [date]);
 
