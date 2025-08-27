@@ -1,3 +1,5 @@
+import groupBy from 'lodash/groupBy';
+import partition from 'lodash/partition';
 import {
     type MutableRefObject,
     Suspense,
@@ -88,6 +90,61 @@ const COMPONENT_METADATA_CACHE = new Map<string, Component>();
 export function clearCaches_TEST(): void {
     MODULE_CACHE.clear();
     COMPONENT_METADATA_CACHE.clear();
+}
+
+/**
+ * Pre-warm the caches for the given components.
+ * This is useful to pre-warm the core components on startup to avoid spinners
+ *
+ * @param importers - the importers object.
+ * @param components - the components to pre-warm
+ */
+export async function preloadComponents(
+    importers: Record<string, () => Promise<ModuleContent>>,
+    components: Component[]
+): Promise<void> {
+    const [jsComponents, pyComponents] = partition(components, isJsComponent);
+
+    // for py-components we just add a metadata cache entry
+    for (const component of pyComponents) {
+        if (COMPONENT_METADATA_CACHE.has(component.name)) {
+            continue;
+        }
+
+        COMPONENT_METADATA_CACHE.set(component.name, component);
+    }
+
+    const componentsByModule = groupBy(jsComponents, (component) => component.py_module);
+
+    // for js-components we load the module and pre-load the components
+    for (const [pyModule, components] of Object.entries(componentsByModule)) {
+        if (MODULE_CACHE.has(pyModule)) {
+            continue;
+        }
+        // Load module
+        const importer = importers[pyModule];
+        if (!importer) {
+            throw new Error(`Missing importer for module ${pyModule}`);
+        }
+
+        let moduleContent: ModuleContent | null = null;
+        try {
+            moduleContent = await importer();
+            if (moduleContent) {
+                MODULE_CACHE.set(pyModule, moduleContent);
+            }
+        } catch (e) {
+            throw new Error(`Failed to load module ${pyModule}:`);
+        }
+
+        // pre-load components
+        for (const component of components) {
+            if (COMPONENT_METADATA_CACHE.has(component.name)) {
+                continue;
+            }
+            COMPONENT_METADATA_CACHE.set(component.name, component);
+        }
+    }
 }
 
 /**

@@ -30,12 +30,12 @@ interface DaraGlobals {
  *
  * @param importers - the importers object.
  */
-function run(importers: { [k: string]: () => Promise<any> }): void {
+async function run(importers: { [k: string]: () => Promise<any> }): Promise<void> {
     const queryClient = new QueryClient();
 
     const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent!);
     console.log(daraData);
-    const router = createRouter(daraData);
+    const router = await createRouter(daraData, importers);
 
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
     function Root(): JSX.Element {

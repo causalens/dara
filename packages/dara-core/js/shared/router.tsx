@@ -1,11 +1,13 @@
+import NProgress from 'nprogress';
 import { type RouteObject, createBrowserRouter, redirect } from 'react-router';
 
 import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
-import DefaultFallback, { DefaultFallbackStatic } from '@/components/fallback/default';
+import { DefaultFallbackStatic } from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
-import { type DaraData, type RouteDefinition } from '@/types/core';
+import { type DaraData, type ModuleContent, type RouteDefinition } from '@/types/core';
 
-import DynamicAuthComponent from './dynamic-component/dynamic-auth-component';
+import DynamicAuthComponent, { preloadAuthComponent } from './dynamic-component/dynamic-auth-component';
+import { preloadComponents } from './dynamic-component/dynamic-component';
 import AuthenticatedRoot from './root/authenticated-root';
 import RouteContent, { createRouteLoader } from './root/route-content';
 import UnauthenticatedRoot from './root/unauthenticated-root';
@@ -62,7 +64,10 @@ interface DaraGlobals {
     base_url: string;
 }
 
-export function createRouter(config: DaraData): ReturnType<typeof createBrowserRouter> {
+export async function createRouter(
+    config: DaraData,
+    importers: Record<string, () => Promise<ModuleContent>>
+): Promise<ReturnType<typeof createBrowserRouter>> {
     let basename = '';
 
     // The base_url is set in the html template by the backend when returning it
@@ -70,10 +75,14 @@ export function createRouter(config: DaraData): ReturnType<typeof createBrowserR
         basename = new URL(window.dara.base_url, window.origin).pathname;
     }
 
+    // preload auth components to prevent flashing of extra spinners
+    await Promise.all(Object.values(config.auth_components).map((component) => preloadAuthComponent(importers, component)));
+    // preload components for the entire loaded registry
+    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
+    await preloadComponents(importers, Object.values(config.components));
     const { login, logout, ...extraRoutes } = config.auth_components;
 
-    // Upon page load, set the session token from the local storage
-    setSessionToken(getToken());
+    NProgress.configure({ showSpinner: false });
 
     return createBrowserRouter(
         [
@@ -107,30 +116,27 @@ export function createRouter(config: DaraData): ReturnType<typeof createBrowserR
                         // token must be set to access the authenticated routes
                         unstable_middleware: [
                             async () => {
-                                console.log('auth middleware');
                                 const token = getSessionToken();
 
-                                const redirectToLogin = () => {
-                                    const referrer = resolveReferrer();
-                                    const baseUrl: string = window.dara?.base_url ?? '';
-                                    const redirectUrl = new URL(baseUrl + '/login', window.location.origin);
-                                    redirectUrl.searchParams.set('referrer', referrer);
-                                    throw redirect(redirectUrl.toString());
-                                };
-
-                                // no token - go to login to get one
-                                if (!token) {
-                                    console.log('auth middleware - no token');
-                                    redirectToLogin();
+                                // short-circuit - already validated token
+                                if (token) {
+                                    return;
                                 }
-                                console.log('auth middleware - token found', token);
 
-                                const ok = await verifySessionToken();
-                                if (!ok) {
-                                    console.log('auth middleware - token invalid');
-                                    redirectToLogin();
+                                // verify storage token if present
+                                const storageToken = getToken();
+                                if (storageToken) {
+                                    if (await verifySessionToken()) {
+                                        setSessionToken(storageToken);
+                                        return;
+                                    }
                                 }
-                                console.log('auth middleware - token valid');
+
+                                const referrer = resolveReferrer();
+                                const baseUrl: string = window.dara?.base_url ?? '';
+                                const redirectUrl = new URL(baseUrl + '/login', window.location.origin);
+                                redirectUrl.searchParams.set('referrer', referrer);
+                                throw redirect(redirectUrl.toString());
                             },
                         ],
                         // user-defined routes
