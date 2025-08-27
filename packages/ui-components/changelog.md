@@ -2,7 +2,7 @@
 title: Changelog
 ---
 ## NEXT
- - Updated date-fns version to 4.1.0
+ - Updated date-fns version to 2.30.0
 
 ## 1.20.0
 

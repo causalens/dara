@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Updated date-fns to the latest version 4.1.0
+- Updated date-fns to version 2.30.0
 - The `pixi.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~8.3MB to ~6.9MB
 - Fixed an issue where images included in the `Markdown` component would not work correctly when running the app behind a proxy, i.e. with a custom base url
 
