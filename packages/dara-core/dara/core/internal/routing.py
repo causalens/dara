@@ -216,11 +216,8 @@ def create_router(config: Configuration):
 
         :param name: the name of component
         """
-        if name is not None:
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            await registry_mgr.get(component_registry, name)
-
-        return {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()}
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        return await registry_mgr.get(component_registry, name)
 
     class ComponentRequestBody(BaseModel):
         # Dynamic kwarg values

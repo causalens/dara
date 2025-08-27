@@ -1,10 +1,19 @@
 from abc import abstractmethod
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Union
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, PrivateAttr, SerializeAsAny, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    Field,
+    PrivateAttr,
+    SerializeAsAny,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
 
 from dara.core.base_definitions import Action
-from dara.core.definitions import ComponentInstance, JsComponentDef
+from dara.core.definitions import ComponentInstance, JsComponentDef, transform_raw_css
 from dara.core.interactivity import Variable
 
 # TODO: injection validation based on path :param parts
@@ -42,6 +51,7 @@ class BaseRoute(BaseModel):
     id: Optional[str] = None
     metadata: dict = Field(default_factory=dict, exclude=True)
     on_load: Optional[Action] = Field(exclude=True)
+    uid: str = Field(default_factory=lambda: uuid4().hex, exclude=True)
 
     compiled_data: Optional[RouteData] = Field(default=None, exclude=True)
 
@@ -61,7 +71,7 @@ class BaseRoute(BaseModel):
             return self.id
 
         if path := self.full_path:
-            return self.__class__.__name__ + '_' + path
+            return self.uid + '_' + path
 
         raise ValueError('Identifier cannot be determined, route is not attached to a router')
 
@@ -370,7 +380,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load)
+        self.compiled_data = RouteData(on_load=self.on_load, content=execute_route_func(self.content))
         for child in self.children:
             child.compile()
 
@@ -656,11 +666,22 @@ class Link(ComponentInstance):
     Can be a string or RouterPath object
     """
 
+    active_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
+    inactive_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
+
     # TODO: add scroll restoration if it works?
+
+    def __init__(self, *children: ComponentInstance, **kwargs):
+        components = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = components
+        super().__init__(**kwargs)
+
 
 def execute_route_func(func: Callable[..., ComponentInstance]):
     # TODO: inject variables
     return func()
+
 
 def convert_template_to_router(template):
     """

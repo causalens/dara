@@ -82,9 +82,10 @@ export function parseRawCss(
  */
 export default function useComponentStyles(
     props: StyledComponentProps,
-    useDisplayContext = true
+    useDisplayContext = true,
+    propName: string = 'raw_css'
 ): [CustomCSSProperties, string] {
-    const [rawCssValue] = useVariable(props.raw_css);
+    const [rawCssValue] = useVariable(props[propName]);
     const [rawStyles, rawCss] = parseRawCss(rawCssValue);
     const displayCtx = useContext(DisplayCtx);
     const flexProps = flexStyles(props, displayCtx, useDisplayContext);

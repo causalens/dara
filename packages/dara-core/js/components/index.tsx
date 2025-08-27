@@ -6,3 +6,5 @@ export { default as DefaultFallback } from './fallback/default';
 export { default as RowFallback } from './fallback/row';
 export { default as CustomFallback } from './fallback/custom';
 export { default as For } from './for/for';
+export { default as Link } from './link';
+export { default as Outlet } from './outlet';

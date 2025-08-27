@@ -34,6 +34,7 @@ from dara.core.interactivity.actions import (
     UpdateVariableDef,
 )
 from dara.core.internal.cache_store import CacheStore
+from dara.core.router import Link, LinkDef, Outlet, OutletDef
 from dara.core.visual.components import (
     DefaultFallbackDef,
     DynamicComponent,
@@ -82,6 +83,8 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     cast(str, Fallback.Row.py_component): RowFallbackDef,
     cast(str, Fallback.Custom.py_component): CustomFallbackDef,
     For.__name__: ForDef,
+    Link.__name__: LinkDef,
+    Outlet.__name__: OutletDef,
 }
 
 # These actions are provided by the core JS of this module
