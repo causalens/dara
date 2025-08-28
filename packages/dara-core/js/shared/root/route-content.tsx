@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/query-core';
 import { type UseQueryOptions, useQuery } from '@tanstack/react-query';
 import * as React from 'react';
-import { type LoaderFunctionArgs, useLoaderData, useMatch, useMatches, useParams } from 'react-router';
+import { type LoaderFunctionArgs, useLoaderData, useMatches } from 'react-router';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -46,6 +46,7 @@ const loaderQuery = (route: RouteDefinition) =>
         refetchOnReconnect: false,
         // don't cache data loaded with useQuery at all
         cacheTime: 0,
+        staleTime: Infinity,
     }) satisfies UseQueryOptions;
 
 export function createRouteLoader(route: RouteDefinition, queryClient: QueryClient) {
@@ -65,8 +66,7 @@ function RouteContent(): React.ReactNode {
     const initialData = useLoaderData<ReturnType<typeof createRouteLoader>>();
     const {
         data: { template, on_load, route },
-    } = useQuery({ ...loaderQuery(initialData.route), initialData, staleTime: Infinity, cacheTime: 0 });
-
+    } = useQuery({ ...loaderQuery(initialData.route), initialData });
 
     // TODO: next stage this will be kicked off in the same route request, for now just run it here
     const onLoad = useAction(on_load);

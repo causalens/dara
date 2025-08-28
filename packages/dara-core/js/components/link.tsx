@@ -33,7 +33,8 @@ function Link(props: LinkProps) {
     return (
         <StyledNavLink
             to={props.to}
-            prefetch={props.prefetch}
+            // TODO: native prefetch doesn't work in Data mode, instead reimplement and call prefetchQuery manually
+            // prefetch={props.prefetch}
             replace={props.replace}
             relative={props.relative}
             $activeCss={activeCss}
