@@ -40,6 +40,7 @@ interface AuthComponents {
 interface BaseRouteDefinition {
     case_sensitive: boolean;
     id: string;
+    name?: string;
 }
 
 export interface IndexRouteDefinition extends BaseRouteDefinition {

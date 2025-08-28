@@ -48,14 +48,46 @@ class RouteData(BaseModel):
 
 class BaseRoute(BaseModel):
     case_sensitive: bool = False
+    """
+    Whether the route is case sensitive
+    """
+
     id: Optional[str] = None
+    """
+    Unique identifier for the route
+    """
+
+    name: Optional[str] = None
+    """
+    Name of the route, used for window.title display. If not set, defaults to
+    the route path.
+    """
+
     metadata: dict = Field(default_factory=dict, exclude=True)
+    """
+    Metadata for the route. This is used to store arbitrary data that can be used by the application.
+    """
+
     on_load: Optional[Action] = Field(exclude=True)
+    """
+    Action to execute when the route is loaded.
+    Guaranteed to be executed before the route content is rendered.
+    """
+
     uid: str = Field(default_factory=lambda: uuid4().hex, exclude=True)
+    """
+    Internal unique identifier for the route
+    """
 
     compiled_data: Optional[RouteData] = Field(default=None, exclude=True)
+    """
+    Internal compiled data for the route
+    """
 
     _parent: Optional['BaseRoute'] = PrivateAttr(default=None)
+    """
+    Internal parent pointer for the route
+    """
 
     def _attach_to_parent(self, parent):
         """Internal method to attach route to parent"""
@@ -67,6 +99,10 @@ class BaseRoute(BaseModel):
                 child._attach_to_parent(self)
 
     def get_identifier(self):
+        """
+        Get the unique identifier for the route.
+        If the route has an id, it will be returned. Otherwise, the route path and internal uid will be used.
+        """
         if self.id:
             return self.id
 
@@ -118,6 +154,8 @@ class BaseRoute(BaseModel):
         # ID defaults to full path when serializing
         if not props.get('id'):
             props['id'] = self.get_identifier()
+        if not props.get('name'):
+            props['name'] = self.full_path
         return props
 
 
@@ -141,6 +179,7 @@ class HasChildRoutes(BaseModel):
         path: str,
         content: Callable[..., ComponentInstance],
         case_sensitive: bool = False,
+        name: Optional[str] = None,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
@@ -151,6 +190,7 @@ class HasChildRoutes(BaseModel):
         :param path: URL segment
         :param content: component to render
         :param case_sensitive: whether the route is case sensitive
+        :param name: unique name for the route, used for window.name display. If not set, defaults to the route path.
         :param id: unique id for the route
         :param metadata: metadata for the route
         """
@@ -161,6 +201,7 @@ class HasChildRoutes(BaseModel):
             path=path,
             content=content,
             case_sensitive=case_sensitive,
+            name=name,
             id=id,
             metadata=metadata,
             on_load=on_load,
@@ -265,6 +306,7 @@ class HasChildRoutes(BaseModel):
         *,
         content: Callable[..., ComponentInstance],
         case_sensitive: bool = False,
+        name: Optional[str] = None,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
@@ -287,12 +329,15 @@ class HasChildRoutes(BaseModel):
         ```
 
         :param case_sensitive: whether the route is case sensitive
+        :param name: unique name for the route, used for window.name display. If not set, defaults to the route path.
         :param id: unique id for the route
         :param metadata: metadata for the route
         """
         if metadata is None:
             metadata = {}
-        route = IndexRoute(content=content, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load)
+        route = IndexRoute(
+            content=content, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load, name=name
+        )
         route._attach_to_parent(self)
         self.children.append(route)
         return route
@@ -747,9 +792,11 @@ def convert_template_to_router(template):
 
         # Root path becomes index route
         if route_path in {'', '/'}:
-            root_layout.add_index(content=content_wrapper)
+            root_layout.add_index(content=content_wrapper, name=route_content.name, on_load=route_content.on_load)
         else:
-            root_layout.add_page(path=route_path, content=content_wrapper)
+            root_layout.add_page(
+                path=route_path, content=content_wrapper, name=route_content.name, on_load=route_content.on_load
+            )
 
     return router
 

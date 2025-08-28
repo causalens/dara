@@ -409,7 +409,7 @@ def _start_application(config: Configuration):
                 raise HTTPException(status_code=404, detail=f'Route {id} not found')
 
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
-            return {'data': normalized_template, 'lookup': lookup}
+            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': route_data.on_load}
 
         # Catch-all, must add after adding the last api route
         @app.get('/api/{rest_of_path:path}')

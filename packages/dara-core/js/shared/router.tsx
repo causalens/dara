@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/query-core';
 import NProgress from 'nprogress';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 
@@ -22,7 +23,7 @@ import RouteContent, { createRouteLoader } from './root/route-content';
 import UnauthenticatedRoot from './root/unauthenticated-root';
 import { getToken } from './utils';
 
-function createRoute(route: RouteDefinition): RouteObject {
+function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObject {
     const sharedProps = {
         id: route.id,
         caseSensitive: route.case_sensitive,
@@ -34,28 +35,28 @@ function createRoute(route: RouteDefinition): RouteObject {
                 ...sharedProps,
                 index: true,
                 element: <RouteContent />,
-                loader: createRouteLoader(route),
+                loader: createRouteLoader(route, queryClient),
             };
         case 'PageRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
                 element: <RouteContent />,
-                loader: createRouteLoader(route),
-                children: route.children.map(createRoute),
+                loader: createRouteLoader(route, queryClient),
+                children: route.children.map((r) => createRoute(r, queryClient)),
             };
         case 'LayoutRoute':
             return {
                 ...sharedProps,
                 element: <RouteContent />,
-                loader: createRouteLoader(route),
-                children: route.children.map(createRoute),
+                loader: createRouteLoader(route, queryClient),
+                children: route.children.map((r) => createRoute(r, queryClient)),
             };
         case 'PrefixRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
-                children: route.children.map(createRoute),
+                children: route.children.map((r) => createRoute(r, queryClient)),
             };
         default:
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
@@ -94,13 +95,13 @@ function joinPaths(parentPath: string, childPath: string): string {
  * Find the first navigatable path in the given routes.
  * Walks the routes in a BFS and returns the first route with a path.
  */
-export function findFirstPath(routes: RouteDefinition[], parentPath: string = ''): string {
+export function findFirstPath(routes: RouteDefinition[]): string {
     interface QueueItem {
         routes: RouteDefinition[];
         path: string;
     }
 
-    const queue: QueueItem[] = [{ routes, path: parentPath }];
+    const queue: QueueItem[] = [{ routes, path: '/' }];
 
     while (queue.length > 0) {
         const { routes: currentRoutes, path: currentPath } = queue.shift()!;
@@ -153,7 +154,8 @@ interface DaraGlobals {
 
 export async function createRouter(
     config: DaraData,
-    importers: Record<string, () => Promise<ModuleContent>>
+    importers: Record<string, () => Promise<ModuleContent>>,
+    queryClient: QueryClient
 ): Promise<ReturnType<typeof createBrowserRouter>> {
     let basename = '';
 
@@ -161,6 +163,9 @@ export async function createRouter(
     if (window.dara.base_url !== '') {
         basename = new URL(window.dara.base_url, window.origin).pathname;
     }
+
+    // set initial title here
+    document.title = config.title;
 
     // preload auth components to prevent flashing of extra spinners
     await Promise.all(
@@ -173,7 +178,7 @@ export async function createRouter(
 
     NProgress.configure({ showSpinner: false });
 
-    const userRoutes = config.router.children.map(createRoute);
+    const userRoutes = config.router.children.map((r) => createRoute(r, queryClient));
     const defaultPath = findFirstPath(config.router.children) || '/';
 
     return createBrowserRouter(

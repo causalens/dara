@@ -92,12 +92,6 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     }, [wsClient]);
 
     useEffect(() => {
-        if (props.daraData.title) {
-            document.title = props.daraData.title;
-        }
-    }, [props.daraData.title]);
-
-    useEffect(() => {
         // already set up - make sure we don't recreate connections,
         // we use updateToken explicitly to update a live connection
         if (wsClient) {

@@ -34,6 +34,8 @@ function RootErrorPage(): React.ReactNode {
         </CenteredDivWithGap>;
     }
 
+    console.error(error);
+
     // some error thrown, show the actual error
     if (error instanceof Error) {
         <CenteredDivWithGap>
@@ -48,7 +50,7 @@ function RootErrorPage(): React.ReactNode {
     return (
         <CenteredDivWithGap>
             <h1>Unexpected error occurred</h1>
-            <p>Try again or contact the application owner</p>
+            <pre>{String(error)}</pre>
             <Button href="/login" styling="error">
                 Go to home
             </Button>

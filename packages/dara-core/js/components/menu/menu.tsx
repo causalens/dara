@@ -43,7 +43,7 @@ const MenuItem = styled(NavLink)<MenuItemProps>`
         color: ${(props) => props.theme.colors.blue1};
     }
 
-    &[aria-current]{
+    &[aria-current] {
         color: ${(props) => props.theme.colors.blue1};
         background-color: ${(props) => props.theme.colors.secondary};
     }
