@@ -33,6 +33,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
 from pydantic import BaseModel
+from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
 from typing_extensions import Annotated
 
@@ -77,6 +78,15 @@ from dara.core.js_tooling.js_utils import (
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.router import convert_template_to_router
+
+
+class CacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        # add 1 year cache for static assets
+        if isinstance(response, FileResponse) and path.endswith('.css') or path.endswith('.umd.js'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        return response
 
 
 def _start_application(config: Configuration):
@@ -356,8 +366,8 @@ def _start_application(config: Configuration):
         start_pprof_server(port=profiling_port)
 
     # Serve statics, only if we have any pages defined
-    if len(config.pages) > 0:
-        app.mount('/static', StaticFiles(directory=config.static_files_dir), name='static')
+    if config.router is not None:
+        app.mount('/static', CacheStaticFiles(directory=config.static_files_dir), name='static')
 
     # Mount Routers
     app.include_router(auth_router, prefix='/api/auth')
@@ -423,28 +433,19 @@ def _start_application(config: Configuration):
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
 
+        context = {
+            'dara_data': json_template_data,
+        }
+        template_name = 'index.html'
+
         # Auto-js mode - serve the built template with UMDs
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
-            # Load template
-            template_path = os.path.join(Path(BASE_DIR, 'jinja'), 'index_autojs.html')  # type: ignore
-            with open(template_path, encoding='utf-8') as fp:
-                template = fp.read()
+            template_name = 'index_autojs.html'
+            context.update(build_autojs_template(build_cache, config))
 
-            # Generate tags for the template
-            template = build_autojs_template(template, build_cache, config, json_template_data)
-
-            @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
-            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
-                return HTMLResponse(template)
-
-        else:
-            # Otherwise serve the Vite template
-
-            @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
-            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
-                return jinja_templates.TemplateResponse(
-                    request, 'index.html', context={'dara_data': json_template_data}
-                )
+        @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
+        async def serve_app(request: Request):
+            return jinja_templates.TemplateResponse(request, template_name, context=context)
 
     # Catch-all, must be at the very end
     @app.get('/api/{rest_of_path:path}')
