@@ -36,7 +36,7 @@ const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
     if (actionImpl.new_tab) {
         window.open(actionImpl.url, actionImpl.new_tab ? '_blank' : undefined);
     } else {
-        ctx.history.push(actionImpl.url);
+        ctx.navigate(actionImpl.url);
     }
 };
 

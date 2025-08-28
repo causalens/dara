@@ -1,4 +1,5 @@
 import { type History, type Location } from 'history';
+import type { NavigateFunction } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 
 import { type DefaultTheme } from '@darajs/styled-components';
@@ -65,7 +66,11 @@ interface PrefixRouteDefinition extends BaseRouteDefinition {
     __typename: 'PrefixRoute';
 }
 
-export type RouteDefinition = IndexRouteDefinition | PageRouteDefinition | LayoutRouteDefinition | PrefixRouteDefinition;
+export type RouteDefinition =
+    | IndexRouteDefinition
+    | PageRouteDefinition
+    | LayoutRouteDefinition
+    | PrefixRouteDefinition;
 
 export interface RouterDefinition {
     children: Array<RouteDefinition>;
@@ -520,9 +525,9 @@ export interface ActionContext extends CallbackInterface {
      */
     wsClient: WebSocketClientInterface;
     /**
-     * History object
+     * Navigate function
      */
-    history: History;
+    navigate: NavigateFunction;
     /**
      * Location object
      */

@@ -4,6 +4,7 @@ import { type RouteObject, createBrowserRouter, redirect } from 'react-router';
 import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
+import RootErrorPage from '@/pages/root-error-page';
 import { type DaraData, type ModuleContent, type RouteDefinition } from '@/types/core';
 
 import DynamicAuthComponent, { preloadAuthComponent } from './dynamic-component/dynamic-auth-component';
@@ -76,7 +77,9 @@ export async function createRouter(
     }
 
     // preload auth components to prevent flashing of extra spinners
-    await Promise.all(Object.values(config.auth_components).map((component) => preloadAuthComponent(importers, component)));
+    await Promise.all(
+        Object.values(config.auth_components).map((component) => preloadAuthComponent(importers, component))
+    );
     // preload components for the entire loaded registry
     // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
     await preloadComponents(importers, Object.values(config.components));
@@ -90,6 +93,7 @@ export async function createRouter(
                 // wrapper around all the router content
                 element: <UnauthenticatedRoot />,
                 hydrateFallbackElement: <DefaultFallbackStatic />,
+                ErrorBoundary: RootErrorPage,
                 children: [
                     {
                         path: 'error',

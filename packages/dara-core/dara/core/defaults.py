@@ -44,6 +44,8 @@ from dara.core.visual.components import (
     ForDef,
     Menu,
     MenuDef,
+    PoweredByCausalens,
+    PoweredByCausalensDef,
     ProgressTracker,
     ProgressTrackerDef,
     RouterContent,
@@ -85,6 +87,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     For.__name__: ForDef,
     Link.__name__: LinkDef,
     Outlet.__name__: OutletDef,
+    PoweredByCausalens.__name__: PoweredByCausalensDef,
 }
 
 # These actions are provided by the core JS of this module

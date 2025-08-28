@@ -4,11 +4,11 @@
 
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RenderOptions, RenderResult, render } from '@testing-library/react';
-import { History, createMemoryHistory } from 'history';
+import { type RenderOptions, type RenderResult, render } from '@testing-library/react';
+import { type History, createMemoryHistory } from 'history';
 import noop from 'lodash/noop';
-import React, { ComponentType, ReactElement, useRef } from 'react';
-import { Router } from 'react-router-dom';
+import React, { type ComponentType, type ReactElement, useRef } from 'react';
+import { Router } from 'react-router';
 import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
 
@@ -18,10 +18,16 @@ import { StoreProviders } from '@/shared/interactivity/persistence';
 import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
-import { WebSocketClientInterface } from '../../../js/api/websocket';
+import { type WebSocketClientInterface } from '../../../js/api/websocket';
 import { ImportersCtx, ServerVariableSyncProvider } from '../../../js/shared';
-import { FallbackCtx, GlobalTaskProvider, RegistriesCtx, VariableCtx, WebSocketCtx } from '../../../js/shared/context';
-import { ComponentInstance } from '../../../js/types';
+import {
+    FallbackCtx,
+    GlobalTaskProvider,
+    RegistriesCtxProvider,
+    VariableCtx,
+    WebSocketCtx,
+} from '../../../js/shared/context';
+import { type ComponentInstance } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
 
@@ -106,12 +112,9 @@ export const Wrapper = ({
                         <RecoilURLSync {...syncOptions}>
                             <React.Suspense fallback={<div>Loading...</div>}>
                                 <QueryClientProvider client={queryClient}>
-                                    <RegistriesCtx.Provider
-                                        value={{
-                                            actionRegistry: mockActions,
-                                            componentRegistry: mockComponents,
-                                            refetchComponents: noop as any,
-                                        }}
+                                    <RegistriesCtxProvider
+                                        actionRegistry={mockActions}
+                                        componentRegistry={mockComponents}
                                     >
                                         <StoreProviders>
                                             <ServerVariableSyncProvider>
@@ -120,7 +123,7 @@ export const Wrapper = ({
                                                 </FallbackCtx.Provider>
                                             </ServerVariableSyncProvider>
                                         </StoreProviders>
-                                    </RegistriesCtx.Provider>
+                                    </RegistriesCtxProvider>
                                 </QueryClientProvider>
                             </React.Suspense>
                         </RecoilURLSync>

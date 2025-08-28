@@ -8,3 +8,4 @@ export { default as CustomFallback } from './fallback/custom';
 export { default as For } from './for/for';
 export { default as Link } from './link';
 export { default as Outlet } from './outlet';
+export { default as PoweredByCausalens } from './powered-by-causalens';

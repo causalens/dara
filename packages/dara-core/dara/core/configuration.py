@@ -179,7 +179,7 @@ class ConfigurationBuilder:
         self._errors = []
         self.enable_devtools = False
         self.live_reload = False
-        self.powered_by_causalens = False
+        self._powered_by_causalens = False
         self._package_tags_processors = []
         self._template_extra_js = ''
         self._pages = {}
@@ -211,6 +211,17 @@ class ConfigurationBuilder:
     @deprecated('Use `config.router = Router()` instead and set a root layout route.')
     def template(self, value):
         self._template = value
+
+    @property
+    def powered_by_causalens(self):
+        return self._powered_by_causalens
+
+    @powered_by_causalens.setter
+    @deprecated(
+        'Pass `powered_by_causalens=` kwarg to SideBarFrame directly, or use the `dara.core.visual.components.PoweredByCausalens` component'
+    )
+    def powered_by_causalens(self, value):
+        self._powered_by_causalens = value
 
     def add_action(self, action: Type[ActionImpl], local: bool = False):
         """

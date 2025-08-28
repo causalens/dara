@@ -411,6 +411,11 @@ def _start_application(config: Configuration):
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
             return {'data': normalized_template, 'lookup': lookup}
 
+        # Catch-all, must add after adding the last api route
+        @app.get('/api/{rest_of_path:path}')
+        async def not_found():
+            raise HTTPException(status_code=404, detail='API endpoint not found')
+
         # Prepare static template data
         template_data = {
             'auth_components': config.auth_config.component_config.model_dump(),
@@ -447,10 +452,11 @@ def _start_application(config: Configuration):
         async def serve_app(request: Request):
             return jinja_templates.TemplateResponse(request, template_name, context=context)
 
-    # Catch-all, must be at the very end
-    @app.get('/api/{rest_of_path:path}')
-    async def not_found():
-        raise HTTPException(status_code=404, detail='API endpoint not found')
+    else:
+        # Catch-all, must be at the very end
+        @app.get('/api/{rest_of_path:path}')
+        async def not_found():
+            raise HTTPException(status_code=404, detail='API endpoint not found')
 
     return app
 

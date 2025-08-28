@@ -21,26 +21,28 @@ from typing import Optional  # needed for model_rebuild # noqa: F401
 from pydantic import BaseModel
 
 from dara.core.interactivity import Variable  # needed for model_rebuild # noqa: F401
-from dara.core.visual.components.dynamic_component import (
+
+from .dynamic_component import (
     DynamicComponent,
     DynamicComponentDef,
 )
-from dara.core.visual.components.fallback import (
+from .fallback import (
     DefaultFallbackDef,
     Fallback,
     RowFallbackDef,
 )
-from dara.core.visual.components.for_cmp import For, ForDef
-from dara.core.visual.components.invalid_component import InvalidComponent
-from dara.core.visual.components.menu import Menu, MenuDef
-from dara.core.visual.components.progress_tracker import (
+from .for_cmp import For, ForDef
+from .invalid_component import InvalidComponent
+from .menu import Menu, MenuDef
+from .powered_by_causalens import PoweredByCausalens, PoweredByCausalensDef
+from .progress_tracker import (
     ProgressTracker,
     ProgressTrackerDef,
 )
-from dara.core.visual.components.raw_string import RawString
-from dara.core.visual.components.router_content import RouterContent, RouterContentDef
-from dara.core.visual.components.sidebar_frame import SideBarFrame, SideBarFrameDef
-from dara.core.visual.components.topbar_frame import TopBarFrame, TopBarFrameDef
+from .raw_string import RawString
+from .router_content import RouterContent, RouterContentDef
+from .sidebar_frame import SideBarFrame, SideBarFrameDef
+from .topbar_frame import TopBarFrame, TopBarFrameDef
 
 __all__ = [
     'DynamicComponent',
@@ -62,6 +64,8 @@ __all__ = [
     'DefaultFallbackDef',
     'RowFallbackDef',
     'Fallback',
+    'PoweredByCausalens',
+    'PoweredByCausalensDef',
 ]
 
 for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:

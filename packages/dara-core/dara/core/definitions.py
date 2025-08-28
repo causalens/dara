@@ -76,9 +76,6 @@ def _kebab_to_camel(string: str):
     return chunks[0] + ''.join([chunk[0].upper() + chunk[1:].lower() for chunk in chunks[1:]])
 
 
-# TODO:  add reusable validator for raw_css, use for active/inactive links in navlink
-
-
 def transform_raw_css(value: Any):
     """
     Transform and validate a raw_css value.

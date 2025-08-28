@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { useContext } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';

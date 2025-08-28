@@ -61,7 +61,6 @@ from dara.core.internal.registries import (
     latest_value_registry,
     server_variable_registry,
     static_kwargs_registry,
-    template_registry,
     upload_resolver_registry,
     utils_registry,
 )
@@ -113,10 +112,6 @@ def create_router(config: Configuration):
     :param config: Dara app configuration
     """
     core_api_router = APIRouter()
-
-    @core_api_router.get('/actions', dependencies=[Depends(verify_session)])
-    async def get_actions():
-        return action_def_registry.get_all().items()
 
     class ActionRequestBody(BaseModel):
         values: NormalizedPayload[Mapping[str, Any]]
@@ -478,17 +473,6 @@ def create_router(config: Configuration):
                 f'The task id {task_id} could not be found, it may have already been cancelled',
                 e,
             )
-
-    @core_api_router.get('/template/{template}', dependencies=[Depends(verify_session)])
-    async def get_template(template: str):
-        try:
-            selected_template = template_registry.get(template)
-            normalized_template, lookup = normalize(jsonable_encoder(selected_template))
-            return {'data': normalized_template, 'lookup': lookup}
-        except KeyError as err:
-            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry') from err
-        except Exception as e:
-            dev_logger.error('Something went wrong while trying to get the template', e)
 
     @core_api_router.get('/version', dependencies=[Depends(verify_session)])
     async def get_version():

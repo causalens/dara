@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { useCallback, useContext, useLayoutEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { type CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
@@ -311,15 +311,15 @@ export default function useAction(
     const { actionRegistry } = useRegistriesCtx();
     const notificationCtx = useNotifications();
     const extras = useRequestExtras();
-    const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
+    const navigate = useNavigate();
     const eventBus = useEventBus();
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>({
         extras,
-        history,
+        navigate,
         location,
         notificationCtx,
         taskCtx,
@@ -331,7 +331,7 @@ export default function useAction(
     useLayoutEffect(() => {
         actionCtx.current = {
             extras,
-            history,
+            navigate,
             location,
             notificationCtx,
             taskCtx,

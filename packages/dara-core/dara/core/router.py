@@ -497,6 +497,9 @@ class Router(HasChildRoutes):
             child.compile()
 
     def to_route_map(self) -> Dict[str, RouteData]:
+        """
+        Convert the route tree into a dictionary of route data keyed by unique route identifiers.
+        """
         routes: Dict[str, RouteData] = {}
 
         def _walk(route: BaseRoute):
@@ -535,9 +538,9 @@ class Router(HasChildRoutes):
         ```
         """
         print('Router')
-        self._print_routes(self.children, prefix='', is_last_child=True)
+        self._print_routes(self.children, prefix='')
 
-    def _print_routes(self, routes: List['BaseRoute'], prefix: str = '', is_last_child: bool = True):
+    def _print_routes(self, routes: List['BaseRoute'], prefix: str = ''):
         """Helper method to recursively print route tree structure"""
         for i, route in enumerate(routes):
             is_last = i == len(routes) - 1
@@ -587,7 +590,7 @@ class Router(HasChildRoutes):
             # Recursively print children if they exist
             route_children = getattr(route, 'children', None)
             if route_children:
-                self._print_routes(route_children, next_prefix, is_last)
+                self._print_routes(route_children, next_prefix)
 
 
 OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
