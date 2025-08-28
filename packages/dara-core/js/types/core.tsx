@@ -84,7 +84,6 @@ export interface DaraData {
     enable_devtools: boolean;
     live_reload: boolean;
     powered_by_causalens: boolean;
-    template: string;
     theme: ConfigTheme;
     title: string;
     router: RouterDefinition;

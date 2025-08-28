@@ -119,7 +119,7 @@ export async function preloadComponents(
     const componentsByModule = groupBy(jsComponents, (component) => component.py_module);
 
     // for js-components we load the module and pre-load the components
-    for (const [pyModule, components] of Object.entries(componentsByModule)) {
+    for (const [pyModule, componentsInModule] of Object.entries(componentsByModule)) {
         if (MODULE_CACHE.has(pyModule)) {
             continue;
         }
@@ -131,16 +131,18 @@ export async function preloadComponents(
 
         let moduleContent: ModuleContent | null = null;
         try {
+            // there will be at most a couple of modules, fine to do serially
+            // eslint-disable-next-line no-await-in-loop
             moduleContent = await importer();
             if (moduleContent) {
                 MODULE_CACHE.set(pyModule, moduleContent);
             }
         } catch (e) {
-            throw new Error(`Failed to load module ${pyModule}:`);
+            throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
         }
 
         // pre-load components
-        for (const component of components) {
+        for (const component of componentsInModule) {
             if (COMPONENT_METADATA_CACHE.has(component.name)) {
                 continue;
             }
@@ -231,10 +233,10 @@ async function resolveComponentAsync(
 
     // Get component entry from registry
     let entry;
-    try{
+    try {
         entry = await getComponent(component);
     } catch (e) {
-        throw new ComponentLoadError(e.message, 'Failed to load component');
+        throw new ComponentLoadError(e instanceof Error ? e.message : String(e), 'Failed to load component');
     }
 
     if (!isJsComponent(entry)) {

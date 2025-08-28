@@ -27,6 +27,7 @@ interface RouteResponse {
  *
  * See https://tkdodo.eu/blog/react-query-meets-react-router
  */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const loaderQuery = (route: RouteDefinition) =>
     ({
         queryKey: ['route', route.id],
@@ -83,7 +84,7 @@ function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
             return;
         }
         onLoad().then(() => setIsReady(true));
-    }, [on_load]);
+    }, [onLoad, on_load]);
 
     // only sync title for the most exact route
     const matches = useMatches();

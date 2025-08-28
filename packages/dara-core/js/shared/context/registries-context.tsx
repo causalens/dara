@@ -44,7 +44,10 @@ export function RegistriesCtxProvider(props: {
                 extras
             );
             await handleAuthErrors(response, true);
-            await validateResponse(response, `Failed to fetch the component definition for ${name}, was it registered in the app?`);
+            await validateResponse(
+                response,
+                `Failed to fetch the component definition for ${name}, was it registered in the app?`
+            );
             return response.json();
         },
         retry: 3,

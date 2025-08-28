@@ -87,17 +87,6 @@ const mockSchema: DataFrameSchema = {
 
 // These handlers return mock responses for all the requests made by the application
 const handlers = [
-    http.get('/api/core/config', () => {
-        return HttpResponse.json({
-            template: 'default',
-        });
-    }),
-    http.get('/api/core/actions', () => {
-        return HttpResponse.json(mockActions);
-    }),
-    http.get('/api/core/components', () => {
-        return HttpResponse.json(mockComponents);
-    }),
     http.post('/api/core/components/:component', async (info) => {
         const body = await info.request.json();
         return HttpResponse.json({

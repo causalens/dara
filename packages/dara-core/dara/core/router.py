@@ -731,14 +731,15 @@ class Link(StyledComponentInstance):
     - with `end=True`, be considered inactive because of the missing '123' part
     """
 
-    prefetch: Literal['none', 'intent', 'render', 'viewport'] = 'none'
-    """
-    Defines the data and module prefetching behavior for the link.
-    - none — default, no prefetching
-    - intent — prefetches when the user hovers or focuses the link
-    - render — prefetches when the link renders
-    - viewport — prefetches when the link is in the viewport, very useful for mobile
-    """
+    # TODO: not implemented yet
+    # prefetch: Literal['none', 'intent', 'render', 'viewport'] = 'none'
+    # """
+    # Defines the data and module prefetching behavior for the link.
+    # - none — default, no prefetching
+    # - intent — prefetches when the user hovers or focuses the link
+    # - render — prefetches when the link renders
+    # - viewport — prefetches when the link is in the viewport, very useful for mobile
+    # """
 
     relative: Literal['route', 'path'] = 'route'
     """

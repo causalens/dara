@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/query-core';
-import { Navigate, type RouteObject, createBrowserRouter, redirect, unstable_createContext } from 'react-router';
+import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 
-import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
+import { getSessionToken, resolveReferrer, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
 import RootErrorPage from '@/pages/root-error-page';
@@ -18,7 +18,34 @@ import DynamicAuthComponent from './dynamic-component/dynamic-auth-component';
 import AuthenticatedRoot from './root/authenticated-root';
 import RouteContent, { createRouteLoader } from './root/route-content';
 import UnauthenticatedRoot from './root/unauthenticated-root';
-import { getToken } from './utils';
+
+/**
+ * Clean a single path segment by removing leading/trailing slashes
+ */
+function cleanPath(path: string): string {
+    return path.replace(/^\/+|\/+$/g, '');
+}
+
+/**
+ * Helper function to clean and join path segments properly
+ */
+function joinPaths(parentPath: string, childPath: string): string {
+    // Remove leading/trailing slashes from both parts
+    const cleanParent = parentPath.replace(/^\/+|\/+$/g, '');
+    const cleanChild = childPath.replace(/^\/+|\/+$/g, '');
+
+    // Join with single slash and ensure leading slash
+    if (cleanParent === '' && cleanChild === '') {
+        return '/';
+    }
+    if (cleanParent === '') {
+        return `/${cleanChild}`;
+    }
+    if (cleanChild === '') {
+        return `/${cleanParent}`;
+    }
+    return `/${cleanParent}/${cleanChild}`;
+}
 
 function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObject {
     const sharedProps = {
@@ -59,35 +86,6 @@ function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObj
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
     }
 }
-
-/**
- * Clean a single path segment by removing leading/trailing slashes
- */
-function cleanPath(path: string): string {
-    return path.replace(/^\/+|\/+$/g, '');
-}
-
-/**
- * Helper function to clean and join path segments properly
- */
-function joinPaths(parentPath: string, childPath: string): string {
-    // Remove leading/trailing slashes from both parts
-    const cleanParent = parentPath.replace(/^\/+|\/+$/g, '');
-    const cleanChild = childPath.replace(/^\/+|\/+$/g, '');
-
-    // Join with single slash and ensure leading slash
-    if (cleanParent === '' && cleanChild === '') {
-        return '/';
-    }
-    if (cleanParent === '') {
-        return `/${cleanChild}`;
-    }
-    if (cleanChild === '') {
-        return `/${cleanParent}`;
-    }
-    return `/${cleanParent}/${cleanChild}`;
-}
-
 /**
  * Find the first navigatable path in the given routes.
  * Walks the routes in a BFS and returns the first route with a path.
@@ -220,8 +218,10 @@ export function createRouter(config: DaraData, queryClient: QueryClient): Return
                                 // otherwise there is no token or it's invalid, redirect to login
                                 const referrer = resolveReferrer();
                                 const baseUrl: string = window.dara?.base_url ?? '';
-                                const redirectUrl = new URL(baseUrl + '/login', window.location.origin);
+                                const redirectUrl = new URL(`${baseUrl}/login`, window.location.origin);
                                 redirectUrl.searchParams.set('referrer', referrer);
+                                // Intended RR API usage
+                                // eslint-disable-next-line @typescript-eslint/only-throw-error
                                 throw redirect(redirectUrl.toString());
                             },
                         ],

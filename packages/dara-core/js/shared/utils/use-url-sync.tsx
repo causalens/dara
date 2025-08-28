@@ -1,21 +1,13 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect, useRef } from 'react';
-import { useLocation, useNavigation } from 'react-router';
-import { type BrowserInterface, type RecoilURLSyncOptions } from 'recoil-sync';
-
-interface UrlSyncOptions {
-    /**
-     * Whether to use memory history overrides for testing
-     */
-    memory_TEST?: boolean;
-}
+import { useLocation } from 'react-router';
+import { type RecoilURLSyncOptions } from 'recoil-sync';
 
 /**
  * Setup the URL sync for the application. This is used to sync Recoil state with the URL query params.
  *
  * @param basename router basename
  */
-export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncOptions, 'children'> {
+export default function useUrlSync(): Omit<RecoilURLSyncOptions, 'children'> {
     const location = useLocation();
 
     const locationSubscribers = useRef<Array<() => void>>([]);
@@ -72,24 +64,9 @@ export default function useUrlSync(options: UrlSyncOptions): Omit<RecoilURLSyncO
         };
     }, []);
 
-    // TODO: figure out testing setup with RR v7
-    // overrides for memory mode
-    // const memoryOptions: BrowserInterface = {
-    //     getURL: () => {
-    //         return window.location.origin + options.history.location.pathname + options.history.location.search;
-    //     },
-    //     pushURL: (url: string) => {
-    //         options.history.push(url.replace(window.location.origin, ''));
-    //     },
-    //     replaceURL: (url: string) => {
-    //         options.history.replace(url.replace(window.location.origin, ''));
-    //     },
-    // };
-
     return {
         browserInterface: {
             listenChangeURL,
-            // ...(options.memory_TEST ? memoryOptions : {}),
         },
         deserialize: urlDeserializer,
         location: { part: 'queryParams' },

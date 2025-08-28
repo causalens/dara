@@ -1,16 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import styled, { ThemeProvider } from '@darajs/styled-components';
+import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth';
 import { onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
-import { GlobalTaskProvider, WebSocketCtx } from '@/shared/context';
-import { cleanSessionCache, resolveTheme, useUrlSync } from '@/shared/utils';
+import { WebSocketCtx } from '@/shared/context';
+import { cleanSessionCache } from '@/shared/utils';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
 import type { DaraData } from '@/types/core';
 
@@ -73,7 +73,7 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
             cleanSessionCache(token);
         } else {
             // if for some reason we don't have a token, redirect back to login
-            navigate({ pathname: '/login', search: '?referrer=' + resolveReferrer() });
+            navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
         }
     }, [token]);
 

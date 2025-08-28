@@ -34,6 +34,7 @@ function RootErrorPage(): React.ReactNode {
         </CenteredDivWithGap>;
     }
 
+    // eslint-disable-next-line no-console
     console.error(error);
 
     // some error thrown, show the actual error

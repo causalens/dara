@@ -390,21 +390,6 @@ describe('findFirstPath', () => {
             expect(result).toBe('/');
         });
 
-        it('should handle parentPath parameter', () => {
-            const routes: RouteDefinition[] = [
-                {
-                    __typename: 'PageRoute',
-                    id: 'page-1',
-                    case_sensitive: false,
-                    path: 'dashboard',
-                    children: [],
-                },
-            ];
-
-            const result = findFirstPath(routes, '/app');
-            expect(result).toBe('/app/dashboard');
-        });
-
         it('should handle routes with only layout/prefix but no navigatable endpoints', () => {
             const routes: RouteDefinition[] = [
                 {
@@ -494,8 +479,8 @@ describe('findFirstPath', () => {
                 },
             ];
 
-            const result = findFirstPath(routes, '/app/');
-            expect(result).toBe('/app/dashboard');
+            const result = findFirstPath(routes);
+            expect(result).toBe('/dashboard');
         });
     });
 
@@ -510,8 +495,8 @@ describe('findFirstPath', () => {
             },
         ];
 
-        const result = findFirstPath(routes, 'app');
-        expect(result).toBe('/app/dashboard');
+        const result = findFirstPath(routes);
+        expect(result).toBe('/dashboard');
     });
 
     it('should handle routes with only layoutprefix but no navigatable endpoints', () => {

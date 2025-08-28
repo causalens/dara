@@ -1,6 +1,7 @@
+/* eslint-disable no-restricted-globals */
 import { type Matcher, type MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
 import { HttpResponse, http } from 'msw';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';
@@ -387,9 +388,9 @@ describe('useVariable', () => {
                 const [varFromDerived, setVarFromDerived] = useVariable(variableFromDerived);
 
                 const resetAtom = useRecoilCallback(({ reset }) => () => {
-                    const family = atomFamilyRegistry.get(variableFromDerived.uid);
+                    const family = atomFamilyRegistry.get(variableFromDerived.uid)!;
                     // reset first instance
-                    const atomInstance = atomFamilyMembersRegistry.get(family).values().next().value;
+                    const atomInstance = atomFamilyMembersRegistry.get(family)!.values().next().value!;
                     reset(atomInstance);
                 });
 
@@ -479,7 +480,7 @@ describe('useVariable', () => {
             server.use(
                 http.post('/api/core/derived-variable/:uid', async (info) => {
                     receivedHeaders.push(info.request.headers);
-                    const body = await info.request.json() as any;
+                    const body = (await info.request.json()) as any;
                     return HttpResponse.json({
                         cache_key: JSON.stringify(body.values),
                         value: body,
@@ -514,9 +515,9 @@ describe('useVariable', () => {
                 const [varFromDerived, setVarFromDerived] = useVariable(variableFromDerived);
 
                 const resetAtom = useRecoilCallback(({ reset }) => () => {
-                    const family = atomFamilyRegistry.get(variableFromDerived.uid);
+                    const family = atomFamilyRegistry.get(variableFromDerived.uid)!;
                     // reset one of them, we don't care which as both should be reset
-                    const atomInstance = atomFamilyMembersRegistry.get(family).values().next().value;
+                    const atomInstance = atomFamilyMembersRegistry.get(family)!.values().next().value!;
                     reset(atomInstance);
                 });
 
@@ -1613,52 +1614,85 @@ describe('useVariable', () => {
 
     describe('Variable with QueryParamStore', () => {
         it('should manage the state of a Variable with QueryParamStore by using the history api', async () => {
-            const history = createMemoryHistory();
+            const variable = {
+                __typename: 'Variable',
+                default: 'test',
+                store: {
+                    __typename: 'QueryParamStore',
+                    query: 'q',
+                },
+                uid: 'uid',
+                nested: [],
+            } as SingleVariable<string, QueryParamStore>;
 
-            act(() => {
-                history.push('/target');
-            });
+            // Custom harness component for this test
+            const QueryParamHarness = (): React.ReactNode => {
+                const navigate = useNavigate();
+                const [searchParams, setSearchParams] = useSearchParams();
+                const [value, setValue] = useVariable<string>(variable);
 
-            const { result } = renderHook(
-                () =>
-                    useVariable<string>({
-                        __typename: 'Variable',
-                        default: 'test',
-                        store: {
-                            __typename: 'QueryParamStore',
-                            query: 'q',
-                        },
-                        uid: 'uid',
-                        nested: [],
-                    } as SingleVariable<string, QueryParamStore>),
-                { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
+                const handleNavigateToTarget = (): void => {
+                    navigate('/target');
+                };
+
+                const handleUpdateUrlParam = (): void => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('q', 'test_push');
+                    setSearchParams(newParams);
+                };
+
+                const handleUpdateValue = (): void => {
+                    setValue('test_update');
+                };
+
+                return (
+                    <div>
+                        <div data-testid="current-value">{value}</div>
+                        <div data-testid="current-url">{window.location.search}</div>
+                        <button data-testid="navigate-to-target" onClick={handleNavigateToTarget} type="button">
+                            Navigate to Target
+                        </button>
+                        <button data-testid="update-url-param" onClick={handleUpdateUrlParam} type="button">
+                            Update URL Param
+                        </button>
+                        <button data-testid="update-value" onClick={handleUpdateValue} type="button">
+                            Update Value
+                        </button>
+                    </div>
+                );
+            };
+
+            const { getByTestId } = render(
+                <Wrapper>
+                    <QueryParamHarness />
+                </Wrapper>
             );
+
+            // Navigate to target route initially
+            fireEvent.click(getByTestId('navigate-to-target'));
+
             await waitFor(() => {
-                expect(result.current[0]).toBe('test');
+                expect(getByTestId('current-value')).toHaveTextContent('test');
             });
 
-            // Test pushing to history updates the component
-            act(() => {
-                history.push('/target?q=test_push');
-            });
+            // Test updating URL updates the component
+            fireEvent.click(getByTestId('update-url-param'));
+
             await waitFor(() => {
-                expect(result.current[0]).toBe('test_push');
+                expect(getByTestId('current-value')).toHaveTextContent('test_push');
             });
 
-            // Test updating via the hook updates the history
-            act(() => {
-                result.current[1]('test_update');
-            });
+            // Test updating via the hook updates the URL
+            fireEvent.click(getByTestId('update-value'));
+
             await waitFor(() => {
-                expect(history.location.search).toBe('?q=test_update');
+                expect(window.location.search).toBe('?q=test_update');
             });
         });
 
         it('should pick up the state of the url by first render of a Variable with QueryParamStore', () => {
-            const history = createMemoryHistory();
-
             act(() => {
-                history.push('/target?q=initial');
+                history.pushState(null, '', '/target?q=initial');
             });
             const { result } = renderHook(
                 () =>
@@ -1672,18 +1706,12 @@ describe('useVariable', () => {
                         uid: 'uid',
                         nested: [],
                     } as SingleVariable<string, QueryParamStore>),
-                { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
+                { wrapper: ({ children }) => <Wrapper>{children}</Wrapper> }
             );
             expect(result.current[0]).toBe('initial');
         });
 
         it('should publish EventBus notification on change', async () => {
-            const history = createMemoryHistory();
-
-            act(() => {
-                history.push('/target');
-            });
-
             const receivedData: Array<DaraEventMap['PLAIN_VARIABLE_LOADED']> = [];
 
             const variable = {
@@ -1697,45 +1725,84 @@ describe('useVariable', () => {
                 nested: [],
             } satisfies SingleVariable<string, QueryParamStore>;
 
-            const { result } = renderHook(() => useVariable<string>(variable), {
-                wrapper: ({ children }) => (
-                    <EventCapturer
-                        onEvent={(ev) => {
-                            if (ev.type === 'PLAIN_VARIABLE_LOADED') {
-                                receivedData.push(ev.data);
-                            }
-                        }}
-                    >
-                        <Wrapper history={history}>{children}</Wrapper>
-                    </EventCapturer>
-                ),
-            });
+            // Custom harness component that uses proper React Router v7 hooks
+            const VariableHarness = (): React.ReactNode => {
+                const navigate = useNavigate();
+                const [searchParams, setSearchParams] = useSearchParams();
+                const [value, setValue] = useVariable<string>(variable);
+
+                const handleNavigateToTarget = (): void => {
+                    navigate('/target');
+                };
+
+                const handleUpdateValue = (): void => {
+                    setValue('test_update');
+                };
+
+                const handleUpdateSearchParam = (): void => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('q', 'test_push');
+                    setSearchParams(newParams);
+                };
+
+                return (
+                    <div>
+                        <div data-testid="current-value">{value}</div>
+                        <button data-testid="navigate-to-target" onClick={handleNavigateToTarget} type="button">
+                            Navigate to Target
+                        </button>
+                        <button data-testid="update-value" onClick={handleUpdateValue} type="button">
+                            Update Value
+                        </button>
+                        <button data-testid="update-search-param" onClick={handleUpdateSearchParam} type="button">
+                            Update Search Param
+                        </button>
+                    </div>
+                );
+            };
+
+            const { getByTestId } = render(
+                <EventCapturer
+                    onEvent={(ev) => {
+                        if (ev.type === 'PLAIN_VARIABLE_LOADED') {
+                            receivedData.push(ev.data);
+                        }
+                    }}
+                >
+                    <Wrapper>
+                        <VariableHarness />
+                    </Wrapper>
+                </EventCapturer>
+            );
+
+            // Navigate to target route initially
+            fireEvent.click(getByTestId('navigate-to-target'));
 
             await waitFor(() => {
-                expect(result.current[0]).toBe('test');
+                expect(getByTestId('current-value')).toHaveTextContent('test');
             });
 
-            // Test updating via the hook updates the history
-            act(() => {
-                result.current[1]('test_update');
-            });
+            // Clear any initial events that might have fired during setup
+            receivedData.length = 0;
+
+            // Test updating via the hook updates the URL
+            fireEvent.click(getByTestId('update-value'));
 
             await waitFor(() => {
-                expect(result.current[0]).toBe('test_update');
-                expect(receivedData[0]).toEqual({
+                expect(getByTestId('current-value')).toHaveTextContent('test_update');
+                expect(receivedData.length).toBeGreaterThan(0);
+                expect(receivedData[receivedData.length - 1]).toEqual({
                     variable,
                     value: 'test_update',
                 });
             });
 
-            // update via url
-            act(() => {
-                history.push('/target?q=test_push');
-            });
+            // Update via URL search params
+            fireEvent.click(getByTestId('update-search-param'));
 
             await waitFor(() => {
-                expect(result.current[0]).toBe('test_push');
-                expect(receivedData[1]).toEqual({
+                expect(getByTestId('current-value')).toHaveTextContent('test_push');
+                expect(receivedData[receivedData.length - 1]).toEqual({
                     variable,
                     value: 'test_push',
                 });

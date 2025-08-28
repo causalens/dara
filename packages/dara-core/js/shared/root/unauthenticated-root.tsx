@@ -13,7 +13,7 @@ import useUrlSync from '../utils/use-url-sync';
  * or e.g. auth pages
  */
 function UnauthenticatedRoot(): JSX.Element {
-    const syncOptions = useUrlSync({});
+    const syncOptions = useUrlSync();
     const navigation = useNavigation();
 
     const progressRef = useRef<boolean>(false);
