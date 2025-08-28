@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import NProgress from 'nprogress';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 
@@ -9,6 +10,8 @@ import { ConfigContextProvider } from '@/shared/context';
 
 import './index.css';
 import { DirectionCtx, ImportersCtx, resolveTheme } from './shared';
+import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
+import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { createRouter } from './shared/router';
 import type { DaraData } from './types';
 
@@ -34,8 +37,19 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
     const queryClient = new QueryClient();
 
     const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent!);
-    console.log(daraData);
-    const router = await createRouter(daraData, importers, queryClient);
+
+    document.title = daraData.title;
+    NProgress.configure({ showSpinner: false });
+
+    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
+    await Promise.all([
+        // preload auth components to prevent flashing of extra spinners
+        ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
+        // preload components for the entire loaded registry
+        preloadComponents(importers, Object.values(daraData.components)),
+    ]);
+
+    const router = createRouter(daraData, queryClient);
 
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
     function Root(): JSX.Element {

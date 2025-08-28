@@ -1,5 +1,4 @@
 import type { QueryClient } from '@tanstack/query-core';
-import NProgress from 'nprogress';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 
 import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
@@ -10,14 +9,12 @@ import {
     type DaraData,
     type IndexRouteDefinition,
     type LayoutRouteDefinition,
-    type ModuleContent,
     type PageRouteDefinition,
     type PrefixRouteDefinition,
     type RouteDefinition,
 } from '@/types/core';
 
-import DynamicAuthComponent, { preloadAuthComponent } from './dynamic-component/dynamic-auth-component';
-import { preloadComponents } from './dynamic-component/dynamic-component';
+import DynamicAuthComponent from './dynamic-component/dynamic-auth-component';
 import AuthenticatedRoot from './root/authenticated-root';
 import RouteContent, { createRouteLoader } from './root/route-content';
 import UnauthenticatedRoot from './root/unauthenticated-root';
@@ -152,11 +149,10 @@ interface DaraGlobals {
     base_url: string;
 }
 
-export async function createRouter(
-    config: DaraData,
-    importers: Record<string, () => Promise<ModuleContent>>,
-    queryClient: QueryClient
-): Promise<ReturnType<typeof createBrowserRouter>> {
+/**
+ * Create the router for the application
+ */
+export function createRouter(config: DaraData, queryClient: QueryClient): ReturnType<typeof createBrowserRouter> {
     let basename = '';
 
     // The base_url is set in the html template by the backend when returning it
@@ -164,19 +160,7 @@ export async function createRouter(
         basename = new URL(window.dara.base_url, window.origin).pathname;
     }
 
-    // set initial title here
-    document.title = config.title;
-
-    // preload auth components to prevent flashing of extra spinners
-    await Promise.all(
-        Object.values(config.auth_components).map((component) => preloadAuthComponent(importers, component))
-    );
-    // preload components for the entire loaded registry
-    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
-    await preloadComponents(importers, Object.values(config.components));
     const { login, logout, ...extraRoutes } = config.auth_components;
-
-    NProgress.configure({ showSpinner: false });
 
     const userRoutes = config.router.children.map((r) => createRoute(r, queryClient));
     const defaultPath = findFirstPath(config.router.children) || '/';
