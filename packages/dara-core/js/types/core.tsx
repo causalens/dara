@@ -1,5 +1,4 @@
-import { type History, type Location } from 'history';
-import type { NavigateFunction } from 'react-router';
+import type { Location, NavigateFunction } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 
 import { type DefaultTheme } from '@darajs/styled-components';
@@ -43,24 +42,23 @@ interface BaseRouteDefinition {
     id: string;
 }
 
-interface IndexRouteDefinition extends BaseRouteDefinition {
+export interface IndexRouteDefinition extends BaseRouteDefinition {
     index: true;
     __typename: 'IndexRoute';
 }
 
-interface PageRouteDefinition extends BaseRouteDefinition {
+export interface PageRouteDefinition extends BaseRouteDefinition {
     path: string;
     children: Array<RouteDefinition>;
     __typename: 'PageRoute';
 }
 
-interface LayoutRouteDefinition extends BaseRouteDefinition {
-    path: string;
+export interface LayoutRouteDefinition extends BaseRouteDefinition {
     children: Array<RouteDefinition>;
     __typename: 'LayoutRoute';
 }
 
-interface PrefixRouteDefinition extends BaseRouteDefinition {
+export interface PrefixRouteDefinition extends BaseRouteDefinition {
     path: string;
     children: Array<RouteDefinition>;
     __typename: 'PrefixRoute';

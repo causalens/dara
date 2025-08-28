@@ -43,7 +43,7 @@ const MenuItem = styled(NavLink)<MenuItemProps>`
         color: ${(props) => props.theme.colors.blue1};
     }
 
-    &.selected {
+    &[aria-current]{
         color: ${(props) => props.theme.colors.blue1};
         background-color: ${(props) => props.theme.colors.secondary};
     }
@@ -68,7 +68,7 @@ function Menu(props: MenuProps): JSX.Element {
             {props.routes.map(({ icon, name, route }) => {
                 const Icon = icon ? getIcon(icon) : null;
                 return (
-                    <MenuItem activeClassName="selected" direction={directionCtx.direction} key={name} to={route}>
+                    <MenuItem direction={directionCtx.direction} key={name} to={route}>
                         {Icon && <Icon style={{ marginRight: '0.5rem' }} />}
                         {name}
                     </MenuItem>

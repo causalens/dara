@@ -1,11 +1,19 @@
 import NProgress from 'nprogress';
-import { type RouteObject, createBrowserRouter, redirect } from 'react-router';
+import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 
 import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import ErrorPage from '@/pages/error-page';
 import RootErrorPage from '@/pages/root-error-page';
-import { type DaraData, type ModuleContent, type RouteDefinition } from '@/types/core';
+import {
+    type DaraData,
+    type IndexRouteDefinition,
+    type LayoutRouteDefinition,
+    type ModuleContent,
+    type PageRouteDefinition,
+    type PrefixRouteDefinition,
+    type RouteDefinition,
+} from '@/types/core';
 
 import DynamicAuthComponent, { preloadAuthComponent } from './dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './dynamic-component/dynamic-component';
@@ -31,7 +39,7 @@ function createRoute(route: RouteDefinition): RouteObject {
         case 'PageRoute':
             return {
                 ...sharedProps,
-                path: route.path,
+                path: cleanPath(route.path),
                 element: <RouteContent />,
                 loader: createRouteLoader(route),
                 children: route.children.map(createRoute),
@@ -39,7 +47,6 @@ function createRoute(route: RouteDefinition): RouteObject {
         case 'LayoutRoute':
             return {
                 ...sharedProps,
-                path: route.path,
                 element: <RouteContent />,
                 loader: createRouteLoader(route),
                 children: route.children.map(createRoute),
@@ -47,12 +54,91 @@ function createRoute(route: RouteDefinition): RouteObject {
         case 'PrefixRoute':
             return {
                 ...sharedProps,
-                path: route.path,
+                path: cleanPath(route.path),
                 children: route.children.map(createRoute),
             };
         default:
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
     }
+}
+
+/**
+ * Clean a single path segment by removing leading/trailing slashes
+ */
+function cleanPath(path: string): string {
+    return path.replace(/^\/+|\/+$/g, '');
+}
+
+/**
+ * Helper function to clean and join path segments properly
+ */
+function joinPaths(parentPath: string, childPath: string): string {
+    // Remove leading/trailing slashes from both parts
+    const cleanParent = parentPath.replace(/^\/+|\/+$/g, '');
+    const cleanChild = childPath.replace(/^\/+|\/+$/g, '');
+
+    // Join with single slash and ensure leading slash
+    if (cleanParent === '' && cleanChild === '') {
+        return '/';
+    }
+    if (cleanParent === '') {
+        return `/${cleanChild}`;
+    }
+    if (cleanChild === '') {
+        return `/${cleanParent}`;
+    }
+    return `/${cleanParent}/${cleanChild}`;
+}
+
+/**
+ * Find the first navigatable path in the given routes.
+ * Walks the routes in a BFS and returns the first route with a path.
+ */
+export function findFirstPath(routes: RouteDefinition[], parentPath: string = ''): string {
+    interface QueueItem {
+        routes: RouteDefinition[];
+        path: string;
+    }
+
+    const queue: QueueItem[] = [{ routes, path: parentPath }];
+
+    while (queue.length > 0) {
+        const { routes: currentRoutes, path: currentPath } = queue.shift()!;
+
+        // Categorize routes at current level
+        let indexRoute: IndexRouteDefinition | null = null;
+        const pageRoutes: PageRouteDefinition[] = [];
+        const otherRoutes: (LayoutRouteDefinition | PrefixRouteDefinition)[] = [];
+
+        for (const route of currentRoutes) {
+            if (route.__typename === 'IndexRoute') {
+                indexRoute = route;
+            } else if (route.__typename === 'PageRoute') {
+                pageRoutes.push(route);
+            } else if (route.__typename === 'LayoutRoute' || route.__typename === 'PrefixRoute') {
+                otherRoutes.push(route);
+            }
+        }
+
+        // 1. Prefer index routes - return current path as it's navigatable
+        if (indexRoute) {
+            return currentPath === '' ? '/' : joinPaths('', currentPath);
+        }
+
+        // 2. Then prefer page routes - just return them joined with parent
+        for (const pageRoute of pageRoutes) {
+            const pagePath = joinPaths(currentPath, pageRoute.path);
+            return pagePath;
+        }
+
+        // 3. Add layout/prefix routes to queue for processing
+        for (const otherRoute of otherRoutes) {
+            const routePath = 'path' in otherRoute ? otherRoute.path : '';
+            queue.push({ routes: otherRoute.children, path: joinPaths(currentPath, routePath) });
+        }
+    }
+
+    return '/';
 }
 
 declare global {
@@ -86,6 +172,9 @@ export async function createRouter(
     const { login, logout, ...extraRoutes } = config.auth_components;
 
     NProgress.configure({ showSpinner: false });
+
+    const userRoutes = config.router.children.map(createRoute);
+    const defaultPath = findFirstPath(config.router.children) || '/';
 
     return createBrowserRouter(
         [
@@ -144,7 +233,14 @@ export async function createRouter(
                             },
                         ],
                         // user-defined routes
-                        children: config.router.children.map(createRoute),
+                        children: [
+                            ...userRoutes,
+                            // fallback route, redirect to first navigatable path
+                            {
+                                path: '*',
+                                element: <Navigate to={defaultPath} />,
+                            },
+                        ],
                     },
                 ],
             },
