@@ -27,15 +27,13 @@ from pathlib import Path
 from typing import Optional
 
 from anyio import create_task_group
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
 from pydantic import BaseModel
 from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
-from typing_extensions import Annotated
 
 from dara.core.auth import auth_router
 from dara.core.configuration import Configuration, ConfigurationBuilder
@@ -60,7 +58,6 @@ from dara.core.internal.registries import (
     custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
-    template_registry,
     utils_registry,
     websocket_registry,
 )
@@ -392,7 +389,7 @@ def _start_application(config: Configuration):
             dev_logger.error('Error compiling router', error=e)
             sys.exit(1)
 
-        dev_logger.info(f'Registering pages:')
+        dev_logger.info('Registering pages:')
         # TODO: convert this to use the logger?
         config.router.print_route_tree()
         route_map = config.router.to_route_map()

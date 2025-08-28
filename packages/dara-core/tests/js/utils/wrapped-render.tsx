@@ -5,17 +5,14 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type RenderOptions, type RenderResult, render } from '@testing-library/react';
-import { type History, createMemoryHistory } from 'history';
-import noop from 'lodash/noop';
 import React, { type ComponentType, type ReactElement, useRef } from 'react';
-import { Router, RouterProvider, createBrowserRouter, createMemoryRouter } from 'react-router';
+import { RouterProvider, createBrowserRouter } from 'react-router';
 import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { StoreProviders } from '@/shared/interactivity/persistence';
-import UnauthenticatedRoot from '@/shared/root/unauthenticated-root';
 import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';

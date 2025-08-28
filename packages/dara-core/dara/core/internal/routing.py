@@ -33,7 +33,6 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -49,7 +48,7 @@ from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import DownloadRegistryEntry
 from dara.core.internal.execute_action import CURRENT_ACTION_ID
-from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
+from dara.core.internal.normalization import NormalizedPayload, denormalize
 from dara.core.internal.pandas_utils import data_response_to_json, df_to_json, is_data_response
 from dara.core.internal.registries import (
     action_def_registry,
@@ -65,7 +64,6 @@ from dara.core.internal.registries import (
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
-from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler

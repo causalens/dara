@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from pydantic import (
     BaseModel,
@@ -14,7 +14,6 @@ from pydantic import (
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
-from dara.core.interactivity import Variable
 
 # TODO: injection validation based on path :param parts
 # TODO: restrict /api top-level prefix?
