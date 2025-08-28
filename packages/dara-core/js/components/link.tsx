@@ -5,7 +5,8 @@ import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import useComponentStyles from '@/shared/utils/use-component-styles';
 import type { ComponentInstance, StyledComponentProps } from '@/types';
 
-interface LinkProps {
+export interface LinkProps extends StyledComponentProps {
+    className?: string;
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
     prefetch: NavLinkProps['prefetch'];
@@ -14,6 +15,7 @@ interface LinkProps {
     to: NavLinkProps['to'];
     active_css?: StyledComponentProps['raw_css'];
     inactive_css?: StyledComponentProps['raw_css'];
+    end: NavLinkProps['end'];
 }
 
 const StyledNavLink = styled(NavLink)<{ $activeCss: string; $inactiveCss: string }>`
@@ -27,19 +29,25 @@ const StyledNavLink = styled(NavLink)<{ $activeCss: string; $inactiveCss: string
 `;
 
 function Link(props: LinkProps) {
+    const [style, css] = useComponentStyles(props);
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
 
     return (
         <StyledNavLink
+            className={props.className}
             to={props.to}
+            end={props.end}
             // TODO: native prefetch doesn't work in Data mode, instead reimplement and call prefetchQuery manually
             // prefetch={props.prefetch}
             replace={props.replace}
             relative={props.relative}
-            $activeCss={activeCss}
-            $inactiveCss={inactiveCss}
-            style={({ isActive }) => (isActive ? activeStyle : inactiveStyle)}
+            $activeCss={css + activeCss}
+            $inactiveCss={css + inactiveCss}
+            style={({ isActive }) => ({
+                ...style,
+                ...(isActive ? activeStyle : inactiveStyle),
+            })}
         >
             {props.children.map((child, idx) => (
                 <DynamicComponent component={child} key={idx} />

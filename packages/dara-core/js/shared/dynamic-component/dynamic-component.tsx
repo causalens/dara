@@ -13,9 +13,11 @@ import {
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
+import { useLatestRef } from '@darajs/ui-utils';
+
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
-import ProgressTracker from '@/components/progress-tracker/progress-tracker';
+import ProgressTracker from '@/components/progress-tracker';
 import { FallbackCtx, ImportersCtx, VariableCtx, useRegistriesCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
@@ -228,7 +230,12 @@ async function resolveComponentAsync(
     }
 
     // Get component entry from registry
-    const entry = await getComponent(component);
+    let entry;
+    try{
+        entry = await getComponent(component);
+    } catch (e) {
+        throw new ComponentLoadError(e.message, 'Failed to load component');
+    }
 
     if (!isJsComponent(entry)) {
         // Python component, just cache metadata and nothing else to do here
@@ -371,6 +378,8 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }, [props.component]);
 
+    const getComponentStable = useLatestRef(getComponent);
+
     // Async loading effect
     useEffect(() => {
         if (!isLoading || loadingStarted) {
@@ -379,7 +388,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
 
         setLoadingStarted(true);
 
-        resolveComponentAsync(props.component, getComponent, importers)
+        resolveComponentAsync(props.component, getComponentStable.current, importers)
             .then(() => {
                 // Try sync resolution again after async loading
                 const resolvedComponent = resolveComponentSync(props.component);
@@ -395,7 +404,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
                     setComponent(<ErrorDisplay config={{ title: error.title, description: error.message }} />);
                 }
             });
-    }, [props.component, getComponent, importers, isLoading, loadingStarted]);
+    }, [props.component, getComponentStable, importers, isLoading, loadingStarted]);
 
     const refreshSelector = useRefreshSelector();
 

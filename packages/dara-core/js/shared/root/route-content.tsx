@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/query-core';
-import { type UseQueryOptions, useQuery } from '@tanstack/react-query';
+import { type UseQueryOptions, useSuspenseQuery } from '@tanstack/react-query';
 import * as React from 'react';
-import { type LoaderFunctionArgs, useLoaderData, useMatches } from 'react-router';
+import { type LoaderFunctionArgs, useMatches } from 'react-router';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -20,6 +20,13 @@ interface RouteResponse {
     on_load: Action | null;
 }
 
+/**
+ * We're using React Query for the loader to utilize a cache. This allows us to
+ * implement custom prefetching logic on links. React Router is not a cache
+ * and by default will always refetch the data on every navigation.
+ *
+ * See https://tkdodo.eu/blog/react-query-meets-react-router
+ */
 const loaderQuery = (route: RouteDefinition) =>
     ({
         queryKey: ['route', route.id],
@@ -39,7 +46,7 @@ const loaderQuery = (route: RouteDefinition) =>
                 responseContent.template.data,
                 responseContent.template.lookup
             ) as ComponentInstance;
-            return { route, template, on_load: responseContent.on_load };
+            return { template, on_load: responseContent.on_load };
         },
         refetchOnMount: false,
         refetchOnWindowFocus: false,
@@ -53,20 +60,22 @@ export function createRouteLoader(route: RouteDefinition, queryClient: QueryClie
     return async function loader({ request: loaderRequest }: LoaderFunctionArgs) {
         // make sure RR's signal cancels the prefetch
         const query = loaderQuery(route);
-        loaderRequest.signal.addEventListener('abort', () => queryClient.cancelQueries(query));
-        return queryClient.ensureQueryData({
+        loaderRequest.signal.addEventListener('abort', () => {
+            queryClient.cancelQueries(query);
+        });
+        await queryClient.ensureQueryData({
             ...query,
             // consider data older than 5 seconds stale
             staleTime: 5_000,
         });
+        return { loaderRequest };
     };
 }
 
-function RouteContent(): React.ReactNode {
-    const initialData = useLoaderData<ReturnType<typeof createRouteLoader>>();
+function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
     const {
-        data: { template, on_load, route },
-    } = useQuery({ ...loaderQuery(initialData.route), initialData });
+        data: { template, on_load },
+    } = useSuspenseQuery({ ...loaderQuery(props.route) });
 
     // TODO: next stage this will be kicked off in the same route request, for now just run it here
     const onLoad = useAction(on_load);
@@ -81,8 +90,8 @@ function RouteContent(): React.ReactNode {
 
     // only sync title for the most exact route
     const matches = useMatches();
-    const isMostExact = matches.at(-1)!.id === route.id;
-    useWindowTitle(route.name, isMostExact);
+    const isMostExact = matches.at(-1)!.id === props.route.id;
+    useWindowTitle(props.route.name, isMostExact);
 
     if (!isReady) {
         return <DefaultFallbackStatic />;

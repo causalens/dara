@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from uuid import UUID, uuid4
 
 from pydantic import (
@@ -13,7 +13,7 @@ from pydantic import (
 )
 
 from dara.core.base_definitions import Action
-from dara.core.definitions import ComponentInstance, JsComponentDef, transform_raw_css
+from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
 from dara.core.interactivity import Variable
 
 # TODO: injection validation based on path :param parts
@@ -98,6 +98,14 @@ class BaseRoute(BaseModel):
             for child in children:
                 child._attach_to_parent(self)
 
+    @property
+    def parent(self):
+        """
+        Parent route of this route.
+        Note that for routes not yet attached to a router or parent, this will return None.
+        """
+        return self._parent
+
     def get_identifier(self):
         """
         Get the unique identifier for the route.
@@ -110,6 +118,19 @@ class BaseRoute(BaseModel):
             return self.uid + '_' + path
 
         raise ValueError('Identifier cannot be determined, route is not attached to a router')
+
+    def get_name(self):
+        """
+        Get the human-readable name of the route.
+        If the route has a name, it will be returned. Otherwise, the route function name.
+        """
+        if self.name:
+            return self.name
+
+        if content := getattr(self, 'content', None):
+            return content.__name__
+
+        return self.full_path or self.get_identifier()
 
     @abstractmethod
     def compile(self): ...
@@ -155,7 +176,7 @@ class BaseRoute(BaseModel):
         if not props.get('id'):
             props['id'] = self.get_identifier()
         if not props.get('name'):
-            props['name'] = self.full_path
+            props['name'] = self.get_name()
         return props
 
 
@@ -561,6 +582,49 @@ class Router(HasChildRoutes):
 
         return routes
 
+    class NavigableRoute(TypedDict):
+        path: str
+        name: str
+        id: str
+        metadata: dict
+
+    def get_navigable_routes(self) -> List[NavigableRoute]:
+        """
+        Get a flattened list of all navigable routes (PageRoute and IndexRoute only).
+
+        This method filters out layout and prefix routes to return only routes that
+        represent actual pages users can navigate to, making it perfect for building menus.
+
+        Returns:
+            List of dictionaries containing route information:
+            - path: Full URL path
+            - name: Route name (for display)
+            - id: Route identifier
+            - metadata: Route metadata
+        """
+        navigable_routes = []
+
+        def _collect_navigable(route: BaseRoute):
+            # Only include routes that represent actual navigable pages
+            if isinstance(route, (PageRoute, IndexRoute)):
+                route_info = {
+                    'path': route.full_path,
+                    'name': route.get_name(),
+                    'id': route.get_identifier(),
+                    'metadata': route.metadata,
+                }
+                navigable_routes.append(route_info)
+
+            # Recursively process children
+            if isinstance(route, HasChildRoutes):
+                for child in route.children:
+                    _collect_navigable(child)
+
+        for route in self.children:
+            _collect_navigable(route)
+
+        return navigable_routes
+
     def print_route_tree(self):
         """
         Print a visual representation of the route tree showing:
@@ -650,14 +714,12 @@ class Outlet(ComponentInstance):
 LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
 
 
-class Link(ComponentInstance):
+class Link(StyledComponentInstance):
     """
     Link component is a wrapper around the NavLink component that displays a link to the specified route.
     """
 
     case_sensitive: bool = False
-
-    children: List[ComponentInstance]
 
     end: bool = False
     """

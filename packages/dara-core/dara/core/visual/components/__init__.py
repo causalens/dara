@@ -16,10 +16,11 @@ limitations under the License.
 """
 
 from inspect import isclass
-from typing import Optional  # needed for model_rebuild # noqa: F401
+from typing import Optional, Union  # needed for model_rebuild # noqa: F401
 
 from pydantic import BaseModel
 
+from dara.core.definitions import BaseFallback  # needed for model_rebuild # noqa: F401
 from dara.core.interactivity import Variable  # needed for model_rebuild # noqa: F401
 
 from .dynamic_component import (
@@ -34,6 +35,7 @@ from .fallback import (
 from .for_cmp import For, ForDef
 from .invalid_component import InvalidComponent
 from .menu import Menu, MenuDef
+from .menu_link import MenuLink, MenuLinkDef
 from .powered_by_causalens import PoweredByCausalens, PoweredByCausalensDef
 from .progress_tracker import (
     ProgressTracker,
@@ -66,6 +68,8 @@ __all__ = [
     'Fallback',
     'PoweredByCausalens',
     'PoweredByCausalensDef',
+    'MenuLink',
+    'MenuLinkDef',
 ]
 
 for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:

@@ -57,8 +57,8 @@ const ErrorTitle = styled.h3`
 `;
 
 const ErrorText = styled.span`
-    font-size: 1rem;
-    line-height: 1.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
 `;
 
 const RetryButton = styled.button`

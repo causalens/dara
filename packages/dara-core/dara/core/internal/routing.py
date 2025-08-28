@@ -113,6 +113,10 @@ def create_router(config: Configuration):
     """
     core_api_router = APIRouter()
 
+    @core_api_router.get('/actions', dependencies=[Depends(verify_session)])
+    async def get_actions():
+        return action_def_registry.get_all().items()
+
     class ActionRequestBody(BaseModel):
         values: NormalizedPayload[Mapping[str, Any]]
         """Dynamic kwarg values"""
@@ -202,7 +206,7 @@ def create_router(config: Configuration):
         except (KeyError, ValueError) as e:
             raise ValueError('Invalid or expired download code') from e
 
-    @core_api_router.get('/components/{component}/definition', dependencies=[Depends(verify_session)])
+    @core_api_router.get('/components/{name}/definition', dependencies=[Depends(verify_session)])
     async def get_component_definition(name: str):
         """
         Attempt to refetch a component definition from the backend.

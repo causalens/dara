@@ -9,7 +9,7 @@ import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme, useConf
 import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
 
-import PoweredByCausalens from '../powered-by-causalens';
+import PoweredByCausalens from './powered-by-causalens';
 
 interface SideBarProps {
     width?: string;

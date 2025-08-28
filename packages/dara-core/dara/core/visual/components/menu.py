@@ -18,12 +18,16 @@ limitations under the License.
 from typing import List
 
 from pydantic import ConfigDict
+from typing_extensions import deprecated
 
 from dara.core.definitions import ComponentInstance, JsComponentDef, TemplateRouterLink
 
 MenuDef = JsComponentDef(name='Menu', js_module='@darajs/core', py_module='dara.core')
 
 
+@deprecated(
+    'Legacy component used with templates and config.add_page API. Use dara.core.visual.components.MenuLink or NavLink instead.'
+)
 class Menu(ComponentInstance):
     routes: List[TemplateRouterLink]
     model_config = ConfigDict(extra='forbid')

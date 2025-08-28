@@ -31,21 +31,21 @@ function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObj
             return {
                 ...sharedProps,
                 index: true,
-                element: <RouteContent />,
+                element: <RouteContent route={route} key={route.id} />,
                 loader: createRouteLoader(route, queryClient),
             };
         case 'PageRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
-                element: <RouteContent />,
+                element: <RouteContent route={route} key={route.id} />,
                 loader: createRouteLoader(route, queryClient),
                 children: route.children.map((r) => createRoute(r, queryClient)),
             };
         case 'LayoutRoute':
             return {
                 ...sharedProps,
-                element: <RouteContent />,
+                element: <RouteContent route={route} key={route.id} />,
                 loader: createRouteLoader(route, queryClient),
                 children: route.children.map((r) => createRoute(r, queryClient)),
             };

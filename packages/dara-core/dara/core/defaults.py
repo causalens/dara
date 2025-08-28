@@ -44,6 +44,8 @@ from dara.core.visual.components import (
     ForDef,
     Menu,
     MenuDef,
+    MenuLink,
+    MenuLinkDef,
     PoweredByCausalens,
     PoweredByCausalensDef,
     ProgressTracker,
@@ -77,6 +79,7 @@ INITIAL_CORE_INTERNALS = {'Store': _store}
 CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     DynamicComponent.__name__: DynamicComponentDef,
     Menu.__name__: MenuDef,
+    MenuLink.__name__: MenuLinkDef,
     ProgressTracker.__name__: ProgressTrackerDef,
     RouterContent.__name__: RouterContentDef,
     SideBarFrame.__name__: SideBarFrameDef,
