@@ -373,7 +373,7 @@ class NavigateToImpl(ActionImpl):
     py_name = 'NavigateTo'
 
     url: Optional[str] = None
-    new_tab: bool
+    new_tab: bool = False
 
 
 @deprecated('Use @action or `NavigateToImpl` for simple cases')

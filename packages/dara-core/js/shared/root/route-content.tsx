@@ -51,9 +51,10 @@ const loaderQuery = (route: RouteDefinition) =>
         refetchOnMount: false,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        // don't cache data loaded with useQuery at all
-        cacheTime: 0,
-        staleTime: Infinity,
+        // Using 5 minutes as a default stale time.
+        // TODO: this will change anyway as we'll run the action and prefetch on every navigation so the cache settingswill have to change
+        cacheTime: 5 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
     }) satisfies UseQueryOptions;
 
 export function createRouteLoader(route: RouteDefinition, queryClient: QueryClient) {
@@ -63,11 +64,7 @@ export function createRouteLoader(route: RouteDefinition, queryClient: QueryClie
         loaderRequest.signal.addEventListener('abort', () => {
             queryClient.cancelQueries(query);
         });
-        await queryClient.ensureQueryData({
-            ...query,
-            // consider data older than 5 seconds stale
-            staleTime: 5_000,
-        });
+        await queryClient.ensureQueryData(query);
         return { loaderRequest };
     };
 }
@@ -75,7 +72,7 @@ export function createRouteLoader(route: RouteDefinition, queryClient: QueryClie
 function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
     const {
         data: { template, on_load },
-    } = useSuspenseQuery({ ...loaderQuery(props.route) });
+    } = useSuspenseQuery(loaderQuery(props.route));
 
     // TODO: next stage this will be kicked off in the same route request, for now just run it here
     const onLoad = useAction(on_load);

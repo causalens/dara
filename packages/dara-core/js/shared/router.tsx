@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/query-core';
-import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
+import { Navigate, type RouteObject, createBrowserRouter, redirect, unstable_createContext } from 'react-router';
 
 import { getSessionToken, resolveReferrer, setSessionToken, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
@@ -150,6 +150,13 @@ interface DaraGlobals {
 }
 
 /**
+ * Simple boolean to track whether we have done an initial verification of the token.
+ * We only do it once, as we don't want to do it on every navigation - any server interaction will require a valid token anyway.
+ * The initial check is only done to ensure that on initial load we short-circuit and bail out as early as possible.
+ */
+let verifiedToken = false;
+
+/**
  * Create the router for the application
  */
 export function createRouter(config: DaraData, queryClient: QueryClient): ReturnType<typeof createBrowserRouter> {
@@ -198,22 +205,19 @@ export function createRouter(config: DaraData, queryClient: QueryClient): Return
                         // token must be set to access the authenticated routes
                         unstable_middleware: [
                             async () => {
-                                const token = getSessionToken();
-
-                                // short-circuit - already validated token
-                                if (token) {
+                                if (verifiedToken) {
                                     return;
                                 }
 
-                                // verify storage token if present
-                                const storageToken = getToken();
-                                if (storageToken) {
-                                    if (await verifySessionToken()) {
-                                        setSessionToken(storageToken);
-                                        return;
-                                    }
+                                const token = getSessionToken();
+
+                                // if there is a token and we can verify it, we're good to go
+                                if (token && (await verifySessionToken())) {
+                                    verifiedToken = true;
+                                    return;
                                 }
 
+                                // otherwise there is no token or it's invalid, redirect to login
                                 const referrer = resolveReferrer();
                                 const baseUrl: string = window.dara?.base_url ?? '';
                                 const redirectUrl = new URL(baseUrl + '/login', window.location.origin);

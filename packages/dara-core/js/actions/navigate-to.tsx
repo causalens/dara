@@ -35,8 +35,12 @@ const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
 
     if (actionImpl.new_tab) {
         window.open(actionImpl.url, actionImpl.new_tab ? '_blank' : undefined);
-    } else {
+    }
+    // use router navigate if the url is relative
+    else if (actionImpl.url.startsWith('/')) {
         ctx.navigate(actionImpl.url);
+    } else {
+        window.location.href = actionImpl.url;
     }
 };
 
