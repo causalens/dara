@@ -292,6 +292,71 @@ export function useActionIsLoading(action: Action | undefined | null): boolean {
     return useVariable(action.loading)[0];
 }
 
+export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: any) => Promise<void> {
+    const { client: wsClient } = useContext(WebSocketCtx);
+    const notificationCtx = useNotifications();
+    const extras = useRequestExtras();
+    const taskCtx = useTaskContext();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const eventBus = useEventBus();
+
+    // keep actionCtx in a ref to avoid re-creating the callbacks
+    const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>({
+        extras,
+        navigate,
+        location,
+        notificationCtx,
+        taskCtx,
+        wsClient,
+        eventBus,
+    });
+
+    useLayoutEffect(() => {
+        actionCtx.current = {
+            extras,
+            navigate,
+            location,
+            notificationCtx,
+            taskCtx,
+            wsClient,
+            eventBus,
+        };
+    });
+    const callback = useRecoilCallback(
+        (cbInterface) => async (action: ActionImpl | ActionImpl[], input?: any) => {
+            const actionsToExecute = Array.isArray(action) ? action : [action];
+
+            // this is redefined for each action to have up-to-date snapshot
+            const fullActionContext: ActionContext = {
+                ...actionCtx.current,
+                input,
+                // Recoil callback interface cannot be spread as it is a Proxy
+                gotoSnapshot: cbInterface.gotoSnapshot,
+                refresh: cbInterface.refresh,
+                reset: cbInterface.reset,
+                set: cbInterface.set,
+                snapshot: cbInterface.snapshot,
+                transact_UNSTABLE: cbInterface.transact_UNSTABLE,
+            };
+
+            for (const act of actionsToExecute) {
+                const handler = resolveActionImpl(act, fullActionContext);
+                const result = handler(fullActionContext, act);
+
+                // handle async handlers
+                if (result instanceof Promise) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await result;
+                }
+            }
+        },
+        []
+    );
+
+    return callback;
+}
+
 interface UseActionOptions {
     /**
      * Callback to invoke when an unhandled action is encountered.
@@ -345,16 +410,6 @@ export default function useAction(
         };
         optionsRef.current = options;
     });
-
-    const getAction = useCallback(
-        (instance: ActionImpl) => {
-            if (!actionRegistry[instance.name]) {
-                throw new Error(`Attempted to load an action (${instance.name}) that is not in the registry`);
-            }
-            return actionRegistry[instance.name]!;
-        },
-        [actionRegistry]
-    );
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {

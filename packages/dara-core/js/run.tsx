@@ -57,7 +57,6 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         preloadActions(importers, Object.values(daraData.actions)),
     ]);
 
-    const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
 
     function RouterRoot(): JSX.Element {
         const snapshot = useRecoilSnapshot();
@@ -76,9 +75,8 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         preloadComponents(importers, Object.values(daraData.components)),
     ]);
 
-    const router = createRouter(daraData, queryClient);
-
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
+
     function Root(): JSX.Element {
         return (
             <ConfigContextProvider initialConfig={daraData}>

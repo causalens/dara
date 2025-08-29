@@ -399,12 +399,14 @@ def _start_application(config: Configuration):
 
         class ActionPayload(BaseModel):
             uid: str
+            definition_uid: str
             values: NormalizedPayload[Mapping[str, Any]]
 
         class RouteDataRequestBody(BaseModel):
             id: str
             action_payloads: List[ActionPayload] = []
-            ws_channel: str
+            ws_channel: Optional[str]
+            params: Dict[str, str]
 
         @app.post('/api/core/route')
         async def get_route_data(body: RouteDataRequestBody):
@@ -414,8 +416,6 @@ def _start_application(config: Configuration):
             if route_data is None:
                 raise HTTPException(status_code=404, detail=f'Route {id} not found')
 
-            WS_CHANNEL.set(body.ws_channel)
-
             action_results: Dict[str, Any] = {}
 
             if len(body.action_payloads) > 0:
@@ -423,17 +423,20 @@ def _start_application(config: Configuration):
                 task_mgr: TaskManager = utils_registry.get('TaskManager')
                 registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
+                # Ws channel can be null for top-level layouts rendered above the ws client
+                if body.ws_channel is not None:
+                    WS_CHANNEL.set(body.ws_channel)
+
                 # Run actions in order to guarantee execution order
                 for action_payload in body.action_payloads:
-                    action_def: ActionResolverDef = await registry_mgr.get(action_registry, action_payload.uid)
+                    action_def: ActionResolverDef = await registry_mgr.get(action_registry, action_payload.definition_uid)
                     static_kwargs = await registry_mgr.get(static_kwargs_registry, action_payload.uid)
 
                     CURRENT_ACTION_ID.set(action_payload.uid)
                     values = denormalize(action_payload.values.data, action_payload.values.lookup)
                     action_results[action_payload.uid] = await execute_action_sync(
                         action_def,
-                        # TODO: add more stuff here, request url/params?
-                        inp=route_data.definition,
+                        inp={'params': body.params, 'route': route_data.definition},
                         values=values,
                         static_kwargs=static_kwargs,
                         store=store,
@@ -441,7 +444,7 @@ def _start_application(config: Configuration):
                     )
 
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
-            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': action_results}
+            return {'template': {'data': normalized_template, 'lookup': lookup}, 'action_results': action_results}
 
         # Catch-all, must add after adding the last api route
         @app.get('/api/{rest_of_path:path}')

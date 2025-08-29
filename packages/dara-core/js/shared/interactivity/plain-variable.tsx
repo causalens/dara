@@ -1,4 +1,4 @@
-import { type AtomEffect, type RecoilState, Snapshot, atomFamily, selectorFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, type Snapshot, atomFamily, selectorFamily } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';

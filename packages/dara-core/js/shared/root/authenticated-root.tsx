@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-/* eslint-disable react-hooks/exhaustive-deps */
-=======
->>>>>>> master
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
@@ -78,11 +74,7 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
             // if for some reason we don't have a token, redirect back to login
             navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
         }
-<<<<<<< HEAD
-    }, [token]);
-=======
     }, [token, navigate]);
->>>>>>> master
 
     useEffect(() => {
         if (!wsClient) {
@@ -107,12 +99,8 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
 
         const newWsClient = setupWebsocket(token, props.daraData.live_reload);
         setWsClient(newWsClient);
-<<<<<<< HEAD
         window.dara.ws = newWsClient;
-    }, [token, props.daraData.live_reload]);
-=======
     }, [wsClient, token, props.daraData.live_reload]);
->>>>>>> master
 
     if (!wsClient) {
         return null;

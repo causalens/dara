@@ -56,6 +56,7 @@ function createRoute(
     const sharedProps = {
         id: route.id,
         caseSensitive: route.case_sensitive,
+        hydrateFallbackElement: <DefaultFallbackStatic />,
     };
 
     switch (route.__typename) {

@@ -69,7 +69,7 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
-    on_load: Optional[Action] = Field(default=None)
+    on_load: SerializeAsAny[Optional[Action]] = Field(default=None)
     """
     Action to execute when the route is loaded.
     Guaranteed to be executed before the route content is rendered.
@@ -80,7 +80,7 @@ class BaseRoute(BaseModel):
     Internal unique identifier for the route
     """
 
-    compiled_data: Optional[RouteData] = Field(default=None, exclude=True)
+    compiled_data: Optional[RouteData] = Field(default=None, exclude=True, repr=False)
     """
     Internal compiled data for the route
     """

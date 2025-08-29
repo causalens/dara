@@ -1,4 +1,4 @@
-import { type RecoilState, Snapshot } from 'recoil';
+import { type RecoilState, type Snapshot } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras } from '@/api/http';

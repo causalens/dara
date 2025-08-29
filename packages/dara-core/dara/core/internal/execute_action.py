@@ -124,7 +124,8 @@ async def execute_action_sync(
 
     # Construct a context which handles action messages by accumulating them in an array
     async def handle_action(act_impl: Optional[ActionImpl]):
-        results.append(act_impl)
+        if act_impl is not None:
+            results.append(act_impl)
 
     ctx = ActionCtx(inp, handle_action)
     ACTION_CONTEXT.set(ctx)
