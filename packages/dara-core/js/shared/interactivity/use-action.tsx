@@ -1,5 +1,6 @@
+import groupBy from 'lodash/groupBy';
 import { nanoid } from 'nanoid';
-import { useCallback, useContext, useLayoutEffect, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { type CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
@@ -11,7 +12,7 @@ import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 import { fetchTaskResult } from '@/api/core';
 import { request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { ImportersCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import {
     type Action,
     type ActionContext,
@@ -19,10 +20,10 @@ import {
     type ActionHandler,
     type ActionImpl,
     type AnnotatedAction,
+    type ModuleContent,
 } from '@/types/core';
 import { isActionImpl, isVariable } from '@/types/utils';
 
-import { useRegistriesCtx } from '../context/registries-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
 import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
@@ -102,6 +103,31 @@ async function invokeAction(
 const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
 
 /**
+ * Pre-warm the action handlers in the action registry.
+ */
+export async function preloadActions(
+    importers: Record<string, () => Promise<ModuleContent>>,
+    actions: ActionDef[]
+): Promise<void> {
+    const componentsByModule = groupBy(actions, (actionDef) => actionDef.py_module);
+
+    await Promise.all(
+        Object.entries(componentsByModule).map(async ([module, moduleActions]) => {
+            const moduleContent = await importers[module]!();
+            for (const action of moduleActions) {
+                if (ACTION_HANDLER_BY_NAME[action.name]) {
+                    continue;
+                }
+                const actionHandler = moduleContent[action.name];
+                if (actionHandler) {
+                    ACTION_HANDLER_BY_NAME[action.name] = actionHandler as ActionHandler;
+                }
+            }
+        })
+    );
+}
+
+/**
  * Clear the global action handler cache.
  * This is only used for testing.
  */
@@ -125,35 +151,19 @@ class UnhandledActionError extends Error {
  * Resolve an action implementation into an action handler function.
  *
  * @param actionImpl action implementation
- * @param getAction callback to get the action definition from the action implementation
- * @param importers importers available in the app
+ * @param actionCtx action execution context
  */
-async function resolveActionImpl(
-    actionImpl: ActionImpl,
-    getAction: (instance: ActionImpl) => ActionDef,
-    importers: Record<string, () => Promise<any>>,
-    actionCtx: ActionContext
-): Promise<ActionHandler<ActionImpl>> {
+function resolveActionImpl(actionImpl: ActionImpl, actionCtx: ActionContext): ActionHandler<ActionImpl> {
     let actionHandler: ActionHandler;
 
-    // resolve action handler function by name
-    // cache action handler globally for performance, they are pure functions so it's safe to do so
+    // all action handlers would have been cached by preloadActions
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
-        try {
-            const actionDef = getAction(actionImpl);
-            const moduleContent = await importers[actionDef.py_module]!();
-            actionHandler = moduleContent[actionImpl.name];
-
-            // only cache if we successfully resolved a built-in action handler
-            ACTION_HANDLER_BY_NAME[actionImpl.name] = actionHandler;
-        } catch {
-            // if we failed to resolve the action handler, use the catch-all handler if defined
-            if (actionCtx.onUnhandledAction) {
-                // this one is explicitly not cached since it's an arbitrary user-defined handler
-                actionHandler = actionCtx.onUnhandledAction;
-            } else {
-                throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
-            }
+        // if we failed to resolve the action handler, use the catch-all handler if defined
+        if (actionCtx.onUnhandledAction) {
+            // this one is explicitly not cached since it's an arbitrary user-defined handler
+            actionHandler = actionCtx.onUnhandledAction;
+        } else {
+            throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
         }
     } else {
         actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name]!;
@@ -168,19 +178,15 @@ async function resolveActionImpl(
  * @param input component input value
  * @param action action implementation or annotated action
  * @param actionCtx action execution context
- * @param getAction callback to get the action definition from the action implementation
- * @param importers available importers in the app
  */
 async function executeAction(
     input: any,
     action: ActionImpl | AnnotatedAction,
-    actionCtx: ActionContext,
-    getAction: (instance: ActionImpl) => ActionDef,
-    importers: Record<string, () => Promise<any>>
+    actionCtx: ActionContext
 ): Promise<void> {
     // if it's a simple action implementation, run the handler directly
     if (isActionImpl(action)) {
-        const handler = await resolveActionImpl(action, getAction, importers, actionCtx);
+        const handler = resolveActionImpl(action, actionCtx);
         const result = handler(actionCtx, action);
 
         // handle async handlers
@@ -221,9 +227,10 @@ async function executeAction(
 
         sub = observable
             .pipe(
+                // eslint-disable-next-line @typescript-eslint/require-await
                 concatMap(async (actionImpl) => {
                     if (actionImpl) {
-                        const handler = await resolveActionImpl(actionImpl, getAction, importers, actionCtx);
+                        const handler = resolveActionImpl(actionImpl, actionCtx);
                         return [handler, actionImpl] as const;
                     }
 
@@ -307,8 +314,6 @@ export default function useAction(
     options?: UseActionOptions
 ): (input?: any) => Promise<void> {
     const { client: wsClient } = useContext(WebSocketCtx);
-    const importers = useContext(ImportersCtx);
-    const { actionRegistry } = useRegistriesCtx();
     const notificationCtx = useNotifications();
     const extras = useRequestExtras();
     const taskCtx = useTaskContext();
@@ -340,16 +345,6 @@ export default function useAction(
         };
         optionsRef.current = options;
     });
-
-    const getAction = useCallback(
-        (instance: ActionImpl) => {
-            if (!actionRegistry[instance.name]) {
-                throw new Error(`Attempted to load an action (${instance.name}) that is not in the registry`);
-            }
-            return actionRegistry[instance.name]!;
-        },
-        [actionRegistry]
-    );
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {
@@ -386,7 +381,7 @@ export default function useAction(
 
                 try {
                     // eslint-disable-next-line no-await-in-loop
-                    await executeAction(input, actionToExecute, fullActionContext, getAction, importers);
+                    await executeAction(input, actionToExecute, fullActionContext);
                 } catch (error) {
                     // Display for easier debugging
                     // eslint-disable-next-line no-console
@@ -412,7 +407,7 @@ export default function useAction(
                 }
             }
         },
-        [action, getAction, importers]
+        [action]
     );
 
     // return a noop if no action is passed

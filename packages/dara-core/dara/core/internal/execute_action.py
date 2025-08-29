@@ -98,6 +98,65 @@ async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[st
         await ctx._on_action(None)
 
 
+async def execute_action_sync(
+    action_def: ActionResolverDef,
+    inp: Any,
+    values: Mapping[str, Any],
+    static_kwargs: Mapping[str, Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
+):
+    """
+    Execute an action until completion.
+    Used for executing `on_load` route actions.
+
+    :param action_def: resolver definition
+    :param inp: input to the action
+    :param values: values from the frontend
+    :param static_kwargs: mapping of var names to current values for static arguments
+    :param store: store instance
+    :param task_mgr: task manager instance - task are not supported here but passed for compat
+    """
+    action = action_def.resolver
+    assert action is not None, 'Action resolver must be defined'
+
+    results = []
+
+    # Construct a context which handles action messages by accumulating them in an array
+    async def handle_action(act_impl: Optional[ActionImpl]):
+        results.append(act_impl)
+
+    ctx = ActionCtx(inp, handle_action)
+    ACTION_CONTEXT.set(ctx)
+
+    resolved_kwargs = {}
+
+    if values is not None:
+        annotations = action.__annotations__
+
+        async def _resolve_kwarg(val: Any, key: str):
+            typ = annotations.get(key)
+            val = await resolve_dependency(val, store, task_mgr)
+            resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
+
+    # Merge resolved dynamic kwargs with static kwargs received
+    resolved_kwargs = {**resolved_kwargs, **static_kwargs}
+
+    # Disallow tasks here
+    has_tasks = any(isinstance(extra, BaseTask) for extra in resolved_kwargs.values())
+    if has_tasks:
+        raise ValueError('This action does not support tasks')
+
+    # Run until completion
+    await _stream_action(action, ctx, **resolved_kwargs)
+
+    return results
+
+
 async def execute_action(
     action_def: ActionResolverDef,
     inp: Any,

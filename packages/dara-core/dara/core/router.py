@@ -44,6 +44,7 @@ class RouteData(BaseModel):
 
     content: Optional[ComponentInstance] = None
     on_load: Optional[Action] = None
+    definition: Optional['BaseRoute'] = None
 
 
 class BaseRoute(BaseModel):
@@ -68,7 +69,7 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
-    on_load: Optional[Action] = Field(default=None, exclude=True)
+    on_load: Optional[Action] = Field(default=None)
     """
     Action to execute when the route is loaded.
     Guaranteed to be executed before the route content is rendered.
@@ -387,7 +388,7 @@ class IndexRoute(BaseRoute):
     content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
+        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load, definition=self)
 
 
 class PageRoute(BaseRoute, HasChildRoutes):
@@ -405,7 +406,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
+        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load, definition=self)
         for child in self.children:
             child.compile()
 
@@ -446,7 +447,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load, content=execute_route_func(self.content))
+        self.compiled_data = RouteData(on_load=self.on_load, content=execute_route_func(self.content), definition=self)
         for child in self.children:
             child.compile()
 
@@ -479,7 +480,7 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load)
+        self.compiled_data = RouteData(on_load=self.on_load, definition=self)
         for child in self.children:
             child.compile()
 

@@ -41,6 +41,7 @@ interface BaseRouteDefinition {
     case_sensitive: boolean;
     id: string;
     name?: string;
+    on_load?: Action;
 }
 
 export interface IndexRouteDefinition extends BaseRouteDefinition {

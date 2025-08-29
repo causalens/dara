@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/query-core';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
+import type { Snapshot } from 'recoil';
 
 import { getSessionToken, resolveReferrer, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
@@ -47,7 +48,11 @@ function joinPaths(parentPath: string, childPath: string): string {
     return `/${cleanParent}/${cleanChild}`;
 }
 
-function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObject {
+function createRoute(
+    route: RouteDefinition,
+    queryClient: QueryClient,
+    snapshotRef: React.MutableRefObject<Snapshot>
+): RouteObject {
     const sharedProps = {
         id: route.id,
         caseSensitive: route.case_sensitive,
@@ -59,28 +64,28 @@ function createRoute(route: RouteDefinition, queryClient: QueryClient): RouteObj
                 ...sharedProps,
                 index: true,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient),
+                loader: createRouteLoader(route, queryClient, snapshotRef),
             };
         case 'PageRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient),
-                children: route.children.map((r) => createRoute(r, queryClient)),
+                loader: createRouteLoader(route, queryClient, snapshotRef),
+                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
             };
         case 'LayoutRoute':
             return {
                 ...sharedProps,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient),
-                children: route.children.map((r) => createRoute(r, queryClient)),
+                loader: createRouteLoader(route, queryClient, snapshotRef),
+                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
             };
         case 'PrefixRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
-                children: route.children.map((r) => createRoute(r, queryClient)),
+                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
             };
         default:
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
@@ -137,16 +142,6 @@ export function findFirstPath(routes: RouteDefinition[]): string {
     return '/';
 }
 
-declare global {
-    interface Window {
-        dara: DaraGlobals;
-    }
-}
-
-interface DaraGlobals {
-    base_url: string;
-}
-
 /**
  * Simple boolean to track whether we have done an initial verification of the token.
  * We only do it once, as we don't want to do it on every navigation - any server interaction will require a valid token anyway.
@@ -157,7 +152,11 @@ let verifiedToken = false;
 /**
  * Create the router for the application
  */
-export function createRouter(config: DaraData, queryClient: QueryClient): ReturnType<typeof createBrowserRouter> {
+export function createRouter(
+    config: DaraData,
+    queryClient: QueryClient,
+    snapshotRef: React.MutableRefObject<Snapshot>
+): ReturnType<typeof createBrowserRouter> {
     let basename = '';
 
     // The base_url is set in the html template by the backend when returning it
@@ -167,7 +166,7 @@ export function createRouter(config: DaraData, queryClient: QueryClient): Return
 
     const { login, logout, ...extraRoutes } = config.auth_components;
 
-    const userRoutes = config.router.children.map((r) => createRoute(r, queryClient));
+    const userRoutes = config.router.children.map((r) => createRoute(r, queryClient, snapshotRef));
     const defaultPath = findFirstPath(config.router.children) || '/';
 
     return createBrowserRouter(

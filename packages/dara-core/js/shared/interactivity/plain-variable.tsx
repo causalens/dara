@@ -1,4 +1,4 @@
-import { type AtomEffect, type RecoilState, atomFamily, selectorFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, Snapshot, atomFamily, selectorFamily } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
@@ -178,4 +178,20 @@ export function getOrRegisterPlainVariable<T>(
     }
 
     return atomInstance;
+}
+
+export function resolvePlainVariableStatic(variable: SingleVariable<any>, snapshot: Snapshot): RecoilState<any> {
+    const family = atomFamilyRegistry.get(variable.uid);
+
+    if (family) {
+        const extrasSerializable = new RequestExtrasSerializable({});
+        const atomInstance: RecoilState<any> = family(extrasSerializable);
+        const atomValue = snapshot.getLoadable(atomInstance).valueMaybe();
+        // TODO: ensure it's not default=dv?
+        if (atomValue !== null && !(atomValue instanceof Promise)) {
+            return atomInstance;
+        }
+    }
+
+    return variable.default;
 }

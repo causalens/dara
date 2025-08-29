@@ -20,12 +20,13 @@ import json
 import os
 import sys
 import traceback
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
 from inspect import iscoroutine
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
@@ -37,6 +38,7 @@ from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
+from dara.core.base_definitions import ActionResolverDef
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
     blank_template,
@@ -49,16 +51,19 @@ from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.normalization import normalize
+from dara.core.internal.execute_action import CURRENT_ACTION_ID, execute_action_sync
+from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.registries import (
     action_def_registry,
+    action_registry,
     auth_registry,
     component_registry,
     config_registry,
     custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
+    static_kwargs_registry,
     utils_registry,
     websocket_registry,
 )
@@ -67,7 +72,7 @@ from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
 from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
@@ -392,8 +397,14 @@ def _start_application(config: Configuration):
         config.router.print_route_tree()
         route_map = config.router.to_route_map()
 
+        class ActionPayload(BaseModel):
+            uid: str
+            values: NormalizedPayload[Mapping[str, Any]]
+
         class RouteDataRequestBody(BaseModel):
             id: str
+            action_payloads: List[ActionPayload] = []
+            ws_channel: str
 
         @app.post('/api/core/route')
         async def get_route_data(body: RouteDataRequestBody):
@@ -403,8 +414,34 @@ def _start_application(config: Configuration):
             if route_data is None:
                 raise HTTPException(status_code=404, detail=f'Route {id} not found')
 
+            WS_CHANNEL.set(body.ws_channel)
+
+            action_results: Dict[str, Any] = {}
+
+            if len(body.action_payloads) > 0:
+                store: CacheStore = utils_registry.get('Store')
+                task_mgr: TaskManager = utils_registry.get('TaskManager')
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+                # Run actions in order to guarantee execution order
+                for action_payload in body.action_payloads:
+                    action_def: ActionResolverDef = await registry_mgr.get(action_registry, action_payload.uid)
+                    static_kwargs = await registry_mgr.get(static_kwargs_registry, action_payload.uid)
+
+                    CURRENT_ACTION_ID.set(action_payload.uid)
+                    values = denormalize(action_payload.values.data, action_payload.values.lookup)
+                    action_results[action_payload.uid] = await execute_action_sync(
+                        action_def,
+                        # TODO: add more stuff here, request url/params?
+                        inp=route_data.definition,
+                        values=values,
+                        static_kwargs=static_kwargs,
+                        store=store,
+                        task_mgr=task_mgr,
+                    )
+
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
-            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': route_data.on_load}
+            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': action_results}
 
         # Catch-all, must add after adding the last api route
         @app.get('/api/{rest_of_path:path}')
