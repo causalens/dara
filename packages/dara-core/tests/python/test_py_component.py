@@ -77,8 +77,8 @@ async def test_simple_usecases():
         return MockComponent(text=input_val)
 
     builder.router = Router(
-        PageRoute(path='test', content=TestSimpleComp(), id='test'),
-        PageRoute(path='test2', content=TestBasicComp('test'), id='test2'),
+        PageRoute(path='test', content=lambda: TestSimpleComp(), id='test'),
+        PageRoute(path='test2', content=lambda: TestBasicComp('test'), id='test2'),
     )
 
     config = create_app(builder)
@@ -99,20 +99,12 @@ async def test_simple_usecases():
 
         # Check that two components have been generated and inserted instead of the MockComponent
         assert len(components) == 2
-        assert (
-            isinstance(components[0].get('content').get('name'), str)
-            and components[0].get('content').get('name') != 'MockComponent'
-        )
-        assert (
-            isinstance(components[1].get('content').get('name'), str)
-            and components[1].get('content').get('name') != 'MockComponent'
-        )
-        assert components[0].get('route') == '/test'
-        assert components[1].get('route') == '/test2'
+        assert components[0].get('name') != 'MockComponent'
+        assert components[1].get('name') != 'MockComponent'
 
         # Check that arguments for both components
-        assert components[0].get('content').get('props').get('dynamic_kwargs') == {}
-        assert components[1].get('content').get('props').get('dynamic_kwargs') == {}
+        assert components[0].get('props').get('dynamic_kwargs') == {}
+        assert components[1].get('props').get('dynamic_kwargs') == {}
 
 
 async def test_variables():
@@ -478,8 +470,8 @@ async def test_compatibility_with_polling():
         component_2 = response['template']
 
         # Check that two components have been generated and polling_interval is correctly set
-        assert component_1.get('content').get('props').get('polling_interval') == 2
-        assert component_2.get('content').get('props').get('polling_interval') is None
+        assert component_1.get('props').get('polling_interval') == 2
+        assert component_2.get('props').get('polling_interval') is None
 
 
 async def test_derived_variables_restore_base_models():
@@ -696,23 +688,12 @@ async def test_placeholder():
         component_2 = response['template']
 
         # Check that two components have been generated and inserted instead of the MockComponent
-        assert (
-            isinstance(component_1.get('content').get('name'), str)
-            and component_1.get('content').get('name') != 'MockFallbackComponent'
-        )
-        assert (
-            isinstance(component_2.get('content').get('name'), str)
-            and component_2.get('content').get('name') != 'MockFallbackComponent'
-        )
-        assert component_1.get('route') == '/test'
-        assert component_2.get('route') == '/test2'
+        assert isinstance(component_1.get('name'), str) and component_1.get('name') != 'MockFallbackComponent'
+        assert isinstance(component_2.get('name'), str) and component_2.get('name') != 'MockFallbackComponent'
 
         # Check that placeholders for both components
-        assert (
-            component_1.get('content').get('props').get('fallback')
-            == MockFallbackComponent(text='test placeholder').dict()
-        )
-        assert component_2.get('content').get('props').get('fallback') is None
+        assert component_1.get('props').get('fallback') == MockFallbackComponent(text='test placeholder').dict()
+        assert component_2.get('props').get('fallback') is None
 
 
 async def test_derive_var_with_run_as_task_flag():
@@ -972,7 +953,8 @@ async def test_multiple_dv_track_progress():
     derived = DerivedVariable(track_longer_task, variables=[], run_as_task=True)
     derived_2 = DerivedVariable(track_longer_task_2, variables=[], run_as_task=True)
 
-    builder.add_page('Test', content=TestSimpleComp(derived, derived_2))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived, derived_2), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -984,10 +966,8 @@ async def test_multiple_dv_track_progress():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-        res = response.json()
-        template_data = denormalize(res['data'], res['lookup'])
-        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns a task_id response
         data = await _get_py_component(
@@ -1046,7 +1026,8 @@ async def test_handles_primitives(primitive):
     def TestSimpleComp():
         return primitive
 
-    builder.add_page('Test', content=TestSimpleComp())
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1058,10 +1039,8 @@ async def test_handles_primitives(primitive):
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-        res = response.json()
-        template_data = denormalize(res['data'], res['lookup'])
-        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns a RawString with the primitive value
         data = await _get_py_component(
@@ -1088,7 +1067,8 @@ async def test_handles_none():
     def TestSimpleComp():
         return None
 
-    builder.add_page('Test', content=TestSimpleComp())
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1100,10 +1080,8 @@ async def test_handles_none():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-        res = response.json()
-        template_data = denormalize(res['data'], res['lookup'])
-        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns None
         data = await _get_py_component(
@@ -1129,7 +1107,8 @@ async def test_handles_invalid_value():
     def TestSimpleComp():
         return {'random': 'value'}
 
-    builder.add_page('Test', content=TestSimpleComp())
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1141,10 +1120,8 @@ async def test_handles_invalid_value():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response = await client.get('/api/core/template/default', headers=AUTH_HEADERS)
-        res = response.json()
-        template_data = denormalize(res['data'], res['lookup'])
-        component = template_data.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns an InvalidComponent
         data = await _get_py_component(

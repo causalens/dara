@@ -198,7 +198,6 @@ export function createRouter(config: DaraData, queryClient: QueryClient): Return
                     })),
                     // root of the app
                     {
-                        // TODO: move useWindowTitle and onLoad to somewhere, used to be PrivateRoute
                         element: <AuthenticatedRoot daraData={config} />,
                         // token must be set to access the authenticated routes
                         unstable_middleware: [

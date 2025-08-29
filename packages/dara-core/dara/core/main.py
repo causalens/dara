@@ -425,8 +425,7 @@ def _start_application(config: Configuration):
             'theme': config.theme,
             'title': config.title,
             'context_components': config.context_components,
-            # TODO: This could be part of the SidebarFrames itself...
-            # and exposed as a nice easy component
+            # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
         }
