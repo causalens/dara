@@ -99,6 +99,7 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
 
         const newWsClient = setupWebsocket(token, props.daraData.live_reload);
         setWsClient(newWsClient);
+        window.dara.ws = newWsClient;
     }, [wsClient, token, props.daraData.live_reload]);
 
     if (!wsClient) {
