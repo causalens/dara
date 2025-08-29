@@ -262,7 +262,7 @@ class HasChildRoutes(BaseModel):
         ```
 
         Note that:
-        - Home and Contact will be rendered into the MarketingLayout outlet
+        - MarketingHome and MarketingContact will be rendered into the MarketingLayout outlet
         - Project and EditProject will be rendered into the ProjectLayout outlet while ProjectsHome will not.
 
         :param content: layout component to render

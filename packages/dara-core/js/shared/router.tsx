@@ -31,8 +31,8 @@ function cleanPath(path: string): string {
  */
 function joinPaths(parentPath: string, childPath: string): string {
     // Remove leading/trailing slashes from both parts
-    const cleanParent = parentPath.replace(/^\/+|\/+$/g, '');
-    const cleanChild = childPath.replace(/^\/+|\/+$/g, '');
+    const cleanParent = cleanPath(parentPath);
+    const cleanChild = cleanPath(childPath);
 
     // Join with single slash and ensure leading slash
     if (cleanParent === '' && cleanChild === '') {
@@ -121,10 +121,9 @@ export function findFirstPath(routes: RouteDefinition[]): string {
             return currentPath === '' ? '/' : joinPaths('', currentPath);
         }
 
-        // 2. Then prefer page routes - just return them joined with parent
-        for (const pageRoute of pageRoutes) {
-            const pagePath = joinPaths(currentPath, pageRoute.path);
-            return pagePath;
+        // 2. Then prefer page routes - just return first one joined with parent
+        if (pageRoutes.length > 0) {
+            return joinPaths(currentPath, pageRoutes[0]!.path);
         }
 
         // 3. Add layout/prefix routes to queue for processing
