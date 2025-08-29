@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from dara.core import DerivedVariable, UpdateVariable, Variable
 from dara.core.auth import BasicAuthConfig, MultiBasicAuthConfig
 from dara.core.auth.definitions import SessionRequestBody
-from dara.core.configuration import ConfigurationBuilder
+from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.any_variable import NOT_REGISTERED
 from dara.core.internal.registries import utils_registry
@@ -44,10 +44,12 @@ class LocalJsComponent(ComponentInstance):
 
 
 # Create a config to test with
-builder: ConfigurationBuilder = ConfigurationBuilder()
-builder.add_component(component=LocalJsComponent, local=True)
-builder.add_page(name='Js Test', content=ComponentInstance.construct(name='LocalJsComponent', props={}), icon='Hdd')
-config = create_app(builder)
+@pytest.fixture
+def config():
+    builder: ConfigurationBuilder = ConfigurationBuilder()
+    builder.add_component(component=LocalJsComponent, local=True)
+    builder.add_page(name='Js Test', content=ComponentInstance.construct(name='LocalJsComponent', props={}), icon='Hdd')
+    return create_app(builder)
 
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
@@ -298,7 +300,7 @@ async def test_websocket_send_to_user():
                 assert messages1_2[0].get('message') == {'message': 'broadcast message new'}
 
 
-async def test_websocket_token_required():
+async def test_websocket_token_required(config: Configuration):
     app = _start_application(config)
     async with AsyncTestClient(app) as client:
         with pytest.raises(Exception):
@@ -306,7 +308,7 @@ async def test_websocket_token_required():
             await session.connect()
 
 
-async def test_websocket_invalid_token():
+async def test_websocket_invalid_token(config: Configuration):
     app = _start_application(config)
 
     async with AsyncTestClient(app) as client:
