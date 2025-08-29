@@ -1,5 +1,6 @@
+import inspect
 from abc import abstractmethod
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union, get_type_hints
 from uuid import uuid4
 
 from pydantic import (
@@ -14,7 +15,8 @@ from pydantic import (
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
-from dara.core.interactivity import Variable  # noqa: F401
+from dara.core.interactivity import Variable
+from dara.core.persistence import PersistenceStore  # noqa: F401
 
 # TODO: injection validation based on path :param parts
 # TODO: restrict /api top-level prefix?
@@ -388,7 +390,9 @@ class IndexRoute(BaseRoute):
     content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load, definition=self)
+        self.compiled_data = RouteData(
+            content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
+        )
 
 
 class PageRoute(BaseRoute, HasChildRoutes):
@@ -406,7 +410,9 @@ class PageRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load, definition=self)
+        self.compiled_data = RouteData(
+            content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
+        )
         for child in self.children:
             child.compile()
 
@@ -447,7 +453,9 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load, content=execute_route_func(self.content), definition=self)
+        self.compiled_data = RouteData(
+            on_load=self.on_load, content=execute_route_func(self.content, self.get_identifier()), definition=self
+        )
         for child in self.children:
             child.compile()
 
@@ -790,9 +798,16 @@ class Link(StyledComponentInstance):
         super().__init__(**kwargs)
 
 
-def execute_route_func(func: Callable[..., ComponentInstance]):
-    # TODO: inject variables
-    return func()
+def execute_route_func(func: Callable[..., ComponentInstance], route_id: str):
+    kwargs = {}
+    types = get_type_hints(func)
+    for name, typ in types.items():
+        if name == 'self' or name == 'cls':
+            continue
+        if typ is Variable:
+            # name here must match the client-side expectation
+            kwargs[name] = Variable(uid=f'__route_{route_id}_{name}')
+    return func(**kwargs)
 
 
 def convert_template_to_router(template):

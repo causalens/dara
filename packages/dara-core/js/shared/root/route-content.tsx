@@ -1,10 +1,18 @@
 import type { QueryClient } from '@tanstack/query-core';
 import { type UseQueryOptions } from '@tanstack/react-query';
 import * as React from 'react';
-import { Await, type LoaderFunctionArgs, type Params, useAsyncValue, useLoaderData, useMatches } from 'react-router';
-import type { Snapshot } from 'recoil';
+import {
+    Await,
+    type LoaderFunctionArgs,
+    type Params,
+    useAsyncValue,
+    useLoaderData,
+    useMatches,
+    useParams,
+} from 'react-router';
+import { type Snapshot, useRecoilCallback } from 'recoil';
 
-import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
+import { HTTP_METHOD, useLatestRef, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth';
@@ -14,10 +22,13 @@ import {
     type ComponentInstance,
     type NormalizedPayload,
     type RouteDefinition,
+    type SingleVariable,
     isAnnotatedAction,
 } from '@/types';
 
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import DynamicComponent from '../dynamic-component/dynamic-component';
+import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { cleanKwargs, resolveVariableStatic } from '../interactivity/resolve-variable';
 import { useExecuteAction } from '../interactivity/use-action';
 import { useWindowTitle } from '../utils';
@@ -131,13 +142,13 @@ export function createRouteLoader(
 
         let result: any = queryClient.ensureQueryData(query);
 
-        // Let the result through as a promise if it's a page route with server actions on_load.
+        // Let the result through as a promise if it's a page/index route with server actions on_load.
         // Otherwise, await and block the navigation.
         // This lets us render the fallback for pages without holding the navigation
         // while the request is in flight, as th expectation is that it will take
         // longer if there are AnnotatedActions to run.
         // TODO: alternatively we can always block unless an explicit fallback is provided
-        if (!(route.__typename === 'PageRoute' && hasServerActions(route))) {
+        if (!((route.__typename === 'IndexRoute' || route.__typename === 'PageRoute') && hasServerActions(route))) {
             result = await result;
         }
 
@@ -149,22 +160,59 @@ function Content({
     route,
     on_load,
     template,
-}: Awaited<Awaited<ReturnType<ReturnType<typeof createRouteLoader>>>['data']> & { route: RouteDefinition }) {
-    const [isReady, setIsReady] = React.useState(() => on_load.length === 0);
+}: Awaited<Awaited<ReturnType<ReturnType<typeof createRouteLoader>>>['data']> & {
+    route: RouteDefinition;
+}): React.ReactNode {
+    const [onLoadFinished, setOnLoadFinished] = React.useState(() => on_load.length === 0);
+    const extras = useRequestExtras();
     const executeAction = useExecuteAction();
+    const { client: wsClient } = React.useContext(WebSocketCtx);
+    const taskContext = useTaskContext();
+    const params = useParams();
+
+    const updateParamAtoms = useRecoilCallback(
+        ({ set, snapshot }) =>
+            (newParams: Params<string>) => {
+                for (const [key, value] of Object.entries(newParams)) {
+                    // NOTE: key must match dara.core.router logic
+                    const atomKey = `__route_${route.id}_${key}`;
+                    const atom = getOrRegisterPlainVariable(
+                        {
+                            __typename: 'Variable',
+                            default: undefined,
+                            nested: [],
+                            uid: atomKey,
+                        } as SingleVariable<string | undefined>,
+                        wsClient,
+                        taskContext,
+                        extras
+                    );
+                    if (snapshot.getLoadable(atom).valueOrThrow() !== value) {
+                        set(atom, value);
+                    }
+                }
+            },
+        [wsClient, taskContext, extras]
+    );
+    const updateParamAtomsRef = useLatestRef(updateParamAtoms);
 
     React.useLayoutEffect(() => {
-        if (on_load.length > 0 && !isReady) {
-            executeAction(on_load).then(() => setIsReady(true));
+        updateParamAtomsRef.current(params);
+    }, [params, updateParamAtomsRef]);
+
+    // TODO: fix race conditions here, must sync params once before we can show the page
+    React.useLayoutEffect(() => {
+        if (!onLoadFinished && on_load.length > 0) {
+            executeAction(on_load).then(() => setOnLoadFinished(true));
         }
-    }, [on_load, executeAction, isReady]);
+    }, [on_load, executeAction, onLoadFinished]);
 
     // only sync title for the most exact route
     const matches = useMatches();
     const isMostExact = matches.at(-1)!.id === route.id;
     useWindowTitle(route.name, isMostExact);
 
-    if (!isReady) {
+    if (!onLoadFinished) {
         return <DefaultFallbackStatic />;
     }
 
@@ -177,7 +225,7 @@ function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
     if (data instanceof Promise) {
         return (
             <React.Suspense fallback={<DefaultFallbackStatic />}>
-                <Await resolve={data}>{(data) => <Content {...data} route={props.route} />}</Await>
+                <Await resolve={data}>{(resolved) => <Content {...resolved} route={props.route} />}</Await>
             </React.Suspense>
         );
     }
