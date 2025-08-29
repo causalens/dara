@@ -19,6 +19,7 @@ import asyncio
 import json
 import os
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
@@ -308,8 +309,6 @@ def _start_application(config: Configuration):
                 else:
                     raise ValueError(f'Unknown template renderer: {config.template}')
         except Exception as e:
-            import traceback
-
             traceback.print_exc()
             dev_logger.error(
                 'Something went wrong when building application template, there is most likely an issue in the application logic',
@@ -333,6 +332,7 @@ def _start_application(config: Configuration):
             )
             rebuild_js(build_cache, build_diff)
     except Exception as e:
+        traceback.print_exc()
         dev_logger.error('Error building JS', error=e)
         sys.exit(1)
 
@@ -383,8 +383,6 @@ def _start_application(config: Configuration):
         try:
             config.router.compile()
         except Exception as e:
-            import traceback
-
             traceback.print_exc()
             dev_logger.error('Error compiling router', error=e)
             sys.exit(1)
