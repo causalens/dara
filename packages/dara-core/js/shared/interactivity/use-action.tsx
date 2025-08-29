@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
-import { useContext, useLayoutEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useCallback, useContext, useLayoutEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { type CallbackInterface, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
@@ -22,9 +22,9 @@ import {
 } from '@/types/core';
 import { isActionImpl, isVariable } from '@/types/utils';
 
+import { useRegistriesCtx } from '../context/registries-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
-import useActionRegistry from '../utils/use-action-registry';
 import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
 import { useVariable } from './use-variable';
 
@@ -308,18 +308,18 @@ export default function useAction(
 ): (input?: any) => Promise<void> {
     const { client: wsClient } = useContext(WebSocketCtx);
     const importers = useContext(ImportersCtx);
-    const { get: getAction } = useActionRegistry();
+    const { actionRegistry } = useRegistriesCtx();
     const notificationCtx = useNotifications();
     const extras = useRequestExtras();
-    const history = useHistory();
     const taskCtx = useTaskContext();
     const location = useLocation();
+    const navigate = useNavigate();
     const eventBus = useEventBus();
 
     // keep actionCtx in a ref to avoid re-creating the callbacks
     const actionCtx = useRef<Omit<ActionContext, keyof CallbackInterface | 'input'>>({
         extras,
-        history,
+        navigate,
         location,
         notificationCtx,
         taskCtx,
@@ -331,7 +331,7 @@ export default function useAction(
     useLayoutEffect(() => {
         actionCtx.current = {
             extras,
-            history,
+            navigate,
             location,
             notificationCtx,
             taskCtx,
@@ -340,6 +340,16 @@ export default function useAction(
         };
         optionsRef.current = options;
     });
+
+    const getAction = useCallback(
+        (instance: ActionImpl) => {
+            if (!actionRegistry[instance.name]) {
+                throw new Error(`Attempted to load an action (${instance.name}) that is not in the registry`);
+            }
+            return actionRegistry[instance.name]!;
+        },
+        [actionRegistry]
+    );
 
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {

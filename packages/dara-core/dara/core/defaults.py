@@ -34,6 +34,7 @@ from dara.core.interactivity.actions import (
     UpdateVariableDef,
 )
 from dara.core.internal.cache_store import CacheStore
+from dara.core.router import Link, LinkDef, Outlet, OutletDef
 from dara.core.visual.components import (
     DefaultFallbackDef,
     DynamicComponent,
@@ -43,6 +44,10 @@ from dara.core.visual.components import (
     ForDef,
     Menu,
     MenuDef,
+    MenuLink,
+    MenuLinkDef,
+    PoweredByCausalens,
+    PoweredByCausalensDef,
     ProgressTracker,
     ProgressTrackerDef,
     RouterContent,
@@ -74,6 +79,7 @@ INITIAL_CORE_INTERNALS = {'Store': _store}
 CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     DynamicComponent.__name__: DynamicComponentDef,
     Menu.__name__: MenuDef,
+    MenuLink.__name__: MenuLinkDef,
     ProgressTracker.__name__: ProgressTrackerDef,
     RouterContent.__name__: RouterContentDef,
     SideBarFrame.__name__: SideBarFrameDef,
@@ -82,6 +88,9 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     cast(str, Fallback.Row.py_component): RowFallbackDef,
     cast(str, Fallback.Custom.py_component): CustomFallbackDef,
     For.__name__: ForDef,
+    Link.__name__: LinkDef,
+    Outlet.__name__: OutletDef,
+    PoweredByCausalens.__name__: PoweredByCausalensDef,
 }
 
 # These actions are provided by the core JS of this module

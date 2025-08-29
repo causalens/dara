@@ -5,27 +5,133 @@
         <title>decisionApp</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+        <!-- inline style block to show a spinner before js & css loads -->
+        <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        html, body, #dara_root {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        .dara-dots-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 100%;
+            height: 100%;
+        }
+
+        .dara-dots {
+            position: relative;
+
+            width: 10px;
+            height: 10px;
+
+            color: #8D9199;
+
+            background-color: #8D9199;
+            border-radius: 5px;
+
+            animation: dara-dots-flashing 1s infinite linear alternate;
+            animation-delay: 0.5s;
+        }
+
+        .dara-dots::before,
+        .dara-dots::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            display: inline-block;
+        }
+
+        .dara-dots::before {
+            left: -15px;
+
+            width: 10px;
+            height: 10px;
+
+            color: #8D9199;
+
+            background-color: #8D9199;
+            border-radius: 5px;
+
+            animation: dara-dots-flashing 1s infinite alternate;
+            animation-delay: 0s;
+        }
+
+        .dara-dots::after {
+            left: 15px;
+
+            width: 10px;
+            height: 10px;
+
+            color: #8D9199;
+
+            background-color: #8D9199;
+            border-radius: 5px;
+
+            animation: dara-dots-flashing 1s infinite alternate;
+            animation-delay: 1s;
+        }
+
+        @keyframes dara-dots-flashing {
+            0% {
+                background-color: #8D9199;
+            }
+
+            50%,
+            100% {
+                background-color: #C3C6CF;
+            }
+        }
+        </style>
+
+        <script id="__DARA_DATA__" type="application/json">
+            {{ dara_data|safe }}
+        </script>
+
+
+        <script>
+            window.dara = {
+                base_url: "{{ base_url }}",
+                // static_url can be relative or absolute depending on how the backend is configured.
+                static_url: "{{ static_url }}",
+            };
+
+            // Setup the javascript hook for getting the current value.
+            window.__toDaraUrl = (filename) => `${window.dara.static_url}${filename}`;
+        </script>
+
+    </head>
+
+    <body>
+        <div id="dara_root">
+            <div class="dara-dots-center">
+                <div class="dara-dots"></div>
+            </div>
+        </div>
+
+        <!-- scripts are here to let body start showing up before the js loads -->
+
         <!-- jQuery is required for i.e. bokeh; due to bundling issues it needs to be included as UMD  -->
         <script
             src="https://code.jquery.com/jquery-3.6.1.slim.min.js"
             integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA="
             crossorigin="anonymous"
         ></script>
-
-        <script>
-            window.dara = {base_url: "$$baseUrl$$"};
-        </script>
-
         <!-- React/styled-components are included as UMD as they are not bundled inside each module -->
         <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
         <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
         <script crossorigin src="https://unpkg.com/react-is@18.2.0/umd/react-is.development.js"></script>
         <script crossorigin src="https://unpkg.com/styled-components@5.3.1/dist/styled-components.min.js"></script>
         <script crossorigin src="https://unpkg.com/@tanstack/react-query@4/build/umd/index.development.js"></script>
-        $$assets$$
-    </head>
-
-    <body>
-        <div id="dara_root"></div>
+        {{ assets | safe }}
     </body>
 </html>

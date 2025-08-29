@@ -33,7 +33,6 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pandas import DataFrame
 from pydantic import BaseModel
@@ -49,7 +48,7 @@ from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.download import DownloadRegistryEntry
 from dara.core.internal.execute_action import CURRENT_ACTION_ID
-from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
+from dara.core.internal.normalization import NormalizedPayload, denormalize
 from dara.core.internal.pandas_utils import data_response_to_json, df_to_json, is_data_response
 from dara.core.internal.registries import (
     action_def_registry,
@@ -61,12 +60,10 @@ from dara.core.internal.registries import (
     latest_value_registry,
     server_variable_registry,
     static_kwargs_registry,
-    template_registry,
     upload_resolver_registry,
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
-from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler
@@ -207,41 +204,18 @@ def create_router(config: Configuration):
         except (KeyError, ValueError) as e:
             raise ValueError('Invalid or expired download code') from e
 
-    @core_api_router.get('/config', dependencies=[Depends(verify_session)])
-    async def get_config():
-        return {
-            **config.model_dump(
-                include={
-                    'enable_devtools',
-                    'live_reload',
-                    'template',
-                    'theme',
-                    'title',
-                    'context_components',
-                    'powered_by_causalens',
-                }
-            ),
-            'application_name': get_settings().project_name,
-        }
-
-    @core_api_router.get('/auth-config')
-    async def get_auth_config():
-        return {
-            'auth_components': config.auth_config.component_config.model_dump(),
-        }
-
-    @core_api_router.get('/components', dependencies=[Depends(verify_session)])
-    async def get_components(name: Optional[str] = None):
+    @core_api_router.get('/components/{name}/definition', dependencies=[Depends(verify_session)])
+    async def get_component_definition(name: str):
         """
-        If name is passed, will try to register the component
+        Attempt to refetch a component definition from the backend.
+        This is used when a component isn't immediately available in the initial registry,
+        e.g. when it was added by a py_component.
 
         :param name: the name of component
         """
-        if name is not None:
-            registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-            await registry_mgr.get(component_registry, name)
-
-        return {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()}
+        registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+        component = await registry_mgr.get(component_registry, name)
+        return component.model_dump(exclude={'func'})
 
     class ComponentRequestBody(BaseModel):
         # Dynamic kwarg values
@@ -502,17 +476,6 @@ def create_router(config: Configuration):
                 f'The task id {task_id} could not be found, it may have already been cancelled',
                 e,
             )
-
-    @core_api_router.get('/template/{template}', dependencies=[Depends(verify_session)])
-    async def get_template(template: str):
-        try:
-            selected_template = template_registry.get(template)
-            normalized_template, lookup = normalize(jsonable_encoder(selected_template))
-            return {'data': normalized_template, 'lookup': lookup}
-        except KeyError as err:
-            raise HTTPException(status_code=404, detail=f'Template: {template}, not found in registry') from err
-        except Exception as e:
-            dev_logger.error('Something went wrong while trying to get the template', e)
 
     @core_api_router.get('/version', dependencies=[Depends(verify_session)])
     async def get_version():

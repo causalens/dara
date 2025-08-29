@@ -1,20 +1,21 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from '@testing-library/dom';
 import { act } from '@testing-library/react';
 import * as React from 'react';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setSessionToken } from '@/auth/use-session-token';
 import { clearCaches_TEST } from '@/shared/dynamic-component/dynamic-component';
 import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
-import { DARA_JWT_TOKEN, TemplateRoot } from '../../js/shared';
+import { AuthenticatedRoot, DARA_JWT_TOKEN } from '../../js/shared';
 import { MockWebSocketClient, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
+import { daraData } from './utils/wrapped-render';
 
 mockLocalStorage();
 
-describe('TemplateRoot', () => {
+describe('AuthenticatedRoot', () => {
     beforeAll(() => {
         server.listen();
     });
@@ -32,13 +33,6 @@ describe('TemplateRoot', () => {
         });
     });
     afterAll(() => server.close());
-
-    it('should render the template root component and expose the templateCtx', async () => {
-        // use a mock ws to speed up the test
-        const wsClient = new MockWebSocketClient('uid');
-        const { findByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient as any} />);
-        expect(await findByText('Frame, Menu')).toBeInstanceOf(HTMLSpanElement);
-    });
 
     it('should clean up cache on startup', async () => {
         // get session key while an invalid token is active
@@ -58,7 +52,7 @@ describe('TemplateRoot', () => {
         expect(sessionStorage.getItem(invalidKey)).toEqual('val3');
         expect(sessionStorage.getItem(validKey)).toEqual('val4');
 
-        wrappedRender(<TemplateRoot />);
+        wrappedRender(<AuthenticatedRoot daraData={daraData} />);
 
         // Other session value should be cleaned up
         await waitFor(() => {
@@ -69,13 +63,11 @@ describe('TemplateRoot', () => {
         });
     });
 
-    it('should subscribe to changes in the websocket token and trigger an update in the client', async () => {
+    it('should subscribe to changes in the websocket token and trigger an update in the client', () => {
         const wsClient = new MockWebSocketClient('uid');
         const updateTokenSpy = vi.spyOn(wsClient, 'updateToken');
 
-        const { getByText } = wrappedRender(<TemplateRoot initialWebsocketClient={wsClient as any} />);
-        // Wait for the page to be rendered
-        await waitFor(() => expect(getByText('Frame, Menu')).not.toBe(null));
+        wrappedRender(<AuthenticatedRoot initialWebsocketClient={wsClient as any} daraData={daraData} />);
 
         // Update the token in the global store
         act(() => {

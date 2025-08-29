@@ -1,20 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createBrowserHistory } from 'history';
+import NProgress from 'nprogress';
 import { createRoot } from 'react-dom/client';
-import { Router } from 'react-router-dom';
-import { RecoilRoot } from 'recoil';
-import { RecoilURLSync } from 'recoil-sync';
+import { RouterProvider } from 'react-router/dom';
 
-import { ThemeProvider, theme } from '@darajs/styled-components';
+import { ThemeProvider } from '@darajs/styled-components';
 import { ErrorBoundary } from '@darajs/ui-components';
-import { NotificationWrapper } from '@darajs/ui-notifications';
 
-import { GlobalTaskProvider } from '@/shared/context';
-import { useUrlSync } from '@/shared/utils';
+import { ConfigContextProvider } from '@/shared/context';
 
-import AuthWrapper from './auth/auth-wrapper';
 import './index.css';
-import { DirectionCtx, ImportersCtx, TemplateRoot } from './shared';
+import { DirectionCtx, ImportersCtx, resolveTheme } from './shared';
+import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
+import { preloadComponents } from './shared/dynamic-component/dynamic-component';
+import { createRouter } from './shared/router';
+import type { DaraData } from './types';
 
 declare global {
     interface Window {
@@ -34,43 +33,40 @@ interface DaraGlobals {
  *
  * @param importers - the importers object.
  */
-function run(importers: { [k: string]: () => Promise<any> }): void {
+async function run(importers: { [k: string]: () => Promise<any> }): Promise<void> {
     const queryClient = new QueryClient();
 
-    let basename = '';
+    const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent!);
 
-    // The base_url is set in the html template by the backend when returning it
-    if (window.dara.base_url !== '') {
-        basename = new URL(window.dara.base_url, window.origin).pathname;
-    }
+    document.title = daraData.title;
+    NProgress.configure({ showSpinner: false });
 
+    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
+    await Promise.all([
+        // preload auth components to prevent flashing of extra spinners
+        ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
+        // preload components for the entire loaded registry
+        preloadComponents(importers, Object.values(daraData.components)),
+    ]);
+
+    const router = createRouter(daraData, queryClient);
+
+    const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
     function Root(): JSX.Element {
-        const history = createBrowserHistory({ basename });
-        const syncOptions = useUrlSync({ history });
-
         return (
-            <QueryClientProvider client={queryClient}>
-                <ThemeProvider theme={theme}>
-                    <ErrorBoundary>
-                        <ImportersCtx.Provider value={importers}>
-                            <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                <Router history={history}>
-                                    <RecoilRoot>
-                                        <RecoilURLSync {...syncOptions}>
-                                            <GlobalTaskProvider>
-                                                <AuthWrapper>
-                                                    <NotificationWrapper />
-                                                    <TemplateRoot />
-                                                </AuthWrapper>
-                                            </GlobalTaskProvider>
-                                        </RecoilURLSync>
-                                    </RecoilRoot>
-                                </Router>
-                            </DirectionCtx.Provider>
-                        </ImportersCtx.Provider>
-                    </ErrorBoundary>
-                </ThemeProvider>
-            </QueryClientProvider>
+            <ConfigContextProvider initialConfig={daraData}>
+                <QueryClientProvider client={queryClient}>
+                    <ThemeProvider theme={theme}>
+                        <ErrorBoundary>
+                            <ImportersCtx.Provider value={importers}>
+                                <DirectionCtx.Provider value={{ direction: 'row' }}>
+                                    <RouterProvider router={router} />
+                                </DirectionCtx.Provider>
+                            </ImportersCtx.Provider>
+                        </ErrorBoundary>
+                    </ThemeProvider>
+                </QueryClientProvider>
+            </ConfigContextProvider>
         );
     }
 

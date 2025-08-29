@@ -383,17 +383,24 @@ def _copytree(src: str, dst: str):
             shutil.copy2(from_file, to_file)
 
 
+def _get_py_version(package_name: str) -> str:
+    """
+    Get the python version for a given package name
+    """
+    # For dara.* packages, replace . with -
+    if package_name.startswith('dara.'):
+        package_name = package_name.replace('.', '-')
+
+    return version(package_name)
+
+
 def _py_version_to_js(package_name: str) -> str:
     """
     Parse a python version string into a JS compatible version string
 
     :param package_name: the name of the package
     """
-    # For dara.* packages, replace . with -
-    if package_name.startswith('dara.'):
-        package_name = package_name.replace('.', '-')
-
-    raw_version = version(package_name)
+    raw_version = _get_py_version(package_name)
     parsed_version = Version(raw_version)
 
     if parsed_version.is_postrelease:
@@ -594,7 +601,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
     """
     # copy over dara.core js/css into static dir
     core_path = os.path.dirname(_get_module_file('dara.core'))
-    core_js_path = os.path.join(core_path, 'umd', 'dara.core.umd.js')
+    core_js_path = os.path.join(core_path, 'umd', 'dara.core.umd.cjs')
     core_css_path = os.path.join(core_path, 'umd', 'style.css')
     statics = os.path.join(pathlib.Path(__file__).parent.absolute(), 'statics')
 
@@ -619,27 +626,31 @@ def prepare_autojs_assets(build_cache: BuildCache):
         module_path = os.path.dirname(_get_module_file(module_name))
 
         # Build paths to the JS and CSS assets for the given module
-        # Note: this assumes assets structure of module/umd folder with the module.umd.js and style.css file
+        # Note: this assumes assets structure of module/umd folder with the module.umd.(c)js and style.css file
         js_asset_path = os.path.join(module_path, 'umd', f'{module_name}.umd.js')
+        cjs_asset_path = os.path.join(module_path, 'umd', f'{module_name}.umd.cjs')
         css_asset_path = os.path.join(module_path, 'umd', 'style.css')
 
         # copy over the JSS/CSS from python package into dist/umd so they are available under /static
         if os.path.exists(js_asset_path):
             shutil.copy(js_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.umd.js'))
+        elif os.path.exists(cjs_asset_path):
+            shutil.copy(cjs_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.umd.js'))
 
         if os.path.exists(css_asset_path):
             shutil.copy(css_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.css'))
 
 
-def build_autojs_template(html_template: str, build_cache: BuildCache, config: Configuration) -> str:
+def build_autojs_template(build_cache: BuildCache, config: Configuration) -> Dict[str, Any]:
     """
-    Build the autojs html template by replacing $$assets$$ with required tags based on packages loaded
+    Build the autojs html template by preparing context data with required tags based on packages loaded
     and including the startup script
 
     :param html_template: html template to fill out
     :param build_cache: build cache
     :param config: app configuration
     """
+
     settings = get_settings()
     entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
     with open(entry_template, encoding='utf-8') as f:
@@ -656,10 +667,12 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
         '$$extraJs$$', config.template_extra_js + '\n' + settings.dara_template_extra_js
     )
 
+    core_version = _get_py_version('dara.core')
+
     package_tags: Dict[str, List[str]] = {
         'dara.core': [
-            f'<script crossorigin src="{settings.dara_base_url}/static/dara.core.umd.js"></script>',
-            f'<link rel="stylesheet" href="{settings.dara_base_url}/static/dara.core.css"></link>',
+            f'<script crossorigin src="{settings.dara_base_url}/static/dara.core.umd.js?v={core_version}"></script>',
+            f'<link rel="stylesheet" href="{settings.dara_base_url}/static/dara.core.css?v={core_version}"></link>',
         ]
     }
 
@@ -667,15 +680,20 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
 
     for module_name in py_modules:
         module_tags = []
+        version = _get_py_version(module_name)
 
         # Include tag for JS if file exists
         if os.path.exists(os.path.join(config.static_files_dir, f'{module_name}.umd.js')):
-            js_tag = f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}.umd.js"></script>'
+            js_tag = (
+                f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}.umd.js?v={version}"></script>'
+            )
             module_tags.append(js_tag)
 
         # Include tag for CSS if file exists
         if os.path.exists(os.path.join(config.static_files_dir, f'{module_name}.css')):
-            css_tag = f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}.css"></link>'
+            css_tag = (
+                f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}.css?v={version}"></link>'
+            )
             module_tags.append(css_tag)
 
         package_tags[module_name] = module_tags
@@ -693,4 +711,7 @@ def build_autojs_template(html_template: str, build_cache: BuildCache, config: C
         f'<link id="favicon" rel="icon" type="image/x-icon" href="{settings.dara_base_url}/static/favicon.ico"></link>'
     )
 
-    return html_template.replace('$$assets$$', '\n'.join(tags)).replace('$$baseUrl$$', settings.dara_base_url)
+    return {
+        'assets': '\n'.join(tags),
+        'base_url': settings.dara_base_url,
+    }

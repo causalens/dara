@@ -1,7 +1,7 @@
 import run from './run';
 
 // re-export things which have shared contexts, so UMD builds can access the share contexts
-export * as ReactRouter from 'react-router-dom';
+export * as ReactRouter from 'react-router';
 export * as Notifications from '@darajs/ui-notifications';
 
 export * from './actions';

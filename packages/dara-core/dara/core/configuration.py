@@ -36,6 +36,7 @@ from typing import (
 from fastapi.middleware import Middleware
 from pydantic import ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
+from typing_extensions import deprecated
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
@@ -63,6 +64,7 @@ from dara.core.internal.import_discovery import (
 from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
 from dara.core.logging import dev_logger
+from dara.core.router import Router
 from dara.core.visual.components import RawString
 from dara.core.visual.themes import BaseTheme, ThemeDef
 
@@ -80,6 +82,7 @@ class Configuration(BaseModel):
     module_dependencies: Dict[str, str]
     live_reload: bool
     powered_by_causalens: bool
+    router: Optional[Router]
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -157,12 +160,13 @@ class ConfigurationBuilder:
     _custom_encoders: Dict[Type[Any], Encoder]
     _middlewares: List[Middleware]
     routes: Set[ApiRoute]
+    router: Optional[Router]
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
     startup_functions: List[Callable]
     context_components: List[ComponentInstance]
     task_module: Optional[str]
-    template: str
+    _template: str
     theme: BaseTheme
     title: str
 
@@ -175,13 +179,14 @@ class ConfigurationBuilder:
         self._errors = []
         self.enable_devtools = False
         self.live_reload = False
-        self.powered_by_causalens = False
+        self._powered_by_causalens = False
         self._package_tags_processors = []
         self._template_extra_js = ''
         self._pages = {}
         self._template_renderers = {}
         self._endpoint_configurations = []
         self.routes = set()
+        self.router = None
         self.static_files_dir = os.path.join(pathlib.Path().parent.parent.absolute(), 'dist')
         self._static_folders = []
         self._middlewares = []
@@ -193,9 +198,30 @@ class ConfigurationBuilder:
         self._custom_ws_handlers = {}
         self._custom_encoders = {}
 
-        self.template = 'default'
+        self._template = 'default'
         self.theme = BaseTheme(main='light')
         self.title = 'decisionApp'
+
+    @property
+    @deprecated('Use `config.router` instead and set a root layout route.')
+    def template(self):
+        return self._template
+
+    @template.setter
+    @deprecated('Use `config.router = Router()` instead and set a root layout route.')
+    def template(self, value):
+        self._template = value
+
+    @property
+    def powered_by_causalens(self):
+        return self._powered_by_causalens
+
+    @powered_by_causalens.setter
+    @deprecated(
+        'Pass `powered_by_causalens=` kwarg to SideBarFrame directly, or use the `dara.core.visual.components.PoweredByCausalens` component'
+    )
+    def powered_by_causalens(self, value):
+        self._powered_by_causalens = value
 
     def add_action(self, action: Type[ActionImpl], local: bool = False):
         """
@@ -380,6 +406,7 @@ class ConfigurationBuilder:
         """
         self._package_tags_processors.append(processor)
 
+    @deprecated('Use `config.router = Router()` instead.')
     def add_page(
         self,
         name: str,
@@ -436,6 +463,7 @@ class ConfigurationBuilder:
         self._pages[name] = page
         return page
 
+    @deprecated('Use `config.router = Router()` and set a root layout route instead.')
     def add_template_renderer(self, name: str, template_renderer: Callable[..., Template]) -> str:
         """
         Add a new template renderer that can be selected by name as part of the configuration. By default calling this
@@ -570,10 +598,11 @@ class ConfigurationBuilder:
             enable_devtools=self.enable_devtools,
             module_dependencies=self._module_dependencies,
             live_reload=self.live_reload,
+            pages=self._pages,
             powered_by_causalens=self.powered_by_causalens,
             package_tag_processors=self._package_tags_processors,
-            pages=self._pages,
             routes=self.routes,
+            router=self.router,
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,
             startup_functions=self.startup_functions,

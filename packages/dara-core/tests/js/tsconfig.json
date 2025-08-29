@@ -7,7 +7,8 @@
   "compilerOptions": {
     "rootDir": "../../",
     "types": [
-      "vitest/globals"
+      "vitest/globals",
+      "@testing-library/jest-dom"
     ],
     "skipLibCheck": true
   }

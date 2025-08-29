@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { transparentize } from 'polished';
 import { useEffect, useState } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
@@ -134,8 +134,8 @@ function BasicAuthLogin(): JSX.Element {
     const [password, setPassword] = useState<string>('');
     const [isError, setIsError] = useState(false);
 
-    const history = useHistory();
     const location = useLocation();
+    const navigate = useNavigate();
     const queryParams = new URLSearchParams(location.search);
 
     const previousLocation = queryParams.get('referrer') ?? '/';
@@ -149,7 +149,7 @@ function BasicAuthLogin(): JSX.Element {
 
             if (sessionToken) {
                 setSessionToken(sessionToken);
-                history.replace(decodeURIComponent(previousLocation));
+                navigate(decodeURIComponent(previousLocation));
             }
         } catch {
             setIsError(true);
@@ -164,7 +164,7 @@ function BasicAuthLogin(): JSX.Element {
             verifySessionToken().then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
-                    history.replace(decodeURIComponent(previousLocation));
+                    navigate(decodeURIComponent(previousLocation));
                 } else {
                     setIsVerifyingToken(false);
                 }

@@ -1,5 +1,4 @@
 import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
 import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
 
@@ -37,12 +36,14 @@ describe('useAction', () => {
 
     beforeEach(() => {
         window.localStorage.clear();
+        window.history.replaceState(null, '', '/');
         vi.restoreAllMocks();
 
         clearRegistries_TEST();
         clearActionHandlerCache_TEST();
     });
     afterEach(() => {
+        window.history.replaceState(null, '', '/');
         server.resetHandlers();
         clearRegistries_TEST();
     });
@@ -68,8 +69,6 @@ describe('useAction', () => {
     });
 
     it('should handle the NAVIGATE_TO action', async () => {
-        const history = createMemoryHistory();
-
         const { result } = renderHook(
             () =>
                 useAction({
@@ -79,7 +78,7 @@ describe('useAction', () => {
                     uid: 'uid',
                     url: '/simple/url',
                 } as NavigateToImpl),
-            { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
+            { wrapper: Wrapper }
         );
         await waitFor(() => {
             expect(result.current).toBeInstanceOf(Function);
@@ -88,7 +87,7 @@ describe('useAction', () => {
         act(() => {
             result.current(null);
         });
-        await waitFor(() => expect(history.location.pathname).toBe('/simple/url'));
+        await waitFor(() => expect(window.location.pathname).toBe('/simple/url'));
     });
 
     it('should handle UPDATE_VARIABLE action', async () => {
@@ -668,7 +667,6 @@ describe('useAction', () => {
     });
 
     it('should handle UPDATE_VARIABLE for Variable with QueryParamStore', async () => {
-        const history = createMemoryHistory();
         const variable: SingleVariable<string, QueryParamStore> = {
             __typename: 'Variable',
             default: 'value',
@@ -703,7 +701,7 @@ describe('useAction', () => {
         };
 
         const { getByTestId } = render(<MockComponent action={action} var={variable} />, {
-            wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper>,
+            wrapper: Wrapper
         });
 
         await waitFor(() => expect(getByTestId('update')).toBeInTheDocument());
@@ -713,12 +711,10 @@ describe('useAction', () => {
             fireEvent.click(button);
         });
 
-        await waitFor(() => expect(history.location.search).toBe('?q=updated'));
+        await waitFor(() => expect(window.location.search).toBe('?q=updated'));
     });
 
     it('should handle UPDATE_VARIABLE for multiple Variables with QueryParamStore', async () => {
-        const history = createMemoryHistory();
-
         const variable1: SingleVariable<string, QueryParamStore> = {
             __typename: 'Variable',
             default: '1',
@@ -773,7 +769,7 @@ describe('useAction', () => {
 
         const { getByTestId } = render(
             <MockComponent action={[action1, action2]} var1={variable1} var2={variable2} />,
-            { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
+            { wrapper: Wrapper }
         );
 
         await waitFor(() => expect(getByTestId('update')).toBeInTheDocument());
@@ -784,8 +780,8 @@ describe('useAction', () => {
         });
 
         await waitFor(() => {
-            expect(history.location.search.includes('x=2')).toBe(true);
-            expect(history.location.search.includes('y=2')).toBe(true);
+            expect(window.location.search.includes('x=2')).toBe(true);
+            expect(window.location.search.includes('y=2')).toBe(true);
         });
     });
 
@@ -927,8 +923,7 @@ describe('useAction', () => {
     });
 
     it('should handle RESET_VARIABLE for Variable with QueryParamStore', async () => {
-        const history = createMemoryHistory();
-
+        window.history.pushState(null, '', '/');
         const variable: SingleVariable<string, QueryParamStore> = {
             __typename: 'Variable',
             default: 'default-value',
@@ -978,7 +973,7 @@ describe('useAction', () => {
         };
         const { getByTestId } = render(
             <MockComponent resetAction={resetAction} updateAction={updateAction} var={variable} />,
-            { wrapper: ({ children }) => <Wrapper history={history}>{children}</Wrapper> }
+            { wrapper: Wrapper }
         );
 
         await waitFor(() => expect(getByTestId('reset')).toBeInTheDocument());
@@ -988,14 +983,14 @@ describe('useAction', () => {
             fireEvent.click(updateButton);
         });
 
-        await waitFor(() => expect(history.location.search).toBe('?q=updated'));
+        await waitFor(() => expect(window.location.search).toBe('?q=updated'));
 
         act(() => {
             const resetButton = getByTestId('reset');
             fireEvent.click(resetButton);
         });
 
-        await waitFor(() => expect(history.location.search).toBe('?q=default-value'));
+        await waitFor(() => expect(window.location.search).toBe('?q=default-value'));
     });
 
     it('should handle arbitrary ActionImpl', async () => {
@@ -1116,11 +1111,10 @@ describe('useAction', () => {
 
         server.use(
             http.post('/api/core/action/:uid', async (info) => {
-                serverReceivedMessage = await info.request.json() as any as Record<string, any>;
+                serverReceivedMessage = (await info.request.json()) as any as Record<string, any>;
                 return HttpResponse.json({
-                        execution_id: 'execution_uid',
-                    }
-                );
+                    execution_id: 'execution_uid',
+                });
             })
         );
 

@@ -1,4 +1,4 @@
-import { type History, type Location } from 'history';
+import type { Location, NavigateFunction } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 
 import { type DefaultTheme } from '@darajs/styled-components';
@@ -22,16 +22,75 @@ interface ConfigTheme {
     main: 'dark' | 'light' | DefaultTheme;
 }
 
-export interface Config {
+/**
+ * Separate from the main component system, since we can't use component registry for this yet
+ */
+export interface AuthComponent {
+    js_module: string;
+    js_name: string;
+    py_module: string;
+}
+
+interface AuthComponents {
+    [route: string]: AuthComponent;
+    login: AuthComponent;
+    logout: AuthComponent;
+}
+
+interface BaseRouteDefinition {
+    case_sensitive: boolean;
+    id: string;
+    name?: string;
+}
+
+export interface IndexRouteDefinition extends BaseRouteDefinition {
+    index: true;
+    __typename: 'IndexRoute';
+}
+
+export interface PageRouteDefinition extends BaseRouteDefinition {
+    path: string;
+    children: Array<RouteDefinition>;
+    __typename: 'PageRoute';
+}
+
+export interface LayoutRouteDefinition extends BaseRouteDefinition {
+    children: Array<RouteDefinition>;
+    __typename: 'LayoutRoute';
+}
+
+export interface PrefixRouteDefinition extends BaseRouteDefinition {
+    path: string;
+    children: Array<RouteDefinition>;
+    __typename: 'PrefixRoute';
+}
+
+export type RouteDefinition =
+    | IndexRouteDefinition
+    | PageRouteDefinition
+    | LayoutRouteDefinition
+    | PrefixRouteDefinition;
+
+export interface RouterDefinition {
+    children: Array<RouteDefinition>;
+}
+
+export interface DaraData {
+    auth_components: AuthComponents;
+    actions: Record<string, ActionDef>;
+    components: Record<string, Component>;
     application_name: string;
     context_components: Array<ComponentInstance<Record<never, any>>>;
     enable_devtools: boolean;
     live_reload: boolean;
     powered_by_causalens: boolean;
-    template: string;
     theme: ConfigTheme;
     title: string;
+    router: RouterDefinition;
 }
+
+// the registries are stored separately as they might get updated
+export type Config = Omit<DaraData, 'actions' | 'components'>;
 
 export type QueryCombinator = 'OR' | 'AND';
 
@@ -464,9 +523,9 @@ export interface ActionContext extends CallbackInterface {
      */
     wsClient: WebSocketClientInterface;
     /**
-     * History object
+     * Navigate function
      */
-    history: History;
+    navigate: NavigateFunction;
     /**
      * Location object
      */

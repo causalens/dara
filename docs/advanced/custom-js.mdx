@@ -302,9 +302,9 @@ export interface ActionContext extends CallbackInterface {
    */
   wsClient: WebSocketClientInterface;
   /**
-   * History object
+   * Navigate function
    */
-  history: History;
+  navigate: NavigateFunction;
   /**
    * Location object
    */
@@ -352,7 +352,7 @@ const CustomAction: ActionHandler<CustomActionInstance> = async (
   actionImpl
 ): Promise<void> => {
   // Navigate to a new page
-  ctx.history.push(`/country/${actionImpl.country}`);
+  ctx.navigate(`/country/${actionImpl.country}`);
 };
 
 export default CustomAction;

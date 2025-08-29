@@ -5,7 +5,6 @@ export { getToken, getTokenKey, DARA_JWT_TOKEN } from './embed';
 export { default as isJsComponent } from './is-js-component';
 export { default as resolveTheme } from './resolve-theme';
 export { default as useDeferLoadable } from './use-defer-loadable';
-export { default as useComponentRegistry } from './use-component-registry';
 export { default as useInterval } from './use-interval';
 export { default as usePrevious } from './use-previous';
 export { default as useWindowTitle } from './use-window-title';

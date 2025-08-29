@@ -16,8 +16,10 @@ limitations under the License.
 """
 
 import asyncio
+import json
 import os
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
@@ -27,10 +29,11 @@ from typing import Optional
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.encoders import ENCODERS_BY_TYPE
-from fastapi.responses import HTMLResponse
+from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
+from pydantic import BaseModel
+from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
@@ -46,6 +49,7 @@ from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
 from dara.core.internal.devtools import send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
+from dara.core.internal.normalization import normalize
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.registries import (
     action_def_registry,
@@ -55,7 +59,6 @@ from dara.core.internal.registries import (
     custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
-    template_registry,
     utils_registry,
     websocket_registry,
 )
@@ -72,6 +75,16 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+from dara.core.router import convert_template_to_router
+
+
+class CacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        # add 1 year cache for static assets
+        if isinstance(response, FileResponse) and path.endswith('.css') or path.endswith('.umd.js'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        return response
 
 
 def _start_application(config: Configuration):
@@ -94,18 +107,9 @@ def _start_application(config: Configuration):
     import fastapi_vite_dara
     import fastapi_vite_dara.config
 
-    if len(config.pages) > 0:
-        BASE_DIR = Path(__file__).parent
-        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
-        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
-        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
-        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
-        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
-        jinja_templates.env.globals['entry'] = '_entry.tsx'
-
-        # If --enable-hmr or --reload enabled, set live reload to true
-        if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
-            config.live_reload = True
+    # If --enable-hmr or --reload enabled, set live reload to true
+    if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
+        config.live_reload = True
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
@@ -259,26 +263,6 @@ def _start_application(config: Configuration):
     for key, value in encoder_registry.items():
         ENCODERS_BY_TYPE[key] = value['serialize']
 
-    # Generate a new build_cache
-    try:
-        build_cache = BuildCache.from_config(config)
-        build_diff = build_cache.get_diff()
-
-        # Only build if there's pages to build, otherwise assume Dara is only used for API
-        if len(config.pages) > 0:
-            dev_logger.debug(
-                'Building JS...',
-                extra={
-                    'New build cache': build_cache.model_dump(),
-                    'Difference from last cache': build_diff.model_dump(),
-                },
-            )
-            rebuild_js(build_cache, build_diff)
-
-    except Exception as e:
-        dev_logger.error('Error building JS', error=e)
-        sys.exit(1)
-
     # Loop over registered components and add to the registry
     eng_logger.info(f'Registering components [{", ".join([c.name for c in config.components])}]')
     for component in config.components:
@@ -292,37 +276,64 @@ def _start_application(config: Configuration):
     dev_logger.info(f'Using {config.auth_config.__class__.__name__} auth configuration')
     auth_registry.register('auth_config', config.auth_config)
 
+    # Handle pages/router compatibility
+    if len(config.pages) > 0:
+        if config.router is not None:
+            raise ValueError(
+                'ConfigurationBuilder.add_page is not compatible with a custom router, add_page is supported for backwards compatibility but the preferred API going forward is setting `config.router`'
+            )
+
+        try:
+            eng_logger.info('Registering template')
+
+            # Add the default templates
+            if config.template == 'default':
+                eng_logger.info('Registering template "default"')
+                config.router = convert_template_to_router(default_template(config))
+            elif config.template == 'blank':
+                eng_logger.info('Registering template "blank"')
+                config.router = convert_template_to_router(blank_template(config))
+            elif config.template == 'top':
+                eng_logger.info('Registering template "top"')
+                config.router = convert_template_to_router(top_template(config))
+            elif config.template == 'top-menu':
+                eng_logger.info('Registering template "top-menu"')
+                config.router = convert_template_to_router(top_menu_template(config))
+            else:
+                # Loop over user defined templates and add to the registry
+                for name, renderer in config.template_renderers.items():
+                    if name == config.template:
+                        eng_logger.info(f'Registering custom template "{name}"')
+                        config.router = convert_template_to_router(renderer(config))
+                        break
+                else:
+                    raise ValueError(f'Unknown template renderer: {config.template}')
+        except Exception as e:
+            traceback.print_exc()
+            dev_logger.error(
+                'Something went wrong when building application template, there is most likely an issue in the application logic',
+                e,
+            )
+            sys.exit(1)
+
+    # Generate a new build_cache
     try:
-        eng_logger.info('Registering template')
+        build_cache = BuildCache.from_config(config)
+        build_diff = build_cache.get_diff()
 
-        # Add the default templates
-        if config.template == 'default':
-            eng_logger.info('Registering template "default"')
-            template_registry.register('default', default_template(config))
-        elif config.template == 'blank':
-            eng_logger.info('Registering template "blank"')
-            template_registry.register('blank', blank_template(config))
-        elif config.template == 'top':
-            eng_logger.info('Registering template "top"')
-            template_registry.register('top', top_template(config))
-        elif config.template == 'top-menu':
-            eng_logger.info('Registering template "top-menu"')
-            template_registry.register('top-menu', top_menu_template(config))
-        else:
-            # Loop over user defined templates and add to the registry
-            for name, renderer in config.template_renderers.items():
-                if name == config.template:
-                    eng_logger.info(f'Registering custom template "{name}"')
-                    template_registry.register(name, renderer(config))
-
+        # Only build if there's pages to build, otherwise assume Dara is only used for API
+        if config.router is not None:
+            dev_logger.debug(
+                'Building JS...',
+                extra={
+                    'New build cache': build_cache.model_dump(),
+                    'Difference from last cache': build_diff.model_dump(),
+                },
+            )
+            rebuild_js(build_cache, build_diff)
     except Exception as e:
-        import traceback
-
         traceback.print_exc()
-        dev_logger.error(
-            'Something went wrong when building application template, there is most likely an issue in the application logic',
-            e,
-        )
+        dev_logger.error('Error building JS', error=e)
         sys.exit(1)
 
     # Root routes
@@ -352,42 +363,94 @@ def _start_application(config: Configuration):
         start_pprof_server(port=profiling_port)
 
     # Serve statics, only if we have any pages defined
-    if len(config.pages) > 0:
-        app.mount('/static', StaticFiles(directory=config.static_files_dir), name='static')
+    if config.router is not None:
+        app.mount('/static', CacheStaticFiles(directory=config.static_files_dir), name='static')
 
     # Mount Routers
     app.include_router(auth_router, prefix='/api/auth')
     app.include_router(core_api_router, prefix='/api/core')
 
-    @app.get('/api/{rest_of_path:path}')
-    async def not_found():
-        raise HTTPException(status_code=404, detail='API endpoint not found')
+    if config.router is not None:
+        BASE_DIR = Path(__file__).parent
+        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
+        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
+        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
+        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
+        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
+        jinja_templates.env.globals['entry'] = '_entry.tsx'
 
-    if len(config.pages) > 0:
-        dev_logger.info(f'Registering pages: [{", ".join(list(config.pages.keys()))}]')
+        # Compile the router, executing all page functions etc
+        try:
+            config.router.compile()
+        except Exception as e:
+            traceback.print_exc()
+            dev_logger.error('Error compiling router', error=e)
+            sys.exit(1)
+
+        dev_logger.info('Registering pages:')
+        # TODO: convert this to use the logger?
+        config.router.print_route_tree()
+        route_map = config.router.to_route_map()
+
+        class RouteDataRequestBody(BaseModel):
+            id: str
+
+        @app.post('/api/core/route')
+        async def get_route_data(body: RouteDataRequestBody):
+            # TODO: This will accept DV inputs etc and stream those back
+            route_data = route_map.get(body.id)
+
+            if route_data is None:
+                raise HTTPException(status_code=404, detail=f'Route {id} not found')
+
+            normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
+            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': route_data.on_load}
+
+        # Catch-all, must add after adding the last api route
+        @app.get('/api/{rest_of_path:path}')
+        async def not_found():
+            raise HTTPException(status_code=404, detail='API endpoint not found')
+
+        # Prepare static template data
+        template_data = {
+            'auth_components': config.auth_config.component_config.model_dump(),
+            'actions': action_def_registry.get_all().items(),
+            'components': {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()},
+            'application_name': get_settings().project_name,
+            'enable_devtools': config.enable_devtools,
+            'live_reload': config.live_reload,
+            # TODO: this will become some backendstore-variable instead, prepopulated in here
+            'theme': config.theme,
+            'title': config.title,
+            'context_components': config.context_components,
+            # For backwards compatibility
+            'powered_by_causalens': config.powered_by_causalens,
+            'router': config.router,
+        }
+        json_template_data = json.dumps(jsonable_encoder(template_data))
+
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
 
+        context = {
+            'dara_data': json_template_data,
+        }
+        template_name = 'index.html'
+
         # Auto-js mode - serve the built template with UMDs
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
-            # Load template
-            template_path = os.path.join(Path(BASE_DIR, 'jinja'), 'index_autojs.html')  # type: ignore
-            with open(template_path, encoding='utf-8') as fp:
-                template = fp.read()
+            template_name = 'index_autojs.html'
+            context.update(build_autojs_template(build_cache, config))
 
-            # Generate tags for the template
-            template = build_autojs_template(template, build_cache, config)
+        @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
+        async def serve_app(request: Request):
+            return jinja_templates.TemplateResponse(request, template_name, context=context)
 
-            @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
-            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
-                return HTMLResponse(template)
-
-        else:
-            # Otherwise serve the Vite template
-
-            @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
-            async def serve_app(request: Request):  # pyright: ignore[reportRedeclaration]
-                return jinja_templates.TemplateResponse(request, 'index.html')  # type: ignore
+    else:
+        # Catch-all, must be at the very end
+        @app.get('/api/{rest_of_path:path}')
+        async def not_found():
+            raise HTTPException(status_code=404, detail='API endpoint not found')
 
     return app
 

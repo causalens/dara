@@ -4,11 +4,9 @@
 
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RenderOptions, RenderResult, render } from '@testing-library/react';
-import { History, createMemoryHistory } from 'history';
-import noop from 'lodash/noop';
-import React, { ComponentType, ReactElement, useRef } from 'react';
-import { Router } from 'react-router-dom';
+import { type RenderOptions, type RenderResult, render } from '@testing-library/react';
+import React, { type ComponentType, type ReactElement, useRef } from 'react';
+import { RouterProvider, createBrowserRouter } from 'react-router';
 import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
 
@@ -18,10 +16,17 @@ import { StoreProviders } from '@/shared/interactivity/persistence';
 import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
-import { WebSocketClientInterface } from '../../../js/api/websocket';
+import { type WebSocketClientInterface } from '../../../js/api/websocket';
 import { ImportersCtx, ServerVariableSyncProvider } from '../../../js/shared';
-import { FallbackCtx, GlobalTaskProvider, RegistriesCtx, VariableCtx, WebSocketCtx } from '../../../js/shared/context';
-import { ComponentInstance } from '../../../js/types';
+import {
+    ConfigContextProvider,
+    FallbackCtx,
+    GlobalTaskProvider,
+    RegistriesCtxProvider,
+    VariableCtx,
+    WebSocketCtx,
+} from '../../../js/shared/context';
+import { type ComponentInstance, type DaraData, type ModuleContent } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
 
@@ -43,7 +48,7 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
 }
 
 // Mock importers for testing dynamic components
-const importers = {
+const importers: Record<string, () => Promise<ModuleContent>> = {
     dara_core: () =>
         Promise.resolve({
             NavigateTo,
@@ -54,7 +59,7 @@ const importers = {
         }),
     test: () =>
         Promise.resolve({
-            TestComponent: 'div',
+            TestComponent: 'div' as any,
             TestPropsComponent: (props: any) => <div>{JSON.stringify(props)}</div>,
         }),
 };
@@ -64,30 +69,60 @@ const wsClient = new MockWebSocketClient('uid');
 interface WrapperProps {
     children?: React.ReactNode;
     client?: WebSocketClientInterface;
-    history?: History;
     withRouter?: boolean;
     withTaskCtx?: boolean;
 }
 
+function UrlSyncProvider(props: { children: React.ReactNode }): React.ReactNode {
+    const syncOptions = useUrlSync();
+    return <RecoilURLSync {...syncOptions}>{props.children}</RecoilURLSync>;
+}
+
+export const daraData: DaraData = {
+    auth_components: {
+        login: {
+            js_module: '@darajs/dara_core',
+            js_name: 'DefaultAuthLogin',
+            py_module: 'dara_core',
+        },
+        logout: {
+            js_module: '@darajs/dara_core',
+            js_name: 'DefaultAuthLogout',
+            py_module: 'dara_core',
+        },
+    },
+    application_name: 'Test App',
+    context_components: [],
+    enable_devtools: false,
+    live_reload: false,
+    powered_by_causalens: false,
+    router: {
+        children: [],
+    },
+    theme: { base: 'dark', main: 'dark' },
+    title: 'Test App',
+    components: mockComponents,
+    actions: mockActions,
+};
+
 // A wrapper for testing that provides some required contexts
-export const Wrapper = ({
-    children,
-    client,
-    withRouter = true,
-    withTaskCtx = true,
-    history,
-}: WrapperProps): ReactElement => {
+export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = true }: WrapperProps): ReactElement => {
     // the client needs to be created inside the wrapper so cache is not shared between tests
     const queryClient = new QueryClient();
-    const historyObject = history ?? createMemoryHistory();
 
     const variables = useRef<Set<string>>(new Set());
-    const syncOptions = useUrlSync({ history: historyObject, memory_TEST: true });
 
     let child = children;
 
     if (withRouter) {
-        child = <Router history={historyObject}>{child}</Router>;
+        const router = createBrowserRouter([
+            {
+                path: '*',
+                // url sync only works with the router
+                element: <UrlSyncProvider>{child}</UrlSyncProvider>,
+            },
+        ]);
+        child = <RouterProvider router={router} />;
     }
 
     if (withTaskCtx) {
@@ -99,19 +134,41 @@ export const Wrapper = ({
     }
 
     return (
-        <ThemeProvider theme={theme}>
-            <ImportersCtx.Provider value={importers}>
-                <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
-                    <RecoilRoot>
-                        <RecoilURLSync {...syncOptions}>
-                            <React.Suspense fallback={<div>Loading...</div>}>
-                                <QueryClientProvider client={queryClient}>
-                                    <RegistriesCtx.Provider
-                                        value={{
-                                            actionRegistry: mockActions,
-                                            componentRegistry: mockComponents,
-                                            refetchComponents: noop as any,
-                                        }}
+        <ConfigContextProvider
+            initialConfig={{
+                auth_components: {
+                    login: {
+                        js_module: '@darajs/dara_core',
+                        js_name: 'DefaultAuthLogin',
+                        py_module: 'dara_core',
+                    },
+                    logout: {
+                        js_module: '@darajs/dara_core',
+                        js_name: 'DefaultAuthLogout',
+                        py_module: 'dara_core',
+                    },
+                },
+                application_name: 'Test App',
+                context_components: [],
+                enable_devtools: false,
+                live_reload: false,
+                powered_by_causalens: false,
+                router: {
+                    children: [],
+                },
+                theme: { base: 'dark', main: 'dark' },
+                title: 'Test App',
+            }}
+        >
+            <QueryClientProvider client={queryClient}>
+                <ThemeProvider theme={theme}>
+                    <ImportersCtx.Provider value={importers}>
+                        <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
+                            <RecoilRoot>
+                                <React.Suspense fallback={<div>Loading...</div>}>
+                                    <RegistriesCtxProvider
+                                        actionRegistry={mockActions}
+                                        componentRegistry={mockComponents}
                                     >
                                         <StoreProviders>
                                             <ServerVariableSyncProvider>
@@ -120,14 +177,14 @@ export const Wrapper = ({
                                                 </FallbackCtx.Provider>
                                             </ServerVariableSyncProvider>
                                         </StoreProviders>
-                                    </RegistriesCtx.Provider>
-                                </QueryClientProvider>
-                            </React.Suspense>
-                        </RecoilURLSync>
-                    </RecoilRoot>
-                </WebSocketCtx.Provider>
-            </ImportersCtx.Provider>
-        </ThemeProvider>
+                                    </RegistriesCtxProvider>
+                                </React.Suspense>
+                            </RecoilRoot>
+                        </WebSocketCtx.Provider>
+                    </ImportersCtx.Provider>
+                </ThemeProvider>
+            </QueryClientProvider>
+        </ConfigContextProvider>
     );
 };
 

@@ -34,4 +34,5 @@ class SideBarFrame(ComponentInstance):
     side_bar_padding: Optional[str] = None
     side_bar_position: Optional[str] = None
     side_bar_width: Optional[str] = None
+    powered_by_causalens: Optional[bool] = False
     model_config = ConfigDict(extra='forbid')

@@ -3,14 +3,13 @@ import { transparentize } from 'polished';
 import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { useConfig } from '@/api';
-import CausalensDark from '@/assets/causalens-dark.svg';
-import CausalensLight from '@/assets/causalens-light.svg';
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme } from '@/shared';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme, useConfig } from '@/shared';
 import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
+
+import PoweredByCausalens from './powered-by-causalens';
 
 interface SideBarProps {
     width?: string;
@@ -106,6 +105,7 @@ interface SideBarFrameProps {
     side_bar_padding?: string;
     side_bar_position?: 'left' | 'right';
     side_bar_width?: string;
+    powered_by_causalens?: boolean;
 }
 
 const LogoutArrow = getIcon('fa-solid fa-arrow-right-from-bracket');
@@ -118,21 +118,21 @@ const LogoutArrow = getIcon('fa-solid fa-arrow-right-from-bracket');
  */
 function SideBarFrame(props: SideBarFrameProps): JSX.Element {
     const theme = useTheme();
-    const { data: config } = useConfig();
+    const config = useConfig();
     const logo = props.logo_path && (
         <LogoImage alt="Logo" src={prependBaseUrl(props.logo_path)} width={props.logo_width} />
     );
     const logoSrc = theme.themeType === 'dark' ? DaraDark : DaraLight;
-    const causalensLogoSrc = theme.themeType === 'dark' ? CausalensDark : CausalensLight;
     const daraLogo = <img alt="Dara Logo" src={logoSrc} />;
-    const causalensLogo = <img alt="causaLens Logo" src={causalensLogoSrc} />;
+
+    const showPoweredBy = props.powered_by_causalens ?? config.powered_by_causalens;
 
     return (
         <Wrapper backgroundColor={theme.colors.background}>
             {props.side_bar_position === 'right' && (
                 <Wrapper>{props.content && <DynamicComponent component={props.content} />}</Wrapper>
             )}
-            <ThemeContext.Provider value={resolveTheme(config?.theme?.main, config?.theme?.base)}>
+            <ThemeContext.Provider value={resolveTheme(config.theme?.main, config.theme?.base)}>
                 <SideBar style={{ padding: props.side_bar_padding }} width={props.side_bar_width}>
                     {!props.hide_logo && props.logo_position !== 'bottom' && logo}
                     <Wrapper direction="column">
@@ -148,15 +148,7 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
                     <BuiltWithLink href="https://github.com/causalens/dara" target="_blank" rel="noopener noreferrer">
                         Built with {daraLogo}
                     </BuiltWithLink>
-                    {config?.powered_by_causalens && (
-                        <BuiltWithLink
-                            href="https://causalens.com/?utm_source=dara&utm_medium=direct&utm_campaign=dara_platform"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            <span style={{ marginTop: '0.4375rem' }}>Powered by</span> {causalensLogo}
-                        </BuiltWithLink>
-                    )}
+                    {showPoweredBy && <PoweredByCausalens />}
                 </SideBar>
             </ThemeContext.Provider>
             {props.side_bar_position !== 'right' && (

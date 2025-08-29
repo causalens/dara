@@ -27,6 +27,9 @@
           "@types/react": "18.2.60"
         }
       }
+    },
+    "patchedDependencies": {
+      "tinykeys": "patches/tinykeys.patch"
     }
   }
 }

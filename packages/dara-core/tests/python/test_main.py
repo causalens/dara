@@ -1,8 +1,8 @@
 import asyncio
 import json
-import os
+from html.parser import HTMLParser
 from typing import Union
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from anyio import create_task_group
@@ -10,12 +10,15 @@ from anyio.abc import TaskStatus
 from async_asgi_testclient import TestClient as AsyncClient
 
 from dara.core import DerivedVariable, Variable
-from dara.core.configuration import ConfigurationBuilder
+from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
+from dara.core.router import LayoutRoute, Outlet
+from dara.core.visual.components.router_content import RouterContent
+from dara.core.visual.components.sidebar_frame import SideBarFrame
 
 from tests.python.utils import (
     AUTH_HEADERS,
@@ -31,14 +34,33 @@ class LocalJsComponent(ComponentInstance):
     pass
 
 
+class DaraDataParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_dara_data = False
+        self.dara_data = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'script':
+            for attr in attrs:
+                if attr[0] == 'id' and attr[1] == '__DARA_DATA__':
+                    self.in_dara_data = True
+
+    def handle_endtag(self, tag):
+        self.in_dara_data = False
+
+    def handle_data(self, data):
+        if self.in_dara_data:
+            self.dara_data = json.loads(data)
+
+
 # Create a config to test with
-builder: ConfigurationBuilder = ConfigurationBuilder()
-builder.add_component(component=LocalJsComponent, local=True)
-builder.add_page(name='Js Test', content=LocalJsComponent(), icon='Hdd')
-config = create_app(builder)
-
-
-os.environ['DARA_DOCKER_MODE'] = 'TRUE'
+@pytest.fixture
+def config():
+    builder: ConfigurationBuilder = ConfigurationBuilder()
+    builder.add_component(component=LocalJsComponent, local=True)
+    builder.add_page(name='Js Test', content=LocalJsComponent(), icon='Hdd')
+    yield create_app(builder)
 
 
 class MockComponent(ComponentInstance):
@@ -48,7 +70,7 @@ class MockComponent(ComponentInstance):
         super().__init__(text=text, uid='uid')
 
 
-async def test_validates_configuration():
+async def test_validates_configuration(config: Configuration):
     """Check that it only accepts valid configuration objects"""
 
     # Check this does not throw
@@ -65,58 +87,135 @@ async def test_validates_configuration():
         _start_application(1)
 
 
-async def test_config_route():
-    """Check the config route returns the serialized config needed for the ui"""
+def assert_dict_subset(haystack: dict, needle: dict):
+    """
+    Assert that the haystack dict contains all the keys and values of the needle dict
+    """
+    for key, value in needle.items():
+        assert haystack[key] == value
 
-    app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        response = await client.get('/api/core/config', headers=AUTH_HEADERS)
-        assert response.status_code == 200
-        assert response.json() == {
+async def _check_dara_data(client: AsyncClient):
+    response = await client.get('/')
+    assert response.status_code == 200
+    assert response.headers['content-type'] == 'text/html; charset=utf-8'
+
+    parser = DaraDataParser()
+    parser.feed(response.text)
+    assert parser.dara_data is not None
+
+    # Check main app config
+    assert_dict_subset(
+        parser.dara_data,
+        {
             'live_reload': False,
             'enable_devtools': False,
             'powered_by_causalens': False,
             'context_components': [],
-            'template': 'default',
             'theme': {
                 'main': 'light',
                 'base': None,
             },
             'title': 'decisionApp',
             'application_name': 'dara.core',
-        }
+        },
+    )
+
+    # Check the custom component appears in components
+    assert_dict_subset(
+        parser.dara_data['components'],
+        {
+            'LocalJsComponent': {
+                'js_component': None,
+                'js_module': None,
+                'py_module': 'LOCAL',
+                'name': 'LocalJsComponent',
+                'type': 'js',
+            }
+        },
+    )
 
 
-async def test_components_route():
-    """Check the components route returns the dict of components"""
+async def test_dara_data_autojs(monkeypatch: pytest.MonkeyPatch, config: Configuration):
+    """
+    Check that the HTML includes the correct embedded dara data for both autojs index
+    """
+    with monkeypatch.context() as m:
+        m.setenv('DARA_DOCKER_MODE', 'TRUE')
+        m.delenv('DARA_DOCKER_MODE')
 
-    app = _start_application(config)
+        # skip rebuild_js
+        with patch('dara.core.main.rebuild_js'):
+            app = _start_application(config)
 
-    async with AsyncClient(app) as client:
-        response = await client.get('/api/core/components', headers=AUTH_HEADERS)
-        assert response.status_code == 200
-        res = response.json()
-        assert len(res.keys()) > 1  # Loose test so it doesn't break each time we add a default component
-        assert 'LocalJsComponent' in res
-        assert res['LocalJsComponent'] == {
-            'js_component': None,
-            'js_module': None,
-            'py_module': 'LOCAL',
-            'name': 'LocalJsComponent',
-            'type': 'js',
-        }
+            async with AsyncClient(app) as client:
+                await _check_dara_data(client)
+
+
+async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Configuration):
+    """
+    Check that the HTML includes the correct embedded dara data for properjs index
+    """
+    with monkeypatch.context() as m:
+        m.setenv('DARA_DOCKER_MODE', 'TRUE')
+
+        # skip rebuild_js
+        with patch('dara.core.main.rebuild_js'):
+            app = _start_application(config)
+
+            # Patch the fastapi_vite vite loader, we don't really care about it
+            # and otherwise they require e.g. a valid manifest.json file
+            from fastapi_vite_dara.loader import ViteLoader
+
+            mock_vite_loader = Mock()
+            mock_vite_loader.generate_vite_ws_client = Mock(return_value='ws_client')
+            mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
+            mock_vite_loader.generate_vite_react_hmr = Mock(return_value='hmr')
+
+            with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
+                async with AsyncClient(app) as client:
+                    await _check_dara_data(client)
 
 
 @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
-async def test_template_route(_uid):
-    """Check the config route returns the serialized config"""
+async def test_route_compatibility(_uid, config: Configuration):
+    """Check the route returns the serialized template for that page when using the old template API"""
 
     app = _start_application(config)
 
+    # Router will be created after starting the app from the old template API
+    compat_router = config.router
+    assert compat_router is not None
+
+    # One navigable route should be created
+    routes = compat_router.get_navigable_routes()
+    assert len(routes) == 1
+    assert routes[0]['id'] == 'Js Test'
+    assert routes[0]['path'] == '/js-test'
+
+    root_layout = compat_router.children[0]
+    assert isinstance(root_layout, LayoutRoute)
+    root_layout_data = root_layout.compiled_data
+    assert root_layout_data is not None
+    root_layout_content = root_layout_data.content
+    assert root_layout_content is not None
+
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
-        assert response == json.loads(default_template(config).json())
+        default_layout = default_template(config).layout
+        assert isinstance(default_layout, SideBarFrame)
+        default_content = default_layout.content
+        assert isinstance(default_content, RouterContent)
+        page_content = default_content.routes[0].content
+
+        # Check layout template is the correct SideBarFrame
+        response, status = await _get_template(client, page_id=root_layout.get_identifier())
+        assert response['template'] == root_layout_content.model_dump()
+        assert isinstance(root_layout_content, SideBarFrame)
+        assert isinstance(root_layout_content.content, Outlet)  # router content replaced with Outlet
+
+        # Check individual page content matches
+        response, status = await _get_template(client, page_id='Js Test')
+        assert response['template'] == page_content.model_dump()
 
         # Check that it raises an error if the template is not found
         response, status = await _get_template(client, 'broken', response_ok=False)
@@ -279,7 +378,7 @@ async def test_add_custom_middlewares():
         assert side_effect == 2
 
 
-async def test_startup_function():
+async def test_startup_function(config: Configuration):
     """Check the components route returns the dict of components"""
 
     # Define a mock function to be run on startup
@@ -295,7 +394,7 @@ async def test_startup_function():
     mock_startup.assert_called_once()
 
 
-async def test_async_startup_function():
+async def test_async_startup_function(config: Configuration):
     """Check the components route returns the dict of components"""
     a = 1
 

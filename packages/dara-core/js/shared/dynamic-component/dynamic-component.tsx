@@ -1,3 +1,5 @@
+import groupBy from 'lodash/groupBy';
+import partition from 'lodash/partition';
 import {
     type MutableRefObject,
     Suspense,
@@ -11,14 +13,16 @@ import {
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
+import { useLatestRef } from '@darajs/ui-utils';
+
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
-import ProgressTracker from '@/components/progress-tracker/progress-tracker';
-import { FallbackCtx, ImportersCtx, VariableCtx, useTaskContext } from '@/shared/context';
+import ProgressTracker from '@/components/progress-tracker';
+import { FallbackCtx, ImportersCtx, VariableCtx, useRegistriesCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { isJsComponent, useComponentRegistry, useInterval } from '@/shared/utils';
+import { isJsComponent, useInterval } from '@/shared/utils';
 import { type Component, type ComponentInstance, type DerivedVariable, isDerivedVariable } from '@/types';
 import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
@@ -88,6 +92,63 @@ const COMPONENT_METADATA_CACHE = new Map<string, Component>();
 export function clearCaches_TEST(): void {
     MODULE_CACHE.clear();
     COMPONENT_METADATA_CACHE.clear();
+}
+
+/**
+ * Pre-warm the caches for the given components.
+ * This is useful to pre-warm the core components on startup to avoid spinners
+ *
+ * @param importers - the importers object.
+ * @param components - the components to pre-warm
+ */
+export async function preloadComponents(
+    importers: Record<string, () => Promise<ModuleContent>>,
+    components: Component[]
+): Promise<void> {
+    const [jsComponents, pyComponents] = partition(components, isJsComponent);
+
+    // for py-components we just add a metadata cache entry
+    for (const component of pyComponents) {
+        if (COMPONENT_METADATA_CACHE.has(component.name)) {
+            continue;
+        }
+
+        COMPONENT_METADATA_CACHE.set(component.name, component);
+    }
+
+    const componentsByModule = groupBy(jsComponents, (component) => component.py_module);
+
+    // for js-components we load the module and pre-load the components
+    for (const [pyModule, componentsInModule] of Object.entries(componentsByModule)) {
+        if (MODULE_CACHE.has(pyModule)) {
+            continue;
+        }
+        // Load module
+        const importer = importers[pyModule];
+        if (!importer) {
+            throw new Error(`Missing importer for module ${pyModule}`);
+        }
+
+        let moduleContent: ModuleContent | null = null;
+        try {
+            // there will be at most a couple of modules, fine to do serially
+            // eslint-disable-next-line no-await-in-loop
+            moduleContent = await importer();
+            if (moduleContent) {
+                MODULE_CACHE.set(pyModule, moduleContent);
+            }
+        } catch (e) {
+            throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
+        }
+
+        // pre-load components
+        for (const component of componentsInModule) {
+            if (COMPONENT_METADATA_CACHE.has(component.name)) {
+                continue;
+            }
+            COMPONENT_METADATA_CACHE.set(component.name, component);
+        }
+    }
 }
 
 /**
@@ -171,7 +232,12 @@ async function resolveComponentAsync(
     }
 
     // Get component entry from registry
-    const entry = await getComponent(component);
+    let entry;
+    try {
+        entry = await getComponent(component);
+    } catch (e) {
+        throw new ComponentLoadError(e instanceof Error ? e.message : String(e), 'Failed to load component');
+    }
 
     if (!isJsComponent(entry)) {
         // Python component, just cache metadata and nothing else to do here
@@ -267,7 +333,7 @@ function getFallbackComponent(
 function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
     const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
-    const { get: getComponent } = useComponentRegistry();
+    const { getComponent } = useRegistriesCtx();
 
     // Try sync resolution first
     const [component, setComponent] = useState<JSX.Element | null>(() => resolveComponentSync(props.component));
@@ -314,6 +380,8 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }, [props.component]);
 
+    const getComponentStable = useLatestRef(getComponent);
+
     // Async loading effect
     useEffect(() => {
         if (!isLoading || loadingStarted) {
@@ -322,7 +390,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
 
         setLoadingStarted(true);
 
-        resolveComponentAsync(props.component, getComponent, importers)
+        resolveComponentAsync(props.component, getComponentStable.current, importers)
             .then(() => {
                 // Try sync resolution again after async loading
                 const resolvedComponent = resolveComponentSync(props.component);
@@ -338,7 +406,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
                     setComponent(<ErrorDisplay config={{ title: error.title, description: error.message }} />);
                 }
             });
-    }, [props.component, getComponent, importers, isLoading, loadingStarted]);
+    }, [props.component, getComponentStable, importers, isLoading, loadingStarted]);
 
     const refreshSelector = useRefreshSelector();
 
