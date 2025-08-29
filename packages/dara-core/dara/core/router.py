@@ -14,6 +14,7 @@ from pydantic import (
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
+from dara.core.interactivity import Variable  # noqa: F401
 
 # TODO: injection validation based on path :param parts
 # TODO: restrict /api top-level prefix?
@@ -849,15 +850,15 @@ def convert_template_to_router(template):
             route_path = route_path[1:]
 
         # Create content wrapper for the route content
-        def content_wrapper(content=route_content.content):
+        def legacy_page_wrapper(content=route_content.content):
             return content
 
         # Root path becomes index route
         if route_path in {'', '/'}:
-            root_layout.add_index(content=content_wrapper, name=route_content.name, on_load=route_content.on_load)
+            root_layout.add_index(content=legacy_page_wrapper, name=route_content.name, on_load=route_content.on_load)
         else:
             root_layout.add_page(
-                path=route_path, content=content_wrapper, name=route_content.name, on_load=route_content.on_load
+                path=route_path, content=legacy_page_wrapper, name=route_content.name, on_load=route_content.on_load
             )
 
     return router
