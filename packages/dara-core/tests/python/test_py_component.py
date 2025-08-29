@@ -12,6 +12,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import BaseFallback, ComponentInstance
 from dara.core.internal.normalization import denormalize
 from dara.core.main import _start_application
+from dara.core.router import PageRoute, Router
 
 from tests.python.tasks import (
     add,
@@ -75,18 +76,28 @@ async def test_simple_usecases():
     def TestBasicComp(input_val: str):
         return MockComponent(text=input_val)
 
-    builder.add_page('Test', content=TestSimpleComp())
-    builder.add_page('Test2', content=TestBasicComp('test'))
+    builder.router = Router(
+        PageRoute(path='test', content=TestSimpleComp(), id='test'),
+        PageRoute(path='test2', content=TestBasicComp('test'), id='test2'),
+    )
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
+
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        components = []
+
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        components.append(response['template'])
+
+        response, status = await _get_template(client, page_id='test2')
+        assert status == 200
+        components.append(response['template'])
 
         # Check that two components have been generated and inserted instead of the MockComponent
-        components = response.get('layout').get('props').get('content').get('props').get('routes')
         assert len(components) == 2
         assert (
             isinstance(components[0].get('content').get('name'), str)
@@ -114,17 +125,19 @@ async def test_variables():
         return MockComponent(text=input_val)
 
     var = Variable()
-    builder.add_page('Test', content=TestBasicComp(var))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
@@ -149,17 +162,19 @@ async def test_async_py_comp():
         return MockComponent(text=input_val)
 
     var = Variable()
-    builder.add_page('Test', content=TestBasicComp(var))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
@@ -196,17 +211,19 @@ async def test_derived_variables():
     def TestBasicComp(input_val: int):
         return MockComponent(text=str(input_val))
 
-    builder.add_page('Test', content=TestBasicComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
@@ -270,17 +287,19 @@ async def test_mixed_inputs():
         return MockComponent(text=f'{input_val}_{input_2}')
 
     var = Variable()
-    builder.add_page('Test', content=TestBasicComp(var, 2))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(var, 2), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 
@@ -307,7 +326,8 @@ async def test_default_arguments():
         return MockComponent(text=f'{input_val}_{input_2}')
 
     var = Variable()
-    builder.add_page('Test', content=TestBasicComp(var))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
@@ -315,8 +335,9 @@ async def test_default_arguments():
     app = _start_application(config)
     async with AsyncClient(app) as client:
         # Get the components ID from the template
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that the component can be fetched via the api, with input_val passed in the body
         data = await _get_py_component(
@@ -365,15 +386,17 @@ async def test_base_model_args_are_restored():
         return MockComponent(text=input_val.val)
 
     var = Variable()
-    builder.add_page('Test', content=TestBasicComp(var))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
         # Get the components ID from the template
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that the component can be fetched via the api, with input dict passed in the body
         data = await _get_py_component(
@@ -398,15 +421,18 @@ async def test_base_model_not_restored_when_already_instance():
 
     var = Variable('foo')
     dv = DerivedVariable(lambda x: InputClass(val=x), variables=[var])
-    builder.add_page('Test', content=TestBasicComp(dv))
+
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
         # Get the components ID from the template
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         # Check that the component can be fetched via the api, with input dict passed in the body
         data = await _get_py_component(
@@ -435,21 +461,25 @@ async def test_compatibility_with_polling():
     def TestBasicComp(input_val: str):
         return MockComponent(text=input_val)
 
-    builder.add_page('Test', content=TestSimpleComp())
-    builder.add_page('Test2', content=TestBasicComp('test'))
+    builder.router = Router(
+        PageRoute(path='test', content=lambda: TestSimpleComp(), id='test'),
+        PageRoute(path='test2', content=lambda: TestBasicComp('test'), id='test2'),
+    )
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        component_1 = response['template']
+
+        response, status = await _get_template(client, page_id='test2')
+        component_2 = response['template']
 
         # Check that two components have been generated and polling_interval is correctly set
-        components = response.get('layout').get('props').get('content').get('props').get('routes')
-        assert len(components) == 2
-        assert components[0].get('content').get('props').get('polling_interval') == 2
-        assert components[1].get('content').get('props').get('polling_interval') is None
+        assert component_1.get('content').get('props').get('polling_interval') == 2
+        assert component_2.get('content').get('props').get('polling_interval') is None
 
 
 async def test_derived_variables_restore_base_models():
@@ -476,17 +506,16 @@ async def test_derived_variables_restore_base_models():
     def TestBasicComp(input_val: int):
         return MockComponent(text=str(input_val))
 
-    builder.add_page('Test', content=TestBasicComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
-
-        # Retrieve the component from the response
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the component can be fetched via the api, with a passed as a dict
         data = await _get_py_component(
@@ -523,17 +552,16 @@ async def test_derived_variables_with_args():
     def TestBasicComp(input_val: int):
         return MockComponent(text=str(input_val))
 
-    builder.add_page('Test', content=TestBasicComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
-
-        # Retrieve the component from the response
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the component can be fetched via the api, with a passed as a dict
         data = await _get_py_component(
@@ -570,17 +598,18 @@ async def test_derived_variables_with_polling():
     def TestBasicComp(input_val: int):
         return MockComponent(text=str(input_val))
 
-    builder.add_page('Test', content=TestBasicComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Retrieve the component from the response and check polling_interval and cache
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval') == 2
         assert (
             component.get('props').get('dynamic_kwargs').get('input_val').get('cache')
@@ -606,17 +635,16 @@ async def test_chained_derived_variables():
     def TestBasicComp(input_val: int):
         return MockComponent(text=str(input_val))
 
-    builder.add_page('Test', content=TestBasicComp(derived_2))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived_2), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
-
-        # Retrieve the component from the response
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the component can be fetched via the api, with a passed as a dict
         data = await _get_py_component(
@@ -651,36 +679,40 @@ async def test_placeholder():
     def TestBasicComp(input_val: str):
         return MockComponent(text=input_val)
 
-    builder.add_page('Test', content=TestPlaceholderComp('test'))
-    builder.add_page('Test2', content=TestBasicComp('test 2'))
+    builder.router = Router(
+        PageRoute(path='test', content=lambda: TestPlaceholderComp('test'), id='test'),
+        PageRoute(path='test2', content=lambda: TestBasicComp('test 2'), id='test2'),
+    )
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        component_1 = response['template']
+
+        response, status = await _get_template(client, page_id='test2')
+        component_2 = response['template']
 
         # Check that two components have been generated and inserted instead of the MockComponent
-        components = response.get('layout').get('props').get('content').get('props').get('routes')
-        assert len(components) == 2
         assert (
-            isinstance(components[0].get('content').get('name'), str)
-            and components[0].get('content').get('name') != 'MockFallbackComponent'
+            isinstance(component_1.get('content').get('name'), str)
+            and component_1.get('content').get('name') != 'MockFallbackComponent'
         )
         assert (
-            isinstance(components[1].get('content').get('name'), str)
-            and components[1].get('content').get('name') != 'MockFallbackComponent'
+            isinstance(component_2.get('content').get('name'), str)
+            and component_2.get('content').get('name') != 'MockFallbackComponent'
         )
-        assert components[0].get('route') == '/test'
-        assert components[1].get('route') == '/test2'
+        assert component_1.get('route') == '/test'
+        assert component_2.get('route') == '/test2'
 
         # Check that placeholders for both components
         assert (
-            components[0].get('content').get('props').get('fallback')
+            component_1.get('content').get('props').get('fallback')
             == MockFallbackComponent(text='test placeholder').dict()
         )
-        assert components[1].get('content').get('props').get('fallback') is None
+        assert component_2.get('content').get('props').get('fallback') is None
 
 
 async def test_derive_var_with_run_as_task_flag():
@@ -700,7 +732,8 @@ async def test_derive_var_with_run_as_task_flag():
 
     derived = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)
 
-    builder.add_page('Test', content=TestSimpleComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -712,8 +745,8 @@ async def test_derive_var_with_run_as_task_flag():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns a task_id response
         data = await _get_py_component(
@@ -765,7 +798,8 @@ async def test_chain_derived_var_with_run_as_task_flag():
     def TestSimpleComp(var: str):
         return MockComponent(text=str(var))
 
-    builder.add_page('Test', content=TestSimpleComp(var=dv_top))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(var=dv_top), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -776,8 +810,8 @@ async def test_chain_derived_var_with_run_as_task_flag():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns a task_id response
         data = await _get_py_component(
@@ -864,7 +898,8 @@ async def test_single_dv_track_progress():
 
     derived = DerivedVariable(track_task, variables=[], run_as_task=True)
 
-    builder.add_page('Test', content=TestSimpleComp(derived))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -876,8 +911,8 @@ async def test_single_dv_track_progress():
         init = await websocket.receive_json()
 
         # Request the template and extract the component
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that the fetching the component returns a task_id response
         data = await _get_py_component(
@@ -1148,7 +1183,8 @@ async def test_py_component_respects_dv_empty_deps():
     def TestComp(variable: int):
         return MockComponent(text=str(variable))
 
-    builder.add_page('Test', content=TestComp(dv))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -1156,10 +1192,8 @@ async def test_py_component_respects_dv_empty_deps():
 
     async with AsyncClient(app) as client:
         # Override the env
-        response, status = await _get_template(client)
-
-        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Send a request to calculate the DV once with variable=1 - so it gets cached
         response = await _get_derived_variable(
@@ -1213,7 +1247,8 @@ async def test_py_component_respects_dv_non_empty_deps():
     def TestComp(variable: int):
         return MockComponent(text=str(variable))
 
-    builder.add_page('Test', content=TestComp(dv))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -1221,10 +1256,8 @@ async def test_py_component_respects_dv_non_empty_deps():
 
     async with AsyncClient(app) as client:
         # Override the env
-        response, status = await _get_template(client)
-
-        # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Send a request to calculate the DV once with var1=1, var2=2 - so it gets cached
         response = await _get_derived_variable(
@@ -1306,17 +1339,18 @@ async def test_switch_variables():
     def TestBasicComp(input_val: str):
         return MockComponent(text=input_val)
 
-    builder.add_page('Test', content=TestBasicComp(switch_var))
+    builder.router = Router()
+    builder.router.add_page(path='test', content=lambda: TestBasicComp(switch_var), id='test')
 
     config = create_app(builder)
 
     # Run the app so the component is initialized
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
 
         # Check that a component with a uid name has been generated and inserted instead of the MockComponent
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
         assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
         assert 'input_val' in component.get('props').get('dynamic_kwargs')
 

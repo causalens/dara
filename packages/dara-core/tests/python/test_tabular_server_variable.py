@@ -23,6 +23,7 @@ from dara.core.interactivity.server_variable import MemoryBackend, ServerVariabl
 from dara.core.internal.dependency_resolution import ResolvedServerVariable
 from dara.core.internal.pandas_utils import append_index, df_convert_to_internal
 from dara.core.main import _start_application
+from dara.core.router import PageRoute, Router
 from dara.core.visual.dynamic_component import py_component
 
 from tests.python.utils import (
@@ -604,7 +605,7 @@ async def test_py_component_with_data_variable():
 
         return TestBasicComp(data_var, derived)
 
-    builder.add_page('Test', content=page)
+    builder.router = Router(PageRoute(path='test', content=page, id='test'))
 
     config = builder._to_configuration()
 
@@ -612,8 +613,9 @@ async def test_py_component_with_data_variable():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        response, status = await _get_template(client)
-        component = response.get('layout').get('props').get('content').get('props').get('routes')[0].get('content')
+        response, status = await _get_template(client, page_id='test')
+        assert status == 200
+        component = response['template']
 
         data = await _get_py_component(
             client,

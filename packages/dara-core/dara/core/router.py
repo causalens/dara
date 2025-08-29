@@ -68,7 +68,7 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
-    on_load: Optional[Action] = Field(exclude=True)
+    on_load: Optional[Action] = Field(default=None, exclude=True)
     """
     Action to execute when the route is loaded.
     Guaranteed to be executed before the route content is rendered.
@@ -853,12 +853,23 @@ def convert_template_to_router(template):
         def legacy_page_wrapper(content=route_content.content):
             return content
 
+        # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
+
         # Root path becomes index route
         if route_path in {'', '/'}:
-            root_layout.add_index(content=legacy_page_wrapper, name=route_content.name, on_load=route_content.on_load)
+            root_layout.add_index(
+                content=legacy_page_wrapper,
+                name=route_content.name,
+                id=route_content.name,
+                on_load=route_content.on_load,
+            )
         else:
             root_layout.add_page(
-                path=route_path, content=legacy_page_wrapper, name=route_content.name, on_load=route_content.on_load
+                path=route_path,
+                content=legacy_page_wrapper,
+                name=route_content.name,
+                id=route_content.name,
+                on_load=route_content.on_load,
             )
 
     return router

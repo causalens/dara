@@ -160,15 +160,16 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
 
 async def _get_template(
     client: AsyncClient,
-    name: str = 'default',
+    page_id: str,
     response_ok=True,
 ) -> Tuple[Mapping, int]:
-    response = await client.get(f'/api/core/template/{name}', headers=AUTH_HEADERS)
+    response = await client.post(f'/api/core/route', headers=AUTH_HEADERS, json={'id': page_id})
 
     if response_ok:
         assert response.status_code == 200
         res = response.json()
-        return denormalize(res['data'], res['lookup']), response.status_code
+        template_data = denormalize(res['template']['data'], res['template']['lookup'])
+        return {'template': template_data, 'on_load': res['on_load']}, response.status_code
 
     # If we don't expect response to be 200 don't denormalize
     return response.json(), response.status_code
