@@ -346,6 +346,16 @@ export default function useAction(
         optionsRef.current = options;
     });
 
+    const getAction = useCallback(
+        (instance: ActionImpl) => {
+            if (!actionRegistry[instance.name]) {
+                throw new Error(`Attempted to load an action (${instance.name}) that is not in the registry`);
+            }
+            return actionRegistry[instance.name]!;
+        },
+        [actionRegistry]
+    );
+
     const callback = useRecoilCallback(
         (cbInterface) => async (input: any) => {
             const actionsToExecute = Array.isArray(action) ? action : [action];

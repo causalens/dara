@@ -68,6 +68,17 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         return <RouterProvider router={router} />;
     }
 
+    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
+    await Promise.all([
+        // preload auth components to prevent flashing of extra spinners
+        ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
+        // preload components for the entire loaded registry
+        preloadComponents(importers, Object.values(daraData.components)),
+    ]);
+
+    const router = createRouter(daraData, queryClient);
+
+    const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
     function Root(): JSX.Element {
         return (
             <ConfigContextProvider initialConfig={daraData}>
