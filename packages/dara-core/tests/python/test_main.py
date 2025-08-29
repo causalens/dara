@@ -144,10 +144,12 @@ async def test_dara_data_autojs(monkeypatch: pytest.MonkeyPatch, config: Configu
         m.setenv('DARA_DOCKER_MODE', 'TRUE')
         m.delenv('DARA_DOCKER_MODE')
 
-        app = _start_application(config)
+        # skip rebuild_js
+        with patch('dara.core.main.rebuild_js'):
+            app = _start_application(config)
 
-        async with AsyncClient(app) as client:
-            await _check_dara_data(client)
+            async with AsyncClient(app) as client:
+                await _check_dara_data(client)
 
 
 async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Configuration):
@@ -156,20 +158,23 @@ async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Confi
     """
     with monkeypatch.context() as m:
         m.setenv('DARA_DOCKER_MODE', 'TRUE')
-        app = _start_application(config)
 
-        # Patch the fastapi_vite vite loader, we don't really care about it
-        # and otherwise they require e.g. a valid manifest.json file
-        from fastapi_vite_dara.loader import ViteLoader
+        # skip rebuild_js
+        with patch('dara.core.main.rebuild_js'):
+            app = _start_application(config)
 
-        mock_vite_loader = Mock()
-        mock_vite_loader.generate_vite_ws_client = Mock(return_value='ws_client')
-        mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
-        mock_vite_loader.generate_vite_react_hmr = Mock(return_value='hmr')
+            # Patch the fastapi_vite vite loader, we don't really care about it
+            # and otherwise they require e.g. a valid manifest.json file
+            from fastapi_vite_dara.loader import ViteLoader
 
-        with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
-            async with AsyncClient(app) as client:
-                await _check_dara_data(client)
+            mock_vite_loader = Mock()
+            mock_vite_loader.generate_vite_ws_client = Mock(return_value='ws_client')
+            mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
+            mock_vite_loader.generate_vite_react_hmr = Mock(return_value='hmr')
+
+            with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
+                async with AsyncClient(app) as client:
+                    await _check_dara_data(client)
 
 
 @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
