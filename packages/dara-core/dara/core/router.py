@@ -721,10 +721,10 @@ class Link(StyledComponentInstance):
 
     case_sensitive: bool = False
 
-    end: bool = False
+    end: bool = True
     """
     Changes the matching logic for the 'active' state to only match the end of the 'to' prop.
-    If the URL is longer, it will not be considered active.
+    If the URL is longer, it will not be considered active. Defaults to True.
 
     For example, NavLink(to='/tasks') while on '/tasks/123' will:
     - with `end=False`, be considered active because of the partial match of the `/tasks` part

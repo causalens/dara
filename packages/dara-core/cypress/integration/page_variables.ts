@@ -31,6 +31,7 @@ describe('Page Variables', () => {
 
         // Navigate to page without reset specified
         visitViaSidebar('page_variables_2');
+        cy.wait(1000);
 
         // Update 1&2 to 3&4
         getInput('Var1:').clear().type('3');
@@ -40,6 +41,7 @@ describe('Page Variables', () => {
         // Go to /home and back to the page
         visitViaSidebar('home');
         visitViaSidebar('page_variables_2');
+        cy.wait(1000);
 
         // Variables should not be reset
         getInput('Var1:').should('have.value', '3');
