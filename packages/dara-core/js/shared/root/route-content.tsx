@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unused-prop-types */
 import type { QueryClient } from '@tanstack/query-core';
-import { useSuspenseQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { type UseQueryOptions, useSuspenseQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { Await, type LoaderFunctionArgs, type Params, useLoaderData, useMatches } from 'react-router';
 import { type Snapshot } from 'recoil';
@@ -11,6 +11,7 @@ import { request } from '@/api';
 import { handleAuthErrors } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import {
+    type Action,
     type ActionImpl,
     type ComponentInstance,
     type NormalizedPayload,
@@ -65,10 +66,12 @@ const loaderQuery = (route: RouteDefinition, params: Params<string>, snapshotRef
         queryKey: ['route', route.id, params],
         queryFn: async ({ signal }) => {
             // collect payloads for annotated actions - action impls can stay on the client
-            const actions =
-                Array.isArray(route.on_load) ? route.on_load
-                : route.on_load ? [route.on_load]
-                : [];
+            let actions: Action = [];
+            if (Array.isArray(route.on_load)) {
+                actions = route.on_load;
+            } else if (route.on_load) {
+                actions = [route.on_load];
+            }
             const actionPayloads = actions.filter(isAnnotatedAction).map((a) => {
                 const kwargs = cleanKwargs(
                     Object.fromEntries(
@@ -174,7 +177,7 @@ function Content({
             await executeAction(on_load);
             // must return something other than undefined, undefined is reserved for suspending
             return null;
-        }
+        },
     });
 
     // only sync title for the most exact route

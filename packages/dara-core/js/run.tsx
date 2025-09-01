@@ -57,7 +57,6 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         preloadActions(importers, Object.values(daraData.actions)),
     ]);
 
-
     function RouterRoot(): JSX.Element {
         const snapshot = useRecoilSnapshot();
         const snapshotRef = useLatestRef(snapshot);
