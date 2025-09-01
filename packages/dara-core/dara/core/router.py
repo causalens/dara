@@ -1,6 +1,7 @@
 import inspect
 import re
 from abc import abstractmethod
+from functools import partial
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from uuid import uuid4
 
@@ -854,6 +855,13 @@ def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[st
     return func(**kwargs)
 
 
+def make_legacy_page_wrapper(content):
+    def legacy_page_wrapper():
+        return content
+
+    return legacy_page_wrapper
+
+
 def convert_template_to_router(template):
     """
     Convert old template system to new Router structure.
@@ -909,9 +917,8 @@ def convert_template_to_router(template):
         if route_path.startswith('/'):
             route_path = route_path[1:]
 
-        # Create content wrapper for the route content
-        def legacy_page_wrapper(content=route_content.content):
-            return content
+        # the make_ function must be defined outside the lazy evaluation of loop variable issue
+        legacy_page_wrapper = make_legacy_page_wrapper(route_content.content)
 
         # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
 
