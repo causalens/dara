@@ -418,7 +418,7 @@ class IndexRoute(BaseRoute):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
+            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
         )
 
 
@@ -439,7 +439,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
+            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
         )
         for child in self.children:
             child.compile()
@@ -483,7 +483,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            on_load=self.on_load, content=execute_route_func(self.content, self.get_identifier()), definition=self
+            on_load=self.on_load, content=execute_route_func(self.content, self.full_path), definition=self
         )
         for child in self.children:
             child.compile()
@@ -596,7 +596,7 @@ class Router(HasChildRoutes):
         """
         Compile the route tree into a data structure ready for matching:
         - executes all page functions
-        - flattens the tree
+        - validates route paths
         """
         for child in self.children:
             child.compile()
@@ -828,12 +828,20 @@ class Link(StyledComponentInstance):
         super().__init__(**kwargs)
 
 
-def execute_route_func(func: Callable[..., ComponentInstance], route_id: str):
+def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
+    assert path is not None, 'Path should not be None, internal error'
+
+    path_params = param_pattern.findall(path)
+
     kwargs = {}
     types = get_type_hints(func)
     for name, typ in types.items():
         if name == 'self' or name == 'cls':
             continue
+        if name not in path_params:
+            raise ValueError(
+                f'Invalid page function signature. Kwarg "{name}: {typ}" found but param ":{name}" is missing in path "{path}"'
+            )
         if inspect.isclass(typ) and issubclass(typ, Variable):
             kwargs[name] = Variable(store=_PathParamStore(param_name=name))
     return func(**kwargs)

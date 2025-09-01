@@ -1,8 +1,11 @@
 from typing import List
 
+import pytest
+
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
+from dara.core.interactivity.plain_variable import Variable
 from dara.core.router import IndexRoute, LayoutRoute, Outlet, PageRoute, PrefixRoute, Router, convert_template_to_router
 from dara.core.visual.components.router_content import RouterContent
 from dara.core.visual.components.sidebar_frame import SideBarFrame
@@ -396,3 +399,68 @@ class TestTemplateToRouterConversion:
         assert home_route.path == 'home'
         assert home_route.full_path == '/home'
         assert isinstance(home_route.content(), ComponentInstance)
+
+
+class TestRouterParamValidation:
+    def test_repeated_param(self):
+        router = Router()
+        root = router.add_page(path='blog/:id', content=AboutPage)
+        root.add_page(path='post/:id', content=AboutPage)
+
+        # Not allowed because it would create /blog/:id/post/:id
+        # and name matching would be ambiguous
+        with pytest.raises(ValueError):
+            router.compile()
+
+    def test_repeated_param_in_other_route(self):
+        """
+        The same param name is fine in other routes
+        """
+        router = Router()
+        router.add_page(path='blog/:id', content=AboutPage)
+        router.add_page(path='post/:id', content=AboutPage)
+        router.compile()
+
+    def test_api_prefix(self):
+        router = Router()
+        router.add_page(path='api/users', content=AboutPage)
+        # api prefix is not allowed
+        with pytest.raises(ValueError):
+            router.compile()
+
+    def test_invalid_param_name(self):
+        def page(id: Variable[str]):
+            return ComponentInstance()
+
+        # Valid router
+        router = Router()
+        router.add_page(path='blog/:id', content=page)
+        router.compile()
+
+        # Invalid router
+        router = Router()
+        router.add_page(path='blog/:blogId', content=page)
+
+        with pytest.raises(ValueError, match='blogId'):
+            router.compile()
+
+    def test_inject_parent_param(self):
+        def parent_page(parent_id: Variable[str]):
+            return ComponentInstance()
+
+        def child_page(parent_id: Variable[str], child_id: Variable[str]):
+            return ComponentInstance()
+
+        router = Router()
+        parent = router.add_page(path='parent/:parent_id', content=parent_page)
+        parent.add_page(path='child/:child_id', content=child_page)
+        # should be fine
+        router.compile()
+
+        # But accessing child id in parent should fail
+        invalid_router = Router()
+        # reversed child/parent pages
+        invalid_parent = invalid_router.add_page(path='parent/:parent_id', content=child_page)
+        invalid_parent.add_page(path='child/:child_id', content=parent_page)
+        with pytest.raises(ValueError):
+            invalid_router.compile()
