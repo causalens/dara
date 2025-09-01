@@ -153,7 +153,6 @@ export interface BrowserStore extends PersistenceStore {
 
 export interface PathParamStore extends PersistenceStore {
     __typename: '_PathParamStore';
-    route_id: string;
     param_name: string;
 }
 

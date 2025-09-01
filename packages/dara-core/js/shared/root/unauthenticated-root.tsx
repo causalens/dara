@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Outlet, useNavigation } from 'react-router';
 import { RecoilURLSync } from 'recoil-sync';
 
+import { PathParamSync } from '../interactivity/persistence';
 import useUrlSync from '../utils/use-url-sync';
 
 /**
@@ -37,9 +38,11 @@ function UnauthenticatedRoot(): JSX.Element {
     }, [navigation.state]);
 
     return (
-        <RecoilURLSync {...syncOptions}>
-            <Outlet />
-        </RecoilURLSync>
+        <PathParamSync>
+            <RecoilURLSync {...syncOptions}>
+                <Outlet />
+            </RecoilURLSync>
+        </PathParamSync>
     );
 }
 

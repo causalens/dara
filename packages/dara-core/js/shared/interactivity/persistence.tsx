@@ -395,7 +395,7 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     );
 }
 
-function PathParamSync({ children }: { children: React.ReactNode }): React.ReactNode {
+export function PathParamSync({ children }: { children: React.ReactNode }): React.ReactNode {
     const navigate = useNavigate();
 
     const location = useLocation();
@@ -618,12 +618,10 @@ export function getEffect<T, StoreType extends PersistenceStore>(
  */
 export function StoreProviders({ children }: { children: React.ReactNode }): JSX.Element {
     // this could be a loop if STORES is dynamically extensible but static for now
-    // NOTE: the url sync is applied separately as it needs to be wrapped around the router
+    // NOTE: the path/url sync is applied separately as it needs to be wrapped around the router
     return (
         <BackendStoreSync>
-            <PathParamSync>
-                <BrowserStoreSync>{children}</BrowserStoreSync>
-            </PathParamSync>
+            <BrowserStoreSync>{children}</BrowserStoreSync>
         </BackendStoreSync>
     );
 }

@@ -1,18 +1,11 @@
+/* eslint-disable react/no-unused-prop-types */
 import type { QueryClient } from '@tanstack/query-core';
 import { type UseQueryOptions } from '@tanstack/react-query';
 import * as React from 'react';
-import {
-    Await,
-    type LoaderFunctionArgs,
-    type Params,
-    useAsyncValue,
-    useLoaderData,
-    useMatches,
-    useParams,
-} from 'react-router';
-import { type Snapshot, useRecoilCallback } from 'recoil';
+import { Await, type LoaderFunctionArgs, type Params, useLoaderData, useMatches } from 'react-router';
+import { type Snapshot } from 'recoil';
 
-import { HTTP_METHOD, useLatestRef, validateResponse } from '@darajs/ui-utils';
+import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth';
@@ -22,13 +15,10 @@ import {
     type ComponentInstance,
     type NormalizedPayload,
     type RouteDefinition,
-    type SingleVariable,
     isAnnotatedAction,
 } from '@/types';
 
-import { WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import DynamicComponent from '../dynamic-component/dynamic-component';
-import { getOrRegisterPlainVariable } from '../interactivity/plain-variable';
 import { cleanKwargs, resolveVariableStatic } from '../interactivity/resolve-variable';
 import { useExecuteAction } from '../interactivity/use-action';
 import { useWindowTitle } from '../utils';
@@ -58,7 +48,7 @@ interface LoaderData {
     route_definition: RouteDefinition;
 }
 
-interface LoaderResult {
+export interface LoaderResult {
     data: LoaderData | Promise<LoaderData>;
 }
 

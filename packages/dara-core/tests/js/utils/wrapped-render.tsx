@@ -12,7 +12,7 @@ import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { StoreProviders } from '@/shared/interactivity/persistence';
+import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
 import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
@@ -119,7 +119,11 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
             {
                 path: '*',
                 // url sync only works with the router
-                element: <UrlSyncProvider>{child}</UrlSyncProvider>,
+                element: (
+                    <UrlSyncProvider>
+                        <PathParamSync>{child}</PathParamSync>
+                    </UrlSyncProvider>
+                ),
             },
         ]);
         child = <RouterProvider router={router} />;
