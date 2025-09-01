@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unused-prop-types */
 import type { QueryClient } from '@tanstack/query-core';
-import { type UseQueryOptions } from '@tanstack/react-query';
+import { useSuspenseQuery, type UseQueryOptions } from '@tanstack/react-query';
 import * as React from 'react';
 import { Await, type LoaderFunctionArgs, type Params, useLoaderData, useMatches } from 'react-router';
 import { type Snapshot } from 'recoil';
@@ -163,24 +163,24 @@ function Content({
 }: LoaderData & {
     route: RouteDefinition;
 }): React.ReactNode {
-    const [onLoadFinished, setOnLoadFinished] = React.useState(() => on_load.length === 0);
+    // Executing the action in a suspense query ensures that it runs before we can render the content
     const executeAction = useExecuteAction();
-
-    // TODO: fix race conditions here
-    React.useLayoutEffect(() => {
-        if (!onLoadFinished && on_load.length > 0) {
-            executeAction(on_load).then(() => setOnLoadFinished(true));
+    useSuspenseQuery({
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        queryKey: ['route', route.id, on_load.map((a) => a.name).join(',')],
+        queryFn: async () => {
+            await executeAction(on_load);
+            // must return something other than undefined, undefined is reserved for suspending
+            return null;
         }
-    }, [on_load, executeAction, onLoadFinished]);
+    });
 
     // only sync title for the most exact route
     const matches = useMatches();
     const isMostExact = matches.at(-1)!.id === route.id;
     useWindowTitle(route.name, isMostExact);
-
-    if (!onLoadFinished) {
-        return <DefaultFallbackStatic />;
-    }
 
     return <DynamicComponent component={template} />;
 }
