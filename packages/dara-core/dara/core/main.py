@@ -429,7 +429,9 @@ def _start_application(config: Configuration):
 
                 # Run actions in order to guarantee execution order
                 for action_payload in body.action_payloads:
-                    action_def: ActionResolverDef = await registry_mgr.get(action_registry, action_payload.definition_uid)
+                    action_def: ActionResolverDef = await registry_mgr.get(
+                        action_registry, action_payload.definition_uid
+                    )
                     static_kwargs = await registry_mgr.get(static_kwargs_registry, action_payload.uid)
 
                     CURRENT_ACTION_ID.set(action_payload.uid)

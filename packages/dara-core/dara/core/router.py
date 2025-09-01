@@ -836,7 +836,7 @@ def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[st
     kwargs = {}
     types = get_type_hints(func)
     for name, typ in types.items():
-        if name == 'self' or name == 'cls':
+        if name in {'self', 'cls'}:
             continue
         if name not in path_params:
             raise ValueError(
