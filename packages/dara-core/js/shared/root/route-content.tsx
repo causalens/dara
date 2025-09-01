@@ -178,6 +178,8 @@ function Content({
             // must return something other than undefined, undefined is reserved for suspending
             return null;
         },
+        cacheTime: 1,
+        staleTime: 0,
     });
 
     // only sync title for the most exact route

@@ -80,6 +80,17 @@ function UrlSyncProvider(props: { children: React.ReactNode }): React.ReactNode 
     return <RecoilURLSync {...syncOptions}>{props.children}</RecoilURLSync>;
 }
 
+declare global {
+    interface Window {
+        dara: DaraGlobals;
+    }
+}
+
+interface DaraGlobals {
+    base_url: string;
+    ws?: WebSocketClientInterface;
+}
+
 export const daraData: DaraData = {
     auth_components: {
         login: {
@@ -140,6 +151,13 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
             </GlobalTaskProvider>
         );
     }
+
+    if (!window.dara) {
+        window.dara = {
+            base_url: '',
+        };
+    }
+    window.dara.ws = wsClient;
 
     return (
         <ConfigContextProvider
