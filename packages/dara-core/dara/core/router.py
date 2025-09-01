@@ -834,16 +834,23 @@ def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[st
     path_params = param_pattern.findall(path)
 
     kwargs = {}
-    types = get_type_hints(func)
-    for name, typ in types.items():
+
+    signature = inspect.signature(func)
+
+    for name, param in signature.parameters.items():
+        typ = param.annotation
+
         if name in {'self', 'cls'}:
             continue
         if name not in path_params:
             raise ValueError(
                 f'Invalid page function signature. Kwarg "{name}: {typ}" found but param ":{name}" is missing in path "{path}"'
             )
-        if inspect.isclass(typ) and issubclass(typ, Variable):
-            kwargs[name] = Variable(store=_PathParamStore(param_name=name))
+        if not (inspect.isclass(typ) and issubclass(typ, Variable)):
+            raise ValueError(
+                f'Invalid page function signature. Kwarg "{name}" found with invalid signature "{type}". Page functions can only accept kwargs annotated with "Variable" corresponding to path params defined on the route'
+            )
+        kwargs[name] = Variable(store=_PathParamStore(param_name=name))
     return func(**kwargs)
 
 

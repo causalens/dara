@@ -444,6 +444,28 @@ class TestRouterParamValidation:
         with pytest.raises(ValueError, match='blogId'):
             router.compile()
 
+    def test_invalid_annotation(self):
+        def page(id: str):
+            return ComponentInstance()
+
+        # Invalid router
+        router = Router()
+        router.add_page(path='blog/:id', content=page)
+
+        with pytest.raises(ValueError, match='id'):
+            router.compile()
+
+    def test_missing_annotation(self):
+        def page(id):
+            return ComponentInstance()
+
+        # Invalid router
+        router = Router()
+        router.add_page(path='blog/:id', content=page)
+
+        with pytest.raises(ValueError, match='id'):
+            router.compile()
+
     def test_inject_parent_param(self):
         def parent_page(parent_id: Variable[str]):
             return ComponentInstance()
