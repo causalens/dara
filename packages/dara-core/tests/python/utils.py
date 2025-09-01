@@ -169,7 +169,7 @@ async def _get_template(
         assert response.status_code == 200
         res = response.json()
         template_data = denormalize(res['template']['data'], res['template']['lookup'])
-        return {'template': template_data, 'on_load': res['on_load']}, response.status_code
+        return {'template': template_data, 'action_results': res['action_results']}, response.status_code
 
     # If we don't expect response to be 200 don't denormalize
     return response.json(), response.status_code

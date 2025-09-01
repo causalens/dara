@@ -405,8 +405,8 @@ def _start_application(config: Configuration):
         class RouteDataRequestBody(BaseModel):
             id: str
             action_payloads: List[ActionPayload] = []
-            ws_channel: Optional[str]
-            params: Dict[str, str]
+            ws_channel: Optional[str] = None
+            params: Dict[str, str] = {}
 
         @app.post('/api/core/route')
         async def get_route_data(body: RouteDataRequestBody):

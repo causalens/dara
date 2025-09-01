@@ -5,7 +5,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type RenderOptions, type RenderResult, render } from '@testing-library/react';
-import React, { type ComponentType, type ReactElement, useRef } from 'react';
+import React, { type ComponentType, type ReactElement, type ReactNode, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router';
 import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
@@ -13,6 +14,7 @@ import { RecoilURLSync } from 'recoil-sync';
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
+import { preloadActions } from '@/shared/interactivity/use-action';
 import { useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
@@ -48,7 +50,7 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
 }
 
 // Mock importers for testing dynamic components
-const importers: Record<string, () => Promise<ModuleContent>> = {
+export const importers: Record<string, () => Promise<ModuleContent>> = {
     dara_core: () =>
         Promise.resolve({
             NavigateTo,
@@ -106,13 +108,15 @@ export const daraData: DaraData = {
 };
 
 // A wrapper for testing that provides some required contexts
-export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = true }: WrapperProps): ReactElement => {
+export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = true }: WrapperProps): ReactNode => {
     // the client needs to be created inside the wrapper so cache is not shared between tests
     const queryClient = new QueryClient();
 
     const variables = useRef<Set<string>>(new Set());
 
     let child = children;
+
+    const [isReady, setIsReady] = useState(false);
 
     if (withRouter) {
         const router = createBrowserRouter([

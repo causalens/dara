@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { clearActionHandlerCache_TEST, useActionIsLoading } from '@/shared/interactivity/use-action';
+import { clearActionHandlerCache_TEST, preloadActions, useActionIsLoading } from '@/shared/interactivity/use-action';
 
 import { EventCapturer, useAction, useVariable } from '../../js/shared';
 import type {
@@ -21,6 +21,8 @@ import type {
     Variable,
 } from '../../js/types/core';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
+import { mockActions } from './utils/test-server-handlers';
+import { importers } from './utils/wrapped-render';
 
 const LOADING_VARIABLE: SingleVariable<boolean> = {
     __typename: 'Variable',
@@ -34,13 +36,15 @@ describe('useAction', () => {
         server.listen({ onUnhandledRequest: 'error' });
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.localStorage.clear();
         window.history.replaceState(null, '', '/');
         vi.restoreAllMocks();
 
         clearRegistries_TEST();
         clearActionHandlerCache_TEST();
+
+        await preloadActions(importers, Object.values(mockActions));
     });
     afterEach(() => {
         window.history.replaceState(null, '', '/');
@@ -701,7 +705,7 @@ describe('useAction', () => {
         };
 
         const { getByTestId } = render(<MockComponent action={action} var={variable} />, {
-            wrapper: Wrapper
+            wrapper: Wrapper,
         });
 
         await waitFor(() => expect(getByTestId('update')).toBeInTheDocument());
