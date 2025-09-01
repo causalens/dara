@@ -1,4 +1,5 @@
 import inspect
+import re
 from abc import abstractmethod
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union, get_type_hints
 from uuid import uuid4
@@ -18,8 +19,29 @@ from dara.core.definitions import ComponentInstance, JsComponentDef, StyledCompo
 from dara.core.interactivity import Variable
 from dara.core.persistence import PersistenceStore  # noqa: F401
 
-# TODO: injection validation based on path :param parts
-# TODO: restrict /api top-level prefix?
+param_pattern = re.compile(r':([a-zA-Z_][a-zA-Z0-9_]*)')
+
+
+def validate_full_path(value: str):
+    if value.startswith('/api'):
+        raise ValueError(f'/api is a reserved prefix, router paths cannot start with it - found "{value}"')
+
+    params = param_pattern.findall(value)
+    seen_params = set()
+    for param in params:
+        if param in seen_params:
+            raise ValueError(
+                f'Duplicate path param found - found "{param}" more than once in "{value}". Param names must be unique'
+            )
+        seen_params.add(param)
+
+
+class _PathParamStore(PersistenceStore):
+    param_name: str
+
+    async def init(self, variable: 'Variable'):
+        # noop
+        pass
 
 
 class RouterPath(BaseModel):
@@ -136,7 +158,10 @@ class BaseRoute(BaseModel):
         return self.full_path or self.get_identifier()
 
     @abstractmethod
-    def compile(self): ...
+    def compile(self):
+        path = self.full_path
+        if path:
+            validate_full_path(path)
 
     @property
     def route_data(self) -> RouteData:
@@ -175,6 +200,7 @@ class BaseRoute(BaseModel):
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         props = nxt(self)
         props['__typename'] = self.__class__.__name__
+        props['full_path'] = self.full_path
         # ID defaults to full path when serializing
         if not props.get('id'):
             props['id'] = self.get_identifier()
@@ -390,6 +416,7 @@ class IndexRoute(BaseRoute):
     content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def compile(self):
+        super().compile()
         self.compiled_data = RouteData(
             content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
         )
@@ -410,6 +437,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
+        super().compile()
         self.compiled_data = RouteData(
             content=execute_route_func(self.content, self.get_identifier()), on_load=self.on_load, definition=self
         )
@@ -453,6 +481,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
+        super().compile()
         self.compiled_data = RouteData(
             on_load=self.on_load, content=execute_route_func(self.content, self.get_identifier()), definition=self
         )
@@ -488,6 +517,7 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
+        super().compile()
         self.compiled_data = RouteData(on_load=self.on_load, definition=self)
         for child in self.children:
             child.compile()
@@ -804,9 +834,8 @@ def execute_route_func(func: Callable[..., ComponentInstance], route_id: str):
     for name, typ in types.items():
         if name == 'self' or name == 'cls':
             continue
-        if typ is Variable:
-            # name here must match the client-side expectation
-            kwargs[name] = Variable(uid=f'__route_{route_id}_{name}')
+        if inspect.isclass(typ) and issubclass(typ, Variable):
+            kwargs[name] = Variable(store=_PathParamStore(param_name=name))
     return func(**kwargs)
 
 

@@ -1,20 +1,57 @@
 import { mixed } from '@recoiljs/refine';
 import { applyPatch } from 'fast-json-patch';
+import isEqual from 'lodash/isEqual';
+import mapValues from 'lodash/mapValues';
 import * as React from 'react';
-import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
-import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect, urlSyncEffect } from 'recoil-sync';
+import {
+    type Params,
+    type UIMatch,
+    generatePath,
+    useLocation,
+    useMatches,
+    useNavigate,
+    useParams,
+    useSearchParams,
+} from 'react-router';
+import {
+    type AtomEffect,
+    DefaultValue,
+    RecoilLoadable,
+    type RecoilState,
+    atom,
+    useRecoilCallback,
+    useRecoilState,
+} from 'recoil';
+import {
+    type ItemSnapshot,
+    type ListenToItems,
+    type ReadItem,
+    RecoilSync,
+    type UpdateItem,
+    type WriteItems,
+    syncEffect,
+    urlSyncEffect,
+} from 'recoil-sync';
 
-import { validateResponse } from '@darajs/ui-utils';
+import { useLatestRef, validateResponse } from '@darajs/ui-utils';
 
 import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
 import { getSessionToken } from '@/auth/use-session-token';
 import { isEmbedded } from '@/shared/utils/embed';
-import { type GlobalTaskContext, type QueryParamStore, type SingleVariable, isDerivedVariable } from '@/types';
+import {
+    type GlobalTaskContext,
+    type PathParamStore,
+    type QueryParamStore,
+    type RouteDefinition,
+    type SingleVariable,
+    isDerivedVariable,
+} from '@/types';
 import { type BackendStore, type BrowserStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
 
 import { WebSocketCtx } from '../context';
+import { usePrevious } from '../utils';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariableValue } from './internal';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
@@ -358,6 +395,91 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     );
 }
 
+function PathParamSync({ children }: { children: React.ReactNode }): React.ReactNode {
+    const navigate = useNavigate();
+
+    const location = useLocation();
+    const locationRef = useLatestRef(location);
+
+    const matches = useMatches();
+    const matchesRef = useLatestRef(matches);
+
+    // Keep track of matches in a ref.
+    // This lets us mutate it in the `write` part and have `read` return the latest value.
+    const params = useParams();
+    const paramsRef = React.useRef(params);
+
+    const locationSubscribers = React.useRef<Array<(params: Params<string>) => void>>([]);
+
+    React.useLayoutEffect(() => {
+        // always sync on initial load, then only if params change
+        if (isEqual(paramsRef.current, params)) {
+            return;
+        }
+        paramsRef.current = params;
+        for (const subscriber of locationSubscribers.current) {
+            subscriber(params);
+        }
+    }, [paramsRef, params]);
+
+    const getStoreValue = React.useCallback<ReadItem>(
+        (paramName) => {
+            return paramsRef.current[paramName] ?? null;
+        },
+        [paramsRef]
+    );
+
+    const writeStoreValue = React.useCallback<WriteItems>(
+        ({ diff }) => {
+            const newParams = mapValues({ ...paramsRef.current, ...Object.fromEntries(diff) }, (v) => String(v));
+
+            // use the last match to get the full path,
+            // needed to get the full path with placeholders e.g.
+            // /foo/blogs/:blogId/posts/:postId
+            const fullPathname = (
+                matchesRef.current.at(-1)!.loaderData as {
+                    data: { route_definition: RouteDefinition };
+                }
+            ).data.route_definition.full_path;
+
+            // navigate once, building the full pathname with updated params
+            // NOTE: This assumes the path param names are unique across matches
+            // which we currently validate in the router compilation step
+            navigate({
+                pathname: generatePath(fullPathname, newParams),
+                // preserve current search
+                search: locationRef.current.search,
+            });
+        },
+        [matchesRef, navigate, paramsRef, locationRef]
+    );
+
+    const listenToStoreChanges = React.useCallback<ListenToItems>(({ updateAllKnownItems }) => {
+        function handleUpdate(newParams: Params<string>): void {
+            // this updates existing atoms for items included and resets other ones
+            // to default (null/None) for missing ones
+            updateAllKnownItems(new Map(Object.entries(newParams)));
+        }
+
+        locationSubscribers.current.push(handleUpdate);
+
+        return () => {
+            locationSubscribers.current = locationSubscribers.current.filter((item) => item !== handleUpdate);
+        };
+    }, []);
+
+    return (
+        <RecoilSync
+            listen={listenToStoreChanges}
+            read={getStoreValue}
+            write={writeStoreValue}
+            storeKey="_PathParamStore"
+        >
+            {children}
+        </RecoilSync>
+    );
+}
+
 /**
  * Create a syncEffect for BrowserStore
  *
@@ -410,6 +532,26 @@ function urlEffect<T>(variable: SingleVariable<T, QueryParamStore>): AtomEffect<
     });
 }
 
+function pathParamEffect<T>(variable: SingleVariable<T, PathParamStore>): AtomEffect<any> {
+    const itemKey = variable.store!.param_name;
+    const effect = syncEffect({
+        itemKey,
+        refine: mixed(),
+        storeKey: '_PathParamStore',
+    });
+    return (effectParams) => {
+        const cleanup = effect(effectParams);
+        // NOTE: this is a hack to immediately commit the value of the atom to the recoil snapshot
+        // Without this, the first time we try to read it in e.g. an action, the value is null
+        // I wasn't able to find why this happens, but this seems to work.
+        // `valueOrThrow` should be safe here as we always initialize the atom in the syncEffect.
+        effectParams.setSelf(effectParams.getLoadable(effectParams.node).valueOrThrow());
+        return () => {
+            cleanup?.();
+        };
+    };
+}
+
 interface Effect<T = any, TStore extends PersistenceStore = PersistenceStore> {
     (
         variable: SingleVariable<T, TStore>,
@@ -424,6 +566,7 @@ type StoreTypeMap = {
     BackendStore: BackendStore;
     BrowserStore: BrowserStore;
     QueryParamStore: QueryParamStore;
+    _PathParamStore: PathParamStore;
 };
 
 // Type-safe STORES configuration
@@ -442,6 +585,9 @@ export const STORES: StoresConfig = {
     },
     QueryParamStore: {
         effect: urlEffect,
+    },
+    _PathParamStore: {
+        effect: pathParamEffect,
     },
 };
 
@@ -475,7 +621,9 @@ export function StoreProviders({ children }: { children: React.ReactNode }): JSX
     // NOTE: the url sync is applied separately as it needs to be wrapped around the router
     return (
         <BackendStoreSync>
-            <BrowserStoreSync>{children}</BrowserStoreSync>
+            <PathParamSync>
+                <BrowserStoreSync>{children}</BrowserStoreSync>
+            </PathParamSync>
         </BackendStoreSync>
     );
 }

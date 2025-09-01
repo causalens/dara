@@ -52,6 +52,16 @@ interface ActionPayload {
     values: NormalizedPayload<any>;
 }
 
+interface LoaderData {
+    template: ComponentInstance;
+    on_load: ActionImpl[];
+    route_definition: RouteDefinition;
+}
+
+interface LoaderResult {
+    data: LoaderData | Promise<LoaderData>;
+}
+
 /**
  * We're using React Query for the loader to utilize a cache. This allows us to
  * implement custom prefetching logic on links. React Router is not a cache
@@ -111,7 +121,7 @@ const loaderQuery = (route: RouteDefinition, params: Params<string>, snapshotRef
                 return a;
             });
 
-            return { template, on_load: onLoad };
+            return { template, on_load: onLoad, route_definition: route } satisfies LoaderData;
         },
         refetchOnMount: false,
         refetchOnWindowFocus: false,
@@ -160,47 +170,13 @@ function Content({
     route,
     on_load,
     template,
-}: Awaited<Awaited<ReturnType<ReturnType<typeof createRouteLoader>>>['data']> & {
+}: LoaderData & {
     route: RouteDefinition;
 }): React.ReactNode {
     const [onLoadFinished, setOnLoadFinished] = React.useState(() => on_load.length === 0);
-    const extras = useRequestExtras();
     const executeAction = useExecuteAction();
-    const { client: wsClient } = React.useContext(WebSocketCtx);
-    const taskContext = useTaskContext();
-    const params = useParams();
 
-    const updateParamAtoms = useRecoilCallback(
-        ({ set, snapshot }) =>
-            (newParams: Params<string>) => {
-                for (const [key, value] of Object.entries(newParams)) {
-                    // NOTE: key must match dara.core.router logic
-                    const atomKey = `__route_${route.id}_${key}`;
-                    const atom = getOrRegisterPlainVariable(
-                        {
-                            __typename: 'Variable',
-                            default: undefined,
-                            nested: [],
-                            uid: atomKey,
-                        } as SingleVariable<string | undefined>,
-                        wsClient,
-                        taskContext,
-                        extras
-                    );
-                    if (snapshot.getLoadable(atom).valueOrThrow() !== value) {
-                        set(atom, value);
-                    }
-                }
-            },
-        [wsClient, taskContext, extras]
-    );
-    const updateParamAtomsRef = useLatestRef(updateParamAtoms);
-
-    React.useLayoutEffect(() => {
-        updateParamAtomsRef.current(params);
-    }, [params, updateParamAtomsRef]);
-
-    // TODO: fix race conditions here, must sync params once before we can show the page
+    // TODO: fix race conditions here
     React.useLayoutEffect(() => {
         if (!onLoadFinished && on_load.length > 0) {
             executeAction(on_load).then(() => setOnLoadFinished(true));
@@ -220,7 +196,7 @@ function Content({
 }
 
 function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
-    const { data } = useLoaderData();
+    const { data } = useLoaderData<LoaderResult>();
 
     if (data instanceof Promise) {
         return (

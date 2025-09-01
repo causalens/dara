@@ -40,6 +40,7 @@ interface AuthComponents {
 interface BaseRouteDefinition {
     case_sensitive: boolean;
     id: string;
+    full_path: string;
     name?: string;
     on_load?: Action;
 }
@@ -148,6 +149,12 @@ export interface QueryParamStore extends PersistenceStore {
 
 export interface BrowserStore extends PersistenceStore {
     __typename: 'BrowserStore';
+}
+
+export interface PathParamStore extends PersistenceStore {
+    __typename: '_PathParamStore';
+    route_id: string;
+    param_name: string;
 }
 
 export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
