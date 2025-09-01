@@ -162,7 +162,12 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
     }
 
     // plain variable
-    return resolvePlainVariableStatic(variable, snapshot);
+    let result = resolvePlainVariableStatic(variable, snapshot);
+    // unwrap if variable.default is a derived variable, i.e. used create_from_derived
+    while (isDerivedVariable(result)) {
+        result = resolveVariableStatic(result, snapshot);
+    }
+    return result;
 }
 
 /**

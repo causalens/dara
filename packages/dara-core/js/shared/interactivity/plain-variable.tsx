@@ -187,7 +187,6 @@ export function resolvePlainVariableStatic(variable: SingleVariable<any>, snapsh
         const extrasSerializable = new RequestExtrasSerializable({});
         const atomInstance: RecoilState<any> = family(extrasSerializable);
         const atomValue = snapshot.getLoadable(atomInstance).valueMaybe();
-        // TODO: ensure it's not default=dv?
         if (atomValue !== null && !(atomValue instanceof Promise)) {
             return atomInstance;
         }
