@@ -385,7 +385,7 @@ export function PathParamSync({ children }: { children: React.ReactNode }): Reac
     const locationSubscribers = React.useRef<Array<(params: Params<string>) => void>>([]);
 
     React.useLayoutEffect(() => {
-        // always sync on initial load, then only if params change
+        // skip running subs when the params are the same
         if (isEqual(paramsRef.current, params)) {
             return;
         }

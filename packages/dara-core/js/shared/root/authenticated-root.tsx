@@ -65,7 +65,16 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     const navigate = useNavigate();
     const token = useSessionToken()!;
 
-    const [wsClient, setWsClient] = useState<WebSocketClient | undefined>(() => props.initialWebsocketClient);
+    // create a WS client once, token will be updated separately
+    const [wsClient] = useState<WebSocketClient>(() => {
+        if (props.initialWebsocketClient) {
+            return props.initialWebsocketClient;
+        }
+
+        const ws = setupWebsocket(token, props.daraData.live_reload);
+        window.dara.ws = ws;
+        return ws;
+    });
 
     useLayoutEffect(() => {
         if (token) {
@@ -77,10 +86,6 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     }, [token, navigate]);
 
     useEffect(() => {
-        if (!wsClient) {
-            return;
-        }
-
         // subscribe to token changes and notify the live WS connection
         return onTokenChange((newToken) => {
             // it only changes to null if we're logging out
@@ -89,22 +94,6 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
             }
         });
     }, [wsClient]);
-
-    useEffect(() => {
-        // already set up - make sure we don't recreate connections,
-        // we use updateToken explicitly to update a live connection
-        if (wsClient) {
-            return;
-        }
-
-        const newWsClient = setupWebsocket(token, props.daraData.live_reload);
-        setWsClient(newWsClient);
-        window.dara.ws = newWsClient;
-    }, [wsClient, token, props.daraData.live_reload]);
-
-    if (!wsClient) {
-        return null;
-    }
 
     return (
         <WebSocketCtx.Provider value={{ client: wsClient }}>
