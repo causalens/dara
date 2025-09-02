@@ -1,7 +1,7 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Annotated, Any, Callable, Dict, Iterable, List, Literal, Optional, TypedDict, Union
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import (
