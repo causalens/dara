@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unused-prop-types */
 import type { QueryClient } from '@tanstack/query-core';
-import { type UseQueryOptions, useSuspenseQuery } from '@tanstack/react-query';
+import { type UseQueryOptions } from '@tanstack/react-query';
 import * as React from 'react';
 import { Await, type LoaderFunctionArgs, type Params, useLoaderData, useMatches } from 'react-router';
 import { type Snapshot } from 'recoil';
@@ -166,26 +166,51 @@ function Content({
 }: LoaderData & {
     route: RouteDefinition;
 }): React.ReactNode {
-    // Executing the action in a suspense query ensures that it runs before we can render the content
     const executeAction = useExecuteAction();
-    useSuspenseQuery({
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-        queryKey: ['route', route.id, on_load.map((a) => a.name).join(',')],
-        queryFn: async () => {
-            await executeAction(on_load);
-            // must return something other than undefined, undefined is reserved for suspending
-            return null;
-        },
-        cacheTime: 1,
-        staleTime: 0,
-    });
+    const [isLoading, setIsLoading] = React.useState(on_load.length > 0);
+
+    React.useLayoutEffect(() => {
+        if (on_load.length === 0) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const result = executeAction(on_load);
+
+        // if result is a promise, handle async case
+        if (result instanceof Promise) {
+            result
+                .then(() => {
+                    if (!cancelled) {
+                        setIsLoading(false);
+                    }
+                })
+                .catch((error) => {
+                    if (!cancelled) {
+                        // eslint-disable-next-line no-console
+                        console.error('Error executing on_load actions:', error);
+                        setIsLoading(false);
+                    }
+                });
+        } else {
+            // synchronous case - immediately stop loading
+            setIsLoading(false);
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [route.id, on_load, executeAction]);
 
     // only sync title for the most exact route
     const matches = useMatches();
     const isMostExact = matches.at(-1)!.id === route.id;
     useWindowTitle(route.name, isMostExact);
+
+    if (isLoading) {
+        return <DefaultFallbackStatic />;
+    }
 
     return <DynamicComponent component={template} />;
 }

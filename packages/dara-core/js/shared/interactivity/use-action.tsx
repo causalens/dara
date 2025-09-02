@@ -292,7 +292,7 @@ export function useActionIsLoading(action: Action | undefined | null): boolean {
     return useVariable(action.loading)[0];
 }
 
-export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: any) => Promise<void> {
+export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: any) => Promise<void> | void {
     const { client: wsClient } = useContext(WebSocketCtx);
     const notificationCtx = useNotifications();
     const extras = useRequestExtras();
@@ -324,7 +324,7 @@ export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: 
         };
     });
     const callback = useRecoilCallback(
-        (cbInterface) => async (action: ActionImpl | ActionImpl[], input?: any) => {
+        (cbInterface) => (action: ActionImpl | ActionImpl[], input?: any) => {
             const actionsToExecute = Array.isArray(action) ? action : [action];
 
             // this is redefined for each action to have up-to-date snapshot
@@ -340,16 +340,27 @@ export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: 
                 transact_UNSTABLE: cbInterface.transact_UNSTABLE,
             };
 
+            let promiseChain: Promise<void> | null = null;
+
             for (const act of actionsToExecute) {
                 const handler = resolveActionImpl(act, fullActionContext);
-                const result = handler(fullActionContext, act);
 
-                // handle async handlers
-                if (result instanceof Promise) {
-                    // eslint-disable-next-line no-await-in-loop
-                    await result;
+                if (promiseChain) {
+                    // if we already have async actions, chain this one
+                    promiseChain = promiseChain.then(() => {
+                        const result = handler(fullActionContext, act);
+                        return result instanceof Promise ? result : Promise.resolve();
+                    });
+                } else {
+                    // execute synchronously until we hit an async one
+                    const result = handler(fullActionContext, act);
+                    if (result instanceof Promise) {
+                        promiseChain = result;
+                    }
                 }
             }
+
+            return promiseChain || undefined;
         },
         []
     );
