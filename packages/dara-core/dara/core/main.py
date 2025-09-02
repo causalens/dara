@@ -26,10 +26,11 @@ from contextlib import asynccontextmanager
 from importlib.util import find_spec
 from inspect import iscoroutine
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from anyio import create_task_group
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
+from fastapi import Path as PathParam
 from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
@@ -38,6 +39,7 @@ from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
+from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
@@ -403,15 +405,14 @@ def _start_application(config: Configuration):
             values: NormalizedPayload[Mapping[str, Any]]
 
         class RouteDataRequestBody(BaseModel):
-            id: str
             action_payloads: List[ActionPayload] = []
             ws_channel: Optional[str] = None
             params: Dict[str, str] = {}
 
-        @app.post('/api/core/route')
-        async def get_route_data(body: RouteDataRequestBody):
+        @app.post('/api/core/route/{route_id}', dependencies=[Depends(verify_session)])
+        async def get_route_data(route_id: Annotated[str, PathParam()], body: Annotated[RouteDataRequestBody, Body()]):
             # TODO: This will accept DV inputs etc and stream those back
-            route_data = route_map.get(body.id)
+            route_data = route_map.get(route_id)
 
             if route_data is None:
                 raise HTTPException(status_code=404, detail=f'Route {id} not found')

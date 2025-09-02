@@ -47,13 +47,11 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
     document.title = daraData.title;
     NProgress.configure({ showSpinner: false });
 
-    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
     await Promise.all([
         // preload auth components to prevent flashing of extra spinners
         ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
-        // preload components for the entire loaded registry
+        // preload components and actions for the entire loaded registry
         preloadComponents(importers, Object.values(daraData.components)),
-        // preload actions
         preloadActions(importers, Object.values(daraData.actions)),
     ]);
 

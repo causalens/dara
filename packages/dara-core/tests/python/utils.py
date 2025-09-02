@@ -163,7 +163,7 @@ async def _get_template(
     page_id: str,
     response_ok=True,
 ) -> Tuple[Mapping, int]:
-    response = await client.post(f'/api/core/route', headers=AUTH_HEADERS, json={'id': page_id})
+    response = await client.post(f'/api/core/route/{page_id}', headers=AUTH_HEADERS, json={})
 
     if response_ok:
         assert response.status_code == 200

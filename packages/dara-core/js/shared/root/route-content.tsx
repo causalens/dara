@@ -26,7 +26,6 @@ import { useWindowTitle } from '../utils';
 import { denormalize, normalizeRequest } from '../utils/normalization';
 
 interface RouteDataRequestBody {
-    id: string;
     action_payloads: ActionPayload[];
     ws_channel: string | null;
     params: Params<string>;
@@ -88,10 +87,9 @@ const loaderQuery = (route: RouteDefinition, params: Params<string>, snapshotRef
                 } satisfies ActionPayload;
             });
 
-            const response = await request('/api/core/route', {
+            const response = await request(`/api/core/route/${route.id}`, {
                 method: HTTP_METHOD.POST,
                 body: JSON.stringify({
-                    id: route.id,
                     action_payloads: actionPayloads,
                     ws_channel: window.dara.ws ? await window.dara.ws.getChannel() : null,
                     params,

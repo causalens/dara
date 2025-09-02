@@ -2,6 +2,7 @@ import inspect
 import re
 from abc import abstractmethod
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from urllib.parse import quote
 from uuid import uuid4
 
 from pydantic import (
@@ -104,9 +105,10 @@ class BaseRoute(BaseModel):
     Whether the route is case sensitive
     """
 
-    id: Optional[str] = None
+    id: Optional[str] = Field(default=None, pattern=r'^[a-zA-Z0-9-_]+$')
     """
-    Unique identifier for the route
+    Unique identifier for the route.
+    Must only contain alphanumeric characters, dashes and underscores.
     """
 
     name: Optional[str] = None
@@ -167,7 +169,7 @@ class BaseRoute(BaseModel):
             return self.id
 
         if path := self.full_path:
-            return self.uid + '_' + path
+            return quote(path.replace('/', '_')) + '_' + self.uid
 
         raise ValueError('Identifier cannot be determined, route is not attached to a router')
 
@@ -953,13 +955,14 @@ def convert_template_to_router(template):
         legacy_page_wrapper = make_legacy_page_wrapper(route_content.content)
 
         # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
+        # but use 'index' for empty strings
 
         # Root path becomes index route
         if route_path in {'', '/'}:
             root_layout.add_index(
                 content=legacy_page_wrapper,
                 name=route_content.name,
-                id=route_content.name,
+                id=route_content.name or 'index',
                 on_load=route_content.on_load,
             )
         else:
@@ -967,7 +970,7 @@ def convert_template_to_router(template):
                 path=route_path,
                 content=legacy_page_wrapper,
                 name=route_content.name,
-                id=route_content.name,
+                id=route_content.name or 'index',
                 on_load=route_content.on_load,
             )
 
