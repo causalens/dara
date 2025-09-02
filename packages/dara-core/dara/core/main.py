@@ -41,7 +41,6 @@ from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
 from dara.core.auth.routes import verify_session
-from dara.core.base_definitions import ActionResolverDef
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
     blank_template,
