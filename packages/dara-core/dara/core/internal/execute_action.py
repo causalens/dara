@@ -20,7 +20,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from contextvars import ContextVar
-from typing import Any, Callable, Optional, Union
+from functools import partial
+from typing import Any, Callable, Literal, Optional, Union
 
 import anyio
 
@@ -42,13 +43,16 @@ from dara.core.logging import dev_logger
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
 
-async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
+async def _execute_action(
+    handler: Callable, ctx: ActionCtx, values: Mapping[str, Any], _on_error: Literal['raise', 'notify'] = 'notify'
+):
     """
     Execute the action handler within the given action context, handling any exceptions that occur.
 
     :param handler: the action handler to execute
     :param ctx: the action context to use
     :param values: the resolved values to pass to the handler
+    :param _on_error: whether to raise or notify on errors
     """
     bound_arg = None
     kwarg_names = list(values.keys())
@@ -71,13 +75,18 @@ async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str
     try:
         return await run_user_handler(handler, args=args, kwargs=parsed_values)
     except Exception as e:
-        dev_logger.error('Error executing action', e)
-        await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
+        if _on_error == 'raise':
+            raise
+        elif _on_error == 'notify':
+            dev_logger.error('Error executing action', e)
+            await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
     finally:
         await ctx._end_execution()
 
 
-async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[str, Any]):
+async def _stream_action(
+    handler: Callable, ctx: ActionCtx, _on_error: Literal['raise', 'notify'] = 'notify', **values: Mapping[str, Any]
+):
     """
     Run the action handler and stream the results to the frontend.
     Executes two tasks in parallel:
@@ -91,7 +100,7 @@ async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[st
     try:
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
-            tg.start_soon(_execute_action, handler, ctx, values)
+            tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
             tg.start_soon(ctx._handle_results)
     finally:
         # None is treated as a sentinel value to stop waiting for new actions to come in on the client
@@ -152,8 +161,8 @@ async def execute_action_sync(
     if has_tasks:
         raise ValueError('This action does not support tasks')
 
-    # Run until completion
-    await _stream_action(action, ctx, **resolved_kwargs)
+    # Run until completion, raising on errors
+    await _stream_action(action, ctx, _on_error='raise', **resolved_kwargs)
 
     return results
 

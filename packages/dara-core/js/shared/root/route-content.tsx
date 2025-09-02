@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Await, type LoaderFunctionArgs, type Params, useLoaderData, useMatches } from 'react-router';
 import { type Snapshot } from 'recoil';
 
-import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
+import { HTTP_METHOD } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth';
@@ -14,6 +14,8 @@ import {
     type Action,
     type ActionImpl,
     type ComponentInstance,
+    LoaderError,
+    type LoaderErrorPayload,
     type NormalizedPayload,
     type RouteDefinition,
     isAnnotatedAction,
@@ -98,7 +100,12 @@ const loaderQuery = (route: RouteDefinition, params: Params<string>, snapshotRef
                 signal,
             });
             await handleAuthErrors(response, true);
-            await validateResponse(response, 'Failed to fetch the route data for this app');
+
+            if (!response.ok) {
+                const error = (await response.json()) as { detail: LoaderErrorPayload };
+                throw new LoaderError(error.detail);
+            }
+
             const responseContent: RouteResponse = await response.json();
             const template = denormalize(
                 responseContent.template.data,

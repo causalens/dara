@@ -151,7 +151,7 @@ class BaseRoute(BaseModel):
         if not isinstance(value, str):
             return value
         # matches legacy page.name handling
-        return value.lower().replace(' ', '-').strip()
+        return value.lower().strip().replace(' ', '-')
 
     def _attach_to_parent(self, parent):
         """Internal method to attach route to parent"""

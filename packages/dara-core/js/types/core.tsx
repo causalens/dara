@@ -77,9 +77,13 @@ export interface RouterDefinition {
     children: Array<RouteDefinition>;
 }
 
+type BuildMode = 'AUTO_JS' | 'PRODUCTION';
+
 export interface DaraData {
     auth_components: AuthComponents;
     actions: Record<string, ActionDef>;
+    build_mode: BuildMode;
+    build_dev: boolean;
     components: Record<string, Component>;
     application_name: string;
     context_components: Array<ComponentInstance<Record<never, any>>>;
@@ -591,3 +595,24 @@ export type Action = AnnotatedAction | ActionImpl | Array<AnnotatedAction | Acti
  * When thrown, our built-in error boundary will display its `message` property rather than a default blurb.
  */
 export class UserError extends Error {}
+
+export interface LoaderErrorPayload {
+    error: string;
+    stacktrace: string;
+    path: string;
+    action_name: string;
+}
+
+/**
+ * Error thrown when a page loader throws an error.
+ * Usually caused by on_load action errors.
+ */
+export class LoaderError extends Error {
+    payload: LoaderErrorPayload;
+
+    constructor(payload: LoaderErrorPayload) {
+        super(payload.stacktrace);
+        this.name = 'LoaderError';
+        this.payload = payload;
+    }
+}

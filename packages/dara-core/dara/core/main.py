@@ -51,7 +51,7 @@ from dara.core.defaults import (
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
-from dara.core.internal.devtools import send_error_for_session
+from dara.core.internal.devtools import print_stacktrace, send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
 from dara.core.internal.execute_action import CURRENT_ACTION_ID, execute_action_sync
 from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
@@ -430,21 +430,33 @@ def _start_application(config: Configuration):
 
                 # Run actions in order to guarantee execution order
                 for action_payload in body.action_payloads:
-                    action_def: ActionResolverDef = await registry_mgr.get(
-                        action_registry, action_payload.definition_uid
-                    )
+                    action_def = await registry_mgr.get(action_registry, action_payload.definition_uid)
                     static_kwargs = await registry_mgr.get(static_kwargs_registry, action_payload.uid)
 
                     CURRENT_ACTION_ID.set(action_payload.uid)
                     values = denormalize(action_payload.values.data, action_payload.values.lookup)
-                    action_results[action_payload.uid] = await execute_action_sync(
-                        action_def,
-                        inp={'params': body.params, 'route': route_data.definition},
-                        values=values,
-                        static_kwargs=static_kwargs,
-                        store=store,
-                        task_mgr=task_mgr,
-                    )
+                    try:
+                        action_results[action_payload.uid] = await execute_action_sync(
+                            action_def,
+                            inp={'params': body.params, 'route': route_data.definition},
+                            values=values,
+                            static_kwargs=static_kwargs,
+                            store=store,
+                            task_mgr=task_mgr,
+                        )
+                    except BaseException as e:
+                        assert route_data.definition is not None
+                        route_path = route_data.definition.full_path
+                        action_name = str(action_def.resolver)
+                        raise HTTPException(
+                            status_code=500,
+                            detail={
+                                'error': str(e),
+                                'stacktrace': print_stacktrace(e),
+                                'path': route_path,
+                                'action_name': action_name,
+                            },
+                        ) from e
 
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
             return {'template': {'data': normalized_template, 'lookup': lookup}, 'action_results': action_results}
@@ -469,6 +481,8 @@ def _start_application(config: Configuration):
             # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
+            'build_mode': build_cache.build_config.mode,
+            'build_dev': build_cache.build_config.dev,
         }
         json_template_data = json.dumps(jsonable_encoder(template_data))
 

@@ -4,8 +4,8 @@ import type { Snapshot } from 'recoil';
 
 import { getSessionToken, resolveReferrer, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
-import ErrorPage from '@/pages/error-page';
-import RootErrorPage from '@/pages/root-error-page';
+import ErrorStatusCodePage from '@/pages/error-status-code-page';
+import RouteErrorBoundary from '@/pages/route-error-boundary';
 import {
     type DaraData,
     type IndexRouteDefinition,
@@ -57,6 +57,7 @@ function createRoute(
         id: route.id,
         caseSensitive: route.case_sensitive,
         hydrateFallbackElement: <DefaultFallbackStatic />,
+        ErrorBoundary: RouteErrorBoundary,
     };
 
     switch (route.__typename) {
@@ -175,11 +176,11 @@ export function createRouter(
                 // wrapper around all the router content
                 element: <UnauthenticatedRoot />,
                 hydrateFallbackElement: <DefaultFallbackStatic />,
-                ErrorBoundary: RootErrorPage,
+                ErrorBoundary: RouteErrorBoundary,
                 children: [
                     {
                         path: 'error',
-                        Component: ErrorPage,
+                        Component: ErrorStatusCodePage,
                     },
                     // core auth routes
                     {
