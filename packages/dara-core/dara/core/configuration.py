@@ -82,7 +82,7 @@ class Configuration(BaseModel):
     module_dependencies: Dict[str, str]
     live_reload: bool
     powered_by_causalens: bool
-    router: Optional[Router]
+    router: Router
     pages: Dict[str, Page]
     routes: Set[ApiRoute]
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
@@ -160,7 +160,7 @@ class ConfigurationBuilder:
     _custom_encoders: Dict[Type[Any], Encoder]
     _middlewares: List[Middleware]
     routes: Set[ApiRoute]
-    router: Optional[Router]
+    router: Router
     static_files_dir: str
     scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
     startup_functions: List[Callable]
@@ -186,7 +186,7 @@ class ConfigurationBuilder:
         self._template_renderers = {}
         self._endpoint_configurations = []
         self.routes = set()
-        self.router = None
+        self.router = Router()
         self.static_files_dir = os.path.join(pathlib.Path().parent.parent.absolute(), 'dist')
         self._static_folders = []
         self._middlewares = []
@@ -208,7 +208,7 @@ class ConfigurationBuilder:
         return self._template
 
     @template.setter
-    @deprecated('Use `config.router = Router()` instead and set a root layout route.')
+    @deprecated('Use `config.router` instead and set a root layout route.')
     def template(self, value):
         self._template = value
 
@@ -406,7 +406,7 @@ class ConfigurationBuilder:
         """
         self._package_tags_processors.append(processor)
 
-    @deprecated('Use `config.router = Router()` instead.')
+    @deprecated('Use `config.router.add_page` instead.')
     def add_page(
         self,
         name: str,
@@ -463,7 +463,7 @@ class ConfigurationBuilder:
         self._pages[name] = page
         return page
 
-    @deprecated('Use `config.router = Router()` and set a root layout route instead.')
+    @deprecated('Use `config.router.add_layout` and set a root layout route instead.')
     def add_template_renderer(self, name: str, template_renderer: Callable[..., Template]) -> str:
         """
         Add a new template renderer that can be selected by name as part of the configuration. By default calling this

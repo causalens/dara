@@ -1,13 +1,12 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict
 from urllib.parse import quote
 from uuid import uuid4
 
 from pydantic import (
     BaseModel,
-    BeforeValidator,
     Field,
     PrivateAttr,
     SerializeAsAny,
@@ -17,7 +16,7 @@ from pydantic import (
 )
 
 from dara.core.base_definitions import Action
-from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
+from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import Variable
 from dara.core.persistence import PersistenceStore  # noqa: F401
 
@@ -66,28 +65,17 @@ def validate_full_path(value: str):
 
 
 class _PathParamStore(PersistenceStore):
+    """
+    Internal store for path parameters.
+    Should not be used directly, Variables with this store can only be used within
+    a page with matching path params.
+    """
+
     param_name: str
 
     async def init(self, variable: 'Variable'):
         # noop
         pass
-
-
-class RouterPath(BaseModel):
-    path: str
-    """
-    A URL pathname, beginning with '/'.
-    """
-
-    search: str
-    """
-    A URL search string, beginning with '?'.
-    """
-
-    hash: str
-    """
-    A URL hash string, beginning with '#'.
-    """
 
 
 class RouteData(BaseModel):
@@ -101,6 +89,10 @@ class RouteData(BaseModel):
 
 
 class BaseRoute(BaseModel):
+    """
+    Base class for all route types.
+    """
+
     case_sensitive: bool = False
     """
     Whether the route is case sensitive
@@ -198,12 +190,19 @@ class BaseRoute(BaseModel):
 
     @abstractmethod
     def compile(self):
+        """
+        Compile the route, validating it and generating compiled data
+        """
         path = self.full_path
         if path:
             validate_full_path(path)
 
     @property
     def route_data(self) -> RouteData:
+        """
+        Compiled route data for this route.
+        Raises ValueError if the route has not been compiled yet.
+        """
         if self.compiled_data is None:
             raise ValueError(f'Route {self.full_path} has not been compiled')
         return self.compiled_data
@@ -240,15 +239,17 @@ class BaseRoute(BaseModel):
         props = nxt(self)
         props['__typename'] = self.__class__.__name__
         props['full_path'] = self.full_path
-        # ID defaults to full path when serializing
-        if not props.get('id'):
-            props['id'] = quote(self.get_identifier())
+        props['id'] = quote(self.get_identifier())
         if not props.get('name'):
             props['name'] = self.get_name()
         return props
 
 
 class HasChildRoutes(BaseModel):
+    """
+    Mixin class for objects that can have child routes.
+    """
+
     children: SerializeAsAny[List['BaseRoute']] = Field(default_factory=list)
 
     def __init__(self, *children: list[BaseRoute], **kwargs):
@@ -312,16 +313,16 @@ class HasChildRoutes(BaseModel):
         Layout route creates a route with a layout component to render without adding any segments to the URL
 
         ```python
-        from dara.core.router import Router
+        from dara.core import ConfigurationBuilder
 
-        router = Router()
+        config = ConfigurationBuilder()
 
         # no path on this parent route, just the layout
-        marketing_group = router.add_layout(content=MarketingLayout)
+        marketing_group = config.router.add_layout(content=MarketingLayout)
         marketing_group.add_index(content=MarketingHome)
         marketing_group.add_page(path='contact', content=MarketingContact)
 
-        projects_group = router.add_prefix(path='projects')
+        projects_group = config.router.add_prefix(path='projects')
         projects_group.add_index(content=ProjectsHome)
         # again, no path, just a component for the layout
         single_project_group = projects_group.add_layout(content=ProjectLayout)
@@ -365,12 +366,12 @@ class HasChildRoutes(BaseModel):
         Prefix route creates a group of routes with a common prefix without a specific component to render
 
         ```python
-        from dara.core.router import Router
+        from dara.core import ConfigurationBuilder
 
-        router = Router()
+        config = ConfigurationBuilder()
 
         # no component, just a prefix
-        projects_group = router.add_prefix(path='projects')
+        projects_group = config.router.add_prefix(path='projects')
         projects_group.add_index(content=ProjectsHome)
         projects_group.add_page(path=':pid', content=ProjectHome)
         projects_group.add_page(path=':pid/edit', content=ProjectEdit)
@@ -405,13 +406,14 @@ class HasChildRoutes(BaseModel):
         Index routes can't have children.
 
         ```python
-        from dara.core.router import Router
+        from dara.core import ConfigurationBuilder
 
-        router = Router()
+        config = ConfigurationBuilder()
+
         # renders at '/'
-        router.add_index(content=Home)
+        config.router.add_index(content=Home)
 
-        dashboard_group = router.add_page(path='dashboard', content=Dashboard)
+        dashboard_group = config.router.add_page(path='dashboard', content=Dashboard)
         # renders at '/dashboard'
         dashboard_group.add_index(content=DashboardHome)
         dashboard_group.add_page(path='settings', content=DashboardSettings)
@@ -438,13 +440,14 @@ class IndexRoute(BaseRoute):
     Index routes can't have children.
 
     ```python
-    from dara.core.router import Router
+    from dara.core import ConfigurationBuilder
 
-    router = Router()
+    config = ConfigurationBuilder()
+
     # renders at '/'
-    router.add_index(content=Home)
+    config.router.add_index(content=Home)
 
-    dashboard_group = router.add_page(path='dashboard', content=Dashboard)
+    dashboard_group = config.router.add_page(path='dashboard', content=Dashboard)
     # renders at '/dashboard'
     dashboard_group.add_index(content=DashboardHome)
     dashboard_group.add_page(path='settings', content=DashboardSettings)
@@ -457,13 +460,13 @@ class IndexRoute(BaseRoute):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+            content=_execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
         )
 
 
 class PageRoute(BaseRoute, HasChildRoutes):
     """
-    Standard route with a unique URL segment and content to render
+    Standard route with a unique URL segment and content to render.
     """
 
     path: str
@@ -478,7 +481,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+            content=_execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
         )
         for child in self.children:
             child.compile()
@@ -489,16 +492,17 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     Layout route creates a route with a layout component to render without adding any segments to the URL
 
     ```python
-    from dara.core.router import Router
+    from dara.core import ConfigurationBuilder
 
-    router = Router()
+
+    config = ConfigurationBuilder()
 
     # no path on this parent route, just the layout
-    marketing_group = router.add_layout(content=MarketingLayout)
+    marketing_group = config.router.add_layout(content=MarketingLayout)
     marketing_group.add_index(content=MarketingHome)
     marketing_group.add_page(path='contact', content=MarketingContact)
 
-    projects_group = router.add_prefix(path='projects')
+    projects_group = config.router.add_prefix(path='projects')
     projects_group.add_index(content=ProjectsHome)
     # again, no path, just a component for the layout
     single_project_group = projects_group.add_layout(content=ProjectLayout)
@@ -522,7 +526,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     def compile(self):
         super().compile()
         self.compiled_data = RouteData(
-            on_load=self.on_load, content=execute_route_func(self.content, self.full_path), definition=self
+            on_load=self.on_load, content=_execute_route_func(self.content, self.full_path), definition=self
         )
         for child in self.children:
             child.compile()
@@ -533,12 +537,12 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
     Prefix route creates a group of routes with a common prefix without a specific component to render
 
     ```python
-    from dara.core.router import Router
+    from dara.core import ConfigurationBuilder
 
-    router = Router()
+    config = ConfigurationBuilder()
 
     # no component, just a prefix
-    projects_group = router.add_prefix(path='projects')
+    projects_group = config.router.add_prefix(path='projects')
     projects_group.add_index(content=ProjectsHome)
     projects_group.add_page(path=':pid', content=ProjectHome)
     projects_group.add_page(path=':pid/edit', content=ProjectEdit)
@@ -565,26 +569,26 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
 class Router(HasChildRoutes):
     """
     Router is the main class for defining routes in a Dara application.
-    You can choose to construct a Router with the object API or a fluent API.
+    You can choose to construct a Router with the object API or a fluent API, depending on your needs and preference.
 
     Fluent API (building routes gradually using methods):
 
     ```python
-    from dara.core.router import Router
+    from dara.core import ConfigurationBuilder
 
-    router = Router()
+    config = ConfigurationBuilder()
 
     # Add home and public pages
-    router.add_index(content=HomePage)
-    router.add_page(path='about', content=AboutPage)
+    config.router.add_index(content=HomePage)
+    config.router.add_page(path='about', content=AboutPage)
 
     # Add a layout that wraps authenticated routes
-    dashboard_layout = router.add_layout(content=DashboardLayout)
+    dashboard_layout = config.router.add_layout(content=DashboardLayout)
     dashboard_layout.add_page(path='dashboard', content=DashboardHome)
     dashboard_layout.add_page(path='profile', content=UserProfile)
 
     # Add a prefix group for blog routes
-    blog_group = router.add_prefix(path='blog')
+    blog_group = config.router.add_prefix(path='blog')
     blog_group.add_index(content=BlogHome)  # renders at '/blog'
     blog_group.add_page(path='post/:id', content=BlogPost)  # renders at '/blog/post/:id'
     ```
@@ -592,9 +596,11 @@ class Router(HasChildRoutes):
     Object API (defining children directly):
 
     ```python
-    from dara.core.router import Router, IndexRoute, PageRoute, LayoutRoute, PrefixRoute
+    from dara.core import ConfigurationBuilder
+    from dara.core.router import IndexRoute, PageRoute, LayoutRoute, PrefixRoute
 
-    router = Router(children=[
+    config = ConfigurationBuilder()
+    config.router.children = [
         # Home page
         IndexRoute(content=HomePage),
 
@@ -618,7 +624,7 @@ class Router(HasChildRoutes):
                 PageRoute(path='post/:id', content=BlogPost)  # renders at '/blog/post/:id'
             ]
         )
-    ])
+    ]
     ```
 
     Both approaches create the same routing structure. The fluent API is more readable for
@@ -780,94 +786,11 @@ class Router(HasChildRoutes):
                 self._print_routes(route_children, next_prefix)
 
 
-OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
-
-
-class Outlet(ComponentInstance):
+def _execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
     """
-    Outlet component is a placeholder for the content of the current route.
+    Executes a route function and returns the result.
+    Injects path params into the function signature based on patterns in the path, raising errors if the signature doesn't match.
     """
-
-
-LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
-
-
-class Link(StyledComponentInstance):
-    """
-    Link component is a wrapper around the NavLink component that displays a link to the specified route.
-    """
-
-    case_sensitive: bool = False
-
-    end: bool = True
-    """
-    Changes the matching logic for the 'active' state to only match the end of the 'to' prop.
-    If the URL is longer, it will not be considered active. Defaults to True.
-
-    For example, NavLink(to='/tasks') while on '/tasks/123' will:
-    - with `end=False`, be considered active because of the partial match of the `/tasks` part
-    - with `end=True`, be considered inactive because of the missing '123' part
-    """
-
-    # TODO: not implemented yet
-    # prefetch: Literal['none', 'intent', 'render', 'viewport'] = 'none'
-    # """
-    # Defines the data and module prefetching behavior for the link.
-    # - none — default, no prefetching
-    # - intent — prefetches when the user hovers or focuses the link
-    # - render — prefetches when the link renders
-    # - viewport — prefetches when the link is in the viewport, very useful for mobile
-    # """
-
-    relative: Literal['route', 'path'] = 'route'
-    """
-    Defines the relative path behavior for the link.
-
-    ```python
-    Link(to='..') # default, relative='route'
-    Link(to='..', relative='path')
-    ```
-
-    Consider a route hierarchy where a parent route pattern is "blog" and a child route pattern is "blog/:slug/edit".
-    - route — default, resolves the link relative to the route pattern. In the example above, a relative link of "..." will remove both :slug/edit segments back to "/blog".
-    - path — relative to the path so "..." will only remove one URL segment up to "/blog/:slug"
-    Note that index routes and layout routes do not have paths so they are not included in the relative path calculation.
-    """
-
-    replace: bool = False
-    """
-    Replaces the current entry in the history stack instead of pushing a new one.
-
-    ```
-    # with a history stack like this
-    A -> B
-
-    # normal link click pushes a new entry
-    A -> B -> C
-
-    # but with `replace`, B is replaced by C
-    A -> C
-    ```
-    """
-
-    to: Union[str, RouterPath]
-    """
-    Can be a string or RouterPath object
-    """
-
-    active_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
-    inactive_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
-
-    # TODO: add scroll restoration if it works?
-
-    def __init__(self, *children: ComponentInstance, **kwargs):
-        components = list(children)
-        if 'children' not in kwargs:
-            kwargs['children'] = components
-        super().__init__(**kwargs)
-
-
-def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
     assert path is not None, 'Path should not be None, internal error'
 
     path_params = find_patterns(path)
@@ -897,94 +820,6 @@ def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[st
             )
         kwargs[name] = Variable(store=_PathParamStore(param_name=name))
     return func(**kwargs)
-
-
-def make_legacy_page_wrapper(content):
-    def legacy_page_wrapper():
-        return content
-
-    return legacy_page_wrapper
-
-
-def convert_template_to_router(template):
-    """
-    Convert old template system to new Router structure.
-
-    The conversion maps:
-    - Template.layout becomes the content of a root LayoutRoute, but with transformations:
-      - RouterContent components are replaced with Outlet components
-      - RouterContent.routes are extracted and become PageRoute/IndexRoute children
-    - Routes with route='/' become IndexRoute, others become PageRoute
-    - Route paths are normalized (leading slashes removed)
-
-    :param template: Template object with layout component containing RouterContent
-    :return: Router instance with converted structure
-    """
-    from dara.core.definitions import TemplateRouterContent
-    from dara.core.visual.components.router_content import RouterContent
-
-    router = Router()
-    extracted_routes: List[TemplateRouterContent] = []
-
-    # Transform the layout: replace RouterContent with Outlet and extract routes
-    def transform_component(component):
-        """Recursively transform components, replacing RouterContent with Outlet"""
-        # For other components, recursively transform their children/content
-        if isinstance(component, ComponentInstance):
-            if isinstance(component, RouterContent):
-                extracted_routes.extend(component.routes)
-                return Outlet()
-
-            for attr in component.model_fields_set:
-                value = getattr(component, attr, None)
-                if isinstance(value, ComponentInstance):
-                    setattr(component, attr, transform_component(value))
-                elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], ComponentInstance):
-                    setattr(component, attr, [transform_component(item) for item in value])
-
-        return component
-
-    # Transform the template layout
-    transformed_layout = transform_component(template.layout)
-
-    # Create a wrapper function for the transformed layout
-    def layout_wrapper():
-        return transformed_layout
-
-    # Create root layout route using transformed template layout
-    root_layout = router.add_layout(content=layout_wrapper)
-
-    # Convert extracted routes to appropriate route types
-    for route_content in extracted_routes:
-        # Normalize route path: remove leading slash and handle root
-        route_path = route_content.route
-        if route_path.startswith('/'):
-            route_path = route_path[1:]
-
-        # the make_ function must be defined outside the lazy evaluation of loop variable issue
-        legacy_page_wrapper = make_legacy_page_wrapper(route_content.content)
-
-        # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
-        # but use 'index' for empty strings
-
-        # Root path becomes index route
-        if route_path in {'', '/'}:
-            root_layout.add_index(
-                content=legacy_page_wrapper,
-                name=route_content.name,
-                id=route_content.name or 'index',
-                on_load=route_content.on_load,
-            )
-        else:
-            root_layout.add_page(
-                path=route_path,
-                content=legacy_page_wrapper,
-                name=route_content.name,
-                id=route_content.name or 'index',
-                on_load=route_content.on_load,
-            )
-
-    return router
 
 
 # required to make pydantic happy

@@ -195,8 +195,7 @@ async def test_route_compatibility(_uid, config: Configuration):
 
     root_layout = compat_router.children[0]
     assert isinstance(root_layout, LayoutRoute)
-    root_layout_data = root_layout.compiled_data
-    assert root_layout_data is not None
+    root_layout_data = root_layout.route_data
     root_layout_content = root_layout_data.content
     assert root_layout_content is not None
 

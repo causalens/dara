@@ -21,52 +21,17 @@ from importlib.metadata import version
 from pydantic import BaseModel
 
 from dara.core.base_definitions import *
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.css import CSSProperties, get_icon
+from dara.core.configuration import *
+from dara.core.css import *
 from dara.core.definitions import *
 from dara.core.interactivity import *
-from dara.core.visual.components import Fallback
-from dara.core.visual.dynamic_component import py_component
-from dara.core.visual.progress_updater import ProgressUpdater, track_progress
+from dara.core.router import *
+from dara.core.visual.components import *
+from dara.core.visual.dynamic_component import *
+from dara.core.visual.progress_updater import *
 
 __version__ = version('dara-core')
 
-
-# Top-level imports for most commonly used APIs for ease of use
-
-__all__ = [
-    'action',
-    'ActionCtx',
-    'ConfigurationBuilder',
-    'DerivedVariable',
-    'DerivedDataVariable',
-    'DataVariable',
-    'ServerVariable',
-    'UrlVariable',
-    'Cache',
-    'CacheType',
-    'Variable',
-    'py_component',
-    'DownloadVariable',
-    'DownloadContent',
-    'NavigateTo',
-    'Notify',
-    'ResetVariables',
-    'SideEffect',
-    'TriggerVariable',
-    'UpdateVariable',
-    'get_icon',
-    'CSSProperties',
-    'ProgressUpdater',
-    'track_progress',
-    'ComponentInstance',
-    'StyledComponentInstance',
-    'ErrorHandlingConfig',
-    'Fallback',
-    'UpdateVariableImpl',
-    'DownloadContentImpl',
-    'NavigateToImpl',
-]
 
 for symbol in list(globals().values()):
     try:

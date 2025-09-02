@@ -285,9 +285,9 @@ def _start_application(config: Configuration):
 
     # Handle pages/router compatibility
     if len(config.pages) > 0:
-        if config.router is not None:
+        if len(config.router.children) > 0:
             raise ValueError(
-                'ConfigurationBuilder.add_page is not compatible with a custom router, add_page is supported for backwards compatibility but the preferred API going forward is setting `config.router`'
+                'ConfigurationBuilder.add_page is not compatible with the ConfigurationBuilder.router, `add_page` is supported for backwards compatibility but the recommended API going forward is using `config.router` directly.'
             )
 
         try:
@@ -329,7 +329,7 @@ def _start_application(config: Configuration):
         build_diff = build_cache.get_diff()
 
         # Only build if there's pages to build, otherwise assume Dara is only used for API
-        if config.router is not None:
+        if len(config.router.children) > 0:
             dev_logger.debug(
                 'Building JS...',
                 extra={
@@ -370,14 +370,14 @@ def _start_application(config: Configuration):
         start_pprof_server(port=profiling_port)
 
     # Serve statics, only if we have any pages defined
-    if config.router is not None:
+    if len(config.router.children) > 0:
         app.mount('/static', CacheStaticFiles(directory=config.static_files_dir), name='static')
 
     # Mount Routers
     app.include_router(auth_router, prefix='/api/auth')
     app.include_router(core_api_router, prefix='/api/core')
 
-    if config.router is not None:
+    if len(config.router.children) > 0:
         BASE_DIR = Path(__file__).parent
         jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
         jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client

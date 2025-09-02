@@ -35,23 +35,15 @@ async def test_load_nested_templates():
     config.router = router
     app = _start_application(config._to_configuration())
 
-    # Router is compiled as the app is started
-    assert parent.compiled_data is not None
-    assert parent.compiled_data.content is not None
-    assert child.compiled_data is not None
-    assert child.compiled_data.content is not None
-    assert grandparent.compiled_data is not None
-    assert grandparent.compiled_data.content is not None
-
     async with TestClient(app) as client:
         response, _status = await _get_template(client, page_id=parent.get_identifier())
-        assert response['template'] == parent.compiled_data.content.model_dump()
+        assert response['template'] == parent.route_data.content.model_dump()
 
         response, _status = await _get_template(client, page_id=child.get_identifier())
-        assert response['template'] == child.compiled_data.content.model_dump()
+        assert response['template'] == child.route_data.content.model_dump()
 
         response, _status = await _get_template(client, page_id=grandparent.get_identifier())
-        assert response['template'] == grandparent.compiled_data.content.model_dump()
+        assert response['template'] == grandparent.route_data.content.model_dump()
 
 
 async def test_execute_actions():
