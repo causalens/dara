@@ -1,7 +1,6 @@
 import inspect
 import re
 from abc import abstractmethod
-from functools import partial
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from uuid import uuid4
 
