@@ -179,7 +179,7 @@ class BaseRoute(BaseModel):
             return self.id
 
         if path := self.full_path:
-            return quote(path.replace('/', '_')) + '_' + self.uid
+            return path.replace('/', '_') + '_' + self.uid
 
         raise ValueError('Identifier cannot be determined, route is not attached to a router')
 
@@ -242,7 +242,7 @@ class BaseRoute(BaseModel):
         props['full_path'] = self.full_path
         # ID defaults to full path when serializing
         if not props.get('id'):
-            props['id'] = self.get_identifier()
+            props['id'] = quote(self.get_identifier())
         if not props.get('name'):
             props['name'] = self.get_name()
         return props
