@@ -190,7 +190,7 @@ async def test_route_compatibility(_uid, config: Configuration):
     # One navigable route should be created
     routes = compat_router.get_navigable_routes()
     assert len(routes) == 1
-    assert routes[0]['id'] == 'Js Test'
+    assert routes[0]['id'] == 'js-test'
     assert routes[0]['path'] == '/js-test'
 
     root_layout = compat_router.children[0]
@@ -214,7 +214,7 @@ async def test_route_compatibility(_uid, config: Configuration):
         assert isinstance(root_layout_content.content, Outlet)  # router content replaced with Outlet
 
         # Check individual page content matches
-        response, status = await _get_template(client, page_id='Js Test')
+        response, status = await _get_template(client, page_id=routes[0]['id'])
         assert response['template'] == page_content.model_dump()
 
         # Check that it raises an error if the template is not found

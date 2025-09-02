@@ -12,6 +12,7 @@ from pydantic import (
     PrivateAttr,
     SerializeAsAny,
     SerializerFunctionWrapHandler,
+    field_validator,
     model_serializer,
 )
 
@@ -142,6 +143,15 @@ class BaseRoute(BaseModel):
     """
     Internal parent pointer for the route
     """
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_id(cls, value: Any):
+        # will be failed by string validation
+        if not isinstance(value, str):
+            return value
+        # matches legacy page.name handling
+        return value.lower().replace(' ', '-').strip()
 
     def _attach_to_parent(self, parent):
         """Internal method to attach route to parent"""
