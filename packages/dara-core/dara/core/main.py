@@ -27,6 +27,7 @@ from importlib.util import find_spec
 from inspect import iscoroutine
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Optional
+from urllib.parse import quote
 
 from anyio import create_task_group
 from fastapi import Body, Depends, FastAPI, HTTPException, Request
@@ -412,10 +413,12 @@ def _start_application(config: Configuration):
         @app.post('/api/core/route/{route_id}', dependencies=[Depends(verify_session)])
         async def get_route_data(route_id: Annotated[str, PathParam()], body: Annotated[RouteDataRequestBody, Body()]):
             # TODO: This will accept DV inputs etc and stream those back
-            route_data = route_map.get(route_id)
+
+            # quote route_id since FastAPI will decode it as it gets transported via the URL
+            route_data = route_map.get(quote(route_id))
 
             if route_data is None:
-                raise HTTPException(status_code=404, detail=f'Route {id} not found')
+                raise HTTPException(status_code=404, detail=f'Route {route_id} not found')
 
             action_results: Dict[str, Any] = {}
 
