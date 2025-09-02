@@ -486,3 +486,33 @@ class TestRouterParamValidation:
         invalid_parent.add_page(path='child/:child_id', content=parent_page)
         with pytest.raises(ValueError):
             invalid_router.compile()
+
+    def test_star_param_injection(self):
+        def page(splat: Variable[str]):
+            return ComponentInstance()
+
+        router = Router()
+        router.add_page(path='files/*', content=page)
+        # should compile fine, splat is reserved for *
+        router.compile()
+
+    def test_star_param_without_star_in_path(self):
+        def page(splat: Variable[str]):
+            return ComponentInstance()
+
+        router = Router()
+        router.add_page(path='files', content=page)
+
+        with pytest.raises(ValueError, match='splat'):
+            router.compile()
+
+    def test_duplicate_param_in_same_path(self):
+        def page(id: Variable[str]):
+            return ComponentInstance()
+
+        router = Router()
+        # /foo/:id/:id is invalid because of duplicate param names
+        router.add_page(path='foo/:id/:id', content=page)
+
+        with pytest.raises(ValueError, match='id'):
+            router.compile()

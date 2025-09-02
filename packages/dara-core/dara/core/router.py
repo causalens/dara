@@ -1,7 +1,7 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Annotated, Any, Callable, Dict, Iterable, List, Literal, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import (
@@ -19,14 +19,41 @@ from dara.core.definitions import ComponentInstance, JsComponentDef, StyledCompo
 from dara.core.interactivity import Variable
 from dara.core.persistence import PersistenceStore  # noqa: F401
 
-param_pattern = re.compile(r':([a-zA-Z_][a-zA-Z0-9_]*)')
+# Matches :param or :param? (captures the name without the colon)
+PARAM_REGEX = re.compile(r':([\w-]+)\??')
+
+# Matches a trailing * (wildcard)
+STAR_REGEX = re.compile(r'\*$')
+
+
+def find_patterns(path: str) -> List[str]:
+    """
+    Extract param names from a React-Router-style path.
+
+    Examples:
+    >>> find_patterns("/:foo/:bar")
+    ['foo', 'bar']
+    >>> find_patterns("/:foo/:bar?")
+    ['foo', 'bar']
+    >>> find_patterns("/foo/*")
+    ['*']
+    >>> find_patterns("/*")
+    ['*']
+    """
+    params = PARAM_REGEX.findall(path)
+
+    if STAR_REGEX.search(path):
+        params.append('*')
+
+    return params
 
 
 def validate_full_path(value: str):
     if value.startswith('/api'):
         raise ValueError(f'/api is a reserved prefix, router paths cannot start with it - found "{value}"')
 
-    params = param_pattern.findall(value)
+    params = find_patterns(value)
+
     seen_params = set()
     for param in params:
         if param in seen_params:
@@ -831,7 +858,7 @@ class Link(StyledComponentInstance):
 def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
     assert path is not None, 'Path should not be None, internal error'
 
-    path_params = param_pattern.findall(path)
+    path_params = find_patterns(path)
 
     kwargs = {}
 
@@ -842,6 +869,12 @@ def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[st
 
         if name in {'self', 'cls'}:
             continue
+
+        # Reserved name 'splat' for the '*' param
+        if name == 'splat' and '*' in path_params:
+            kwargs[name] = Variable(store=_PathParamStore(param_name='*'))
+            continue
+
         if name not in path_params:
             raise ValueError(
                 f'Invalid page function signature. Kwarg "{name}: {typ}" found but param ":{name}" is missing in path "{path}"'
