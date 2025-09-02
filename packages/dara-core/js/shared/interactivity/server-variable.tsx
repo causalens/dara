@@ -1,6 +1,6 @@
 import { mixed } from '@recoiljs/refine';
 import React from 'react';
-import { type AtomEffect, type RecoilState, atomFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, type Snapshot, atomFamily } from 'recoil';
 import { type ListenToItems, type ReadItem, RecoilSync, syncEffect } from 'recoil-sync';
 
 import { validateResponse } from '@darajs/ui-utils';
@@ -126,6 +126,27 @@ export async function resolveServerVariable(
     const atom = getOrRegisterServerVariable(variable, extras);
     // the value stored on the client is the sequence number
     const seqNumber = await resolver(atom);
+    return {
+        type: 'server',
+        uid: variable.uid,
+        sequence_number: seqNumber,
+    } satisfies ResolvedServerVariable;
+}
+
+export function resolveServerVariableStatic(variable: ServerVariable, snapshot: Snapshot): ResolvedServerVariable {
+    let seqNumber = 0;
+
+    // use the atom if already has a value in the snapshot, otherwise assume 0
+    const family = atomFamilyRegistry.get(variable.uid);
+    if (family) {
+        const extrasSerializable = new RequestExtrasSerializable({});
+        const atomInstance: RecoilState<number> = family(extrasSerializable);
+        const atomValue = snapshot.getLoadable(atomInstance).valueMaybe();
+        if (typeof atomValue === 'number') {
+            seqNumber = atomValue;
+        }
+    }
+
     return {
         type: 'server',
         uid: variable.uid,

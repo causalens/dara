@@ -1,17 +1,22 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NProgress from 'nprogress';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
+import { RecoilRoot, useRecoilSnapshot } from 'recoil';
 
 import { ThemeProvider } from '@darajs/styled-components';
 import { ErrorBoundary } from '@darajs/ui-components';
+import { useLatestRef } from '@darajs/ui-utils';
 
-import { ConfigContextProvider } from '@/shared/context';
+import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 
+import type { WebSocketClientInterface } from './api';
 import './index.css';
 import { DirectionCtx, ImportersCtx, resolveTheme } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
+import { preloadActions } from './shared/interactivity/use-action';
 import { createRouter } from './shared/router';
 import type { DaraData } from './types';
 
@@ -23,6 +28,7 @@ declare global {
 
 interface DaraGlobals {
     base_url: string;
+    ws?: WebSocketClientInterface;
 }
 
 /**
@@ -41,17 +47,25 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
     document.title = daraData.title;
     NProgress.configure({ showSpinner: false });
 
-    // TODO: This can error in scenarios where an asset is missing, how does this look like for the user?
     await Promise.all([
         // preload auth components to prevent flashing of extra spinners
         ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
-        // preload components for the entire loaded registry
+        // preload components and actions for the entire loaded registry
         preloadComponents(importers, Object.values(daraData.components)),
+        preloadActions(importers, Object.values(daraData.actions)),
     ]);
 
-    const router = createRouter(daraData, queryClient);
+    function RouterRoot(): JSX.Element {
+        const snapshot = useRecoilSnapshot();
+        const snapshotRef = useLatestRef(snapshot);
+
+        const [router] = useState(() => createRouter(daraData, queryClient, snapshotRef));
+
+        return <RouterProvider router={router} />;
+    }
 
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
+
     function Root(): JSX.Element {
         return (
             <ConfigContextProvider initialConfig={daraData}>
@@ -60,7 +74,11 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
                         <ErrorBoundary>
                             <ImportersCtx.Provider value={importers}>
                                 <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                    <RouterProvider router={router} />
+                                    <RecoilRoot>
+                                        <GlobalTaskProvider>
+                                            <RouterRoot />
+                                        </GlobalTaskProvider>
+                                    </RecoilRoot>
                                 </DirectionCtx.Provider>
                             </ImportersCtx.Provider>
                         </ErrorBoundary>

@@ -1,11 +1,9 @@
 import NProgress from 'nprogress';
 import { useEffect, useRef } from 'react';
 import { Outlet, useNavigation } from 'react-router';
-import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
 
-import { GlobalTaskProvider } from '@/shared/context';
-
+import { PathParamSync } from '../interactivity/persistence';
 import useUrlSync from '../utils/use-url-sync';
 
 /**
@@ -40,13 +38,11 @@ function UnauthenticatedRoot(): JSX.Element {
     }, [navigation.state]);
 
     return (
-        <RecoilRoot>
+        <PathParamSync>
             <RecoilURLSync {...syncOptions}>
-                <GlobalTaskProvider>
-                    <Outlet />
-                </GlobalTaskProvider>
+                <Outlet />
             </RecoilURLSync>
-        </RecoilRoot>
+        </PathParamSync>
     );
 }
 

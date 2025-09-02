@@ -15,6 +15,7 @@ from typing import (
     cast,
 )
 from unittest.mock import MagicMock
+from urllib.parse import quote
 from uuid import uuid4
 
 import anyio
@@ -29,7 +30,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.server_variable import ServerVariable
-from dara.core.internal.normalization import denormalize
+from dara.core.internal.normalization import NormalizedPayload, denormalize
 
 
 class AsyncMagicMock(MagicMock):
@@ -158,18 +159,50 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
     return data, lookup
 
 
+class ActionPayload(TypedDict):
+    uid: str
+    definition_uid: str
+    values: Union[Mapping[str, Any], NormalizedPayload[Any]]
+
+
+class ActionParam(TypedDict):
+    action: AnnotatedAction
+    inputs: Dict[str, Any]
+
+
 async def _get_template(
     client: AsyncClient,
     page_id: str,
     response_ok=True,
+    actions: Optional[List[ActionParam]] = None,
+    params: Optional[Dict[str, str]] = None,
 ) -> Tuple[Mapping, int]:
-    response = await client.post(f'/api/core/route', headers=AUTH_HEADERS, json={'id': page_id})
+    if actions is None:
+        actions = []
+
+    action_payloads = []
+
+    for action_param in actions:
+        action, inputs = action_param['action'], action_param['inputs']
+        normalized_values, lookup = normalize_request(inputs, action.dynamic_kwargs)
+        values = {'data': normalized_values, 'lookup': lookup}
+        action_payloads.append(ActionPayload(uid=action.uid, definition_uid=action.definition_uid, values=values))
+
+    response = await client.post(
+        f'/api/core/route/{page_id}',
+        headers=AUTH_HEADERS,
+        json={
+            'action_payloads': action_payloads,
+            'params': params or {},
+        },
+    )
 
     if response_ok:
-        assert response.status_code == 200
+        assert response.status_code == 200, response.json()
         res = response.json()
         template_data = denormalize(res['template']['data'], res['template']['lookup'])
-        return {'template': template_data, 'on_load': res['on_load']}, response.status_code
+        res['template'] = template_data
+        return res, response.status_code
 
     # If we don't expect response to be 200 don't denormalize
     return response.json(), response.status_code

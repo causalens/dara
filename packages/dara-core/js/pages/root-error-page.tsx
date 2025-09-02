@@ -5,7 +5,7 @@ import { Button } from '@darajs/ui-components';
 
 import Center from '@/shared/center/center';
 
-import ErrorPage, { errorMessages } from './error-page';
+import ErrorStatusCodePage, { errorMessages } from './error-status-code-page';
 
 const CenteredDivWithGap = styled(Center)`
     gap: 1rem;
@@ -20,7 +20,7 @@ function RootErrorPage(): React.ReactNode {
     if (isRouteErrorResponse(error)) {
         // show a regular error page when the error code is known
         if (String(error.status) in errorMessages) {
-            return <ErrorPage code={String(error.status)} />;
+            return <ErrorStatusCodePage code={String(error.status)} />;
         }
 
         <CenteredDivWithGap>

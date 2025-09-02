@@ -1,4 +1,4 @@
-import { type RecoilState } from 'recoil';
+import { type RecoilState, type Snapshot } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras } from '@/api/http';
@@ -19,8 +19,8 @@ import {
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable } from './internal';
-import { getOrRegisterServerVariable, resolveServerVariable } from './server-variable';
+import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolvePlainVariableStatic } from './internal';
+import { getOrRegisterServerVariable, resolveServerVariable, resolveServerVariableStatic } from './server-variable';
 
 export async function resolveVariable<VariableType>(
     variable: AnyVariable<VariableType>,
@@ -98,6 +98,76 @@ export async function resolveVariable<VariableType>(
     }
 
     return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
+}
+
+/**
+ * Static variant of variable resolution.
+ * Notable does not register variables if they haven't yet been registered.
+ * For plain variables, uses default values if not yet registered.
+ */
+export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snapshot): any {
+    if (isDerivedVariable(variable)) {
+        // For derived variable, recursively resolve the dependencies
+        const values = variable.variables.map((v) => resolveVariableStatic(v, snapshot));
+
+        // Store indexes of values which are in deps
+        const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
+
+        return {
+            deps,
+            type: 'derived',
+            uid: variable.uid,
+            values,
+        } satisfies ResolvedDerivedVariable;
+    }
+
+    if (isServerVariable(variable)) {
+        return resolveServerVariableStatic(variable, snapshot);
+    }
+
+    if (isSwitchVariable(variable)) {
+        // For switch variables, we need to resolve the constituent parts
+        // and return a serialized representation similar to derived variables
+        let resolvedValue =
+            isVariable(variable.value) ? resolveVariableStatic(variable.value, snapshot) : variable.value;
+
+        // value could be a condition object, resolve its variable
+        if (isCondition(resolvedValue)) {
+            resolvedValue = {
+                ...resolvedValue,
+                variable: resolveVariableStatic(resolvedValue.variable, snapshot),
+            };
+        }
+
+        const resolvedValueMap =
+            isVariable(variable.value_map) ?
+                resolveVariableStatic(variable.value_map as any, snapshot)
+            :   variable.value_map;
+        const resolvedDefault =
+            isVariable(variable.default) ? resolveVariableStatic(variable.default, snapshot) : variable.default;
+
+        return {
+            type: 'switch',
+            uid: variable.uid,
+            value: resolvedValue,
+            value_map: resolvedValueMap,
+            default: resolvedDefault,
+        } satisfies ResolvedSwitchVariable;
+    }
+
+    if (isStateVariable(variable)) {
+        // StateVariables should not be resolved as they are internal client-side variables
+        // They should be handled by useVariable hook directly
+        throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
+    }
+
+    // plain variable
+    let result = resolvePlainVariableStatic(variable, snapshot);
+    // unwrap if variable.default is a derived variable, i.e. used create_from_derived
+    while (isDerivedVariable(result)) {
+        result = resolveVariableStatic(result, snapshot);
+    }
+    return result;
 }
 
 /**

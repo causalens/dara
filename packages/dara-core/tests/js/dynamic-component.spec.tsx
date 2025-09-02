@@ -6,21 +6,26 @@ import * as React from 'react';
 import { FallbackCtx } from '@/shared/context';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
+import { preloadActions } from '@/shared/interactivity/use-action';
 
 import { DynamicComponent, useAction, useVariable } from '../../js/shared';
 import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
 import { type DaraEventMap, type TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
+import { mockActions } from './utils/test-server-handlers';
+import { importers } from './utils/wrapped-render';
 
 describe('DynamicComponent', () => {
     beforeAll(() => {
         server.listen();
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
+
+        await preloadActions(importers, Object.values(mockActions));
     });
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());

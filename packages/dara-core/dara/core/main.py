@@ -20,23 +20,27 @@ import json
 import os
 import sys
 import traceback
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
 from inspect import iscoroutine
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Any, Dict, List, Optional
+from urllib.parse import unquote
 
 from anyio import create_task_group
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
+from fastapi import Path as PathParam
 from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.responses import FileResponse
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from dara.core.auth import auth_router
+from dara.core.auth.routes import verify_session
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
     blank_template,
@@ -47,18 +51,21 @@ from dara.core.defaults import (
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
-from dara.core.internal.devtools import send_error_for_session
+from dara.core.internal.devtools import print_stacktrace, send_error_for_session
 from dara.core.internal.encoder_registry import encoder_registry
-from dara.core.internal.normalization import normalize
+from dara.core.internal.execute_action import CURRENT_ACTION_ID, execute_action_sync
+from dara.core.internal.normalization import NormalizedPayload, denormalize, normalize
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.registries import (
     action_def_registry,
+    action_registry,
     auth_registry,
     component_registry,
     config_registry,
     custom_ws_handlers_registry,
     latest_value_registry,
     sessions_registry,
+    static_kwargs_registry,
     utils_registry,
     websocket_registry,
 )
@@ -67,7 +74,7 @@ from dara.core.internal.routing import create_router, error_decorator
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
 from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
@@ -392,19 +399,70 @@ def _start_application(config: Configuration):
         config.router.print_route_tree()
         route_map = config.router.to_route_map()
 
-        class RouteDataRequestBody(BaseModel):
-            id: str
+        class ActionPayload(BaseModel):
+            uid: str
+            definition_uid: str
+            values: NormalizedPayload[Mapping[str, Any]]
 
-        @app.post('/api/core/route')
-        async def get_route_data(body: RouteDataRequestBody):
+        class RouteDataRequestBody(BaseModel):
+            action_payloads: List[ActionPayload] = Field(default_factory=list)
+            ws_channel: Optional[str] = None
+            params: Dict[str, str] = Field(default_factory=dict)
+
+        @app.post('/api/core/route/{route_id}', dependencies=[Depends(verify_session)])
+        async def get_route_data(route_id: Annotated[str, PathParam()], body: Annotated[RouteDataRequestBody, Body()]):
+            # unquote route_id since it can be url-encoded
+            route_id = unquote(route_id)
+
             # TODO: This will accept DV inputs etc and stream those back
-            route_data = route_map.get(body.id)
+            route_data = route_map.get(route_id)
 
             if route_data is None:
-                raise HTTPException(status_code=404, detail=f'Route {id} not found')
+                raise HTTPException(status_code=404, detail=f'Route {route_id} not found')
+
+            action_results: Dict[str, Any] = {}
+
+            if len(body.action_payloads) > 0:
+                store: CacheStore = utils_registry.get('Store')
+                task_mgr: TaskManager = utils_registry.get('TaskManager')
+                registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+                # Ws channel can be null for top-level layouts rendered above the ws client
+                if body.ws_channel is not None:
+                    WS_CHANNEL.set(body.ws_channel)
+
+                # Run actions in order to guarantee execution order
+                for action_payload in body.action_payloads:
+                    action_def = await registry_mgr.get(action_registry, action_payload.definition_uid)
+                    static_kwargs = await registry_mgr.get(static_kwargs_registry, action_payload.uid)
+
+                    CURRENT_ACTION_ID.set(action_payload.uid)
+                    values = denormalize(action_payload.values.data, action_payload.values.lookup)
+                    try:
+                        action_results[action_payload.uid] = await execute_action_sync(
+                            action_def,
+                            inp={'params': body.params, 'route': route_data.definition},
+                            values=values,
+                            static_kwargs=static_kwargs,
+                            store=store,
+                            task_mgr=task_mgr,
+                        )
+                    except BaseException as e:
+                        assert route_data.definition is not None
+                        route_path = route_data.definition.full_path
+                        action_name = str(action_def.resolver)
+                        raise HTTPException(
+                            status_code=500,
+                            detail={
+                                'error': str(e),
+                                'stacktrace': print_stacktrace(e),
+                                'path': route_path,
+                                'action_name': action_name,
+                            },
+                        ) from e
 
             normalized_template, lookup = normalize(jsonable_encoder(route_data.content))
-            return {'template': {'data': normalized_template, 'lookup': lookup}, 'on_load': route_data.on_load}
+            return {'template': {'data': normalized_template, 'lookup': lookup}, 'action_results': action_results}
 
         # Catch-all, must add after adding the last api route
         @app.get('/api/{rest_of_path:path}')
@@ -426,6 +484,8 @@ def _start_application(config: Configuration):
             # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
+            'build_mode': build_cache.build_config.mode,
+            'build_dev': build_cache.build_config.dev,
         }
         json_template_data = json.dumps(jsonable_encoder(template_data))
 

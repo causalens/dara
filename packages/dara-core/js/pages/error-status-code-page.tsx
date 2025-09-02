@@ -40,7 +40,7 @@ export const errorMessages: Record<string, ErrorConfig> = {
     default: config401,
 };
 
-function ErrorStatusCodePage(props: { code?: string }): JSX.Element {
+function ErrorPage(props: { code?: string }): JSX.Element {
     const { search } = useLocation();
 
     const query = useMemo(() => new URLSearchParams(search), [search]);
@@ -60,4 +60,4 @@ function ErrorStatusCodePage(props: { code?: string }): JSX.Element {
     );
 }
 
-export default ErrorStatusCodePage;
+export default ErrorPage;

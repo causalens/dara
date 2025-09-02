@@ -7,6 +7,7 @@ import { useRecoilCallback } from 'recoil';
 import { setSessionToken } from '@/auth/use-session-token';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
+import { preloadActions } from '@/shared/interactivity/use-action';
 import type {
     Action,
     BrowserStore,
@@ -27,6 +28,8 @@ import {
 import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
+import { mockActions } from './utils/test-server-handlers';
+import { importers } from './utils/wrapped-render';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 vi.mock('lodash/debounce', () => ({ default: vi.fn((fn) => fn) }));
@@ -115,7 +118,7 @@ describe('useVariable', () => {
         server.listen();
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
@@ -124,6 +127,8 @@ describe('useVariable', () => {
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
+
+        await preloadActions(importers, Object.values(mockActions));
     });
     afterEach(() => {
         setSessionToken(null);

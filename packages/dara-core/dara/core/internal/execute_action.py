@@ -20,7 +20,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from contextvars import ContextVar
-from typing import Any, Callable, Optional, Union
+from functools import partial
+from typing import Any, Callable, Literal, Optional, Union
 
 import anyio
 
@@ -42,13 +43,16 @@ from dara.core.logging import dev_logger
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
 
-async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str, Any]):
+async def _execute_action(
+    handler: Callable, ctx: ActionCtx, values: Mapping[str, Any], _on_error: Literal['raise', 'notify'] = 'notify'
+):
     """
     Execute the action handler within the given action context, handling any exceptions that occur.
 
     :param handler: the action handler to execute
     :param ctx: the action context to use
     :param values: the resolved values to pass to the handler
+    :param _on_error: whether to raise or notify on errors
     """
     bound_arg = None
     kwarg_names = list(values.keys())
@@ -71,13 +75,18 @@ async def _execute_action(handler: Callable, ctx: ActionCtx, values: Mapping[str
     try:
         return await run_user_handler(handler, args=args, kwargs=parsed_values)
     except Exception as e:
-        dev_logger.error('Error executing action', e)
-        await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
+        if _on_error == 'raise':
+            raise
+        elif _on_error == 'notify':
+            dev_logger.error('Error executing action', e)
+            await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
     finally:
         await ctx._end_execution()
 
 
-async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[str, Any]):
+async def _stream_action(
+    handler: Callable, ctx: ActionCtx, _on_error: Literal['raise', 'notify'] = 'notify', **values: Mapping[str, Any]
+):
     """
     Run the action handler and stream the results to the frontend.
     Executes two tasks in parallel:
@@ -91,11 +100,71 @@ async def _stream_action(handler: Callable, ctx: ActionCtx, **values: Mapping[st
     try:
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
-            tg.start_soon(_execute_action, handler, ctx, values)
+            tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
             tg.start_soon(ctx._handle_results)
     finally:
         # None is treated as a sentinel value to stop waiting for new actions to come in on the client
         await ctx._on_action(None)
+
+
+async def execute_action_sync(
+    action_def: ActionResolverDef,
+    inp: Any,
+    values: Mapping[str, Any],
+    static_kwargs: Mapping[str, Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
+):
+    """
+    Execute an action until completion.
+    Used for executing `on_load` route actions.
+
+    :param action_def: resolver definition
+    :param inp: input to the action
+    :param values: values from the frontend
+    :param static_kwargs: mapping of var names to current values for static arguments
+    :param store: store instance
+    :param task_mgr: task manager instance - task are not supported here but passed for compat
+    """
+    action = action_def.resolver
+    assert action is not None, 'Action resolver must be defined'
+
+    results = []
+
+    # Construct a context which handles action messages by accumulating them in an array
+    async def handle_action(act_impl: Optional[ActionImpl]):
+        if act_impl is not None:
+            results.append(act_impl)
+
+    ctx = ActionCtx(inp, handle_action)
+    ACTION_CONTEXT.set(ctx)
+
+    resolved_kwargs = {}
+
+    if values is not None:
+        annotations = action.__annotations__
+
+        async def _resolve_kwarg(val: Any, key: str):
+            typ = annotations.get(key)
+            val = await resolve_dependency(val, store, task_mgr)
+            resolved_kwargs[key] = deserialize(val, typ)
+
+        async with anyio.create_task_group() as tg:
+            for key, value in values.items():
+                tg.start_soon(_resolve_kwarg, value, key)
+
+    # Merge resolved dynamic kwargs with static kwargs received
+    resolved_kwargs = {**resolved_kwargs, **static_kwargs}
+
+    # Disallow tasks here
+    has_tasks = any(isinstance(extra, BaseTask) for extra in resolved_kwargs.values())
+    if has_tasks:
+        raise ValueError('This action does not support tasks')
+
+    # Run until completion, raising on errors
+    await _stream_action(action, ctx, _on_error='raise', **resolved_kwargs)
+
+    return results
 
 
 async def execute_action(

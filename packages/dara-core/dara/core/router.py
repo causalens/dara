@@ -1,5 +1,8 @@
+import inspect
+import re
 from abc import abstractmethod
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from urllib.parse import quote
 from uuid import uuid4
 
 from pydantic import (
@@ -9,15 +12,65 @@ from pydantic import (
     PrivateAttr,
     SerializeAsAny,
     SerializerFunctionWrapHandler,
+    field_validator,
     model_serializer,
 )
 
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
-from dara.core.interactivity import Variable  # noqa: F401
+from dara.core.interactivity import Variable
+from dara.core.persistence import PersistenceStore  # noqa: F401
 
-# TODO: injection validation based on path :param parts
-# TODO: restrict /api top-level prefix?
+# Matches :param or :param? (captures the name without the colon)
+PARAM_REGEX = re.compile(r':([\w-]+)\??')
+
+# Matches a trailing * (wildcard)
+STAR_REGEX = re.compile(r'\*$')
+
+
+def find_patterns(path: str) -> List[str]:
+    """
+    Extract param names from a React-Router-style path.
+
+    Examples:
+    >>> find_patterns("/:foo/:bar")
+    ['foo', 'bar']
+    >>> find_patterns("/:foo/:bar?")
+    ['foo', 'bar']
+    >>> find_patterns("/foo/*")
+    ['*']
+    >>> find_patterns("/*")
+    ['*']
+    """
+    params = PARAM_REGEX.findall(path)
+
+    if STAR_REGEX.search(path):
+        params.append('*')
+
+    return params
+
+
+def validate_full_path(value: str):
+    if value.startswith('/api'):
+        raise ValueError(f'/api is a reserved prefix, router paths cannot start with it - found "{value}"')
+
+    params = find_patterns(value)
+
+    seen_params = set()
+    for param in params:
+        if param in seen_params:
+            raise ValueError(
+                f'Duplicate path param found - found "{param}" more than once in "{value}". Param names must be unique'
+            )
+        seen_params.add(param)
+
+
+class _PathParamStore(PersistenceStore):
+    param_name: str
+
+    async def init(self, variable: 'Variable'):
+        # noop
+        pass
 
 
 class RouterPath(BaseModel):
@@ -44,6 +97,7 @@ class RouteData(BaseModel):
 
     content: Optional[ComponentInstance] = None
     on_load: Optional[Action] = None
+    definition: Optional['BaseRoute'] = None
 
 
 class BaseRoute(BaseModel):
@@ -52,9 +106,10 @@ class BaseRoute(BaseModel):
     Whether the route is case sensitive
     """
 
-    id: Optional[str] = None
+    id: Optional[str] = Field(default=None, pattern=r'^[a-zA-Z0-9-_]+$')
     """
-    Unique identifier for the route
+    Unique identifier for the route.
+    Must only contain alphanumeric characters, dashes and underscores.
     """
 
     name: Optional[str] = None
@@ -68,7 +123,7 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
-    on_load: Optional[Action] = Field(default=None, exclude=True)
+    on_load: SerializeAsAny[Optional[Action]] = Field(default=None)
     """
     Action to execute when the route is loaded.
     Guaranteed to be executed before the route content is rendered.
@@ -79,7 +134,7 @@ class BaseRoute(BaseModel):
     Internal unique identifier for the route
     """
 
-    compiled_data: Optional[RouteData] = Field(default=None, exclude=True)
+    compiled_data: Optional[RouteData] = Field(default=None, exclude=True, repr=False)
     """
     Internal compiled data for the route
     """
@@ -88,6 +143,15 @@ class BaseRoute(BaseModel):
     """
     Internal parent pointer for the route
     """
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_id(cls, value: Any):
+        # will be failed by string validation
+        if not isinstance(value, str):
+            return value
+        # matches legacy page.name handling
+        return value.lower().strip().replace(' ', '-')
 
     def _attach_to_parent(self, parent):
         """Internal method to attach route to parent"""
@@ -115,7 +179,7 @@ class BaseRoute(BaseModel):
             return self.id
 
         if path := self.full_path:
-            return self.uid + '_' + path
+            return path.replace('/', '_') + '_' + self.uid
 
         raise ValueError('Identifier cannot be determined, route is not attached to a router')
 
@@ -133,7 +197,10 @@ class BaseRoute(BaseModel):
         return self.full_path or self.get_identifier()
 
     @abstractmethod
-    def compile(self): ...
+    def compile(self):
+        path = self.full_path
+        if path:
+            validate_full_path(path)
 
     @property
     def route_data(self) -> RouteData:
@@ -172,9 +239,10 @@ class BaseRoute(BaseModel):
     def ser_model(self, nxt: SerializerFunctionWrapHandler) -> dict:
         props = nxt(self)
         props['__typename'] = self.__class__.__name__
+        props['full_path'] = self.full_path
         # ID defaults to full path when serializing
         if not props.get('id'):
-            props['id'] = self.get_identifier()
+            props['id'] = quote(self.get_identifier())
         if not props.get('name'):
             props['name'] = self.get_name()
         return props
@@ -387,7 +455,10 @@ class IndexRoute(BaseRoute):
     content: Callable[..., ComponentInstance] = Field(exclude=True)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
+        super().compile()
+        self.compiled_data = RouteData(
+            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+        )
 
 
 class PageRoute(BaseRoute, HasChildRoutes):
@@ -405,7 +476,10 @@ class PageRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(content=execute_route_func(self.content), on_load=self.on_load)
+        super().compile()
+        self.compiled_data = RouteData(
+            content=execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+        )
         for child in self.children:
             child.compile()
 
@@ -446,7 +520,10 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load, content=execute_route_func(self.content))
+        super().compile()
+        self.compiled_data = RouteData(
+            on_load=self.on_load, content=execute_route_func(self.content, self.full_path), definition=self
+        )
         for child in self.children:
             child.compile()
 
@@ -479,7 +556,8 @@ class PrefixRoute(BaseRoute, HasChildRoutes):
         super().__init__(**kwargs)
 
     def compile(self):
-        self.compiled_data = RouteData(on_load=self.on_load)
+        super().compile()
+        self.compiled_data = RouteData(on_load=self.on_load, definition=self)
         for child in self.children:
             child.compile()
 
@@ -557,7 +635,7 @@ class Router(HasChildRoutes):
         """
         Compile the route tree into a data structure ready for matching:
         - executes all page functions
-        - flattens the tree
+        - validates route paths
         """
         for child in self.children:
             child.compile()
@@ -789,9 +867,43 @@ class Link(StyledComponentInstance):
         super().__init__(**kwargs)
 
 
-def execute_route_func(func: Callable[..., ComponentInstance]):
-    # TODO: inject variables
-    return func()
+def execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
+    assert path is not None, 'Path should not be None, internal error'
+
+    path_params = find_patterns(path)
+
+    kwargs = {}
+
+    signature = inspect.signature(func)
+
+    for name, param in signature.parameters.items():
+        typ = param.annotation
+
+        if name in {'self', 'cls'}:
+            continue
+
+        # Reserved name 'splat' for the '*' param
+        if name == 'splat' and '*' in path_params:
+            kwargs[name] = Variable(store=_PathParamStore(param_name='*'))
+            continue
+
+        if name not in path_params:
+            raise ValueError(
+                f'Invalid page function signature. Kwarg "{name}: {typ}" found but param ":{name}" is missing in path "{path}"'
+            )
+        if not (inspect.isclass(typ) and issubclass(typ, Variable)):
+            raise ValueError(
+                f'Invalid page function signature. Kwarg "{name}" found with invalid signature "{type}". Page functions can only accept kwargs annotated with "Variable" corresponding to path params defined on the route'
+            )
+        kwargs[name] = Variable(store=_PathParamStore(param_name=name))
+    return func(**kwargs)
+
+
+def make_legacy_page_wrapper(content):
+    def legacy_page_wrapper():
+        return content
+
+    return legacy_page_wrapper
 
 
 def convert_template_to_router(template):
@@ -849,18 +961,18 @@ def convert_template_to_router(template):
         if route_path.startswith('/'):
             route_path = route_path[1:]
 
-        # Create content wrapper for the route content
-        def legacy_page_wrapper(content=route_content.content):
-            return content
+        # the make_ function must be defined outside the lazy evaluation of loop variable issue
+        legacy_page_wrapper = make_legacy_page_wrapper(route_content.content)
 
         # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
+        # but use 'index' for empty strings
 
         # Root path becomes index route
         if route_path in {'', '/'}:
             root_layout.add_index(
                 content=legacy_page_wrapper,
                 name=route_content.name,
-                id=route_content.name,
+                id=route_content.name or 'index',
                 on_load=route_content.on_load,
             )
         else:
@@ -868,7 +980,7 @@ def convert_template_to_router(template):
                 path=route_path,
                 content=legacy_page_wrapper,
                 name=route_content.name,
-                id=route_content.name,
+                id=route_content.name or 'index',
                 on_load=route_content.on_load,
             )
 
