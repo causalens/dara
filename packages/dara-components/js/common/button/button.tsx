@@ -37,6 +37,8 @@ type ButtonProps = OmitFromMappedType<StyledComponentProps, 'children'> &
         onclick: Action;
         /** If true the button will have the outline look, otherwise by default it takes the filled style */
         outline?: boolean;
+        /** Whether to propagate the click event to the parent element, defaults to true */
+        propagate_click_event: boolean;
         /** Preset styling property for the button */
         styling: 'primary' | 'secondary' | 'error' | 'ghost' | 'plain';
     };
@@ -77,7 +79,12 @@ function Button(
             disabled={disabledValue}
             isSimpleButton={typeof children === 'string' || children[0]?.name === 'Text'}
             loading={loading}
-            onClick={() => onClick(null)}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                if (props.propagate_click_event !== false) {
+                    e.stopPropagation();
+                }
+                onClick(null);
+            }}
             outline={outline}
             style={{
                 gap: '0.75rem',

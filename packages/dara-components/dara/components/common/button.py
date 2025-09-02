@@ -116,6 +116,7 @@ class Button(LayoutComponent):
     :param outline: This allows to pick between two styles, if False the button is filled with a solid background color,
         if True it shows a transparent background with an outlined colored border. Filled buttons are more prominent and
         often used as primary actions, while outline buttons are more subtle and commonly used as secondary actions.
+    :param propagate_click_event: Whether to propagate the click event to the parent element, defaults to true
     """
 
     disabled: Optional[Union[Condition, ClientVariable, bool]] = None
@@ -123,6 +124,7 @@ class Button(LayoutComponent):
     icon: Optional[str] = None
     styling: Optional[ButtonStyle] = None
     outline: bool = False
+    propagate_click_event: bool = True
 
     def __init__(
         self, children: Union[str, ComponentInstance, ClientVariable], styling: Optional[ButtonStyle] = None, **kwargs
