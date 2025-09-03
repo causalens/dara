@@ -101,12 +101,8 @@ class Plotly(StyledComponentInstance):
     fig = px.scatter(df, x='sepal_width', y='sepal_length', color='species', title='Iris Dataset Scatter Plot')
 
 
-    def plotly_page():
-        return Plotly(figure=fig, min_height=100)
-
-
     config = ConfigurationBuilder()
-    config.add_page(name='MyPlot', content=plotly_page())
+    config.router.add_page(path='my-plot', content=Plotly(figure=fig, min_height=100))
     ```
 
     :param figure: A plotly figure

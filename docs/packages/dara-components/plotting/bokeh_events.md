@@ -163,9 +163,9 @@ def selected_variety_information(selected_variety):
 
 
 config = ConfigurationBuilder()
-config.add_page(
-    "Click Events",
-    Card(
+config.router.add_page(
+    path="click-events",
+    content=Card(
         Stack(
             interactive_wheat_scatter_plot(),
             height="75%",
@@ -358,7 +358,7 @@ def lasso_page():
 
 
 config = ConfigurationBuilder()
-config.add_page(
-    name="Lasso Example", content=lasso_page(), icon=get_icon("hat-cowboy-side")
+config.router.add_page(
+    path="lasso", content=lasso_page()
 )
 ```

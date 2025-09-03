@@ -103,10 +103,10 @@ from dara.components import Heading
 config = ConfigurationBuilder()
 
 # Register pages
-config.add_page('Hello World', Heading('Hello World!'))
+config.router.add_page(path='hello-world', content=Heading('Hello World!'))
 ```
 
-Your `main.py` file is where you want to set up your configuration with the `dara.core.configuration.ConfigurationBuilder`. In this example, the `ConfigurationBuilder` is adding your pages to your app.
+Your `main.py` file is where you want to set up your configuration with the `dara.core.configuration.ConfigurationBuilder`. In this example, the `ConfigurationBuilder`'s `router` is adding your pages to your app.
 
 Try running your app with the following command within the outermost `my_first_app` directory:
 
@@ -114,9 +114,50 @@ Try running your app with the following command within the outermost `my_first_a
 poetry run dara start
 ```
 
-Your app will look like the following:
+Your app will be a blank page with the text `Hello World!` on it.
+
+### Menu
+
+Your are off to a good start but we can do better. As we add more pages, we will want the user to be able to navigate to them easily - currently, the only way to do this would be to navigate to the right URL manually.
+Fortunately, Dara provides building blocks to help you build a menu for your app with ease.
+
+The following code will wrap your application in a layout with a sidebar menu:
+
+```python
+from dara.core import ConfigurationBuilder
+from dara.core.visual.components import SideBarFrame, MenuLink
+from dara.core.router import Outlet
+from dara.components import Stack
+
+config = ConfigurationBuilder()
+
+def Layout():
+    return SideBarFrame(
+        content=Outlet(),
+        side_bar=Stack(
+            MenuLink(Text('Hello World'), to='/hello-world'),
+        )
+    )
+
+root = config.router.add_layout(content=Layout)
+root.add_page(path='hello-world', content=Heading('Hello World!'))
+```
+
+Notice how we are using `router.add_layout` to wrap the entire application in a layout built using prebuilt sidebar and menu link components.
+The returned value of the function is a `LayoutRoute` - rather than adding our "hello-world" page to the router directly, we now nest it under that layout.
+
+
+With the above code, your application will look like the following:
 
 ![Hello World](./assets/my_first_app/hello_world.png)
+
+
+::: tip
+
+This is a very simple example of the powerful routing system in Dara.
+You will learn more about the router in the [Routing](./getting-started/routing.mdx) section.
+
+:::
 
 ### Extensions
 
@@ -230,15 +271,11 @@ Notice how the page content is wrapped in a `dara.components.common.card.Card` c
 Don't forget to register the page in your app's configuration:
 
 ```python title=my_first_app/my_first_app/main.py
-from dara.core import ConfigurationBuilder
-
+# Import the page
 from my_first_app.pages.eda import eda_page
 
-# Create a configuration builder
-config = ConfigurationBuilder()
-
 # Add page
-config.add_page('EDA', eda_page())
+config.router.add_page(path='eda', content=eda_page)
 ```
 
 Your app will now look like the following:
@@ -499,17 +536,13 @@ def classification_page():
 Don't forget to register the page in your app's configuration:
 
 ```python title=my_first_app/my_first_app/main.py
-from dara.core.configuration import ConfigurationBuilder
-
+# Import the pages
 from my_first_app.pages.eda import eda_page
 from my_first_app.pages.classification import classification_page
 
-# Create a configuration builder
-config = ConfigurationBuilder()
-
-# Add page
-config.add_page('EDA', eda_page())
-config.add_page('Classification', classification_page())
+# Add pages
+config.router.add_page(path='eda', eda_page)
+config.router.add_page(path='classification', classification_page)
 ```
 
 Your app should look like the following:

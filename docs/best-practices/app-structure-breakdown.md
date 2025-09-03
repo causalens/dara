@@ -25,8 +25,8 @@ from dara.core import ConfigurationBuilder
 config = ConfigurationBuilder()
 
 # Add your pages
-config.add_page('Data Exploration', DataPage())
-config.add_page('Model Performance', PerformancePage())
+config.router.add_page(path='data-exploration', content=DataPage)
+config.router.add_page(path='model-performance', content=PerformancePage)
 ```
 
 The definition of the pages themselves will come later in this section.
@@ -62,8 +62,10 @@ You can then import the pages into your main file and use the `add_page` method 
 ```python title=my_app/main.py
 from my_app.pages.page1 import page1
 
-config.add_page('Page 1', page1())
+config.router.add_page(path='Page 1', content=page1)
 ```
+
+Defining a page as a function also enables you to access path parameters as injected `Variable` instances. You can learn more about it in the [Routing](../getting-started/routing.mdx) section.
 
 ### Class-based pages
 
@@ -99,12 +101,14 @@ One small difference is that the `__call__` method is used to return the compone
 ```python title=my_app/main.py
 from my_package.pages.page1 import Page1
 
-config.add_page('Page 1', Page1())
+config.router.add_page(path='Page 1', content=Page1())
 ```
 
 Most of the time there is no real difference between writing your pages as functions versus writing your pages as classes. It is a matter of preference and dependent on your use case. However, there are certain advantages of using class-based components which derive from the benefits of using python classes in general.
 
 One advantage is that classes can define the page in its `__call__` method but can also return other outputs if necessary from its other methods and attributes. Another advantage is the ability to customize parts of the page or component by simple sub-classing. There is a caveat of the class method though in that it couples your layout with your state.
+
+Similar to page functions, the `__call__` method of a class-based page can also access path parameters as injected `Variable` instances.
 
 Regardless of what you choose, both allow for making small, reusable components that can be used throughout your app. Which technique you prefer is up to you and your use case.
 

@@ -28,5 +28,5 @@ script = Variable('value = 10')
 def code_editor_page_content() -> ComponentInstance:
     return Stack(CodeEditor(script=script))
 
-config.add_page(name='Code Editor', content=code_editor_page_content(), icon=get_icon('code'))
+config.router.add_page(path='code-editor', content=code_editor_page_content)
 ```

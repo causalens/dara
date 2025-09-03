@@ -102,7 +102,7 @@ from dara.core import ConfigurationBuilder
 from .my_component import dropzone
 
 config = ConfigurationBuilder()
-config.add_page(name='Upload Dropzone', content=dropzone)
+config.router.add_page(path='upload-dropzone', content=dropzone)
 ```
 
 This is supported, and import discovery will pick up that `dropzone` is an instance of `UploadDropzone` and register it in the app.
@@ -118,5 +118,5 @@ from dara.core import ConfigurationBuilder
 from .my_component import dropzone
 
 config = ConfigurationBuilder()
-config.add_page(name='Upload Dropzone', content=dropzone())
+config.router.add_page(path='upload-dropzone', content=dropzone)
 ```

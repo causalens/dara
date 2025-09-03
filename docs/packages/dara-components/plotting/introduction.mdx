@@ -63,7 +63,7 @@ def bokeh_page_content(figure) -> ComponentInstance:
     return Stack(Bokeh(figure))
 
 
-config.add_page(name='My first Bokeh', content=bokeh_page_content(bokeh_figure), icon=get_icon('chart-line'))
+config.router.add_page(path='bokeh', content=bokeh_page_content(bokeh_figure))
 ```
 
 If the figure is given in the form of a `DerivedVariable` as in the example above, its `cache` must be set to `None`.
@@ -112,7 +112,7 @@ def plotly_page_content() -> ComponentInstance:
 
 
 config = ConfigurationBuilder()
-config.add_page(name='Plotly', content=plotly_page_content(), icon=get_icon('chart-line'))
+config.router.add_page(path='plotly', content=plotly_page_content)
 ```
 
 ![Plotly Example](./assets/plotly_scatter.png)
@@ -152,7 +152,7 @@ def seaborn_example():
 
 
 config = ConfigurationBuilder()
-config.add_page(name='Matplotlib Component', content=seaborn_example())
+config.router.add_page(path='matplotlib', content=seaborn_example)
 ```
 
 :::caution

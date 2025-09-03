@@ -14,15 +14,16 @@ Please explore the reference section as well as the guides under [User Guide](..
 
 ```python
 from dara.core import ConfigurationBuilder
+from dara.components import Text
 
 
 # Here we initialize the app config, which uses a Builder pattern to
 # build up the app piece by piece.
 config = ConfigurationBuilder()
 
-# Here we add a single page to the application, with a title of 'Hello'
+# Here we add a single page to the application, with a path of '/hello'
 # and the text 'World' on the page.
-config.add_page('Hello', content='World')
+config.router.add_page(path='hello', content=Text('World'))
 ```
 
 ### Environment Variables

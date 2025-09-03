@@ -211,7 +211,7 @@ def page_content() -> ComponentInstance:
     )
 
 config = ConfigurationBuilder()
-config.add_page(name='Interactivity', content=page_content())
+config.router.add_page(path='interactivity', content=page_content)
 ```
 
 To use this feature, a knowledge of [CSS Selectors](https://www.w3schools.com/CSSREF/css_selectors.php) is required. When you want to change a component, an easy way would be to use the browser's inspection tool. On Chrome this can be done by right clicking the page and selecting "Inspect".
@@ -239,8 +239,8 @@ from dara.components import Card, Text
 Card(
     Text('Child content'),
     raw_css="""
-        & > [data-type="children-wrapper"] { 
-            padding: 0; 
+        & > [data-type="children-wrapper"] {
+            padding: 0;
         }
     """
 )
@@ -254,7 +254,7 @@ The `raw_css` property accepts both camelCase (React-style) and kebab-case CSS p
 
 ### Id and For properties
 
-Any components which inherit the `ComponentInstance` class can have an `id_` and/or `for_` property. 
+Any components which inherit the `ComponentInstance` class can have an `id_` and/or `for_` property.
 These properties have no runtime effect and are intended to help identify components with human-readable names in the serialized trees, not in the DOM
 
 ```python

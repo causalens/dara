@@ -233,7 +233,7 @@ class Accordion(LayoutComponent):
 
 
     config = ConfigurationBuilder()
-    config.add_page(name='Accordion Page', content=accordion(), icon=get_icon('chart-line'))
+    config.router.add_page(path='accordion', content=accordion)
     ```
 
      For more examples check the AccordionItem documentation.

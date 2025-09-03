@@ -133,7 +133,7 @@ page_content = Card(
     title='Authentication Demo'
 )
 
-config.add_page('Authentication Demo', content=page_content)
+config.router.add_page(path='authenticated', content=page_content)
 ```
 
 You can also use complex conditions with other variables:
@@ -163,7 +163,7 @@ weather_component = Card(
     title='Weather Advice'
 )
 
-config.add_page('Weather Demo', content=page_content)
+config.router.add_page(path='weather', content=page_content)
 ```
 
 The base variable type overrides the `__eq__` and other comparison operator methods to return a `Condition` object. In the above example we compare the `temperature` variable to the number 25, which returns a `Condition` object that the `SwitchVariable` understands how to evaluate whenever your `Variable` changes.
@@ -225,7 +225,7 @@ page_content = Card(
     title='Role Management'
 )
 
-config.add_page('Role Demo', content=page_content)
+config.router.add_page(path='role', content=page_content)
 ```
 
 #### Advanced Usage
@@ -302,7 +302,7 @@ page_content = Stack(
         Text(text=my_first_variable)
     )
 
-config.add_page('Interactivity', content=page_content)
+config.router.add_page(path='input', content=page_content)
 ```
 
 ![Input](../assets/getting_started/interactivity/input.gif)
@@ -474,7 +474,7 @@ page_content = Card(
 )
 
 # Adding page
-config.add_page(name='Interactivity', content=page_content)
+config.router.add_page(path='interactivity', content=page_content)
 ```
 
 ![Components with Derived Variables](../assets/getting_started/interactivity/components_with_dvs.gif)
@@ -567,7 +567,7 @@ def display_results(results):
         ...
     )
 
-config.add_page('Expensive Calculation Results', display_results(results))
+config.router.add_page(path='expensive-calculation', content=display_results(results))
 
 config.task_module = 'my_app.tasks'
 ```
@@ -737,9 +737,9 @@ def FormattedNumber(number: int, symbol: str):
 number_variable = Variable(20)
 symbol_variable = Variable('$')
 
-config.add_page('First Page', FormattedNumber(number_variable, '£'))
-config.add_page('Second Page', FormattedNumber(150, '£'))
-config.add_page('Third Page', FormattedNumber(number_variable, symbol_variable))
+config.router.add_page(path='first', content=FormattedNumber(number_variable, '£'))
+config.router.add_page(path='second', content=FormattedNumber(150, '£'))
+config.router.add_page(path='third', content=FormattedNumber(number_variable, symbol_variable))
 ```
 
 <details>
@@ -831,7 +831,7 @@ def page_content() -> ComponentInstance:
     )
 
 
-config.add_page(name='Interactivity', content=page_content())
+config.router.add_page(path='interactivity', content=page_content)
 ```
 
 You will be tasked with displaying `input` horizontally, vertically and backwards, displaying how and when to use `DerivedVariable` and `py_component`:
@@ -852,7 +852,7 @@ def page_content() -> ComponentInstance:
         Stack(Text('Horizontal:'), Text(user_input), direction='horizontal'),
     )
 
-config.add_page(name='Interactivity', content=page_content())
+config.router.add_page(path='interactivity', content=page_content)
 ```
 
 ![py_components vs DerivedVariables 1](../assets/getting_started/interactivity/pycomp_vs_dv_1.gif)
@@ -876,7 +876,7 @@ def page_content() -> ComponentInstance:
         Stack(Text('Backwards:'), Text(backwards_input), direction='horizontal'),
     )
 
-config.add_page(name='Interactivity', content=page_content())
+config.router.add_page(name='interactivity', content=page_content)
 ```
 
 ![py_components vs DerivedVariables 2](../assets/getting_started/interactivity/pycomp_vs_dv_2.gif)
@@ -913,7 +913,7 @@ def page_content() -> ComponentInstance:
     )
 
 # Adding page
-config.add_page(name='Interactivity', content=page_content())
+config.router.add_page(path='interactivity', content=page_content)
 ```
 
 ![py_components vs DerivedVariables 3](../assets/getting_started/interactivity/pycomp_vs_dv_3.gif)
@@ -930,4 +930,4 @@ As mentioned, `DerivedVariable`s and `py_components` unwrap `Variable`s to expos
 
 ## Next Steps
 
-So far you have learned how to handle your app's information and interactivity. A common source of information within an app is a dataset. Within the Dara framework, there are special kinds of variables to optimally handle datasets. You will learn about those in the next section.
+So far you have learned how to handle your app's information and interactivity by declaratively defining yourderived variables and components. You will learn about responding to user interaction.

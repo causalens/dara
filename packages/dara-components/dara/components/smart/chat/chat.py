@@ -50,8 +50,8 @@ class Chat(StyledComponentInstance):
     config.add_auth(MultiBasicAuthConfig(users={'user': 'password', 'user2': 'password2'}))
 
     # Add a page with a chat component, this can be added anywhere within a page
-    config.add_page(
-        name='Chat Page',
+    config.router.add_page(
+        path='chat',
         content=Stack(
             Text('This is a page with a chat'),
             Chat(value=collab_variable),

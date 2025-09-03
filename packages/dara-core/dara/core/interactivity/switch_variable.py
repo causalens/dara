@@ -67,7 +67,7 @@ class SwitchVariable(ClientVariable):
             title='Admin Panel Demo'
         )
 
-        config.add_page('Admin Demo', content=page_content)
+        config.router.add_page(path='admin', content=page_content)
         ```
 
         Value mapping with defaults:
@@ -109,7 +109,7 @@ class SwitchVariable(ClientVariable):
             title='Role Permissions'
         )
 
-        config.add_page('Permissions Demo', content=page_content)
+        config.router.add_page(path='permissions', content=page_content)
         ```
 
         Complex conditions:
