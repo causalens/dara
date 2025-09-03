@@ -368,17 +368,32 @@ For more complex routing, you might want to hand-pick only routes that should be
 
 ## Advanced Features
 
-### Route Metadata and IDs
+### Route Names and IDs
 
-You are free to add any metadata to your routes. This can be used to store arbitrary data that can later be used within reusable layouts or `on_load` functions.
+Routes can have human-readable names and unique identifiers:
 
 ```python
 config.router.add_page(
     path="admin",
     content=AdminPanel,
-    id="admin-panel",
-    name="Administration",
-    metadata={"requires_auth": True, "role": "admin"}
+    name="Administration Panel",  # Used for window.title - should be human-readable
+    id="admin-panel"              # Internal identifier for API requests - optional
+)
+```
+
+**`name`** - Sets the browser window title when visiting this route. If not provided, Dara generates one from the route path or content function name.
+
+**`id`** - Internal unique identifier used for route mapping (visible in server logs in `/core/api/route/{route_id}` requests). Defaults to an internal UID, but you can provide your own for cleaner logs and debugging.
+
+### Route Metadata
+
+Store arbitrary data with routes for your application logic:
+
+```python
+config.router.add_page(
+    path="admin",
+    content=AdminPanel,
+    metadata={"requires_auth": True, "role": "admin", "section": "management"}
 )
 ```
 
