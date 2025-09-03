@@ -6,13 +6,6 @@ from .components import Outlet
 from .definitions import Router
 
 
-def make_legacy_page_wrapper(content):
-    def legacy_page_wrapper():
-        return content
-
-    return legacy_page_wrapper
-
-
 def convert_template_to_router(template):
     """
     Convert old template system to new Router structure.
@@ -51,15 +44,8 @@ def convert_template_to_router(template):
 
         return component
 
-    # Transform the template layout
-    transformed_layout = transform_component(template.layout)
-
-    # Create a wrapper function for the transformed layout
-    def layout_wrapper():
-        return transformed_layout
-
     # Create root layout route using transformed template layout
-    root_layout = router.add_layout(content=layout_wrapper)
+    root_layout = router.add_layout(content=transform_component(template.layout))
 
     # Convert extracted routes to appropriate route types
     for route_content in extracted_routes:
@@ -68,16 +54,13 @@ def convert_template_to_router(template):
         if route_path.startswith('/'):
             route_path = route_path[1:]
 
-        # the make_ function must be defined outside the lazy evaluation of loop variable issue
-        legacy_page_wrapper = make_legacy_page_wrapper(route_content.content)
-
         # NOTE: here it's safe to use the name as the id, as in the old api the name was unique
         # but use 'index' for empty strings
 
         # Root path becomes index route
         if route_path in {'', '/'}:
             root_layout.add_index(
-                content=legacy_page_wrapper,
+                content=route_content.content,
                 name=route_content.name,
                 id=route_content.name or 'index',
                 on_load=route_content.on_load,
@@ -85,7 +68,7 @@ def convert_template_to_router(template):
         else:
             root_layout.add_page(
                 path=route_path,
-                content=legacy_page_wrapper,
+                content=route_content.content,
                 name=route_content.name,
                 id=route_content.name or 'index',
                 on_load=route_content.on_load,

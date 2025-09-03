@@ -1,7 +1,7 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -178,13 +178,24 @@ class BaseRoute(BaseModel):
     def get_name(self):
         """
         Get the human-readable name of the route.
-        If the route has a name, it will be returned. Otherwise, the route function name.
+        If the route has a name, it will be returned.
+        Otherwise, attempts to derive from content function name or generates from path.
         """
         if self.name:
             return self.name
 
         if content := getattr(self, 'content', None):
-            return content.__name__
+            # If content is callable, use its name
+            if callable(content):
+                return content.__name__
+            # If content is ComponentInstance, generate name from path
+            elif isinstance(content, ComponentInstance):
+                path = self.full_path
+                if path and path != '/':
+                    # Convert path to readable name (e.g., '/about/team' -> 'About Team')
+                    return ' '.join(
+                        word.capitalize() for word in path.strip('/').replace('-', ' ').replace('_', ' ').split('/')
+                    )
 
         return self.full_path or self.get_identifier()
 
@@ -251,6 +262,10 @@ class HasChildRoutes(BaseModel):
     """
 
     children: SerializeAsAny[List['BaseRoute']] = Field(default_factory=list)
+    """
+    List of child routes.
+    Should not be set directly. Use `set_children` or one of the `add_*` methods instead.
+    """
 
     def __init__(self, *children: list[BaseRoute], **kwargs):
         routes = list(children)
@@ -263,11 +278,21 @@ class HasChildRoutes(BaseModel):
         for child in self.children:
             child._attach_to_parent(self)
 
+    def set_children(self, children: list[BaseRoute]):
+        """
+        Set the children of the router.
+
+        :param children: list of child routes
+        """
+        self.children = children
+        for child in self.children:
+            child._attach_to_parent(self)
+
     def add_page(
         self,
         *,
         path: str,
-        content: Callable[..., ComponentInstance],
+        content: Union[Callable[..., ComponentInstance], ComponentInstance],
         case_sensitive: bool = False,
         name: Optional[str] = None,
         id: Optional[str] = None,
@@ -303,7 +328,7 @@ class HasChildRoutes(BaseModel):
     def add_layout(
         self,
         *,
-        content: Callable[..., ComponentInstance],
+        content: Union[Callable[..., ComponentInstance], ComponentInstance],
         case_sensitive: bool = False,
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
@@ -394,7 +419,7 @@ class HasChildRoutes(BaseModel):
     def add_index(
         self,
         *,
-        content: Callable[..., ComponentInstance],
+        content: Union[Callable[..., ComponentInstance], ComponentInstance],
         case_sensitive: bool = False,
         name: Optional[str] = None,
         id: Optional[str] = None,
@@ -455,7 +480,7 @@ class IndexRoute(BaseRoute):
     """
 
     index: Literal[True] = True
-    content: Callable[..., ComponentInstance] = Field(exclude=True)
+    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
 
     def compile(self):
         super().compile()
@@ -470,7 +495,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
     """
 
     path: str
-    content: Callable[..., ComponentInstance] = Field(exclude=True)
+    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
@@ -515,7 +540,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     - Project and EditProject will be rendered into the ProjectLayout outlet while ProjectsHome will not.
     """
 
-    content: Callable[..., ComponentInstance] = Field(exclude=True)
+    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
@@ -600,7 +625,7 @@ class Router(HasChildRoutes):
     from dara.core.router import IndexRoute, PageRoute, LayoutRoute, PrefixRoute
 
     config = ConfigurationBuilder()
-    config.router.children = [
+    config.router.set_children([
         # Home page
         IndexRoute(content=HomePage),
 
@@ -624,7 +649,7 @@ class Router(HasChildRoutes):
                 PageRoute(path='post/:id', content=BlogPost)  # renders at '/blog/post/:id'
             ]
         )
-    ]
+    ])
     ```
 
     Both approaches create the same routing structure. The fluent API is more readable for
@@ -786,18 +811,24 @@ class Router(HasChildRoutes):
                 self._print_routes(route_children, next_prefix)
 
 
-def _execute_route_func(func: Callable[..., ComponentInstance], path: Optional[str]):
+def _execute_route_func(
+    content: Union[Callable[..., ComponentInstance], ComponentInstance], path: Optional[str]
+) -> ComponentInstance:
     """
-    Executes a route function and returns the result.
-    Injects path params into the function signature based on patterns in the path, raising errors if the signature doesn't match.
+    Executes a route function or returns a ComponentInstance directly.
+    For callables, injects path params into the function signature based on patterns in the path.
+    For ComponentInstance objects, returns them directly (ignoring any path params).
     """
     assert path is not None, 'Path should not be None, internal error'
 
+    # If content is already a ComponentInstance, return it directly
+    if isinstance(content, ComponentInstance):
+        return content
+
+    # Handle callable case (existing logic)
     path_params = find_patterns(path)
-
     kwargs = {}
-
-    signature = inspect.signature(func)
+    signature = inspect.signature(content)
 
     for name, param in signature.parameters.items():
         typ = param.annotation
@@ -819,7 +850,7 @@ def _execute_route_func(func: Callable[..., ComponentInstance], path: Optional[s
                 f'Invalid page function signature. Kwarg "{name}" found with invalid signature "{type}". Page functions can only accept kwargs annotated with "Variable" corresponding to path params defined on the route'
             )
         kwargs[name] = Variable(store=_PathParamStore(param_name=name))
-    return func(**kwargs)
+    return content(**kwargs)
 
 
 # required to make pydantic happy
