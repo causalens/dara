@@ -24,6 +24,7 @@ class TestButtonComponent(unittest.TestCase):
             'props': {
                 'bold': False,
                 'children': [Text(text='Click Here').dict(exclude_none=True)],
+                'stop_click_propagation': True,
                 'italic': False,
                 'onclick': action.dict(),
                 'styling': ButtonStyle.PRIMARY.value,
