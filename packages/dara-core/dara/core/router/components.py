@@ -11,12 +11,12 @@ class RouterPath(BaseModel):
     A URL pathname, beginning with '/'.
     """
 
-    search: str
+    search: Optional[str] = None
     """
     A URL search string, beginning with '?'.
     """
 
-    hash: str
+    hash: Optional[str] = None
     """
     A URL hash string, beginning with '#'.
     """

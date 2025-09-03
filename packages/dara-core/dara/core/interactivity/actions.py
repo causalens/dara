@@ -996,23 +996,23 @@ class ActionCtx:
 
     async def logout(self):
         """
-            Logout the current user.
+        Logout the current user.
 
-            ```python
+        ```python
 
-            from dara.core import ConfigurationBuilder, action
-            from dara.core.auth import BasicAuthConfig
-            from dara.components import Stack, Button
+        from dara.core import ConfigurationBuilder, action
+        from dara.core.auth import BasicAuthConfig
+        from dara.components import Stack, Button
 
-            config = ConfigurationBuilder()
-            config.add_auth(BasicAuthConfig(username='test', password='test'))
+        config = ConfigurationBuilder()
+        config.add_auth(BasicAuthConfig(username='test', password='test'))
 
-            @action
-            async def logout(ctx: action.Ctx):
-                await ctx.logout()
+        @action
+        async def logout(ctx: action.Ctx):
+            await ctx.logout()
 
-            def test_page():
-                return Stack(Button('Logout', onclick=logout()))
+        def test_page():
+            return Stack(Button('Logout', onclick=logout()))
 
 
         config.router.add_page(path='logout-page', content=test_page)
@@ -1029,28 +1029,28 @@ class ActionCtx:
         key: Optional[str] = None,
     ):
         """
-            Display a notification toast on the frontend
+        Display a notification toast on the frontend
 
-            ```python
+        ```python
 
-            from dara.core import action, ConfigurationBuilder
-            from dara.components import Stack, Button
+        from dara.core import action, ConfigurationBuilder
+        from dara.components import Stack, Button
 
-            config = ConfigurationBuilder()
+        config = ConfigurationBuilder()
 
-            @action
-            async def notify(ctx: action.Ctx):
-                await ctx.notify(
-                    message='This is the notification message', title='Example', status='SUCCESS'
+        @action
+        async def notify(ctx: action.Ctx):
+            await ctx.notify(
+                message='This is the notification message', title='Example', status='SUCCESS'
+            )
+
+        def test_page():
+            return Stack(
+                Button(
+                    'Notify',
+                    onclick=notify()
                 )
-
-            def test_page():
-                return Stack(
-                    Button(
-                        'Notify',
-                        onclick=notify()
-                    )
-                )
+            )
 
 
         config.router.add_page(path='notify-example', content=test_page)
@@ -1069,33 +1069,33 @@ class ActionCtx:
 
     async def reset_variables(self, variables: Union[List[AnyVariable], AnyVariable]):
         """
-            Reset a list of variables to their default values.
+        Reset a list of variables to their default values.
 
-            ```python
+        ```python
 
-            from dara.core import Variable, action, ConfigurationBuilder
-            from dara.components import Stack, Button, Text
+        from dara.core import Variable, action, ConfigurationBuilder
+        from dara.components import Stack, Button, Text
 
-            config = ConfigurationBuilder()
+        config = ConfigurationBuilder()
 
-            my_var = Variable(0)
+        my_var = Variable(0)
 
-            @action
-            async def update(ctx: action.Ctx, my_var_value):
-                await ctx.update(my_var, my_var_value + 1)
+        @action
+        async def update(ctx: action.Ctx, my_var_value):
+            await ctx.update(my_var, my_var_value + 1)
 
-            @action
-            async def reset(ctx: action.Ctx):
-                await ctx.reset_variables(my_var)
+        @action
+        async def reset(ctx: action.Ctx):
+            await ctx.reset_variables(my_var)
 
-            def test_page():
-                return Stack(
-                    Text(my_var),
-                    # when clicked, 1 is added to my_var
-                    Button('Add', onclick=update(my_var)),
-                    # when clicked my_var goes back to its initial value: 0
-                    Button('Reset', onclick=reset()),
-                )
+        def test_page():
+            return Stack(
+                Text(my_var),
+                # when clicked, 1 is added to my_var
+                Button('Add', onclick=update(my_var)),
+                # when clicked my_var goes back to its initial value: 0
+                Button('Reset', onclick=reset()),
+            )
 
 
         config.router.add_page(path='reset-variable', content=test_page)
@@ -1109,37 +1109,37 @@ class ActionCtx:
 
     async def download_file(self, path: str, cleanup: bool = False):
         """
-            Download a given file.
+        Download a given file.
 
-            ```python
+        ```python
 
-            from dara.core import action, ConfigurationBuilder, ServerVariable
-            from dara.components.components import Button, Stack
+        from dara.core import action, ConfigurationBuilder, ServerVariable
+        from dara.components.components import Button, Stack
 
-            # generate data, alternatively you could load it from a file
-            df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-            my_var = ServerVariable(df)
+        # generate data, alternatively you could load it from a file
+        df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
+        my_var = ServerVariable(df)
 
-            config = ConfigurationBuilder()
+        config = ConfigurationBuilder()
 
-            @action
-            async def download_csv(ctx: action.Ctx, my_var_value: DataFrame) -> str:
-                # Getting the value of data passed as extras to the action
-                data = my_var_value
+        @action
+        async def download_csv(ctx: action.Ctx, my_var_value: DataFrame) -> str:
+            # Getting the value of data passed as extras to the action
+            data = my_var_value
 
-                # save the data to csv
-                data.to_csv('<PATH_TO_CSV.csv>')
+            # save the data to csv
+            data.to_csv('<PATH_TO_CSV.csv>')
 
-                # Instruct the frontend to download the file and clean up afterwards
-                await ctx.download_file(path='<PATH_TO_CSV.csv>', cleanup=True)
+            # Instruct the frontend to download the file and clean up afterwards
+            await ctx.download_file(path='<PATH_TO_CSV.csv>', cleanup=True)
 
 
-            def test_page():
-                return Stack(
-                    Button(
-                        'Download File', onclick=download_csv(my_var)
-                    ),
-                )
+        def test_page():
+            return Stack(
+                Button(
+                    'Download File', onclick=download_csv(my_var)
+                ),
+            )
 
 
         config.router.add_page(path='download-content', content=test_page)
@@ -1156,29 +1156,29 @@ class ActionCtx:
         self, variable: AnyVariable, file_name: Optional[str] = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'
     ):
         """
-            Download the content of a given variable as a file.
-            Note that the content of the file must be valid for the given type.
+        Download the content of a given variable as a file.
+        Note that the content of the file must be valid for the given type.
 
-            ```python
+        ```python
 
-            from dara.core import action, ConfigurationBuilder, Variable
-            from dara.components import Stack, Button
+        from dara.core import action, ConfigurationBuilder, Variable
+        from dara.components import Stack, Button
 
-            config = ConfigurationBuilder()
+        config = ConfigurationBuilder()
 
-            my_var = Variable({'foo': 'bar'})
+        my_var = Variable({'foo': 'bar'})
 
-            @action
-            async def download(ctx: action.Ctx):
-                await ctx.download_variable(variable=my_var, file_name='test_file', type='json')
+        @action
+        async def download(ctx: action.Ctx):
+            await ctx.download_variable(variable=my_var, file_name='test_file', type='json')
 
-            def test_page():
-                return Stack(
-                    Button(
-                        'Download Variable',
-                        onclick=download(),
-                    )
+        def test_page():
+            return Stack(
+                Button(
+                    'Download Variable',
+                    onclick=download(),
                 )
+            )
 
 
         config.router.add_page(path='download-variable', content=test_page)

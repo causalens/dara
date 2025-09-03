@@ -263,7 +263,6 @@ config = ConfigurationBuilder()
 config.router.add_page(path='hello-world', content=Heading('Hello World!'))
 ```
 
-# TODO: change screenshots
 ![Putting It All Together 1](../assets/getting_started/components/put_it_all_together_1.png)
 
 You can make the content of your app slightly more complex with the following:

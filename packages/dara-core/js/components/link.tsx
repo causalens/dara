@@ -33,17 +33,19 @@ const NavLinkWrapper = React.forwardRef(
         },
         ref: React.Ref<HTMLAnchorElement>
     ) => {
+        const { to, className, style, activeStyle, inactiveStyle, ...rest } = props;
         return (
             <NavLink
                 ref={ref}
-                to={props.to}
-                className={props.className}
+                to={to}
+                className={className}
                 style={({ isActive }) => {
                     return {
-                        ...props.style,
-                        ...(isActive ? props.activeStyle : props.inactiveStyle),
+                        ...style,
+                        ...(isActive ? activeStyle : inactiveStyle),
                     };
                 }}
+                {...rest}
             >
                 {props.children}
             </NavLink>
