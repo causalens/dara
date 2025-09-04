@@ -77,8 +77,8 @@ async def test_simple_usecases():
         return MockComponent(text=input_val)
 
     builder.router = Router(
-        PageRoute(path='test', content=lambda: TestSimpleComp(), id='test'),
-        PageRoute(path='test2', content=lambda: TestBasicComp('test'), id='test2'),
+        PageRoute(path='test', content=TestSimpleComp(), id='test'),
+        PageRoute(path='test2', content=TestBasicComp('test'), id='test2'),
     )
 
     config = create_app(builder)
@@ -118,7 +118,7 @@ async def test_variables():
 
     var = Variable()
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
@@ -155,7 +155,7 @@ async def test_async_py_comp():
 
     var = Variable()
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
@@ -204,7 +204,7 @@ async def test_derived_variables():
         return MockComponent(text=str(input_val))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
@@ -280,7 +280,7 @@ async def test_mixed_inputs():
 
     var = Variable()
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(var, 2), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(var, 2), id='test')
 
     config = create_app(builder)
 
@@ -319,7 +319,7 @@ async def test_default_arguments():
 
     var = Variable()
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(var), id='test')
 
     config = create_app(builder)
 
@@ -379,7 +379,7 @@ async def test_base_model_args_are_restored():
 
     var = Variable()
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(var), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(var), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -415,7 +415,7 @@ async def test_base_model_not_restored_when_already_instance():
     dv = DerivedVariable(lambda x: InputClass(val=x), variables=[var])
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(dv), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -454,8 +454,8 @@ async def test_compatibility_with_polling():
         return MockComponent(text=input_val)
 
     builder.router = Router(
-        PageRoute(path='test', content=lambda: TestSimpleComp(), id='test'),
-        PageRoute(path='test2', content=lambda: TestBasicComp('test'), id='test2'),
+        PageRoute(path='test', content=TestSimpleComp(), id='test'),
+        PageRoute(path='test2', content=TestBasicComp('test'), id='test2'),
     )
 
     config = create_app(builder)
@@ -499,7 +499,7 @@ async def test_derived_variables_restore_base_models():
         return MockComponent(text=str(input_val))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
@@ -545,7 +545,7 @@ async def test_derived_variables_with_args():
         return MockComponent(text=str(input_val))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
@@ -591,7 +591,7 @@ async def test_derived_variables_with_polling():
         return MockComponent(text=str(input_val))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(derived), id='test')
 
     config = create_app(builder)
 
@@ -628,7 +628,7 @@ async def test_chained_derived_variables():
         return MockComponent(text=str(input_val))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(derived_2), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(derived_2), id='test')
 
     config = create_app(builder)
 
@@ -672,8 +672,8 @@ async def test_placeholder():
         return MockComponent(text=input_val)
 
     builder.router = Router(
-        PageRoute(path='test', content=lambda: TestPlaceholderComp('test'), id='test'),
-        PageRoute(path='test2', content=lambda: TestBasicComp('test 2'), id='test2'),
+        PageRoute(path='test', content=TestPlaceholderComp('test'), id='test'),
+        PageRoute(path='test2', content=TestBasicComp('test 2'), id='test2'),
     )
 
     config = create_app(builder)
@@ -714,7 +714,7 @@ async def test_derive_var_with_run_as_task_flag():
     derived = DerivedVariable(calc_task, variables=[var1, var2], run_as_task=True)
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(derived), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -780,7 +780,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
         return MockComponent(text=str(var))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(var=dv_top), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(var=dv_top), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -880,7 +880,7 @@ async def test_single_dv_track_progress():
     derived = DerivedVariable(track_task, variables=[], run_as_task=True)
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(derived), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -954,7 +954,7 @@ async def test_multiple_dv_track_progress():
     derived_2 = DerivedVariable(track_longer_task_2, variables=[], run_as_task=True)
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(derived, derived_2), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(derived, derived_2), id='test')
 
     config = create_app(builder, use_tasks=True)
 
@@ -1027,7 +1027,7 @@ async def test_handles_primitives(primitive):
         return primitive
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1068,7 +1068,7 @@ async def test_handles_none():
         return None
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1108,7 +1108,7 @@ async def test_handles_invalid_value():
         return {'random': 'value'}
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestSimpleComp(), id='test')
+    builder.router.add_page(path='test', content=TestSimpleComp(), id='test')
 
     config = create_app(builder)
 
@@ -1161,7 +1161,7 @@ async def test_py_component_respects_dv_empty_deps():
         return MockComponent(text=str(variable))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestComp(dv), id='test')
+    builder.router.add_page(path='test', content=TestComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -1225,7 +1225,7 @@ async def test_py_component_respects_dv_non_empty_deps():
         return MockComponent(text=str(variable))
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestComp(dv), id='test')
+    builder.router.add_page(path='test', content=TestComp(dv), id='test')
     config = create_app(builder)
 
     # Run the app so the component is initialized
@@ -1317,7 +1317,7 @@ async def test_switch_variables():
         return MockComponent(text=input_val)
 
     builder.router = Router()
-    builder.router.add_page(path='test', content=lambda: TestBasicComp(switch_var), id='test')
+    builder.router.add_page(path='test', content=TestBasicComp(switch_var), id='test')
 
     config = create_app(builder)
 

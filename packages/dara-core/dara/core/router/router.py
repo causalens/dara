@@ -760,6 +760,12 @@ class Router(HasChildRoutes):
 
     def _print_routes(self, routes: List['BaseRoute'], prefix: str = ''):
         """Helper method to recursively print route tree structure"""
+
+        def _format_content(content: Union[Callable[..., ComponentInstance], ComponentInstance]):
+            if isinstance(content, ComponentInstance):
+                return content.__class__.__name__
+            return content.__name__
+
         for i, route in enumerate(routes):
             is_last = i == len(routes) - 1
 
@@ -780,12 +786,12 @@ class Router(HasChildRoutes):
                 full_path = route.full_path or '/'
                 route_info = f'{full_path} (index)'
                 if route_content:
-                    content_name = getattr(route_content, '__name__', str(route_content))
+                    content_name = _format_content(route_content)
                     route_info += f' [{content_name}]'
             elif isinstance(route, LayoutRoute):
                 # Layout route: show in angle brackets
                 if route_content:
-                    content_name = getattr(route_content, '__name__', str(route_content))
+                    content_name = _format_content(route_content)
                     route_info = f'<{content_name}>'
                 else:
                     route_info = '<Layout>'
@@ -800,7 +806,7 @@ class Router(HasChildRoutes):
                 full_path = route.full_path or f'/{route_path}'
                 route_info = full_path
                 if route_content:
-                    content_name = getattr(route_content, '__name__', str(route_content))
+                    content_name = _format_content(route_content)
                     route_info += f' [{content_name}]'
 
             print(current_prefix + route_info)

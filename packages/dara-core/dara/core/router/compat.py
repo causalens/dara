@@ -3,7 +3,7 @@ from typing import List
 from dara.core.definitions import ComponentInstance
 
 from .components import Outlet
-from .definitions import Router
+from .router import Router
 
 
 def convert_template_to_router(template):
