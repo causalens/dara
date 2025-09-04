@@ -241,14 +241,14 @@ def test_page() -> ComponentInstance:
     )
 
 config = ConfigurationBuilder()
-config.add_page(name='Test Page', content=test_page(), icon=get_icon('flask-vial'))
+config.router.add_page(path='test', content=test_page)
 
 ```
 
 ### Choosing the right components
 
 Are you using the right component? This can often lead to a lot of doubts as so many could fit into a single purpose. Suppose you have a list of
-items and you want the user to choose between them. There are a number of components that could be used here, to name a few you could use 
+items and you want the user to choose between them. There are a number of components that could be used here, to name a few you could use
 `dara.components.common.radio_group.RadioGroup`, `dara.components.common.checkbox_group.CheckboxGroup` or `dara.components.common.select.Select`.
 
 If you can only have one item selected at a time that would require either a `RadioGroup` or simple `Select`.

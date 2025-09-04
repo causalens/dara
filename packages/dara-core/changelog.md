@@ -2,7 +2,16 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Implemented a new `router` API on `ConfigurationBuilder` that allows for more flexible routing configurations. Check out the new `Getting Started -> Routing` docs page for an overview. Note that mixing the new API and the old `add_page()` API is disallowed and will raise an error on startup.
+-  Deprecated the following APIs on `ConfigurationBuilder`:
+    - `add_page` -> migrate to `router.add_page`
+    - `template` and `add_template_renderer` -> migrate templates to a layout on `router.add_layout`
+    - `powered_by_causalens` -> exposed as a custom `PoweredByCausalens` component as well as a `powered_by_causalens` property on `SideBarFrame`
+
 ## 1.20.1
+
  - Fixed URLVariable and Variable with a ParamStore loading of data at first load of the page
 
 

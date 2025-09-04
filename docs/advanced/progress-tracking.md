@@ -49,8 +49,8 @@ def show_computation_result(some_value):
     return Text(some_value)
 
 # Show a simple page that let's you run the computation and show the result
-config.add_page(
-    'TrackComputation',
+config.router.add_page(
+    path='track-computation',
     content=Stack(
         Button("Compute", onclick=calculation.trigger()),
         show_computation_result(calculation)
@@ -71,8 +71,8 @@ var = Variable(5)
 calculation = DerivedVariable(func=task_function, variables=[var], run_as_task=True)
 
 # Show a simple page that let's you run the computation and show the result
-config.add_page(
-    'TrackComputation',
+config.router.add_page(
+    path='track-computation',
     content=Stack(
         Button("Compute", onclick=calculation.trigger()),
         Text(calculation, track_progress=True)

@@ -140,7 +140,7 @@ from my_app.pages.scatter_plot import ScatterPlotPage
 config = ConfigurationBuilder()
 
 # Register pages
-config.add_page('Scatter Plot', ScatterPlotPage())
+config.router.add_page(path='scatter', content=ScatterPlotPage)
 ```
 
 ```python title=my_app/pages/correlation.py
@@ -205,8 +205,8 @@ from my_app.pages.correlation import CorrelationPage
 config = ConfigurationBuilder()
 
 # Register pages
-config.add_page('Scatter Plot', ScatterPlotPage())
-config.add_page('Pearson Correlation', CorrelationPage())
+config.router.add_page(path='scatter', content=ScatterPlotPage)
+config.router.add_page(path='correlation', content=CorrelationPage)
 ```
 
 ![Correlation Page](../assets/getting_started/app_structure_2.gif)

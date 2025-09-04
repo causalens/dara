@@ -128,6 +128,49 @@ class TestRouterObjectAPI:
         assert users.full_path == '/my-api/users'
         assert posts.full_path == '/my-api/posts/:id'
 
+    def test_set_children(self):
+        router = Router()
+        router.set_children(
+            [
+                IndexRoute(content=HomePage),
+                PageRoute(path='about', content=AboutPage),
+                LayoutRoute(
+                    content=MarketingLayout,
+                    children=[
+                        IndexRoute(content=MarketingHome),
+                        PageRoute(path='contact', content=MarketingContact),
+                    ],
+                ),
+                PrefixRoute(
+                    path='my-api',
+                    children=[
+                        PageRoute(path='users', content=UsersPage),
+                        PageRoute(path='posts/:id', content=PostDetail),
+                    ],
+                ),
+            ]
+        )
+        # Extract routes for testing using isinstance assertions for type safety
+        home = router.children[0]
+        about = router.children[1]
+        marketing_layout = router.children[2]
+        api_prefix = router.children[3]
+
+        assert isinstance(home, IndexRoute)
+        assert isinstance(about, PageRoute)
+        assert isinstance(marketing_layout, LayoutRoute)
+        assert isinstance(api_prefix, PrefixRoute)
+
+        marketing_home = marketing_layout.children[0]
+        marketing_contact = marketing_layout.children[1]
+        users = api_prefix.children[0]
+        posts = api_prefix.children[1]
+
+        assert isinstance(marketing_home, IndexRoute)
+        assert isinstance(marketing_contact, PageRoute)
+        assert isinstance(users, PageRoute)
+        assert isinstance(posts, PageRoute)
+
 
 class TestRouteAttachment:
     """Test route attachment behavior"""
@@ -165,6 +208,28 @@ class TestRouteAttachment:
 
         assert deep_route.full_path == '/level1/level2/deep'
         assert deep_route.is_attached
+
+    def test_set_children_attachment(self):
+        router = Router()
+        router.set_children(
+            [
+                PrefixRoute(
+                    path='level1',
+                    children=[
+                        PageRoute(path='level2/deep', content=AboutPage),
+                    ],
+                ),
+            ]
+        )
+        level1 = router.children[0]
+        assert isinstance(level1, PrefixRoute)
+        assert len(level1.children) == 1
+        assert level1.full_path == '/level1'
+        assert level1.is_attached
+        level2 = level1.children[0]
+        assert isinstance(level2, PageRoute)
+        assert level2.full_path == '/level1/level2/deep'
+        assert level2.is_attached
 
 
 class TestEdgeCases:
@@ -299,8 +364,7 @@ class TestTemplateToRouterConversion:
         assert isinstance(root_layout, LayoutRoute)
 
         # The layout content should be transformed (where frame's content is converted RouterContent → Outlet)
-        assert callable(root_layout.content)
-        layout_result = root_layout.content()
+        layout_result = root_layout.content
         assert isinstance(layout_result, SideBarFrame)
         assert isinstance(layout_result.content, Outlet)
 
@@ -383,7 +447,7 @@ class TestTemplateToRouterConversion:
         assert isinstance(root_layout, LayoutRoute)
         assert len(root_layout.children) == 1
 
-        root_layout_result = root_layout.content()
+        root_layout_result = root_layout.content
         assert isinstance(root_layout_result, Stack)
         assert len(root_layout_result.children) == 1
 
@@ -398,7 +462,7 @@ class TestTemplateToRouterConversion:
         assert isinstance(home_route, PageRoute)
         assert home_route.path == 'home'
         assert home_route.full_path == '/home'
-        assert isinstance(home_route.content(), ComponentInstance)
+        assert isinstance(home_route.content, ComponentInstance)
 
 
 class TestRouterParamValidation:
@@ -516,3 +580,55 @@ class TestRouterParamValidation:
 
         with pytest.raises(ValueError, match='id'):
             router.compile()
+
+
+class TestCompilation:
+    """Test compilation of routes"""
+
+    def test_param_injection(self):
+        """
+        Test injected parameter is formed correctly on compilation
+        """
+
+        class Text(ComponentInstance):
+            text: Variable[str]
+
+        def page(id: Variable[str]):
+            return Text(text=id)
+
+        router = Router()
+        router.add_page(path='blog/:id', content=page)
+
+        # Compile the router
+        router.compile()
+
+        # Check that the page was compiled
+        assert router.children[0].compiled_data is not None
+        assert router.children[0].compiled_data.content is not None
+        content = router.children[0].compiled_data.content
+
+        assert isinstance(content, Text)
+        assert content.text.store is not None
+        typename = content.text.store.model_dump()['__typename']
+        param_name = content.text.store.model_dump()['param_name']
+        assert typename == '_PathParamStore'
+        assert param_name == 'id'
+
+    def test_component_content(self):
+        """
+        Test that content can be a component instance, not just a function
+        """
+        router = Router()
+
+        class Text(ComponentInstance):
+            text: Variable[str]
+
+        router.add_page(path='blog/:id', content=Text(text=Variable('text')))
+        router.compile()
+
+        # Check that the page was compiled correctly
+        assert router.children[0].compiled_data is not None
+        assert router.children[0].compiled_data.content is not None
+        content = router.children[0].compiled_data.content
+
+        assert isinstance(content, Text)

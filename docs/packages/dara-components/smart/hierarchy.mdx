@@ -53,8 +53,8 @@ def viewer_page() -> ComponentInstance:
     return Stack(HierarchyViewer(hierarchy=hierarchy))
 
 
-config.add_page(name='Hierarchy Viewer', content=viewer_page(), icon=get_icon('eye'))
-config.add_page(name='Hierarchy Selector', content=selector_page(), icon=get_icon('eyes'))
+config.router.add_page(path='viewer', content=viewer_page)
+config.router.add_page(path='selector', content=selector_page)
 ```
 
 #### `Hierarchy Viewer` component

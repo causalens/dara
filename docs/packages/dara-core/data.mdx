@@ -131,8 +131,8 @@ def act_on_data_section():
     )
 
 
-config.add_page(
-    name='Data Extension',
+config.router.add_page(
+    path='data-ext',
     content=Stack(
         Heading('Step 1: Add data'),
         Heading('You can choose a cache and create some random data, or upload your own dataset:', level=3),

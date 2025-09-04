@@ -260,7 +260,7 @@ from dara.components import Heading
 config = ConfigurationBuilder()
 
 # Register pages
-config.add_page('Hello World', Heading('Hello World!'))
+config.router.add_page(path='hello-world', content=Heading('Hello World!'))
 ```
 
 ![Putting It All Together 1](../assets/getting_started/components/put_it_all_together_1.png)
@@ -280,35 +280,15 @@ card = Card(
     title='My New Page\'s Card'
 )
 
-config.add_page('Hello World', Heading('Hello World!'))
-config.add_page('My Second Page', Text('Hello World, again.'))
-config.add_page('Page with a Card', card)
-
+config.router.add_page(path='hello-world', content=card)
 ```
 
 ![Putting It All Together 3](../assets/getting_started/components/put_it_all_together_3.png)
 ![Putting It All Together 4](../assets/getting_started/components/put_it_all_together_4.png)
 
-In this case you are statically defining your page however you can also define functions or classes that return components that change with its inputs.
-
-```python
-def third_page(title_str: str, content_str: str):
-    return Card(
-        Text(content_str),
-        title=title_str
-    )
-
-config.add_page(
-    'Page with a Card',
-    third_page('My new page', 'My new page, which was defined by a function.')
-)
-```
-
-![Putting It All Together 5](../assets/getting_started/components/put_it_all_together_5.png)
-
 :::tip
-As your app gets bigger and more complex, you will want to separate your page logic from your main configuration file. You will also want to make informed decisions on whether to define your components statically, functionally, or in a class.
-Check out the section [**Best Practices: Separating Pages**](../best-practices/app-structure-breakdown#separating-pages) to learn more.
+As your app gets bigger and more complex, you will want to separate your page logic from your main configuration file. You will also want to make informed decisions on whether to define your pages statically or as functions.
+Check out the [**Routing**](./routing.mdx) and [**Best Practices: Separating Pages**](../best-practices/app-structure-breakdown#separating-pages) sections to learn more.
 
 Defining components as functions or classes allows you to repeatedly call them with different inputs instead of having to redefine and customize the component again. Check out the section [**Best Practices: Reusing Components**](../best-practices/reusing-components) to learn more.
 

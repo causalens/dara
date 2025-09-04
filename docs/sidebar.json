@@ -23,7 +23,7 @@
         "docs/getting-started/interactivity",
         "docs/getting-started/actions",
         "docs/getting-started/handling-data",
-        "docs/getting-started/templates",
+        "docs/getting-started/routing",
         "docs/getting-started/app-structure"
       ]
     },

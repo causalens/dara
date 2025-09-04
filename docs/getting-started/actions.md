@@ -96,7 +96,7 @@ def test_page():
         ),
     )
 
-config.add_page(name='Increment Variable', content=test_page())
+config.router.add_page(path='increment', content=test_page)
 ```
 
 The example's action is the function `increment` and it takes the current value of the Variable and adds one to it, assuming it is an integer. If you were to click on the button, the `Variable`'s value would be updated to six.
@@ -148,7 +148,7 @@ def test_page():
     )
 
 
-config.add_page(name='Trigger Variable', content=test_page())
+config.router.add_page(path='trigger', content=test_page)
 
 ```
 
@@ -195,7 +195,7 @@ def test_page():
         Button('Reset', onclick=reset()),
     )
 
-config.add_page(name='Reset Variable', content=test_page())
+config.router.add_page(path='reset', content=test_page)
 ```
 
 For simple cases check out [reset](#reset) shortcut action.
@@ -240,7 +240,7 @@ def test_page():
     )
 
 
-config.add_page(name='Notify Example', content=test_page())
+config.router.add_page(path='notify', content=test_page)
 ```
 
 ### `navigate`
@@ -291,8 +291,8 @@ def another_page():
     )
 
 
-config.add_page(name='Test Page', content=test_page())
-config.add_page(name='Another Page', content=another_page())
+config.router.add_page(path='test-page', content=test_page)
+config.router.add_page(path='another-page', content=another_page)
 ```
 
 In the example above, on 'Test Page', clicking on a button 'Go to Another Page' takes you to the 'Another Page' page. This demonstrates how you can pass a static URL to the `navigate` action method. On the 'Another Page' page, you can see how to control `navigate` by using a dynamic URL - in this case the selected value of a `Select` component.
@@ -350,7 +350,7 @@ def test_page() -> ComponentInstance:
     )
 
 
-config.add_page(name='Download Content', content=test_page)
+config.router.add_page(path='download-content', content=test_page)
 ```
 
 ### `download_variable`
@@ -398,7 +398,7 @@ def test_page():
     )
 
 
-config.add_page(name='Download Variable', content=test_page())
+config.router.add_page(path='download-variable', content=test_page)
 ```
 
 ### `run_task`
@@ -465,7 +465,7 @@ async def my_task(ctx: ActionCtx):
 def task_page():
     return Stack(Text('Status display:'), Text(text=status), Button('Run', onclick=my_task()))
 
-config.add_page(name='task', content=task_page())
+config.router.add_page(path='task', content=task_page)
 ```
 
 
@@ -510,7 +510,7 @@ def test_page():
         Button('Reset Shortcut', onclick=my_var.reset()),
     )
 
-config.add_page(name='Reset Variable', content=test_page())
+config.router.add_page(path='reset', content=test_page)
 ```
 
 In the above example, the `Reset @action` button and the `Reset Shortcut` button have the same functionality - both reset the `my_var` variable to its default value.
@@ -617,7 +617,7 @@ def test_page():
     )
 
 
-config.add_page(name='Trigger Variable', content=test_page())
+config.router.add_page(path='trigger', content=test_page)
 ```
 
 In the above example, the `trigger_my_var` action and the `trigger` shortcut action have the same functionality - both trigger a recalculation of the `der_var` variable.
@@ -775,7 +775,7 @@ def test_page():
         ),
     )
 
-config.add_page(name='Increment Variable', content=test_page())
+config.router.add_page(path='Increment Variable', content=test_page)
 ```
 
 The example's resolver is the function `add_one` and it takes the current value of the Variable and adds one to it, assuming it is an integer. If you were to click on the button, the `Variable`'s value would be updated to six.
@@ -818,8 +818,8 @@ def another_page():
     )
 
 
-config.add_page(name='Test Page', content=test_page())
-config.add_page(name='Another Page', content=another_page())
+config.router.add_page(path='test-page', content=test_page)
+config.router.add_page(path='another-page', content=another_page)
 ```
 
 To migrate to the new API, you can use the [`navigate` method](#navigate) of the injected context within an `@action`-decorated function.
@@ -866,7 +866,7 @@ def test_page() -> ComponentInstance:
     )
 
 
-config.add_page(name='Download Content', content=test_page)
+config.router.add_page(path='download-content', content=test_page)
 ```
 
 To migrate to the new API, you can use the [`download_file` method](#download_file) of the injected context within an `@action`-decorated function.
@@ -900,7 +900,7 @@ def test_page():
     return Stack(Select(value=Variable(3), items=[3, 4, 5], onchange=SideEffect(side_effect, extras=[x, y, z])))
 
 
-config.add_page(name='Side Effect', content=test_page())
+config.router.add_page(path='side-effect', content=test_page)
 ```
 
 To migrate to the new API, you can use the `@action` decorator to create an action that calls the function you want to execute. `SideEffect` will no longer exist in future Dara versions.

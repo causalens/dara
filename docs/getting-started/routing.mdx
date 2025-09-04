@@ -1,0 +1,457 @@
+---
+title: Routing
+description: Learn how to set up pages, layouts, menus and links in Dara applications
+boost: 2
+---
+
+Dara's routing system provides a powerful and flexible way to structure your application's navigation. It supports nested routes, dynamic parameters, and multiple layout patterns to help you build complex applications with clean URL structures.
+
+## Getting Started
+
+Let's start by creating a few basic pages:
+
+```python
+from dara.core import ConfigurationBuilder
+from dara.components import Text
+
+config = ConfigurationBuilder()
+
+# Create a home page at the root URL '/'
+config.router.add_index(content=Text("Welcome Home"))
+
+# Create additional pages
+config.router.add_page(path="about", content=Text("About Us"))
+config.router.add_page(path="contact", content=Text("Contact"))
+```
+
+This creates three pages in your app:
+- `/` - shows "Welcome Home"
+- `/about` - shows "About Us"
+- `/contact` - shows "Contact"
+
+For simple cases like this, you can pass components directly to `content`. You can also pass functions but you only need them when working with dynamic parameters (covered later).
+
+## The Outlet Component
+
+Before we explore more complex routing, you need to understand the `Outlet` component. When you have nested routes (pages with sub-pages), the `Outlet` is where the child content appears:
+
+```python
+from dara.core.router import Outlet
+from dara.components import Stack, Text
+
+def DashboardLayout():
+    return Stack(
+        Text("Dashboard Header", bold=True),
+        Outlet(),  # Child pages render here
+        Text("Dashboard Footer")
+    )
+```
+
+Think of `Outlet` as a placeholder that says "put the current page's content here". This becomes essential for the nested examples you'll see next.
+
+## Route Types
+
+### Page Routes
+
+Page routes create pages at specific URL paths:
+
+```python
+# Simple page with no sub-pages
+config.router.add_page(path="about", content=Text("About Us"))
+
+# Page with sub-pages needs Outlet to show child content
+def ProductsLayout():
+    return Stack(
+        Text("Products Overview", bold=True),
+        Outlet()  # Sub-pages appear here
+    )
+
+products = config.router.add_page(path="products", content=ProductsLayout)
+products.add_page(path="featured", content=Text("Featured Items"))    # /products/featured
+products.add_page(path="sale", content=Text("Items on Sale"))         # /products/sale
+```
+
+This creates:
+```
+/about             -> "About Us"
+/products/featured -> ProductsLayout wrapping "Featured Items"
+/products/sale     -> ProductsLayout wrapping "Items on Sale"
+```
+
+### Index Routes
+
+Index routes are "default" pages that show up at their parent's URL. Think of them as the main page that loads when someone visits a section:
+
+```python
+# Main home page at '/'
+config.router.add_index(content=Text("Welcome to our site"))
+
+# Dashboard with sub-pages needs Outlet
+def DashboardLayout():
+    return Stack(
+        Text("Dashboard", bold=True),
+        Outlet()  # Index and other pages appear here
+    )
+
+dashboard = config.router.add_page(path="dashboard", content=DashboardLayout)
+dashboard.add_index(content=Text("Dashboard Home"))           # default at /dashboard
+dashboard.add_page(path="settings", content=Text("Settings")) # at /dashboard/settings
+```
+
+This creates:
+```
+/           -> "Welcome to our site" (root index)
+/dashboard  -> DashboardLayout wrapping "Dashboard Home" (default content)
+/dashboard/settings -> DashboardLayout wrapping "Settings"
+```
+
+When someone visits `/dashboard`, they see the dashboard layout with "Dashboard Home" in the Outlet.
+
+### Layout Routes
+
+Layout routes wrap other pages with common elements (like headers, sidebars) without changing the URL:
+
+```python
+from dara.core.router import Outlet
+from dara.components import Stack, Text
+
+# Define a layout that wraps content
+def MarketingLayout():
+    return Stack(
+        Text("Marketing Header", bold=True),
+        Outlet(),  # Child pages appear here
+        Text("Marketing Footer")
+    )
+
+# Layout route - no path, just wraps children
+marketing = config.router.add_layout(content=MarketingLayout)
+marketing.add_index(content=Text("Marketing Home"))        # at /
+marketing.add_page(path="features", content=Text("Features"))  # at /features
+```
+
+This creates:
+```
+/         -> MarketingLayout wrapping "Marketing Home"
+/features -> MarketingLayout wrapping "Features"
+```
+
+Both pages show the same header and footer, with different content in the middle.
+
+### Prefix Routes
+
+Prefix routes organize pages under a common URL segment without adding any wrapper layout:
+
+```python
+# Group admin pages under /admin
+admin = config.router.add_prefix(path="admin")
+admin.add_page(path="users", content=Text("Manage Users"))     # /admin/users
+admin.add_page(path="settings", content=Text("Admin Settings")) # /admin/settings
+
+# Group blog pages under /blog
+blog = config.router.add_prefix(path="blog")
+blog.add_index(content=Text("All Blog Posts"))              # /blog
+blog.add_page(path="recent", content=Text("Recent Posts"))   # /blog/recent
+```
+
+This creates:
+```
+/admin/users     -> "Manage Users"
+/admin/settings  -> "Admin Settings"
+/blog            -> "All Blog Posts"
+/blog/recent     -> "Recent Posts"
+```
+
+Unlike layout routes, prefix routes don't wrap content - they just organize URLs.
+
+## Dynamic Routing & Path Parameters
+
+Routes support dynamic segments that capture URL parameters. These parameters are **two-way bound** - they automatically sync between the URL and your Variables:
+
+```python
+from dara.core.interactivity import Variable
+from dara.components import Input, Stack
+
+# Dynamic parameter - :user_id becomes a Variable
+def UserProfile(user_id: Variable[str]):
+    return Stack(
+        Text(f"Viewing user: {user_id}"),
+        # This input is bound to the URL! Typing here changes the URL
+        Input(value=user_id, placeholder="User ID")
+    )
+
+config.router.add_page(path="users/:user_id", content=UserProfile)
+```
+
+**Two-way binding means:**
+- Navigate to `/users/john` → `user_id` Variable becomes "john"
+- Type "jane" in the input → URL automatically becomes `/users/jane`
+- Use `Link(to="/users/bob")` or the navigate action → `user_id` Variable becomes "bob"
+
+### Optional Parameters
+
+Add `?` to make parameters optional:
+
+```python
+from dara.components import If, Paragraph, Text
+
+def BlogPost(post_id: Variable[str], comment_id: Variable[str | None]):
+    return Stack(
+        Text(f"Post: {post_id}"),
+        If(
+            comment_id,
+            Paragraph(Text("Comment:"), Text(comment_id)),
+            Text("No comment selected")
+        )
+    )
+
+config.router.add_page(path="posts/:post_id/:comment_id?", content=BlogPost)
+```
+
+This matches both `/posts/123` and `/posts/123/456`.
+
+### Wildcard Routes (Catch-All)
+
+Use `*` to capture the rest of the path. The parameter name **must be `splat`** (this is reserved):
+
+```python
+def FileViewer(splat: Variable[str]):
+    return Text(f"Viewing file: {splat}")
+
+config.router.add_page(path="files/*", content=FileViewer)
+```
+
+This can be useful e.g. for file browsers or documentation sites:
+- `/files/docs/readme.txt` → `splat` = "docs/readme.txt"
+- `/files/images/photos/vacation.jpg` → `splat` = "images/photos/vacation.jpg"
+
+The wildcard captures everything after `/files/`, letting you handle nested file paths dynamically.
+
+## API Approaches
+
+Dara offers two ways to define your routes, each with its own advantages. You can even mix both approaches in the same application.
+
+### Fluent API (Method Chaining)
+
+The fluent API is great for building routes step by step and when you need to build routes conditionally or programmatically:
+
+```python
+# Building routes incrementally
+config.router.add_index(content=HomePage)
+
+# Easy to build conditionally
+if os.environ.get("ENABLE_BLOG") == "TRUE":
+    blog = config.router.add_prefix(path="blog")
+    blog.add_index(content=BlogHome)
+    blog.add_page(path=":slug", content=BlogPost)
+
+# Great for programmatic route generation
+for category in categories:
+    category_group = config.router.add_prefix(path=category.slug)
+    category_group.add_index(content=CategoryHome(category))
+
+    for product in category.products:
+        category_group.add_page(path=product.slug, content=ProductPage(product))
+```
+
+**Use fluent API when:**
+- Building routes conditionally based on startup time environment configuration
+- Generating routes from data (database, files, etc.) at startup time
+- You prefer a more procedural, step-by-step approach
+- You want to easily modify or extend routes later
+
+### Object API (Declarative)
+
+The object API gives you a complete picture of your route structure at a glance and is more compact:
+
+```python
+from dara.core.router import IndexRoute, PageRoute, PrefixRoute, LayoutRoute
+
+# See the entire structure in one place
+config.router.set_children([
+    IndexRoute(content=HomePage),
+
+    LayoutRoute(content=AuthLayout, children=[
+        PageRoute(path="dashboard", content=Dashboard),
+        PageRoute(path="profile", content=Profile)
+    ]),
+
+    PrefixRoute(path="blog", children=[
+        IndexRoute(content=BlogHome),
+        PageRoute(path=":slug", content=BlogPost)
+    ])
+])
+```
+
+**Use object API when:**
+- You want to see your entire route structure at once
+- You prefer a more declarative, configuration-style approach
+- Your routes are mostly static and defined upfront
+
+## Building Navigation & Layouts
+
+### Navigation Components
+
+For top-level layouts, you'll want to provide navigation links. Dara provides several building blocks:
+
+- **`Link`** - Core navigation component
+- **`SideBarFrame`/`TopBarFrame`** - Convenience frames with slots for navigation links and content
+- **`MenuLink`** - Styled Link tailored for frames (you can achieve the same with Link's `active_css`/`inactive_css`)
+
+### Example: Static Layout with SideBarFrame
+
+```python
+from dara.core.visual.components import SideBarFrame, MenuLink
+from dara.core.router import Outlet
+from dara.components import Stack, Text
+
+def RootLayout():
+    return SideBarFrame(
+        side_bar=Stack(
+            MenuLink(Text("Home"), to="/"),
+            MenuLink(Text("Products"), to="/products"),
+            MenuLink(Text("About"), to="/about"),
+        ),
+        content=Outlet()
+    )
+
+config.router.add_layout(content=RootLayout)
+```
+
+### Example: Custom Navigation Layout
+
+```python
+from dara.core.router import Link, Outlet
+from dara.components import Stack, Text
+
+def CustomLayout():
+    link_active_css = {"background": "gray", "color": "white"}
+    return Stack(
+        # Custom header with navigation
+        Stack(
+            Text("My App", bold=True),
+            Stack(
+                Link(Text("Home"), to="/home", active_css=link_active_css),
+                Link(Text("Products"), to="/products", active_css=link_active_css),
+                Link(Text("About"), to="/about", active_css=link_active_css),
+                direction="horizontal",
+                justify="right"
+            ),
+            direction="horizontal",
+            background="lightgray",
+            padding="1rem",
+            hug=True
+        ),
+        # Main content area
+        Outlet()
+    )
+```
+
+### Dynamic Navigation
+
+Build menus dynamically using route information:
+
+```python
+def DynamicLayout():
+    # Get all navigable routes for menu generation
+    routes = config.router.get_navigable_routes()
+
+    return SideBarFrame(
+        side_bar=Stack(
+            *[MenuLink(Text(route['name']), to=route['path']) for route in routes]
+        ),
+        content=Outlet()
+    )
+```
+
+Note that this lists all routes, including ones that have dynamic parameters.
+For more complex routing, you might want to hand-pick only routes that should be navigable from the menu.
+
+## Advanced Features
+
+### Route Names and IDs
+
+Routes can have human-readable names and unique identifiers:
+
+```python
+config.router.add_page(
+    path="admin",
+    content=AdminPanel,
+    name="Administration Panel",  # Used for window.title - should be human-readable
+    id="admin-panel"              # Internal identifier for API requests - optional
+)
+```
+
+**`name`** - Sets the browser window title when visiting this route. If not provided, Dara generates one from the route path or content function name.
+
+**`id`** - Internal unique identifier used for route mapping (visible in server logs in `/core/api/route/{route_id}` requests). Defaults to an internal UID, but you can provide your own for cleaner logs and debugging.
+
+### Route Metadata
+
+Store arbitrary data with routes for your application logic:
+
+```python
+config.router.add_page(
+    path="admin",
+    content=AdminPanel,
+    metadata={"requires_auth": True, "role": "admin", "section": "management"}
+)
+```
+
+### on_load Actions
+
+Execute actions when routes load - perfect for data initialization or authentication:
+
+```python
+from dara.core import action, py_component
+
+# 1. Initialize variables from backend call
+user_data = Variable()
+
+@action
+async def load_user_data(ctx: action.Ctx):
+    # Action input include params and the route definition
+    profile_id = ctx.input['params']['profile_id']
+    # Fetch from your backend
+    data =  {"name": "John Doe", "email": "john@example.com"}
+    await ctx.update(user_data, data)
+
+config.router.add_page(
+    path="profile/:profile_id",
+    content=UserProfile,
+    on_load=load_user_data()
+)
+
+# 2. Auth check for protected sections
+from dara.core.auth.utils import get_user_data
+
+@action
+async def check_admin_access(ctx: action.Ctx):
+    user_data = get_user_data()
+    assert user_data is not None
+
+    groups = user_data.groups
+
+    # Redirect user back to home page if they're not an admin
+    if 'admin' not in groups:
+        await ctx.navigate('/')
+
+# Apply to layout/prefix routes to protect entire sections
+admin_section = config.router.add_layout(
+    content=AdminLayout,
+    on_load=check_admin_access  # Runs before any admin routes load
+)
+admin_section.add_page(path="admin/users", content=UserManagement)
+admin_section.add_page(path="admin/settings", content=AdminSettings)
+```
+
+### Case Sensitivity and Other Options
+
+```python
+config.router.add_page(
+    path="CaseSensitive",
+    content=MyPage,
+    case_sensitive=True  # /casesensitive won't match
+)
+```
+
+This routing system gives you the flexibility to build everything from simple static sites to complex applications with nested layouts, dynamic parameters, and sophisticated navigation patterns.

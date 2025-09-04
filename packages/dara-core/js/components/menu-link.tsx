@@ -1,9 +1,7 @@
 import { transparentize } from 'polished';
-import { type ReactNode, useContext } from 'react';
+import { type ReactNode } from 'react';
 
 import styled from '@darajs/styled-components';
-
-import { DisplayCtx } from '@/shared';
 
 import Link, { type LinkProps } from './link';
 
@@ -45,10 +43,5 @@ const StyledLink = styled(Link)`
 `;
 
 export default function MenuLink(props: LinkProps): ReactNode {
-    const displayCtx = useContext(DisplayCtx);
-    return (
-        <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
-            <StyledLink {...props}>{props.children}</StyledLink>
-        </DisplayCtx.Provider>
-    );
+    return <StyledLink {...props}>{props.children}</StyledLink>;
 }

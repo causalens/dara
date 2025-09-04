@@ -5,7 +5,7 @@ title: Plotting Palettes
 Dara offers the following 6 custom palettes to be used in your plots, these can be seen in more detail below:
 
 | Light Theme Palettes      | Dark Theme Palettes | Max number of colours available |
-| ----------- | ----------- | ----------- | 
+| ----------- | ----------- | ----------- |
 | CategoricalLight      | CategoricalDark       | 10 |
 | SequentialLight   | SequentialDark        | 10 |
 | PolarisingLight   | PolarisingDark        | 11 |
@@ -50,7 +50,7 @@ def bokeh_plot():
 
 
 config = ConfigurationBuilder()
-config.add_page(name='Bokeh Example', content=bokeh_plot(), icon=get_icon('palette'))
+config.router.add_page(path='bokeh-example', content=bokeh_plot)
 ```
 
 ### Example of using palette with Plotly
@@ -92,6 +92,6 @@ def heatmap_example():
     return Plotly(fig)
 
 config = ConfigurationBuilder()
-config.add_page(name='Plotly Example', content=heatmap_example(), icon=get_icon('palette'))
+config.router.add_page(path='plotly', content=heatmap_example)
 ```
 

@@ -149,6 +149,9 @@ function Bokeh(props: BokehProps): JSX.Element {
         initializeBokeh();
 
         return () => {
+            if (!window.Bokeh) {
+                return;
+            }
             const index = window.Bokeh.documents.findIndex((doc) => doc.roots()[0]!.id === docJson.roots[0]!.id);
             if (index > -1) {
                 const doc = window.Bokeh.documents[index]!;

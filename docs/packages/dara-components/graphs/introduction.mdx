@@ -62,7 +62,7 @@ def causal_graph_viewer_content() -> ComponentInstance:
     )
 
 
-config.add_page(name='CausalGraph', content=causal_graph_viewer_content(), icon=get_icon('diagram-project'))
+config.router.add_page(path='causal-graph', content=causal_graph_viewer_content)
 ```
 
 ![CausalGraphViewer Example](./assets/fcose_graph.png)
@@ -200,8 +200,8 @@ cg.add_edge('A', 'B')
 cg.add_edge('B', 'C')
 
 config = ConfigurationBuilder()
-config.add_page(
-    name='Legends',
+config.router.add_page(
+    path='legends',
     content=CausalGraphViewer(
         causal_graph=cg,
         # Add additional legends to the graph
@@ -249,8 +249,8 @@ cg.add_edge('A', 'B')
 cg.add_edge('B', 'C')
 
 config = ConfigurationBuilder()
-config.add_page(
-    name='Legends',
+config.router.add_page(
+    path='legends',
     content=CausalGraphViewer(
         causal_graph=cg,
         # override the default legends with your own
@@ -448,8 +448,8 @@ CausalGraphViewer(
 )
 ```
 
-When utilizing `SpringLayout`, there is also one more choice, which is to set `group_repel_strength`. 
-This defaults to 2000 and is the force that separates the groups/clusters. So if for example the graph groups appears too crammed 
+When utilizing `SpringLayout`, there is also one more choice, which is to set `group_repel_strength`.
+This defaults to 2000 and is the force that separates the groups/clusters. So if for example the graph groups appears too crammed
 this can be increased. If on the other hand it is too spaced out, this value can be set to something lower.
 
 ```
@@ -582,7 +582,7 @@ cg.add_edge('B', 'D')
 skeleton = cg.skeleton
 
 config = ConfigurationBuilder()
-config.add_page(name='Skeleton Example', content=CausalGraphViewer(causal_graph=skeleton))
+config.router.add_page(path='skeleton', content=CausalGraphViewer(causal_graph=skeleton))
 ```
 
 ![CausalGraphViewer Skeleton Example](./assets/CausalGraphViewerSkeleton.png)
@@ -608,8 +608,8 @@ cg_time.add_edge('X1', 'X3')
 cg_time.add_edge('X2', 'X3')
 
 config = ConfigurationBuilder()
-config.add_page(
-    name='Time Series Example',
+config.router.add_page(
+    path='time-series',
     content=CausalGraphViewer(causal_graph=cg_time, graph_layout=FcoseLayout(orientation='vertical')),
 )
 ```

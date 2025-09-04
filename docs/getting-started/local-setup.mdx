@@ -14,7 +14,7 @@ This page will walk you through the installation of Dara framework and the creat
 There are two prerequisites to being able to use the Dara framework:
 
 - Python v3.8+
-- NodeJS v20+ (Don't worry you don't need to understand any JS, this is used to build the application in production mode)
+- NodeJS v20.19+ (Don't worry - you don't need to understand any JS, this is used to build the application in production mode)
 
 You can install both of these via the Homebrew package manager on MacOS or follow the instructions on their
 websites: [Python](https://www.Python.org/about/gettingstarted/) [node](https://nodejs.org/en/).
@@ -288,9 +288,12 @@ from dara.components import Heading
 # build up the app piece by piece.
 config = ConfigurationBuilder()
 
-# Here you add a single page to the application, with a title of 'Hello World'
-# and the text 'Hello World!' on the page.
-config.add_page('Hello World', Heading('Hello World!'))
+# Here you add ocntent as a page to the application router.
+# You will learn more about the router in later sections.
+config.router.add_page(
+    path='hello-world', # The page will be available at /hello-world (it's the only route so navigating to any other route will redirect to this one)
+    content=Heading('Hello World!'), # The content will be a heading with the text 'Hello World!'
+)
 ```
 
 :::note

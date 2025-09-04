@@ -325,7 +325,7 @@ class TriggerVariable(ActionImpl):
         )
 
 
-    config.add_page(name='Trigger Variable', content=test_page())
+    config.router.add_page(path='trigger', content=test_page)
 
     ```
     """
@@ -364,8 +364,8 @@ class NavigateToImpl(ActionImpl):
         )
 
 
-    config.add_page(name='Test Page', content=test_page())
-    config.add_page(name='Another Page', content=another_page())
+    config.router.add_page(path='test-page', content=test_page)
+    config.router.add_page(path='another-page', content=another_page)
 
     ```
     """
@@ -417,8 +417,8 @@ def NavigateTo(
         )
 
 
-    config.add_page(name='Test Page', content=test_page(), icon=get_icon('shield-dog'))
-    config.add_page(name='Another Page', content=another_page(), icon=get_icon('shield-cat'))
+    config.router.add_page(path='test-page', content=test_page)
+    config.router.add_page(path='another-page', content=another_page)
 
     ```
     """
@@ -473,7 +473,7 @@ def Logout():
         return Stack(Button('Logout', onclick=Logout()))
 
 
-    config.add_page(name='Logout Page', content=test_page())
+    config.router.add_page(path='logout-page', content=test_page)
 
     ```
     """
@@ -511,7 +511,7 @@ class ResetVariables(ActionImpl):
         )
 
 
-    config.add_page(name='ResetVariable', content=test_page(), icon=get_icon('shrimp'))
+    config.router.add_page(path='reset-variable', content=test_page)
 
     ```
 
@@ -565,7 +565,7 @@ class Notify(ActionImpl):
         )
 
 
-    config.add_page(name='Notify Example', content=test_page())
+    config.router.add_page(path='notify-example', content=test_page)
 
     ```
     """
@@ -600,7 +600,7 @@ class DownloadContentImpl(ActionImpl):
         )
 
 
-    config.add_page(name='Download Content', content=test_page)
+    config.router.add_page(path='download-content', content=test_page)
 
     ```
     """
@@ -650,14 +650,14 @@ def DownloadContent(
 
 
     def test_page():
-        return Stack(
-            Button(
-                'Download File', onclick=DownloadContent(resolver=return_csv, extras=[my_var], cleanup_file=False)
-            ),
-        )
+         return Stack(
+             Button(
+                 'Download File', onclick=DownloadContent(resolver=return_csv, extras=[my_var], cleanup_file=False)
+             ),
+         )
 
 
-    config.add_page(name='Download Content', content=test_page)
+    config.router.add_page(path='download-content', content=test_page)
 
     ```
     """
@@ -715,9 +715,9 @@ class DownloadVariable(ActionImpl):
         )
 
 
-    config.add_page(name='Download Variable', content=test_page())
+    config.router.add_page(path='download-variable', content=test_page)
 
-     ```
+    ```
     """
 
     variable: AnyVariable
@@ -764,7 +764,8 @@ def SideEffect(
         return Stack(Select(value=Variable(3), items=[3, 4, 5], onchange=SideEffect(side_effect, extras=[x, y, z])))
 
 
-    config.add_page(name='SideEffect', content=test_page(), icon=get_icon('kiwi-bird'))
+    config.router.add_page(path='side-effect', content=test_page)
+
     ```
     """
 
@@ -937,7 +938,7 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='Trigger Variable', content=test_page())
+        config.router.add_page(path='trigger-variable', content=test_page)
 
         ```
 
@@ -983,8 +984,8 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='Test Page', content=test_page())
-        config.add_page(name='Another Page', content=another_page())
+        config.router.add_page(path='test-page', content=test_page)
+        config.router.add_page(path='another-page', content=another_page)
 
         ```
 
@@ -1014,7 +1015,7 @@ class ActionCtx:
             return Stack(Button('Logout', onclick=logout()))
 
 
-        config.add_page(name='Logout Page', content=test_page())
+        config.router.add_page(path='logout-page', content=test_page)
 
         ```
         """
@@ -1052,7 +1053,7 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='Notify Example', content=test_page())
+        config.router.add_page(path='notify-example', content=test_page)
 
         ```
 
@@ -1097,7 +1098,7 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='ResetVariable', content=test_page(), icon=get_icon('shrimp'))
+        config.router.add_page(path='reset-variable', content=test_page)
 
         ```
 
@@ -1141,7 +1142,7 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='Download Content', content=test_page)
+        config.router.add_page(path='download-content', content=test_page)
 
         ```
 
@@ -1180,7 +1181,7 @@ class ActionCtx:
             )
 
 
-        config.add_page(name='Download Variable', content=test_page())
+        config.router.add_page(path='download-variable', content=test_page)
 
         ```
 
@@ -1229,7 +1230,7 @@ class ActionCtx:
         def task_page():
             return Stack(Text('Status display:'), Text(text=status), Button('Run', onclick=my_task()))
 
-        config.add_page(name='task', content=task_page())
+        config.router.add_page(path='task', content=task_page)
         ```
 
         :param func: the function to run as a task

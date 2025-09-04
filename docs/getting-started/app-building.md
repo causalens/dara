@@ -14,7 +14,7 @@ With the `ConfigurationBuilder` you can do the following:
 
 1. Configure your app's look and feel customizing themes, and the template.
 2. Setup authentication
-3. Add your pages.
+3. Add your pages via the router.
 
 Pages hold the contents of your app while extensions and plugins allow you to include the exact types of content that you want in your pages whether that be basic UI components, Bokeh plots, graph editors, file browsers and more.
 
@@ -29,9 +29,11 @@ config = ConfigurationBuilder()
 # Add authentication
 config.add_auth(BasicAuthConfig(username='test', password='test'))
 
-# Register pages
-config.add_page('Hello World', Heading('Hello World!'))
+# Register page
+config.router.add_page(path='hello-world', content=Heading('Hello World!'))
 ```
+
+With the code above, navigating to any URL in the app will redirect to the `/hello-world` page and display the `Heading` component with the text `Hello World!`.
 
 ### Extensions
 
@@ -81,9 +83,7 @@ my_custom_plugin(config)
 
 ### Pages
 
-Pages hold the contents of your app. They are added with the `add_page` method with a title and the page's content.
-
-By default, your app will use the default Dara template which includes a sidebar for the page menu and a larger panel on the right for the content of each page. Adding a second page is as simple as calling `add_page` a second time.
+Pages hold the contents of your app. They are added with methods available on the `Router` instance - a default router is created for you in the `router` property of the `ConfigurationBuilder` instance.
 
 ```python title=main.py
 from dara.core import ConfigurationBuilder
@@ -93,9 +93,17 @@ from dara.components import Heading, Text
 config = ConfigurationBuilder()
 
 # Register pages
-config.add_page('Hello World', Heading('Hello World!'))
-config.add_page('My Second Page', Text('Hello World, again.'))
+config.router.add_page(path='hello-world', content=Heading('Hello World!'))
+config.router.add_page(path='my-second-page', content=Text('Hello World, again.'))
 ```
+
+You can add your second page by calling `router.add_page` a second time. With the code above, there will be two pages in the app:
+- navigating to `/hello-world` will display the `Heading` component with the text `Hello World!`
+- navigating to `/my-second-page` will display the `Text` component with the text `Hello World, again.`
+- navigating to any other path will redirect back to the first available page, in this case `/hello-world`
+
+For now, you will have to manually navigate to the URLs to see the pages in the app.
+We will cover creating menus and other routing features in detail in the [Routing](./routing.mdx) section.
 
 ### Themes
 

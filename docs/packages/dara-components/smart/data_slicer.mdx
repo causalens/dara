@@ -38,13 +38,13 @@ def display_dataframe(data: DataFrame):
 slicer = DataSlicer(data)
 filtered_data = slicer.get_output()
 
-config.add_page('Slicer', slicer())
-config.add_page('Filtered data usage', display_dataframe(filtered_data))
+config.router.add_page(path='slicer', content=slicer)
+config.router.add_page(path='filtered', content=display_dataframe(filtered_data))
 
 
 # Single-page setup
 slicer_modal = DataSlicerModal(data)
 filtered_modal_data = slicer_modal.get_output()
 
-config.add_page('Page with Slicer', Stack(display_dataframe(filtered_modal_data), slicer_modal()))
+config.router.add_page(path='slicer-page', content=Stack(display_dataframe(filtered_modal_data), slicer_modal()))
 ```

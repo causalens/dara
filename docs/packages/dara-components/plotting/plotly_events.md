@@ -2,7 +2,7 @@
 title: Plotly Events
 ---
 
-Plotly events make it possible to trigger actions based on front-end interactions with Plotly objects such as clicks, mouse hovers, widget or tool interactions, etc. 
+Plotly events make it possible to trigger actions based on front-end interactions with Plotly objects such as clicks, mouse hovers, widget or tool interactions, etc.
 
 ## Setting up a Plotly Event
 
@@ -29,7 +29,7 @@ async def update_some_var(ctx: action.Ctx):
         },
     )
 ```
-In the case of hover and click events the action context will receive an object containing the data points interacted with. 
+In the case of hover and click events the action context will receive an object containing the data points interacted with.
 To obtain the coordinates we can access the first element, this is the singular data point you clicked. And then return the `x` and `y` values.
 
 Finally it comes down to `custom_js` this is in charge of updating the figure based on some event. In this case you want to change the color of a data point. The `custom_js` function receives two arguments that can be accessed. The first is `data` containing the data of the event performed, the data point clicked/hovered, and the second is the `figure`, which defines the graph state.
@@ -112,10 +112,10 @@ def plotly_page_content() -> ComponentInstance:
                 ),
                 Plotly.Event(
                     event_name=Plotly.EventName.HOVER,
-                    custom_js="""                   
+                    custom_js="""
                     const pn = data.points[0].pointNumber;
                     const colors = data.points[0].marker?.color || new Array(figure.data[0].x.length).fill('#3796F6');
-                    
+
                     colors[pn] = '#C54C82';
                     figure.data[0].marker = {...figure.data[0].marker, color: colors};
                     """,
@@ -128,7 +128,7 @@ def plotly_page_content() -> ComponentInstance:
 
 
 config = ConfigurationBuilder()
-config.add_page(
-    name="Plotly", content=plotly_page_content(), icon=get_icon("chart-line")
+config.router.add_page(
+    path="plotly", content=plotly_page_content
 )
 ```
