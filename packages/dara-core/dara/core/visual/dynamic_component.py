@@ -54,7 +54,7 @@ CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 
 class PyComponentInstance(ComponentInstance):
     func_name: str
-    dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
+    dynamic_kwargs: Mapping[str, AnyVariable]
     polling_interval: Optional[int] = None
     js_module: ClassVar[Optional[str]] = None
 

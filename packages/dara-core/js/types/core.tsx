@@ -37,12 +37,18 @@ interface AuthComponents {
     logout: AuthComponent;
 }
 
-interface BaseRouteDefinition {
+export interface DependencyGraph {
+    derived_variables: Record<string, DerivedVariable>;
+    py_components: Record<string, PyComponentInstance>;
+}
+
+export interface BaseRouteDefinition {
     case_sensitive: boolean;
     id: string;
     full_path: string;
     name?: string;
     on_load?: Action;
+    dependency_graph?: DependencyGraph;
 }
 
 export interface IndexRouteDefinition extends BaseRouteDefinition {
@@ -351,6 +357,15 @@ export interface ComponentInstance<Props = BaseComponentProps> {
      * */
     loop_instance_uid?: string;
 }
+
+export type PyComponentInstance = ComponentInstance<
+    BaseComponentProps & {
+        func_name: string;
+        dynamic_kwargs: Record<string, AnyVariable<any>>;
+        js_module: string | null;
+        polling_interval: number | null;
+    }
+>;
 
 export interface RawString extends ComponentInstance<{ content: string }> {
     name: 'RawString';
