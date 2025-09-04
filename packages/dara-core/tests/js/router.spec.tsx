@@ -1,4 +1,4 @@
-import { findFirstPath } from '@/shared/router';
+import { findFirstPath } from '@/router';
 import type { RouteDefinition } from '@/types/core';
 
 describe('findFirstPath', () => {

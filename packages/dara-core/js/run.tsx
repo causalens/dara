@@ -1,23 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NProgress from 'nprogress';
-import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RouterProvider } from 'react-router/dom';
-import { RecoilRoot, useRecoilSnapshot } from 'recoil';
+import { RecoilRoot } from 'recoil';
 
 import { ThemeProvider } from '@darajs/styled-components';
 import { ErrorBoundary } from '@darajs/ui-components';
-import { useLatestRef } from '@darajs/ui-utils';
 
 import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 
 import type { WebSocketClientInterface } from './api';
 import './index.css';
+import RouterRoot from './router/router-root';
 import { DirectionCtx, ImportersCtx, resolveTheme } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { preloadActions } from './shared/interactivity/use-action';
-import { createRouter } from './shared/router';
 import type { DaraData } from './types';
 
 declare global {
@@ -55,15 +52,6 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         preloadActions(importers, Object.values(daraData.actions)),
     ]);
 
-    function RouterRoot(): JSX.Element {
-        const snapshot = useRecoilSnapshot();
-        const snapshotRef = useLatestRef(snapshot);
-
-        const [router] = useState(() => createRouter(daraData, queryClient, snapshotRef));
-
-        return <RouterProvider router={router} />;
-    }
-
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
 
     function Root(): JSX.Element {
@@ -76,7 +64,7 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
                                 <DirectionCtx.Provider value={{ direction: 'row' }}>
                                     <RecoilRoot>
                                         <GlobalTaskProvider>
-                                            <RouterRoot />
+                                            <RouterRoot daraData={daraData} />
                                         </GlobalTaskProvider>
                                     </RecoilRoot>
                                 </DirectionCtx.Provider>
