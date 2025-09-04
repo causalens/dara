@@ -118,7 +118,7 @@ Your app will be a blank page with the text `Hello World!` on it.
 
 ### Menu
 
-Your are off to a good start but we can do better. As we add more pages, we will want the user to be able to navigate to them easily - currently, the only way to do this would be to navigate to the right URL manually.
+You are off to a good start but we can do better. As we add more pages, we will want the user to be able to navigate to them easily - currently, the only way to do this would be to navigate to the right URL manually.
 Fortunately, Dara provides building blocks to help you build a menu for your app with ease.
 
 The following code will wrap your application in a layout with a sidebar menu:
@@ -145,6 +145,7 @@ root.add_page(path='hello-world', content=Heading('Hello World!'))
 
 Notice how we are using `router.add_layout` to wrap the entire application in a layout built using prebuilt sidebar and menu link components.
 The returned value of the function is a `LayoutRoute` - rather than adding our "hello-world" page to the router directly, we now nest it under that layout.
+The `Outlet` component acts as a placeholder for the content of the current page.
 
 
 With the above code, your application will look like the following:
