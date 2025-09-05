@@ -21,7 +21,7 @@ function Heading(props: HeadingProps): JSX.Element {
             $rawCss={css}
             as={tag}
             className={props.className}
-            id={anchorName(heading)}
+            id={props.id_ ?? anchorName(heading)}
             style={{ color: theme.colors.text, textAlign: props.align as any, ...style }}
         >
             {heading}

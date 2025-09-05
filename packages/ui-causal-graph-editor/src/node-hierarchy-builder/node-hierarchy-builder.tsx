@@ -93,6 +93,8 @@ export interface NodeHierarchyBuilderProps<T> {
     viewOnly?: boolean;
     /** Optional whether to wrap text within nodes */
     wrapNodeText?: boolean;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -252,7 +254,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
                             value={searchInput}
                         />
                     </SearchWrapper>
-                    <NodesWrapper ref={layersWrapperRef}>
+                    <NodesWrapper ref={layersWrapperRef} id={props.id}>
                         {hierarchyData.map((layer, idx) => (
                             <Fragment key={layer.id}>
                                 <Layer

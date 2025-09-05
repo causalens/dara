@@ -78,6 +78,7 @@ function Accordion(props: AccordionProps): JSX.Element {
             onChange={handleChange as any}
             style={style}
             value={value}
+            id={props.id_}
         />
     );
 }

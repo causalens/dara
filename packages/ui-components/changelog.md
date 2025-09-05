@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Set the `id_` property as the default id to all components in the library to allow for more precise identification of components
+
+
 ## 1.20.0
 
 - Fixed an issue where `SectionedList` would not update the input value when clicking on an item.

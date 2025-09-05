@@ -41,6 +41,7 @@ function Column(props: ColumnProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
         <StyledColumn
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             direction={props.direction}

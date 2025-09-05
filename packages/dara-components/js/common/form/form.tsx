@@ -81,7 +81,7 @@ function Form(props: FormProps): JSX.Element {
 
     return (
         <FormCtx.Provider value={{ formValues: formState, resolveInitialValue, updateForm: updateForm as any }}>
-            <StyledForm $rawCss={css} className={props.className} style={style}>
+            <StyledForm $rawCss={css} className={props.className} style={style} id={props.id_}>
                 {pages.length === 0 && (
                     <FormWrapper style={{ alignItems: props.align, justifyContent: props.justify }}>
                         {props.children.map((child, idx) => (

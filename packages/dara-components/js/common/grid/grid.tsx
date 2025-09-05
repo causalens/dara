@@ -55,6 +55,7 @@ function Grid(props: GridProps): JSX.Element {
 
     return (
         <StyledGrid
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             style={{

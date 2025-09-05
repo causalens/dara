@@ -16,6 +16,8 @@ interface MarkdownProps extends Options {
     className?: string;
     /** Native react style property, can be used to fine tune the element appearance */
     style?: React.CSSProperties;
+    /** Optional id property */
+    id?: string;
 }
 
 const CustomMarkdownWrapper = styled.div`
@@ -151,7 +153,7 @@ const CustomMarkdownWrapper = styled.div`
 
     /* don't apply default styles if the pre block has the pretty code display */
     /* stylelint-disable-next-line */
-    pre:not(.prism-code):not(:has(.prism-code)) {
+    pre:not(.prism-code, :has(.prism-code)) {
         overflow-x: auto;
 
         margin-top: 1.7rem;
@@ -379,7 +381,7 @@ function Markdown(props: MarkdownProps): JSX.Element {
     const { markdown, className, style, ...reactMarkdownProps } = props;
 
     return (
-        <CustomMarkdownWrapper className={className} style={style}>
+        <CustomMarkdownWrapper className={className} style={style} id={props.id}>
             <ReactMarkdown
                 {...reactMarkdownProps}
                 components={{

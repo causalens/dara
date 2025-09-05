@@ -73,6 +73,7 @@ function NodeHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
 
     return (
         <StyledHierarchyBuilder
+            id={props.id_}
             $rawCss={css}
             nodeFontSize={props.node_font_size}
             nodeSize={props.node_size}

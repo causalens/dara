@@ -284,6 +284,7 @@ export interface BaseComponentProps {
     raw_css?: React.CSSProperties | string;
     style?: React.CSSProperties;
     track_progress?: boolean;
+    id_?: string;
 }
 
 /**

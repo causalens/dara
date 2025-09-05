@@ -16,8 +16,8 @@
  */
 import debounce from 'lodash/debounce';
 import noop from 'lodash/noop';
-import { useEffect, useMemo, useState } from 'react';
 import * as React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
 import { Dots, Spinner, Tooltip } from '@darajs/ui-components';
@@ -175,6 +175,8 @@ export interface CausalGraphEditorProps extends Settings {
     tooltipSize?: number;
     /** Optional parameter to specify when parts of the graph should be hidden. */
     zoomThresholds?: ZoomThresholds;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -716,7 +718,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     // if the graph is not editable and there are no nodes, there's nothing to display so show a message
     if (!props.editable && Object.keys(props.graphData?.nodes).length === 0) {
         return (
-            <Wrapper style={props.style}>
+            <Wrapper style={props.style} id={props.id}>
                 <Center style={{ height: 300 }}>The CausalGraph structure is empty.</Center>
             </Wrapper>
         );
@@ -737,7 +739,13 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
             }}
         >
             <PointerContext.Provider value={{ disablePointerEvents: isDragging, onPanelEnter, onPanelExit }}>
-                <GraphPane $hasFocus={hasFocus} onClick={() => onPaneFocus(true)} ref={paneRef} style={props.style}>
+                <GraphPane
+                    $hasFocus={hasFocus}
+                    onClick={() => onPaneFocus(true)}
+                    ref={paneRef}
+                    style={props.style}
+                    id={props.id}
+                >
                     <Graph onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
                         <Overlay
                             bottomLeft={

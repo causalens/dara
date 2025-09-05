@@ -20,7 +20,7 @@ function BulletList(props: BulletListProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const tag = (props.numbered ? 'ol' : 'ul') as keyof JSX.IntrinsicElements;
     return (
-        <StyledTag $rawCss={css} as={tag} style={style}>
+        <StyledTag $rawCss={css} as={tag} style={style} id={props.id_}>
             {items.map((item: string, index: number) => (
                 <li key={`li-${index}`} style={{ textAlign: 'left' }}>
                     {item}

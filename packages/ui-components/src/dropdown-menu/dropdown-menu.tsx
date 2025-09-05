@@ -145,6 +145,8 @@ export type DropdownMenuProps = {
      * This is useful for displaying additional information in the dropdown.
      */
     footer?: React.ReactNode;
+    /** Optional id property */
+    id?: string;
 };
 
 interface DropdownProps {
@@ -161,13 +163,15 @@ interface DropdownProps {
      * This is useful for displaying additional information in the dropdown.
      */
     footer?: React.ReactNode;
+    /** Optional id property */
+    id?: string;
 }
 
 export const Dropdown = (props: DropdownProps): JSX.Element => {
     const { menuItems, onClick } = props;
 
     return (
-        <DropdownMenu>
+        <DropdownMenu id={props.id}>
             {menuItems.map((section: MenuItem[], index) => (
                 <React.Fragment key={`dropdown-section-${index}`}>
                     {section.map((item: MenuItem, itemIndex) => (

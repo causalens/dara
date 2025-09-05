@@ -32,7 +32,7 @@ function FormPage(props: FormPageProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
 
     return (
-        <StyledWrapper $rawCss={css} className={props.className} style={style}>
+        <StyledWrapper $rawCss={css} className={props.className} id={props.id_} style={style}>
             {props.title && <PageTitle>{props.title}</PageTitle>}
             {props.children.map((child, idx) => (
                 <DynamicComponent component={child} key={`form-page-${idx}-${child.uid}`} />

@@ -194,6 +194,8 @@ export interface CarouselProps {
     style?: React.CSSProperties;
     /** The value of the carousel */
     value?: number;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -228,7 +230,7 @@ function Carousel(props: CarouselProps): JSX.Element {
     }, [props.value]);
 
     return (
-        <CarouselComponent className={props.className} style={props.style}>
+        <CarouselComponent className={props.className} id={props.id} style={props.style}>
             <Button
                 data-testid="carousel-left-button"
                 onClick={() => {

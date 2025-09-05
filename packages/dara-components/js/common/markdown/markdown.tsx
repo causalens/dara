@@ -81,6 +81,7 @@ function Markdown(props: MarkdownProps): JSX.Element {
 
     return (
         <CustomMarkdown
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             style={style}

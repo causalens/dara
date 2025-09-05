@@ -34,6 +34,7 @@ function Tooltip(props: TooltipProps): JSX.Element {
 
     return (
         <StyledTooltip
+            id={props.id_}
             $rawCss={css}
             content={
                 typeof content === 'string' ? content : (

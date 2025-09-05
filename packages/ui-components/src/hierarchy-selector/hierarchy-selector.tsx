@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useEffect, useState } from 'react';
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
 
@@ -48,6 +48,8 @@ interface HierarchySelectorProps {
     selected?: string;
     /** Pass through of the style to the root container */
     style?: React.CSSProperties;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -79,7 +81,7 @@ function HierarchySelector(props: HierarchySelectorProps): JSX.Element {
 
     const { label, id, children } = props.rootNode;
     return (
-        <Wrapper className={props.className} style={props.style}>
+        <Wrapper className={props.className} style={props.style} id={props.id}>
             <Root>
                 <CircleIcon selected={id === selectedNodeId} />
                 <Cell

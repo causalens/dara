@@ -144,6 +144,8 @@ export interface ComponentSelectListProps {
     selectedItems?: Array<string>;
     /** Pass through of style property to the root element */
     style?: React.CSSProperties;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -174,6 +176,7 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
     return (
         <Wrapper
             className={props.className}
+            id={props.id}
             itemsPerRow={props.itemsPerRow && props.itemsPerRow > 0 ? props.itemsPerRow : 3}
             style={props.style}
         >

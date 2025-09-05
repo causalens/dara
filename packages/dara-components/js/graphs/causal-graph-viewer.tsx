@@ -109,6 +109,7 @@ function CausalGraphViewer(props: CausalGraphViewerProps): React.ReactNode {
 
     return (
         <StyledGraphViewer
+            id={props.id_}
             $rawCss={css}
             additionalLegends={formattedAdditionalLegends}
             allowSelectionWhenNotEditable={props.allow_selection_when_not_editable}

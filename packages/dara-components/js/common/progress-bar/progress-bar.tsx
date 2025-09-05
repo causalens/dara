@@ -28,7 +28,7 @@ function ProgressBar(props: ProgressBarProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     const [progress] = useVariable(props.progress);
     return (
-        <StyledProgressBar $rawCss={css} style={style}>
+        <StyledProgressBar $rawCss={css} style={style} id={props.id_}>
             <UiProgressBar color={props.color} progress={progress} small={props.small} />
         </StyledProgressBar>
     );

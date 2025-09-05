@@ -18,6 +18,7 @@ function Code(props: CodeProps): JSX.Element {
 
     return (
         <StyledCodeViewer
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             value={code}

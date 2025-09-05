@@ -25,7 +25,7 @@ function Image(props: ImageProps): JSX.Element {
     const source = prependBaseUrl(props.src);
 
     return (
-        <StyledImg $rawCss={css} style={style}>
+        <StyledImg $rawCss={css} style={style} id={props.id_}>
             <img alt={`Could not load ${source}`} loading="lazy" src={source} />
         </StyledImg>
     );

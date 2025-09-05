@@ -20,7 +20,7 @@ const StyledP = injectCss('p');
 function Paragraph(props: ParagraphProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
-        <StyledP $rawCss={css} className={props.className} style={{ textAlign: props.align, ...style }}>
+        <StyledP $rawCss={css} className={props.className} style={{ textAlign: props.align, ...style }} id={props.id_}>
             <DisplayCtx.Provider value={{ component: ComponentType.PARAGRAPH, direction: 'horizontal' }}>
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={`stack-${idx}-${child.name}`} />

@@ -14,6 +14,7 @@ function Icon(props: IconProps): JSX.Element {
 
     return (
         <IconComponent
+            id={props.id_}
             $rawCss={css}
             style={{ alignItems: 'center', display: 'flex', ...validStyle, color: props.color }}
         />

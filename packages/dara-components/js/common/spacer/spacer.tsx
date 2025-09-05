@@ -1,5 +1,5 @@
-import { useContext } from 'react';
 import * as React from 'react';
+import { useContext } from 'react';
 
 import { DisplayCtx, type StyledComponentProps, injectCss, useComponentStyles } from '@darajs/core';
 import styled from '@darajs/styled-components';
@@ -47,7 +47,14 @@ function Spacer(props: SpacerProps): JSX.Element {
     const displayCtx = useContext(DisplayCtx);
     const isHStack = displayCtx.direction === 'horizontal';
     return (
-        <StyledSpacer $rawCss={css} className={props.className} isHStack={isHStack} size={props.size} style={style}>
+        <StyledSpacer
+            $rawCss={css}
+            className={props.className}
+            isHStack={isHStack}
+            size={props.size}
+            style={style}
+            id={props.id_}
+        >
             {props.line && <StyledLine inset={props.inset} isHStack={isHStack} />}
         </StyledSpacer>
     );

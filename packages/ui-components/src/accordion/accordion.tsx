@@ -52,6 +52,8 @@ export interface AccordionProps {
     style?: React.CSSProperties;
     /** Optional prop to put the component in controlled mode */
     value?: Array<number> | number;
+    /** Optional id property */
+    id?: string;
 }
 
 function getInitialOpen(
@@ -91,6 +93,7 @@ function Accordion({
     multi = true,
     onChange,
     value,
+    id,
 }: AccordionProps): JSX.Element {
     const [openItems, setOpenItems] = useState<boolean[]>(getInitialOpen(initialOpenItems, value, items));
 
@@ -129,7 +132,7 @@ function Accordion({
     }, [value]);
 
     return (
-        <AccordionWrapper className={className} style={style}>
+        <AccordionWrapper className={className} id={id} style={style}>
             {items.map((item, index) => (
                 <AccordionItem
                     backgroundColor={backgroundColor}

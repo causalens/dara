@@ -68,7 +68,7 @@ function Anchor(props: AnchorProps): JSX.Element {
             as={AsComponent}
             className={props.clean ? 'report-clean-anchor' : props.className}
             href={props.href}
-            id={props.name}
+            id={props.id_ ?? props.name}
             rel="noreferrer"
             style={style}
             target={props.new_tab ? '_blank' : '_self'}

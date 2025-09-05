@@ -76,6 +76,7 @@ function Carousel(props: CarouselProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
         <StyledCarousel
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             items={remappedItems}
