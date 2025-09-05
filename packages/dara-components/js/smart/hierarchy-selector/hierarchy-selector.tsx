@@ -27,6 +27,7 @@ function HierarchySelector(props: HierarchySelectorProps): JSX.Element {
     const [selected, setValue] = useVariable(props.value);
     return (
         <StyledHierarchySelector
+            id={props.id_}
             $rawCss={css}
             allowSelectCategory={props.allow_category_select}
             allowSelectLeaf={props.allow_leaf_select}

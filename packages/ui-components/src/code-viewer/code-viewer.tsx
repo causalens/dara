@@ -65,6 +65,8 @@ export interface CodeViewerProps extends InteractiveComponentProps<string> {
     language: Language;
     /** The code theme to display */
     codeTheme?: CodeComponentThemes;
+    /** Optional id property */
+    id?: string;
 }
 
 const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
@@ -120,6 +122,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                 ...props.style,
             }}
             className={props.className}
+            id={props.id}
         >
             <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
                 <span>{props.language}</span>

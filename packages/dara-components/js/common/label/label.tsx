@@ -39,6 +39,7 @@ function Label(props: LabelProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
         <StyledLabel
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             style={{

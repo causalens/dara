@@ -733,6 +733,7 @@ function Table(props: TableProps): JSX.Element {
 
     return (
         <TableWrapper
+            id={props.id_}
             $rawCss={css}
             style={{
                 display: 'flex',

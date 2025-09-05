@@ -391,6 +391,7 @@ function Plotly(props: PlotlyProps): JSX.Element {
 
     return (
         <StyledPlotly
+            id={props.id_}
             $rawCss={css}
             style={{
                 flex: '1 1 auto',

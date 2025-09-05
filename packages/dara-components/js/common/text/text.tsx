@@ -40,6 +40,7 @@ function Text(props: TextProps): JSX.Element {
     if (['anchor', 'paragraph'].includes(display_ctx.component ?? '')) {
         return (
             <StyledSpan
+                id={props.id_}
                 $rawCss={css}
                 className={props.className}
                 style={{
@@ -61,6 +62,7 @@ function Text(props: TextProps): JSX.Element {
     const tag = props.formatted ? 'pre' : 'div';
     return (
         <StyledTag
+            id={props.id_}
             $rawCss={css}
             as={tag}
             className={props.className}

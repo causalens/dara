@@ -57,6 +57,7 @@ function Overlay(props: OverlayProps): JSX.Element {
     const [show] = useVariable(props.show || true);
     return (
         <OverlayWrapper
+            id={props.id_}
             $rawCss={css}
             margin={props.margin}
             padding={props.padding}

@@ -61,7 +61,7 @@ function Bokeh(props: BokehProps): JSX.Element {
 
     const docJson = useMemo<DocJson>(() => JSON.parse(props.document), [props.document]);
     const rootId = useMemo(() => docJson.roots[0]!.id, [docJson]);
-    const id = useId();
+    const id = props.id_ ?? useId();
 
     const events: [string, (...args: any) => any][] = [];
 

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Set the `id_` property as the default id to all components in the library to allow for more precise identification of components
+
 ## 1.13.1
 
 -   Fixed an issue where nodes and edges would sometimes not show in `CausalGraphEditor`

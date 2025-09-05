@@ -24,6 +24,7 @@ function HtmlRaw(props: HtmlRawProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
         <Wrapper
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             // bearer:disable javascript_react_dangerously_set_inner_html

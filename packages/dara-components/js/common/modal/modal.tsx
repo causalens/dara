@@ -33,6 +33,7 @@ function Modal(props: ModalProps): JSX.Element {
 
     return (
         <StyledModal
+            id={props.id_}
             $rawCss={css}
             onAttemptClose={onAttemptClose}
             render={show}

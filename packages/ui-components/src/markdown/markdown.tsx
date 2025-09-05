@@ -16,6 +16,8 @@ interface MarkdownProps extends Options {
     className?: string;
     /** Native react style property, can be used to fine tune the element appearance */
     style?: React.CSSProperties;
+    /** Optional id property */
+    id?: string;
 }
 
 const CustomMarkdownWrapper = styled.div`
@@ -379,7 +381,7 @@ function Markdown(props: MarkdownProps): JSX.Element {
     const { markdown, className, style, ...reactMarkdownProps } = props;
 
     return (
-        <CustomMarkdownWrapper className={className} style={style}>
+        <CustomMarkdownWrapper className={className} style={style} id={props.id}>
             <ReactMarkdown
                 {...reactMarkdownProps}
                 components={{

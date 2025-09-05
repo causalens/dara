@@ -72,6 +72,7 @@ function Link(props: LinkProps): React.ReactNode {
     return (
         <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
             <StyledNavLink
+                id={props.id_}
                 className={props.className}
                 to={props.to}
                 end={props.end}

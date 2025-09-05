@@ -57,6 +57,7 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
 
     return (
         <StyledStack
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             data-type="children-wrapper"

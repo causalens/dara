@@ -108,6 +108,8 @@ export interface TooltipProps {
     styling?: 'default' | 'error';
     /** Optional parameter that sets tooltip visibility to be in controlled mode */
     visible?: boolean;
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -254,6 +256,7 @@ function Tooltip({
                 {...getFloatingProps()}
             >
                 <TooltipWrapper
+                    id={id}
                     $hidden={false}
                     className={className}
                     style={style}

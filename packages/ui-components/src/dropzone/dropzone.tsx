@@ -72,7 +72,9 @@ export interface UploadDropzoneProps {
         event: DragEvent | Event
     ) => void | Promise<void>;
     /** Styling property */
-    style?: React.CSSProperties;
+    style?: React.CSSProperties
+    /** Optional id property */
+    id?: string;
 }
 
 /**
@@ -103,7 +105,7 @@ function UploadDropzone(props: UploadDropzoneProps): JSX.Element {
     });
 
     return (
-        <Dropzone {...getRootProps()} className={props.className} isDragActive={isDragActive} style={props.style}>
+        <Dropzone {...getRootProps()} className={props.className} id={props.id} isDragActive={isDragActive} style={props.style}>
             <input {...getInputProps()} />
             <DropzoneMessage>
                 Drop your file, <br />

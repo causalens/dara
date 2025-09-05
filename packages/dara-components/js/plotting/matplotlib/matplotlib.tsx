@@ -15,6 +15,7 @@ function Matplotlib(props: MatplotlibProps): JSX.Element {
     const [style, css] = useComponentStyles(props);
     return (
         <StyledImg
+            id={props.id_}
             $rawCss={css}
             alt="Matplotlib graph"
             src={`data:image/svg+xml;base64,${props.figure}`}

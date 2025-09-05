@@ -63,6 +63,7 @@ function DropdownMenu(props: DropdownMenuProps): JSX.Element {
 
     return (
         <UIDropdownMenu
+            id={props.id_}
             onClick={onClick}
             menuItems={menuItems}
             button={<Button {...props.button.props} />}

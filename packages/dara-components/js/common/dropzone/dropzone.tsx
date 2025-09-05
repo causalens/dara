@@ -165,6 +165,7 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
     }
     return (
         <StyledDropzone
+            id={props.id_}
             $rawCss={css}
             accept={props.accept}
             enablePaste={props.enable_paste}

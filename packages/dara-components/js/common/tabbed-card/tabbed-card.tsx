@@ -98,7 +98,7 @@ function TabbedCard(props: TabbedCardProps): JSX.Element {
     };
 
     return (
-        <TabbedCardWrapper $rawCss={css} style={style}>
+        <TabbedCardWrapper $rawCss={css} style={style} id={props.id_}>
             <Tabs<Tab> onSelectTab={onSelectTab as any} selectedTab={selectedTab} tabs={tabs} />
             <Card data-active-tab={selectedTab.title} data-type="children-wrapper">
                 <DisplayCtx.Provider value={{ component: 'tabbedcard', direction: 'vertical' }}>

@@ -34,6 +34,7 @@ function CodeEditor(props: CodeEditorProps): JSX.Element {
 
     return (
         <StyledCodeEditor
+            id={props.id_}
             $rawCss={css}
             initialValue={script}
             onChange={onChange}

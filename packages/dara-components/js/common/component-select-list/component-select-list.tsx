@@ -57,6 +57,7 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
 
     return (
         <StyledComponentSelectList
+            id={props.id_}
             $rawCss={css}
             items={remappedItems}
             itemsPerRow={props.items_per_row}

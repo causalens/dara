@@ -247,7 +247,7 @@ export default function plotComponentFactory(Plotly) {
         render() {
             return (
                 <div
-                    id={this.props.divId}
+                    id={this.props.id_ ?? this.props.divId}
                     style={this.props.style}
                     ref={this.getRef}
                     className={this.props.className}

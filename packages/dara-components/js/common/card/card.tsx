@@ -100,7 +100,7 @@ function Card(props: CardProps): JSX.Element {
     const [subtitle] = useVariable(props.subtitle);
     const [style, css] = useComponentStyles(props);
     return (
-        <CardDiv $rawCss={css} accent={props.accent} style={style}>
+        <CardDiv $rawCss={css} accent={props.accent} style={style} id={props.id_}>
             {title && <Title>{title}</Title>}
             {subtitle && <Subtitle hasTitle={props.title !== null}>{subtitle}</Subtitle>}
             <ChildrenWrapper

@@ -29,6 +29,7 @@ function HierarchyViewer(props: HierarchyViewerProps): JSX.Element {
 
     return (
         <StyledHierarchyViewer
+            id={props.id_}
             $rawCss={css}
             allowLeafClick={props.allow_leaf_click}
             allowParentClick={props.allow_parent_click}
