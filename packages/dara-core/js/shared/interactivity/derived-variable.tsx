@@ -37,7 +37,7 @@ import {
     isVariable,
 } from '@/types';
 
-import { type Deferred, deferred } from '../utils';
+import { type Deferred, deferred } from '../utils/deferred';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {

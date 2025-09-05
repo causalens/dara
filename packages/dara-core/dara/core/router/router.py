@@ -1,7 +1,7 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, TypedDict, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -18,7 +18,6 @@ from pydantic import (
 from dara.core.base_definitions import Action
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import Variable
-from dara.core.interactivity.derived_variable import DerivedVariable
 from dara.core.persistence import PersistenceStore  # noqa: F401
 
 from .dependency_graph import DependencyGraph

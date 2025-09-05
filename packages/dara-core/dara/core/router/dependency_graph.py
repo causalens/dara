@@ -51,13 +51,12 @@ def _analyze_component_dependencies(component: ComponentInstance, graph: Depende
             graph.derived_variables[value.uid] = value
         elif isinstance(value, PyComponentInstance) and value.uid not in graph.py_components:
             graph.py_components[value.uid] = value
-        else:
-            # Recursion cases:
-            # component instances
-            if isinstance(value, ComponentInstance):
-                _analyze_component_dependencies(value, graph)
-            # component lists
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, ComponentInstance):
-                        _analyze_component_dependencies(item, graph)
+        # Recursion cases:
+        # component instances
+        elif isinstance(value, ComponentInstance):
+            _analyze_component_dependencies(value, graph)
+        # component lists
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, ComponentInstance):
+                    _analyze_component_dependencies(item, graph)

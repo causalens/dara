@@ -33,7 +33,7 @@ import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { preloadDerivedValue, resolveDerivedValue } from './derived-variable';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
-import { cleanKwargs, resolveVariable, resolveVariableStatic } from './resolve-variable';
+import { cleanKwargs, resolveVariable } from './resolve-variable';
 import {
     type TriggerIndexValue,
     atomRegistry,
@@ -221,9 +221,7 @@ function getOrRegisterServerComponent({
                         let shouldFetchTask = false;
 
                         if (derivedResult.type === 'cached') {
-                            console.log('PY GOT CACHED', derivedResult);
                             const response = await derivedResult.response;
-                            console.log('PY GOT RESPONSE', response);
                             shouldFetchTask = true;
                             if (!response.ok) {
                                 throwError(new Error(response.value));

@@ -11,7 +11,7 @@ import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 import type { WebSocketClientInterface } from './api';
 import './index.css';
 import RouterRoot from './router/router-root';
-import { deferred, type Deferred, DirectionCtx, ImportersCtx, resolveTheme } from './shared';
+import { type Deferred, DirectionCtx, ImportersCtx, deferred, resolveTheme } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { preloadActions } from './shared/interactivity/use-action';

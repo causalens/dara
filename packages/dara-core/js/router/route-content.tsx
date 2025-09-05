@@ -4,13 +4,13 @@ import { Await, type LoaderFunctionArgs, useLoaderData, useMatches } from 'react
 import { type Snapshot } from 'recoil';
 
 import { DefaultFallbackStatic } from '@/components/fallback/default';
+import { depsRegistry } from '@/shared';
 import { type RouteDefinition, isAnnotatedAction } from '@/types';
 
 import DynamicComponent from '../shared/dynamic-component/dynamic-component';
 import { useExecuteAction } from '../shared/interactivity/use-action';
 import { useWindowTitle } from '../shared/utils';
 import { type LoaderData, fetchRouteData, getFromPreloadCache } from './fetching';
-import { depsRegistry } from '@/shared';
 
 export interface LoaderResult {
     data: LoaderData | Promise<LoaderData>;
@@ -40,7 +40,6 @@ export function createRouteLoader(route: RouteDefinition, snapshotRef: React.Mut
         let result: LoaderData | Promise<LoaderData> | undefined = getFromPreloadCache(route.id, params);
 
         if (!result) {
-            console.log('Route cache miss, fetching', route.full_path);
             // Not in cache, fetch fresh data
             // Note: loader-initiated requests are NOT cached
             result = fetchRouteData(route, params, snapshotRef.current, loaderRequest.signal);
@@ -64,7 +63,9 @@ function Content({
     route: RouteDefinition;
 }): React.ReactNode {
     const executeAction = useExecuteAction();
-    const [isLoading, setIsLoading] = React.useState(on_load.length > 0 || py_components.length > 0 || derived_variables.length > 0);
+    const [isLoading, setIsLoading] = React.useState(
+        on_load.length > 0 || py_components.length > 0 || derived_variables.length > 0
+    );
 
     React.useLayoutEffect(() => {
         if (on_load.length === 0 && py_components.length === 0 && derived_variables.length === 0) {
@@ -73,7 +74,6 @@ function Content({
 
         // put the pre-computed promises into the deps registry
         for (const resultHandle of [...py_components, ...derived_variables]) {
-            console.log('setting cache', resultHandle.result.depsKey, resultHandle.result.values);
             depsRegistry.set(resultHandle.result.depsKey, {
                 args: resultHandle.result.relevantValues,
                 result: resultHandle.handle.promise,
@@ -107,7 +107,7 @@ function Content({
         return () => {
             cancelled = true;
         };
-    }, [route.id, on_load, executeAction, py_components.length, derived_variables.length]);
+    }, [route.id, on_load, executeAction, py_components, derived_variables]);
 
     // only sync title for the most exact route
     const matches = useMatches();

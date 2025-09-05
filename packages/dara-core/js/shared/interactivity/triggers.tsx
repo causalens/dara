@@ -1,4 +1,4 @@
-import { type RecoilState, type Snapshot, atom, useRecoilValue } from 'recoil';
+import { type RecoilState, type Snapshot, atom } from 'recoil';
 
 import { type DerivedVariable, isDerivedVariable } from '@/types';
 

@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import asyncio
 import inspect
 import json
 import math
@@ -659,7 +658,9 @@ def create_loader_route(config: Configuration, app: FastAPI):
         # Setup the stream response
         async def stream():
             try:
-                create_chunk = lambda x: json.dumps(x) + '\r\n'
+
+                def create_chunk(x):
+                    return json.dumps(x) + '\r\n'
 
                 # 1. Send the template and actions
                 yield create_chunk(
@@ -677,12 +678,11 @@ def create_loader_route(config: Configuration, app: FastAPI):
                     send_stream, receive_stream = anyio.create_memory_object_stream[Chunk](max_buffer_size=math.inf)
 
                     async def process_derived_state():
-                        async with send_stream:
-                            async with anyio.create_task_group() as tg:
-                                if len(body.derived_variable_payloads) > 0:
-                                    tg.start_soon(process_variables, send_stream)
-                                if len(body.py_component_payloads) > 0:
-                                    tg.start_soon(process_py_components, send_stream)
+                        async with send_stream, anyio.create_task_group() as tg:
+                            if len(body.derived_variable_payloads) > 0:
+                                tg.start_soon(process_variables, send_stream)
+                            if len(body.py_component_payloads) > 0:
+                                tg.start_soon(process_py_components, send_stream)
 
                     async with anyio.create_task_group() as tg:
                         tg.start_soon(process_derived_state)
