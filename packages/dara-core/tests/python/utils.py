@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import json
+import re
 from collections.abc import Awaitable, Mapping
 from contextlib import asynccontextmanager
 from typing import (
@@ -21,6 +22,7 @@ from uuid import uuid4
 import anyio
 import jwt
 from async_asgi_testclient import TestClient as AsyncClient
+from async_asgi_testclient.response import Response
 from async_asgi_testclient.websocket import WebSocketSession
 from typing_extensions import TypedDict
 
@@ -170,13 +172,29 @@ class ActionParam(TypedDict):
     inputs: Dict[str, Any]
 
 
+async def ndjson(response: Response):
+    buffer = ''
+    pattern = re.compile(r'\r?\n')
+    async for chunk in response.iter_content(128, decode_unicode=True):
+        buffer += chunk
+
+        parts = pattern.split(buffer)
+        buffer = parts.pop()
+        for part in parts:
+            yield json.loads(part)
+
+    if len(buffer) > 0:
+        yield json.loads(buffer)
+
+
 async def _get_template(
     client: AsyncClient,
     page_id: str,
     response_ok=True,
     actions: Optional[List[ActionParam]] = None,
     params: Optional[Dict[str, str]] = None,
-) -> Tuple[Mapping, int]:
+    ws_channel: str = 'test_channel',
+) -> Tuple[Any, int]:
     if actions is None:
         actions = []
 
@@ -191,21 +209,17 @@ async def _get_template(
     response = await client.post(
         f'/api/core/route/{page_id}',
         headers=AUTH_HEADERS,
-        json={
-            'action_payloads': action_payloads,
-            'params': params or {},
-        },
+        json={'action_payloads': action_payloads, 'params': params or {}, 'ws_channel': ws_channel},
     )
 
-    if response_ok:
-        assert response.status_code == 200, response.json()
-        res = response.json()
-        template_data = denormalize(res['template']['data'], res['template']['lookup'])
-        res['template'] = template_data
-        return res, response.status_code
+    chunks = []
+    async for chunk in ndjson(response):
+        chunks.append(chunk)
 
-    # If we don't expect response to be 200 don't denormalize
-    return response.json(), response.status_code
+    if response_ok:
+        assert response.status_code == 200
+
+    return chunks, response.status_code
 
 
 async def _get_tabular_derived_variable(
