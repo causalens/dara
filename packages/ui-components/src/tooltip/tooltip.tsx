@@ -133,6 +133,7 @@ function Tooltip({
     hidden = false,
     style,
     delay = 0,
+    id,
     onClickOutside = () => false,
 }: TooltipProps): JSX.Element {
     const [isOpen, setIsOpen] = React.useState(false);
