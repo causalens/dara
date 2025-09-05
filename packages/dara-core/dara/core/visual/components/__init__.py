@@ -35,7 +35,6 @@ from .fallback import (
 from .for_cmp import For, ForDef
 from .invalid_component import InvalidComponent
 from .menu import Menu, MenuDef
-from .menu_link import MenuLink, MenuLinkDef
 from .powered_by_causalens import PoweredByCausalens, PoweredByCausalensDef
 from .progress_tracker import (
     ProgressTracker,
@@ -68,8 +67,6 @@ __all__ = [
     'Fallback',
     'PoweredByCausalens',
     'PoweredByCausalensDef',
-    'MenuLink',
-    'MenuLinkDef',
 ]
 
 for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:

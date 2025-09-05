@@ -210,8 +210,11 @@ export function useFetchTabularDerivedVariable(
             }
 
             const taskResult = await fetchTaskResult<DataResponse>(taskId, extras);
-            previousResult.current = taskResult;
-            return taskResult;
+            if (taskResult.status === 'not_found') {
+                throw new Error('Task result not found');
+            }
+            previousResult.current = taskResult.result;
+            return taskResult.result;
         },
         [variable.uid, variable.variables, dvResult, wsClient, taskContext, extras]
     );

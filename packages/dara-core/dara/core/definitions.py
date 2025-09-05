@@ -123,7 +123,7 @@ class ComponentInstance(BaseModel):
     Definition of a Component Instance
     """
 
-    uid: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    uid: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
     js_module: ClassVar[Optional[str]] = None
     """

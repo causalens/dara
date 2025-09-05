@@ -2,6 +2,7 @@ import * as React from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import styled from 'styled-components';
 
+import { usePreloadRoute } from '@/router/fetching';
 import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import useComponentStyles from '@/shared/utils/use-component-styles';
@@ -11,9 +12,7 @@ export interface LinkProps extends StyledComponentProps {
     className?: string;
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
-    // TODO: not implemented yet
-    // eslint-disable-next-line react/no-unused-prop-types
-    prefetch: NavLinkProps['prefetch'];
+    prefetch?: boolean;
     relative: NavLinkProps['relative'];
     replace: NavLinkProps['replace'];
     to: NavLinkProps['to'];
@@ -30,10 +29,11 @@ const NavLinkWrapper = React.forwardRef(
         props: NavLinkProps & {
             activeStyle?: React.CSSProperties;
             inactiveStyle?: React.CSSProperties;
+            prefetch?: boolean;
         },
         ref: React.Ref<HTMLAnchorElement>
     ) => {
-        const { to, className, style, activeStyle, inactiveStyle, ...rest } = props;
+        const { to, className, style, activeStyle, inactiveStyle, prefetch, ...rest } = props;
         return (
             <NavLink
                 ref={ref}
@@ -69,6 +69,63 @@ function Link(props: LinkProps): React.ReactNode {
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
 
+    // Prefetching approach inspired by SolidJS's router:
+    // https://github.com/solidjs/solid-router/blob/30f08665e87829736a9333d55863d27905f4a92d/src/data/events.ts#L7
+    const preloadRoute = usePreloadRoute();
+    const preloadTimeoutRef = React.useRef<number | null>(null);
+
+    // Clear any existing timeout
+    const clearPreloadTimeout = React.useCallback(() => {
+        if (preloadTimeoutRef.current !== null) {
+            clearTimeout(preloadTimeoutRef.current);
+            preloadTimeoutRef.current = null;
+        }
+    }, []);
+
+    // Immediate preload (for focus/touch events)
+    const handleImmediatePreload = React.useCallback(() => {
+        if (!props.prefetch) {
+            return;
+        }
+
+        preloadRoute(props.to);
+    }, [props.prefetch, preloadRoute, props.to]);
+
+    // Delayed preload (for mouse move events)
+    const handleDelayedPreload = React.useCallback(() => {
+        if (!props.prefetch) {
+            return;
+        }
+
+        // Clear any existing timeout
+        clearPreloadTimeout();
+
+        // Set timeout for delayed preload (20ms)
+        preloadTimeoutRef.current = window.setTimeout(() => {
+            preloadRoute(props.to);
+        }, 20);
+    }, [props.prefetch, props.to, clearPreloadTimeout, preloadRoute]);
+
+    // Event handlers
+    const handleMouseMove = React.useCallback(() => {
+        handleDelayedPreload();
+    }, [handleDelayedPreload]);
+
+    const handleFocus = React.useCallback(() => {
+        handleImmediatePreload();
+    }, [handleImmediatePreload]);
+
+    const handleTouchStart = React.useCallback(() => {
+        handleImmediatePreload();
+    }, [handleImmediatePreload]);
+
+    // Cleanup timeout on unmount
+    React.useEffect(() => {
+        return () => {
+            clearPreloadTimeout();
+        };
+    }, [clearPreloadTimeout]);
+
     return (
         <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
             <StyledNavLink
@@ -76,8 +133,6 @@ function Link(props: LinkProps): React.ReactNode {
                 className={props.className}
                 to={props.to}
                 end={props.end}
-                // TODO: native prefetch doesn't work in Data mode, instead reimplement and call prefetchQuery manually
-                // prefetch={props.prefetch}
                 caseSensitive={props.case_sensitive}
                 replace={props.replace}
                 relative={props.relative}
@@ -86,6 +141,9 @@ function Link(props: LinkProps): React.ReactNode {
                 style={style}
                 activeStyle={activeStyle}
                 inactiveStyle={inactiveStyle}
+                onMouseMove={props.prefetch ? handleMouseMove : undefined}
+                onFocus={props.prefetch ? handleFocus : undefined}
+                onTouchStart={props.prefetch ? handleTouchStart : undefined}
             >
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={idx} />

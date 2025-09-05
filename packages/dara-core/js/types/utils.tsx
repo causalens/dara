@@ -8,6 +8,7 @@ import {
     type Condition,
     type DerivedVariable,
     type LoopVariable,
+    type PyComponentInstance,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
@@ -139,7 +140,7 @@ export function isAnnotatedAction(action: any): action is AnnotatedAction {
     return action && isObject(action) && 'uid' in action && 'definition_uid' in action && 'dynamic_kwargs' in action;
 }
 
-export const isPyComponent = (value: unknown): value is ComponentInstance =>
+export const isPyComponent = (value: unknown): value is PyComponentInstance =>
     isObject(value) &&
     'props' in value &&
     isObject(value.props) &&

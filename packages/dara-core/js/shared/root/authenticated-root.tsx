@@ -72,7 +72,7 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
         }
 
         const ws = setupWebsocket(token, props.daraData.live_reload);
-        window.dara.ws = ws;
+        window.dara.ws.resolve(ws);
         return ws;
     });
 

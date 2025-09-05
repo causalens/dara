@@ -526,7 +526,7 @@ class TaskManager:
         """
         # the result is not deleted, the results are kept in an LRU cache
         # which will clean up older entries
-        return await self.store.get(TaskResultEntry, key=task_id)
+        return await self.store.get(TaskResultEntry, key=task_id, raise_for_missing=True)
 
     async def set_result(self, task_id: str, value: Any):
         """

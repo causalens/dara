@@ -34,7 +34,7 @@ from dara.core.interactivity.actions import (
     UpdateVariableDef,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.router import Link, LinkDef, Outlet, OutletDef
+from dara.core.router import Link, LinkDef, MenuLink, MenuLinkDef, Outlet, OutletDef
 from dara.core.visual.components import (
     DefaultFallbackDef,
     DynamicComponent,
@@ -44,8 +44,6 @@ from dara.core.visual.components import (
     ForDef,
     Menu,
     MenuDef,
-    MenuLink,
-    MenuLinkDef,
     PoweredByCausalens,
     PoweredByCausalensDef,
     ProgressTracker,

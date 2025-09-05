@@ -107,7 +107,7 @@ export function useVariable<T>(
 
         const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
 
-        return [deferred.value, warnUpdateOnDerivedState];
+        return [deferred, warnUpdateOnDerivedState];
     }
 
     if (isSwitchVariable(variable)) {
