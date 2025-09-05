@@ -163,6 +163,8 @@ interface DropdownProps {
      * This is useful for displaying additional information in the dropdown.
      */
     footer?: React.ReactNode;
+    /** Optional id property */
+    id?: string;
 }
 
 export const Dropdown = (props: DropdownProps): JSX.Element => {
