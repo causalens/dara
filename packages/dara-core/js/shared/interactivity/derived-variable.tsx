@@ -6,6 +6,7 @@ import { useCallback, useMemo } from 'react';
 import {
     type GetRecoilValue,
     type RecoilValue,
+    type Snapshot,
     isRecoilValue,
     selectorFamily,
     useRecoilValue,
@@ -36,8 +37,9 @@ import {
     isVariable,
 } from '@/types';
 
+import { type Deferred, deferred } from '../utils';
 // eslint-disable-next-line import/no-cycle
-import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable } from './internal';
+import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {
     type TriggerIndexValue,
     depsRegistry,
@@ -45,7 +47,7 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
-import { buildTriggerList, registerChildTriggers } from './triggers';
+import { type TriggerInfo, buildTriggerList, registerChildTriggers, resolveTriggerStatic } from './triggers';
 
 export interface DerivedVariableValueResponse<T> {
     cache_key: string;
@@ -270,10 +272,10 @@ interface PreviousResult {
      */
     entry: {
         args: any[];
-        cacheKey: string | null;
         result: any;
     };
     type: 'previous';
+    relevantValues: any[];
     /**
      * List of values to use in the refetch request (force_key is embedded directly in the values)
      */
@@ -305,9 +307,22 @@ interface CurrentResult {
 }
 
 /**
+ * Represents a cached result of a derived variable resolution.
+ * This can happen when we prefetch a derived value, wraps the current result and the raw server response.
+ */
+interface CachedResponse {
+    type: 'cached';
+    response: Promise<{ ok: boolean; value: any }>;
+    values: any[];
+    depsKey: string;
+    currentResult: CurrentResult;
+    relevantValues: any[];
+}
+
+/**
  * Represents the result of a derived variable resolution.
  */
-export type DerivedResult = PreviousResult | CurrentResult;
+export type DerivedResult = PreviousResult | CurrentResult | CachedResponse;
 
 /**
  * Resolve a derived value from a list of dependant variables and their resolved values.
@@ -323,26 +338,26 @@ export type DerivedResult = PreviousResult | CurrentResult;
  * @param deps list of relevant dependant variables, akin to useEffect dependency array
  * @param resolvedVariables resolved values of dependant variables - turned into primitives and Resolved forms
  * @param get getter function to resolve atoms to values
- * @param selfTrigger additional trigger index value to register as a dependency
+ * @param triggerList list of trigger info objects
+ * @param triggers list of triggers to register as dependencies; first one is expected to be the self-trigger
  */
-export function resolveDerivedValue(
-    key: string,
-    variables: any[], // variable or primitive
-    deps: any[], // variable or primitive
-    resolvedVariables: any[],
-    get: GetRecoilValue,
-    selfTrigger?: TriggerIndexValue
-): DerivedResult {
-    // Build trigger map once for efficient lookups
-    const triggerList = buildTriggerList(variables);
-
-    // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
-    const triggers = registerChildTriggers(triggerList, get);
-
-    if (selfTrigger) {
-        triggers.unshift(selfTrigger);
-    }
-
+export function resolveDerivedValue({
+    key,
+    variables,
+    deps,
+    resolvedVariables,
+    resolutionStrategy,
+    triggerList,
+    triggers,
+}: {
+    key: string;
+    variables: any[];
+    deps: any[];
+    resolvedVariables: any[];
+    resolutionStrategy: { name: 'get'; get: GetRecoilValue } | { name: 'snapshot'; snapshot: Snapshot };
+    triggerList: Array<TriggerInfo>;
+    triggers: TriggerIndexValue[];
+}): DerivedResult {
     /**
      * Array of values:
      * - primitive values are resolved to themselves
@@ -350,7 +365,13 @@ export function resolveDerivedValue(
      * - derived variables are resolved to ResolvedDerivedVariable objects with nested values/deps resolved to values
      * - server variables are resolved to their sequence number
      */
-    const values = resolvedVariables.map((v) => resolveValue(v, get));
+    const values = resolvedVariables.map((v) => {
+        if (resolutionStrategy.name === 'snapshot') {
+            return resolveVariableStatic(v, resolutionStrategy.snapshot);
+        }
+
+        return resolveValue(v, resolutionStrategy.get);
+    });
 
     /**
      * Array of values with ResolvedDerivedVariable objects replaced
@@ -392,10 +413,29 @@ export function resolveDerivedValue(
 
         // If the relevant arg values didn't change, return previous result
         if (areArgsTheSame) {
+            const previousValue = previousEntry.result;
+            if (previousValue instanceof Promise) {
+                return {
+                    type: 'cached',
+                    response: previousValue,
+                    depsKey: key,
+                    values,
+                    relevantValues,
+                    currentResult: {
+                        relevantValues,
+                        selfTriggerForceKey: null,
+                        type: 'current',
+                        values,
+                        depsKey: key,
+                    },
+                };
+            }
+
             return {
                 entry: previousEntry,
                 type: 'previous',
                 values,
+                relevantValues,
                 depsKey: key,
             };
         }
@@ -416,13 +456,13 @@ export function resolveDerivedValue(
              *  handle the force_key appropriately
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                if (selfTrigger && idx === 0) {
+                if (idx === 0) {
                     // This is a self-trigger (polling, manual trigger) - use global force
                     selfTriggerForceKey = triggerValue.force_key;
                 } else if (triggerValue.force_key) {
                     // This is a nested variable trigger - embed force_key in the specific variable
-                    // shift index back by 1 if we prepended a self trigger
-                    const valueIndex = selfTrigger ? idx - 1 : idx;
+                    // shift index back by 1 because we prepended a self trigger
+                    const valueIndex = idx - 1;
                     const triggerInfo = triggerList[valueIndex]!;
 
                     // If the trigger path is empty, it means we need to force the DV itself
@@ -502,14 +542,23 @@ export function getOrRegisterDerivedVariableResult(
 
                         // for deps use a different key for each selector instance rather than one per family
                         const selectorKey = key + extrasSerializable.toJSON();
-                        const derivedResult = resolveDerivedValue(
-                            selectorKey,
-                            variable.variables,
-                            variable.deps,
+
+                        // Build trigger map once for efficient lookups
+                        const triggerList = buildTriggerList(variable.variables);
+
+                        // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
+                        const triggers = registerChildTriggers(triggerList, get);
+                        triggers.unshift(selfTrigger);
+
+                        const derivedResult = resolveDerivedValue({
+                            key: selectorKey,
+                            variables: variable.variables,
+                            deps: variable.deps,
                             resolvedVariables,
-                            get,
-                            selfTrigger
-                        );
+                            resolutionStrategy: { name: 'get', get },
+                            triggerList,
+                            triggers,
+                        });
                         return derivedResult;
                     },
                 key: nanoid(),
@@ -532,6 +581,8 @@ export function getOrRegisterDerivedVariableResult(
     return selectorInstance;
 }
 
+const NOT_SET = Symbol('NOT_SET');
+
 /**
  * Get a derived variable from the selector registry, registering it if not already registered
  *
@@ -545,7 +596,7 @@ export function getOrRegisterDerivedVariable(
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     currentExtras: RequestExtras
-): RecoilValue<DerivedVariableValueResponse<any>> {
+): RecoilValue<any> {
     const key = getRegistryKey(variable, 'selector');
 
     if (!selectorFamilyRegistry.has(key)) {
@@ -563,6 +614,20 @@ export function getOrRegisterDerivedVariable(
                     async ({ get }) => {
                         const selectorKey = key + extrasSerializable.toJSON();
 
+                        const throwError = (error: unknown): never => {
+                            // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                            (error as any).selectorId = key;
+                            (error as any).selectorExtras = extrasSerializable.toJSON();
+                            throw error;
+                        };
+                        const handleError = <R,>(func: () => R): R | undefined => {
+                            try {
+                                return func();
+                            } catch (e) {
+                                throwError(e);
+                            }
+                        };
+
                         // get the result selector instance for this extras value
                         const dvResultSelector = getOrRegisterDerivedVariableResult(
                             variable,
@@ -570,34 +635,44 @@ export function getOrRegisterDerivedVariable(
                             taskContext,
                             extrasSerializable.extras
                         );
-                        const derivedResult = get(dvResultSelector);
+                        let derivedResult = get(dvResultSelector);
 
                         if (derivedResult.type === 'previous') {
-                            return { cache_key: derivedResult.entry.cacheKey, value: derivedResult.entry.result };
+                            return derivedResult.entry.result;
                         }
 
                         const { extras } = extrasSerializable;
                         let variableResponse = null;
+                        // whether to check for an initial task
+                        let shouldFetchTask = false;
 
-                        try {
-                            variableResponse = await debouncedFetchDerivedVariable({
-                                cache: variable.cache,
-                                extras,
-                                force_key: derivedResult.selfTriggerForceKey,
-                                selectorKey,
-                                values: normalizeRequest(cleanArgs(derivedResult.values), variable.variables),
-                                variableUid: variable.uid,
-                                wsClient,
-                            });
-                        } catch (e: unknown) {
-                            // On DV error put selectorId and extras into the error so the boundary can reset the selector cache
-                            (e as any).selectorId = key;
-                            (e as any).selectorExtras = extrasSerializable.toJSON();
-                            throw e;
+                        // Skip fetching if we have a cached result, await it instead
+                        if (derivedResult.type === 'cached') {
+                            const response = await derivedResult.response;
+                            shouldFetchTask = true;
+                            if (!response.ok) {
+                                throwError(new Error(response.value));
+                            }
+                            variableResponse = response.value;
+                            derivedResult = derivedResult.currentResult;
+                        } else {
+                            variableResponse = await handleError(() =>
+                                debouncedFetchDerivedVariable({
+                                    cache: variable.cache,
+                                    extras,
+                                    force_key: (derivedResult as CurrentResult).selfTriggerForceKey,
+                                    selectorKey,
+                                    values: normalizeRequest(
+                                        cleanArgs((derivedResult as CurrentResult).values),
+                                        variable.variables
+                                    ),
+                                    variableUid: variable.uid,
+                                    wsClient,
+                                })
+                            );
                         }
 
-                        const cacheKey = variableResponse.cache_key;
-                        let variableValue = null;
+                        let variableValue: any = NOT_SET;
 
                         // If there is a task running related to the current variable then something has changed, so cancel them
                         taskContext.cleanupRunningTasks(variable.uid);
@@ -606,36 +681,38 @@ export function getOrRegisterDerivedVariable(
                         if (isTaskResponse(variableResponse)) {
                             const taskId = variableResponse.task_id;
 
-                            // register task being started
-                            taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
-
-                            try {
-                                await wsClient.waitForTask(taskId);
-                            } catch (e: unknown) {
-                                if (e instanceof TaskError) {
-                                    // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
-                                    (e as any).selectorId = key;
-                                    (e as any).selectorExtras = extrasSerializable.toJSON();
-                                    throw e;
+                            // pre-fetch task result since it could already be available without us receiving the notif
+                            if (shouldFetchTask) {
+                                try {
+                                    const taskResult = await fetchTaskResult<any>(taskId, extras);
+                                    if (taskResult.status === 'ok') {
+                                        variableValue = taskResult.result;
+                                    }
+                                } catch (e) {
+                                    throwError(e);
                                 }
-
-                                // should be a TaskCancelledError
-                                // It should be safe to return `null` here as the selector will re-run and throw suspense again
-                                return {
-                                    cache_key: cacheKey,
-                                    value: null,
-                                };
-                            } finally {
-                                taskContext.endTask(taskId);
                             }
 
-                            try {
-                                variableValue = await fetchTaskResult<any>(taskId, extras);
-                            } catch (e) {
-                                // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
-                                (e as any).selectorId = key;
-                                (e as any).selectorExtras = extrasSerializable.toJSON();
-                                throw e;
+                            // continue waiting for the task if it's not available yet
+                            if (variableValue === NOT_SET) {
+                                // register task being started
+                                taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
+
+                                try {
+                                    await wsClient.waitForTask(taskId);
+                                } catch (e: unknown) {
+                                    if (e instanceof TaskError) {
+                                        throwError(e);
+                                    }
+
+                                    // should be a TaskCancelledError
+                                    // It should be safe to return `null` here as the selector will re-run and throw suspense again
+                                    return null;
+                                } finally {
+                                    taskContext.endTask(taskId);
+                                }
+
+                                variableValue = await handleError(() => fetchTaskResult<any>(taskId, extras));
                             }
                         } else {
                             variableValue = variableResponse.value;
@@ -648,14 +725,10 @@ export function getOrRegisterDerivedVariable(
                         // Store the final result and arguments used
                         depsRegistry.set(derivedResult.depsKey, {
                             args: derivedResult.relevantValues,
-                            cacheKey,
                             result: variableValue,
                         });
 
-                        return {
-                            cache_key: cacheKey,
-                            value: variableValue,
-                        };
+                        return variableValue;
                     },
                 key: nanoid(),
             })
@@ -739,6 +812,77 @@ export function getOrRegisterDerivedVariableValue(
 }
 
 /**
+ * Preload a derived value.
+ * Replicates the logic of normal resolution but resolving the values
+ * from snapshot or falling back to the defaults.
+ *
+ * For details, see the original implementation comments.
+ *
+ * Returns null if there already is a cached value for the variable.
+ * Otherwise, returns an object with values so be sent to the backend
+ * and handles to resolve the cached promise to the result.
+ */
+export function preloadDerivedValue({
+    key,
+    variables,
+    deps,
+    triggerList,
+    triggers,
+    snapshot,
+}: {
+    key: string;
+    variables: any[];
+    deps: any[];
+    triggerList: Array<TriggerInfo>;
+    triggers: TriggerIndexValue[];
+    snapshot: Snapshot;
+}): {
+    handle: Deferred<any>;
+    result: DerivedResult;
+} | null {
+    const derivedResult = resolveDerivedValue({
+        key,
+        variables,
+        deps,
+        resolvedVariables: variables,
+        resolutionStrategy: { name: 'snapshot', snapshot },
+        triggerList,
+        triggers,
+    });
+
+    // otherwise we already have a valid entry, nothing to do here
+    if (derivedResult.type === 'previous') {
+        return null;
+    }
+
+    // no previous entry or values changed - have to recompute
+    return { result: derivedResult, handle: deferred() };
+}
+/**
+ * Preload a derived variable value.
+ */
+export function preloadDerivedVariable(
+    variable: DerivedVariable,
+    snapshot: Snapshot
+): ReturnType<typeof preloadDerivedValue> {
+    // assume no extras in top-level variables
+    const key = getRegistryKey(variable, 'result-selector') + new RequestExtrasSerializable({}).toJSON();
+
+    // prepare trigger list as usual but use static resolution
+    const triggerList = [...buildTriggerList(variable.variables), { path: [], variable }];
+    const triggers = triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot));
+
+    return preloadDerivedValue({
+        key,
+        variables: variable.variables,
+        deps: variable.deps,
+        triggers,
+        triggerList,
+        snapshot,
+    });
+}
+
+/**
  * Helper hook to get the (data) derived variable selector, while correctly registering triggers and setting up polling interval.
  *
  * @param variable derived variable to use
@@ -752,7 +896,7 @@ export function useDerivedVariable(
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras
-): RecoilValue<DerivedVariableValueResponse<any>> {
+): RecoilValue<any> {
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
     /**

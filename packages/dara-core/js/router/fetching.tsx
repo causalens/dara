@@ -1,35 +1,36 @@
 import { type Params, matchRoutes } from 'react-router';
 import { type Snapshot, useRecoilCallback } from 'recoil';
+import * as z from 'zod/v4';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
 import { request } from '@/api';
 import { handleAuthErrors } from '@/auth';
+import { type Deferred, type DerivedResult, deferred, preloadDerivedVariable, preloadServerComponent } from '@/shared';
 import {
     type Action,
-    type ActionImpl,
+    ActionImpl,
     type ComponentInstance,
+    type DerivedVariable,
     LoaderError,
     type LoaderErrorPayload,
     type NormalizedPayload,
+    type PyComponentInstance,
     type RouteDefinition,
     isAnnotatedAction,
 } from '@/types';
 
-import { cleanKwargs, resolveVariableStatic } from '../shared/interactivity/resolve-variable';
+import { cleanArgs, cleanKwargs, resolveVariableStatic } from '../shared/interactivity/resolve-variable';
 import { denormalize, normalizeRequest } from '../shared/utils/normalization';
 import { SingleUseCache } from './cache';
 import { useRouterContext } from './context';
 
 interface RouteDataRequestBody {
     action_payloads: ActionPayload[];
+    derived_variable_payloads: DerivedVariablePayload[];
+    py_component_payloads: PyComponentPayload[];
     ws_channel: string | null;
     params: Params<string>;
-}
-
-interface RouteResponse {
-    template: NormalizedPayload<ComponentInstance>;
-    action_results: Record<string, ActionImpl[]>;
 }
 
 interface ActionPayload {
@@ -38,10 +39,70 @@ interface ActionPayload {
     values: NormalizedPayload<any>;
 }
 
+const NormalizedObject = z.object({
+    data: z.any(),
+    lookup: z.record(z.string(), z.any()),
+});
+
+const TemplateChunk = z.object({
+    type: z.literal('template'),
+    template: NormalizedObject,
+});
+type TemplateChunk = z.infer<typeof TemplateChunk>;
+
+const ActionChunk = z.object({
+    type: z.literal('actions'),
+    actions: z.record(z.string(), z.array(ActionImpl)),
+});
+type ActionChunk = z.infer<typeof ActionChunk>;
+
+const DerivedVariableChunk = z.object({
+    type: z.literal('derived_variable'),
+    uid: z.string(),
+    result: z.object({ ok: z.boolean(), value: z.any() }),
+});
+type DerivedVariableChunk = z.infer<typeof DerivedVariableChunk>;
+
+const PyComponentChunk = z.object({
+    type: z.literal('py_component'),
+    uid: z.string(),
+    result: z.object({ ok: z.boolean(), value: z.any() }),
+});
+type PyComponentChunk = z.infer<typeof PyComponentChunk>;
+
+const ResponseChunk = z.union([TemplateChunk, ActionChunk, DerivedVariableChunk, PyComponentChunk]);
+
+interface DerivedVariablePayload {
+    uid: string;
+    values: NormalizedPayload<any[]>;
+}
+
+interface PyComponentPayload {
+    uid: string;
+    name: string;
+    values: NormalizedPayload<Record<string, any>>;
+}
+
+interface DerivedVariableHandle {
+    dv: DerivedVariable;
+    result: DerivedResult;
+    handle: Deferred<any>;
+    payload: DerivedVariablePayload;
+}
+
+interface PyComponentHandle {
+    py: PyComponentInstance;
+    result: DerivedResult;
+    handle: Deferred<any>;
+    payload: PyComponentPayload;
+}
+
 export interface LoaderData {
     template: ComponentInstance;
     on_load: ActionImpl[];
     route_definition: RouteDefinition;
+    derived_variables: DerivedVariableHandle[];
+    py_components: PyComponentHandle[];
 }
 
 const PRELOAD_TIMEOUT = 5000; // 5 seconds
@@ -51,6 +112,45 @@ const preloadCache = new SingleUseCache<LoaderData>({
 
 function createCacheKey(routeId: string, params: Params<string>): string {
     return `${routeId}:${JSON.stringify(params)}`;
+}
+
+/**
+ * Creates an NDJSON async generator from a Response object.
+ * Yields chunks of JSON data as they are received.
+ *
+ * @param response Response object to read from
+ * @param signal AbortSignal to abort the generator
+ */
+async function* ndjson(response: Response, signal?: AbortSignal): AsyncGenerator<any, void> {
+    const reader = response.body!.getReader();
+    const newline = /\r?\n/;
+    const decoder = new TextDecoder();
+
+    let buffer = '';
+
+    while (true) {
+        if (signal?.aborted) {
+            throw new DOMException('The operation was aborted', 'AbortError');
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read();
+        if (done) {
+            if (buffer.length > 0) {
+                yield JSON.parse(buffer);
+            }
+            return;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        const parts = buffer.split(newline);
+        buffer = parts.pop()!;
+        for (const part of parts) {
+            yield JSON.parse(part);
+        }
+    }
 }
 
 export async function fetchRouteData(
@@ -82,11 +182,67 @@ export async function fetchRouteData(
         } satisfies ActionPayload;
     });
 
+    // Collect payloads for DVs and py_components,
+    // preloading ones that don't have a cached value
+    const dvHandles = Object.values(route.dependency_graph?.derived_variables ?? {}).flatMap((dv) => {
+        const handle = preloadDerivedVariable(dv, snapshot);
+        if (!handle) {
+            return [];
+        }
+        return {
+            ...handle,
+            dv,
+            payload: {
+                values: normalizeRequest(cleanArgs(handle.result.values, null), dv.variables) as any,
+                uid: dv.uid,
+            } satisfies DerivedVariablePayload,
+        };
+    });
+    const pyHandles = Object.values(route.dependency_graph?.py_components ?? {}).flatMap((py) => {
+        const handle = preloadServerComponent(py, snapshot);
+
+        if (!handle) {
+            return [];
+        }
+
+        // turn the resolved values back into an object and clean them up
+        const kwargValues = cleanKwargs(
+            Object.keys(py.props.dynamic_kwargs).reduce(
+                (acc, k, idx) => {
+                    acc[k] = handle.result.values[idx];
+                    return acc;
+                },
+                {} as Record<string, any>
+            )
+        );
+
+        return {
+            ...handle,
+            py,
+            payload: {
+                uid: py.uid,
+                name: py.name,
+                values: normalizeRequest(kwargValues, py.props.dynamic_kwargs),
+            } satisfies PyComponentPayload,
+        };
+    });
+
+    const dvHandlesByUid = dvHandles.reduce(
+        (acc, h) => ({ ...acc, [h.dv.uid]: h }),
+        {} as Record<string, DerivedVariableHandle>
+    );
+    const pyHandlesByUid = pyHandles.reduce(
+        (acc, h) => ({ ...acc, [h.py.uid]: h }),
+        {} as Record<string, PyComponentHandle>
+    );
+
     const response = await request(`/api/core/route/${route.id}`, {
         method: HTTP_METHOD.POST,
         body: JSON.stringify({
             action_payloads: actionPayloads,
-            ws_channel: window.dara.ws ? await window.dara.ws.getChannel() : null,
+            derived_variable_payloads: dvHandles.map((h) => h.payload),
+            py_component_payloads: pyHandles.map((h) => h.payload),
+            ws_channel: await (await window.dara.ws.promise).getChannel(),
             params,
         } satisfies RouteDataRequestBody),
         signal,
@@ -98,12 +254,51 @@ export async function fetchRouteData(
         throw new LoaderError(error.detail);
     }
 
-    const responseContent: RouteResponse = await response.json();
-    const template = denormalize(responseContent.template.data, responseContent.template.lookup) as ComponentInstance;
+    const template = deferred<ComponentInstance>();
+    const onLoadActions = deferred<ActionImpl[]>();
 
-    const onLoad = actions.flatMap((a) => (isAnnotatedAction(a) ? responseContent.action_results[a.uid]! : a));
+    // kick off the async generator in the background
+    queueMicrotask(async () => {
+        try {
+            for await (const data of ndjson(response, signal)) {
+                const chunk = ResponseChunk.parse(data);
 
-    return { template, on_load: onLoad, route_definition: route } satisfies LoaderData;
+                if (chunk.type === 'template') {
+                    const component = denormalize(chunk.template.data, chunk.template.lookup) as ComponentInstance;
+                    template.resolve(component);
+                }
+                if (chunk.type === 'actions') {
+                    onLoadActions.resolve(actions.flatMap((a) => (isAnnotatedAction(a) ? chunk.actions[a.uid]! : a)));
+                }
+
+                // process the other chunks, resolving the deferreds as they come in
+                if (chunk.type === 'derived_variable') {
+                    const dvHandle = dvHandlesByUid[chunk.uid];
+                    if (dvHandle) {
+                        dvHandle.handle.resolve(chunk.result);
+                    }
+                }
+                if (chunk.type === 'py_component') {
+                    const pyHandle = pyHandlesByUid[chunk.uid];
+                    if (pyHandle) {
+                        pyHandle.handle.resolve(chunk.result);
+                    }
+                }
+            }
+        } catch (e) {
+            template.reject(e);
+            onLoadActions.reject(e);
+        }
+    });
+
+    // return as soon as we have the template and on_load actions
+    return {
+        template: await template.promise,
+        on_load: await onLoadActions.promise,
+        route_definition: route,
+        py_components: pyHandles,
+        derived_variables: dvHandles,
+    } satisfies LoaderData;
 }
 
 export function getFromPreloadCache(
@@ -132,8 +327,8 @@ export function usePreloadRoute(): (url: Partial<Location> | string) => void {
                         return;
                     }
 
-                    preloadCache.setIfMissing(createCacheKey(routeDef.id, match.params), () =>{
-                        return fetchRouteData(routeDef, match.params, snapshot)
+                    preloadCache.setIfMissing(createCacheKey(routeDef.id, match.params), () => {
+                        return fetchRouteData(routeDef, match.params, snapshot);
                     });
                 });
             },

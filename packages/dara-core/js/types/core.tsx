@@ -1,5 +1,6 @@
 import type { Location, NavigateFunction } from 'react-router';
 import { type CallbackInterface } from 'recoil';
+import * as z from 'zod/v4';
 
 import { type DefaultTheme } from '@darajs/styled-components';
 import { type NotificationPayload, useNotifications } from '@darajs/ui-notifications';
@@ -469,16 +470,11 @@ export interface ActionDef {
     py_module: string;
 }
 
-export interface ActionImpl {
-    /**
-     * Name of the action implementation
-     */
-    name: string;
-    /**
-     * Marker to indicate this is an action implementation
-     */
-    __typename: 'ActionImpl';
-}
+export const ActionImpl = z.looseObject({
+    name: z.string(),
+    __typename: z.literal('ActionImpl'),
+});
+export type ActionImpl = z.infer<typeof ActionImpl>;
 
 export interface UpdateVariableImpl extends ActionImpl {
     variable: SingleVariable<any>;

@@ -49,7 +49,6 @@ export const depsRegistry = new Map<
     string,
     {
         args: any[];
-        cacheKey: string | null;
         result: any;
     }
 >();

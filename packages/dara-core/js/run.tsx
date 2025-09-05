@@ -11,7 +11,7 @@ import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 import type { WebSocketClientInterface } from './api';
 import './index.css';
 import RouterRoot from './router/router-root';
-import { DirectionCtx, ImportersCtx, resolveTheme } from './shared';
+import { deferred, type Deferred, DirectionCtx, ImportersCtx, resolveTheme } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { preloadActions } from './shared/interactivity/use-action';
@@ -25,7 +25,7 @@ declare global {
 
 interface DaraGlobals {
     base_url: string;
-    ws?: WebSocketClientInterface;
+    ws: Deferred<WebSocketClientInterface>;
 }
 
 /**
@@ -43,6 +43,9 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
 
     document.title = daraData.title;
     NProgress.configure({ showSpinner: false });
+
+    // ensure we have a deferred WS client
+    window.dara.ws = deferred();
 
     await Promise.all([
         // preload auth components to prevent flashing of extra spinners

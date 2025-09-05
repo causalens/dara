@@ -13,4 +13,5 @@ export { default as useComponentStyles, parseRawCss } from './use-component-styl
 export { default as useUrlSync } from './use-url-sync';
 export { normalizeRequest } from './normalization';
 export { injectCss } from './inject-css';
+export * from './deferred';
 export type { RawCssProp };

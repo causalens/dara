@@ -4,6 +4,7 @@ import { useContext, useEffect } from 'react';
 import {
     type RecoilState,
     type RecoilValue,
+    type Snapshot,
     atom,
     selectorFamily,
     useRecoilCallback,
@@ -22,6 +23,7 @@ import {
     type ComponentInstance,
     type GlobalTaskContext,
     type NormalizedPayload,
+    type PyComponentInstance,
     type TaskResponse,
     isVariable,
 } from '@/types';
@@ -29,8 +31,9 @@ import {
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
-import { resolveDerivedValue } from './derived-variable';
-import { cleanKwargs, resolveVariable } from './resolve-variable';
+import { preloadDerivedValue, resolveDerivedValue } from './derived-variable';
+import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
+import { cleanKwargs, resolveVariable, resolveVariableStatic } from './resolve-variable';
 import {
     type TriggerIndexValue,
     atomRegistry,
@@ -115,6 +118,8 @@ function getOrRegisterComponentTrigger(uid: string, loop_instance_uid?: string):
     return atomRegistry.get(triggerKey)!;
 }
 
+const NOT_SET = Symbol('NOT_SET');
+
 /**
  * Get a server component from the selector registry, registering it if not already registered
  *
@@ -155,6 +160,20 @@ function getOrRegisterServerComponent({
                 get:
                     (extrasSerializable: RequestExtrasSerializable) =>
                     async ({ get }) => {
+                        const throwError = (error: unknown): never => {
+                            // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
+                            (error as any).selectorId = key;
+                            (error as any).selectorExtras = extrasSerializable.toJSON();
+                            throw error;
+                        };
+                        const handleError = <R,>(func: () => R): R | undefined => {
+                            try {
+                                return func();
+                            } catch (e) {
+                                throwError(e);
+                            }
+                        };
+
                         // Kwargs resolved to their simple values
                         const resolvedKwargs = await Promise.all(
                             Object.entries(dynamicKwargs).map(async ([k, value]) => {
@@ -170,52 +189,70 @@ function getOrRegisterServerComponent({
                         const resolvedKwargsList = Object.values(resolvedKwargs);
                         const kwargsList = Object.values(dynamicKwargs);
 
-                        const triggerAtom = getOrRegisterComponentTrigger(uid);
+                        const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
                         const selfTrigger = get(triggerAtom);
+
+                        // Build trigger map once for efficient lookups
+                        const triggerList = buildTriggerList(kwargsList);
+
+                        // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
+                        const triggers = registerChildTriggers(triggerList, get);
+                        triggers.unshift(selfTrigger);
 
                         const { extras } = extrasSerializable;
 
-                        const derivedResult = resolveDerivedValue(
+                        let derivedResult = resolveDerivedValue({
                             key,
-                            kwargsList,
-                            kwargsList, // pass deps=kwargs
-                            resolvedKwargsList,
-                            get,
-                            selfTrigger
-                        );
+                            variables: kwargsList,
+                            deps: kwargsList,
+                            resolvedVariables: resolvedKwargsList,
+                            resolutionStrategy: { name: 'get', get },
+                            triggerList,
+                            triggers,
+                        });
 
                         // returning previous result as no change in dependant values
                         if (derivedResult.type === 'previous') {
                             return derivedResult.entry.result;
                         }
 
-                        // Otherwise fetch new component
+                        let result: any = NOT_SET;
+                        // whether to check for an initial task
+                        let shouldFetchTask = false;
 
-                        // turn the resolved values back into an object and clean them up
-                        const kwargValues = cleanKwargs(
-                            Object.keys(dynamicKwargs).reduce(
-                                (acc, k, idx) => {
-                                    acc[k] = derivedResult.values[idx];
-                                    return acc;
-                                },
-                                {} as Record<string, any>
-                            )
-                        );
+                        if (derivedResult.type === 'cached') {
+                            console.log('PY GOT CACHED', derivedResult);
+                            const response = await derivedResult.response;
+                            console.log('PY GOT RESPONSE', response);
+                            shouldFetchTask = true;
+                            if (!response.ok) {
+                                throwError(new Error(response.value));
+                            }
 
-                        let result = null;
-
-                        try {
-                            result = await fetchFunctionComponent(
-                                name,
-                                normalizeRequest(kwargValues, dynamicKwargs),
-                                uid,
-                                extras,
-                                wsClient
+                            result = response.value;
+                            derivedResult = derivedResult.currentResult;
+                        } else {
+                            // Otherwise fetch new component
+                            // turn the resolved values back into an object and clean them up
+                            const kwargValues = cleanKwargs(
+                                Object.keys(dynamicKwargs).reduce(
+                                    (acc, k, idx) => {
+                                        acc[k] = (derivedResult as any).values[idx];
+                                        return acc;
+                                    },
+                                    {} as Record<string, any>
+                                )
                             );
-                        } catch (e) {
-                            (e as any).selectorId = key;
-                            (e as any).selectorExtras = extrasSerializable.toJSON();
-                            throw e;
+
+                            result = await handleError(() =>
+                                fetchFunctionComponent(
+                                    name,
+                                    normalizeRequest(kwargValues, dynamicKwargs),
+                                    uid,
+                                    extras,
+                                    wsClient
+                                )
+                            );
                         }
 
                         taskContext.cleanupRunningTasks(key);
@@ -223,37 +260,46 @@ function getOrRegisterServerComponent({
                         // Metatask returned
                         if (isTaskResponse(result)) {
                             const taskId = result.task_id;
+                            result = NOT_SET;
 
-                            // Register the task under the component's instance key
-                            taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
-
-                            try {
-                                await wsClient.waitForTask(taskId);
-                            } catch (e: unknown) {
-                                (e as any).selectorId = key;
-                                (e as any).selectorExtras = extrasSerializable.toJSON();
-                                throw e;
-                            } finally {
-                                taskContext.endTask(taskId);
+                            // pre-fetch task result since it could already be available without us receiving the notif
+                            if (shouldFetchTask) {
+                                try {
+                                    const taskResult = await fetchTaskResult<any>(taskId, extras);
+                                    if (taskResult.status === 'ok') {
+                                        result = taskResult.result;
+                                    }
+                                } catch (e) {
+                                    throwError(e);
+                                }
                             }
 
-                            try {
-                                result = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras);
-                            } catch (e) {
-                                (e as any).selectorId = key;
-                                (e as any).selectorExtras = extrasSerializable.toJSON();
-                                throw e;
+                            // no value yet, need to wait for the task
+                            if (result === NOT_SET) {
+                                // Register the task under the component's instance key
+                                taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
+
+                                try {
+                                    await wsClient.waitForTask(taskId);
+                                } catch (e: unknown) {
+                                    throwError(e);
+                                } finally {
+                                    taskContext.endTask(taskId);
+                                }
+
+                                result = await handleError(() =>
+                                    fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras)
+                                );
                             }
                         }
 
-                        if (result !== null) {
+                        if (result !== NOT_SET && result !== null) {
                             // Denormalize
                             result = denormalize(result.data, result.lookup);
                         }
 
                         depsRegistry.set(key, {
                             args: derivedResult.relevantValues,
-                            cacheKey: null,
                             result,
                         });
 
@@ -280,6 +326,32 @@ function getOrRegisterServerComponent({
     selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
 
     return selectorInstance;
+}
+
+export function preloadServerComponent(
+    component: PyComponentInstance,
+    snapshot: Snapshot
+): ReturnType<typeof preloadDerivedValue> {
+    const key = getComponentRegistryKey(component.uid, false, component.loop_instance_uid);
+
+    const kwargsList = Object.values(component.props.dynamic_kwargs);
+
+    const triggerList = buildTriggerList(kwargsList);
+
+    // prepare trigger list as usual but use static resolution
+    const triggers = [
+        ...triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot)),
+        resolveTriggerStatic(getOrRegisterComponentTrigger(component.uid), snapshot),
+    ];
+
+    return preloadDerivedValue({
+        key,
+        variables: kwargsList,
+        deps: kwargsList,
+        triggerList,
+        triggers,
+        snapshot,
+    });
 }
 
 /**
