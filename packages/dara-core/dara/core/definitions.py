@@ -187,7 +187,7 @@ class ComponentInstance(BaseModel):
     """
     An optional unique identifier for the component, defaults to None
 
-    This id intended to help identify components with human-readable names in the serialized trees, and id is also set as the `id` attribute of the DOM element
+    This is intended to help identify components with human-readable names in the serialized trees, and is also set as the `id` attribute of the DOM element
     """
 
     for_: Optional[str] = None
