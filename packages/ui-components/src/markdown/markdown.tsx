@@ -153,7 +153,7 @@ const CustomMarkdownWrapper = styled.div`
 
     /* don't apply default styles if the pre block has the pretty code display */
     /* stylelint-disable-next-line */
-    pre:not(.prism-code):not(:has(.prism-code)) {
+    pre:not(.prism-code, :has(.prism-code)) {
         overflow-x: auto;
 
         margin-top: 1.7rem;
