@@ -739,7 +739,13 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
             }}
         >
             <PointerContext.Provider value={{ disablePointerEvents: isDragging, onPanelEnter, onPanelExit }}>
-                <GraphPane $hasFocus={hasFocus} onClick={() => onPaneFocus(true)} ref={paneRef} style={props.style} id={props.id}>
+                <GraphPane
+                    $hasFocus={hasFocus}
+                    onClick={() => onPaneFocus(true)}
+                    ref={paneRef}
+                    style={props.style}
+                    id={props.id}
+                >
                     <Graph onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
                         <Overlay
                             bottomLeft={
