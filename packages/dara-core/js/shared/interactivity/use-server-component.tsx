@@ -221,14 +221,18 @@ function getOrRegisterServerComponent({
                         let shouldFetchTask = false;
 
                         if (derivedResult.type === 'cached') {
-                            const response = await derivedResult.response;
-                            shouldFetchTask = true;
-                            if (!response.ok) {
-                                throwError(new Error(response.value));
-                            }
+                            try {
+                                const response = await derivedResult.response;
+                                shouldFetchTask = true;
+                                if (!response.ok) {
+                                    throwError(new Error(response.value));
+                                }
 
-                            result = response.value;
-                            derivedResult = derivedResult.currentResult;
+                                result = response.value;
+                                derivedResult = derivedResult.currentResult;
+                            } catch (e) {
+                                throwError(e);
+                            }
                         } else {
                             // Otherwise fetch new component
                             // turn the resolved values back into an object and clean them up
@@ -285,9 +289,16 @@ function getOrRegisterServerComponent({
                                     taskContext.endTask(taskId);
                                 }
 
-                                result = await handleError(() =>
-                                    fetchTaskResult<NormalizedPayload<ComponentInstance>>(taskId, extras)
-                                );
+                                result = await handleError(async () => {
+                                    const res = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(
+                                        taskId,
+                                        extras
+                                    );
+                                    if (res.status === 'not_found') {
+                                        throw new Error('Task result not found');
+                                    }
+                                    return res.result;
+                                });
                             }
                         }
 

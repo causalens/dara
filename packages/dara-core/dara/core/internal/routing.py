@@ -572,7 +572,6 @@ def create_loader_route(config: Configuration, app: FastAPI):
         # unquote route_id since it can be url-encoded
         route_id = unquote(route_id)
 
-        # TODO: This will accept DV inputs etc and stream those back
         route_data = route_map.get(route_id)
 
         if route_data is None:
@@ -585,7 +584,6 @@ def create_loader_route(config: Configuration, app: FastAPI):
             task_mgr: TaskManager = utils_registry.get('TaskManager')
             registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
-            # Ws channel can be null for top-level layouts rendered above the ws client
             WS_CHANNEL.set(body.ws_channel)
 
             # Run actions in order to guarantee execution order
@@ -674,6 +672,7 @@ def create_loader_route(config: Configuration, app: FastAPI):
                 )
                 yield create_chunk({'type': 'actions', 'actions': jsonable_encoder(action_results)})
 
+                # 2. Optionally, if there are DVs or py_components to preload, process them in the background and stream them back as they arrive
                 if len(body.derived_variable_payloads) > 0 or len(body.py_component_payloads) > 0:
                     send_stream, receive_stream = anyio.create_memory_object_stream[Chunk](max_buffer_size=math.inf)
 

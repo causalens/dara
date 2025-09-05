@@ -153,6 +153,11 @@ async function* ndjson(response: Response, signal?: AbortSignal): AsyncGenerator
     }
 }
 
+/**
+ * Fetch route data from the server.
+ *
+ * Collects payloads for `on_load` actions as wel as `derived_variable`s and `py_component`s on the page and sends them in the same request.
+ */
 export async function fetchRouteData(
     route: RouteDefinition,
     params: Params<string>,
@@ -257,6 +262,9 @@ export async function fetchRouteData(
     const template = deferred<ComponentInstance>();
     const onLoadActions = deferred<ActionImpl[]>();
 
+    const resolvedDvs = new Set<string>();
+    const resolvedPyComponents = new Set<string>();
+
     // kick off the async generator in the background
     queueMicrotask(async () => {
         try {
@@ -273,21 +281,29 @@ export async function fetchRouteData(
 
                 // process the other chunks, resolving the deferreds as they come in
                 if (chunk.type === 'derived_variable') {
-                    const dvHandle = dvHandlesByUid[chunk.uid];
-                    if (dvHandle) {
-                        dvHandle.handle.resolve(chunk.result);
-                    }
+                    dvHandlesByUid[chunk.uid]?.handle.resolve(chunk.result);
+                    resolvedDvs.add(chunk.uid);
                 }
                 if (chunk.type === 'py_component') {
-                    const pyHandle = pyHandlesByUid[chunk.uid];
-                    if (pyHandle) {
-                        pyHandle.handle.resolve(chunk.result);
-                    }
+                    pyHandlesByUid[chunk.uid]?.handle.resolve(chunk.result);
+                    resolvedPyComponents.add(chunk.uid);
                 }
             }
         } catch (e) {
             template.reject(e);
             onLoadActions.reject(e);
+
+            // reject remaining unresolved promises
+            for (const [uid, handle] of Object.entries(dvHandlesByUid)) {
+                if (!resolvedDvs.has(uid)) {
+                    handle.handle.reject(e);
+                }
+            }
+            for (const [uid, handle] of Object.entries(pyHandlesByUid)) {
+                if (!resolvedPyComponents.has(uid)) {
+                    handle.handle.reject(e);
+                }
+            }
         }
     });
 
@@ -301,6 +317,12 @@ export async function fetchRouteData(
     } satisfies LoaderData;
 }
 
+/**
+ * Retrieve route data from the preload cache.
+ *
+ * @param routeId route ID
+ * @param params current route params
+ */
 export function getFromPreloadCache(
     routeId: string,
     params: Params<string>
@@ -308,6 +330,10 @@ export function getFromPreloadCache(
     return preloadCache.get(createCacheKey(routeId, params));
 }
 
+/**
+ * Provides a function to preload data for all routes matching a given URL.
+ * Checks the preload cache first, and if not found, fetches the data from the server.
+ */
 export function usePreloadRoute(): (url: Partial<Location> | string) => void {
     const { routeObjects, routeDefMap } = useRouterContext();
 

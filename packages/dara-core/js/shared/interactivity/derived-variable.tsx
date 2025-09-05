@@ -648,13 +648,17 @@ export function getOrRegisterDerivedVariable(
 
                         // Skip fetching if we have a cached result, await it instead
                         if (derivedResult.type === 'cached') {
-                            const response = await derivedResult.response;
-                            shouldFetchTask = true;
-                            if (!response.ok) {
-                                throwError(new Error(response.value));
+                            try {
+                                const response = await derivedResult.response;
+                                shouldFetchTask = true;
+                                if (!response.ok) {
+                                    throwError(new Error(response.value));
+                                }
+                                variableResponse = response.value;
+                                derivedResult = derivedResult.currentResult;
+                            } catch (e) {
+                                throwError(e);
                             }
-                            variableResponse = response.value;
-                            derivedResult = derivedResult.currentResult;
                         } else {
                             variableResponse = await handleError(() =>
                                 debouncedFetchDerivedVariable({
@@ -712,7 +716,13 @@ export function getOrRegisterDerivedVariable(
                                     taskContext.endTask(taskId);
                                 }
 
-                                variableValue = await handleError(() => fetchTaskResult<any>(taskId, extras));
+                                variableValue = await handleError(async () => {
+                                    const result = await fetchTaskResult<any>(taskId, extras);
+                                    if (result.status === 'not_found') {
+                                        throw new Error('Task result not found');
+                                    }
+                                    return result.result;
+                                });
                             }
                         } else {
                             variableValue = variableResponse.value;
