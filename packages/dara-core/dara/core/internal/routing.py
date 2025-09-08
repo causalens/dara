@@ -247,7 +247,6 @@ async def get_component(component: str, body: ComponentRequestBody):
     if isinstance(comp_def, PyComponentDef):
         static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)
         values = denormalize(body.values.data, body.values.lookup)
-        print('resolving py_comp', values)
 
         response = await comp_def.render_component(comp_def, store, task_mgr, values, static_kwargs)
 
@@ -630,6 +629,7 @@ def create_loader_route(config: Configuration, app: FastAPI):
                     )
                     await send_stream.send(DerivedVariableChunk(uid=payload.uid, result=Result.success(result)))
                 except BaseException as e:
+                    dev_logger.error(f'Error streaming derived_variable {payload.uid}', error=e)
                     await send_stream.send(
                         DerivedVariableChunk(uid=payload.uid, result=Result.error(str(e))),
                     )
@@ -647,6 +647,7 @@ def create_loader_route(config: Configuration, app: FastAPI):
                     )
                     await send_stream.send(PyComponentChunk(uid=payload.uid, result=Result.success(result)))
                 except BaseException as e:
+                    dev_logger.error(f'Error streaming py_component {payload.name}', error=e)
                     await send_stream.send(
                         PyComponentChunk(uid=payload.uid, result=Result(ok=False, value=str(e))),
                     )
