@@ -10,6 +10,7 @@ describe('findFirstPath', () => {
                     id: 'index-1',
                     case_sensitive: false,
                     index: true,
+                    full_path: '/',
                 },
             ];
 
@@ -25,6 +26,7 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: 'dashboard',
                     children: [],
+                    full_path: '/dashboard',
                 },
             ];
 
@@ -40,12 +42,14 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: 'dashboard',
                     children: [],
+                    full_path: '/dashboard',
                 },
                 {
                     __typename: 'IndexRoute',
                     id: 'index-1',
                     case_sensitive: false,
                     index: true,
+                    full_path: '/',
                 },
             ];
 
@@ -61,6 +65,7 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: 'first',
                     children: [],
+                    full_path: '/first',
                 },
                 {
                     __typename: 'PageRoute',
@@ -68,6 +73,7 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: 'second',
                     children: [],
+                    full_path: '/second',
                 },
             ];
 
@@ -83,6 +89,7 @@ describe('findFirstPath', () => {
                     __typename: 'LayoutRoute',
                     id: 'layout-1',
                     case_sensitive: false,
+                    full_path: '/',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -90,6 +97,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'dashboard',
                             children: [],
+                            full_path: '/dashboard',
                         },
                     ],
                 },
@@ -106,6 +114,7 @@ describe('findFirstPath', () => {
                     id: 'prefix-1',
                     case_sensitive: false,
                     path: 'admin',
+                    full_path: '/admin',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -113,6 +122,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'users',
                             children: [],
+                            full_path: '/admin/users',
                         },
                     ],
                 },
@@ -129,6 +139,7 @@ describe('findFirstPath', () => {
                     id: 'prefix-1',
                     case_sensitive: false,
                     path: 'admin',
+                    full_path: '/admin',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -136,12 +147,14 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'users',
                             children: [],
+                            full_path: '/admin/users',
                         },
                         {
                             __typename: 'IndexRoute',
                             id: 'index-1',
                             case_sensitive: false,
                             index: true,
+                            full_path: '/admin',
                         },
                     ],
                 },
@@ -159,17 +172,20 @@ describe('findFirstPath', () => {
                     __typename: 'LayoutRoute',
                     id: 'layout-1',
                     case_sensitive: false,
+                    full_path: '/',
                     children: [
                         {
                             __typename: 'PrefixRoute',
                             id: 'prefix-1',
                             case_sensitive: false,
                             path: 'admin',
+                            full_path: '/admin',
                             children: [
                                 {
                                     __typename: 'LayoutRoute',
                                     id: 'layout-2',
                                     case_sensitive: false,
+                                    full_path: '/admin',
                                     children: [
                                         {
                                             __typename: 'PageRoute',
@@ -177,6 +193,7 @@ describe('findFirstPath', () => {
                                             case_sensitive: false,
                                             path: 'dashboard',
                                             children: [],
+                                            full_path: '/admin/dashboard',
                                         },
                                     ],
                                 },
@@ -197,6 +214,7 @@ describe('findFirstPath', () => {
                     id: 'page-1',
                     case_sensitive: false,
                     path: 'dashboard',
+                    full_path: '/dashboard',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -204,12 +222,14 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'analytics',
                             children: [],
+                            full_path: '/dashboard/analytics',
                         },
                         {
                             __typename: 'IndexRoute',
                             id: 'index-1',
                             case_sensitive: false,
                             index: true,
+                            full_path: '/dashboard',
                         },
                     ],
                 },
@@ -226,6 +246,7 @@ describe('findFirstPath', () => {
                     id: 'page-1',
                     case_sensitive: false,
                     path: 'dashboard',
+                    full_path: '/dashboard',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -233,6 +254,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'analytics',
                             children: [],
+                            full_path: '/dashboard/analytics',
                         },
                         {
                             __typename: 'PageRoute',
@@ -240,6 +262,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'reports',
                             children: [],
+                            full_path: '/dashboard/reports',
                         },
                     ],
                 },
@@ -255,6 +278,7 @@ describe('findFirstPath', () => {
                     __typename: 'LayoutRoute',
                     id: 'layout-1',
                     case_sensitive: false,
+                    full_path: '/',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -262,6 +286,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'deep-page',
                             children: [],
+                            full_path: '/deep-page',
                         },
                     ],
                 },
@@ -271,12 +296,14 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: 'shallow-page',
                     children: [],
+                    full_path: '/shallow-page',
                 },
                 {
                     __typename: 'IndexRoute',
                     id: 'index-1',
                     case_sensitive: false,
                     index: true,
+                    full_path: '/',
                 },
             ];
 
@@ -290,18 +317,21 @@ describe('findFirstPath', () => {
                     __typename: 'LayoutRoute',
                     id: 'layout-1',
                     case_sensitive: false,
+                    full_path: '/',
                     children: [
                         {
                             __typename: 'PrefixRoute',
                             id: 'prefix-1',
                             case_sensitive: false,
                             path: 'level1',
+                            full_path: '/level1',
                             children: [
                                 {
                                     __typename: 'PrefixRoute',
                                     id: 'prefix-2',
                                     case_sensitive: false,
                                     path: 'level2',
+                                    full_path: '/level1/level2',
                                     children: [
                                         {
                                             __typename: 'PageRoute',
@@ -309,6 +339,7 @@ describe('findFirstPath', () => {
                                             case_sensitive: false,
                                             path: 'deep',
                                             children: [],
+                                            full_path: '/level1/level2/deep',
                                         },
                                     ],
                                 },
@@ -321,6 +352,7 @@ describe('findFirstPath', () => {
                     id: 'prefix-3',
                     case_sensitive: false,
                     path: 'shallow',
+                    full_path: '/shallow',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -328,6 +360,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'page',
                             children: [],
+                            full_path: '/shallow/page',
                         },
                     ],
                 },
@@ -345,12 +378,14 @@ describe('findFirstPath', () => {
                     id: 'page-1',
                     case_sensitive: false,
                     path: 'products',
+                    full_path: '/products',
                     children: [
                         {
                             __typename: 'IndexRoute',
                             id: 'index-nested',
                             case_sensitive: false,
                             index: true,
+                            full_path: '/products',
                         },
                         {
                             __typename: 'PageRoute',
@@ -358,11 +393,13 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'details',
                             children: [],
+                            full_path: '/products/details',
                         },
                         {
                             __typename: 'LayoutRoute',
                             id: 'layout-1',
                             case_sensitive: false,
+                            full_path: '/products',
                             children: [
                                 {
                                     __typename: 'PageRoute',
@@ -370,6 +407,7 @@ describe('findFirstPath', () => {
                                     case_sensitive: false,
                                     path: 'reviews',
                                     children: [],
+                                    full_path: '/products/reviews',
                                 },
                             ],
                         },
@@ -396,6 +434,7 @@ describe('findFirstPath', () => {
                     __typename: 'LayoutRoute',
                     id: 'layout-1',
                     case_sensitive: false,
+                    full_path: '/',
                     children: [
                         {
                             __typename: 'PrefixRoute',
@@ -403,6 +442,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: 'admin',
                             children: [],
+                            full_path: '/admin',
                         },
                     ],
                 },
@@ -421,6 +461,7 @@ describe('findFirstPath', () => {
                     id: 'prefix-1',
                     case_sensitive: false,
                     path: '/admin/',
+                    full_path: '/admin',
                     children: [
                         {
                             __typename: 'PageRoute',
@@ -428,6 +469,7 @@ describe('findFirstPath', () => {
                             case_sensitive: false,
                             path: '/users/',
                             children: [],
+                            full_path: '/admin/users',
                         },
                     ],
                 },
@@ -444,12 +486,14 @@ describe('findFirstPath', () => {
                     id: 'prefix-1',
                     case_sensitive: false,
                     path: 'api/',
+                    full_path: '/api',
                     children: [
                         {
                             __typename: 'PrefixRoute',
                             id: 'prefix-2',
                             case_sensitive: false,
                             path: '/v1',
+                            full_path: '/api/v1',
                             children: [
                                 {
                                     __typename: 'PageRoute',
@@ -457,6 +501,7 @@ describe('findFirstPath', () => {
                                     case_sensitive: false,
                                     path: '/status/',
                                     children: [],
+                                    full_path: '/api/v1/status',
                                 },
                             ],
                         },
@@ -476,6 +521,7 @@ describe('findFirstPath', () => {
                     case_sensitive: false,
                     path: '/dashboard',
                     children: [],
+                    full_path: '/dashboard',
                 },
             ];
 
@@ -484,27 +530,13 @@ describe('findFirstPath', () => {
         });
     });
 
-    it('should handle parentPath parameter', () => {
-        const routes: RouteDefinition[] = [
-            {
-                __typename: 'PageRoute',
-                id: 'page-1',
-                case_sensitive: false,
-                path: 'dashboard',
-                children: [],
-            },
-        ];
-
-        const result = findFirstPath(routes);
-        expect(result).toBe('/dashboard');
-    });
-
     it('should handle routes with only layoutprefix but no navigatable endpoints', () => {
         const routes: RouteDefinition[] = [
             {
                 __typename: 'LayoutRoute',
                 id: 'layout-1',
                 case_sensitive: false,
+                full_path: '/',
                 children: [
                     {
                         __typename: 'PrefixRoute',
@@ -512,6 +544,7 @@ describe('findFirstPath', () => {
                         case_sensitive: false,
                         path: 'admin',
                         children: [],
+                        full_path: '/admin',
                     },
                 ],
             },

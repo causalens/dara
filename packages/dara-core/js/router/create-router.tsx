@@ -48,7 +48,7 @@ function joinPaths(parentPath: string, childPath: string): string {
     return `/${cleanParent}/${cleanChild}`;
 }
 
-function createRoute(
+export function createRoute(
     route: RouteDefinition,
     snapshotRef: React.MutableRefObject<Snapshot>,
     routeDefMap: Map<string, RouteDefinition>

@@ -28,6 +28,33 @@ interface DaraGlobals {
     ws: Deferred<WebSocketClientInterface>;
 }
 
+export function Root(props: {
+    daraData: DaraData;
+    queryClient: QueryClient;
+    importers: { [k: string]: () => Promise<any> };
+    theme: any;
+}): JSX.Element {
+    return (
+        <ConfigContextProvider initialConfig={props.daraData}>
+            <QueryClientProvider client={props.queryClient}>
+                <ThemeProvider theme={props.theme}>
+                    <ErrorBoundary>
+                        <ImportersCtx.Provider value={props.importers}>
+                            <DirectionCtx.Provider value={{ direction: 'row' }}>
+                                <RecoilRoot>
+                                    <GlobalTaskProvider>
+                                        <RouterRoot daraData={props.daraData} />
+                                    </GlobalTaskProvider>
+                                </RecoilRoot>
+                            </DirectionCtx.Provider>
+                        </ImportersCtx.Provider>
+                    </ErrorBoundary>
+                </ThemeProvider>
+            </QueryClientProvider>
+        </ConfigContextProvider>
+    );
+}
+
 /**
  * The main run function for the JS half of the application creates a div and binds the react app onto the tree. It sets
  * up a lot of context providers for the rest of the application. It accepts an object of importers as an argument. An
@@ -57,31 +84,9 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
 
     const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
 
-    function Root(): JSX.Element {
-        return (
-            <ConfigContextProvider initialConfig={daraData}>
-                <QueryClientProvider client={queryClient}>
-                    <ThemeProvider theme={theme}>
-                        <ErrorBoundary>
-                            <ImportersCtx.Provider value={importers}>
-                                <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                    <RecoilRoot>
-                                        <GlobalTaskProvider>
-                                            <RouterRoot daraData={daraData} />
-                                        </GlobalTaskProvider>
-                                    </RecoilRoot>
-                                </DirectionCtx.Provider>
-                            </ImportersCtx.Provider>
-                        </ErrorBoundary>
-                    </ThemeProvider>
-                </QueryClientProvider>
-            </ConfigContextProvider>
-        );
-    }
-
     const container = document.getElementById('dara_root')!;
     const root = createRoot(container);
-    root.render(<Root />);
+    root.render(<Root daraData={daraData} queryClient={queryClient} importers={importers} theme={theme} />);
 }
 
 export default run;

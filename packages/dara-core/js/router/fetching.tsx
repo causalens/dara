@@ -44,33 +44,34 @@ const NormalizedObject = z.object({
     lookup: z.record(z.string(), z.any()),
 });
 
-const TemplateChunk = z.object({
+export const TemplateChunk = z.object({
     type: z.literal('template'),
     template: NormalizedObject,
 });
-type TemplateChunk = z.infer<typeof TemplateChunk>;
+export type TemplateChunk = z.infer<typeof TemplateChunk>;
 
-const ActionChunk = z.object({
+export const ActionChunk = z.object({
     type: z.literal('actions'),
     actions: z.record(z.string(), z.array(ActionImpl)),
 });
-type ActionChunk = z.infer<typeof ActionChunk>;
+export type ActionChunk = z.infer<typeof ActionChunk>;
 
-const DerivedVariableChunk = z.object({
+export const DerivedVariableChunk = z.object({
     type: z.literal('derived_variable'),
     uid: z.string(),
     result: z.object({ ok: z.boolean(), value: z.any() }),
 });
-type DerivedVariableChunk = z.infer<typeof DerivedVariableChunk>;
+export type DerivedVariableChunk = z.infer<typeof DerivedVariableChunk>;
 
-const PyComponentChunk = z.object({
+export const PyComponentChunk = z.object({
     type: z.literal('py_component'),
     uid: z.string(),
     result: z.object({ ok: z.boolean(), value: z.any() }),
 });
-type PyComponentChunk = z.infer<typeof PyComponentChunk>;
+export type PyComponentChunk = z.infer<typeof PyComponentChunk>;
 
-const ResponseChunk = z.union([TemplateChunk, ActionChunk, DerivedVariableChunk, PyComponentChunk]);
+export const ResponseChunk = z.union([TemplateChunk, ActionChunk, DerivedVariableChunk, PyComponentChunk]);
+export type ResponseChunk = z.infer<typeof ResponseChunk>;
 
 interface DerivedVariablePayload {
     uid: string;
