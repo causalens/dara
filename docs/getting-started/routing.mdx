@@ -368,6 +368,16 @@ For more complex routing, you might want to hand-pick only routes that should be
 
 ## Advanced Features
 
+### Link prefetching
+
+`Link` component supports prefetching of navigation data by setting its `prefetch` prop to `True`.
+When enabled, whenever the user hovers or focuses the link, the navigation data will be prefetched and cached for a short period of time to speed up navigation.
+
+In general, you should enable prefetching for all links, especially in a navigation section of the applications.
+On the other hand, there can be valid reasons to disable prefetching such as if the navigation logic (i.e. `on_load` actions and top-level `DerivedVariable` and `py_components`) is complex and either:
+- requires running it just-in-time (so the few-second shift due to caching is not acceptable)
+- or is expensive to run (since users might hover links and not click them, there will be extra load caused by navigation logic running without users actually navigating the application)
+
 ### Route Names and IDs
 
 Routes can have human-readable names and unique identifiers:
