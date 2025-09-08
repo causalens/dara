@@ -16,7 +16,6 @@ from typing import (
     cast,
 )
 from unittest.mock import MagicMock
-from urllib.parse import quote
 from uuid import uuid4
 
 import anyio
@@ -24,6 +23,8 @@ import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.response import Response
 from async_asgi_testclient.websocket import WebSocketSession
+from httpx import AsyncClient as HttpxClient
+from httpx import Response as HttpxResponse
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO
@@ -173,9 +174,26 @@ class ActionParam(TypedDict):
 
 
 async def ndjson(response: Response):
+    """
+    Turn a response into an async iterator of NDJSON chunks.
+    This uses internals of the response object as the original implementation of iter_content doesn't work with ndjson.
+    """
     buffer = ''
     pattern = re.compile(r'\r?\n')
-    async for chunk in response.iter_content(128, decode_unicode=True):
+
+    # already have the entire content in memory
+    if response._content_consumed:
+        content = response._content.decode('utf-8')
+        for part in pattern.split(content):
+            if len(part) == 0:
+                continue
+            yield json.loads(part)
+        return
+
+    # otherwise keep reading until we get the entire content
+    async for chunk in response.generate(n=1):
+        chunk = chunk.decode('utf-8')
+        yield json.loads(chunk)
         buffer += chunk
 
         parts = pattern.split(buffer)
@@ -195,6 +213,10 @@ async def _get_template(
     params: Optional[Dict[str, str]] = None,
     ws_channel: str = 'test_channel',
 ) -> Tuple[Any, int]:
+    """
+    Helper function to fetch the template data from the loader endpoint.
+    Consumes the entire response stream of NDJSON chunks and returns them categorized by type.
+    """
     if actions is None:
         actions = []
 
@@ -212,14 +234,30 @@ async def _get_template(
         json={'action_payloads': action_payloads, 'params': params or {}, 'ws_channel': ws_channel},
     )
 
-    chunks = []
-    async for chunk in ndjson(response):
-        chunks.append(chunk)
+    data = {
+        'derived_variable': [],
+        'py_component': [],
+    }
+
+    # if non-200 response, return the json directly as it will have the error e.g. {'detail': '...'}
+    if response.status_code == 200:
+        async for chunk in ndjson(response):
+            if chunk['type'] == 'template':
+                normalized_data = denormalize(chunk['template']['data'], chunk['template']['lookup'])
+                data['template'] = normalized_data
+            elif chunk['type'] == 'actions':
+                data['actions'] = chunk['actions']
+            elif chunk['type'] == 'derived_variable':
+                data['derived_variable'].append(chunk)
+            elif chunk['type'] == 'py_component':
+                data['py_component'].append(chunk)
+    else:
+        data = response.json()
 
     if response_ok:
         assert response.status_code == 200
 
-    return chunks, response.status_code
+    return data, response.status_code
 
 
 async def _get_tabular_derived_variable(

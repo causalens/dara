@@ -77,7 +77,7 @@ async def test_execute_actions():
             params={'id': '5'},
             actions=[{'action': action_instance, 'inputs': {'previous_value': 2}}],
         )
-        action_results = response['action_results']
+        action_results = response['actions']
         assert len(action_results) == 1
 
         results = action_results[action_instance.uid]
