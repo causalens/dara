@@ -4,6 +4,11 @@ title: Changelog
 
 ## NEXT
 
+-  Added a new `prefetch` property to `Link` that allows for prefetching the navigation data when the user intends to navigate to the link. The data is kept in a short-lived cache to speed up the perceived performance of the navigation.
+-  Implemented router optimizations by preloading top-level derived values (DerivedVariables and py_components) on a page when navigating to it. This saves us having to make multiple requests to the backend when navigating to a page with a lot of derived values; especially when combined with link prefetching, this can make a big difference in UX.
+
+## 1.21.0
+
 -  Implemented a new `router` API on `ConfigurationBuilder` that allows for more flexible routing configurations. Check out the new `Getting Started -> Routing` docs page for an overview. Note that mixing the new API and the old `add_page()` API is disallowed and will raise an error on startup.
 -  Deprecated the following APIs on `ConfigurationBuilder`:
     - `add_page` -> migrate to `router.add_page`

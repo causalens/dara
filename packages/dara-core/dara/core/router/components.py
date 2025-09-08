@@ -51,6 +51,7 @@ class Link(StyledComponentInstance):
     - with `end=True`, be considered inactive because of the missing '123' part
     """
 
+    # TODO: consider making it True by default in Dara v2
     prefetch: bool = False
     """
     Whether to prefetch the navigation data when user intends to navigate to the link.

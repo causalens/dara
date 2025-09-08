@@ -153,43 +153,6 @@ describe('Route Loader', () => {
                     nested: [],
                 } satisfies SingleVariable<boolean>,
             } satisfies AnnotatedAction,
-            // dependency_graph: {
-            //     derived_variables: {
-            //         dv_uid: {
-            //             uid: 'dv_uid',
-            //             variables: [
-            //                 {
-            //                     uid: 'dv_input_uid',
-            //                     default: 'dv_input_test',
-            //                     __typename: 'Variable',
-            //                     nested: [],
-            //                 } satisfies SingleVariable<string>,
-            //             ],
-            //             deps: [],
-            //             __typename: 'DerivedVariable',
-            //             nested: [],
-            //         } satisfies DerivedVariable,
-            //     },
-            //     py_components: {
-            //         py_comp_uid: {
-            //             uid: 'py_comp_uid',
-            //             name: 'TestComponent',
-            //             props: {
-            //                 dynamic_kwargs: {
-            //                     input_val: {
-            //                         uid: 'py_comp_input_uid',
-            //                         default: 'py_comp_input_test',
-            //                         __typename: 'Variable',
-            //                         nested: [],
-            //                     } satisfies SingleVariable<string>,
-            //                 },
-            //                 func_name: 'TestComponent',
-            //                 js_module: '@test',
-            //                 polling_interval: null,
-            //             },
-            //         } satisfies PyComponentInstance,
-            //     },
-            // },
         } satisfies RouteDefinition;
 
         server.use(
