@@ -104,7 +104,8 @@
     "rxjs": "^7.0.0",
     "styled-components": "^5.3.10",
     "typescript": "^5.0.4",
-    "use-async-resource": "^2.2.2"
+    "use-async-resource": "^2.2.2",
+    "zod": "^3.25"
   },
   "files": [
     "dist"

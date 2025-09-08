@@ -9,9 +9,9 @@ import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
 import { AuthenticatedRoot, DARA_JWT_TOKEN } from '../../js/shared';
-import { MockWebSocketClient, server, wrappedRender } from './utils';
+import { server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
-import { daraData } from './utils/wrapped-render';
+import { daraData, wsClient } from './utils/wrapped-render';
 
 mockLocalStorage();
 
@@ -52,7 +52,7 @@ describe('AuthenticatedRoot', () => {
         expect(sessionStorage.getItem(invalidKey)).toEqual('val3');
         expect(sessionStorage.getItem(validKey)).toEqual('val4');
 
-        wrappedRender(<AuthenticatedRoot daraData={daraData} />);
+        wrappedRender(<AuthenticatedRoot daraData={daraData} initialWebsocketClient={wsClient as any} />);
 
         // Other session value should be cleaned up
         await waitFor(() => {
@@ -64,7 +64,6 @@ describe('AuthenticatedRoot', () => {
     });
 
     it('should subscribe to changes in the websocket token and trigger an update in the client', () => {
-        const wsClient = new MockWebSocketClient('uid');
         const updateTokenSpy = vi.spyOn(wsClient, 'updateToken');
 
         wrappedRender(<AuthenticatedRoot initialWebsocketClient={wsClient as any} daraData={daraData} />);

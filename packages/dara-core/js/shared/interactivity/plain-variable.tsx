@@ -6,7 +6,7 @@ import { isEmbedded } from '@/shared/utils/embed';
 import { type DerivedVariable, type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
-import { STORES, getEffect, getOrRegisterDerivedVariableValue, resolveNested, setNested } from './internal';
+import { STORES, getEffect, getOrRegisterDerivedVariable, resolveNested, setNested } from './internal';
 import { StateSynchronizer } from './state-synchronizer';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, getRegistryKey, selectorFamilyRegistry } from './store';
 
@@ -46,7 +46,7 @@ export function getOrRegisterPlainVariable<T>(
                 default:
                     isDefaultDerived ?
                         (extrasSerializable: RequestExtrasSerializable) =>
-                            getOrRegisterDerivedVariableValue(
+                            getOrRegisterDerivedVariable(
                                 variable.default as DerivedVariable,
                                 wsClient,
                                 taskContext,

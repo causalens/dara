@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/query-core';
+import * as React from 'react';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 import type { Snapshot } from 'recoil';
 
@@ -15,10 +15,10 @@ import {
     type RouteDefinition,
 } from '@/types/core';
 
-import DynamicAuthComponent from './dynamic-component/dynamic-auth-component';
-import AuthenticatedRoot from './root/authenticated-root';
-import RouteContent, { createRouteLoader } from './root/route-content';
-import UnauthenticatedRoot from './root/unauthenticated-root';
+import DynamicAuthComponent from '../shared/dynamic-component/dynamic-auth-component';
+import AuthenticatedRoot from '../shared/root/authenticated-root';
+import UnauthenticatedRoot from '../shared/root/unauthenticated-root';
+import RouteContent, { createRouteLoader } from './route-content';
 
 /**
  * Clean a single path segment by removing leading/trailing slashes
@@ -48,11 +48,14 @@ function joinPaths(parentPath: string, childPath: string): string {
     return `/${cleanParent}/${cleanChild}`;
 }
 
-function createRoute(
+export function createRoute(
     route: RouteDefinition,
-    queryClient: QueryClient,
-    snapshotRef: React.MutableRefObject<Snapshot>
+    snapshotRef: React.MutableRefObject<Snapshot>,
+    routeDefMap: Map<string, RouteDefinition>
 ): RouteObject {
+    // Add to route definition map for quick lookup
+    routeDefMap.set(route.id, route);
+
     const sharedProps = {
         id: route.id,
         caseSensitive: route.case_sensitive,
@@ -66,33 +69,34 @@ function createRoute(
                 ...sharedProps,
                 index: true,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient, snapshotRef),
+                loader: createRouteLoader(route, snapshotRef),
             };
         case 'PageRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient, snapshotRef),
-                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
+                loader: createRouteLoader(route, snapshotRef),
+                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
             };
         case 'LayoutRoute':
             return {
                 ...sharedProps,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, queryClient, snapshotRef),
-                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
+                loader: createRouteLoader(route, snapshotRef),
+                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
             };
         case 'PrefixRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
-                children: route.children.map((r) => createRoute(r, queryClient, snapshotRef)),
+                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
             };
         default:
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
     }
 }
+
 /**
  * Find the first navigatable path in the given routes.
  * Walks the routes in a BFS and returns the first route with a path.
@@ -150,14 +154,17 @@ export function findFirstPath(routes: RouteDefinition[]): string {
  */
 let verifiedToken = false;
 
+interface RouterWithRoutes {
+    router: ReturnType<typeof createBrowserRouter>;
+    routeDefinitions: RouteDefinition[];
+    routeObjects: RouteObject[];
+    routeDefMap: Map<string, RouteDefinition>;
+}
+
 /**
  * Create the router for the application
  */
-export function createRouter(
-    config: DaraData,
-    queryClient: QueryClient,
-    snapshotRef: React.MutableRefObject<Snapshot>
-): ReturnType<typeof createBrowserRouter> {
+export function createRouter(config: DaraData, snapshotRef: React.MutableRefObject<Snapshot>): RouterWithRoutes {
     let basename = '';
 
     // The base_url is set in the html template by the backend when returning it
@@ -167,10 +174,12 @@ export function createRouter(
 
     const { login, logout, ...extraRoutes } = config.auth_components;
 
-    const userRoutes = config.router.children.map((r) => createRoute(r, queryClient, snapshotRef));
+    // Create map to collect route definitions during route creation
+    const routeDefMap = new Map<string, RouteDefinition>();
+    const userRoutes = config.router.children.map((r) => createRoute(r, snapshotRef, routeDefMap));
     const defaultPath = findFirstPath(config.router.children) || '/';
 
-    return createBrowserRouter(
+    const router = createBrowserRouter(
         [
             {
                 // wrapper around all the router content
@@ -239,4 +248,11 @@ export function createRouter(
         ],
         { basename }
     );
+
+    return {
+        router,
+        routeDefinitions: config.router.children,
+        routeObjects: userRoutes,
+        routeDefMap,
+    };
 }

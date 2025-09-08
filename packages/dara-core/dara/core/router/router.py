@@ -20,6 +20,8 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import Variable
 from dara.core.persistence import PersistenceStore  # noqa: F401
 
+from .dependency_graph import DependencyGraph
+
 # Matches :param or :param? (captures the name without the colon)
 PARAM_REGEX = re.compile(r':([\w-]+)\??')
 
@@ -86,6 +88,7 @@ class RouteData(BaseModel):
     content: Optional[ComponentInstance] = None
     on_load: Optional[Action] = None
     definition: Optional['BaseRoute'] = None
+    dependency_graph: Optional[DependencyGraph] = Field(default=None, exclude=True)
 
 
 class BaseRoute(BaseModel):
@@ -251,8 +254,10 @@ class BaseRoute(BaseModel):
         props['__typename'] = self.__class__.__name__
         props['full_path'] = self.full_path
         props['id'] = quote(self.get_identifier())
-        if not props.get('name'):
-            props['name'] = self.get_name()
+        props['name'] = self.get_name()
+
+        assert self.compiled_data is not None
+        props['dependency_graph'] = self.compiled_data.dependency_graph
         return props
 
 
@@ -484,8 +489,13 @@ class IndexRoute(BaseRoute):
 
     def compile(self):
         super().compile()
+        content = _execute_route_func(self.content, self.full_path)
+
+        # Analyze component dependencies
+        dependency_graph = DependencyGraph.from_component(content)
+
         self.compiled_data = RouteData(
-            content=_execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+            content=content, on_load=self.on_load, definition=self, dependency_graph=dependency_graph
         )
 
 
@@ -505,8 +515,13 @@ class PageRoute(BaseRoute, HasChildRoutes):
 
     def compile(self):
         super().compile()
+        content = _execute_route_func(self.content, self.full_path)
+
+        # Analyze component dependencies
+        dependency_graph = DependencyGraph.from_component(content)
+
         self.compiled_data = RouteData(
-            content=_execute_route_func(self.content, self.full_path), on_load=self.on_load, definition=self
+            content=content, on_load=self.on_load, definition=self, dependency_graph=dependency_graph
         )
         for child in self.children:
             child.compile()
@@ -550,8 +565,12 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
 
     def compile(self):
         super().compile()
+
+        content = _execute_route_func(self.content, self.full_path)
+        dependency_graph = DependencyGraph.from_component(content)
+
         self.compiled_data = RouteData(
-            on_load=self.on_load, content=_execute_route_func(self.content, self.full_path), definition=self
+            on_load=self.on_load, content=content, definition=self, dependency_graph=dependency_graph
         )
         for child in self.children:
             child.compile()

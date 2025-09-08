@@ -15,7 +15,7 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
 import { preloadActions } from '@/shared/interactivity/use-action';
-import { useUrlSync } from '@/shared/utils';
+import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
 import { type WebSocketClientInterface } from '../../../js/api/websocket';
@@ -28,7 +28,7 @@ import {
     VariableCtx,
     WebSocketCtx,
 } from '../../../js/shared/context';
-import { type ComponentInstance, type DaraData, type ModuleContent } from '../../../js/types';
+import { type Component, type ComponentInstance, type DaraData, type ModuleContent } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
 
@@ -66,9 +66,11 @@ export const importers: Record<string, () => Promise<ModuleContent>> = {
         }),
 };
 
-const wsClient = new MockWebSocketClient('uid');
+export const wsClient = new MockWebSocketClient('uid');
 
 interface WrapperProps {
+    importersObject?: Record<string, () => Promise<ModuleContent>>;
+    componentsRegistry?: Record<string, Component>;
     children?: React.ReactNode;
     client?: WebSocketClientInterface;
     withRouter?: boolean;
@@ -88,7 +90,7 @@ declare global {
 
 interface DaraGlobals {
     base_url: string;
-    ws?: WebSocketClientInterface;
+    ws: Deferred<WebSocketClientInterface>;
 }
 
 export const daraData: DaraData = {
@@ -119,15 +121,20 @@ export const daraData: DaraData = {
 };
 
 // A wrapper for testing that provides some required contexts
-export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = true }: WrapperProps): ReactNode => {
+export const Wrapper = ({
+    children,
+    client,
+    withRouter = true,
+    withTaskCtx = true,
+    importersObject = importers,
+    componentsRegistry = mockComponents,
+}: WrapperProps): ReactNode => {
     // the client needs to be created inside the wrapper so cache is not shared between tests
     const queryClient = new QueryClient();
 
     const variables = useRef<Set<string>>(new Set());
 
     let child = children;
-
-    const [isReady, setIsReady] = useState(false);
 
     if (withRouter) {
         const router = createBrowserRouter([
@@ -155,9 +162,10 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     if (!window.dara) {
         window.dara = {
             base_url: '',
+            ws: deferred(),
         };
     }
-    window.dara.ws = wsClient;
+    window.dara.ws.resolve(wsClient);
 
     return (
         <ConfigContextProvider
@@ -188,13 +196,13 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
         >
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider theme={theme}>
-                    <ImportersCtx.Provider value={importers}>
+                    <ImportersCtx.Provider value={importersObject}>
                         <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
                             <RecoilRoot>
                                 <React.Suspense fallback={<div>Loading...</div>}>
                                     <RegistriesCtxProvider
                                         actionRegistry={mockActions}
-                                        componentRegistry={mockComponents}
+                                        componentRegistry={componentsRegistry}
                                     >
                                         <StoreProviders>
                                             <ServerVariableSyncProvider>

@@ -1,4 +1,4 @@
-import { type RecoilState, atom, useRecoilValue } from 'recoil';
+import { type RecoilState, type Snapshot, atom } from 'recoil';
 
 import { type DerivedVariable, isDerivedVariable } from '@/types';
 
@@ -36,6 +36,23 @@ export function getOrRegisterTrigger(variable: DerivedVariable): RecoilState<Tri
     }
 
     return atomRegistry.get(triggerKey)!;
+}
+
+/**
+ * Resolve current trigger index value for a variable from the atom registry.
+ * If the atom is not registered, returns default values.
+ */
+export function resolveTriggerStatic(
+    triggerAtom: RecoilState<TriggerIndexValue> | null,
+    snapshot: Snapshot
+): TriggerIndexValue {
+    if (!triggerAtom) {
+        return {
+            force_key: null,
+            inc: 0,
+        };
+    }
+    return snapshot.getLoadable(triggerAtom).valueOrThrow();
 }
 
 /**
@@ -78,7 +95,7 @@ export function buildTriggerList(variables: any[]): Array<TriggerInfo> {
  */
 export function registerChildTriggers(
     triggerList: Array<TriggerInfo>,
-    registerFunc: (state: RecoilState<any>) => TriggerIndexValue = useRecoilValue
+    registerFunc: (state: RecoilState<any>) => TriggerIndexValue
 ): Array<TriggerIndexValue> {
     return triggerList.map((triggerInfo) => {
         if (isDerivedVariable(triggerInfo.variable)) {

@@ -26,7 +26,7 @@ import { type BackendStore, type BrowserStore, type DerivedVariable, type Persis
 
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
-import { getOrRegisterDerivedVariableValue } from './internal';
+import { getOrRegisterDerivedVariable } from './internal';
 import { atomFamilyMembersRegistry, atomFamilyRegistry, atomRegistry } from './store';
 
 /**
@@ -480,7 +480,7 @@ function localStorageEffect<T>(
                     const isDefaultDerived = isDerivedVariable(variable.default);
 
                     return isDefaultDerived ?
-                            getOrRegisterDerivedVariableValue(
+                            getOrRegisterDerivedVariable(
                                 variable.default as DerivedVariable,
                                 wsClient,
                                 taskContext,

@@ -5,9 +5,9 @@ import * as React from 'react';
 import { Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router';
 
 import { setSessionToken } from '@/auth/use-session-token';
+import type { LoaderResult } from '@/router';
 import { clearRegistries_TEST, useVariable } from '@/shared';
 import { PathParamSync } from '@/shared/interactivity/persistence';
-import type { LoaderResult } from '@/shared/root/route-content';
 import type { PathParamStore, SingleVariable } from '@/types/core';
 
 import { Wrapper } from './utils';

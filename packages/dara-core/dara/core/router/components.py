@@ -51,15 +51,14 @@ class Link(StyledComponentInstance):
     - with `end=True`, be considered inactive because of the missing '123' part
     """
 
-    # TODO: not implemented yet
-    # prefetch: Literal['none', 'intent', 'render', 'viewport'] = 'none'
-    # """
-    # Defines the data and module prefetching behavior for the link.
-    # - none — default, no prefetching
-    # - intent — prefetches when the user hovers or focuses the link
-    # - render — prefetches when the link renders
-    # - viewport — prefetches when the link is in the viewport, very useful for mobile
-    # """
+    # TODO: consider making it True by default in Dara v2
+    prefetch: bool = False
+    """
+    Whether to prefetch the navigation data when user intends to navigate to the link.
+    When set to True, whenever the user hovers or focuses the link, the navigation data will be prefetched
+    and cached for a short period of time to speed up navigation.
+    Defaults to False.
+    """
 
     relative: Literal['route', 'path'] = 'route'
     """
@@ -106,4 +105,39 @@ class Link(StyledComponentInstance):
         components = list(children)
         if 'children' not in kwargs:
             kwargs['children'] = components
+        super().__init__(**kwargs)
+
+
+MenuLinkDef = JsComponentDef(name='MenuLink', js_module='@darajs/core', py_module='dara.core')
+
+
+class MenuLink(Link):
+    """
+    Styled version of Link component, ready to be used with e.g. the built-in SideBarFrame component.
+    Accepts all the same props as the Link component, can be used as a drop-in replacement.
+
+    ```python
+    from dara.core.visual.components import MenuLink, SideBarFrame
+    from dara.core.router import Router, Outlet
+
+    router = Router()
+
+    def RootLayout():
+        routes = router.get_navigable_routes()
+
+        return SideBarFrame(
+            side_bar=Stack(
+                *[MenuLink(Text(path['name']), to=path['path']) for path in routes],
+            ),
+            content=Outlet(),
+        )
+
+    root = router.add_layout(content=RootLayout)
+    ```
+    """
+
+    def __init__(self, *children: ComponentInstance, **kwargs):
+        els = list(children)
+        if 'children' not in kwargs:
+            kwargs['children'] = els
         super().__init__(**kwargs)

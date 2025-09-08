@@ -22,8 +22,7 @@ describe('Trigger Variable action', () => {
                             cy.get('@output').should('have.text', 3);
                         });
 
-                    cy.wait('@trigger');
-                    cy.wait(500);
+                    cy.wait(1000);
 
                     cy.contains('button', 'SIMPLE_TRIGGER')
                         .click()
