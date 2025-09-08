@@ -764,64 +764,6 @@ export function getOrRegisterDerivedVariable(
 }
 
 /**
- * Get a derived selector for a derived variable.
- * Retrieves the value of the derived variable directly instead of returning an object with cache_key and value.
- *
- * @param variable variable to register
- * @param wsClient WebSocket client from context
- * @param taskContext global task context
- * @param search search query from location
- * @param extras request extras to be merged into the options
- */
-export function getOrRegisterDerivedVariableValue(
-    variable: DerivedVariable,
-    wsClient: WebSocketClientInterface,
-    taskContext: GlobalTaskContext,
-    currentExtras: RequestExtras
-): RecoilValue<any> {
-    const key = getRegistryKey(variable, 'derived-selector');
-
-    if (!selectorFamilyRegistry.has(key)) {
-        selectorFamilyRegistry.set(
-            key,
-            selectorFamily({
-                get:
-                    (extrasSerializable: RequestExtrasSerializable) =>
-                    ({ get }) => {
-                        // get the right selector instance for this extras value
-                        const dvSelector = getOrRegisterDerivedVariable(
-                            variable,
-                            wsClient,
-                            taskContext,
-                            extrasSerializable.extras
-                        );
-                        const dvResponse = get(dvSelector);
-                        return dvResponse.value;
-                    },
-                key: nanoid(),
-            })
-        );
-    }
-
-    const family = selectorFamilyRegistry.get(key)!;
-
-    // Get a selector instance for this particular extras value
-    // This is required as otherwise the selector is not aware of different possible extras values
-    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
-    // first registered
-    const serializableExtras = new RequestExtrasSerializable(currentExtras);
-    const selectorInstance = family(serializableExtras);
-
-    // register selector instance in the selector family registry
-    if (!selectorFamilyMembersRegistry.has(family)) {
-        selectorFamilyMembersRegistry.set(family, new Map());
-    }
-    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
-
-    return selectorInstance;
-}
-
-/**
  * Preload a derived value.
  * Replicates the logic of normal resolution but resolving the values
  * from snapshot or falling back to the defaults.

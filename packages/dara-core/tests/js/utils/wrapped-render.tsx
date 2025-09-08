@@ -66,7 +66,7 @@ export const importers: Record<string, () => Promise<ModuleContent>> = {
         }),
 };
 
-const wsClient = new MockWebSocketClient('uid');
+export const wsClient = new MockWebSocketClient('uid');
 
 interface WrapperProps {
     children?: React.ReactNode;
@@ -88,7 +88,7 @@ declare global {
 
 interface DaraGlobals {
     base_url: string;
-    ws?: WebSocketClientInterface;
+    ws: Promise<WebSocketClientInterface>;
 }
 
 export const daraData: DaraData = {
@@ -157,7 +157,7 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
             base_url: '',
         };
     }
-    window.dara.ws = wsClient;
+    window.dara.ws = Promise.resolve(wsClient);
 
     return (
         <ConfigContextProvider
