@@ -6,6 +6,7 @@ title: Changelog
 
 -  Added a new `prefetch` property to `Link` that allows for prefetching the navigation data when the user intends to navigate to the link. The data is kept in a short-lived cache to speed up the perceived performance of the navigation.
 -  Implemented router optimizations by preloading top-level derived values (DerivedVariables and py_components) on a page when navigating to it. This saves us having to make multiple requests to the backend when navigating to a page with a lot of derived values; especially when combined with link prefetching, this can make a big difference in UX.
+-  Added a new `in_place` parameter to `write_partial` on `Variable` and `BackendStore` to allow for more performant in-place application of patches. This is opt-in as to preserve old behaviour but is recommended for performance critical updates of large structures.
 
 ## 1.21.0
 

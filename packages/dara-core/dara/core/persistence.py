@@ -415,7 +415,7 @@ class BackendStore(PersistenceStore):
 
             await self.backend.subscribe(_on_value)
 
-    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True, in_place: bool = False):
         """
         Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
@@ -424,6 +424,10 @@ class BackendStore(PersistenceStore):
 
         :param data: Either a list of JSON patch operations (RFC 6902) or a full object to diff against current value
         :param notify: whether to broadcast the patches to clients
+        :param in_place: whether to apply the patches in-place or return a new value.
+        When set to True, the value will be mutated when applying the patches rather than deep-cloned.
+        This is recommended when the updated value is large and deep-cloning it can be expensive; however, users should exercise
+        caution when using the option as previous results retrieved from `store.read()` will potentially be mutated, depending on the backend used.
         """
         if self.readonly:
             raise ValueError('Cannot write to a read-only store')
@@ -451,7 +455,7 @@ class BackendStore(PersistenceStore):
 
             # Apply patches to current value
             try:
-                updated_value = jsonpatch.apply_patch(current_value, patches)
+                updated_value = jsonpatch.apply_patch(current_value, patches, in_place=in_place)
             except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
                 raise ValueError(f'Invalid JSON patch operation: {e}') from e
         else:
