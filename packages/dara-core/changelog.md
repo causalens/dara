@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.1
 
 -  Added a new `prefetch` property to `Link` that allows for prefetching the navigation data when the user intends to navigate to the link. The data is kept in a short-lived cache to speed up the perceived performance of the navigation.
 -  Implemented router optimizations by preloading top-level derived values (DerivedVariables and py_components) on a page when navigating to it. This saves us having to make multiple requests to the backend when navigating to a page with a lot of derived values; especially when combined with link prefetching, this can make a big difference in UX.
