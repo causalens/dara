@@ -284,7 +284,7 @@ class Variable(ClientVariable, Generic[VariableType]):
         assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
         return await self.store.write(value, notify=notify, ignore_channel=ignore_channel)
 
-    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True):
+    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True, in_place: bool = False):
         """
         Apply partial updates to the variable's BackendStore using JSON Patch operations or automatic diffing.
         Raises an error if the variable does not have a BackendStore attached.
@@ -294,9 +294,13 @@ class Variable(ClientVariable, Generic[VariableType]):
 
         :param data: Either a list of JSON patch operations (RFC 6902) or a full object to diff against current value
         :param notify: whether to broadcast the patches to clients
+        :param in_place: whether to apply the patches in-place or return a new value.
+        When set to True, the value will be mutated when applying the patches rather than deep-cloned.
+        This is recommended when the updated value is large and deep-cloning it can be expensive; however, users should exercise
+        caution when using the option as previous results retrieved from `variable.read()` will potentially be mutated, depending on the backend used.
         """
         assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
-        return await self.store.write_partial(data, notify=notify)
+        return await self.store.write_partial(data, notify=notify, in_place=in_place)
 
     async def read(self):
         """
