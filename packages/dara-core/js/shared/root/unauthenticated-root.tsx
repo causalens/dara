@@ -1,10 +1,30 @@
 import NProgress from 'nprogress';
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { Outlet, useNavigation } from 'react-router';
 import { RecoilURLSync } from 'recoil-sync';
 
+import { ThemeProvider } from '@darajs/styled-components';
+
+import { GlobalStyle } from '@/global-styles';
+
+import { useConfig } from '../context/config-context';
+import { useVariable } from '../interactivity';
 import { PathParamSync } from '../interactivity/persistence';
+import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
+
+function StyleRoot(props: { children: ReactNode }): JSX.Element {
+    const config = useConfig();
+    const [mainTheme] = useVariable(config.theme.main);
+    const theme = useMemo(() => resolveTheme(mainTheme, config.theme.base), [config.theme.base, mainTheme]);
+
+    return (
+        <ThemeProvider theme={theme}>
+            <GlobalStyle />
+            {props.children}
+        </ThemeProvider>
+    );
+}
 
 /**
  * Rendered around the entire router content, regardless of whether it's the authenticated content
@@ -40,7 +60,9 @@ function UnauthenticatedRoot(): JSX.Element {
     return (
         <PathParamSync>
             <RecoilURLSync {...syncOptions}>
-                <Outlet />
+                <StyleRoot>
+                    <Outlet />
+                </StyleRoot>
             </RecoilURLSync>
         </PathParamSync>
     );

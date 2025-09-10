@@ -55,6 +55,7 @@ from dara.core.definitions import (
 )
 from dara.core.interactivity.actions import ActionImpl, ResetVariables
 from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.internal.encoder_registry import Encoder
 from dara.core.internal.import_discovery import (
     create_action_definition,
@@ -525,14 +526,14 @@ class ConfigurationBuilder:
 
     def set_theme(
         self,
-        main_theme: Optional[Union[ThemeDef, Literal['light'], Literal['dark']]] = None,
+        main_theme: Optional[Union[ThemeDef, ClientVariable, Literal['light'], Literal['dark']]] = None,
         base_theme: Optional[Union[Literal['light'], Literal['dark']]] = None,
     ):
         """
         Sets the color theme of the app. Takes ThemeDef models for the app, and reverts
         to the default themes if they are not supplied.
 
-        :param main_theme: ThemeDef defining colors for the app, alternatively can be either 'light' or 'dark' to use default Dara colors
+        :param main_theme: ThemeDef defining colors for the app, a string 'light' or 'dark' to use default Dara colors, or a Variable containing one of the before
         """
         if isinstance(main_theme, str):
             if main_theme in ('dark', 'light'):

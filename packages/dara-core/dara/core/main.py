@@ -402,7 +402,6 @@ def _start_application(config: Configuration):
             'application_name': get_settings().project_name,
             'enable_devtools': config.enable_devtools,
             'live_reload': config.live_reload,
-            # TODO: this will become some backendstore-variable instead, prepopulated in here
             'theme': config.theme,
             'title': config.title,
             'context_components': config.context_components,

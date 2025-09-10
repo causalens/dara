@@ -76,3 +76,52 @@ config = ConfigurationBuilder()
 
 config.set_theme(main_theme=PurpleTheme)
 ```
+
+In addition, `main_theme` can also be provided as a `Variable` which enables dynamic theme changes.
+
+```python
+from dara.core import ConfigurationBuilder, Variable, BackendStore
+from dara.core.visual.themes import Light
+
+config = ConfigurationBuilder()
+
+# Create a new theme based on the default light theme
+theme = Light.model_copy()
+theme.font.size = '14px'
+
+# Create a new variable to store the theme, initialize it with the tweaked theme
+theme_var = Variable(theme, store=BackendStore())
+config.set_theme(main_theme=theme_var)
+
+
+def ThemePage():
+    # Variable to store the font size
+    font_size_var = Variable(14)
+
+    @action
+    async def update_theme(ctx: action.Ctx):
+        # Current Input component value
+        value = int(ctx.input)
+
+        # Directly write to the theme variable, writing a new copied theme with updated font size
+        new_theme = theme.model_copy()
+        new_theme.font.size = f'{value}px'
+        await theme_var.write(new_theme)
+
+
+    return Stack(
+        Text('ThemePage'),
+        Text('Font Size:'),
+        Input(
+            value=font_size_var,
+            type='number',
+            onchange=update_theme(),
+        ),
+    )
+
+
+config.router.add_page(path='theme', content=ThemePage())
+```
+
+The above example renders a `/theme` page with an `Input` component that dynamically updates the base font size on the page.
+The same mechanism can also be used to achieve e.g. light/dark mode switching.

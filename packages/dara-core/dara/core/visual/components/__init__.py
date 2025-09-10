@@ -43,6 +43,7 @@ from .progress_tracker import (
 from .raw_string import RawString
 from .router_content import RouterContent, RouterContentDef
 from .sidebar_frame import SideBarFrame, SideBarFrameDef
+from .theme_provider import ThemeProvider, ThemeProviderDef
 from .topbar_frame import TopBarFrame, TopBarFrameDef
 
 __all__ = [
@@ -67,6 +68,8 @@ __all__ = [
     'Fallback',
     'PoweredByCausalens',
     'PoweredByCausalensDef',
+    'ThemeProvider',
+    'ThemeProviderDef',
 ]
 
 for symbol in list(globals().values()) + [Fallback.Default, Fallback.Row]:

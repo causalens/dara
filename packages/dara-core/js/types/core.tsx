@@ -20,7 +20,7 @@ export interface TaskResponse {
 
 interface ConfigTheme {
     base?: 'dark' | 'light';
-    main: 'dark' | 'light' | DefaultTheme;
+    main: 'dark' | 'light' | DefaultTheme | Variable<'dark' | 'light' | DefaultTheme>;
 }
 
 /**

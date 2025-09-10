@@ -18,6 +18,7 @@ limitations under the License.
 from typing import Literal, Optional, Union
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.interactivity.client_variable import ClientVariable
 
 
 class ThemeColors(BaseModel):
@@ -96,5 +97,5 @@ class BaseTheme(BaseModel):
     Defines the base theming scheme of an app
     """
 
-    main: Union[ThemeDef, Literal['light'], Literal['dark']]
+    main: Union[ThemeDef, ClientVariable, Literal['light'], Literal['dark']]
     base: Optional[Union[Literal['light'], Literal['dark']]] = None
