@@ -3,7 +3,6 @@ import NProgress from 'nprogress';
 import { createRoot } from 'react-dom/client';
 import { RecoilRoot } from 'recoil';
 
-import { ThemeProvider } from '@darajs/styled-components';
 import { ErrorBoundary } from '@darajs/ui-components';
 
 import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
@@ -11,7 +10,7 @@ import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 import type { WebSocketClientInterface } from './api';
 import './index.css';
 import RouterRoot from './router/router-root';
-import { type Deferred, DirectionCtx, ImportersCtx, deferred, resolveTheme } from './shared';
+import { type Deferred, DirectionCtx, ImportersCtx, deferred } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { preloadActions } from './shared/interactivity/use-action';
@@ -32,24 +31,21 @@ export function Root(props: {
     daraData: DaraData;
     queryClient: QueryClient;
     importers: { [k: string]: () => Promise<any> };
-    theme: any;
 }): JSX.Element {
     return (
         <ConfigContextProvider initialConfig={props.daraData}>
             <QueryClientProvider client={props.queryClient}>
-                <ThemeProvider theme={props.theme}>
-                    <ErrorBoundary>
-                        <ImportersCtx.Provider value={props.importers}>
-                            <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                <RecoilRoot>
-                                    <GlobalTaskProvider>
-                                        <RouterRoot daraData={props.daraData} />
-                                    </GlobalTaskProvider>
-                                </RecoilRoot>
-                            </DirectionCtx.Provider>
-                        </ImportersCtx.Provider>
-                    </ErrorBoundary>
-                </ThemeProvider>
+                <ErrorBoundary>
+                    <ImportersCtx.Provider value={props.importers}>
+                        <DirectionCtx.Provider value={{ direction: 'row' }}>
+                            <RecoilRoot>
+                                <GlobalTaskProvider>
+                                    <RouterRoot daraData={props.daraData} />
+                                </GlobalTaskProvider>
+                            </RecoilRoot>
+                        </DirectionCtx.Provider>
+                    </ImportersCtx.Provider>
+                </ErrorBoundary>
             </QueryClientProvider>
         </ConfigContextProvider>
     );
@@ -82,11 +78,9 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
         preloadActions(importers, Object.values(daraData.actions)),
     ]);
 
-    const theme = resolveTheme(daraData.theme?.main, daraData.theme?.base);
-
     const container = document.getElementById('dara_root')!;
     const root = createRoot(container);
-    root.render(<Root daraData={daraData} queryClient={queryClient} importers={importers} theme={theme} />);
+    root.render(<Root daraData={daraData} queryClient={queryClient} importers={importers} />);
 }
 
 export default run;

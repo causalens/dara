@@ -1,11 +1,11 @@
 import { transparentize } from 'polished';
 
-import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
+import styled, { useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme, useConfig } from '@/shared';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, useConfig } from '@/shared';
 import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
 
@@ -132,25 +132,23 @@ function SideBarFrame(props: SideBarFrameProps): JSX.Element {
             {props.side_bar_position === 'right' && (
                 <Wrapper>{props.content && <DynamicComponent component={props.content} />}</Wrapper>
             )}
-            <ThemeContext.Provider value={resolveTheme(config.theme?.main, config.theme?.base)}>
-                <SideBar style={{ padding: props.side_bar_padding }} width={props.side_bar_width}>
-                    {!props.hide_logo && props.logo_position !== 'bottom' && logo}
-                    <Wrapper direction="column">
-                        <DirectionCtx.Provider value={{ direction: 'column' }}>
-                            {props.side_bar && <DynamicComponent component={props.side_bar} />}
-                        </DirectionCtx.Provider>
-                    </Wrapper>
-                    {!props.hide_logo && props.logo_position === 'bottom' && logo}
-                    <LogoutButton href="/logout" styling="error">
-                        <LogoutArrow style={{ marginRight: '0.5rem' }} />
-                        Logout
-                    </LogoutButton>
-                    <BuiltWithLink href="https://github.com/causalens/dara" target="_blank" rel="noopener noreferrer">
-                        Built with {daraLogo}
-                    </BuiltWithLink>
-                    {showPoweredBy && <PoweredByCausalens />}
-                </SideBar>
-            </ThemeContext.Provider>
+            <SideBar style={{ padding: props.side_bar_padding }} width={props.side_bar_width}>
+                {!props.hide_logo && props.logo_position !== 'bottom' && logo}
+                <Wrapper direction="column">
+                    <DirectionCtx.Provider value={{ direction: 'column' }}>
+                        {props.side_bar && <DynamicComponent component={props.side_bar} />}
+                    </DirectionCtx.Provider>
+                </Wrapper>
+                {!props.hide_logo && props.logo_position === 'bottom' && logo}
+                <LogoutButton href="/logout" styling="error">
+                    <LogoutArrow style={{ marginRight: '0.5rem' }} />
+                    Logout
+                </LogoutButton>
+                <BuiltWithLink href="https://github.com/causalens/dara" target="_blank" rel="noopener noreferrer">
+                    Built with {daraLogo}
+                </BuiltWithLink>
+                {showPoweredBy && <PoweredByCausalens />}
+            </SideBar>
             {props.side_bar_position !== 'right' && (
                 <Wrapper style={{ padding: '2rem 3rem' }}>
                     {props.content && <DynamicComponent component={props.content} />}

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import styled, {
-    DefaultTheme,
     ThemeContext,
     ThemeProvider,
     ThemedStyledInterface,
@@ -25,7 +24,7 @@ import styled, {
     useTheme,
 } from 'styled-components';
 
-interface Theme extends DefaultTheme {
+interface Theme {
     colors: {
         primary: string;
         primaryHover: string;
@@ -81,6 +80,13 @@ interface Theme extends DefaultTheme {
         medium: string;
     };
     themeType: 'light' | 'dark';
+}
+
+// Augment the DefaultTheme definition as per
+// https://styled-components.com/docs/api#create-a-declarations-file
+declare module 'styled-components' {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    export interface DefaultTheme extends Theme {}
 }
 
 /**

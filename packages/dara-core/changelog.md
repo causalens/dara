@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where changing the theme's base font size would not properly apply
+-  `ConfigurationBuilder.set_theme` now accepts any `Variable` as the theme value to dynamically change the base theme
+-  Added a new `ThemeProvider` component to `dara.core.visual.components` that can be used to provide a different theme to a subtree of components
+
 ## 1.21.1
 
 -  Added a new `prefetch` property to `Link` that allows for prefetching the navigation data when the user intends to navigate to the link. The data is kept in a short-lived cache to speed up the perceived performance of the navigation.

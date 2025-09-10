@@ -1,11 +1,11 @@
 import { transparentize } from 'polished';
 
-import styled, { ThemeContext, useTheme } from '@darajs/styled-components';
+import styled, { useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import DaraDark from '@/assets/dara-dark.svg';
 import DaraLight from '@/assets/dara-light.svg';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, resolveTheme, useConfig } from '@/shared';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon } from '@/shared';
 import { type ComponentInstance } from '@/types';
 import { prependBaseUrl } from '@/utils';
 
@@ -115,7 +115,6 @@ const LogoutArrow = getIcon('fa-solid fa-arrow-right-from-bracket');
  */
 function TopBarFrame(props: TopBarFrameProps): JSX.Element {
     const theme = useTheme();
-    const config = useConfig();
     const logo = props.logo_path && (
         <LogoImage alt="Logo" src={prependBaseUrl(props.logo_path)} width={props.logo_width} />
     );
@@ -124,25 +123,23 @@ function TopBarFrame(props: TopBarFrameProps): JSX.Element {
 
     return (
         <Wrapper backgroundColor={theme.colors.background} direction="column">
-            <ThemeContext.Provider value={resolveTheme(config?.theme?.main, config?.theme?.base)}>
-                <TopBar height={props.top_bar_height} style={{ padding: props.top_bar_padding }}>
-                    <TopBarContent>
-                        {!props.hide_logo && logo}
-                        {props.top_bar && (
-                            <RouteButtons direction="row">
-                                <DirectionCtx.Provider value={{ direction: 'row' }}>
-                                    {props.top_bar && <DynamicComponent component={props.top_bar} />}
-                                </DirectionCtx.Provider>
-                            </RouteButtons>
-                        )}
-                        <LogoutButton href="/logout" styling="error">
-                            <LogoutArrow style={{ marginRight: '0.5rem' }} />
-                            Logout
-                        </LogoutButton>
-                    </TopBarContent>
-                    <BuiltWithSpan>Built with {daraLogo}</BuiltWithSpan>
-                </TopBar>
-            </ThemeContext.Provider>
+            <TopBar height={props.top_bar_height} style={{ padding: props.top_bar_padding }}>
+                <TopBarContent>
+                    {!props.hide_logo && logo}
+                    {props.top_bar && (
+                        <RouteButtons direction="row">
+                            <DirectionCtx.Provider value={{ direction: 'row' }}>
+                                {props.top_bar && <DynamicComponent component={props.top_bar} />}
+                            </DirectionCtx.Provider>
+                        </RouteButtons>
+                    )}
+                    <LogoutButton href="/logout" styling="error">
+                        <LogoutArrow style={{ marginRight: '0.5rem' }} />
+                        Logout
+                    </LogoutButton>
+                </TopBarContent>
+                <BuiltWithSpan>Built with {daraLogo}</BuiltWithSpan>
+            </TopBar>
 
             <Wrapper style={{ padding: '2rem 3rem' }}>
                 {props.content && <DynamicComponent component={props.content} />}

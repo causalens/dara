@@ -53,6 +53,8 @@ from dara.core.visual.components import (
     RowFallbackDef,
     SideBarFrame,
     SideBarFrameDef,
+    ThemeProvider,
+    ThemeProviderDef,
     TopBarFrame,
     TopBarFrameDef,
 )
@@ -89,6 +91,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     Link.__name__: LinkDef,
     Outlet.__name__: OutletDef,
     PoweredByCausalens.__name__: PoweredByCausalensDef,
+    ThemeProvider.__name__: ThemeProviderDef,
 }
 
 # These actions are provided by the core JS of this module
