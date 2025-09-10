@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.2
 
 -  Fixed an issue where changing the theme's base font size would not properly apply
 -  `ConfigurationBuilder.set_theme` now accepts any `Variable` as the theme value to dynamically change the base theme
