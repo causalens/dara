@@ -357,9 +357,10 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             isErrored={false}
             isOpen={isOpen}
             style={props.style}
+            id={props.id}
         >
             <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
-                <Input {...getInputProps({ value: inputValue, id: props.id })} {...getReferenceProps()} />
+                <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} />
                 <ChevronButton disabled={props.disabled} isOpen={isOpen} getToggleButtonProps={getToggleButtonProps} />
             </InputWrapper>
             {ReactDOM.createPortal(

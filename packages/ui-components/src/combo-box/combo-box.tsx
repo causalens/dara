@@ -263,7 +263,6 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
     const inputProps = {
         ...getInputProps({
             disabled: props.disabled,
-            id: props.id,
         }),
         ...getReferenceProps(),
     };
@@ -282,6 +281,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 style={props.style}
+                id={props.id}
             >
                 <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
                     <Input

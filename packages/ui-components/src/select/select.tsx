@@ -202,8 +202,8 @@ function Select(props: SelectProps): JSX.Element {
     const menuProps = React.useMemo(() => getMenuProps({ ref: mergedDropdownRef }), [mergedDropdownRef, getMenuProps]);
 
     const toggleButtonProps = React.useMemo(
-        () => getToggleButtonProps({ disabled: props.disabled, ref: refs.setReference, id: props.id }),
-        [props.disabled, refs.setReference, getToggleButtonProps, props.id]
+        () => getToggleButtonProps({ disabled: props.disabled, ref: refs.setReference }),
+        [props.disabled, refs.setReference, getToggleButtonProps]
     );
 
     const dropdownStyle = React.useMemo(
@@ -223,6 +223,7 @@ function Select(props: SelectProps): JSX.Element {
                 isOpen={isOpen}
                 onClick={props.onClick}
                 style={props.style}
+                id={props.id}
             >
                 <SelectButton
                     disabled={props.disabled}

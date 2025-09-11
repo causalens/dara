@@ -306,7 +306,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
     const { getReferenceProps, getFloatingProps } = useInteractions([role]);
 
     const inputProps = {
-        ...getInputProps(getDropdownProps({ preventKeyAction: isOpen, id: props.id })),
+        ...getInputProps(getDropdownProps({ preventKeyAction: isOpen })),
         ...getReferenceProps(),
         // Override the onChange to bypass downshift's handling, this is due to a bug with IME
         // see https://github.com/downshift-js/downshift/issues/1452
@@ -329,6 +329,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             maxRows={maxRows}
             maxWidth={maxWidth}
             style={props.style}
+            id={props.id}
         >
             <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
                 <InputWrapper
