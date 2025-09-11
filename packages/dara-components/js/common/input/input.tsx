@@ -75,6 +75,7 @@ function Input(props: InputProps): JSX.Element {
     if (props.type === 'number') {
         return (
             <StyledNumericInput
+                id={props.id_}
                 $rawCss={css}
                 className={props.className}
                 onChange={(e) => handleChange(String(e))}
@@ -87,6 +88,7 @@ function Input(props: InputProps): JSX.Element {
     }
     return (
         <StyledInput
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             onChange={handleChange}

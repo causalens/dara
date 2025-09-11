@@ -127,6 +127,8 @@ export const Input = styled.input`
 `;
 
 export interface ComboBoxProps extends InteractiveComponentProps<Item> {
+    /** An optional id for the component */
+    id?: string;
     /** Whether to open the select dropdown on load or not, defaults to false */
     initialIsOpen?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
@@ -279,6 +281,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 style={props.style}
+                id={props.id}
             >
                 <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
                     <Input

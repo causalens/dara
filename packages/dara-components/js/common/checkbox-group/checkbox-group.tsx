@@ -56,6 +56,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
 
     return (
         <StyledCheckbox
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             isListStyle={props.list_styling}

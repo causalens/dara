@@ -74,6 +74,8 @@ interface SwitchLabel {
 }
 
 export interface SwitchProps extends InteractiveComponentProps<boolean> {
+    /** An optional id for the component */
+    id?: string;
     /** An optional prop object with on and off properties that map to alternate labels for those states */
     labels?: SwitchLabel;
     /** A boolean defining whether to show lightdark switch */
@@ -99,6 +101,7 @@ function Switch(
         onChange,
         style,
         value,
+        id,
     }: SwitchProps,
     ref: React.Ref<HTMLDivElement>
 ): JSX.Element {
@@ -132,6 +135,7 @@ function Switch(
             onClick={onClick}
             ref={ref}
             style={style}
+            id={id}
         >
             <SwitchHandle data-testid="handle" enabled={enabled} />
             <div style={{ userSelect: 'none' }}>{labelIconToShow}</div>

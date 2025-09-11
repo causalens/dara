@@ -128,6 +128,8 @@ const SelectButton = styled.button<SelectButtonProps>`
 `;
 
 export interface SelectProps extends InteractiveComponentProps<Item> {
+    /** An optional id for the component */
+    id?: string;
     /** Whether to force the list to the same width as the parent, defaults to true */
     applySameWidthModifier?: boolean;
     /** A function taking an element for the ref of the dropdown  */
@@ -221,6 +223,7 @@ function Select(props: SelectProps): JSX.Element {
                 isOpen={isOpen}
                 onClick={props.onClick}
                 style={props.style}
+                id={props.id}
             >
                 <SelectButton
                     disabled={props.disabled}

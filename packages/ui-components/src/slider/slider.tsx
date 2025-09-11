@@ -296,6 +296,7 @@ function useValueCorrection<T>(
 }
 
 export interface BaseSliderProps<T> extends InteractiveComponentProps<Array<number>> {
+    id?: string;
     'aria-label'?: string;
     thumbLabels?: string[];
     /** An optional flag to disable the input alternative switch render, its false by default */
@@ -343,6 +344,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
     disableInputAlternative = false,
     values,
     className,
+    id,
 }: BaseSliderProps<T>): JSX.Element {
     // If step isn't set then pick a reasonable one
     const adjustedStep = useMemo(() => {
@@ -533,6 +535,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                     defaultValue={!isControlled ? defaultValue : undefined}
                     onChange={handleChange}
                     style={style}
+                    id={id}
                 >
                     {showInputs && <SliderInputField getErrorMsg={getErrorMsg} thumbLabels={thumbLabels} />}
                     {!showInputs && (

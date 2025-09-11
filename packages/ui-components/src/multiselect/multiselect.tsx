@@ -198,6 +198,8 @@ const TagText = styled.span`
 `;
 
 export interface MultiSelectProps extends InteractiveComponentProps<Array<Item>> {
+    /** An optional id for the component */
+    id?: string;
     /** Whether to open the select dropdown on load or not, defaults to false */
     initialIsOpen?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
@@ -327,6 +329,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             maxRows={maxRows}
             maxWidth={maxWidth}
             style={props.style}
+            id={props.id}
         >
             <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
                 <InputWrapper

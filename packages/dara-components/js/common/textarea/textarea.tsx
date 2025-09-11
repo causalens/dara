@@ -58,6 +58,7 @@ function Textarea(props: TextareaProps): JSX.Element {
 
     return (
         <StyledTextarea
+            id={props.id_}
             $rawCss={css}
             autoFocus={props.autofocus}
             onChange={handleChange}

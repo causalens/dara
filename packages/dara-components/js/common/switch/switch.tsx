@@ -37,7 +37,7 @@ function Switch(props: SwitchProps): JSX.Element {
 
     return (
         <SwitchDiv $rawCss={css} style={style}>
-            <UISwitch onChange={onChange} value={value} />
+            <UISwitch onChange={onChange} value={value} id={props.id_} />
         </SwitchDiv>
     );
 }
