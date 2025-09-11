@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where the `id_` property was not being set on all components
+
 ## 1.21.1
 
 - The `pixi.js` dependency is now lazy-loaded from CDN upon first use, decreasing the required bundle size from ~8.3MB to ~6.9MB

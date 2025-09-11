@@ -440,6 +440,8 @@ type ConditionalProps =
  * Omitting props which are explicitly set in the conditional part of props.
  */
 interface CommonDatePickerProps extends Omit<InteractiveComponentProps<DatepickerValue>, 'initialValue' | 'value'> {
+    /** An optional id for the component */
+    id?: string;
     /** Dateformat string - how the dateformat will be shown - default dd/MM/yyyy */
     dateFormat?: string;
     /** Optional property to disable the date picker */
@@ -798,6 +800,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         <>
             <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
                 <DatepickerWrapper
+                    id={props.id}
                     inline={props.inline}
                     showsRange={props.selectsRange}
                     showsTime={props.showTimeInput}

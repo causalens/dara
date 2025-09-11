@@ -175,6 +175,7 @@ function Select(props: SelectProps): JSX.Element {
         const selectedItem = useMemo(() => toItem(value), [value]);
         return (
             <StyledSectionedList
+                id={props.id_}
                 $rawCss={css}
                 items={formattedItems}
                 placeholder={props.placeholder}
@@ -211,6 +212,7 @@ function Select(props: SelectProps): JSX.Element {
 
         return (
             <StyledMultiSelect
+                id={props.id_}
                 $rawCss={css}
                 className={props.className}
                 items={itemArray}
@@ -242,6 +244,7 @@ function Select(props: SelectProps): JSX.Element {
     if (props.searchable) {
         return (
             <StyledComboBox
+                id={props.id_}
                 $rawCss={css}
                 className={props.className}
                 items={itemArray}
@@ -255,6 +258,7 @@ function Select(props: SelectProps): JSX.Element {
 
     return (
         <StyledSelect
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             items={itemArray}

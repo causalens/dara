@@ -198,6 +198,8 @@ const TagText = styled.span`
 `;
 
 export interface MultiSelectProps extends InteractiveComponentProps<Array<Item>> {
+    /** An optional id for the component */
+    id?: string;
     /** Whether to open the select dropdown on load or not, defaults to false */
     initialIsOpen?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
@@ -304,7 +306,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
     const { getReferenceProps, getFloatingProps } = useInteractions([role]);
 
     const inputProps = {
-        ...getInputProps(getDropdownProps({ preventKeyAction: isOpen })),
+        ...getInputProps(getDropdownProps({ preventKeyAction: isOpen, id: props.id })),
         ...getReferenceProps(),
         // Override the onChange to bypass downshift's handling, this is due to a bug with IME
         // see https://github.com/downshift-js/downshift/issues/1452

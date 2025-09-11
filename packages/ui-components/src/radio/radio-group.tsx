@@ -146,6 +146,8 @@ export interface RadioItem {
 }
 
 export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
+    /** An optional id for the component */
+    id?: string;
     /** An optional value which determines the direction of the radio group components by default is vertical */
     direction?: 'horizontal' | 'vertical';
     /** Whether to show radio in list style */
@@ -200,6 +202,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             className={props.className}
             isHorizontal={props.direction === 'horizontal'}
             style={props.style}
+            id={props.id}
         >
             {props.items.map((item, index) => {
                 return (

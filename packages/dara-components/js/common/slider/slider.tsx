@@ -101,6 +101,7 @@ function Slider(props: SliderProps): JSX.Element {
 
     return (
         <StyledSlider
+            id={props.id_}
             $rawCss={css}
             disableInputAlternative={props.disable_input_alternative}
             domain={props.domain}

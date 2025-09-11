@@ -44,6 +44,7 @@ function ButtonBar(props: ButtonBarProps): JSX.Element {
 
     return (
         <StyledButtonBar
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             items={props.items}

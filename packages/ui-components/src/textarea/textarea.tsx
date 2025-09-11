@@ -76,6 +76,8 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
 `;
 
 export interface TextAreaProps extends InteractiveComponentProps<string> {
+    /** An optional id for the component */
+    id?: string;
     /** An optional prop to focus the textarea upon mounting it */
     autoFocus?: boolean;
     /** An optional keydown event filter, that can filter out invalid chars from an textarea. Should return true to let
@@ -118,6 +120,7 @@ function TextArea({
     style,
     value,
     resize,
+    id,
 }: TextAreaProps): JSX.Element {
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -188,6 +191,7 @@ function TextArea({
                 placeholder={placeholder}
                 style={{ resize, maxHeight: maxHeight ? `${maxHeight}rem` : 'none' }}
                 value={value}
+                id={id}
             />
             {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
         </div>

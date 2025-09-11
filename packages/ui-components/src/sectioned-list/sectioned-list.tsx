@@ -103,6 +103,8 @@ export interface ListSection {
 }
 
 export interface SectionedListProps extends InteractiveComponentProps<Item> {
+    /** An optional id for the component */
+    id?: string;
     /** An array of ListItem and/or ListSection objects to render */
     items: Array<ListItem | ListSection>;
     /** An optional onSelect handler for listening to changes in the selected item */
@@ -357,7 +359,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             style={props.style}
         >
             <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
-                <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} />
+                <Input {...getInputProps({ value: inputValue, id: props.id })} {...getReferenceProps()} />
                 <ChevronButton disabled={props.disabled} isOpen={isOpen} getToggleButtonProps={getToggleButtonProps} />
             </InputWrapper>
             {ReactDOM.createPortal(

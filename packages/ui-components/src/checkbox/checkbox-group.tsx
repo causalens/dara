@@ -43,6 +43,8 @@ const CheckboxInfo = styled.p`
 `;
 
 export interface CheckboxGroupProps {
+    /** An optional id for the component */
+    id?: string;
     /** Standard react className property */
     className?: string;
     /** Standard react className property */
@@ -155,18 +157,18 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
     }, [props.values, props.items]);
 
     return (
-        <CheckboxGroupWrapper className={props.className} style={props.style}>
+        <CheckboxGroupWrapper className={props.className} style={props.style} id={props.id}>
             {(props.selectMax || props.selectMin) && <CheckboxInfo>{infoMessage}</CheckboxInfo>}
             {props.items.map((item, index) => {
                 return (
                     <CheckboxWrapper aria-disabled={props.disabled} key={`item-${index}`}>
                         <Checkbox
+                            id={index}
                             disabled={
                                 isSelectPermitted ?
                                     props.disabled
                                 :   checkedState.find((option) => option.value === item.value)?.state === false
                             }
-                            id={index}
                             isListStyle={props.isListStyle}
                             label={item.label ? item.label : item.value}
                             onChange={(checked, e) => onChangeValue(e)}

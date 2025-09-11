@@ -64,6 +64,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
 
     return (
         <StyledRadio
+            id={props.id_}
             $rawCss={css}
             className={props.className}
             direction={props.direction}

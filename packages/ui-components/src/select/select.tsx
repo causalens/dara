@@ -128,6 +128,8 @@ const SelectButton = styled.button<SelectButtonProps>`
 `;
 
 export interface SelectProps extends InteractiveComponentProps<Item> {
+    /** An optional id for the component */
+    id?: string;
     /** Whether to force the list to the same width as the parent, defaults to true */
     applySameWidthModifier?: boolean;
     /** A function taking an element for the ref of the dropdown  */
@@ -200,8 +202,8 @@ function Select(props: SelectProps): JSX.Element {
     const menuProps = React.useMemo(() => getMenuProps({ ref: mergedDropdownRef }), [mergedDropdownRef, getMenuProps]);
 
     const toggleButtonProps = React.useMemo(
-        () => getToggleButtonProps({ disabled: props.disabled, ref: refs.setReference }),
-        [props.disabled, refs.setReference, getToggleButtonProps]
+        () => getToggleButtonProps({ disabled: props.disabled, ref: refs.setReference, id: props.id }),
+        [props.disabled, refs.setReference, getToggleButtonProps, props.id]
     );
 
     const dropdownStyle = React.useMemo(
