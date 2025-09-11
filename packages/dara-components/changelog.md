@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.3
 
 - Fixed an issue where the `id_` property was not being set on all components
 
