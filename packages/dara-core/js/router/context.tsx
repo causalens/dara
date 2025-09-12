@@ -7,6 +7,7 @@ interface RouterContextValue {
     routeDefinitions: RouteDefinition[];
     routeObjects: RouteObject[];
     routeDefMap: Map<string, RouteDefinition>;
+    defaultPath: string;
 }
 
 const RouterContext = React.createContext<RouterContextValue | null>(null);
@@ -16,19 +17,22 @@ export function RouterContextProvider({
     routeDefinitions,
     routeObjects,
     routeDefMap,
+    defaultPath,
 }: {
     children: React.ReactNode;
     routeDefinitions: RouteDefinition[];
     routeObjects: RouteObject[];
     routeDefMap: Map<string, RouteDefinition>;
+    defaultPath: string;
 }): React.ReactElement {
     const value = React.useMemo(
         () => ({
             routeDefinitions,
             routeObjects,
             routeDefMap,
+            defaultPath,
         }),
-        [routeDefinitions, routeObjects, routeDefMap]
+        [routeDefinitions, routeObjects, routeDefMap, defaultPath]
     );
 
     return <RouterContext.Provider value={value}>{children}</RouterContext.Provider>;

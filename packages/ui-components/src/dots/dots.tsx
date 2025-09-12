@@ -9,15 +9,15 @@ const Wrapper = styled.div`
     height: 100%;
 `;
 
-const FlashingDots = styled.div`
+const FlashingDots = styled.div<{ $grey3?: string; $grey4?: string }>`
     position: relative;
 
     width: 10px;
     height: 10px;
 
-    color: ${(props) => props.theme.colors.grey4};
+    color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
-    background-color: ${(props) => props.theme.colors.grey4};
+    background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
     border-radius: 5px;
 
     animation: dot-flashing 1s infinite linear alternate;
@@ -37,9 +37,9 @@ const FlashingDots = styled.div`
         width: 10px;
         height: 10px;
 
-        color: ${(props) => props.theme.colors.grey4};
+        color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
-        background-color: ${(props) => props.theme.colors.grey4};
+        background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
         border-radius: 5px;
 
         animation: dot-flashing 1s infinite alternate;
@@ -52,9 +52,9 @@ const FlashingDots = styled.div`
         width: 10px;
         height: 10px;
 
-        color: ${(props) => props.theme.colors.grey4};
+        color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
-        background-color: ${(props) => props.theme.colors.grey4};
+        background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
         border-radius: 5px;
 
         animation: dot-flashing 1s infinite alternate;
@@ -63,12 +63,12 @@ const FlashingDots = styled.div`
 
     @keyframes dot-flashing {
         0% {
-            background-color: ${(props) => props.theme.colors.grey4};
+            background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
         }
 
         50%,
         100% {
-            background-color: ${(props) => props.theme.colors.grey3};
+            background-color: ${(props) => props.$grey3 ?? props.theme.colors.grey3};
         }
     }
 `;
@@ -76,12 +76,14 @@ const FlashingDots = styled.div`
 interface DotsProps {
     className?: string;
     style?: React.CSSProperties;
+    grey3?: string;
+    grey4?: string;
 }
 
 function Dots(props: DotsProps): JSX.Element {
     return (
         <Wrapper className={props.className} style={props.style}>
-            <FlashingDots data-testid="LOADING" />
+            <FlashingDots $grey3={props.grey3} $grey4={props.grey4} />
         </Wrapper>
     );
 }

@@ -16,7 +16,7 @@ import {
 } from '@/types/core';
 
 import DynamicAuthComponent from '../shared/dynamic-component/dynamic-auth-component';
-import AuthenticatedRoot from '../shared/root/authenticated-root';
+import AuthenticatedRoot, { createAuthenticatedRootLoader } from '../shared/root/authenticated-root';
 import UnauthenticatedRoot from '../shared/root/unauthenticated-root';
 import RouteContent, { createRouteLoader } from './route-content';
 
@@ -159,13 +159,14 @@ interface RouterWithRoutes {
     routeDefinitions: RouteDefinition[];
     routeObjects: RouteObject[];
     routeDefMap: Map<string, RouteDefinition>;
+    defaultPath: string;
 }
 
 /**
  * Create the router for the application
  */
 export function createRouter(config: DaraData, snapshotRef: React.MutableRefObject<Snapshot>): RouterWithRoutes {
-    let basename = '';
+    let basename = '/';
 
     // The base_url is set in the html template by the backend when returning it
     if (window.dara.base_url !== '') {
@@ -208,6 +209,7 @@ export function createRouter(config: DaraData, snapshotRef: React.MutableRefObje
                     // root of the app
                     {
                         element: <AuthenticatedRoot daraData={config} />,
+                        loader: createAuthenticatedRootLoader(config),
                         // token must be set to access the authenticated routes
                         unstable_middleware: [
                             async () => {
@@ -254,5 +256,6 @@ export function createRouter(config: DaraData, snapshotRef: React.MutableRefObje
         routeDefinitions: config.router.children,
         routeObjects: userRoutes,
         routeDefMap,
+        defaultPath,
     };
 }

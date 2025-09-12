@@ -222,7 +222,7 @@ function getOrRegisterServerComponent({
 
                         if (derivedResult.type === 'cached') {
                             try {
-                                const response = await derivedResult.response;
+                                const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
                                     throwError(new Error(response.value));

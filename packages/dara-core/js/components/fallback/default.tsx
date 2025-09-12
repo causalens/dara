@@ -1,3 +1,4 @@
+import { theme } from '@darajs/styled-components';
 import { Dots } from '@darajs/ui-components';
 
 import { injectCss, useComponentStyles } from '@/shared/utils';
@@ -14,7 +15,8 @@ function DefaultFallback(props: DefaultFallbackProps): JSX.Element {
 }
 
 export function DefaultFallbackStatic(): JSX.Element {
-    return <StyledDots />;
+    // using static colors from default theme to be able to use outside theme provider
+    return <StyledDots grey3={theme.colors.grey3} grey4={theme.colors.grey4} />;
 }
 
 export default DefaultFallback;

@@ -76,7 +76,7 @@ function Content({
         for (const resultHandle of [...py_components, ...derived_variables]) {
             depsRegistry.set(resultHandle.result.depsKey, {
                 args: resultHandle.result.relevantValues,
-                result: resultHandle.handle.promise,
+                result: resultHandle.handle,
             });
         }
 

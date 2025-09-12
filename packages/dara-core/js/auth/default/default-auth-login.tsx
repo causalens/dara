@@ -7,6 +7,7 @@ import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
 import { getSessionToken, setSessionToken } from '../use-session-token';
+import { useRouterContext } from '@/router/context';
 
 /**
  * The Login component gets a new session token from the backend and stores it in local storage
@@ -14,9 +15,10 @@ import { getSessionToken, setSessionToken } from '../use-session-token';
 function DefaultAuthLogin(): JSX.Element {
     const location = useLocation();
     const navigate = useNavigate();
+    const { defaultPath } = useRouterContext();
     const queryParams = new URLSearchParams(location.search);
 
-    const previousLocation = queryParams.get('referrer') ?? '/';
+    const previousLocation = queryParams.get('referrer') ?? defaultPath ;
 
     async function getNewToken(): Promise<void> {
         const sessionToken = await requestSessionToken({});

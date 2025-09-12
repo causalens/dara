@@ -37,7 +37,7 @@ import {
     isVariable,
 } from '@/types';
 
-import { type Deferred, deferred } from '../utils/deferred';
+import { type Deferred, deferred, isDeferred } from '../utils/deferred';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {
@@ -312,7 +312,7 @@ interface CurrentResult {
  */
 interface CachedResponse {
     type: 'cached';
-    response: Promise<{ ok: boolean; value: any }>;
+    response: Deferred<{ ok: boolean; value: any }>;
     values: any[];
     depsKey: string;
     currentResult: CurrentResult;
@@ -414,7 +414,7 @@ export function resolveDerivedValue({
         // If the relevant arg values didn't change, return previous result
         if (areArgsTheSame) {
             const previousValue = previousEntry.result;
-            if (previousValue instanceof Promise) {
+            if (isDeferred(previousValue)) {
                 return {
                     type: 'cached',
                     response: previousValue,
@@ -649,7 +649,7 @@ export function getOrRegisterDerivedVariable(
                         // Skip fetching if we have a cached result, await it instead
                         if (derivedResult.type === 'cached') {
                             try {
-                                const response = await derivedResult.response;
+                                const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
                                     throwError(new Error(response.value));

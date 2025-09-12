@@ -242,13 +242,15 @@ export async function fetchRouteData(
         {} as Record<string, PyComponentHandle>
     );
 
+    const wsClient = await window.dara.ws.getValue();
+    const wsChannel = await wsClient.getChannel();
     const response = await request(`/api/core/route/${route.id}`, {
         method: HTTP_METHOD.POST,
         body: JSON.stringify({
             action_payloads: actionPayloads,
             derived_variable_payloads: dvHandles.map((h) => h.payload),
             py_component_payloads: pyHandles.map((h) => h.payload),
-            ws_channel: await (await window.dara.ws.promise).getChannel(),
+            ws_channel: wsChannel,
             params,
         } satisfies RouteDataRequestBody),
         signal,
@@ -309,9 +311,10 @@ export async function fetchRouteData(
     });
 
     // return as soon as we have the template and on_load actions
+    const [templateValue, onLoadActionsValue] = await Promise.all([template.getValue(), onLoadActions.getValue()]);
     return {
-        template: await template.promise,
-        on_load: await onLoadActions.promise,
+        template: templateValue,
+        on_load: onLoadActionsValue,
         route_definition: route,
         py_components: pyHandles,
         derived_variables: dvHandles,

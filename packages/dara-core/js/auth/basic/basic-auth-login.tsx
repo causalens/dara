@@ -7,6 +7,7 @@ import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import DefaultFallback from '@/components/fallback/default';
+import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
@@ -136,9 +137,10 @@ function BasicAuthLogin(): JSX.Element {
 
     const location = useLocation();
     const navigate = useNavigate();
+    const { defaultPath } = useRouterContext();
     const queryParams = new URLSearchParams(location.search);
 
-    const previousLocation = queryParams.get('referrer') ?? '/';
+    const previousLocation = queryParams.get('referrer') ?? defaultPath;
 
     const login = async (): Promise<void> => {
         setIsLoggingIn(true);
@@ -164,7 +166,7 @@ function BasicAuthLogin(): JSX.Element {
             verifySessionToken().then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
-                    navigate(decodeURIComponent(previousLocation));
+                    navigate(decodeURIComponent(previousLocation), { replace: true });
                 } else {
                     setIsVerifyingToken(false);
                 }
