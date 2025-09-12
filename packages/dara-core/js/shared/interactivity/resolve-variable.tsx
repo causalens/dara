@@ -162,7 +162,6 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
         throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
     }
 
-    // TODO: check store type, for param store use prams
     // plain variable
     let result = resolvePlainVariableStatic(variable, snapshot, params);
     // unwrap if variable.default is a derived variable, i.e. used create_from_derived
