@@ -83,7 +83,7 @@ interface DotsProps {
 function Dots(props: DotsProps): JSX.Element {
     return (
         <Wrapper className={props.className} style={props.style}>
-            <FlashingDots $grey3={props.grey3} $grey4={props.grey4} />
+            <FlashingDots $grey3={props.grey3} $grey4={props.grey4} data-testid="LOADING" />
         </Wrapper>
     );
 }

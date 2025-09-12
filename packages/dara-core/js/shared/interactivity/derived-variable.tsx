@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
+import type { Params } from 'react-router';
 import {
     type GetRecoilValue,
     type RecoilValue,
@@ -354,7 +355,9 @@ export function resolveDerivedValue({
     variables: any[];
     deps: any[];
     resolvedVariables: any[];
-    resolutionStrategy: { name: 'get'; get: GetRecoilValue } | { name: 'snapshot'; snapshot: Snapshot };
+    resolutionStrategy:
+        | { name: 'get'; get: GetRecoilValue }
+        | { name: 'static'; snapshot: Snapshot; params: Params<string> };
     triggerList: Array<TriggerInfo>;
     triggers: TriggerIndexValue[];
 }): DerivedResult {
@@ -366,8 +369,8 @@ export function resolveDerivedValue({
      * - server variables are resolved to their sequence number
      */
     const values = resolvedVariables.map((v) => {
-        if (resolutionStrategy.name === 'snapshot') {
-            return resolveVariableStatic(v, resolutionStrategy.snapshot);
+        if (resolutionStrategy.name === 'static') {
+            return resolveVariableStatic(v, resolutionStrategy.snapshot, resolutionStrategy.params);
         }
 
         return resolveValue(v, resolutionStrategy.get);
@@ -781,6 +784,7 @@ export function preloadDerivedValue({
     triggerList,
     triggers,
     snapshot,
+    params,
 }: {
     key: string;
     variables: any[];
@@ -788,6 +792,7 @@ export function preloadDerivedValue({
     triggerList: Array<TriggerInfo>;
     triggers: TriggerIndexValue[];
     snapshot: Snapshot;
+    params: Params<string>;
 }): {
     handle: Deferred<any>;
     result: DerivedResult;
@@ -797,7 +802,7 @@ export function preloadDerivedValue({
         variables,
         deps,
         resolvedVariables: variables,
-        resolutionStrategy: { name: 'snapshot', snapshot },
+        resolutionStrategy: { name: 'static', snapshot, params },
         triggerList,
         triggers,
     });
@@ -815,7 +820,8 @@ export function preloadDerivedValue({
  */
 export function preloadDerivedVariable(
     variable: DerivedVariable,
-    snapshot: Snapshot
+    snapshot: Snapshot,
+    params: Params<string>
 ): ReturnType<typeof preloadDerivedValue> {
     // assume no extras in top-level variables
     const key = getRegistryKey(variable, 'result-selector') + new RequestExtrasSerializable({}).toJSON();
@@ -831,6 +837,7 @@ export function preloadDerivedVariable(
         triggers,
         triggerList,
         snapshot,
+        params,
     });
 }
 

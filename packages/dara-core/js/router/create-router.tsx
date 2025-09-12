@@ -50,7 +50,7 @@ function joinPaths(parentPath: string, childPath: string): string {
 
 export function createRoute(
     route: RouteDefinition,
-    snapshotRef: React.MutableRefObject<Snapshot>,
+    snapshot: () => Snapshot,
     routeDefMap: Map<string, RouteDefinition>
 ): RouteObject {
     // Add to route definition map for quick lookup
@@ -69,28 +69,28 @@ export function createRoute(
                 ...sharedProps,
                 index: true,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, snapshotRef),
+                loader: createRouteLoader(route, snapshot),
             };
         case 'PageRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, snapshotRef),
-                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
+                loader: createRouteLoader(route, snapshot),
+                children: route.children.map((r) => createRoute(r, snapshot, routeDefMap)),
             };
         case 'LayoutRoute':
             return {
                 ...sharedProps,
                 element: <RouteContent route={route} key={route.id} />,
-                loader: createRouteLoader(route, snapshotRef),
-                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
+                loader: createRouteLoader(route, snapshot),
+                children: route.children.map((r) => createRoute(r, snapshot, routeDefMap)),
             };
         case 'PrefixRoute':
             return {
                 ...sharedProps,
                 path: cleanPath(route.path),
-                children: route.children.map((r) => createRoute(r, snapshotRef, routeDefMap)),
+                children: route.children.map((r) => createRoute(r, snapshot, routeDefMap)),
             };
         default:
             throw new Error(`Unknown route type ${JSON.stringify(route)}`);
@@ -165,7 +165,7 @@ interface RouterWithRoutes {
 /**
  * Create the router for the application
  */
-export function createRouter(config: DaraData, snapshotRef: React.MutableRefObject<Snapshot>): RouterWithRoutes {
+export function createRouter(config: DaraData, snapshot: () => Snapshot): RouterWithRoutes {
     let basename = '/';
 
     // The base_url is set in the html template by the backend when returning it
@@ -177,7 +177,7 @@ export function createRouter(config: DaraData, snapshotRef: React.MutableRefObje
 
     // Create map to collect route definitions during route creation
     const routeDefMap = new Map<string, RouteDefinition>();
-    const userRoutes = config.router.children.map((r) => createRoute(r, snapshotRef, routeDefMap));
+    const userRoutes = config.router.children.map((r) => createRoute(r, snapshot, routeDefMap));
     const defaultPath = findFirstPath(config.router.children) || '/';
 
     const router = createBrowserRouter(

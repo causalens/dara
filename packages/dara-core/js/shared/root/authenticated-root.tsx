@@ -4,7 +4,7 @@ import { Outlet, redirect, useNavigate } from 'react-router';
 import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
-import { WebSocketClient, type WebSocketClientInterface, setupWebsocket } from '@/api';
+import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth';
 import { getSessionToken, onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';

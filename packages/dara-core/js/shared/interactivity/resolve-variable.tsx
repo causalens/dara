@@ -1,3 +1,4 @@
+import type { Params } from 'react-router';
 import { type RecoilState, type Snapshot } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
@@ -105,10 +106,10 @@ export async function resolveVariable<VariableType>(
  * Notable does not register variables if they haven't yet been registered.
  * For plain variables, uses default values if not yet registered.
  */
-export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snapshot): any {
+export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snapshot, params: Params<string>): any {
     if (isDerivedVariable(variable)) {
         // For derived variable, recursively resolve the dependencies
-        const values = variable.variables.map((v) => resolveVariableStatic(v, snapshot));
+        const values = variable.variables.map((v) => resolveVariableStatic(v, snapshot, params));
 
         // Store indexes of values which are in deps
         const deps = variable.deps.map((dep) => variable.variables.findIndex((v) => v.uid === dep.uid));
@@ -129,22 +130,22 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
         // For switch variables, we need to resolve the constituent parts
         // and return a serialized representation similar to derived variables
         let resolvedValue =
-            isVariable(variable.value) ? resolveVariableStatic(variable.value, snapshot) : variable.value;
+            isVariable(variable.value) ? resolveVariableStatic(variable.value, snapshot, params) : variable.value;
 
         // value could be a condition object, resolve its variable
         if (isCondition(resolvedValue)) {
             resolvedValue = {
                 ...resolvedValue,
-                variable: resolveVariableStatic(resolvedValue.variable, snapshot),
+                variable: resolveVariableStatic(resolvedValue.variable, snapshot, params),
             };
         }
 
         const resolvedValueMap =
             isVariable(variable.value_map) ?
-                resolveVariableStatic(variable.value_map as any, snapshot)
+                resolveVariableStatic(variable.value_map as any, snapshot, params)
             :   variable.value_map;
         const resolvedDefault =
-            isVariable(variable.default) ? resolveVariableStatic(variable.default, snapshot) : variable.default;
+            isVariable(variable.default) ? resolveVariableStatic(variable.default, snapshot, params) : variable.default;
 
         return {
             type: 'switch',
@@ -161,11 +162,12 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
         throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
     }
 
+    // TODO: check store type, for param store use prams
     // plain variable
-    let result = resolvePlainVariableStatic(variable, snapshot);
+    let result = resolvePlainVariableStatic(variable, snapshot, params);
     // unwrap if variable.default is a derived variable, i.e. used create_from_derived
     while (isDerivedVariable(result)) {
-        result = resolveVariableStatic(result, snapshot);
+        result = resolveVariableStatic(result, snapshot, params);
     }
     return result;
 }
