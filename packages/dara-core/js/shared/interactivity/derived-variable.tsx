@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
+import type { Params } from 'react-router';
 import {
     type GetRecoilValue,
     type RecoilValue,
@@ -37,7 +38,7 @@ import {
     isVariable,
 } from '@/types';
 
-import { type Deferred, deferred } from '../utils/deferred';
+import { type Deferred, deferred, isDeferred } from '../utils/deferred';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {
@@ -312,7 +313,7 @@ interface CurrentResult {
  */
 interface CachedResponse {
     type: 'cached';
-    response: Promise<{ ok: boolean; value: any }>;
+    response: Deferred<{ ok: boolean; value: any }>;
     values: any[];
     depsKey: string;
     currentResult: CurrentResult;
@@ -354,7 +355,9 @@ export function resolveDerivedValue({
     variables: any[];
     deps: any[];
     resolvedVariables: any[];
-    resolutionStrategy: { name: 'get'; get: GetRecoilValue } | { name: 'snapshot'; snapshot: Snapshot };
+    resolutionStrategy:
+        | { name: 'get'; get: GetRecoilValue }
+        | { name: 'static'; snapshot: Snapshot; params: Params<string> };
     triggerList: Array<TriggerInfo>;
     triggers: TriggerIndexValue[];
 }): DerivedResult {
@@ -366,8 +369,8 @@ export function resolveDerivedValue({
      * - server variables are resolved to their sequence number
      */
     const values = resolvedVariables.map((v) => {
-        if (resolutionStrategy.name === 'snapshot') {
-            return resolveVariableStatic(v, resolutionStrategy.snapshot);
+        if (resolutionStrategy.name === 'static') {
+            return resolveVariableStatic(v, resolutionStrategy.snapshot, resolutionStrategy.params);
         }
 
         return resolveValue(v, resolutionStrategy.get);
@@ -414,7 +417,7 @@ export function resolveDerivedValue({
         // If the relevant arg values didn't change, return previous result
         if (areArgsTheSame) {
             const previousValue = previousEntry.result;
-            if (previousValue instanceof Promise) {
+            if (isDeferred(previousValue)) {
                 return {
                     type: 'cached',
                     response: previousValue,
@@ -649,7 +652,7 @@ export function getOrRegisterDerivedVariable(
                         // Skip fetching if we have a cached result, await it instead
                         if (derivedResult.type === 'cached') {
                             try {
-                                const response = await derivedResult.response;
+                                const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
                                     throwError(new Error(response.value));
@@ -781,6 +784,7 @@ export function preloadDerivedValue({
     triggerList,
     triggers,
     snapshot,
+    params,
 }: {
     key: string;
     variables: any[];
@@ -788,6 +792,7 @@ export function preloadDerivedValue({
     triggerList: Array<TriggerInfo>;
     triggers: TriggerIndexValue[];
     snapshot: Snapshot;
+    params: Params<string>;
 }): {
     handle: Deferred<any>;
     result: DerivedResult;
@@ -797,7 +802,7 @@ export function preloadDerivedValue({
         variables,
         deps,
         resolvedVariables: variables,
-        resolutionStrategy: { name: 'snapshot', snapshot },
+        resolutionStrategy: { name: 'static', snapshot, params },
         triggerList,
         triggers,
     });
@@ -815,7 +820,8 @@ export function preloadDerivedValue({
  */
 export function preloadDerivedVariable(
     variable: DerivedVariable,
-    snapshot: Snapshot
+    snapshot: Snapshot,
+    params: Params<string>
 ): ReturnType<typeof preloadDerivedValue> {
     // assume no extras in top-level variables
     const key = getRegistryKey(variable, 'result-selector') + new RequestExtrasSerializable({}).toJSON();
@@ -831,6 +837,7 @@ export function preloadDerivedVariable(
         triggers,
         triggerList,
         snapshot,
+        params,
     });
 }
 

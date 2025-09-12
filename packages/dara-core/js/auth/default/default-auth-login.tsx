@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import DefaultFallback from '@/components/fallback/default';
+import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
@@ -14,9 +15,10 @@ import { getSessionToken, setSessionToken } from '../use-session-token';
 function DefaultAuthLogin(): JSX.Element {
     const location = useLocation();
     const navigate = useNavigate();
+    const { defaultPath } = useRouterContext();
     const queryParams = new URLSearchParams(location.search);
 
-    const previousLocation = queryParams.get('referrer') ?? '/';
+    const previousLocation = queryParams.get('referrer') ?? defaultPath;
 
     async function getNewToken(): Promise<void> {
         const sessionToken = await requestSessionToken({});
@@ -33,7 +35,7 @@ function DefaultAuthLogin(): JSX.Element {
             verifySessionToken().then((verified) => {
                 // we already have a valid token, redirect
                 if (verified) {
-                    navigate(decodeURIComponent(previousLocation));
+                    navigate(decodeURIComponent(previousLocation), { replace: true });
                 } else {
                     // Otherwise grab a new token
                     getNewToken();

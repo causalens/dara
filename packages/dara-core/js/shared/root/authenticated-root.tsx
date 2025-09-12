@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, redirect, useNavigate } from 'react-router';
 
 import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth';
-import { onTokenChange, useSessionToken } from '@/auth/use-session-token';
+import { getSessionToken, onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
 import { WebSocketCtx } from '@/shared/context';
 import { cleanSessionCache } from '@/shared/utils';
@@ -53,7 +53,26 @@ const RootWrapper = styled.div`
     }
 `;
 
-interface TemplateRootProps {
+/**
+ * Create a loader function for the authenticated root.
+ * This will ensure the WS client is set up at the time of running all loaders,
+ * which is required as other loaders will need to access the WS client.
+ */
+export function createAuthenticatedRootLoader(daraData: DaraData) {
+    return function loader() {
+        // ensure ws client is set up
+        if (window.dara.ws.status === 'pending') {
+            const token = getSessionToken();
+            if (!token) {
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
+                throw redirect('/login');
+            }
+            window.dara.ws.resolve(setupWebsocket(token, daraData.live_reload));
+        }
+    };
+}
+
+interface AuthenticatedRootProps {
     daraData: DaraData;
     // An initialWebsocketClient, only used for testing
     initialWebsocketClient?: WebSocketClient;
@@ -61,19 +80,15 @@ interface TemplateRootProps {
 
 /**
  * The TemplateRoot component is rendered at the root of every authenticated application */
-function TemplateRoot(props: TemplateRootProps): React.ReactNode {
+function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
     const navigate = useNavigate();
     const token = useSessionToken()!;
 
-    // create a WS client once, token will be updated separately
-    const [wsClient] = useState<WebSocketClient>(() => {
+    const [wsClient] = useState(() => {
         if (props.initialWebsocketClient) {
             return props.initialWebsocketClient;
         }
-
-        const ws = setupWebsocket(token, props.daraData.live_reload);
-        window.dara.ws.resolve(ws);
-        return ws;
+        return window.dara.ws.getOrThrow();
     });
 
     useLayoutEffect(() => {
@@ -118,4 +133,4 @@ function TemplateRoot(props: TemplateRootProps): React.ReactNode {
     );
 }
 
-export default TemplateRoot;
+export default AuthenticatedRoot;

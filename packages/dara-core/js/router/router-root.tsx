@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { RouterProvider } from 'react-router/dom';
-import { useRecoilSnapshot } from 'recoil';
-
-import { useLatestRef } from '@darajs/ui-utils';
+import { useRecoilCallback } from 'recoil';
 
 import type { DaraData } from '@/types';
 
@@ -14,16 +12,15 @@ interface RouterRootProps {
 }
 
 function RouterRoot({ daraData }: RouterRootProps): JSX.Element {
-    const snapshot = useRecoilSnapshot();
-    const snapshotRef = useLatestRef(snapshot);
-
-    const [routerData] = useState(() => createRouter(daraData, snapshotRef));
+    const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+    const [routerData] = useState(() => createRouter(daraData, getSnapshot));
 
     return (
         <RouterContextProvider
             routeDefinitions={routerData.routeDefinitions}
             routeObjects={routerData.routeObjects}
             routeDefMap={routerData.routeDefMap}
+            defaultPath={routerData.defaultPath}
         >
             <RouterProvider router={routerData.router} />
         </RouterContextProvider>

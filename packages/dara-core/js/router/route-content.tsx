@@ -34,15 +34,21 @@ function shouldHoldPromise(route: RouteDefinition): boolean {
     return !((route.__typename === 'IndexRoute' || route.__typename === 'PageRoute') && hasServerActions(route));
 }
 
-export function createRouteLoader(route: RouteDefinition, snapshotRef: React.MutableRefObject<Snapshot>) {
+export function createRouteLoader(route: RouteDefinition, snapshot: () => Snapshot) {
     return async function loader({ request: loaderRequest, params }: LoaderFunctionArgs) {
         // Check preload cache first
         let result: LoaderData | Promise<LoaderData> | undefined = getFromPreloadCache(route.id, params);
 
+        // Not in cache, fetch fresh data
+        // Note: loader-initiated requests are NOT cached
         if (!result) {
-            // Not in cache, fetch fresh data
-            // Note: loader-initiated requests are NOT cached
-            result = fetchRouteData(route, params, snapshotRef.current, loaderRequest.signal);
+            const snapshotInstance = snapshot();
+            const release = snapshotInstance.retain();
+
+            result = fetchRouteData(route, params, snapshotInstance, loaderRequest.signal).finally(() => {
+                // ensure that after the fetcher completes, the snapshot is released
+                release();
+            });
         }
 
         if (shouldHoldPromise(route)) {
@@ -76,7 +82,7 @@ function Content({
         for (const resultHandle of [...py_components, ...derived_variables]) {
             depsRegistry.set(resultHandle.result.depsKey, {
                 args: resultHandle.result.relevantValues,
-                result: resultHandle.handle.promise,
+                result: resultHandle.handle,
             });
         }
 

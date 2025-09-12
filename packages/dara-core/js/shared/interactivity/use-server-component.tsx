@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { nanoid } from 'nanoid';
 import { useContext, useEffect } from 'react';
+import type { Params } from 'react-router';
 import {
     type RecoilState,
     type RecoilValue,
@@ -222,7 +223,7 @@ function getOrRegisterServerComponent({
 
                         if (derivedResult.type === 'cached') {
                             try {
-                                const response = await derivedResult.response;
+                                const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
                                     throwError(new Error(response.value));
@@ -339,7 +340,8 @@ function getOrRegisterServerComponent({
 
 export function preloadServerComponent(
     component: PyComponentInstance,
-    snapshot: Snapshot
+    snapshot: Snapshot,
+    params: Params<string>
 ): ReturnType<typeof preloadDerivedValue> {
     const key = getComponentRegistryKey(component.uid, false, component.loop_instance_uid);
 
@@ -360,6 +362,7 @@ export function preloadServerComponent(
         triggerList,
         triggers,
         snapshot,
+        params,
     });
 }
 

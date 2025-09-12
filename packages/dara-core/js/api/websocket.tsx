@@ -216,6 +216,7 @@ export interface WebSocketClientInterface {
     taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
     variableRequests$: () => Observable<VariableRequestMessage>;
     waitForTask: (task_id: string) => Promise<any>;
+    updateToken: (token: string) => void;
 }
 
 /**

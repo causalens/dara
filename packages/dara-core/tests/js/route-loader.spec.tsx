@@ -2,9 +2,7 @@ import { act, render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import * as React from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router';
-import { useRecoilSnapshot } from 'recoil';
-
-import { useLatestRef } from '@darajs/ui-utils';
+import { useRecoilCallback } from 'recoil';
 
 import { setSessionToken } from '@/auth';
 import { createRoute } from '@/router/create-router';
@@ -18,6 +16,7 @@ import {
     ComponentType,
     type DerivedVariable,
     type JsComponent,
+    type PathParamStore,
     type PyComponentInstance,
     type RouteDefinition,
     type SingleVariable,
@@ -108,9 +107,8 @@ describe('Route Loader', () => {
         );
 
         function Root(): JSX.Element {
-            const snapshot = useRecoilSnapshot();
-            const snapshotRef = useLatestRef(snapshot);
-            const [parsedRoute] = React.useState(() => createRoute(route, snapshotRef, new Map()));
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
             return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
         }
 
@@ -208,10 +206,9 @@ describe('Route Loader', () => {
             })
         );
         function Root(): JSX.Element {
-            const snapshot = useRecoilSnapshot();
-            const snapshotRef = useLatestRef(snapshot);
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
             const [varValue] = useVariable(inputVar);
-            const [parsedRoute] = React.useState(() => createRoute(route, snapshotRef, new Map()));
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
             return (
                 <>
                     <RouterProvider router={createBrowserRouter([parsedRoute])} />
@@ -333,9 +330,8 @@ describe('Route Loader', () => {
             );
         }
         function Root(): JSX.Element {
-            const snapshot = useRecoilSnapshot();
-            const snapshotRef = useLatestRef(snapshot);
-            const [parsedRoute] = React.useState(() => createRoute(route, snapshotRef, new Map()));
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
             return (
                 <>
                     <RouterProvider router={createBrowserRouter([parsedRoute])} />
@@ -495,9 +491,8 @@ describe('Route Loader', () => {
             );
         }
         function Root(): JSX.Element {
-            const snapshot = useRecoilSnapshot();
-            const snapshotRef = useLatestRef(snapshot);
-            const [parsedRoute] = React.useState(() => createRoute(route, snapshotRef, new Map()));
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
             return (
                 <>
                     <RouterProvider router={createBrowserRouter([parsedRoute])} />
@@ -550,6 +545,161 @@ describe('Route Loader', () => {
         );
         // rendered Text returned by py_component
         await waitFor(() => expect(container.getByTestId('content').textContent).toBe('Text'));
+        expect(mockPyCall).not.toHaveBeenCalled();
+    });
+
+    it('resolves variables correctly', async () => {
+        const paramVar: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: '_unused_default',
+            nested: [],
+            uid: 'param_var_uid',
+            store: {
+                __typename: '_PathParamStore',
+                param_name: 'test_id',
+            } as PathParamStore,
+        };
+
+        const existingVar: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'existing_var',
+            nested: [],
+            uid: 'existing_var_uid',
+        };
+
+        const defaultVar: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'default_var',
+            nested: [],
+            uid: 'default_var_uid',
+        };
+
+        const testDv: DerivedVariable = {
+            __typename: 'DerivedVariable',
+            deps: [paramVar, existingVar, defaultVar],
+            nested: [],
+            uid: 'test_dv_uid',
+            variables: [existingVar, paramVar, defaultVar],
+        };
+
+        const pyComponent: PyComponentInstance = {
+            uid: 'py_comp_uid',
+            name: 'TestPyComponent',
+            props: {
+                dynamic_kwargs: {
+                    input_val: testDv,
+                },
+                func_name: 'TestComponent',
+                js_module: '@test',
+                polling_interval: null,
+            },
+        };
+
+        const route = {
+            id: 'test',
+            case_sensitive: false,
+            path: '/test/:test_id',
+            full_path: '/test/:test_id',
+            __typename: 'PageRoute',
+            dependency_graph: {
+                derived_variables: {},
+                py_components: {
+                    py_comp_uid: pyComponent,
+                },
+            },
+            children: [],
+        } satisfies RouteDefinition;
+
+        const mockPyCall = vi.fn();
+        const routeCall = vi.fn();
+
+        server.use(
+            // mock the route loader endpoint
+            http.post('/api/core/route/:route_id', async (ctx) => {
+                const body = await ctx.request.json();
+                routeCall(body);
+
+                // skipping implementation, just checking the body here
+            }),
+            http.post('/api/core/component/:uid', () => {
+                // Should not be called, Py is loaded by the route loader
+                mockPyCall();
+            })
+        );
+
+        // prenavigate to the route with a param
+        window.history.pushState(null, '', '/test/123');
+
+        function Root(): JSX.Element {
+            const getSnapshot = useRecoilCallback(
+                ({ snapshot }) =>
+                    () => {
+                        return snapshot;
+                    },
+                []
+            );
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
+            const [existingVal, setExistingVal] = useVariable(existingVar);
+
+            React.useEffect(() => {
+                setExistingVal('NEW_EXISTING_VALUE');
+            }, [setExistingVal]);
+
+            // wait until the value changes from the default
+            if (existingVal === 'existing_var') {
+                return <div>Loading</div>;
+            }
+
+            return (
+                <>
+                    <RouterProvider router={createBrowserRouter([parsedRoute])} />
+                </>
+            );
+        }
+
+        render(<Root />, {
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
+        });
+        await waitFor(() => expect(routeCall).toHaveBeenCalled());
+        expect(routeCall).toHaveBeenCalledWith(
+            expect.objectContaining({
+                py_component_payloads: [
+                    {
+                        uid: 'py_comp_uid',
+                        name: 'TestPyComponent',
+                        values: {
+                            data: {
+                                input_val: {
+                                    type: 'derived',
+                                    uid: 'test_dv_uid',
+                                    values: [
+                                        {
+                                            __ref: 'Variable:existing_var_uid',
+                                        },
+                                        {
+                                            __ref: 'Variable:param_var_uid',
+                                        },
+                                        {
+                                            __ref: 'Variable:default_var_uid',
+                                        },
+                                    ],
+                                    force_key: null,
+                                },
+                            },
+                            lookup: {
+                                // Variable doesn't exist yet, uses default
+                                'Variable:default_var_uid': 'default_var',
+                                // Variable has a value in store, uses that
+                                'Variable:existing_var_uid': 'NEW_EXISTING_VALUE',
+                                // PathParamStore attached: this uses the param from URL
+                                // rather than the default or null
+                                'Variable:param_var_uid': '123',
+                            },
+                        },
+                    },
+                ],
+            })
+        );
         expect(mockPyCall).not.toHaveBeenCalled();
     });
 });

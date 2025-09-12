@@ -167,6 +167,10 @@ export interface PathParamStore extends PersistenceStore {
     param_name: string;
 }
 
+export function isPathParamStore(store: PersistenceStore): store is PathParamStore {
+    return store.__typename === '_PathParamStore';
+}
+
 export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
     __typename: 'Variable';
     default: T | DerivedVariable;

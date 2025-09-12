@@ -165,11 +165,15 @@ export const Wrapper = ({
             ws: deferred(),
         };
     }
-    window.dara.ws.resolve(wsClient);
+    if (window.dara.ws?.status === 'pending') {
+        window.dara.ws.resolve(wsClient);
+    }
 
     return (
         <ConfigContextProvider
             initialConfig={{
+                build_mode: 'PRODUCTION',
+                build_dev: false,
                 auth_components: {
                     login: {
                         js_module: '@darajs/dara_core',

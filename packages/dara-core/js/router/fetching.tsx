@@ -1,4 +1,5 @@
-import { type Params, matchRoutes } from 'react-router';
+import isEqual from 'lodash/isEqual';
+import { type Params, matchRoutes, useMatches } from 'react-router';
 import { type Snapshot, useRecoilCallback } from 'recoil';
 import * as z from 'zod/v4';
 
@@ -176,7 +177,7 @@ export async function fetchRouteData(
         const kwargs = cleanKwargs(
             Object.fromEntries(
                 Object.entries(a.dynamic_kwargs).map(([k, v]) => {
-                    return [k, resolveVariableStatic(v, snapshot)];
+                    return [k, resolveVariableStatic(v, snapshot, params)];
                 })
             ),
             null
@@ -191,7 +192,7 @@ export async function fetchRouteData(
     // Collect payloads for DVs and py_components,
     // preloading ones that don't have a cached value
     const dvHandles = Object.values(route.dependency_graph?.derived_variables ?? {}).flatMap((dv) => {
-        const handle = preloadDerivedVariable(dv, snapshot);
+        const handle = preloadDerivedVariable(dv, snapshot, params);
         if (!handle) {
             return [];
         }
@@ -205,7 +206,7 @@ export async function fetchRouteData(
         };
     });
     const pyHandles = Object.values(route.dependency_graph?.py_components ?? {}).flatMap((py) => {
-        const handle = preloadServerComponent(py, snapshot);
+        const handle = preloadServerComponent(py, snapshot, params);
 
         if (!handle) {
             return [];
@@ -242,13 +243,15 @@ export async function fetchRouteData(
         {} as Record<string, PyComponentHandle>
     );
 
+    const wsClient = await window.dara.ws.getValue();
+    const wsChannel = await wsClient.getChannel();
     const response = await request(`/api/core/route/${route.id}`, {
         method: HTTP_METHOD.POST,
         body: JSON.stringify({
             action_payloads: actionPayloads,
             derived_variable_payloads: dvHandles.map((h) => h.payload),
             py_component_payloads: pyHandles.map((h) => h.payload),
-            ws_channel: await (await window.dara.ws.promise).getChannel(),
+            ws_channel: wsChannel,
             params,
         } satisfies RouteDataRequestBody),
         signal,
@@ -309,9 +312,10 @@ export async function fetchRouteData(
     });
 
     // return as soon as we have the template and on_load actions
+    const [templateValue, onLoadActionsValue] = await Promise.all([template.getValue(), onLoadActions.getValue()]);
     return {
-        template: await template.promise,
-        on_load: await onLoadActions.promise,
+        template: templateValue,
+        on_load: onLoadActionsValue,
         route_definition: route,
         py_components: pyHandles,
         derived_variables: dvHandles,
@@ -336,29 +340,45 @@ export function getFromPreloadCache(
  * Checks the preload cache first, and if not found, fetches the data from the server.
  */
 export function usePreloadRoute(): (url: Partial<Location> | string) => void {
+    const currentMatches = useMatches();
     const { routeObjects, routeDefMap } = useRouterContext();
 
     return useRecoilCallback(
         ({ snapshot }) =>
-            (url: Partial<Location> | string) => {
+            async (url: Partial<Location> | string) => {
                 // Match routes for the given URL using React Router's route objects
                 const matches = matchRoutes(routeObjects, url, window.dara?.base_url);
                 if (!matches) {
                     return;
                 }
 
-                matches.forEach((match) => {
-                    // Find the corresponding route definition using the route ID
-                    const routeDef = routeDefMap.get(match.route.id!);
-                    if (!routeDef) {
-                        return;
-                    }
+                const release = snapshot.retain();
+                try {
+                    await Promise.all(
+                        matches
+                            // filter out matches for the same exact route/param combo, i.e. don't re-fetch current route as it's unlikely user will navigate into the same route again
+                            .filter(
+                                (match) =>
+                                    !currentMatches.some(
+                                        (m) => m.id === match.route.id && isEqual(m.params, match.params)
+                                    )
+                            )
+                            .map((match) => {
+                                // Find the corresponding route definition using the route ID
+                                const routeDef = routeDefMap.get(match.route.id!);
+                                if (!routeDef) {
+                                    return Promise.resolve();
+                                }
 
-                    preloadCache.setIfMissing(createCacheKey(routeDef.id, match.params), () => {
-                        return fetchRouteData(routeDef, match.params, snapshot);
-                    });
-                });
+                                return preloadCache.setIfMissing(createCacheKey(routeDef.id, match.params), () => {
+                                    return fetchRouteData(routeDef, match.params, snapshot);
+                                });
+                            })
+                    );
+                } finally {
+                    release();
+                }
             },
-        [routeDefMap, routeObjects]
+        [routeDefMap, routeObjects, currentMatches]
     );
 }

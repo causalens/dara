@@ -1,4 +1,4 @@
-import { fireEvent, queryByAttribute, waitFor, waitForElementToBeRemoved } from '@testing-library/dom';
+import { fireEvent, queryByAttribute, waitFor } from '@testing-library/dom';
 import { act } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import * as React from 'react';
@@ -265,7 +265,6 @@ describe('DynamicComponent', () => {
             </div>
         );
         await waitFor(() => expect(getByTestId('content').firstChild).not.toBe(null));
-        await waitForElementToBeRemoved(() => getByTestId('LOADING'));
         // Check that 'test_error' is rendered somewhere in the error component
         await waitFor(() => expect(getByTestId('content').textContent).toContain('test_error'));
     });
@@ -343,7 +342,7 @@ describe('DynamicComponent', () => {
         await waitFor(() => {
             const content = getByTestId('wrapper').innerHTML;
             expect(content.startsWith('TestComponent2:')).toBe(true);
-            expect(JSON.parse(content.split('TestComponent2:')[1])).toEqual({
+            expect(JSON.parse(content.split('TestComponent2:')[1]!)).toEqual({
                 uid: 'uid',
                 values: {
                     data: {

@@ -51,16 +51,25 @@ export class SingleUseCache<T> {
         this.cache.clear();
     }
 
-    setIfMissing(key: string, computeFn: () => Promise<T>, timeout?: number): void {
+    /**
+     * Set a value if it doesn't exist in the cache, otherwise return the existing value.
+     * The promise resolves the the new or existing value stored.
+     *
+     * @param key cache key
+     * @param computeFn function to compute the value
+     * @param timeout optional timeout in ms
+     */
+    setIfMissing(key: string, computeFn: () => Promise<T>, timeout?: number): Promise<any> {
         // Check cache first WITHOUT consuming it - just check if valid entry exists
         const entry = this.cache.get(key);
         if (entry && !this.isEntryStale(entry, timeout)) {
-            return; // Already cached and valid, nothing to do
+            return Promise.resolve(entry.data); // Already cached and valid, nothing to do
         }
 
         // Create new computation and store it
         const promise = computeFn();
         this.set(key, promise);
+        return promise;
     }
 
     size(): number {

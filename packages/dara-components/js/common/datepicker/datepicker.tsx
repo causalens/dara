@@ -95,6 +95,7 @@ function Datepicker(props: DatepickerProps): JSX.Element {
     return (
         <StyledDatepickerDiv $rawCss={css} style={style}>
             <UIDatePicker
+                id={props.id_}
                 dateFormat={props.date_format}
                 maxDate={parseDateString(props.max_date)}
                 minDate={parseDateString(props.min_date)}

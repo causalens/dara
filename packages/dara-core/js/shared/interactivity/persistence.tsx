@@ -427,11 +427,13 @@ export function PathParamSync({ children }: { children: React.ReactNode }): Reac
         [matchesRef, navigate, paramsRef, locationRef]
     );
 
-    const listenToStoreChanges = React.useCallback<ListenToItems>(({ updateAllKnownItems }) => {
+    const listenToStoreChanges = React.useCallback<ListenToItems>(({ updateItems }) => {
         function handleUpdate(newParams: Params<string>): void {
-            // this updates existing atoms for items included and resets other ones
-            // to default (null/None) for missing ones
-            updateAllKnownItems(new Map(Object.entries(newParams)));
+            // NOTE: using updateItems instead of updateAllKnownItems
+            // We don't want to reset params that become null because that can happen while
+            // navigating away from a page, which would trigger derived values to re-run
+            // for no reason.
+            updateItems(new Map(Object.entries(newParams)));
         }
 
         locationSubscribers.current.push(handleUpdate);

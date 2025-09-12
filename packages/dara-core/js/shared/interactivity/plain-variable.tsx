@@ -1,9 +1,16 @@
+import type { Params } from 'react-router';
 import { type AtomEffect, type RecoilState, type Snapshot, atomFamily, selectorFamily } from 'recoil';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
 import { isEmbedded } from '@/shared/utils/embed';
-import { type DerivedVariable, type GlobalTaskContext, type SingleVariable, isDerivedVariable } from '@/types';
+import {
+    type DerivedVariable,
+    type GlobalTaskContext,
+    type SingleVariable,
+    isDerivedVariable,
+    isPathParamStore,
+} from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { STORES, getEffect, getOrRegisterDerivedVariable, resolveNested, setNested } from './internal';
@@ -180,15 +187,26 @@ export function getOrRegisterPlainVariable<T>(
     return atomInstance;
 }
 
-export function resolvePlainVariableStatic(variable: SingleVariable<any>, snapshot: Snapshot): RecoilState<any> {
+export function resolvePlainVariableStatic<T>(
+    variable: SingleVariable<T>,
+    snapshot: Snapshot,
+    params: Params<string>
+): DerivedVariable | T {
+    // special case - when staticaly resolving param store variables
+    if (variable.store && isPathParamStore(variable.store)) {
+        return params[variable.store.param_name]! as T;
+    }
+
     const family = atomFamilyRegistry.get(variable.uid);
 
     if (family) {
         const extrasSerializable = new RequestExtrasSerializable({});
-        const atomInstance: RecoilState<any> = family(extrasSerializable);
-        const atomValue = snapshot.getLoadable(atomInstance).valueMaybe();
-        if (atomValue !== null && !(atomValue instanceof Promise)) {
-            return atomInstance;
+        const atomInstance = atomFamilyMembersRegistry.get(family)!.get(extrasSerializable.toJSON());
+        if (atomInstance) {
+            const atomValue = snapshot.getLoadable(atomInstance).valueMaybe();
+            if (atomValue !== null && !(atomValue instanceof Promise)) {
+                return atomValue;
+            }
         }
     }
 
