@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.4
 
 -  Fixed an issue where preloading derived values for a page would use `null` as the value for variables bound to path params
 -  Fixed an issue where the `/login` page would not correctly redirect back to the first available route after successful login or token validation
