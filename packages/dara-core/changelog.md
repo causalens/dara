@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where preloading derived values for a page would use `null` as the value for variables bound to path params
+-  Fixed an issue where the `/login` page would not correctly redirect back to the first available route after successful login or token validation
+-  Fixed an issue where `Link` components with `prefetch=True` would run prefetch logic too often, e.g. even when hovering over the link to the page just navigated to
+
 ## 1.21.2
 
 -  Fixed an issue where changing the theme's base font size would not properly apply
