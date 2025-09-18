@@ -32,6 +32,30 @@ class Outlet(ComponentInstance):
     """
 
 
+NavigateDef = JsComponentDef(name='Navigate', js_module='@darajs/core', py_module='dara.core')
+
+
+class Navigate(ComponentInstance):
+    """
+    Navigate component immediately redirects to the specified route when rendered.
+    Can be useful for defining default redirects in some pages.
+
+    ```python
+    from dara.core.router import Navigate
+
+    def MyPage():
+        # always redirects to /some-route
+        return Navigate(to='/some-route')
+    ```
+    """
+
+    to: Union[str, RouterPath, ClientVariable]
+
+    replace: bool = False
+
+    relative: Literal['route', 'path'] = 'route'
+
+
 LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
 
 

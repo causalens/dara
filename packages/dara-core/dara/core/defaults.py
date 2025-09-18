@@ -34,7 +34,7 @@ from dara.core.interactivity.actions import (
     UpdateVariableDef,
 )
 from dara.core.internal.cache_store import CacheStore
-from dara.core.router import Link, LinkDef, MenuLink, MenuLinkDef, Outlet, OutletDef
+from dara.core.router import Link, LinkDef, MenuLink, MenuLinkDef, Navigate, NavigateDef, Outlet, OutletDef
 from dara.core.visual.components import (
     DefaultFallbackDef,
     DynamicComponent,
@@ -90,6 +90,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
     For.__name__: ForDef,
     Link.__name__: LinkDef,
     Outlet.__name__: OutletDef,
+    Navigate.__name__: NavigateDef,
     PoweredByCausalens.__name__: PoweredByCausalensDef,
     ThemeProvider.__name__: ThemeProviderDef,
 }
