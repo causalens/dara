@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
-import styled from '@darajs/styled-components';
+import styled, { ThemeProvider, theme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
 import { useConfig } from '@/shared';
@@ -147,4 +147,12 @@ function RouteErrorBoundary(): React.ReactNode {
     );
 }
 
-export default RouteErrorBoundary;
+function RouteErrorBoundaryPage(): React.ReactNode {
+    return (
+        <ThemeProvider theme={theme}>
+            <RouteErrorBoundary />
+        </ThemeProvider>
+    );
+}
+
+export default RouteErrorBoundaryPage;
