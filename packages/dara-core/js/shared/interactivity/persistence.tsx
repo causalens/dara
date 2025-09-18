@@ -13,12 +13,12 @@ import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
 import { getSessionToken } from '@/auth/use-session-token';
+import type { LoaderData } from '@/router';
 import { isEmbedded } from '@/shared/utils/embed';
 import {
     type GlobalTaskContext,
     type PathParamStore,
     type QueryParamStore,
-    type RouteDefinition,
     type SingleVariable,
     isDerivedVariable,
 } from '@/types';
@@ -403,17 +403,17 @@ export function PathParamSync({ children }: { children: React.ReactNode }): Reac
     );
 
     const writeStoreValue = React.useCallback<WriteItems>(
-        ({ diff }) => {
+        async ({ diff }) => {
             const newParams = mapValues({ ...paramsRef.current, ...Object.fromEntries(diff) }, (v) => String(v));
 
             // use the last match to get the full path,
             // needed to get the full path with placeholders e.g.
             // /foo/blogs/:blogId/posts/:postId
-            const fullPathname = (
-                matchesRef.current.at(-1)!.loaderData as {
-                    data: { route_definition: RouteDefinition };
-                }
-            ).data.route_definition.full_path;
+            const loaderData = matchesRef.current.at(-1)!.loaderData as {
+                data: LoaderData | Promise<LoaderData>;
+            };
+            const data = loaderData.data instanceof Promise ? await loaderData.data : loaderData.data;
+            const fullPathname = data.route_definition.full_path;
 
             // navigate once, building the full pathname with updated params
             // NOTE: This assumes the path param names are unique across matches
