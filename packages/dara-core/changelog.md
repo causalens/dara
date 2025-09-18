@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.6
 
 -  Fixed an issue where instantiating actions would fail during route preloading
 
