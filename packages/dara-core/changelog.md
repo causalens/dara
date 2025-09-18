@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.5
 
 -  Allow `Link` components to accept `ClientVariable` as the `to` prop
 -  Exposed the React Router `Navigate` component for advanced routing cases
