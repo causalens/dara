@@ -3,6 +3,7 @@ from typing import Annotated, Any, Literal, Optional, Union
 from pydantic import BaseModel, BeforeValidator
 
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
+from dara.core.interactivity import ClientVariable
 
 
 class RouterPath(BaseModel):
@@ -29,6 +30,30 @@ class Outlet(ComponentInstance):
     """
     Outlet component is a placeholder for the content of the current route.
     """
+
+
+NavigateDef = JsComponentDef(name='Navigate', js_module='@darajs/core', py_module='dara.core')
+
+
+class Navigate(ComponentInstance):
+    """
+    Navigate component immediately redirects to the specified route when rendered.
+    Can be useful for defining default redirects in some pages.
+
+    ```python
+    from dara.core.router import Navigate
+
+    def MyPage():
+        # always redirects to /some-route
+        return Navigate(to='/some-route')
+    ```
+    """
+
+    to: Union[str, RouterPath, ClientVariable]
+
+    replace: bool = False
+
+    relative: Literal['route', 'path'] = 'route'
 
 
 LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
@@ -91,7 +116,7 @@ class Link(StyledComponentInstance):
     ```
     """
 
-    to: Union[str, RouterPath]
+    to: Union[str, RouterPath, ClientVariable]
     """
     Can be a string or RouterPath object
     """

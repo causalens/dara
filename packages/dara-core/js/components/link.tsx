@@ -5,8 +5,11 @@ import styled from 'styled-components';
 import { usePreloadRoute } from '@/router/fetching';
 import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
+import { useVariable } from '@/shared/interactivity';
 import useComponentStyles from '@/shared/utils/use-component-styles';
-import type { ComponentInstance, StyledComponentProps } from '@/types';
+import type { ComponentInstance, StyledComponentProps, Variable } from '@/types';
+
+type MaybeVariable<T> = T | Variable<T>;
 
 export interface LinkProps extends StyledComponentProps {
     className?: string;
@@ -15,7 +18,7 @@ export interface LinkProps extends StyledComponentProps {
     prefetch?: boolean;
     relative: NavLinkProps['relative'];
     replace: NavLinkProps['replace'];
-    to: NavLinkProps['to'];
+    to: MaybeVariable<NavLinkProps['to']>;
     // Used via useComponentStyles
     // eslint-disable-next-line react/no-unused-prop-types
     active_css?: StyledComponentProps['raw_css'];
@@ -68,6 +71,7 @@ function Link(props: LinkProps): React.ReactNode {
     const [style, css] = useComponentStyles(props);
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
+    const [to] = useVariable(props.to);
 
     // Prefetching approach inspired by SolidJS's router:
     // https://github.com/solidjs/solid-router/blob/30f08665e87829736a9333d55863d27905f4a92d/src/data/events.ts#L7
@@ -88,8 +92,8 @@ function Link(props: LinkProps): React.ReactNode {
             return;
         }
 
-        preloadRoute(props.to);
-    }, [props.prefetch, preloadRoute, props.to]);
+        preloadRoute(to);
+    }, [props.prefetch, preloadRoute, to]);
 
     // Delayed preload (for mouse move events)
     const handleDelayedPreload = React.useCallback(() => {
@@ -102,9 +106,9 @@ function Link(props: LinkProps): React.ReactNode {
 
         // Set timeout for delayed preload (20ms)
         preloadTimeoutRef.current = window.setTimeout(() => {
-            preloadRoute(props.to);
+            preloadRoute(to);
         }, 20);
-    }, [props.prefetch, props.to, clearPreloadTimeout, preloadRoute]);
+    }, [props.prefetch, to, clearPreloadTimeout, preloadRoute]);
 
     // Event handlers
     const handleMouseMove = React.useCallback(() => {
@@ -131,7 +135,7 @@ function Link(props: LinkProps): React.ReactNode {
             <StyledNavLink
                 id={props.id_}
                 className={props.className}
-                to={props.to}
+                to={to}
                 end={props.end}
                 caseSensitive={props.case_sensitive}
                 replace={props.replace}
