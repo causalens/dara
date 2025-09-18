@@ -6,6 +6,7 @@ title: Changelog
 
 -  Allow `Link` components to accept `ClientVariable` as the `to` prop
 -  Exposed the React Router `Navigate` component for advanced routing cases
+-  Fixed an issue where instantiating actions would fail during route preloading
 
 ## 1.21.4
 
