@@ -50,6 +50,7 @@ from starlette.status import HTTP_415_UNSUPPORTED_MEDIA_TYPE
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, NonTabularDataError, UploadResolverDef
 from dara.core.configuration import Configuration
+from dara.core.interactivity.actions import ACTION_CONTEXT
 from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.interactivity.server_variable import ServerVariable
@@ -614,6 +615,10 @@ def create_loader_route(config: Configuration, app: FastAPI):
                             'action_name': action_name,
                         },
                     ) from e
+
+                # Reset the action context after running actions
+                CURRENT_ACTION_ID.set('')
+                ACTION_CONTEXT.set(None)
 
         async def process_variables(send_stream: MemoryObjectSendStream[Chunk]):
             for payload in body.derived_variable_payloads:

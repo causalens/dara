@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where instantiating actions would fail during route preloading
+
 ## 1.21.5
 
 -  Allow `Link` components to accept `ClientVariable` as the `to` prop
