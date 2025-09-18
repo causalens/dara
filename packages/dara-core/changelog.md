@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.7
 
 -  Fixed an issue where syncing variables with path params would sometimes fail if the route has a longer running action attached
 
