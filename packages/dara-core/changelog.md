@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where syncing variables with path params would sometimes fail if the route has a longer running action attached
+
 ## 1.21.6
 
 -  Fixed an issue where instantiating actions would fail during route preloading
