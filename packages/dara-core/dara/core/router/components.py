@@ -3,6 +3,7 @@ from typing import Annotated, Any, Literal, Optional, Union
 from pydantic import BaseModel, BeforeValidator
 
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
+from dara.core.interactivity import ClientVariable
 
 
 class RouterPath(BaseModel):
@@ -91,7 +92,7 @@ class Link(StyledComponentInstance):
     ```
     """
 
-    to: Union[str, RouterPath]
+    to: Union[str, RouterPath, ClientVariable]
     """
     Can be a string or RouterPath object
     """

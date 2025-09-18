@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Allow `Link` components to accept `ClientVariable` as the `to` prop
+
 ## 1.21.4
 
 -  Fixed an issue where preloading derived values for a page would use `null` as the value for variables bound to path params
