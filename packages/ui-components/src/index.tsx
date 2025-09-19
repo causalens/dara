@@ -46,7 +46,7 @@ export { default as ErrorBoundary } from './error-boundary/error-boundary';
 export { default as HierarchySelector, type HierarchyNode } from './hierarchy-selector/hierarchy-selector';
 export { default as Input } from './input/input';
 export { type InputProps } from './input/input';
-export { default as Markdown } from './markdown/markdown';
+export { default as Markdown, CustomMarkdownWrapper, CodeDisplay } from './markdown/markdown';
 export { default as Modal, ModalFooter, ModalHeader } from './modal/modal';
 export { default as MultiSelect } from './multiselect/multiselect';
 export { default as NumericFilter } from './filter/numeric-filter';

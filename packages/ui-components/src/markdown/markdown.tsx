@@ -20,7 +20,7 @@ interface MarkdownProps extends Options {
     id?: string;
 }
 
-const CustomMarkdownWrapper = styled.div`
+export const CustomMarkdownWrapper = styled.div`
     /*
      * Apply some base styles to the markdown content so it looks good by default
      * Inspired by https://tailwindcss.com/docs/typography-plugin
@@ -92,6 +92,10 @@ const CustomMarkdownWrapper = styled.div`
         line-height: 1.1;
     }
 
+    h1 code {
+        font-size: 2.5rem;
+    }
+
     h2 {
         margin-top: 2rem;
         margin-bottom: 1rem;
@@ -101,6 +105,10 @@ const CustomMarkdownWrapper = styled.div`
         line-height: 1.3;
     }
 
+    h2 code {
+        font-size: 2rem;
+    }
+
     h3 {
         margin-top: 1.6rem;
         margin-bottom: 0.6rem;
@@ -108,6 +116,10 @@ const CustomMarkdownWrapper = styled.div`
         font-size: 1.25rem;
         font-weight: 800;
         line-height: 1.25;
+    }
+
+    h3 code {
+        font-size: 1.25rem;
     }
 
     h4 {
@@ -133,14 +145,6 @@ const CustomMarkdownWrapper = styled.div`
         font-size: 0.875rem;
         line-height: 1.5rem;
         color: ${(props) => props.theme.colors.grey5};
-    }
-
-    h2 code {
-        font-size: 0.875rem;
-    }
-
-    h3 code {
-        font-size: 0.9rem;
     }
 
     pre:first-child {
@@ -343,7 +347,7 @@ function childrenToString(children: React.ReactNode): string {
     return '';
 }
 
-function CodeDisplay(
+export function CodeDisplay(
     props: React.ClassAttributes<HTMLElement> & React.HTMLAttributes<HTMLElement> & ExtraProps
 ): React.ReactElement {
     const theme = useTheme();
