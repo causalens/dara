@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Lock `react-router` version to a minor version and upgrade to `~7.9` - fixing a bug where production build would install a newer, incompatible version
+
 ## 1.21.7
 
 -  Fixed an issue where syncing variables with path params would sometimes fail if the route has a longer running action attached
