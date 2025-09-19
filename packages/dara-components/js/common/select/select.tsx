@@ -27,7 +27,7 @@ import { useFormContext } from '../context';
 import { type FormComponentProps } from '../types';
 
 // Type guard for primitive values to avoid "[object Object]" string conversion
-const isPrimitive = (val: unknown): val is string | number | boolean | null | undefined => isNil(val) || !isObject(val);
+const isPrimitive = (val: unknown): val is string | number | boolean => !isNil(val) && !isObject(val);
 
 export function getMultiselectItems(values: Array<unknown>, items: Array<Item>): Array<Item> {
     if (!values) {
