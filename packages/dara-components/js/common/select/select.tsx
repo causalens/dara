@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import isNil from 'lodash/isNil';
@@ -27,7 +26,7 @@ import { useFormContext } from '../context';
 import { type FormComponentProps } from '../types';
 
 // Type guard for primitive values to avoid "[object Object]" string conversion
-const isPrimitive = (val: unknown): val is string | number | boolean | null | undefined => isNil(val) || !isObject(val);
+const isPrimitive = (val: unknown): val is string | number | boolean => !isNil(val) && !isObject(val);
 
 export function getMultiselectItems(values: Array<unknown>, items: Array<Item>): Array<Item> {
     if (!values) {
@@ -125,26 +124,29 @@ function Select(props: SelectProps): JSX.Element {
      * Converts a value to an Item, or finds a matching Item in formattedItems based on value.
      * @param val - The value to be converted or matched.
      */
-    const toItem = (val: unknown): Item | undefined | null => {
-        // Tries to get matching item based on value from formattedItems
-        const matchingItem = formattedItems.find((item) => {
-            if (isItem(item)) {
-                // For primitives, compare string values
-                if (isPrimitive(item.value) && isPrimitive(val)) {
-                    return String(item.value) === String(val);
+    const toItem = useCallback(
+        (val: unknown): Item | undefined | null => {
+            // Tries to get matching item based on value from formattedItems
+            const matchingItem = formattedItems.find((item) => {
+                if (isItem(item)) {
+                    // For primitives, compare string values
+                    if (isPrimitive(item.value) && isPrimitive(val)) {
+                        return String(item.value) === String(val);
+                    }
+                    // For objects, check equality directly
+                    return isEqual(item.value, val);
                 }
-                // For objects, check equality directly
-                return isEqual(item.value, val);
+                return false;
+            });
+            // If a matching Item is found return it
+            if (matchingItem) {
+                return matchingItem as Item;
             }
-            return false;
-        });
-        // If a matching Item is found return it
-        if (matchingItem) {
-            return matchingItem as Item;
-        }
-        // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
-        return isPrimitive(val) ? { label: String(val), value: val } : (val as Item);
-    };
+            // Otherwise return the item as an Item type with the value as the label, so that select can still show a value even if not present in the list
+            return isPrimitive(val) ? { label: String(val), value: val } : (val as Item);
+        },
+        [formattedItems]
+    );
 
     const onChangeAction = useAction(props.onchange);
 
@@ -160,6 +162,7 @@ function Select(props: SelectProps): JSX.Element {
         if (props.multiselect && value !== undefined && !Array.isArray(value)) {
             throw new Error('Value for multiselect should be a Variable instance of an array');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (itemHasListSection.current) {
@@ -172,7 +175,7 @@ function Select(props: SelectProps): JSX.Element {
             [setValue]
         );
 
-        const selectedItem = useMemo(() => toItem(value), [value]);
+        const selectedItem = useMemo(() => toItem(value), [value, toItem]);
         return (
             <StyledSectionedList
                 id={props.id_}
@@ -201,14 +204,14 @@ function Select(props: SelectProps): JSX.Element {
                     formCtx.updateForm(currentSelection);
                 }
             },
-            [setValue]
+            [formCtx, onChangeAction, setValue]
         );
 
         const selectedItems = useMemo(() => {
             const found = getMultiselectItems(value, itemArray);
             const explicitValues = Array.isArray(value) ? value.map(toItem) : value;
             return isEmpty(found) ? explicitValues ?? null : found;
-        }, [formattedItems, value]);
+        }, [itemArray, toItem, value]);
 
         return (
             <StyledMultiSelect
@@ -227,7 +230,7 @@ function Select(props: SelectProps): JSX.Element {
 
     const selectedItem = useMemo(
         () => itemArray.find((item) => String(item.value) === String(value)) ?? toItem(value) ?? null,
-        [value]
+        [itemArray, toItem, value]
     );
 
     const onSelect = useCallback(
@@ -238,7 +241,7 @@ function Select(props: SelectProps): JSX.Element {
                 formCtx.updateForm(item.value);
             }
         },
-        [setValue, onChangeAction]
+        [setValue, onChangeAction, formCtx]
     );
 
     if (props.searchable) {
