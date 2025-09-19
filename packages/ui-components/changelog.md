@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.8
 
 - Exported markdown component wrapper and code display component
 
