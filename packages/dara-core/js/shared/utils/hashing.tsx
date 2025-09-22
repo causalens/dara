@@ -5,10 +5,15 @@ import { type AnyVariable } from '@/types/core';
  *
  * @param variable variable to get the identifier from
  */
-export function getUniqueIdentifier<T>(variable: AnyVariable<T>): string {
+export function getUniqueIdentifier<T>(
+    variable: AnyVariable<T>,
+    opts: { useNested: boolean } = {
+        useNested: true,
+    }
+): string {
     let identifier = variable.uid;
 
-    if ('nested' in variable) {
+    if (opts.useNested && 'nested' in variable) {
         identifier += variable.nested.join(',');
     }
 

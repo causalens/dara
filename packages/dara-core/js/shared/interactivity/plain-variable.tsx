@@ -144,7 +144,7 @@ export function getOrRegisterPlainVariable<T>(
 
     // In case of a nested variable, register and return a selector to resolve the nested values
     if (isNested) {
-        const key = getRegistryKey(variable, 'selector');
+        const key = getRegistryKey(variable, 'selector-nested');
 
         if (!selectorFamilyRegistry.has(key)) {
             // Below we make sure nested is a list of strings

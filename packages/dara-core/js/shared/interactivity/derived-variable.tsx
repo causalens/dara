@@ -1,3 +1,13 @@
+/**
+ * DerivedVariable resolution process:
+ * 1. 'result-selector' (getOrRegisterDerivedVariableResult) - handle resolving dependencies, return a previous/cached result or signify that we need to refetch.
+ * This one explicitly does not use 'nested' in its key to share results across different nested values.
+ * 2. 'selector' (getOrRegisterDerivedVariableValue) - handle fetching if needed, waiting for task result if task response
+ * This one also does NOT use 'nested', also shares results.
+ * 3. 'nested-selector' (getOrRegisterDerivedVariable) - handle resolving to a nested value if 'nested' is set
+ * This one DOES use 'nested' in its key to resolve the shared values to different nested values.
+ */
+
 /* eslint-disable react-hooks/exhaustive-deps */
 import isEqual from 'lodash/isEqual';
 import set from 'lodash/set';
@@ -502,6 +512,8 @@ export function resolveDerivedValue({
  * Get or register a recoil selector for a given derived variable result object.
  * Resolves the primitive values and returns either the previous cached result or an object
  * signifying that we need to refetch the value.
+ *
+ * First of the 3 stages of resolving a derived variable.
  */
 export function getOrRegisterDerivedVariableResult(
     variable: DerivedVariable,
@@ -588,19 +600,18 @@ const NOT_SET = Symbol('NOT_SET');
 
 /**
  * Get a derived variable from the selector registry, registering it if not already registered
+ *  Handles the 'derived result' returned from the first stage selector, fetching the value
+ *  if value is 'current', awaiting cached deferred values and waiting for task results if needed.
  *
- * @param variable variable to register
- * @param wsClient WebSocket client from context
- * @param tasks tasks list from context
- * @param currentExtras request extras to be merged into the options
+ * Second of the 3 stages of resolving a derived variable.
  */
-export function getOrRegisterDerivedVariable(
+export function getOrRegisterDerivedVariableValue(
     variable: DerivedVariable,
     wsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     currentExtras: RequestExtras
 ): RecoilValue<any> {
-    const key = getRegistryKey(variable, 'selector');
+    const key = getRegistryKey(variable, 'derived-selector');
 
     if (!selectorFamilyRegistry.has(key)) {
         getOrRegisterTrigger(variable);
@@ -731,10 +742,6 @@ export function getOrRegisterDerivedVariable(
                             variableValue = variableResponse.value;
                         }
 
-                        // resolve nested if defined
-                        variableValue =
-                            'nested' in variable ? resolveNested(variableValue, variable.nested) : variableValue;
-
                         // Store the final result and arguments used
                         depsRegistry.set(derivedResult.depsKey, {
                             args: derivedResult.relevantValues,
@@ -742,6 +749,68 @@ export function getOrRegisterDerivedVariable(
                         });
 
                         return variableValue;
+                    },
+                key: nanoid(),
+            })
+        );
+    }
+
+    const family = selectorFamilyRegistry.get(key)!;
+
+    // Get a selector instance for this particular extras value
+    // This is required as otherwise the selector is not aware of different possible extras values
+    // at the call site of e.g. useVariable and would otherwise be a stale closure using the initial extras when
+    // first registered
+    const serializableExtras = new RequestExtrasSerializable(currentExtras);
+    const selectorInstance = family(serializableExtras);
+
+    // register selector instance in the selector family registry
+    if (!selectorFamilyMembersRegistry.has(family)) {
+        selectorFamilyMembersRegistry.set(family, new Map());
+    }
+    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
+
+    return selectorInstance;
+}
+
+/**
+ * Resolve the nested value of a DerivedVariable if needed.
+ * Unwraps the raw result of a DerivedVariable.
+ *
+ * Third of the 3 stages of resolving a derived variable. Unwraps the 'nested' value
+ * if set on the variable.
+ *
+ * @param variable variable to register
+ * @param wsClient WebSocket client from context
+ * @param taskContext global task context
+ * @param search search query from location
+ * @param extras request extras to be merged into the options
+ */
+export function getOrRegisterDerivedVariable(
+    variable: DerivedVariable,
+    wsClient: WebSocketClientInterface,
+    taskContext: GlobalTaskContext,
+    currentExtras: RequestExtras
+): RecoilValue<any> {
+    const key = getRegistryKey(variable, 'selector-nested');
+
+    if (!selectorFamilyRegistry.has(key)) {
+        selectorFamilyRegistry.set(
+            key,
+            selectorFamily({
+                get:
+                    (extrasSerializable: RequestExtrasSerializable) =>
+                    ({ get }) => {
+                        // get the right selector instance for this extras value
+                        const dvSelector = getOrRegisterDerivedVariableValue(
+                            variable,
+                            wsClient,
+                            taskContext,
+                            extrasSerializable.extras
+                        );
+                        const value = get(dvSelector);
+                        // unwrap the nested result if needed
+                        return 'nested' in variable ? resolveNested(value, variable.nested) : value;
                     },
                 key: nanoid(),
             })
