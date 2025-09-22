@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.9
 
 - Fixed an issue where `Select` component would show `null` instead of placeholder when `value` was `None`
 - Fixed an issue where `Select` component would not update the displayed label when items were updated

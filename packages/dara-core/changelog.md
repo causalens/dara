@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.9
 
 -  Lock `react-router` version to a minor version and upgrade to `~7.9` - fixing a bug where production build would install a newer, incompatible version
 -  Fixed an issue where derived variables with different `nested` values (i.e. obtained via `.get(key)`) would recompute multiple times and not reuse precomputed route data
