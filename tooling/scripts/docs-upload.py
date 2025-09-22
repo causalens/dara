@@ -83,7 +83,7 @@ for package in packages:
         for file_path in directory.rglob('*'):
             archive.write(
                 file_path,
-                arcname=directory.name / file_path.relative_to(directory),
+                arcname=file_path.relative_to(directory),
             )
 
     # Upload to GAR
