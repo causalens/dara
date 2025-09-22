@@ -56,4 +56,3 @@ jobs:
             packages/create-dara-app/create_dara_app
             packages/dara-components/dara.components
             packages/dara-core/dara.core
-          BUILD_REFERENCE: true
