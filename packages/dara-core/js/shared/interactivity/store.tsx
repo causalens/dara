@@ -129,7 +129,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         }
 
         case 'DerivedVariable': {
-            const key = getRegistryKey(variable, 'selector');
+            const key = getRegistryKey(variable, 'selector-nested');
             return selectorFamilyRegistry.has(key);
         }
 
