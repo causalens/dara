@@ -35,9 +35,24 @@ gar_key = os.environ['GAR_KEY_JSON']
 
 # Build reference docs
 packages = [
-    {'path': 'packages/create-dara-app/create_dara_app', 'name': 'create-dara-app', 'ref_path': 'create_dara_app'},
-    {'path': 'packages/dara-components/dara.components', 'name': 'dara-components', 'ref_path': 'dara/components'},
-    {'path': 'packages/dara-core/dara.core', 'name': 'dara-core', 'ref_path': 'dara/core'},
+    {
+        'path': 'packages/create-dara-app/create_dara_app',
+        'name': 'create-dara-app',
+        'ref_path': 'create_dara_app',
+        'ref_subitem': False,
+    },
+    {
+        'path': 'packages/dara-components/dara.components',
+        'name': 'dara-components',
+        'ref_path': 'dara/components',
+        'ref_subitem': True,
+    },
+    {
+        'path': 'packages/dara-core/dara.core',
+        'name': 'dara-core',
+        'ref_path': 'dara/core',
+        'ref_subitem': True,
+    },
 ]
 
 build(
@@ -52,6 +67,7 @@ for package in packages:
     parent_path = os.path.dirname(package['path'])
     name = package['name']
     ref_path = package['ref_path']
+    use_ref_subitem = package['ref_subitem']
 
     # Copy the package's docs to the __docs folder
     shutil.copytree(os.path.join(parent_path, 'docs'), f'__docs/{name}')
@@ -62,15 +78,28 @@ for package in packages:
     # Merge the sidebar: move the reference sidebar as the last item in the package sidebar
     ref_sidebar_path = os.path.join('__docs', name, 'reference', 'sidebar.json')
     with open(ref_sidebar_path, 'r', encoding='utf-8') as f:
-        ref_sidebar_content = json.loads(f.read())
-
-    ref_sidebar_content['label'] = 'Reference'
+        # replace the paths correctly
+        ref_sidebar_raw_content = f.read()
+        ref_sidebar_raw_content = ref_sidebar_raw_content.replace(ref_path + '/', '')
+        ref_sidebar_content = json.loads(ref_sidebar_raw_content)
 
     main_sidebar_path = os.path.join('__docs', name, 'sidebar.json')
     with open(main_sidebar_path, 'r', encoding='utf-8') as f:
         main_sidebar_content = json.loads(f.read())
 
-    main_sidebar_content['items'].append(ref_sidebar_content)
+    main_sidebar_content['items'].append(
+        {
+            'type': 'category',
+            'label': 'Reference',
+            'link': {
+                'description': f'Reference for: {name}',
+                'title': 'Reference',
+                'type': 'generated-index',
+            },
+            'items': ref_sidebar_content['items'] if not use_ref_subitem else ref_sidebar_content['items'][0]['items'],
+        }
+    )
+
     with open(main_sidebar_path, 'w', encoding='utf-8') as f:
         json.dump(main_sidebar_content, f, indent=2)
 
