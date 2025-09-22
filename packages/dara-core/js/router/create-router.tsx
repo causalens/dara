@@ -211,7 +211,7 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
                         element: <AuthenticatedRoot daraData={config} />,
                         loader: createAuthenticatedRootLoader(config),
                         // token must be set to access the authenticated routes
-                        unstable_middleware: [
+                        middleware: [
                             async () => {
                                 if (verifiedToken) {
                                     return;
