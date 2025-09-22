@@ -1,0 +1,7 @@
+{
+  "type": "category",
+  "label": "create-dara-app",
+  "collapsible": true,
+  "collapsed": true,
+  "items": ["docs/introduction"]
+}

@@ -1,0 +1,41 @@
+{
+  "type": "category",
+  "label": "dara-components",
+  "collapsible": true,
+  "collapsed": true,
+  "items": [
+    {
+      "type": "category",
+      "label": "common",
+      "collapsible": true,
+      "collapsed": true,
+      "items": ["docs/common/introduction"]
+    },
+    {
+      "type": "category",
+      "label": "graphs",
+      "collapsible": true,
+      "collapsed": true,
+      "items": ["docs/graphs/introduction"]
+    },
+    {
+      "type": "category",
+      "label": "plotting",
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        "docs/plotting/introduction",
+        "docs/plotting/plotting_palettes",
+        "docs/plotting/bokeh_events",
+        "docs/plotting/plotly_events"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "smart",
+      "collapsible": true,
+      "collapsed": true,
+      "items": ["docs/smart/code_editor", "docs/smart/data_slicer", "docs/smart/hierarchy"]
+    }
+  ]
+}
