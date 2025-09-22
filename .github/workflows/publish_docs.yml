@@ -52,8 +52,3 @@ jobs:
           POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
           POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
           VERSION: ${{ steps.get-version.outputs.version }}
-          PACKAGE_PATHS: |
-            packages/create-dara-app/create_dara_app
-            packages/dara-components/dara.components
-            packages/dara-core/dara.core
-          BUILD_REFERENCE: true

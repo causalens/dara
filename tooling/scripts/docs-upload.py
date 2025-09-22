@@ -10,6 +10,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import json
 import os
 import shutil
@@ -28,64 +29,122 @@ project = os.environ['PROJECT']
 version = os.environ['VERSION']
 location = os.environ['LOCATION']
 repository = os.environ['REPOSITORY']
-package = os.environ['PACKAGE']
+top_package = os.environ['PACKAGE']
 gar_key = os.environ['GAR_KEY_JSON']
 
 
 # Build reference docs
-if os.environ.get('BUILD_REFERENCE') == 'true':
-    package_paths = os.environ.get('PACKAGE_PATHS', '').strip().split('\n')
+packages = [
+    {
+        'path': 'packages/create-dara-app/create_dara_app',
+        'name': 'create-dara-app',
+        'ref_path': 'create_dara_app',
+        'ref_subitem': False,
+    },
+    {
+        'path': 'packages/dara-components/dara.components',
+        'name': 'dara-components',
+        'ref_path': 'dara/components',
+        'ref_subitem': True,
+    },
+    {
+        'path': 'packages/dara-core/dara.core',
+        'name': 'dara-core',
+        'ref_path': 'dara/core',
+        'ref_subitem': True,
+    },
+]
 
-    build(
-        packages=package_paths,
-        package_name=package,
-        base_changelog_path=os.environ.get('CHANGELOG_PATH', 'changelog.md'),
-        base_path=os.environ.get('BASE_PATH', './__docs'),
+build(
+    packages=[p['path'] for p in packages],
+    package_name=top_package,
+    base_changelog_path=os.environ.get('CHANGELOG_PATH', 'changelog.md'),
+    base_path=os.environ.get('BASE_PATH', './__docs'),
+)
+
+# Prepare and upload each package's docs
+for package in packages:
+    parent_path = os.path.dirname(package['path'])
+    name = package['name']
+    ref_path = package['ref_path']
+    use_ref_subitem = package['ref_subitem']
+
+    # Copy the package's docs to the __docs folder
+    shutil.copytree(os.path.join(parent_path, 'docs'), f'__docs/{name}')
+
+    # Move the generated reference to the correct folder
+    shutil.copytree(os.path.join('__docs', 'reference', ref_path), f'__docs/{name}/reference')
+
+    # Merge the sidebar: move the reference sidebar as the last item in the package sidebar
+    ref_sidebar_path = os.path.join('__docs', name, 'reference', 'sidebar.json')
+    with open(ref_sidebar_path, 'r', encoding='utf-8') as f:
+        # replace the paths correctly
+        ref_sidebar_raw_content = f.read()
+        ref_sidebar_raw_content = ref_sidebar_raw_content.replace(ref_path, 'reference')
+        ref_sidebar_content = json.loads(ref_sidebar_raw_content)
+
+    main_sidebar_path = os.path.join('__docs', name, 'sidebar.json')
+    with open(main_sidebar_path, 'r', encoding='utf-8') as f:
+        main_sidebar_content = json.loads(f.read())
+
+    main_sidebar_content['items'].append(
+        {
+            'type': 'category',
+            'label': 'Reference',
+            'link': {
+                'description': f'Reference for: {name}',
+                'title': 'Reference',
+                'type': 'generated-index',
+            },
+            'items': ref_sidebar_content['items'] if not use_ref_subitem else ref_sidebar_content['items'][0]['items'],
+        }
     )
 
-# Combine narrative docs with references
-shutil.copytree(os.environ.get('DOCS_PATH', 'docs'), '__docs/docs')
+    with open(main_sidebar_path, 'w', encoding='utf-8') as f:
+        json.dump(main_sidebar_content, f, indent=2)
 
-# Zip the docs directory
-directory = Path('__docs/')
-with ZipFile('docs.zip', 'w') as archive:
-    for file_path in directory.rglob('*'):
-        archive.write(
-            file_path,
-            arcname=directory.name / file_path.relative_to(directory),
+    # remove the reference sidebar
+    os.remove(ref_sidebar_path)
+
+    # Zip the docs directory
+    directory = Path('__docs/') / name
+    with ZipFile('docs.zip', 'w') as archive:
+        for file_path in directory.rglob('*'):
+            archive.write(
+                file_path,
+                arcname=file_path.relative_to(directory),
+            )
+
+    # Upload to GAR
+    with open('docs.zip', 'rb') as f:
+        creds = Credentials.from_service_account_info(
+            json.loads(gar_key),
+            scopes=['https://www.googleapis.com/auth/cloud-platform'],
         )
 
+        auth_req = google.auth.transport.requests.Request()
+        creds.refresh(auth_req)
 
-# Upload to GAR
-with open('docs.zip', 'rb') as f:
-    creds = Credentials.from_service_account_info(
-        json.loads(gar_key),
-        scopes=['https://www.googleapis.com/auth/cloud-platform'],
-    )
+        headers = {
+            'Authorization': f'Bearer {creds.token}',
+        }
 
-    auth_req = google.auth.transport.requests.Request()
-    creds.refresh(auth_req)
+        url = f'https://artifactregistry.googleapis.com/upload/v1/projects/{project}/locations/{location}/repositories/{repository}/genericArtifacts:create?alt=json'
 
-    headers = {
-        'Authorization': f'Bearer {creds.token}',
-    }
+        metadata = {
+            'filename': 'docs.zip',
+            'package_id': package['name'],
+            'version_id': version,
+        }
 
-    url = f'https://artifactregistry.googleapis.com/upload/v1/projects/{project}/locations/{location}/repositories/{repository}/genericArtifacts:create?alt=json'
+        files = {
+            'meta': (None, str(metadata), 'application/json'),
+            'blob': ('SOURCE', f),
+        }
 
-    metadata = {
-        'filename': 'docs.zip',
-        'package_id': package,
-        'version_id': version,
-    }
-
-    files = {
-        'meta': (None, str(metadata), 'application/json'),
-        'blob': ('SOURCE', f),
-    }
-
-    response = requests.post(url, headers=headers, files=files)
-    response.raise_for_status()
+        response = requests.post(url, headers=headers, files=files)
+        response.raise_for_status()
+        os.remove('docs.zip')
 
 # Cleanup
 shutil.rmtree('__docs')
-os.remove('docs.zip')
