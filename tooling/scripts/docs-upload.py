@@ -80,7 +80,7 @@ for package in packages:
     with open(ref_sidebar_path, 'r', encoding='utf-8') as f:
         # replace the paths correctly
         ref_sidebar_raw_content = f.read()
-        ref_sidebar_raw_content = ref_sidebar_raw_content.replace(ref_path + '/', '')
+        ref_sidebar_raw_content = ref_sidebar_raw_content.replace(ref_path, 'reference')
         ref_sidebar_content = json.loads(ref_sidebar_raw_content)
 
     main_sidebar_path = os.path.join('__docs', name, 'sidebar.json')
