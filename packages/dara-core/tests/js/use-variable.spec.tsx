@@ -719,37 +719,58 @@ describe('useVariable', () => {
         });
 
         it('should resolve nested value using the selector for a DerivedVariable', async () => {
-            const { result } = renderHook(
-                () =>
-                    useVariable<string>({
-                        __typename: 'DerivedVariable',
-                        default: 'test',
-                        deps: [
-                            {
-                                __typename: 'Variable',
-                                default: { nested_key: 'value' },
-                                uid: 'dep_nested',
-                            } as Variable<any>,
-                        ],
-                        nested: ['values'],
-                        uid: 'uid',
-                        variables: [
-                            {
-                                __typename: 'Variable',
-                                default: { nested_key: 'value' },
-                                uid: 'dep_nested',
-                            } as Variable<any>,
-                        ],
-                    } as DerivedVariable),
-                { wrapper: Wrapper }
+            const receivedData: any[] = [];
+
+            server.use(
+                http.post('/api/core/derived-variable/:uid', async (info) => {
+                    const body = (await info.request.json()) as any;
+                    receivedData.push(body);
+                    return HttpResponse.json({
+                        cache_key: JSON.stringify(body.values),
+                        value: {
+                            top: {
+                                nested: {
+                                    value: 'test',
+                                    value2: 'test2',
+                                },
+                            },
+                        },
+                    });
+                })
             );
-            await waitFor(() => {
-                expect(result.current[0]).toStrictEqual({
-                    data: [{ __ref: 'Variable:dep_nested' }],
-                    lookup: { 'Variable:dep_nested': { nested_key: 'value' } },
-                });
-                expect(result.current[1]).toBeInstanceOf(Function);
-            });
+
+            const variableNested1: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                uid: 'nested-derived-variable',
+                variables: [],
+                nested: ['top', 'nested', 'value'],
+            };
+            const variableNested2: DerivedVariable = {
+                ...variableNested1,
+                nested: ['top', 'nested', 'value2'],
+            };
+
+            function TestHarness(): JSX.Element {
+                const [value1] = useVariable<string>(variableNested1);
+                const [value2] = useVariable<string>(variableNested2);
+
+                return (
+                    <div>
+                        <span data-testid="value1">{value1}</span>
+                        <span data-testid="value2">{value2}</span>
+                    </div>
+                );
+            }
+
+            const { getByTestId } = wrappedRender(<TestHarness />);
+
+            // both nested values should be resolved in parallel correctly
+            await waitFor(() => expect(getByTestId('value1')).toHaveTextContent('test'));
+            expect(getByTestId('value2')).toHaveTextContent('test2');
+
+            // should only be computed once and then resolved to different nested values
+            expect(receivedData).toHaveLength(1);
         });
 
         it('should keep on updating the derived variable if polling_interval is set', async () => {

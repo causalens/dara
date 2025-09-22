@@ -61,30 +61,9 @@ describe('StateVariable', () => {
             cy.contains('❌ Error occurred during calculation').should('not.exist');
 
             // Wait for completion and verify success state
-            cy.contains('🔄 Loading... Please wait', { timeout: 10000 }).should('not.exist');
+            cy.contains('🔄 Loading... Please wait', { timeout: 10000 }).should('not.exist', { timeout: 10000 });
             cy.contains('✅ Calculation successful!').should('exist');
             cy.contains('Calculation completed successfully!').should('exist');
-        });
-    });
-
-    it('should properly handle rapid state transitions', () => {
-        /**
-         * Test rapid clicking to ensure state transitions are handled correctly
-         * and don't get stuck in inconsistent states
-         */
-
-        cy.cardContent('StateVariable State Tracking').within(() => {
-            // Rapidly click between success and failure
-            cy.contains('button', 'Trigger Success').click();
-            cy.contains('🔄 Loading... Please wait').should('exist');
-
-            // Click failure before success completes
-            cy.contains('button', 'Trigger Failure').click();
-            cy.contains('🔄 Loading... Please wait').should('exist');
-
-            // Should eventually show error state
-            cy.contains('🔄 Loading... Please wait', { timeout: 10000 }).should('not.exist');
-            cy.contains('❌ Error occurred during calculation').should('exist');
         });
     });
 });

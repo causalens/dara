@@ -59,7 +59,12 @@ export type TriggerIndexValue = {
     inc: number;
 };
 
-type RegistryKeyType = 'result-selector' | 'selector' | 'derived-selector' | 'trigger' | 'filters';
+type RegistryKeyType = 'result-selector' | 'derived-selector' | 'selector-nested' | 'trigger' | 'filters';
+
+/**
+ * Registry key types that do not use 'nested' in their key
+ */
+const SHARED_KEY_TYPES = ['result-selector', 'derived-selector'];
 
 /**
  * Get a unique registry key of a given type for a given variable.
@@ -74,7 +79,9 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
         extras = variable.loop_instance_uid ?? '';
     }
 
-    return `${getUniqueIdentifier(variable)}-${type}-${extras}`;
+    const opts = { useNested: !SHARED_KEY_TYPES.includes(type) };
+
+    return `${getUniqueIdentifier(variable, opts)}-${type}-${extras}`;
 }
 
 /**
@@ -122,7 +129,7 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         }
 
         case 'DerivedVariable': {
-            const key = getRegistryKey(variable, 'selector');
+            const key = getRegistryKey(variable, 'selector-nested');
             return selectorFamilyRegistry.has(key);
         }
 
