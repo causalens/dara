@@ -24,13 +24,13 @@ files = [
 
 [[package]]
 name = "anyio"
-version = "4.10.0"
+version = "4.11.0"
 description = "High-level concurrency and networking framework on top of asyncio or Trio"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "anyio-4.10.0-py3-none-any.whl", hash = "sha256:60e474ac86736bbfd6f210f7a61218939c318f43f9972497381f1c5e930ed3d1"},
-    {file = "anyio-4.10.0.tar.gz", hash = "sha256:3f3fae35c96039744587aa5b8371e7e8e603c0702999535961dd336026973ba6"},
+    {file = "anyio-4.11.0-py3-none-any.whl", hash = "sha256:0287e96f4d26d4149305414d4e3bc32f0dcd0862365a4bddea19d7a1ec38c4fc"},
+    {file = "anyio-4.11.0.tar.gz", hash = "sha256:82a8d0b81e318cc5ce71a5f1f8b5c4e63619620b63141ef8c995fa0db95a57c4"},
 ]
 
 [package.dependencies]
@@ -40,7 +40,7 @@ sniffio = ">=1.1"
 typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
 
 [package.extras]
-trio = ["trio (>=0.26.1)"]
+trio = ["trio (>=0.31.0)"]
 
 [[package]]
 name = "arrow"
@@ -504,7 +504,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.21.9"
+version = "1.21.10"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -601,7 +601,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.21.9"
+version = "1.21.10"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -612,7 +612,7 @@ develop = true
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.21.9"
+dara-core = "1.21.10"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -626,7 +626,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.21.9"
+version = "1.21.10"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.9.0, <3.13.0"
@@ -670,7 +670,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.21.9)"]
+all = ["dara-components (==1.21.10)"]
 
 [package.source]
 type = "directory"
@@ -704,7 +704,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -1946,7 +1946,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2693,7 +2693,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2706,7 +2706,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2912,7 +2912,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2925,7 +2925,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2938,7 +2938,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2951,7 +2951,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2964,7 +2964,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2977,7 +2977,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2990,7 +2990,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.21.9"
+version = "1.21.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3020,13 +3020,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "uvicorn"
-version = "0.36.0"
+version = "0.37.0"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "uvicorn-0.36.0-py3-none-any.whl", hash = "sha256:6bb4ba67f16024883af8adf13aba3a9919e415358604ce46780d3f9bdc36d731"},
-    {file = "uvicorn-0.36.0.tar.gz", hash = "sha256:527dc68d77819919d90a6b267be55f0e76704dca829d34aea9480be831a9b9d9"},
+    {file = "uvicorn-0.37.0-py3-none-any.whl", hash = "sha256:913b2b88672343739927ce381ff9e2ad62541f9f8289664fa1d1d3803fa2ce6c"},
+    {file = "uvicorn-0.37.0.tar.gz", hash = "sha256:4115c8add6d3fd536c8ee77f0e14a7fd2ebba939fed9b02583a97f80648f9e13"},
 ]
 
 [package.dependencies]
@@ -3340,4 +3340,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.13.0"
-content-hash = "4f1d73ad8f19d208d2da56093b358a8f875d4932403f8310524f94d97d8b833a"
+content-hash = "165c4561e5be7069a06b3f06de3c4353138a50cdc96469775009e8b889b1071d"

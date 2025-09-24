@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.10
 
 -  Fixed an issue where trying to run an action with an input of a `ServerVariable` which is otherwise unused on the page would cause the action to not run
 -  Internal: fixed an issue where `useRouterContext` was not exported from the `dara-core` package
