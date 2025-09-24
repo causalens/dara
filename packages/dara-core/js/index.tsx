@@ -11,6 +11,7 @@ export * from './components';
 export * from './shared';
 export * from './types';
 export * from './utils';
+export * from './router';
 
 // Add default export
 export default run;
