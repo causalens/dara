@@ -16,6 +16,7 @@ import type {
     NavigateToImpl,
     QueryParamStore,
     ResetVariablesImpl,
+    ServerVariable,
     SingleVariable,
     UpdateVariableImpl,
     Variable,
@@ -1180,6 +1181,116 @@ describe('useAction', () => {
                 input: 'input',
             }),
             customAction2
+        );
+    });
+
+    it('should resolve ServerVariable unused otherwise (regression)', async () => {
+        interface CustomActionImpl extends ActionImpl {
+            extra: number;
+        }
+
+        const customAction: CustomActionImpl = {
+            __typename: 'ActionImpl',
+            extra: 10,
+            name: 'CustomAction',
+        };
+
+        const variable: ServerVariable = {
+            __typename: 'ServerVariable',
+            uid: 'server-uid',
+            scope: 'global',
+        };
+
+        const seqCalled = vi.fn();
+
+        server.use(
+            http.get('/api/core/server-variable/server-uid/sequence', () => {
+                seqCalled();
+                return HttpResponse.json({ sequence_number: 1 });
+            })
+        );
+
+        const annotated: AnnotatedAction = {
+            definition_uid: 'definition',
+            dynamic_kwargs: {
+                foo: variable,
+            },
+            loading: LOADING_VARIABLE,
+            uid: 'uid',
+        };
+
+        const onUnhandledAction = vi.fn();
+
+        const wsClient = new MockWebSocketClient('uid');
+
+        const { result } = renderHook(
+            (): [(input?: any) => Promise<void>, boolean] => {
+                const action = useAction(annotated, {
+                    onUnhandledAction,
+                });
+                const isLoading = useActionIsLoading(annotated);
+                return [action, isLoading];
+            },
+            { wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper> }
+        );
+
+        // store received message
+        let serverReceivedMessage: Record<string, any> | null = null;
+
+        server.use(
+            http.post('/api/core/action/:uid', async (info) => {
+                serverReceivedMessage = (await info.request.json()) as any as Record<string, any>;
+                return HttpResponse.json({
+                    execution_id: 'execution_uid',
+                });
+            })
+        );
+
+        // Execute action
+        act(() => {
+            result.current[0]('input');
+        });
+
+        expect(result.current[1]).toEqual(true);
+
+        // should hit the server to resolve the sequence number
+        await waitFor(() => expect(seqCalled).toHaveBeenCalled());
+
+        // Wait for server to receive message
+        await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+        // Send custom impls via wsClient
+        act(() => {
+            // get execution id from the received message
+            const executionId = serverReceivedMessage!.execution_id;
+            wsClient.receiveMessage({
+                message: {
+                    action: customAction,
+                    uid: executionId,
+                },
+                type: 'message',
+            });
+            // send null to indicate end
+            wsClient.receiveMessage({
+                message: {
+                    action: null,
+                    uid: executionId,
+                },
+                type: 'message',
+            });
+        });
+
+        await waitFor(() => expect(result.current[1]).toEqual(false));
+
+        // There should be one call to onUnhandledAction
+        await waitFor(() => expect(onUnhandledAction).toHaveBeenCalledTimes(1));
+
+        // Check that the onUnhandledAction handler was called with the context and the action1
+        expect(onUnhandledAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: 'input',
+            }),
+            customAction
         );
     });
 });
