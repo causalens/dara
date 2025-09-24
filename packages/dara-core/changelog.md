@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where trying to run an action with an input of a `ServerVariable` which is otherwise unused on the page would cause the action to not run
+
 ## 1.21.9
 
 -  Lock `react-router` version to a minor version and upgrade to `~7.9` - fixing a bug where production build would install a newer, incompatible version

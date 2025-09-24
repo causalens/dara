@@ -29,12 +29,43 @@ function serverSyncEffect(variable: ServerVariable, requestExtras: RequestExtras
     // Otherwise we sync multiple different stores but then we treat them as the same atom, which would cause issues
     STORE_EXTRAS_MAP.set(variable.uid, requestExtras);
 
-    return syncEffect({
+    const eff = syncEffect({
         /** Use store uid as the unique identifier */
         itemKey: variable.uid,
         refine: mixed(),
         storeKey: 'ServerVariable',
     });
+
+    return (params) => {
+        // NOTE:
+        // This is a hack to work around a "bug"/quirk I found in Recoil.
+        // Turns out within the atom effect logic, the initial storage read only runs when params.storeID is found within the
+        // Recoil internal atom registries - see https://github.com/facebookexperimental/Recoil/blob/c1b97f3a0117cad76cbc6ab3cb06d89a9ce717af/packages/recoil-sync/RecoilSync.js#L560,
+        // if `registries.getStorage` returns null then the atom initial read is not ran.
+        // However, when registering the atom and its effect within e.g. a useRecoilCallback, such as within
+        // actions, the snapshot provided is cloned https://github.com/facebookexperimental/Recoil/blob/c1b97f3a0117cad76cbc6ab3cb06d89a9ce717af/packages/recoil/hooks/Recoil_useRecoilCallback.js#L88
+        // and provided a new storeID https://github.com/facebookexperimental/Recoil/blob/c1b97f3a0117cad76cbc6ab3cb06d89a9ce717af/packages/recoil/core/Recoil_Snapshot.js#L85 .
+        // This might be intentional on their side:
+        // > If an atom is used first for a snapshot then it will execute the effect to initialize for that local snapshot, which would not affect the rendered state. Updating snapshots should not update the rendered state.
+        // (as per https://github.com/facebookexperimental/Recoil/issues/1407#issuecomment-966666105)
+        // This however breaks our assumptions that the effect always runs.
+        // Fortunately, the params have the original storeID as the parentStoreID_UNSTABLE, so we run the effect here
+        // with storeID set to the original parentStoreID_UNSTABLE which makes the `storage.read()` run.
+        const updatedParams =
+            params.parentStoreID_UNSTABLE ?
+                {
+                    ...params,
+                    storeID: params.parentStoreID_UNSTABLE,
+                }
+            :   params;
+
+        // debugger;
+        const cleanup = eff(updatedParams);
+
+        return () => {
+            cleanup?.();
+        };
+    };
 }
 
 const STATE_SYNCHRONIZER = new StateSynchronizer();
