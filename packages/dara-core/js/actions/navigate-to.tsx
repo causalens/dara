@@ -4,23 +4,6 @@ import { type ActionHandler, type NavigateToImpl } from '@/types/core';
 const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
 /**
- * Check whether the passed absolute url is a valid url
- *
- * @param url the url to check
- */
-function isValidHttpUrl(url: string): boolean {
-    let newUrl;
-
-    try {
-        newUrl = new URL(url);
-    } catch {
-        return false;
-    }
-
-    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
-}
-
-/**
  * Strips the basename from the pathname
  *
  * From https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts#L1511

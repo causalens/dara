@@ -1,12 +1,10 @@
 /* eslint-disable no-restricted-globals */
-import { act, renderHook } from '@testing-library/react';
-import * as React from 'react';
 import type { Mock } from 'vitest';
 
 import { NavigateTo } from '@/actions';
 import type { NavigateToImpl } from '@/types/core';
 
-function withMockHref(callback: (hrefSetter: Mock) => void, hrefValue?: string) {
+function withMockHref(callback: (hrefSetter: Mock) => void, hrefValue?: string): void {
     const originalLocation = window.location;
     try {
         const mock = vi.fn();
