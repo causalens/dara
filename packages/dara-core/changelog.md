@@ -2,6 +2,14 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  The `navigate` action now properly handles relative links including e.g. `./`,  `../` or bare `{path}` paths
+-  The `navigate` action now detects same-origin absolute URLs and uses a client-side navigation instead of a full page reload
+-  Added missing anchor props to the `Link` component: `rel`, `target`, `download`, `referrer_policy`. The component can now be used as both an internal link and standard anchor tag.
+-  Allowed passing a `RouterPath` object to the `navigate` action instead of a string URL
+-  Added support for extra `NavigateOptions` to the `navigate` action, now supports the `replace` and `relative` options analogous to the respective `Link` props
+
 ## 1.21.11
 
 -  Internal: fixed an issue where `useRouterContext` was not exported from the `dara-core` package

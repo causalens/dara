@@ -37,11 +37,11 @@ describe('NavigateTo action', () => {
     it.each([
         { url: './to' },
         { url: '../to' },
-        { url: 'to' },
+        { url: 'to', options: { replace: true } }, // check options are passed through
         { url: { pathname: './to' } },
         { url: { pathname: '../to' } },
         { url: { pathname: 'to' } },
-    ])('should navigate relatively to "$url" using react router', ({ url }) => {
+    ])('should navigate relatively to "$url" using react router with options "$options"', ({ url, options }) => {
         const ctx = {
             navigate: vi.fn(),
         };
@@ -52,9 +52,10 @@ describe('NavigateTo action', () => {
             new_tab: false,
             uid: 'uid',
             url,
+            options
         } satisfies NavigateToImpl);
         // called with url, no options
-        expect(ctx.navigate).toHaveBeenCalledWith(url, undefined);
+        expect(ctx.navigate).toHaveBeenCalledWith(url, options);
     });
 
     it.each([{ url: 'https://google.com' }, { url: 'http://example.com' }])(
