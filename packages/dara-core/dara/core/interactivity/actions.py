@@ -51,6 +51,8 @@ from dara.core.base_definitions import (
     ActionImpl,
     ActionResolverDef,
     AnnotatedAction,
+    NavigateOptions,
+    RouterPath,
     TaskProgressUpdate,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -372,8 +374,14 @@ class NavigateToImpl(ActionImpl):
 
     py_name = 'NavigateTo'
 
-    url: Optional[str] = None
+    url: Union[str, RouterPath]
+
     new_tab: bool = False
+
+    options: Optional[NavigateOptions] = None
+    """
+    Options for relative navigations
+    """
 
 
 @deprecated('Use @action or `NavigateToImpl` for simple cases')
@@ -947,7 +955,9 @@ class ActionCtx:
         """
         return await TriggerVariable(variable=variable, force=force).execute(self)
 
-    async def navigate(self, url: str, new_tab: bool = False):
+    async def navigate(
+        self, url: Union[str, RouterPath], new_tab: bool = False, options: Optional[NavigateOptions] = None
+    ):
         """
         Navigate to a given url
 
@@ -991,8 +1001,9 @@ class ActionCtx:
 
         :param url: the url to navigate to
         :param new_tab: whether to open the url in a new tab, defaults to False
+        :param options: options for relative navigations, defaults to None
         """
-        return await NavigateToImpl(url=url, new_tab=new_tab).execute(self)
+        return await NavigateToImpl(url=url, new_tab=new_tab, options=options).execute(self)
 
     async def logout(self):
         """
