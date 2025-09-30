@@ -460,6 +460,7 @@ class NavigateOptions(BaseModel):
     """
     Options for the navigate action
     """
+
     replace: bool = False
     """
     Replaces the current entry in the history stack instead of pushing a new one.
