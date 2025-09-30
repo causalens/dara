@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.12
 
 -  The `navigate` action now properly handles relative links including e.g. `./`,  `../` or bare `{path}` paths
 -  The `navigate` action now detects same-origin absolute URLs and uses a client-side navigation instead of a full page reload

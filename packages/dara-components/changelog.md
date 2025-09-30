@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.12
 
 - Marked `dara.components.common.Anchor` as deprecated, `dara.core.Link` should be used instead
 
