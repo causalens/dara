@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Marked `dara.components.common.Anchor` as deprecated, `dara.core.Link` should be used instead
+
 ## 1.21.9
 
 - Fixed an issue where `Select` component would show `null` instead of placeholder when `value` was `None`

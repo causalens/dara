@@ -17,6 +17,8 @@ limitations under the License.
 
 from typing import List, Optional, Union
 
+from typing_extensions import deprecated
+
 from dara.components.common.base_component import (
     ContentComponent,
     LayoutError,
@@ -27,6 +29,7 @@ from dara.core.definitions import discover
 from dara.core.interactivity import AnyVariable, DerivedVariable, Variable
 
 
+@deprecated('Use `dara.core.Link` instead')
 @discover
 class Anchor(ModifierComponent):
     """

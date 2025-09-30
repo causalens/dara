@@ -31,6 +31,7 @@ from typing import (
     ClassVar,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Union,
@@ -436,6 +437,60 @@ class PendingTask(BaseTask):
         if self.error:
             raise self.error
         return self.result
+
+
+class RouterPath(BaseModel):
+    path: Optional[str] = None
+    """
+    A URL pathname, beginning with '/'.
+    """
+
+    search: Optional[str] = None
+    """
+    A URL search string, beginning with '?'.
+    """
+
+    hash: Optional[str] = None
+    """
+    A URL hash string, beginning with '#'.
+    """
+
+
+class NavigateOptions(BaseModel):
+    """
+    Options for the navigate action
+    """
+
+    replace: bool = False
+    """
+    Replaces the current entry in the history stack instead of pushing a new one.
+
+    ```
+    # with a history stack like this
+    A -> B
+
+    # normal link click pushes a new entry
+    A -> B -> C
+
+    # but with `replace`, B is replaced by C
+    A -> C
+    ```
+    """
+
+    relative: Literal['route', 'path'] = 'route'
+    """
+    Defines the relative path behavior for the link.
+
+    ```python
+    NavigateOptions(to='..') # default, relative='route'
+    NavigateOptions(to='..', relative='path')
+    ```
+
+    Consider a route hierarchy where a parent route pattern is "blog" and a child route pattern is "blog/:slug/edit".
+    - route — default, resolves the link relative to the route pattern. In the example above, a relative link of "..." will remove both :slug/edit segments back to "/blog".
+    - path — relative to the path so "..." will only remove one URL segment up to "/blog/:slug"
+    Note that index routes and layout routes do not have paths so they are not included in the relative path calculation.
+    """
 
 
 class AnnotatedAction(BaseModel):

@@ -11,20 +11,18 @@ import type { ComponentInstance, StyledComponentProps, Variable } from '@/types'
 
 type MaybeVariable<T> = T | Variable<T>;
 
-export interface LinkProps extends StyledComponentProps {
+export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'style' | 'children' | 'prefetch' | 'to'> {
     className?: string;
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
     prefetch?: boolean;
-    relative: NavLinkProps['relative'];
-    replace: NavLinkProps['replace'];
     to: MaybeVariable<NavLinkProps['to']>;
     // Used via useComponentStyles
     // eslint-disable-next-line react/no-unused-prop-types
     active_css?: StyledComponentProps['raw_css'];
     // eslint-disable-next-line react/no-unused-prop-types
     inactive_css?: StyledComponentProps['raw_css'];
-    end: NavLinkProps['end'];
+    referrer_policy?: NavLinkProps['referrerPolicy'];
 }
 
 const NavLinkWrapper = React.forwardRef(
@@ -148,6 +146,11 @@ function Link(props: LinkProps): React.ReactNode {
                 onMouseMove={props.prefetch ? handleMouseMove : undefined}
                 onFocus={props.prefetch ? handleFocus : undefined}
                 onTouchStart={props.prefetch ? handleTouchStart : undefined}
+                // core AnchorElementAttributes
+                download={props.download}
+                referrerPolicy={props.referrer_policy}
+                target={props.target}
+                rel={props.rel}
             >
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={idx} />

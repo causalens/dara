@@ -1,4 +1,4 @@
-import type { Location, NavigateFunction } from 'react-router';
+import type { Location, NavigateFunction, NavigateOptions, To } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 import * as z from 'zod/v4';
 
@@ -492,8 +492,9 @@ export interface TriggerVariableImpl extends ActionImpl {
 }
 
 export interface NavigateToImpl extends ActionImpl {
-    url: string;
+    url: To;
     new_tab: boolean;
+    options?: NavigateOptions;
 }
 
 export interface ResetVariablesImpl extends ActionImpl {

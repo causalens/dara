@@ -1,27 +1,16 @@
 from typing import Annotated, Any, Literal, Optional, Union
 
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BeforeValidator
 
-from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance, transform_raw_css
+from dara.core.base_definitions import RouterPath
+from dara.core.definitions import (
+    ComponentInstance,
+    JsComponentDef,
+    StyledComponentInstance,
+    transform_raw_css,
+)
 from dara.core.interactivity import ClientVariable
-
-
-class RouterPath(BaseModel):
-    path: str
-    """
-    A URL pathname, beginning with '/'.
-    """
-
-    search: Optional[str] = None
-    """
-    A URL search string, beginning with '?'.
-    """
-
-    hash: Optional[str] = None
-    """
-    A URL hash string, beginning with '#'.
-    """
-
+from dara.core.visual.components import RawString
 
 OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
 
@@ -52,8 +41,35 @@ class Navigate(ComponentInstance):
     to: Union[str, RouterPath, ClientVariable]
 
     replace: bool = False
+    """
+    Replaces the current entry in the history stack instead of pushing a new one.
+
+    ```
+    # with a history stack like this
+    A -> B
+
+    # normal link click pushes a new entry
+    A -> B -> C
+
+    # but with `replace`, B is replaced by C
+    A -> C
+    ```
+    """
 
     relative: Literal['route', 'path'] = 'route'
+    """
+    Defines the relative path behavior for the link.
+
+    ```python
+    Navigate(to='..') # default, relative='route'
+    Navigate(to='..', relative='path')
+    ```
+
+    Consider a route hierarchy where a parent route pattern is "blog" and a child route pattern is "blog/:slug/edit".
+    - route — default, resolves the link relative to the route pattern. In the example above, a relative link of "..." will remove both :slug/edit segments back to "/blog".
+    - path — relative to the path so "..." will only remove one URL segment up to "/blog/:slug"
+    Note that index routes and layout routes do not have paths so they are not included in the relative path calculation.
+    """
 
 
 LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
@@ -121,15 +137,23 @@ class Link(StyledComponentInstance):
     Can be a string or RouterPath object
     """
 
+    # core anchor element attributes
+    target: Optional[str] = None
+    download: Optional[str] = None
+    rel: Optional[str] = None
+    referrer_policy: Optional[str] = None
+
     active_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
     inactive_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
 
-    # TODO: add scroll restoration if it works?
-
-    def __init__(self, *children: ComponentInstance, **kwargs):
+    def __init__(self, *children: Union[str, ComponentInstance], **kwargs):
         components = list(children)
         if 'children' not in kwargs:
             kwargs['children'] = components
+
+        if len(kwargs['children']) > 0:
+            kwargs['children'] = [RawString(content=x) if isinstance(x, str) else x for x in kwargs['children']]
+
         super().__init__(**kwargs)
 
 
