@@ -119,8 +119,8 @@ async def test_task_manager_run_task_track_progress(_uid):
         for i in range(messages_count):
             messages.append(jsonable_encoder(handler.receive_stream.receive_nowait().message))
 
-        # at lesat 5 steps + result
-        assert len(messages) >= 6
+        # at least 5 steps
+        assert len(messages) >= 5
 
         for i in range(1, 6):
             # Check that the call happened at some point - we're not interested in the order
@@ -136,6 +136,149 @@ async def test_task_manager_run_task_track_progress(_uid):
 
         # Check fetching the result from the store
         assert await task_manager.get_result('uid') == 'result'
+
+
+async def test_completion_does_not_bubble_up():
+    """
+    Test that task completion notification does not "bubble up" to the parent task.
+    This is a regression test as if COMPLETE notification is bubbled up, the client
+    might try to access the result before it's ready.
+    """
+    pre_process_event = anyio.Event()
+    process_event = anyio.Event()
+
+    async def _process(result: int):
+        pre_process_event.set()
+        assert result == '3'
+        await process_event.wait()
+        return str(int(result) * 2)
+
+    task = Task(calc_task, [1, 2], cache_key='uid', notify_channels=['chan'], task_id='uid')
+
+    async with create_task_group() as tg:
+        store = CacheStore()
+        ws_mgr = WebsocketManager()
+        task_manager = TaskManager(tg, ws_mgr, store)
+
+        # Setup a handler on the ws channel
+        return_channel = 'chan'
+        handler = ws_mgr.create_handler(return_channel)
+
+        # Scenario: first we run the task, then metatask
+        # Simulates scenario where e.g. a DV consumes the task directly,
+        # then a py_component that uses that DV as a dependency also returns a metatask
+        # which uses the first task as a pending task
+        pending_task = task_manager.register_task(task)
+        meta_task = MetaTask(_process, args=[pending_task], notify_channels=['chan'], task_id='meta_uid')
+        pending_metatask = task_manager.register_task(meta_task)
+
+        # Kick off the task in background so we can inspect the state
+        tg.start_soon(task_manager.run_task, task, return_channel)
+        await anyio.sleep(0.25)
+        tg.start_soon(task_manager.run_task, meta_task, return_channel)
+
+        # We should reach a point where MetaTask is running, so the first
+        # task should've completed
+        await pre_process_event.wait()
+        await anyio.sleep(0.5)
+
+        # Inspect the messages sent - we should NOT see a COMPLETE message for the metatask
+        # but should see a COMPLETE message for the task
+        messages_count = handler.receive_stream.statistics().current_buffer_used
+        messages = []
+        for i in range(messages_count):
+            messages.append(jsonable_encoder(handler.receive_stream.receive_nowait().message))
+
+        assert {'result': '3', 'status': 'COMPLETE', 'task_id': 'uid'} in messages
+        assert await pending_task.value() == '3'
+        # check we don't accidentally send a COMPLETE message for the metatask
+        assert next((m for m in messages if m['task_id'] == 'meta_uid'), None) is None
+        assert not pending_metatask.event.is_set()
+
+        # Now unlock the process_event so the metatask can complete
+        process_event.set()
+        await anyio.sleep(0.5)
+
+        # Inspect the messages again - we should see a COMPLETE message for the metatask
+        messages_count = handler.receive_stream.statistics().current_buffer_used
+        messages = []
+        for i in range(messages_count):
+            messages.append(jsonable_encoder(handler.receive_stream.receive_nowait().message))
+
+        assert {'result': '6', 'status': 'COMPLETE', 'task_id': 'meta_uid'} in messages
+        assert await pending_metatask.value() == '6'
+
+
+async def test_completion_does_not_bubble_up_2():
+    """
+    Test that task completion notification does not "bubble up" to the parent task.
+    This is a regression test as if COMPLETE notification is bubbled up, the client
+    might try to access the result before it's ready.
+
+    Same scenario as test_completion_does_not_bubble_up, but with a different order of tasks.
+    """
+    pre_process_event = anyio.Event()
+    process_event = anyio.Event()
+
+    async def _process(result: int):
+        pre_process_event.set()
+        assert result == '3'
+        await process_event.wait()
+        return str(int(result) * 2)
+
+    task = Task(calc_task, [1, 2], cache_key='uid', notify_channels=['chan'], task_id='uid')
+    meta_task = MetaTask(_process, args=[task], notify_channels=['chan'], task_id='meta_uid')
+
+    async with create_task_group() as tg:
+        store = CacheStore()
+        ws_mgr = WebsocketManager()
+        task_manager = TaskManager(tg, ws_mgr, store)
+
+        # Setup a handler on the ws channel
+        return_channel = 'chan'
+        handler = ws_mgr.create_handler(return_channel)
+
+        # Scenario: first we run the metatask, then task.
+        # Simulates scenario where e.g. the py_component runs first,
+        # then the DV so task_manager receives a pending_task for the underlying task.
+        pending_task = task_manager.register_task(task)
+        pending_metatask = task_manager.register_task(meta_task)
+
+        # Kick off the task in background so we can inspect the state
+        tg.start_soon(task_manager.run_task, meta_task, return_channel)
+        await anyio.sleep(0.25)
+        tg.start_soon(task_manager.run_task, pending_task, return_channel)
+
+        # We should reach a point where MetaTask is running, so the first
+        # task should've completed
+        await pre_process_event.wait()
+        await anyio.sleep(0.5)
+
+        # Inspect the messages sent - we should NOT see a COMPLETE message for the metatask
+        # but should see a COMPLETE message for the task
+        messages_count = handler.receive_stream.statistics().current_buffer_used
+        messages = []
+        for i in range(messages_count):
+            messages.append(jsonable_encoder(handler.receive_stream.receive_nowait().message))
+
+        assert {'result': '3', 'status': 'COMPLETE', 'task_id': 'uid'} in messages
+        assert await pending_task.value() == '3'
+        # check we don't accidentally send a COMPLETE message for the metatask
+        assert next((m for m in messages if m['task_id'] == 'meta_uid'), None) is None
+        assert not pending_metatask.event.is_set()
+
+        # Now unlock the process_event so the metatask can complete
+        process_event.set()
+        await anyio.sleep(0.5)
+
+        # Inspect the messages again - we should see a COMPLETE message for the metatask
+        messages_count = handler.receive_stream.statistics().current_buffer_used
+        messages = []
+        for i in range(messages_count):
+            messages.append(jsonable_encoder(handler.receive_stream.receive_nowait().message))
+
+        assert {'result': '6', 'status': 'COMPLETE', 'task_id': 'meta_uid'} in messages
+        assert await pending_metatask.value() == '6'
 
 
 @patch('dara.core.base_definitions.uuid.uuid4', return_value='uid')
