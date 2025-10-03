@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where tasks could sometimes be notified about their completion before the task had actually completed in nested task scenarios
+
 ## 1.21.12
 
 -  The `navigate` action now properly handles relative links including e.g. `./`,  `../` or bare `{path}` paths

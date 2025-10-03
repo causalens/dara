@@ -19,7 +19,7 @@ import contextlib
 import inspect
 import math
 from collections.abc import Awaitable
-from typing import Any, Callable, Dict, List, Optional, Set, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Set, Union, cast, overload
 
 from anyio import (
     BrokenResourceError,
@@ -453,8 +453,8 @@ class TaskManager:
 
                     # Notify channels that this specific task was cancelled
                     if notify:
-                        await self._send_notification_for_pending_task(
-                            pending_task=pending_task,
+                        await self._send_notification_for_task(
+                            task=pending_task,
                             messages=[{'status': 'CANCELED', 'task_id': task_id_to_cancel}],
                         )
 
@@ -556,12 +556,14 @@ class TaskManager:
 
         return task_ids
 
-    async def _multicast_notification(self, task_id: str, messages: List[dict]):
+    async def _multicast_notification(self, task_id: str, messages: List[dict], variable_task_id: bool = True):
         """
         Send notifications to all task IDs that are related to a given task
 
         :param task: the task the notifications are related to
         :param messages: List of message dictionaries to send to all related tasks
+        :param variable_task_id: whether the task_id in messages should be replaced with the task being notified
+          or if False, the task_id should be left as is
         """
         # prevent cancellation, we need the notifications to be sent
         with CancelScope(shield=True):
@@ -581,28 +583,33 @@ class TaskManager:
                         if pending_task_id not in self.tasks:
                             continue
                         pending_task = self.tasks[pending_task_id]
-                        task_tg.start_soon(self._send_notification_for_pending_task, pending_task, messages)
+                        task_tg.start_soon(self._send_notification_for_task, pending_task, messages, variable_task_id)
 
-    async def _send_notification_for_pending_task(self, pending_task: PendingTask, messages: List[dict]):
+    async def _send_notification_for_task(self, task: BaseTask, messages: List[dict], variable_task_id: bool = True):
         """
         Send notifications for a specific PendingTask
 
         :param pending_task: The PendingTask to send notifications for
         :param messages: The messages to send
+        :param variable_task_id: whether the task_id in messages should be replaced with the task being notified
         """
         # Collect channels for this PendingTask
-        channels_to_notify = set(pending_task.notify_channels)
-        channels_to_notify.update(pending_task.task_def.notify_channels)
+        channels_to_notify = set(task.notify_channels)
+        if isinstance(task, PendingTask):
+            channels_to_notify.update(task.task_def.notify_channels)
 
         if not channels_to_notify:
             return
 
-        # Send to all channels for this PendingTask in parallel
+        # Send to all channels for this Task in parallel
         async def _send_to_channel(channel: str):
             async with create_task_group() as channel_tg:
                 for message in messages:
-                    # Create message with this PendingTask's task_id (if message has task_id)
-                    message_for_task = {**message, 'task_id': pending_task.task_id} if 'task_id' in message else message
+                    if variable_task_id:
+                        # Create message with this Task's task_id (if message has task_id)
+                        message_for_task = {**message, 'task_id': task.task_id} if 'task_id' in message else message
+                    else:
+                        message_for_task = message
                     channel_tg.start_soon(self.ws_manager.send_message, channel, message_for_task)
 
         async with create_task_group() as channel_tg:
@@ -633,13 +640,18 @@ class TaskManager:
                     async for message in receive_stream:
                         if isinstance(message, TaskProgressUpdate):
                             # Send progress notifications to related tasks
-                            progress_message = {
-                                'task_id': message.task_id,  # Will be updated per task ID in multicast
-                                'status': 'PROGRESS',
-                                'progress': message.progress,
-                                'message': message.message,
-                            }
-                            await self._multicast_notification(message.task_id, [progress_message])
+                            await self._multicast_notification(
+                                task_id=message.task_id,
+                                messages=[
+                                    {
+                                        # Will be updated per task ID in multicast
+                                        'task_id': message.task_id,
+                                        'status': 'PROGRESS',
+                                        'progress': message.progress,
+                                        'message': message.message,
+                                    }
+                                ],
+                            )
                             if isinstance(task, Task) and task.on_progress:
                                 await run_user_handler(task.on_progress, args=(message,))
                         elif isinstance(message, TaskResult):
@@ -659,10 +671,17 @@ class TaskManager:
                             # Set final result
                             await self.set_result(message.task_id, message.result)
 
-                            # Notify all PendingTasks that depend on this specific task
+                            # NOTE: this is still multicasting to all related channels to ensure
+                            # all interested parties are notified, but notably we use `variable_task_id=False`
+                            # to only notify about the task that actually completed,
+                            # as opposed to e.g. progress, errors and cancellations which
+                            # we 'bubble up' by updating the task_id in the message to the respective related task
                             await self._multicast_notification(
                                 task_id=message.task_id,
-                                messages=[{'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id}],
+                                messages=[
+                                    {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id},
+                                ],
+                                variable_task_id=False,
                             )
 
                             # Remove the task from the registered tasks - it finished running
@@ -726,7 +745,8 @@ class TaskManager:
                             eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
             finally:
                 with CancelScope(shield=True):
-                    # pyright: ignore[reportUnreachable]
+                    # cast explicitly as otherwise pyright thinks it's always None here
+                    task_error = cast(Optional[ExceptionGroup], task_error)
                     if task_error is not None:
                         err = task_error
                         # Mark pending task as failed
@@ -755,8 +775,8 @@ class TaskManager:
                             error = get_error_for_channel(err)
                             message = {'status': 'ERROR', 'task_id': task.task_id, 'error': error['error']}
                             # Notify about this task failing, and a server broadcast error
-                            await self._send_notification_for_pending_task(
-                                pending_task=pending_task,
+                            await self._send_notification_for_task(
+                                task=pending_task,
                                 messages=[message, error],
                             )
                             # notify related tasks

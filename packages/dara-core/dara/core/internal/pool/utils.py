@@ -68,7 +68,7 @@ def store_in_shared_memory(content: Any) -> SharedMemoryPointer:
         data_size = len(pickled_args)
 
         shared_mem = SharedMemory(create=True, size=data_size)
-
+        assert shared_mem.buf
         shared_mem.buf[0:data_size] = pickled_args
         shared_mem.close()
 
@@ -88,6 +88,7 @@ def read_from_shared_memory(pointer: SharedMemoryPointer) -> Any:
 
         # Read from memory
         shared_mem = SharedMemory(name=shared_mem_name)
+        assert shared_mem.buf
         data = shared_mem.buf[:data_size]
 
         # Unpickle and deepcopy

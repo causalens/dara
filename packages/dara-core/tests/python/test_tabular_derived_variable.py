@@ -382,15 +382,16 @@ async def test_tabular_derived_variable_filter_metatask(cache):
         assert second_response.json()['task_id'] != response.json()['task_id']
         assert len(task_mgr.tasks) == 3  # task + 2 filter metatasks
 
-        meta_task_ids = []
+        meta_task_ids = [response.json()['task_id'], second_response.json()['task_id']]
+        received_meta_completions = []
 
         while True:
             with anyio.move_on_after(6) as scope:
                 msg = await websocket.receive_json()
-                if msg['message']['status'] == 'COMPLETE':
-                    meta_task_ids.append(msg['message']['task_id'])
+                if msg['message']['status'] == 'COMPLETE' and msg['message']['task_id'] in meta_task_ids:
+                    received_meta_completions.append(msg['message']['task_id'])
 
-                if len(meta_task_ids) == 2:
+                if len(received_meta_completions) == 2:
                     break
 
             if scope.cancel_called:
