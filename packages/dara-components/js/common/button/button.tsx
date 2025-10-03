@@ -31,6 +31,8 @@ type ButtonProps = OmitFromMappedType<StyledComponentProps, 'children'> &
         className: string;
         /** Whether to disable the button */
         disabled: boolean | Condition<any> | Variable<boolean>;
+        /** Whether to show a loading spinner */
+        loading: boolean | Condition<any> | Variable<boolean>;
         /** Optional Icon to display in the button */
         icon: string;
         /** Action for what happens when the button is clicked */
@@ -60,13 +62,16 @@ const StyledButton = injectCss(styled(UiButton)<StyledButtonProps>`
  * @param props the component props
  */
 function Button(
-    { children, className, disabled, icon, onclick, outline, styling, ...props }: ButtonProps,
+    { children, className, disabled, icon, onclick, outline, styling, loading, ...props }: ButtonProps,
     ref: React.ForwardedRef<HTMLElement>
 ): JSX.Element {
     const [style, css] = useComponentStyles(props as Omit<ButtonProps, 'children'>); // the styles hook doesn't care about children though here it's wider, includes string
     const onClick = useAction(onclick);
-    const loading = useActionIsLoading(onclick);
+    const actionLoading = useActionIsLoading(onclick);
     const disabledValue = useConditionOrVariable(disabled);
+    const propLoading = useConditionOrVariable(loading);
+    // default to actionLoading state if user doesn't provide a loading prop, otherwise use the prop
+    const loadingValue = loading === null || loading === undefined ? actionLoading : propLoading;
 
     // Extract icon and grab color from first child if it has it
     const Icon = icon ? getIcon(icon) : null;
@@ -79,7 +84,7 @@ function Button(
             className={className}
             disabled={disabledValue}
             isSimpleButton={typeof children === 'string' || children[0]?.name === 'Text'}
-            loading={loading}
+            loading={loadingValue}
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (props.stop_click_propagation !== false) {
                     e.stopPropagation();
