@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.13
 
 - Added an explicit `loading` prop to `Button` to let users opt out of the default loading state behaviour. The previous behaviour is preserved, i.e. while the `onclick` action is running `loading` is set to `True`.
 This is equivalent to `Button(..., onclick=my_action, loading=my_action.loading)`. Users can now e.g. opt out of this behaviour by simply setting `loading=False`, or use a different variable to control the loading state.
