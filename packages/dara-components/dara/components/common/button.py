@@ -110,6 +110,10 @@ class Button(LayoutComponent):
     ```
 
     :param disabled: A variable, condition, or bool to disabled the button when true
+    :param loading: A variable, condition, or bool to set the button to a loading state, showing a spinner.
+       By default, the button will automatically be set to loading=True while the onclick action is running,
+       equivalent to `Button(..., onclick=my_action, loading=my_action.loading)`. You can opt out of this behaviour by
+       simply setting `loading=False`.
     :param onclick: An Action that is triggered by clicking the button
     :param icon: An optional icon to display, see dara.core.css.get_icon for details
     :param styling: A style of the button, can be 'primary', 'secondary', 'error', 'plain' or 'ghost'
@@ -120,6 +124,7 @@ class Button(LayoutComponent):
     """
 
     disabled: Optional[Union[Condition, ClientVariable, bool]] = None
+    loading: Optional[Union[Condition, ClientVariable, bool]] = None
     onclick: Optional[Action] = None
     icon: Optional[str] = None
     styling: Optional[ButtonStyle] = None
