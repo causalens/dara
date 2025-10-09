@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.14
 
 -  Bump `pydantic` to `^2.12.0`, fixing runtime issues that started appearing in 2.12.0
 
