@@ -17,6 +17,7 @@ limitations under the License.
 # ruff: noqa: F401, F403
 
 from importlib.metadata import version
+from inspect import isclass
 
 from pydantic import BaseModel
 
@@ -33,7 +34,7 @@ __version__ = version('dara-components')
 
 for symbol in list(globals().values()):
     try:
-        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+        if isclass(symbol) and issubclass(symbol, BaseModel) and symbol is not BaseModel:
             symbol.model_rebuild()
     except Exception as e:
         from dara.core.logging import dev_logger

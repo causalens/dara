@@ -1,6 +1,9 @@
 line-length = 120
 exclude = ["*.ipynb"]
 
+# target our minimum supported python version
+target-version = "py39"
+
 [format]
 quote-style = "single"
 exclude = ["*.ipynb"]

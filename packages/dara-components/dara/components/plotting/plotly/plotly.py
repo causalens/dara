@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, ClassVar, List, Optional
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -114,8 +114,8 @@ class Plotly(StyledComponentInstance):
     figure: str
     events: Optional[List[PlotlyEvent]] = None
 
-    EventName = PlotlyEventName
-    Event = PlotlyEvent
+    EventName: ClassVar[type[PlotlyEventName]] = PlotlyEventName
+    Event: ClassVar[type[PlotlyEvent]] = PlotlyEvent
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

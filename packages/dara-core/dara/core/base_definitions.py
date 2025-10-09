@@ -23,6 +23,7 @@ import abc
 import uuid
 from collections.abc import Awaitable, Mapping
 from enum import Enum
+from inspect import isclass
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -72,7 +73,11 @@ def annotation_has_base_model(typ: Any) -> bool:
         pass
 
     # Handle simple types
-    return typ is BaseModel or issubclass(typ, BaseModel)
+    try:
+        return typ is BaseModel or (isclass(typ) and issubclass(typ, BaseModel))
+    except:  # noqa: E722
+        # cannot check if it's a subclass, just return false
+        return False
 
 
 # This reverts v1->v2 change to make any BaseModel field duck-type serializable.
