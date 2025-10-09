@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 from pydantic import field_validator
 
@@ -36,7 +36,7 @@ class Node(BaseModel):
     name: str
     meta: Optional[NodeMeta] = None
 
-    Meta = NodeMeta
+    Meta: ClassVar[type[NodeMeta]] = NodeMeta
 
 
 class NodeHierarchyBuilder(StyledComponentInstance):

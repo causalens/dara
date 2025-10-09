@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Bump `pydantic` to `^2.12.0`, fixing runtime issues that started appearing in 2.12.0
+
 ## 1.21.13
 
 -  Fixed an issue where tasks could sometimes be notified about their completion before the task had actually completed in nested task scenarios

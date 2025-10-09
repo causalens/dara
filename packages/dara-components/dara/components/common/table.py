@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Any, List, Literal, Optional, Sequence, Union
+from typing import Any, ClassVar, List, Literal, Optional, Sequence, Union
 
 from fastapi.encoders import jsonable_encoder
 from pandas import DataFrame
@@ -47,6 +47,9 @@ class TableFormatterType(Enum):
     THRESHOLD = 'threshold'
 
 
+TFormatterType = type[TableFormatterType]
+
+
 class TableFormatterCompareCondition(Enum):
     EQUAL = 'equal'
 
@@ -56,6 +59,9 @@ class TableFilter(Enum):
     CATEGORICAL = 'categorical'
     NUMERIC = 'numeric'
     DATETIME = 'datetime'
+
+
+TFilterType = type[TableFilter]
 
 
 class Column(BaseModel):
@@ -862,8 +868,8 @@ class Table(ContentComponent):
     max_rows: Optional[int] = None
     suppress_click_events_for_selection: Optional[bool] = False
 
-    TableFormatterType = TableFormatterType
-    TableFilter = TableFilter
+    TableFormatterType: ClassVar[TFormatterType] = TableFormatterType
+    TableFilter: ClassVar[TFilterType] = TableFilter
 
     @field_validator('data')
     @classmethod

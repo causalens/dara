@@ -17,6 +17,8 @@ limitations under the License.
 
 from __future__ import annotations
 
+from inspect import isclass
+
 from pydantic import BaseModel
 
 from dara.core.interactivity.actions import (
@@ -80,7 +82,7 @@ __all__ = [
 
 for symbol in list(globals().values()):
     try:
-        if issubclass(symbol, BaseModel) and symbol is not BaseModel:
+        if isclass(symbol) and issubclass(symbol, BaseModel) and symbol is not BaseModel:
             symbol.model_rebuild()
     except Exception as e:
         from dara.core.logging import dev_logger
