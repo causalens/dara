@@ -153,7 +153,7 @@ With the above code, your application will look like the following:
 ![Hello World](./assets/my_first_app/hello_world.png)
 
 
-::: tip
+:::tip
 
 This is a very simple example of the powerful routing system in Dara.
 You will learn more about the router in the [Routing](./getting-started/routing.mdx) section.

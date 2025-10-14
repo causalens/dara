@@ -716,14 +716,111 @@ They also cannot be used as inputs to other `DerivedVariable`s to prevent comple
 within `If` components or via `SwitchVariable`s.
 :::
 
+## Control Flow Components
+
+Dara provides a few components that let you declaratively define the control flow of your application.
+
+### Conditional Rendering with `If`
+
+The `dara.components.common.if_cmp.If` lets you conditionally render different components based on a condition.
+
+Conditions are defined with a `dara.core.interactivity.condition.Condition` object, which can be defined manually or by using a normal comparison operator on a Variable instance, e.g. `Variable() == True` - variables override comparison operators to create the condition objects automatically.
+The component then accepts one required set of children (`true_children`) and one optional set (`false_children`).
+The first set (`true_children`) will be rendered if the condition is truthy and the second set (`false_children`) will be rendered if the condition is falsey.
+
+```python
+from dara.core import Variable
+from dara.components.common import If, Text
+
+var_1 = Variable(True)
+var_2 = Variable(False)
+
+# condition created by using the == operator on two variables
+If(
+    condition=var_1 == var_2,
+    true_children=Text('Equal'),
+    false_children=Text('Different')
+)
+
+# condition created by using the == operator on a variable and a constant
+If(
+    condition=var_1 == True,
+    true_children=Text('Equal'),
+    false_children=Text('Different')
+)
+```
+
+The component also accepts a `DerivedVariable` as the condition for more complex conditions.
+
+This component should be the go-to component for conditional rendering in Dara apps as it's optimized to perform client-side comparisons in most cases without extra round-trips to the server.
+
+### List rendering with `For`
+
+The `dara.core.visual.components.for_cmp.For` component lets you generate multiple elements from a collection of data where each element corresponds to an item in the collection.
+
+It accepts a data source in the `items` prop which can any Dara variable that contains an iterable value (i.e. a list).
+
+To generate the elements, the component accepts a `renderer` prop which is a component that will be rendered for each item in the data source. In order to use item-specific data, you can use the `.list_item` property on the variable holding the value which returns a `LoopVariable` instance.
+
+For primitive values, `.list_item` is then replaced with the value of each item in the list.
+
+```python
+from dara.core import Variable
+from dara.core.visual.components import For
+
+my_list = Variable([1, 2, 3])
+
+# Renders a list of Text component where each item is the corresponding item in the list
+For(
+    items=my_list,
+    renderer=Text(text=my_list.list_item),
+    placeholder=Text('No items') # fallback component to render if the data source is empty
+)
+```
+
+To support a list of objects (dicts), `LoopVariable` behaves like a dict (i.e. supports index access with `[key]` or `.get(key)`) to retrieve a reference to a given field which will be replaced with the value of that key for each item in the list.
+
+Note that you should specify the `key_accessor` argument to specify which field to use as the unique identifier to optimize the performance of the component. If you don't specify it, the index of the item in the list will be used instead which might cause issues when the list is updated or re-ordered.
+
+```python
+from dara.core import Variable
+from dara.core.visual.components import For
+
+my_list = Variable([{'id': 1, 'name': 'John', 'age': 30}, {'id': 2, 'name': 'Jane', 'age': 25}])
+
+# Renders a list of Text component where each item is the corresponding `item.name` in the list
+For(
+    items=my_list,
+    renderer=Text(text=my_list.list_item.get('name')),
+    key_accessor='id'
+)
+```
+
+This component should be preferred whenever you need to render a list of elements based on a collection of data. It is optimized to perform rendering client-side and doesn't require any extra round-trips to the server.
+
+## `ServerVariable`
+
+There are cases where your data is too large to send to the client, or is simply unserializable. In those and other cases, you can use a `ServerVariable`. It represents **synchronized server state**.
+
+You will learn more about it in the [Handling Data section](./handling-data.mdx).
+
 ## `py_component`
 
-The `py_component` function is a decorator and is the primary method of creating a dynamic layout based on the current state of an application's variables.
+The final piece of the interacitivity puzzle is the `py_component` function. It is a decorator which lets you create a dynamic layout based on the current state of an application's variables.
 
-It is similar to a `DerivedVariable` in that it is a derived state from the backend server based on the values in the frontend. It is different though in that it returns a component to render in the frontend instead of just a value.
+It is similar to a `DerivedVariable` in that it is a derived state from the backend server based on the values in the frontend. It is different though in that it returns a component to render in the frontend instead of just a value. Another difference is that the values returned from it are not cached and the logic inside it runs every time its inputs change.
 
-The decorated function can take a mixture of regular python variables and Dara `Variable`-based arguments in any combination.
-This flexibility makes it ideal for creating reusable visual components to use within your application.
+:::warning
+
+The `py_component` function should be thought of as an **escape hatch** from the optimized declarative rendering that Dara provides. In the majority of cases you should not need to use this API. Check out [You Might Not Need `py_component`](../best-practices/you-might-not-need-py-components.md) to learn more.
+
+:::
+
+For the rare cases where you might need to use `py_component`, let's understand how it works.
+
+### `py_component` Usage
+
+The `py_component`-decorated function can take a mixture of regular python variables and Dara `Variable`-based arguments in any combination. This lets you create reusable visual components to use within your application.
 
 Similar to `DerivedVariable`s, any `py_component`-decorated function will only be rerun when one of its input variables changes.
 
@@ -802,127 +899,13 @@ A `py_component` decorator can also be configured to specify:
 
 You only need a `py_component` if you need to extract the values from `Variable`s for rendering a dynamic layout based on the value in the `Variable`. You do not have to unwrap `Variable`s if you just want to pass them to a component that accepts variables directly like `Text`.
 
-:::tip
-You should abstract any heavy logic in a `py_component` logic to a `DerivedVariable` when possible for better performance and code structure. Check out [**Best Practices: Light PyComponents**](../best-practices/light-pycomponents) to learn more.
-:::
-
-## `DerivedVariable` vs `py_component`
-
-It may be that you are unsure of which to use, and the answer may often be a combination of both!
-`DerivedVariable` and `py_component` are similar in the way that they both will calculate something based on other `Variable`-type values.
-The key difference is that a `py_component` returns a **component** whereas `DerivedVariable` is used to recalculate a **value**.
-
-The example below is aimed at illustrating how these might work together. The user will input some text, stored in a `Variable` called `input`.
-
-```python title=main.py
-from dara.core import ConfigurationBuilder, Variable
-from dara.components import ComponentInstance, Heading, Input, Stack, Text
-
-# config
-config = ConfigurationBuilder()
-
-user_input = Variable('')
-
-
-def page_content() -> ComponentInstance:
-    return Stack(
-        Heading('py_components vs Derived Variables', level=2),
-        Input(value=user_input),
-    )
-
-
-config.router.add_page(path='interactivity', content=page_content)
-```
-
-You will be tasked with displaying `input` horizontally, vertically and backwards, displaying how and when to use `DerivedVariable` and `py_component`:
-
-1. **Horizontal**
-
-This is the simplest case. You just need to show the `Variable` value as is.
-
-```python
-...
-
-user_input = Variable('')
-
-def page_content() -> ComponentInstance:
-    return Stack(
-        Heading('py_components vs Derived Variables', level=2),
-        Input(value=user_input),
-        Stack(Text('Horizontal:'), Text(user_input), direction='horizontal'),
-    )
-
-config.router.add_page(path='interactivity', content=page_content)
-```
-
-![py_components vs DerivedVariables 1](../assets/getting_started/interactivity/pycomp_vs_dv_1.gif)
-
-2. **Backwards**
-
-To display the text backwards you need to transform the string. This involves changing the **value** of the string so in this case you would use a `DerivedVariable`.
-
-```python
-from dara.core import Variable, DerivedVariable
-...
-
-user_input = Variable('')
-backwards_input = DerivedVariable(lambda text: ''.join(reversed(text)), variables=[user_input])
-
-def page_content() -> ComponentInstance:
-    return Stack(
-        Heading('py_components vs Derived Variables', level=2),
-        Input(value=user_input),
-        Stack(Text('Horizontal:'), Text(user_input), direction='horizontal'),
-        Stack(Text('Backwards:'), Text(backwards_input), direction='horizontal'),
-    )
-
-config.router.add_page(name='interactivity', content=page_content)
-```
-
-![py_components vs DerivedVariables 2](../assets/getting_started/interactivity/pycomp_vs_dv_2.gif)
-
-3. **Vertical**
-
-In this case you will choose to loop through each letter of the input text and add each letter as a separate `Text` component so that they can be placed vertically in a `Stack`. Because you want a varying **layout**, you must use the `py_component`-decorator.
-
-```python
-from dara.core import Variable, DerivedVariable, py_component
-...
-
-user_input = Variable('')
-backwards_input = DerivedVariable(lambda text: ''.join(reversed(text)), variables=[user_input])
-
-@py_component
-def my_py_component(input_str: str) -> ComponentInstance:
-    # returns a varying component based on the input Variable
-    vertical_text = Stack(padding='50px')
-    for letter in input_str:
-        vertical_text.append(Text(letter))
-    return vertical_text
-
-def page_content() -> ComponentInstance:
-    return Stack(
-        Heading('py_components vs Derived Variables', level=2),
-        Input(value=user_input),
-        Stack(Text('Horizontal:'), Text(user_input), direction='horizontal'),
-        Stack(Text('Backwards:'), Text(backwards_input), direction='horizontal'),
-        Stack(
-            Text('Verical:'),
-            my_py_component(user_input),
-        ),
-    )
-
-# Adding page
-config.router.add_page(path='interactivity', content=page_content)
-```
-
-![py_components vs DerivedVariables 3](../assets/getting_started/interactivity/pycomp_vs_dv_3.gif)
 
 ## Architecture Summary
 
 As mentioned in the introduction, Dara enables a close-to-native web app performance by offloading as much logic as possible into the browser. This optimization results in the app not needing to call into the server every time you want to change something on the screen.
 
-This close-to-native performance is achieved by the concepts in this page. `Variable`s are updated in the frontend browser so they do not require server involvement. Server-side logic is handled by `DerivedVariable`s and `py_component`s with the main difference being `DerivedVariable`s are a derived state that represent a value while `py_component`s are a derived state that represent a component to be rendered in the frontend. `DerivedVariable`s are also better equipped to handle computationally expensive tasks.
+This close-to-native performance is achieved by the concepts in this page. `Variable`s are updated in the frontend browser so they do not require server involvement. `SwitchVariable` lets you swap or map values based on a value or condition using simply client-side mapping. Server-side computed logic is handled by `DerivedVariable`s, including more heavy computations, with support for caching.  `ServerVariable` lets you keep large or unserializable data on the server and fit it into your reactivity graph. Control flow components such as `If` and `For` let you conditionally display different UI or map a collection of items into elements efficiently. If all else fails, `py_component` is an escape hatch that lets you compute an arbitrary tree of Dara components on the server based on a set of variables.
+
 
 :::info
 As mentioned, `DerivedVariable`s and `py_components` unwrap `Variable`s to expose their values. This has some caveats due to the architecture. Check out [**Best Practices: Retaining Correct Variable Types**](../best-practices/retaining-correct-variable-types) to learn more.
@@ -930,4 +913,4 @@ As mentioned, `DerivedVariable`s and `py_components` unwrap `Variable`s to expos
 
 ## Next Steps
 
-So far you have learned how to handle your app's information and interactivity by declaratively defining yourderived variables and components. You will learn about responding to user interaction.
+So far you have learned how to handle your app's information and interactivity by declaratively defining your derived variables and components. You will learn about responding to user interaction.
