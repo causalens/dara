@@ -118,6 +118,19 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
+    fallback: SerializeAsAny[Optional[ComponentInstance]] = Field(default=None)
+    """
+    Fallback component to render while `on_load` is running.
+    If not set, Dara will wait until `on_load` completes before completing the navigation.
+    If provided, Dara will navigate immediately and show the fallback component while `on_load` is running.
+
+    Note that this impacts the navigation when nested routes are involved. For example,
+    when navigating from `/a` to `/b/c` (assuming `b` and `c` both have `on_load` actions),
+    Dara will hold the navigation until both `b` and `c` have completed their `on_load` actions.
+    If only one of them is slow, you might want to consider setting an explicit `fallback` for it
+    if it's desirable to navigate to the other route immediately.
+    """
+
     on_load: SerializeAsAny[Optional[Action]] = Field(default=None)
     """
     Action to execute when the route is loaded.
@@ -303,6 +316,7 @@ class HasChildRoutes(BaseModel):
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
+        fallback: Optional[ComponentInstance] = None,
     ):
         """
         Standard route with a unique URL segment and content to render
@@ -313,6 +327,8 @@ class HasChildRoutes(BaseModel):
         :param name: unique name for the route, used for window.name display. If not set, defaults to the route path.
         :param id: unique id for the route
         :param metadata: metadata for the route
+        :param on_load: action to execute when the route is loaded
+        :param fallback: fallback component to render while `on_load` is running
         """
         if metadata is None:
             metadata = {}
@@ -325,6 +341,7 @@ class HasChildRoutes(BaseModel):
             id=id,
             metadata=metadata,
             on_load=on_load,
+            fallback=fallback,
         )
         route._attach_to_parent(self)
         self.children.append(route)
@@ -338,6 +355,7 @@ class HasChildRoutes(BaseModel):
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
+        fallback: Optional[ComponentInstance] = None,
     ):
         """
         Layout route creates a route with a layout component to render without adding any segments to the URL
@@ -368,6 +386,8 @@ class HasChildRoutes(BaseModel):
         :param case_sensitive: whether the route is case sensitive
         :param id: unique id for the route
         :param metadata: metadata for the route
+        :param on_load: action to execute when the route is loaded
+        :param fallback: fallback component to render while `on_load` is running
         """
         if metadata is None:
             metadata = {}
@@ -378,6 +398,7 @@ class HasChildRoutes(BaseModel):
             id=id,
             metadata=metadata,
             on_load=on_load,
+            fallback=fallback,
         )
         route._attach_to_parent(self)
         self.children.append(route)
@@ -391,6 +412,7 @@ class HasChildRoutes(BaseModel):
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
+        fallback: Optional[ComponentInstance] = None,
     ):
         """
         Prefix route creates a group of routes with a common prefix without a specific component to render
@@ -413,10 +435,14 @@ class HasChildRoutes(BaseModel):
         :param case_sensitive: whether the route is case sensitive
         :param id: unique id for the route
         :param metadata: metadata for the route
+        :param on_load: action to execute when the route is loaded
+        :param fallback: fallback component to render while `on_load` is running
         """
         if metadata is None:
             metadata = {}
-        route = PrefixRoute(path=path, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load)
+        route = PrefixRoute(
+            path=path, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load, fallback=fallback
+        )
         route._attach_to_parent(self)
         self.children.append(route)
         return route
@@ -430,6 +456,7 @@ class HasChildRoutes(BaseModel):
         id: Optional[str] = None,
         metadata: Optional[dict] = None,
         on_load: Optional[Action] = None,
+        fallback: Optional[ComponentInstance] = None,
     ):
         """
         Index routes render into their parent's Outlet() at their parent URL (like a default child route).
@@ -457,7 +484,13 @@ class HasChildRoutes(BaseModel):
         if metadata is None:
             metadata = {}
         route = IndexRoute(
-            content=content, case_sensitive=case_sensitive, id=id, metadata=metadata, on_load=on_load, name=name
+            content=content,
+            case_sensitive=case_sensitive,
+            id=id,
+            metadata=metadata,
+            on_load=on_load,
+            name=name,
+            fallback=fallback,
         )
         route._attach_to_parent(self)
         self.children.append(route)

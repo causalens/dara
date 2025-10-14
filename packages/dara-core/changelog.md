@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Routes now hold navigation by default while `on_load` actions run. Users can provide a `fallback` component (e.g. default `Fallback.Default()` or any custom component) to opt-out and immediately show the fallback instead.
+
 ## 1.21.14
 
 -  Bump `pydantic` to `^2.12.0`, fixing runtime issues that started appearing in 2.12.0
