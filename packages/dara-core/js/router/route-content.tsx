@@ -126,7 +126,6 @@ function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
         [fallback]
     );
 
-
     if (data instanceof Promise) {
         return (
             <React.Suspense fallback={fallbackComponent}>
