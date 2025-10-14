@@ -58,7 +58,7 @@
         "docs/best-practices/consistent-styling",
         "docs/best-practices/app-structure-breakdown",
         "docs/best-practices/reusing-components",
-        "docs/best-practices/light-pycomponents",
+        "docs/best-practices/you-might-not-need-py-components",
         "docs/best-practices/retaining-correct-variable-types",
         "docs/best-practices/using-environment-variables"
       ]
