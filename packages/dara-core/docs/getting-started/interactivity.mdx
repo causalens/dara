@@ -897,7 +897,9 @@ A `py_component` decorator can also be configured to specify:
 You only need a `py_component` if you need to extract the values from `Variable`s for rendering a dynamic layout based on the value in the `Variable`. You do not have to unwrap `Variable`s if you just want to pass them to a component that accepts variables directly like `Text`.
 
 :::tip
-You should abstract any heavy logic in a `py_component` logic to a `DerivedVariable` when possible for better performance and code structure. Check out [**Best Practices: Light PyComponents**](../best-practices/light-pycomponents) to learn more.
+
+You should abstract any heavy logic in a `py_component` logic to a `DerivedVariable` when possible for better performance and code structure. Check out the next section to learn more.
+
 :::
 
 ### You Might Not Need `py_component`
