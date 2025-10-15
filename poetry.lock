@@ -530,7 +530,7 @@ name = "create-dara-app"
 version = "1.21.14"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
-python-versions = ">=3.10.0, <3.15.0"
+python-versions = ">=3.10.0, <3.14.0"
 files = []
 develop = true
 
@@ -655,7 +655,7 @@ name = "dara-components"
 version = "1.21.14"
 description = "Components for the Dara Framework"
 optional = false
-python-versions = ">=3.10.0, <3.15.0"
+python-versions = ">=3.10.0, <3.14.0"
 files = []
 develop = true
 
@@ -680,7 +680,7 @@ name = "dara-core"
 version = "1.21.14"
 description = "Dara Framework Core"
 optional = false
-python-versions = ">=3.10.0, <3.15.0"
+python-versions = ">=3.10.0, <3.14.0"
 files = []
 develop = true
 
@@ -3475,5 +3475,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10.0,<3.15.0"
-content-hash = "eb5c6ef7434594837dfd9d9e88e639377dd0599319b6c0c0ca0a2164dfd00f94"
+python-versions = ">=3.10.0,<3.14.0"
+content-hash = "bca6161874180ff5a7575961445e0c22e852f475c8862ad5ca48c1bc32c1c9e8"
