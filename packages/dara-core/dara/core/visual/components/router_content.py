@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List
 
 from pydantic import ConfigDict
 
@@ -29,5 +28,5 @@ RouterContentDef = JsComponentDef(name='RouterContent', js_module='@darajs/core'
 
 
 class RouterContent(ComponentInstance):
-    routes: List[TemplateRouterContent]
+    routes: list[TemplateRouterContent]
     model_config = ConfigDict(extra='forbid')

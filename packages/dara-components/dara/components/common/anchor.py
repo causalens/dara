@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional, Union
 
 from typing_extensions import deprecated
 
@@ -63,17 +62,17 @@ class Anchor(ModifierComponent):
     :param new_tab: whether to open the link in a new tab
     """
 
-    href: Optional[str] = None
-    name: Optional[str] = None
+    href: str | None = None
+    name: str | None = None
     clean: bool = False
     new_tab: bool = False
 
-    def __init__(self, child: Union[ContentComponent, str, Variable[str], DerivedVariable[str]], **kwargs):
+    def __init__(self, child: ContentComponent | str | Variable[str] | DerivedVariable[str], **kwargs):
         if isinstance(child, (ContentComponent, Variable, DerivedVariable, str)) is False:
             raise LayoutError(f'Only a single ContentComponent may be passed as an Anchors child, passed : {child}')
 
         # Handle a string or Variable being passed directly to an anchor
         if isinstance(child, (str, AnyVariable)):
             child = Text(child)
-        parsed_args: List[ContentComponent] = [child]
+        parsed_args: list[ContentComponent] = [child]
         super().__init__(*parsed_args, **kwargs)

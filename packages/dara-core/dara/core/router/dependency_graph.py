@@ -1,4 +1,3 @@
-from typing import Dict
 
 from pydantic import BaseModel, Field, SerializeAsAny
 
@@ -12,12 +11,12 @@ class DependencyGraph(BaseModel):
     Data structure representing dependencies for derived state on a page
     """
 
-    derived_variables: SerializeAsAny[Dict[str, DerivedVariable]] = Field(default_factory=dict)
+    derived_variables: SerializeAsAny[dict[str, DerivedVariable]] = Field(default_factory=dict)
     """
     Map of DerivedVariable instances
     """
 
-    py_components: SerializeAsAny[Dict[str, PyComponentInstance]] = Field(default_factory=dict)
+    py_components: SerializeAsAny[dict[str, PyComponentInstance]] = Field(default_factory=dict)
     """
     Map of PyComponentInstance instances
     """

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from pydantic import ConfigDict
 
@@ -57,7 +57,7 @@ class BaseDashboardComponent(StyledComponentInstance):
     # Define JS module on the base component so we don't have to repeat that on each component
     js_module = '@darajs/components'
 
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         if len(args) > 0 and len(kwargs.get('children') or []) == 0:
             kwargs['children'] = list(arg for arg in args if arg is not None)
 
@@ -78,9 +78,9 @@ class LayoutComponent(BaseDashboardComponent):
     :param align: the align-items value to be passed to the component
     """
 
-    position: Union[str, None] = 'relative'
+    position: str | None = 'relative'
 
-    justify: Optional[JustifyContent] = None
+    justify: JustifyContent | None = None
 
     def append(self, component: ComponentInstance):
         """
@@ -138,4 +138,4 @@ class FormComponent(InteractiveComponent):
     A subset of InteractiveComponents which must subscribe to the Form context.
     """
 
-    id: Optional[str] = None
+    id: str | None = None

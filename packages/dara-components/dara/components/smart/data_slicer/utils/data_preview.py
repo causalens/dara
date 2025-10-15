@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List
 
 from pandas import DataFrame
 
@@ -39,7 +38,7 @@ def get_tail_data(df: DataFrame, rows_to_show: int) -> DataFrame:
     return df.tail(rows_to_show).fillna('NaN')
 
 
-def get_columns(col_defs: List[ColumnDefinition]) -> List[Column]:
+def get_columns(col_defs: list[ColumnDefinition]) -> list[Column]:
     cols = []
 
     for col_def in col_defs:

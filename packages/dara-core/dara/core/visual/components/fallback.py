@@ -48,7 +48,7 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[Union[str, None]] = 'DefaultFallback'
+        py_component: ClassVar[str | None] = 'DefaultFallback'
 
     class Row(BaseFallback):
         """
@@ -73,7 +73,7 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[Union[str, None]] = 'RowFallback'
+        py_component: ClassVar[str | None] = 'RowFallback'
 
     class Custom(BaseFallback):
         """
@@ -97,5 +97,5 @@ class Fallback:
           but will suspend and show a fallback UI after the given timeout if the new state is not ready.
         """
 
-        py_component: ClassVar[Union[str, None]] = 'CustomFallback'
+        py_component: ClassVar[str | None] = 'CustomFallback'
         component: StyledComponentInstance

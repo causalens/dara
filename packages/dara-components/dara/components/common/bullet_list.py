@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Union
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import DerivedVariable, Variable
@@ -42,5 +41,5 @@ class BulletList(ContentComponent):
     :param numbered: Boolean, if True then number the bullets
     """
 
-    items: Union[List[str], Variable, DerivedVariable]
+    items: list[str] | Variable | DerivedVariable
     numbered: bool = False

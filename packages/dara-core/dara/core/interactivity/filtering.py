@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, List, Optional, Tuple, Union, cast, overload
+from typing import Any, Union, cast, overload
 
 import numpy
 from pandas import DataFrame, Series
@@ -47,10 +47,10 @@ class Pagination(BaseModel):
     If index is defined, retrieves only the row of the specified index
     """
 
-    offset: Optional[int] = None
-    limit: Optional[int] = None
-    orderBy: Optional[str] = None
-    index: Optional[str] = None
+    offset: int | None = None
+    limit: int | None = None
+    orderBy: str | None = None
+    index: str | None = None
 
     @field_validator('orderBy', mode='before')
     @classmethod
@@ -83,7 +83,7 @@ class ClauseQuery(BaseModel):
     """
 
     combinator: QueryCombinator
-    clauses: List[FilterQuery]
+    clauses: list[FilterQuery]
 
 
 class ValueQuery(BaseModel):
@@ -104,7 +104,7 @@ Filter query to be applied
 ClauseQuery.model_rebuild()
 
 
-def coerce_to_filter_query(filters: Union[ClauseQuery, ValueQuery, dict, None]) -> Optional[FilterQuery]:
+def coerce_to_filter_query(filters: ClauseQuery | ValueQuery | dict | None) -> FilterQuery | None:
     """
     Coerce a filter query to a FilterQuery object. Converts dict representation to the correct query type.
     """
@@ -172,7 +172,7 @@ def infer_column_type(series: Series) -> ColumnType:
         return ColumnType.CATEGORICAL
 
 
-def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, value: Any) -> Optional[Series]:
+def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, value: Any) -> Series | None:
     """
     Convert a single filter to a Series[bool] for filtering
     """
@@ -186,14 +186,14 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
 
     try:
         # In the case of categorical filter we get a List for value
-        if isinstance(value, List):
+        if isinstance(value, list):
             return series.isin(value)
         # Converts date passed from frontend to the right format to compare with pandas
         if col_type == ColumnType.DATETIME:
-            value = [parseISO(value[0]), parseISO(value[1])] if isinstance(value, List) else parseISO(value)
+            value = [parseISO(value[0]), parseISO(value[1])] if isinstance(value, list) else parseISO(value)
         elif col_type == ColumnType.CATEGORICAL:
             value = str(value)
-        elif isinstance(value, List):
+        elif isinstance(value, list):
             lower_bound = float(value[0]) if '.' in str(value[0]) else int(value[0])
             upper_bound = float(value[1]) if '.' in str(value[1]) else int(value[1])
             value = [lower_bound, upper_bound]
@@ -219,7 +219,7 @@ def _filter_to_series(data: DataFrame, column: str, operator: QueryOperator, val
         return None
 
 
-def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Series]:
+def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Series | None:
     """
     Resolve a FilterQuery to a Series[bool] for filtering. Strips the internal column index from the query.
     """
@@ -248,19 +248,19 @@ def _resolve_filter_query(data: DataFrame, query: FilterQuery) -> Optional[Serie
 
 @overload
 def apply_filters(
-    data: DataFrame, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-) -> Tuple[DataFrame, int]: ...
+    data: DataFrame, filters: FilterQuery | None = None, pagination: Pagination | None = None
+) -> tuple[DataFrame, int]: ...
 
 
 @overload
 def apply_filters(
-    data: None, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-) -> Tuple[None, int]: ...
+    data: None, filters: FilterQuery | None = None, pagination: Pagination | None = None
+) -> tuple[None, int]: ...
 
 
 def apply_filters(
-    data: Optional[DataFrame], filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-) -> Tuple[Optional[DataFrame], int]:
+    data: DataFrame | None, filters: FilterQuery | None = None, pagination: Pagination | None = None
+) -> tuple[DataFrame | None, int]:
     """
     Apply filtering and pagination to a DataFrame.
     """

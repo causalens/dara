@@ -17,7 +17,7 @@ limitations under the License.
 
 import abc
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Union
 
 from pydantic import Field
 
@@ -60,8 +60,8 @@ class GraphLayout(BaseModel, abc.ABC):
     :param node_font_size: node font size in pixels
     """
 
-    node_size: Optional[int] = None
-    node_font_size: Optional[int] = None
+    node_size: int | None = None
+    node_font_size: int | None = None
 
 
 class TiersConfig(BaseModel):
@@ -77,8 +77,8 @@ class TiersConfig(BaseModel):
     """
 
     group: str
-    order_nodes_by: Optional[str] = None
-    rank: Optional[List[str]] = None
+    order_nodes_by: str | None = None
+    rank: list[str] | None = None
 
 
 class TieringLayout(BaseModel):
@@ -135,8 +135,8 @@ class TieringLayout(BaseModel):
     :param orientation: Orientation the tiers are displayed in default is horizontal
     """
 
-    tiers: Optional[Union[TiersConfig, List[List[str]]]] = None
-    orientation: Optional[DirectionType] = DirectionType.HORIZONTAL
+    tiers: TiersConfig | list[list[str]] | None = None
+    orientation: DirectionType | None = DirectionType.HORIZONTAL
 
 
 class GroupingLayout(BaseModel):
@@ -170,7 +170,7 @@ class GroupingLayout(BaseModel):
     :param group: Path within node to group property which defines the group it belong to,
     """
 
-    group: Optional[str] = None
+    group: str | None = None
 
 
 class CircularLayout(GraphLayout):
@@ -232,16 +232,16 @@ class FcoseLayout(GraphLayout, TieringLayout, GroupingLayout):
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.FCOSE, frozen=True)
 
-    edge_elasticity: Optional[Number] = 0.45
-    edge_length: Optional[Number] = 3
-    energy: Optional[Number] = 0.1
-    gravity: Optional[Number] = 35
-    gravity_range: Optional[Number] = 80
-    high_quality: Optional[bool] = True
-    iterations: Optional[int] = 2500
-    node_repulsion: Optional[Number] = 6_500
-    node_separation: Optional[Number] = 75
-    tier_separation: Optional[Number] = 200
+    edge_elasticity: Number | None = 0.45
+    edge_length: Number | None = 3
+    energy: Number | None = 0.1
+    gravity: Number | None = 35
+    gravity_range: Number | None = 80
+    high_quality: bool | None = True
+    iterations: int | None = 2500
+    node_repulsion: Number | None = 6_500
+    node_separation: Number | None = 75
+    tier_separation: Number | None = 200
 
 
 class ForceAtlasLayout(GraphLayout):
@@ -270,14 +270,14 @@ class ForceAtlasLayout(GraphLayout):
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.FORCE_ATLAS, frozen=True)
 
-    barnes_hut_optimize: Optional[bool] = False
-    edge_weight_influence: Optional[Number] = 1
-    gravity: Optional[Number] = 0.2
-    iterations: Optional[int] = 10_000
-    lin_log_mode: Optional[bool] = True
-    outbound_attraction_distribution: Optional[bool] = True
-    scaling_ratio: Optional[Number] = 8
-    strong_gravity_mode: Optional[bool] = False
+    barnes_hut_optimize: bool | None = False
+    edge_weight_influence: Number | None = 1
+    gravity: Number | None = 0.2
+    iterations: int | None = 10_000
+    lin_log_mode: bool | None = True
+    outbound_attraction_distribution: bool | None = True
+    scaling_ratio: Number | None = 8
+    strong_gravity_mode: bool | None = False
 
 
 class MarketingLayout(GraphLayout, TieringLayout):
@@ -291,8 +291,8 @@ class MarketingLayout(GraphLayout, TieringLayout):
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.MARKETING, frozen=True)
-    target_location: Optional[TargetLocation] = None
-    tier_separation: Optional[Number] = 300
+    target_location: TargetLocation | None = None
+    tier_separation: Number | None = 300
 
 
 class PlanarLayout(GraphLayout, TieringLayout):
@@ -308,8 +308,8 @@ class PlanarLayout(GraphLayout, TieringLayout):
     """
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.PLANAR, frozen=True)
-    layering_algorithm: Optional[LayeringAlgorithm] = LayeringAlgorithm.SIMPLEX
-    orientation: Optional[DirectionType] = None
+    layering_algorithm: LayeringAlgorithm | None = LayeringAlgorithm.SIMPLEX
+    orientation: DirectionType | None = None
 
 
 class SpringLayout(GraphLayout, TieringLayout, GroupingLayout):
@@ -329,9 +329,9 @@ class SpringLayout(GraphLayout, TieringLayout, GroupingLayout):
 
     layout_type: GraphLayoutType = Field(default=GraphLayoutType.SPRING, frozen=True)
 
-    collision_force: Optional[Number] = 2
-    gravity: Optional[Number] = -50
-    link_force: Optional[Number] = 5
-    warmup_ticks: Optional[Number] = 100
-    tier_separation: Optional[Number] = 300
-    group_repel_strength: Optional[Number] = 2000
+    collision_force: Number | None = 2
+    gravity: Number | None = -50
+    link_force: Number | None = 5
+    warmup_ticks: Number | None = 100
+    tier_separation: Number | None = 300
+    group_repel_strength: Number | None = 2000

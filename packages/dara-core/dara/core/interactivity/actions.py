@@ -21,21 +21,18 @@ import contextlib
 import inspect
 import math
 import uuid
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from enum import Enum
 from functools import partial, update_wrapper
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
-    Dict,
-    List,
     Literal,
     Optional,
+    TypeAlias,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -44,7 +41,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from pandas import DataFrame
 from pydantic import ConfigDict
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import deprecated
 
 from dara.core.base_definitions import (
     ActionDef,
@@ -86,7 +83,7 @@ class ActionContext(BaseModel):
     @deprecated: used in deprecated action wrappers
     """
 
-    extras: List[Any] = []
+    extras: list[Any] = []
     inputs: ActionInputs
 
 
@@ -126,7 +123,7 @@ class UpdateVariableImpl(ActionImpl):
 
     py_name = 'UpdateVariable'
 
-    variable: Union[Variable, ServerVariable]
+    variable: Variable | ServerVariable
     value: Any
 
     INPUT: ClassVar[str] = '__dara_input__'
@@ -240,14 +237,14 @@ class UpdateVariable(AnnotatedAction):
 
     Ctx: ClassVar[type[UpdateVariableContext]] = UpdateVariableContext
 
-    variable: Union[Variable, ServerVariable]
-    extras: Optional[List[AnyVariable]]
+    variable: Variable | ServerVariable
+    extras: list[AnyVariable] | None
 
     def __init__(
         self,
         resolver: Callable[[UpdateVariableContext], Any],
-        variable: Union[Variable, ServerVariable],
-        extras: Optional[List[AnyVariable]] = None,
+        variable: Variable | ServerVariable,
+        extras: list[AnyVariable] | None = None,
     ):
         """
         :param resolver: a function to resolve the new value for the variable.  Takes one arguments: containing a context of type `Updatevariable.Ctx`
@@ -374,11 +371,11 @@ class NavigateToImpl(ActionImpl):
 
     py_name = 'NavigateTo'
 
-    url: Union[str, RouterPath]
+    url: str | RouterPath
 
     new_tab: bool = False
 
-    options: Optional[NavigateOptions] = None
+    options: NavigateOptions | None = None
     """
     Options for relative navigations
     """
@@ -386,7 +383,7 @@ class NavigateToImpl(ActionImpl):
 
 @deprecated('Use @action or `NavigateToImpl` for simple cases')
 def NavigateTo(
-    url: Union[str, Callable[[Any], str]], new_tab: bool = False, extras: Optional[List[AnyVariable]] = None
+    url: str | Callable[[Any], str], new_tab: bool = False, extras: list[AnyVariable] | None = None
 ):
     """
     @deprecated: Passing in resolvers is deprecated, use `ctx.navigate` in an `@action` or `NavigateToImpl` instead.
@@ -526,7 +523,7 @@ class ResetVariables(ActionImpl):
     :param variables: list of variables to reset
     """
 
-    variables: List[AnyVariable]
+    variables: list[AnyVariable]
 
 
 class NotificationStatus(str, Enum):
@@ -578,7 +575,7 @@ class Notify(ActionImpl):
     ```
     """
 
-    key: Optional[str] = None
+    key: str | None = None
     message: str
     status: NotificationStatus
     title: str
@@ -624,7 +621,7 @@ DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core',
 @deprecated('Use @action instead')
 def DownloadContent(
     resolver: Callable[[ComponentActionContext], str],
-    extras: Optional[List[AnyVariable]] = None,
+    extras: list[AnyVariable] | None = None,
     cleanup_file: bool = False,
 ):
     """
@@ -729,14 +726,14 @@ class DownloadVariable(ActionImpl):
     """
 
     variable: AnyVariable
-    file_name: Optional[str] = None
+    file_name: str | None = None
     type: Literal['csv', 'xlsx', 'json'] = 'csv'
 
 
 @deprecated('Use @action instead')
 def SideEffect(
     function: Callable[[ComponentActionContext], Any],
-    extras: Optional[List[AnyVariable]] = None,
+    extras: list[AnyVariable] | None = None,
     block: bool = False,
 ):
     """
@@ -820,12 +817,12 @@ class ActionCtx:
     _action_receive_stream: MemoryObjectReceiveStream[ActionImpl]
     """Memory object receive stream for receiving actions to send to the frontend."""
 
-    _on_action: Callable[[Optional[ActionImpl]], Awaitable]
+    _on_action: Callable[[ActionImpl | None], Awaitable]
     """Callback for when an action is pushed to the stream."""
 
     input: Any
 
-    def __init__(self, _input: Any, _on_action: Callable[[Optional[ActionImpl]], Awaitable]):
+    def __init__(self, _input: Any, _on_action: Callable[[ActionImpl | None], Awaitable]):
         self.input = _input
         self._action_send_stream, self._action_receive_stream = anyio.create_memory_object_stream[ActionImpl](
             max_buffer_size=math.inf
@@ -833,12 +830,12 @@ class ActionCtx:
         self._on_action = _on_action
 
     @overload
-    async def update(self, variable: ServerVariable, value: Optional[DataFrame]): ...
+    async def update(self, variable: ServerVariable, value: DataFrame | None): ...
 
     @overload
     async def update(self, variable: Variable[VariableT], value: VariableT): ...
 
-    async def update(self, variable: Union[Variable, ServerVariable], value: Any):
+    async def update(self, variable: Variable | ServerVariable, value: Any):
         """
         Update a given variable to provided value.
 
@@ -956,7 +953,7 @@ class ActionCtx:
         return await TriggerVariable(variable=variable, force=force).execute(self)
 
     async def navigate(
-        self, url: Union[str, RouterPath], new_tab: bool = False, options: Optional[NavigateOptions] = None
+        self, url: str | RouterPath, new_tab: bool = False, options: NavigateOptions | None = None
     ):
         """
         Navigate to a given url
@@ -1036,8 +1033,8 @@ class ActionCtx:
         self,
         message: str,
         title: str,
-        status: Union[NotificationStatus, NotificationStatusString],
-        key: Optional[str] = None,
+        status: NotificationStatus | NotificationStatusString,
+        key: str | None = None,
     ):
         """
         Display a notification toast on the frontend
@@ -1078,7 +1075,7 @@ class ActionCtx:
 
         return await Notify(key=key, message=message, status=status, title=title).execute(self)
 
-    async def reset_variables(self, variables: Union[List[AnyVariable], AnyVariable]):
+    async def reset_variables(self, variables: list[AnyVariable] | AnyVariable):
         """
         Reset a list of variables to their default values.
 
@@ -1164,7 +1161,7 @@ class ActionCtx:
         return await NavigateToImpl(url=f'/api/core/download?code={code}', new_tab=True).execute(self)
 
     async def download_variable(
-        self, variable: AnyVariable, file_name: Optional[str] = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'
+        self, variable: AnyVariable, file_name: str | None = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'
     ):
         """
         Download the content of a given variable as a file.
@@ -1205,9 +1202,9 @@ class ActionCtx:
     async def run_task(
         self,
         func: Callable,
-        args: Union[List[Any], None] = None,
-        kwargs: Union[Dict[str, Any], None] = None,
-        on_progress: Optional[Callable[[TaskProgressUpdate], Union[None, Awaitable[None]]]] = None,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        on_progress: Callable[[TaskProgressUpdate], None | Awaitable[None]] | None = None,
     ):
         """
         Run a calculation as a task in a separate process. Recommended for CPU intensive tasks.
@@ -1363,7 +1360,7 @@ class action:
         action_registry.register(self.definition_uid, act_def)
 
         # Modify the function signature
-        bound_name: Union[str, None] = None
+        bound_name: str | None = None
 
         # Check if first parameter is 'self' or 'cls' - we have to use the name as otherwise it's
         # not possible to distinguish between a bound method or non-bound method
@@ -1405,7 +1402,7 @@ class action:
     def __call__(self, *args: Any, **kwargs: Any) -> AnnotatedAction:  # type: ignore
         ...
 
-    def __call__(self, *args, **kwargs) -> Union[AnnotatedAction, Any]:
+    def __call__(self, *args, **kwargs) -> AnnotatedAction | Any:
         from dara.core.interactivity.any_variable import AnyVariable
         from dara.core.internal.registries import static_kwargs_registry
 
@@ -1464,8 +1461,8 @@ class action:
                     )
 
         # Split args based on whether they are static or dynamic
-        dynamic_kwargs: Dict[str, AnyVariable] = {}
-        static_kwargs: Dict[str, Any] = {}
+        dynamic_kwargs: dict[str, AnyVariable] = {}
+        static_kwargs: dict[str, Any] = {}
         for key, kwarg in all_kwargs.items():
             if isinstance(kwarg, StateVariable):
                 raise ValueError(

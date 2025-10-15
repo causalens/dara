@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Union
 
 from pydantic import field_validator, model_validator
 
@@ -248,8 +247,8 @@ class CausalGraphViewer(BaseGraphComponent):
 
     js_module = '@darajs/components'
 
-    causal_graph: Union[CausalGraph, DerivedVariable, Variable, dict, Skeleton]
-    editor_mode: Optional[EditorMode] = None
+    causal_graph: CausalGraph | DerivedVariable | Variable | dict | Skeleton
+    editor_mode: EditorMode | None = None
 
     @field_validator('causal_graph')
     @classmethod

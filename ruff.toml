@@ -2,7 +2,7 @@ line-length = 120
 exclude = ["*.ipynb"]
 
 # target our minimum supported python version
-target-version = "py39"
+target-version = "py310"
 
 [format]
 quote-style = "single"
@@ -12,7 +12,7 @@ exclude = ["*.ipynb"]
 select = [
     "E",   # pycodestyle
     "F",   # Pyflakes
-    # "UP",  # pyupgrade - TODO: enable once we're on python 3.11
+    "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
     "I",   # isort

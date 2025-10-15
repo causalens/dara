@@ -21,20 +21,15 @@ from __future__ import annotations
 # between other parts of the framework
 import abc
 import uuid
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from enum import Enum
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     ClassVar,
-    Dict,
-    List,
     Literal,
-    Optional,
-    Tuple,
     Union,
     get_args,
     get_origin,
@@ -84,7 +79,7 @@ def annotation_has_base_model(typ: Any) -> bool:
 # It works by adding SerializeAsAny to all fields of the model.
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
-    def __new__(cls, name: str, bases: Tuple[type], namespaces: Dict[str, Any], **kwargs):
+    def __new__(cls, name: str, bases: tuple[type], namespaces: dict[str, Any], **kwargs):
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
         for base in bases:
@@ -267,7 +262,7 @@ class Cache:
             )
 
         @classmethod
-        def from_dict(cls, arg: dict) -> Optional[BaseCachePolicy]:
+        def from_dict(cls, arg: dict) -> BaseCachePolicy | None:
             """
             Construct a cache policy from its serialized dict represetnation
             """
@@ -297,7 +292,7 @@ class CachedRegistryEntry(BaseModel):
     via the cache policy.
     """
 
-    cache: Optional[BaseCachePolicy] = None
+    cache: BaseCachePolicy | None = None
     uid: str
 
     def to_store_key(self):
@@ -327,14 +322,14 @@ class TaskProgressUpdate(BaseTaskMessage):
 
 class TaskResult(BaseTaskMessage):
     result: Any
-    cache_key: Optional[str] = None
-    reg_entry: Optional[CachedRegistryEntry] = None
+    cache_key: str | None = None
+    reg_entry: CachedRegistryEntry | None = None
 
 
 class TaskError(BaseTaskMessage):
     error: BaseException
-    cache_key: Optional[str] = None
-    reg_entry: Optional[CachedRegistryEntry] = None
+    cache_key: str | None = None
+    reg_entry: CachedRegistryEntry | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -346,18 +341,18 @@ class BaseTask(abc.ABC):
     Generic BaseTask that can be used for type checking tasks
     """
 
-    cache_key: Optional[str]
-    reg_entry: Optional[CachedRegistryEntry]
-    notify_channels: List[str]
+    cache_key: str | None
+    reg_entry: CachedRegistryEntry | None
+    notify_channels: list[str]
     task_id: str
 
     @abc.abstractmethod
-    def __init__(self, task_id: Optional[str] = None) -> None:
+    def __init__(self, task_id: str | None = None) -> None:
         self.task_id = str(uuid.uuid4()) if task_id is None else task_id
         super().__init__()
 
     @abc.abstractmethod
-    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None) -> Any: ...
+    async def run(self, send_stream: MemoryObjectSendStream[TaskMessage] | None = None) -> Any: ...
 
     @abc.abstractmethod
     async def cancel(self): ...
@@ -369,18 +364,18 @@ class PendingTask(BaseTask):
     Is associated to an underlying task definition.
     """
 
-    def __init__(self, task_id: str, task_def: BaseTask, ws_channel: Optional[str] = None):
+    def __init__(self, task_id: str, task_def: BaseTask, ws_channel: str | None = None):
         self.task_id = task_id
         self.task_def = task_def
         self.notify_channels = [ws_channel] if ws_channel else []
 
-        self.cancel_scope: Optional[anyio.CancelScope] = None
+        self.cancel_scope: anyio.CancelScope | None = None
         self.event = anyio.Event()
-        self.result: Optional[Any] = None
-        self.error: Optional[BaseException] = None
+        self.result: Any | None = None
+        self.error: BaseException | None = None
         self.subscribers = 1
 
-    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None):
+    async def run(self, send_stream: MemoryObjectSendStream[TaskMessage] | None = None):
         """
         Wait for the task to complete
         """
@@ -445,17 +440,17 @@ class PendingTask(BaseTask):
 
 
 class RouterPath(BaseModel):
-    path: Optional[str] = None
+    path: str | None = None
     """
     A URL pathname, beginning with '/'.
     """
 
-    search: Optional[str] = None
+    search: str | None = None
     """
     A URL search string, beginning with '?'.
     """
 
-    hash: Optional[str] = None
+    hash: str | None = None
     """
     A URL hash string, beginning with '#'.
     """
@@ -542,8 +537,8 @@ class ActionImpl(DaraBaseModel):
     Required for non-local actions which have a JS implementation.
     """
 
-    js_module: ClassVar[Optional[str]] = None
-    py_name: ClassVar[Optional[str]] = None
+    js_module: ClassVar[str | None] = None
+    py_name: ClassVar[str | None] = None
 
     async def execute(self, ctx: ActionCtx) -> Any:
         """
@@ -576,7 +571,7 @@ ActionInstance = Union[ActionImpl, AnnotatedAction]
 """
 
 # TODO: remove List[AnnotatedAction] support in 2.0
-Action = Union[ActionImpl, AnnotatedAction, List[Union[AnnotatedAction, ActionImpl]]]
+Action = Union[ActionImpl, AnnotatedAction, list[AnnotatedAction | ActionImpl]]
 """
 Definition of an action that can be executed by the frontend.
 Supports:
@@ -601,14 +596,14 @@ class ActionDef(BaseModel):
 
     name: str
     py_module: str
-    js_module: Optional[str] = None
+    js_module: str | None = None
 
 
 class ActionResolverDef(BaseModel):
     uid: str
     """Unique id of the action definition"""
 
-    resolver: Optional[Callable] = None
+    resolver: Callable | None = None
     """Resolver function for the action"""
 
     execute_action: Callable[..., Awaitable[Any]]
@@ -616,7 +611,7 @@ class ActionResolverDef(BaseModel):
 
 
 class UploadResolverDef(BaseModel):
-    resolver: Optional[Callable] = None
+    resolver: Callable | None = None
     """Optional custom resolver function for the upload"""
     upload: Callable
     """Upload handling function, default dara.core.interactivity.any_data_variable.upload"""

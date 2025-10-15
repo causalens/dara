@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, Literal, Optional, Tuple, Union
+from typing import Any, Literal
 
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
@@ -38,8 +38,8 @@ class ServerBackend(BaseModel, abc.ABC):
 
     @abc.abstractmethod
     async def read_filtered(
-        self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
-    ) -> Tuple[Optional[DataFrame], int]:
+        self, key: str, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None
+    ) -> tuple[DataFrame | None, int]:
         """
         Read a value
         :param filters: filters to apply
@@ -54,8 +54,8 @@ class ServerBackend(BaseModel, abc.ABC):
 
 
 class MemoryBackend(ServerBackend):
-    data: Dict[str, Any] = Field(default_factory=dict)
-    sequence_number: DefaultDict[str, int] = Field(default_factory=lambda: defaultdict(int))
+    data: dict[str, Any] = Field(default_factory=dict)
+    sequence_number: defaultdict[str, int] = Field(default_factory=lambda: defaultdict(int))
 
     def __init__(self, scope: Literal['user', 'global'] = 'user'):
         super().__init__(scope=scope)
@@ -69,8 +69,8 @@ class MemoryBackend(ServerBackend):
         return self.data.get(key)
 
     async def read_filtered(
-        self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
-    ) -> Tuple[Optional[DataFrame], int]:
+        self, key: str, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None
+    ) -> tuple[DataFrame | None, int]:
         dataset = self.data.get(key)
 
         # print user-friendly error message if the data is not a DataFrame
@@ -141,10 +141,10 @@ class ServerVariable(AnyVariable):
 
     def __init__(
         self,
-        default: Optional[Any] = None,
-        backend: Optional[ServerBackend] = None,
+        default: Any | None = None,
+        backend: ServerBackend | None = None,
         scope: Literal['user', 'global'] = 'global',
-        uid: Optional[str] = None,
+        uid: str | None = None,
         **kwargs,
     ) -> None:
         from dara.core.internal.registries import server_variable_registry
@@ -192,8 +192,8 @@ class ServerVariable(AnyVariable):
     async def get_tabular_data(
         cls,
         entry: 'ServerVariableRegistryEntry',
-        filters: Optional[FilterQuery] = None,
-        pagination: Optional[Pagination] = None,
+        filters: FilterQuery | None = None,
+        pagination: Pagination | None = None,
     ) -> DataResponse:
         """
         Internal method to get tabular data from the backend
@@ -295,7 +295,7 @@ class ServerVariable(AnyVariable):
         return value
 
     async def read_filtered(
-        self, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
+        self, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None
     ):
         """
         Read a filtered value from the backend.

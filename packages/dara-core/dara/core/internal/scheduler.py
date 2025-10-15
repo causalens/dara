@@ -20,19 +20,19 @@ from datetime import datetime
 from multiprocessing import get_context
 from multiprocessing.process import BaseProcess
 from pickle import PicklingError
-from typing import Any, List, Optional, Union, cast
+from typing import Any, cast
 
 from croniter import croniter
 from pydantic import BaseModel, field_validator
 
 
 class ScheduledJob(BaseModel):
-    interval: Union[int, List[int]]
+    interval: int | list[int]
     continue_running: bool = True
     first_execution: bool = True
     run_once: bool
 
-    def __init__(self, interval: Union[int, list], run_once=False, **kwargs):
+    def __init__(self, interval: int | list, run_once=False, **kwargs):
         """
         Creates a ScheduledJob object
 
@@ -126,7 +126,7 @@ class CronScheduledJob(ScheduledJob):
 class TimeScheduledJob(ScheduledJob):
     job_time: datetime
 
-    def __init__(self, interval: Union[int, list], job_time: str, run_once=False):
+    def __init__(self, interval: int | list, job_time: str, run_once=False):
         """
         Creates a TimeScheduledJob object
 
@@ -172,9 +172,9 @@ class ScheduledJobFactory(BaseModel):
     :param run_once: Whether the job should be run only once
     """
 
-    interval: Union[int, list]
+    interval: int | list
     continue_running: bool = True
-    weekday: Optional[datetime] = None
+    weekday: datetime | None = None
     run_once: bool
 
     @field_validator('weekday', mode='before')

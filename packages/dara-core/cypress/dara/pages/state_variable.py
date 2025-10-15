@@ -1,4 +1,3 @@
-import time
 
 from dara.components import Button, Card, If, Stack, Text
 from dara.core.interactivity import DerivedVariable, Variable

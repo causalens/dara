@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import field_validator
 
@@ -97,17 +97,17 @@ class CheckboxGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[Item], ClientVariable]
-    select_max: Optional[int] = None
-    select_min: Optional[int] = None
+    items: list[Item] | ClientVariable
+    select_max: int | None = None
+    select_min: int | None = None
     list_styling: bool = False
-    value: Optional[Variable[Any]] = None
-    onchange: Optional[Action] = None
-    id: Optional[str] = None
+    value: Variable[Any] | None = None
+    onchange: Action | None = None
+    id: str | None = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[Item], ClientVariable]:
+    def validate_items(cls, items: Any) -> list[Item] | ClientVariable:
         if isinstance(items, ClientVariable):
             return items
         if not isinstance(items, list):

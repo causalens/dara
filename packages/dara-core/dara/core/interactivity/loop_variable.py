@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
@@ -47,9 +46,9 @@ class LoopVariable(ClientVariable):
     Both `get` and `[]` are equivalent.
     """
 
-    nested: List[str] = Field(default_factory=list)
+    nested: list[str] = Field(default_factory=list)
 
-    def __init__(self, uid: Optional[str] = None, nested: Optional[List[str]] = None):
+    def __init__(self, uid: str | None = None, nested: list[str] | None = None):
         if nested is None:
             nested = []
         super().__init__(uid=uid, nested=nested)

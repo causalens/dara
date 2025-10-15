@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar
 
 import jwt
 from fastapi import HTTPException
@@ -52,7 +52,7 @@ class BaseBasicAuthConfig(BaseAuthConfig):
         login=BasicAuthLogin,
         logout=BasicAuthLogout,
     )
-    users: Dict[str, str]
+    users: dict[str, str]
 
     def get_token(self, body: SessionRequestBody) -> TokenResponse:
         """
@@ -106,7 +106,7 @@ class BasicAuthConfig(BaseBasicAuthConfig):
 class MultiBasicAuthConfig(BaseBasicAuthConfig):
     """Authenticate the dashboard with multiple users"""
 
-    def __init__(self, users: Dict[str, str]):
+    def __init__(self, users: dict[str, str]):
         super().__init__(users=users)
 
 

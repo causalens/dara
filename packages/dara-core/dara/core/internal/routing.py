@@ -20,10 +20,10 @@ import json
 import math
 import os
 import traceback
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from functools import wraps
 from importlib.metadata import version
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Union
 from urllib.parse import unquote
 
 import anyio
@@ -295,11 +295,11 @@ async def get_latest_derived_variable(uid: str):
 
 
 class TabularRequestBody(BaseModel):
-    filters: Optional[FilterQuery] = None
+    filters: FilterQuery | None = None
     ws_channel: str
-    dv_values: Optional[NormalizedPayload[List[Any]]] = None
+    dv_values: NormalizedPayload[list[Any]] | None = None
     """DerivedVariable values if variable is a DerivedVariable"""
-    force_key: Optional[str] = None
+    force_key: str | None = None
     """Optional force key if variable is a DerivedVariable and a recalculation is forced"""
 
 
@@ -307,10 +307,10 @@ class TabularRequestBody(BaseModel):
 async def get_tabular_variable(
     uid: str,
     body: TabularRequestBody,
-    offset: Optional[int] = None,
-    limit: Optional[int] = None,
-    order_by: Optional[str] = None,
-    index: Optional[str] = None,
+    offset: int | None = None,
+    limit: int | None = None,
+    order_by: str | None = None,
+    index: str | None = None,
 ):
     """
     Generic endpoint for getting tabular data from a variable.
@@ -359,9 +359,9 @@ async def get_server_variable_sequence(
 
 @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
 async def upload_data(
-    data_uid: Optional[str] = None,
+    data_uid: str | None = None,
     data: UploadFile = File(),
-    resolver_id: Optional[str] = Form(default=None),
+    resolver_id: str | None = Form(default=None),
 ):
     """
     Upload endpoint.
@@ -391,8 +391,8 @@ async def upload_data(
 
 
 class DerivedStateRequestBody(BaseModel):
-    values: NormalizedPayload[List[Any]]
-    force_key: Optional[str] = None
+    values: NormalizedPayload[list[Any]]
+    force_key: str | None = None
     ws_channel: str
 
 
@@ -448,7 +448,7 @@ async def read_backend_store(store_uid: str):
 
 
 @core_api_router.post('/store', dependencies=[Depends(verify_session)])
-async def sync_backend_store(ws_channel: str = Body(), values: Dict[str, Any] = Body()):
+async def sync_backend_store(ws_channel: str = Body(), values: dict[str, Any] = Body()):
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
     async def _write(store_uid: str, value: Any):
@@ -519,7 +519,7 @@ class ActionPayload(BaseModel):
 
 class DerivedVariablePayload(BaseModel):
     uid: str
-    values: NormalizedPayload[List[Any]]
+    values: NormalizedPayload[list[Any]]
 
 
 class PyComponentPayload(BaseModel):
@@ -529,11 +529,11 @@ class PyComponentPayload(BaseModel):
 
 
 class RouteDataRequestBody(BaseModel):
-    action_payloads: List[ActionPayload] = Field(default_factory=list)
-    derived_variable_payloads: List[DerivedVariablePayload] = Field(default_factory=list)
-    py_component_payloads: List[PyComponentPayload] = Field(default_factory=list)
+    action_payloads: list[ActionPayload] = Field(default_factory=list)
+    derived_variable_payloads: list[DerivedVariablePayload] = Field(default_factory=list)
+    py_component_payloads: list[PyComponentPayload] = Field(default_factory=list)
     ws_channel: str
-    params: Dict[str, str] = Field(default_factory=dict)
+    params: dict[str, str] = Field(default_factory=dict)
 
 
 class Result(BaseModel):
@@ -577,7 +577,7 @@ def create_loader_route(config: Configuration, app: FastAPI):
         if route_data is None:
             raise HTTPException(status_code=404, detail=f'Route {route_id} not found')
 
-        action_results: Dict[str, Any] = {}
+        action_results: dict[str, Any] = {}
 
         if len(body.action_payloads) > 0:
             store: CacheStore = utils_registry.get('Store')

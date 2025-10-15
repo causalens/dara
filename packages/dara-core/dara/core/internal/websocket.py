@@ -20,7 +20,7 @@ import inspect
 import math
 import uuid
 from contextvars import ContextVar
-from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
+from typing import Any, Literal, Union
 from uuid import uuid4
 
 import anyio
@@ -56,14 +56,14 @@ class DaraClientMessage(BaseModel):
 
     type: Literal['message'] = 'message'
     channel: str
-    chunk_count: Optional[int] = None
+    chunk_count: int | None = None
     message: Any
 
 
 class CustomClientMessagePayload(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True)
 
-    rchan: Optional[str] = Field(default=None, alias='__rchan')
+    rchan: str | None = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
     kind: str
@@ -96,10 +96,10 @@ ClientMessage = Union[DaraClientMessage, CustomClientMessage]
 class ServerMessagePayload(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True, extra='allow')
 
-    rchan: Optional[str] = Field(default=None, alias='__rchan')
+    rchan: str | None = Field(default=None, alias='__rchan')
     """Return channel if the message is expected to have a response for"""
 
-    response_for: Optional[str] = Field(default=None, alias='__response_for')
+    response_for: str | None = Field(default=None, alias='__response_for')
     """ID of the __rchan included in the original client message if this message is a response to a client message"""
 
     @model_serializer(mode='wrap')
@@ -144,7 +144,7 @@ ServerPayload = Union[ServerMessagePayload, CustomServerMessagePayload]
 LoosePayload = Union[ServerPayload, dict]
 ServerMessage = Union[DaraServerMessage, CustomServerMessage]
 
-WS_CHANNEL: ContextVar[Optional[str]] = ContextVar('ws_channel', default=None)
+WS_CHANNEL: ContextVar[str | None] = ContextVar('ws_channel', default=None)
 
 
 class WebSocketHandler:
@@ -167,7 +167,7 @@ class WebSocketHandler:
     Stream containing messages to send to the client.
     """
 
-    pending_responses: Dict[str, Tuple[Event, Optional[Any]]]
+    pending_responses: dict[str, tuple[Event, Any | None]]
     """
     A map of pending responses from the client. The key is the message ID and the value is a tuple of the event to
     notify when the response is received and the response data.
@@ -276,7 +276,7 @@ class WebSocketHandler:
         # unreachable but needed for pylint to be happy
         return None
 
-    async def send_and_wait(self, message: ServerMessage) -> Optional[Any]:
+    async def send_and_wait(self, message: ServerMessage) -> Any | None:
         """
         Send a message to the client and return the client's response
 
@@ -300,7 +300,7 @@ class WebSocketHandler:
         return response_data
 
 
-def get_user_channels(user_identifier: str) -> Set[str]:
+def get_user_channels(user_identifier: str) -> set[str]:
     """
     Get connected websocket channels associated with a given user.
 
@@ -311,7 +311,7 @@ def get_user_channels(user_identifier: str) -> Set[str]:
     if sessions_registry.has(user_identifier):
         user_sessions = sessions_registry.get(user_identifier)
 
-        channels: Set[str] = set()
+        channels: set[str] = set()
         for session_id in user_sessions:
             if websocket_registry.has(session_id):
                 channels |= websocket_registry.get(session_id)
@@ -327,7 +327,7 @@ class WebsocketManager:
     """
 
     def __init__(self):
-        self.handlers: Dict[str, WebSocketHandler] = {}
+        self.handlers: dict[str, WebSocketHandler] = {}
         """
         A mapping of channel IDs to WebSocketHandler instances.
         """
@@ -354,7 +354,7 @@ class WebsocketManager:
         self.handlers[channel_id] = handler
         return handler
 
-    async def broadcast(self, message: LoosePayload, custom=False, ignore_channel: Optional[str] = None):
+    async def broadcast(self, message: LoosePayload, custom=False, ignore_channel: str | None = None):
         """
         Send a message to all connected clients.
 
@@ -369,7 +369,7 @@ class WebsocketManager:
                 tg.start_soon(handler.send_message, self._construct_message(message, custom))
 
     async def send_message_to_user(
-        self, user_id: str, message: LoosePayload, custom=False, ignore_channel: Optional[str] = None
+        self, user_id: str, message: LoosePayload, custom=False, ignore_channel: str | None = None
     ):
         """
         Send a message to all connected channels associated with the given user.
@@ -424,7 +424,7 @@ class WebsocketManager:
             del self.handlers[channel_id]
 
 
-async def ws_handler(websocket: WebSocket, token: Optional[str] = Query(default=None)):
+async def ws_handler(websocket: WebSocket, token: str | None = Query(default=None)):
     """
     Websocket handler. Used for live_reloading in dev mode and for notifying the UI of task results.
 

@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import ast
-from typing import Any, List, Optional, Union
+from typing import Any
 
 DEFAULT_WHITELIST = [
     # Inbuilts
@@ -41,7 +41,7 @@ class ScriptVisitor(ast.NodeVisitor):
 
     _function_blacklist = ['read_pickle', 'read_csv', 'read_fwf']
 
-    def __init__(self, undeclared_whitelist: List[str]):
+    def __init__(self, undeclared_whitelist: list[str]):
         self.undeclared_whitelist = undeclared_whitelist
         self.declared_vars: list = []
         super().__init__()
@@ -89,7 +89,7 @@ class ScriptVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node):
-        func_name: Optional[str] = None
+        func_name: str | None = None
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
         elif isinstance(node.func, ast.Attribute):
@@ -106,7 +106,7 @@ class ScriptVisitor(ast.NodeVisitor):
         raise SyntaxError(f'Imports are not allowed: {node.names}')
 
 
-def run_script(script: str, injections: Union[dict, None] = None, whitelist: List[str] = DEFAULT_WHITELIST) -> Any:
+def run_script(script: str, injections: dict | None = None, whitelist: list[str] = DEFAULT_WHITELIST) -> Any:
     """
     Run a given script in a "sandbox".
     Disallows imports, most globals except whitelisted ones.

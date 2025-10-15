@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Union
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core import ClientVariable
@@ -53,9 +52,9 @@ class Card(LayoutComponent):
     :param align: How to align the content of the card, accepts any flexbox alignments
     """
 
-    subtitle: Optional[Union[str, ClientVariable]] = None
-    title: Optional[Union[str, ClientVariable]] = None
+    subtitle: str | ClientVariable | None = None
+    title: str | ClientVariable | None = None
     accent: bool = False
 
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         super().__init__(*args, **kwargs)

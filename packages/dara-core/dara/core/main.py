@@ -25,7 +25,6 @@ from contextlib import asynccontextmanager
 from importlib.util import find_spec
 from inspect import iscoroutine
 from pathlib import Path
-from typing import Optional
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
@@ -147,7 +146,7 @@ def _start_application(config: Configuration):
 
             utils_registry.set('TaskPool', None)
 
-            task_pool: Optional[TaskPool] = None
+            task_pool: TaskPool | None = None
 
             # Only initialize the pool if a task module is configured
             if config.task_module:

@@ -311,8 +311,8 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`align-tracks`**\xa0CSS property sets the alignment in the masonry axis for grid containers that have masonry in their block axis.\n\n**Syntax**: `[ normal | <baseline-position> | <content-distribution> | <overflow-position>? <content-position> ]#`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   |   n/a   |   No   |  No  | No  |',
     )
-    alignmentBaseline: Optional[Property.AlignmentBaseline] = None
-    all: Optional[Property.All] = Field(
+    alignmentBaseline: Property.AlignmentBaseline | None = None
+    all: Property.All | None = Field(
         default=None,
         description="The `**all**` shorthand CSS property resets all of an element's properties except `unicode-bidi`, `direction`, and CSS Custom Properties. It can set properties to their initial or inherited values, or to the values specified in another stylesheet origin.\n\n**Syntax**: `initial | inherit | unset | revert`\n\n**Initial value**: There is no practical initial value for it.\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **37** | **27**  | **9.1** | **79** | No  |",
     )
@@ -406,7 +406,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`animation-timing-function`** CSS property sets how an animation progresses through the duration of each cycle.\n\n**Syntax**: `<easing-function>#`\n\n**Initial value**: `ease`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **43**  | **16**  |  **9**  | **12** | **10** |\n| 3 _-x-_ | 5 _-x-_ | 4 _-x-_ |        |        |',
     )
-    appearance: Optional[Property.Appearance] = Field(
+    appearance: Property.Appearance | None = Field(
         default=None,
         description="The `**appearance**` CSS property is used to display an element using platform-native styling, based on the operating system's theme. The **`-moz-appearance`** and **`-webkit-appearance`** properties are non-standard versions of this property, used (respectively) by Gecko (Firefox) and by WebKit-based (e.g., Safari) and Blink-based (e.g., Chrome, Opera) browsers to achieve the same thing. Note that Firefox and Edge also support **`-webkit-appearance`**, for compatibility reasons.\n\n**Syntax**: `none | auto | textfield | menulist-button | <compat-auto>`\n\n**Initial value**: `auto`\n\n| Chrome  | Firefox |   Safari    |   Edge   | IE  |\n| :-----: | :-----: | :---------: | :------: | :-: |\n| **84**  | **80**  | **3** _-x-_ |  **84**  | No  |\n| 1 _-x-_ | 1 _-x-_ |             | 12 _-x-_ |     |",
     )
@@ -441,11 +441,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`backdrop-filter`** CSS property lets you apply graphical effects such as blurring or color shifting to the area behind an element. Because it applies to everything _behind_ the element, to see the effect you must make the element or its background at least partially transparent.\n\n**Syntax**: `none | <filter-function-list>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |   Safari    |  Edge  | IE  |\n| :----: | :-----: | :---------: | :----: | :-: |\n| **76** |   n/a   | **9** _-x-_ | **17** | No  |',
     )
-    backfaceVisibility: Optional[Property.BackfaceVisibility] = Field(
+    backfaceVisibility: Property.BackfaceVisibility | None = Field(
         default=None,
         description='The **`backface-visibility`** CSS property sets whether the back face of an element is visible when turned towards the user.\n\n**Syntax**: `visible | hidden`\n\n**Initial value**: `visible`\n\n|  Chrome  | Firefox  |    Safari     |  Edge  |   IE   |\n| :------: | :------: | :-----------: | :----: | :----: |\n|  **36**  |  **16**  | **5.1** _-x-_ | **12** | **10** |\n| 12 _-x-_ | 10 _-x-_ |               |        |        |',
     )
-    background: Optional[Union[float_, str]] = Field(
+    background: float_ | str | None = Field(
         default=None,
         description='The **`background`** shorthand CSS property sets all background style properties at once, such as color, image, origin and size, or repeat method.\n\n**Syntax**: `[ <bg-layer> , ]* <final-bg-layer>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -687,15 +687,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`background-origin`** CSS property sets the background's origin: from the border start, inside the border, or inside the padding.\n\n**Syntax**: `<box>#`\n\n**Initial value**: `padding-box`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **4**  | **3**  | **12** | **9** |",
     )
-    backgroundPosition: Optional[Union[float_, str]] = Field(
+    backgroundPosition: float_ | str | None = Field(
         default=None,
         description='The **`background-position`** CSS property sets the initial position for each background image. The position is relative to the position layer set by `background-origin`.\n\n**Syntax**: `<bg-position>#`\n\n**Initial value**: `0% 0%`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    backgroundPositionX: Optional[Union[float_, str]] = Field(
+    backgroundPositionX: float_ | str | None = Field(
         default=None,
         description='The **`background-position-x`** CSS property sets the initial horizontal position for each background image. The position is relative to the position layer set by `background-origin`.\n\n**Syntax**: `[ center | [ [ left | right | x-start | x-end ]? <length-percentage>? ]! ]#`\n\n**Initial value**: `left`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  | **49**  | **1**  | **12** | **6** |',
     )
-    backgroundPositionY: Optional[Union[float_, str]] = Field(
+    backgroundPositionY: float_ | str | None = Field(
         default=None,
         description='The **`background-position-y`** CSS property sets the initial vertical position for each background image. The position is relative to the position layer set by `background-origin`.\n\n**Syntax**: `[ center | [ [ top | bottom | y-start | y-end ]? <length-percentage>? ]! ]#`\n\n**Initial value**: `top`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  | **49**  | **1**  | **12** | **6** |',
     )
@@ -716,24 +716,24 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`background-repeat`** CSS property sets how background images are repeated. A background image can be repeated along the horizontal and vertical axes, or not repeated at all.\n\n**Syntax**: `<repeat-style>#`\n\n**Initial value**: `repeat`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    backgroundSize: Optional[Union[float_, str]] = Field(
+    backgroundSize: float_ | str | None = Field(
         default=None,
         description="The **`background-size`** CSS property sets the size of the element's background image. The image can be left to its natural size, stretched, or constrained to fit the available space.\n\n**Syntax**: `<bg-size>#`\n\n**Initial value**: `auto auto`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **3**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |",
     )
-    baselineShift: Optional[Union[float_, str]] = None
+    baselineShift: float_ | str | None = None
     blockOverflow: Literal['-moz-initial', 'clip', 'ellipsis', 'inherit', 'initial', 'revert', 'unset', None] = Field(
         default=None,
         description='**Syntax**: `clip | ellipsis | <string>`\n\n**Initial value**: `clip`',
     )
-    blockSize: Optional[Union[float_, str]] = Field(
+    blockSize: float_ | str | None = Field(
         default=None,
         description="The **`block-size`** CSS property defines the horizontal or vertical size of an element's block, depending on its writing mode. It corresponds to either the `width` or the `height` property, depending on the value of `writing-mode`.\n\n**Syntax**: `<'width'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **41**  | **12.1** | **79** | No  |",
     )
-    border: Optional[Union[float_, str]] = Field(
+    border: float_ | str | None = Field(
         default=None,
         description="The **`border`** shorthand CSS property sets an element's border. It sets the values of `border-width`, `border-style`, and `border-color`.\n\n**Syntax**: `<line-width> || <line-style> || <color>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderBlock: Optional[Union[float_, str]] = Field(
+    borderBlock: float_ | str | None = Field(
         default=None,
         description="The **`border-block`** CSS property is a shorthand property for setting the individual logical block border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
@@ -926,7 +926,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-block-color`** CSS property defines the color of the logical block borders of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color` and `border-bottom-color`, or `border-right-color` and `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>{1,2}`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderBlockEnd: Optional[Union[float_, str]] = Field(
+    borderBlockEnd: float_ | str | None = Field(
         default=None,
         description="The **`border-block-end`** CSS property is a shorthand property for setting the individual logical block-end border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
@@ -1119,15 +1119,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-block-end-color`** CSS property defines the color of the logical block-end border of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color`,\xa0`border-right-color`,\xa0`border-bottom-color`, or `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockEndStyle: Optional[Property.BorderBlockEndStyle] = Field(
+    borderBlockEndStyle: Property.BorderBlockEndStyle | None = Field(
         default=None,
         description="The **`border-block-end-style`** CSS property defines the style of the logical block-end border of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style`, `border-right-style`, `border-bottom-style`, or `border-left-style` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockEndWidth: Optional[Union[float_, str]] = Field(
+    borderBlockEndWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-block-end-width`** CSS property defines the width of the logical block-end border of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width`,\xa0`border-right-width`,\xa0`border-bottom-width`, or `border-left-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockStart: Optional[Union[float_, str]] = Field(
+    borderBlockStart: float_ | str | None = Field(
         default=None,
         description="The **`border-block-start`** CSS property is a shorthand property for setting the individual logical block-start border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
@@ -1320,23 +1320,23 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-block-start-color`** CSS property defines the color of the logical block-start border of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color`,\xa0`border-right-color`,\xa0`border-bottom-color`, or `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockStartStyle: Optional[Property.BorderBlockStartStyle] = Field(
+    borderBlockStartStyle: Property.BorderBlockStartStyle | None = Field(
         default=None,
         description="The **`border-block-start-style`** CSS property defines the style of the logical block start border of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style`,\xa0`border-right-style`,\xa0`border-bottom-style`, or `border-left-style` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockStartWidth: Optional[Union[float_, str]] = Field(
+    borderBlockStartWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-block-start-width`** CSS property defines the width of the logical block-start border of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width`,\xa0`border-right-width`,\xa0`border-bottom-width`, or `border-left-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderBlockStyle: Optional[Property.BorderBlockStyle] = Field(
+    borderBlockStyle: Property.BorderBlockStyle | None = Field(
         default=None,
         description="The **`border-block-style`** CSS property defines the style of the logical block borders of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style` and `border-bottom-style`, or `border-left-style` and `border-right-style` properties depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderBlockWidth: Optional[Union[float_, str]] = Field(
+    borderBlockWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-block-width`** CSS property defines the width of the logical block\xa0borders of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width` and\xa0`border-bottom-width`, or `border-left-width`, and\xa0`border-right-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderBottom: Optional[Union[float_, str]] = Field(
+    borderBottom: float_ | str | None = Field(
         default=None,
         description="The **`border-bottom`** shorthand CSS property sets an element's bottom border. It sets the values of `border-bottom-width`, `border-bottom-style` and `border-bottom-color`.\n\n**Syntax**: `<line-width> || <line-style> || <color>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
@@ -1529,23 +1529,23 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-bottom-color`** CSS property sets the color of an element's bottom border. It can also be set with the shorthand CSS properties `border-color` or `border-bottom`.\n\n**Syntax**: `<'border-top-color'>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderBottomLeftRadius: Optional[Union[float_, str]] = Field(
+    borderBottomLeftRadius: float_ | str | None = Field(
         default=None,
         description='The **`border-bottom-left-radius`** CSS property rounds the bottom-left corner of an element by specifying the radius (or the radius of the semi-major and semi-minor axes) of the ellipse defining the curvature of the corner.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **4**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |',
     )
-    borderBottomRightRadius: Optional[Union[float_, str]] = Field(
+    borderBottomRightRadius: float_ | str | None = Field(
         default=None,
         description='The **`border-bottom-right-radius`** CSS property rounds the bottom-right corner of an element by specifying the radius (or the radius of the semi-major and semi-minor axes) of the ellipse defining the curvature of the corner.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **4**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |',
     )
-    borderBottomStyle: Optional[Property.BorderBottomStyle] = Field(
+    borderBottomStyle: Property.BorderBottomStyle | None = Field(
         default=None,
         description="The **`border-bottom-style`** CSS property sets the line style of an element's bottom `border`.\n\n**Syntax**: `<line-style>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |",
     )
-    borderBottomWidth: Optional[Union[float_, str]] = Field(
+    borderBottomWidth: float_ | str | None = Field(
         default=None,
         description='The **`border-bottom-width`** CSS property sets the width of the bottom border of an element.\n\n**Syntax**: `<line-width>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    borderCollapse: Optional[Property.BorderCollapse] = Field(
+    borderCollapse: Property.BorderCollapse | None = Field(
         default=None,
         description='The **`border-collapse`** CSS property sets whether cells inside a `<table>` have shared or separate borders.\n\n**Syntax**: `collapse | separate`\n\n**Initial value**: `separate`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **1**  | **1.2** | **12** | **5** |',
     )
@@ -1738,11 +1738,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-color`** shorthand CSS property sets the color of an element's border.\n\n**Syntax**: `<color>{1,4}`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderEndEndRadius: Optional[Union[float_, str]] = Field(
+    borderEndEndRadius: float_ | str | None = Field(
         default=None,
         description="The **`border-end-end-radius`** CSS property defines a logical border radius on an element, which maps to a physical border radius that depends on the element's `writing-mode`, `direction`, and `text-orientation`. This is useful when building styles to work regardless of the text orientation and\xa0writing mode.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **89** | **66**  | **15** | **89** | No  |",
     )
-    borderEndStartRadius: Optional[Union[float_, str]] = Field(
+    borderEndStartRadius: float_ | str | None = Field(
         default=None,
         description="The **`border-end-start-radius`** CSS property defines a logical border radius on an element, which maps to a physical border radius\xa0depending on the element's `writing-mode`, `direction`, and `text-orientation`.\xa0This is useful when building styles to work regardless of the text orientation and\xa0writing mode.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **89** | **66**  | **15** | **89** | No  |",
     )
@@ -1752,7 +1752,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-image`** CSS property draws an image around a given element. It replaces the element's regular border.\n\n**Syntax**: `<'border-image-source'> || <'border-image-slice'> [ / <'border-image-width'> | / <'border-image-width'>? / <'border-image-outset'> ]? || <'border-image-repeat'>`\n\n| Chrome  |  Firefox  | Safari  |  Edge  |   IE   |\n| :-----: | :-------: | :-----: | :----: | :----: |\n| **16**  |  **15**   |  **6**  | **12** | **11** |\n| 7 _-x-_ | 3.5 _-x-_ | 3 _-x-_ |        |        |",
     )
-    borderImageOutset: Optional[Union[float_, str]] = Field(
+    borderImageOutset: float_ | str | None = Field(
         default=None,
         description="The **`border-image-outset`** CSS property sets the distance by which an element's border image is set out from its border box.\n\n**Syntax**: `[ <length> | <number> ]{1,4}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **15** | **15**  | **6**  | **12** | **11** |",
     )
@@ -1770,11 +1770,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-image-source`** CSS property sets the source image used to create an element's border image.\n\n**Syntax**: `none | <image>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **15** | **15**  | **6**  | **12** | **11** |",
     )
-    borderImageWidth: Optional[Union[float_, str]] = Field(
+    borderImageWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-image-width`** CSS property sets the width of an element's border image.\n\n**Syntax**: `[ <length-percentage> | <number> | auto ]{1,4}`\n\n**Initial value**: `1`\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **15** | **13**  | **6**  | **12** | **11** |",
     )
-    borderInline: Optional[Union[float_, str]] = Field(
+    borderInline: float_ | str | None = Field(
         default=None,
         description="The **`border-inline`** CSS property is a shorthand property for setting the individual logical inline border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
@@ -1967,7 +1967,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-inline-color`** CSS property defines the color of the logical inline borders of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color` and `border-bottom-color`, or `border-right-color` and `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>{1,2}`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderInlineEnd: Optional[Union[float_, str]] = Field(
+    borderInlineEnd: float_ | str | None = Field(
         default=None,
         description="The **`border-inline-end`** CSS property is a shorthand property for setting the individual logical inline-end border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
@@ -2160,15 +2160,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-inline-end-color`** CSS property defines the color of the logical inline-end border of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color`, `border-right-color`, `border-bottom-color`, or `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>`\n\n**Initial value**: `currentcolor`\n\n| Chrome |           Firefox           |  Safari  |  Edge  | IE  |\n| :----: | :-------------------------: | :------: | :----: | :-: |\n| **69** |           **41**            | **12.1** | **79** | No  |\n|        | 3 _(-moz-border-end-color)_ |          |        |     |",
     )
-    borderInlineEndStyle: Optional[Property.BorderInlineEndStyle] = Field(
+    borderInlineEndStyle: Property.BorderInlineEndStyle | None = Field(
         default=None,
         description="The **`border-inline-end-style`** CSS property defines the style of the logical inline end border of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style`, `border-right-style`, `border-bottom-style`, or `border-left-style` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome |           Firefox           |  Safari  |  Edge  | IE  |\n| :----: | :-------------------------: | :------: | :----: | :-: |\n| **69** |           **41**            | **12.1** | **79** | No  |\n|        | 3 _(-moz-border-end-style)_ |          |        |     |",
     )
-    borderInlineEndWidth: Optional[Union[float_, str]] = Field(
+    borderInlineEndWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-inline-end-width`** CSS property defines the width of the logical inline-end border of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width`, `border-right-width`, `border-bottom-width`, or `border-left-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome |           Firefox           |  Safari  |  Edge  | IE  |\n| :----: | :-------------------------: | :------: | :----: | :-: |\n| **69** |           **41**            | **12.1** | **79** | No  |\n|        | 3 _(-moz-border-end-width)_ |          |        |     |",
     )
-    borderInlineStart: Optional[Union[float_, str]] = Field(
+    borderInlineStart: float_ | str | None = Field(
         default=None,
         description="The **`border-inline-start`** CSS property is a shorthand property for setting the individual logical inline-start border property values in a single place in the style sheet.\n\n**Syntax**: `<'border-top-width'> || <'border-top-style'> || <color>`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
@@ -2361,23 +2361,23 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-inline-start-color`** CSS property defines the color of the logical inline start border of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-color`, `border-right-color`, `border-bottom-color`, or `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-color'>`\n\n**Initial value**: `currentcolor`\n\n| Chrome |            Firefox            |  Safari  |  Edge  | IE  |\n| :----: | :---------------------------: | :------: | :----: | :-: |\n| **69** |            **41**             | **12.1** | **79** | No  |\n|        | 3 _(-moz-border-start-color)_ |          |        |     |",
     )
-    borderInlineStartStyle: Optional[Property.BorderInlineStartStyle] = Field(
+    borderInlineStartStyle: Property.BorderInlineStartStyle | None = Field(
         default=None,
         description="The **`border-inline-start-style`** CSS property defines the style of the logical inline start border of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style`, `border-right-style`, `border-bottom-style`, or `border-left-style` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome |            Firefox            |  Safari  |  Edge  | IE  |\n| :----: | :---------------------------: | :------: | :----: | :-: |\n| **69** |            **41**             | **12.1** | **79** | No  |\n|        | 3 _(-moz-border-start-style)_ |          |        |     |",
     )
-    borderInlineStartWidth: Optional[Union[float_, str]] = Field(
+    borderInlineStartWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-inline-start-width`** CSS property defines the width of the logical inline-start border of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width`, `border-right-width`, `border-bottom-width`, or `border-left-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    borderInlineStyle: Optional[Property.BorderInlineStyle] = Field(
+    borderInlineStyle: Property.BorderInlineStyle | None = Field(
         default=None,
         description="The **`border-inline-style`** CSS property defines the style of the logical inline\xa0borders of an element, which maps to a physical border style depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-style` and\xa0`border-bottom-style`, or\xa0`border-left-style` and\xa0`border-right-style` properties\xa0depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-style'>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderInlineWidth: Optional[Union[float_, str]] = Field(
+    borderInlineWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-inline-width`** CSS property defines the width of the logical inline\xa0borders of an element, which maps to a physical border width depending on the element's writing mode, directionality, and text orientation. It corresponds to the `border-top-width` and\xa0`border-bottom-width`, or `border-left-width`, and\xa0`border-right-width` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'border-top-width'>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    borderLeft: Optional[Union[float_, str]] = Field(
+    borderLeft: float_ | str | None = Field(
         default=None,
         description="The **`border-left`** shorthand CSS property sets all the properties of an element's left border.\n\n**Syntax**: `<line-width> || <line-style> || <color>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
@@ -2570,19 +2570,19 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-left-color`** CSS property sets the color of an element's left border. It can also be set with the shorthand CSS properties `border-color` or `border-left`.\n\n**Syntax**: `<color>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderLeftStyle: Optional[Property.BorderLeftStyle] = Field(
+    borderLeftStyle: Property.BorderLeftStyle | None = Field(
         default=None,
         description="The **`border-left-style`** CSS property sets the line style of an element's left `border`.\n\n**Syntax**: `<line-style>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |",
     )
-    borderLeftWidth: Optional[Union[float_, str]] = Field(
+    borderLeftWidth: float_ | str | None = Field(
         default=None,
         description='The **`border-left-width`** CSS property sets the width of the left border of an element.\n\n**Syntax**: `<line-width>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    borderRadius: Optional[Union[float_, str]] = Field(
+    borderRadius: float_ | str | None = Field(
         default=None,
         description="The **`border-radius`** CSS property rounds the corners of an element's outer border edge. You can set a single radius to make circular corners, or two radii to make elliptical corners.\n\n**Syntax**: `<length-percentage>{1,4} [ / <length-percentage>{1,4} ]?`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **4**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |",
     )
-    borderRight: Optional[Union[float_, str]] = Field(
+    borderRight: float_ | str | None = Field(
         default=None,
         description="The **`border-right`** shorthand CSS property sets all the properties of an element's right border.\n\n**Syntax**: `<line-width> || <line-style> || <color>`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |",
     )
@@ -2775,23 +2775,23 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-right-color`** CSS property sets the color of an element's right border. It can also be set with the shorthand CSS properties `border-color` or `border-right`.\n\n**Syntax**: `<color>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderRightStyle: Optional[Property.BorderRightStyle] = Field(
+    borderRightStyle: Property.BorderRightStyle | None = Field(
         default=None,
         description="The **`border-right-style`** CSS property sets the line style of an element's right `border`.\n\n**Syntax**: `<line-style>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |",
     )
-    borderRightWidth: Optional[Union[float_, str]] = Field(
+    borderRightWidth: float_ | str | None = Field(
         default=None,
         description='The **`border-right-width`** CSS property sets the width of the right border of an element.\n\n**Syntax**: `<line-width>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    borderSpacing: Optional[Union[float_, str]] = Field(
+    borderSpacing: float_ | str | None = Field(
         default=None,
         description='The **`border-spacing`** CSS property sets the distance between the borders of adjacent `<table>` cells. This property applies only when `border-collapse` is `separate`.\n\n**Syntax**: `<length> <length>?`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **8** |',
     )
-    borderStartEndRadius: Optional[Union[float_, str]] = Field(
+    borderStartEndRadius: float_ | str | None = Field(
         default=None,
         description="The **`border-start-end-radius`** CSS property defines a logical border radius on an element, which maps to a physical border radius\xa0depending on the element's `writing-mode`, `direction`, and `text-orientation`.\xa0This is useful when building styles to work regardless of the text orientation and\xa0writing mode.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **89** | **66**  | **15** | **89** | No  |",
     )
-    borderStartStartRadius: Optional[Union[float_, str]] = Field(
+    borderStartStartRadius: float_ | str | None = Field(
         default=None,
         description="The **`border-start-start-radius`** CSS property defines a logical border radius on an element, which maps to a physical border radius that depends on the element's `writing-mode`, `direction`, and `text-orientation`. This is useful when building styles to work regardless of the text orientation and\xa0writing mode.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **89** | **66**  | **15** | **89** | No  |",
     )
@@ -2816,7 +2816,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-style`** shorthand CSS property sets the line style for all four sides of an element's border.\n\n**Syntax**: `<line-style>{1,4}`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderTop: Optional[Union[float_, str]] = Field(
+    borderTop: float_ | str | None = Field(
         default=None,
         description="The **`border-top`** shorthand CSS property sets all the properties of an element's top border.\n\n**Syntax**: `<line-width> || <line-style> || <color>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
@@ -3009,39 +3009,39 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`border-top-color`** CSS property sets the color of an element's top border. It can also be set with the shorthand CSS properties `border-color` or `border-top`.\n\n**Syntax**: `<color>`\n\n**Initial value**: `currentcolor`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    borderTopLeftRadius: Optional[Union[float_, str]] = Field(
+    borderTopLeftRadius: float_ | str | None = Field(
         default=None,
         description='The **`border-top-left-radius`** CSS property rounds the top-left corner of an element by specifying the radius (or the radius of the semi-major and semi-minor axes) of the ellipse defining the curvature of the corner.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **4**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |',
     )
-    borderTopRightRadius: Optional[Union[float_, str]] = Field(
+    borderTopRightRadius: float_ | str | None = Field(
         default=None,
         description='The **`border-top-right-radius`** CSS property rounds the top-right corner of an element by specifying the radius (or the radius of the semi-major and semi-minor axes) of the ellipse defining the curvature of the corner.\n\n**Syntax**: `<length-percentage>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n|  **4**  |  **4**  |  **5**  | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |',
     )
-    borderTopStyle: Optional[Property.BorderTopStyle] = Field(
+    borderTopStyle: Property.BorderTopStyle | None = Field(
         default=None,
         description="The **`border-top-style`** CSS property sets the line style of an element's top `border`.\n\n**Syntax**: `<line-style>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |",
     )
-    borderTopWidth: Optional[Union[float_, str]] = Field(
+    borderTopWidth: float_ | str | None = Field(
         default=None,
         description='The **`border-top-width`** CSS property sets the width of the top border of an element.\n\n**Syntax**: `<line-width>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    borderWidth: Optional[Union[float_, str]] = Field(
+    borderWidth: float_ | str | None = Field(
         default=None,
         description="The **`border-width`** shorthand CSS property sets the width of an element's border.\n\n**Syntax**: `<line-width>{1,4}`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    bottom: Optional[Union[float_, str]] = Field(
+    bottom: float_ | str | None = Field(
         default=None,
         description='The **`bottom`** CSS property participates in setting the vertical position of a positioned element. It has no effect on non-positioned elements.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **5** |',
     )
-    boxAlign: Optional[Property.BoxAlign] = Field(
+    boxAlign: Property.BoxAlign | None = Field(
         default=None,
         description='The **`box-align`** CSS property specifies how an element aligns its contents across its layout in a perpendicular direction. The effect of the property is only visible if there is extra space in the box.\n\n**Syntax**: `start | center | end | baseline | stretch`\n\n**Initial value**: `stretch`',
     )
-    boxDecorationBreak: Optional[Property.BoxDecorationBreak] = Field(
+    boxDecorationBreak: Property.BoxDecorationBreak | None = Field(
         default=None,
         description="The **`box-decoration-break`** CSS property specifies how an element's fragments should be rendered when broken across multiple lines, columns, or pages.\n\n**Syntax**: `slice | clone`\n\n**Initial value**: `slice`\n\n|    Chrome    | Firefox |   Safari    |     Edge     | IE  |\n| :----------: | :-----: | :---------: | :----------: | :-: |\n| **22** _-x-_ | **32**  | **7** _-x-_ | **79** _-x-_ | No  |",
     )
-    boxDirection: Optional[Property.BoxDirection] = Field(
+    boxDirection: Property.BoxDirection | None = Field(
         default=None,
         description='The **`box-direction`** CSS property specifies whether a box lays out its contents normally (from the top or left edge), or in reverse (from the bottom or right edge).\n\n**Syntax**: `normal | reverse | inherit`\n\n**Initial value**: `normal`',
     )
@@ -3053,7 +3053,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`box-flex-group`** CSS property assigns the flexbox's child elements to a flex group.\n\n**Syntax**: `<integer>`\n\n**Initial value**: `1`",
     )
-    boxLines: Optional[Property.BoxLines] = Field(
+    boxLines: Property.BoxLines | None = Field(
         default=None,
         description='The **`box-lines`** CSS property determines whether the box may have a single or multiple lines (rows for horizontally oriented boxes, columns for vertically oriented boxes).\n\n**Syntax**: `single | multiple`\n\n**Initial value**: `single`',
     )
@@ -3061,11 +3061,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`box-ordinal-group`** CSS property assigns the flexbox's child elements to an ordinal group.\n\n**Syntax**: `<integer>`\n\n**Initial value**: `1`",
     )
-    boxOrient: Optional[Property.BoxOrient] = Field(
+    boxOrient: Property.BoxOrient | None = Field(
         default=None,
         description='This is a property of the original CSS Flexible Box Layout Module draft, and has been replaced by a newer standard. See flexbox for information about the current standard.\n\n**Syntax**: `horizontal | vertical | inline-axis | block-axis | inherit`\n\n**Initial value**: `inline-axis` (`horizontal` in XUL)',
     )
-    boxPack: Optional[Property.BoxPack] = Field(
+    boxPack: Property.BoxPack | None = Field(
         default=None,
         description='The **`-moz-box-pack`** and **`-webkit-box-pack`** CSS properties specify how a `-moz-box` or `-webkit-box` packs its contents in the direction of its layout. The effect of this is only visible if there is extra space in the box.\n\n**Syntax**: `start | center | end | justify`\n\n**Initial value**: `start`',
     )
@@ -3073,23 +3073,23 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`box-shadow`** CSS property adds shadow effects around an element's frame. You can set multiple effects separated by commas. A box shadow is described by X and Y offsets relative to the element, blur and spread radius, and color.\n\n**Syntax**: `none | <shadow>#`\n\n**Initial value**: `none`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n| **10**  |  **4**  | **5.1** | **12** | **9** |\n| 1 _-x-_ |         | 3 _-x-_ |        |       |",
     )
-    boxSizing: Optional[Property.BoxSizing] = Field(
+    boxSizing: Property.BoxSizing | None = Field(
         default=None,
         description='The **`box-sizing`** CSS property sets how the total width and height of an element is calculated.\n\n**Syntax**: `content-box | border-box`\n\n**Initial value**: `content-box`\n\n| Chrome  | Firefox | Safari  |  Edge  |  IE   |\n| :-----: | :-----: | :-----: | :----: | :---: |\n| **10**  | **29**  | **5.1** | **12** | **8** |\n| 1 _-x-_ | 1 _-x-_ | 3 _-x-_ |        |       |',
     )
-    breakAfter: Optional[Property.BreakAfter] = Field(
+    breakAfter: Property.BreakAfter | None = Field(
         default=None,
         description='The **`break-after`** CSS property sets how page, column, or region breaks should behave after a generated box. If there is no generated box, the property is ignored.\n\n**Syntax**: `auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region`\n\n**Initial value**: `auto`\n\n---\n\n_Supported in Multi-column Layout_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  |   No   | **12** | **10** |\n\n---\n\n_Supported in Paged Media_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  | **10** | **12** | **10** |\n\n---',
     )
-    breakBefore: Optional[Property.BreakBefore] = Field(
+    breakBefore: Property.BreakBefore | None = Field(
         default=None,
         description='The **`break-before`** CSS property sets how page, column, or region breaks should behave before a generated box. If there is no generated box, the property is ignored.\n\n**Syntax**: `auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region`\n\n**Initial value**: `auto`\n\n---\n\n_Supported in Multi-column Layout_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  |   No   | **12** | **10** |\n\n---\n\n_Supported in Paged Media_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  | **10** | **12** | **10** |\n\n---',
     )
-    breakInside: Optional[Property.BreakInside] = Field(
+    breakInside: Property.BreakInside | None = Field(
         default=None,
         description='The **`break-inside`** CSS property sets how page, column, or region breaks should behave inside a generated box. If there is no generated box, the property is ignored.\n\n**Syntax**: `auto | avoid | avoid-page | avoid-column | avoid-region`\n\n**Initial value**: `auto`\n\n---\n\n_Supported in Multi-column Layout_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  | **10** | **12** | **10** |\n\n---\n\n_Supported in Paged Media_\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **50** | **65**  | **10** | **12** | **10** |\n\n---',
     )
-    captionSide: Optional[Property.CaptionSide] = Field(
+    captionSide: Property.CaptionSide | None = Field(
         default=None,
         description="The **`caption-side`** CSS property puts the content of a table's `<caption>` on the specified side. The values are relative to the `writing-mode` of the table.\n\n**Syntax**: `top | bottom | block-start | block-end | inline-start | inline-end`\n\n**Initial value**: `top`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **8** |",
     )
@@ -3283,7 +3283,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`caret-color`** CSS property sets the color of the **insertion caret**, the visible marker where the next character typed will be inserted. This is sometimes referred to as the **text input cursor**. The caret appears in elements such as `<input>` or those with the `contenteditable` attribute. The caret is typically a thin vertical line that flashes to help make it more noticeable. By default, it is black, but its color can be altered with this property.\n\n**Syntax**: `auto | <color>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **53**  | **11.1** | **79** | No  |',
     )
-    clear: Optional[Property.Clear] = Field(
+    clear: Property.Clear | None = Field(
         default=None,
         description='The **`clear`** CSS property sets whether an element must be moved below (cleared) floating elements that precede it. The `clear` property applies to floating and non-floating elements.\n\n**Syntax**: `none | left | right | both | inline-start | inline-end`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -3310,7 +3310,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The `**clip-path**` CSS property creates a clipping region that sets what part of an element should be shown. Parts that are inside the region are shown, while those outside are hidden.\n\n**Syntax**: `<clip-source> | [ <basic-shape> || <geometry-box> ] | none`\n\n**Initial value**: `none`\n\n|  Chrome  | Firefox |  Safari   |  Edge  |   IE   |\n| :------: | :-----: | :-------: | :----: | :----: |\n|  **55**  | **3.5** |  **9.1**  | **12** | **10** |\n| 23 _-x-_ |         | 6.1 _-x-_ |        |        |',
     )
-    clipRule: Optional[Property.ClipRule] = None
+    clipRule: Property.ClipRule | None = None
     color: Literal[
         '-moz-initial',
         'ActiveBorder',
@@ -3500,12 +3500,12 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`color`** CSS property sets the foreground color value of an element's text and text decorations, and sets the `<currentcolor>` value. `currentcolor` may be used as an indirect value on _other_ properties and is the default for other color properties, such as `border-color`.\n\n**Syntax**: `<color>`\n\n**Initial value**: Varies from one browser to another\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |",
     )
-    colorAdjust: Optional[Property.ColorAdjust] = Field(
+    colorAdjust: Property.ColorAdjust | None = Field(
         default=None,
         description="The **`color-adjust`** CSS property sets what, if anything, the user agent may do to optimize the appearance of the element on the output device. By default, the browser is allowed to make any adjustments to the element's appearance it determines to be necessary and prudent given the type and capabilities of the output device.\n\n**Syntax**: `economy | exact`\n\n**Initial value**: `economy`\n\n|                Chrome                 | Firefox |                Safari                |                 Edge                  | IE  |\n| :-----------------------------------: | :-----: | :----------------------------------: | :-----------------------------------: | :-: |\n| **49** _(-webkit-print-color-adjust)_ | **48**  | **6** _(-webkit-print-color-adjust)_ | **79** _(-webkit-print-color-adjust)_ | No  |",
     )
-    colorInterpolation: Optional[Property.ColorInterpolation] = None
-    colorRendering: Optional[Property.ColorRendering] = None
+    colorInterpolation: Property.ColorInterpolation | None = None
+    colorRendering: Property.ColorRendering | None = None
     colorScheme: Literal['-moz-initial', 'dark', 'inherit', 'initial', 'light', 'normal', 'revert', 'unset', None] = (
         Field(
             default=None,
@@ -3516,15 +3516,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`column-count`** CSS property breaks an element's content into the specified number of columns.\n\n**Syntax**: `<integer> | auto`\n\n**Initial value**: `auto`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **52**  |  **9**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |",
     )
-    columnFill: Optional[Property.ColumnFill] = Field(
+    columnFill: Property.ColumnFill | None = Field(
         default=None,
         description="The **`column-fill`** CSS property controls how an element's contents are balanced when broken into columns.\n\n**Syntax**: `auto | balance | balance-all`\n\n**Initial value**: `balance`\n\n| Chrome | Firefox | Safari  |  Edge  |   IE   |\n| :----: | :-----: | :-----: | :----: | :----: |\n| **50** | **52**  |  **9**  | **12** | **10** |\n|        |         | 8 _-x-_ |        |        |",
     )
-    columnGap: Optional[Union[float_, str]] = Field(
+    columnGap: float_ | str | None = Field(
         default=None,
         description="The **`column-gap`** CSS property sets the size of the gap (gutter) between an element's columns.\n\n**Syntax**: `normal | <length-percentage>`\n\n**Initial value**: `normal`\n\n---\n\n_Supported in Flex Layout_\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **84** | **63**  | **14.1** | **84** | No  |\n\n---\n\n_Supported in Grid Layout_\n\n|         Chrome         |        Firefox         |          Safari          |  Edge  | IE  |\n| :--------------------: | :--------------------: | :----------------------: | :----: | :-: |\n|         **66**         |         **61**         |          **12**          | **16** | No  |\n| 57 _(grid-column-gap)_ | 52 _(grid-column-gap)_ | 10.1 _(grid-column-gap)_ |        |     |\n\n---\n\n_Supported in Multi-column Layout_\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **52**  | **10**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |\n\n---",
     )
-    columnRule: Optional[Union[float_, str]] = Field(
+    columnRule: float_ | str | None = Field(
         default=None,
         description="The **`column-rule`**\xa0shorthand CSS property sets the width, style, and color of the line drawn between columns in a multi-column layout.\n\n**Syntax**: `<'column-rule-width'> || <'column-rule-style'> || <'column-rule-color'>`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **52**  |  **9**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |",
     )
@@ -3738,19 +3738,19 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`column-rule-style`** CSS property sets the style of the line drawn between columns in a multi-column layout.\n\n**Syntax**: `<'border-style'>`\n\n**Initial value**: `none`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **52**  |  **9**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |",
     )
-    columnRuleWidth: Optional[Union[float_, str]] = Field(
+    columnRuleWidth: float_ | str | None = Field(
         default=None,
         description="The **`column-rule-width`** CSS property sets the width of the line drawn between columns in a multi-column layout.\n\n**Syntax**: `<'border-width'>`\n\n**Initial value**: `medium`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **52**  |  **9**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |",
     )
-    columnSpan: Optional[Property.ColumnSpan] = Field(
+    columnSpan: Property.ColumnSpan | None = Field(
         default=None,
         description='The **`column-span`** CSS property makes it possible for an element to span across all columns when its value is set to `all`.\n\n**Syntax**: `none | all`\n\n**Initial value**: `none`\n\n| Chrome  | Firefox |  Safari   |  Edge  |   IE   |\n| :-----: | :-----: | :-------: | :----: | :----: |\n| **50**  | **71**  |   **9**   | **12** | **10** |\n| 6 _-x-_ |         | 5.1 _-x-_ |        |        |',
     )
-    columnWidth: Optional[Union[float_, str]] = Field(
+    columnWidth: float_ | str | None = Field(
         default=None,
         description="The **`column-width`** CSS property sets the ideal column width in a multi-column layout. The container will have as many columns as can fit without any of them having a width less than the `column-width` value. If the width of the container is narrower than the specified value, the single column's width will be smaller than the declared column width.\n\n**Syntax**: `<length> | auto`\n\n**Initial value**: `auto`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :-----: | :-----: | :-----: | :----: | :----: |\n| **50**  | **50**  |  **9**  | **12** | **10** |\n| 1 _-x-_ |         | 3 _-x-_ |        |        |",
     )
-    columns: Optional[Union[float_, str]] = Field(
+    columns: float_ | str | None = Field(
         default=None,
         description="The **`columns`** CSS shorthand property sets the number of columns to use when drawing an element's contents, as well as those columns' widths.\n\n**Syntax**: `<'column-width'> || <'column-count'>`\n\n| Chrome | Firefox | Safari  |  Edge  |   IE   |\n| :----: | :-----: | :-----: | :----: | :----: |\n| **50** | **52**  |  **9**  | **12** | **10** |\n|        |         | 3 _-x-_ |        |        |",
     )
@@ -3790,7 +3790,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`content`** CSS property replaces an element with a generated value. Objects inserted using the `content` property are **anonymous replaced elements**_._\n\n**Syntax**: `normal | none | [ <content-replacement> | <content-list> ] [/ <string> ]?`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **8** |',
     )
-    contentVisibility: Optional[Property.ContentVisibility] = Field(
+    contentVisibility: Property.ContentVisibility | None = Field(
         default=None,
         description="The **`content-visibility`** CSS property controls whether or not an element renders its contents at all, along with forcing a strong set of containments, allowing user agents to potentially omit large swathes of layout and rendering work until it becomes needed. Basically it enables the user agent to skip an element's rendering work, including layout and painting, until it is needed, makes the initial page load much faster.\n\n**Syntax**: `visible | auto | hidden`\n\n**Initial value**: `visible`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **85** |   No    |   No   | **85** | No  |",
     )
@@ -3855,7 +3855,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`cursor`** CSS property sets the type of mouse cursor, if any, to show when the mouse pointer is over an element.\n\n**Syntax**: `[ [ <url> [ <x> <y> ]? , ]* [ auto | default | none | context-menu | help | pointer | progress | wait | cell | crosshair | text | vertical-text | alias | copy | move | no-drop | not-allowed | e-resize | n-resize | ne-resize | nw-resize | s-resize | se-resize | sw-resize | w-resize | ew-resize | ns-resize | nesw-resize | nwse-resize | col-resize | row-resize | all-scroll | zoom-in | zoom-out | grab | grabbing ] ]`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **1**  | **1.2** | **12** | **4** |',
     )
-    direction: Optional[Property.Direction] = Field(
+    direction: Property.Direction | None = Field(
         default=None,
         description='The **`direction`** CSS property sets the direction of text, table columns, and horizontal overflow. Use `rtl` for languages written from right to left (like Hebrew or Arabic), and `ltr` for those written from left to right (like English and most other languages).\n\n**Syntax**: `ltr | rtl`\n\n**Initial value**: `ltr`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **2**  |  **1**  | **1**  | **12** | **5.5** |',
     )
@@ -3905,8 +3905,8 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`display`** CSS property sets whether an element is treated as a block or inline element and the layout used for its children, such as flow layout, grid or flex.\n\n**Syntax**: `[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy>`\n\n**Initial value**: `inline`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    dominantBaseline: Optional[Property.DominantBaseline] = None
-    emptyCells: Optional[Property.EmptyCells] = Field(
+    dominantBaseline: Property.DominantBaseline | None = None
+    emptyCells: Property.EmptyCells | None = Field(
         default=None,
         description='The **`empty-cells`** CSS property sets whether borders and backgrounds appear around `<table>` cells that have no visible content.\n\n**Syntax**: `show | hide`\n\n**Initial value**: `show`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **1**  | **1.2** | **12** | **8** |',
     )
@@ -4101,20 +4101,20 @@ class CSSProperties(DaraBaseModel):
         None,
     ] = None
     fillOpacity: Literal['-moz-initial', 'inherit', 'initial', 'revert', 'unset', None] = None
-    fillRule: Optional[Property.FillRule] = None
+    fillRule: Property.FillRule | None = None
     filter: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = Field(
         default=None,
         description='The **`filter`** CSS property applies graphical effects like blur or color shift to an element. Filters are commonly used to adjust the rendering of images, backgrounds, and borders.\n\n**Syntax**: `none | <filter-function-list>`\n\n**Initial value**: `none`\n\n|  Chrome  | Firefox | Safari  |  Edge  | IE  |\n| :------: | :-----: | :-----: | :----: | :-: |\n|  **53**  | **35**  | **9.1** | **12** | No  |\n| 18 _-x-_ |         | 6 _-x-_ |        |     |',
     )
-    flex: Optional[Union[float_, str]] = Field(
+    flex: float_ | str | None = Field(
         default=None,
         description="The **`flex`** CSS shorthand property sets how a flex _item_ will grow or shrink to fit the space available in its flex container.\n\n**Syntax**: `none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]`\n\n|  Chrome  | Firefox | Safari  |  Edge  |    IE    |\n| :------: | :-----: | :-----: | :----: | :------: |\n|  **29**  | **20**  |  **9**  | **12** |  **11**  |\n| 21 _-x-_ |         | 7 _-x-_ |        | 10 _-x-_ |",
     )
-    flexBasis: Optional[Union[float_, str]] = Field(
+    flexBasis: float_ | str | None = Field(
         default=None,
         description="The **`flex-basis`** CSS property sets the initial main size of a flex item. It sets the size of the content box unless otherwise set with `box-sizing`.\n\n**Syntax**: `content | <'width'>`\n\n**Initial value**: `auto`\n\n|  Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :------: | :-----: | :-----: | :----: | :----: |\n|  **29**  | **22**  |  **9**  | **12** | **11** |\n| 22 _-x-_ |         | 7 _-x-_ |        |        |",
     )
-    flexDirection: Optional[Property.FlexDirection] = Field(
+    flexDirection: Property.FlexDirection | None = Field(
         default=None,
         description='The **`flex-direction`** CSS property sets how flex items are placed in the flex container defining the main axis and the direction (normal or reversed).\n\n**Syntax**: `row | row-reverse | column | column-reverse`\n\n**Initial value**: `row`\n\n|  Chrome  | Firefox | Safari  |  Edge  |    IE    |\n| :------: | :-----: | :-----: | :----: | :------: |\n|  **29**  | **20**  |  **9**  | **12** |  **11**  |\n| 21 _-x-_ |         | 7 _-x-_ |        | 10 _-x-_ |',
     )
@@ -4144,11 +4144,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`flex-shrink`** CSS property sets the flex shrink factor of a flex item. If the size of all flex items is larger than the flex container, items shrink to fit according to `flex-shrink`.\n\n**Syntax**: `<number>`\n\n**Initial value**: `1`\n\n|  Chrome  | Firefox | Safari  |  Edge  |   IE   |\n| :------: | :-----: | :-----: | :----: | :----: |\n|  **29**  | **20**  |  **9**  | **12** | **10** |\n| 22 _-x-_ |         | 8 _-x-_ |        |        |',
     )
-    flexWrap: Optional[Property.FlexWrap] = Field(
+    flexWrap: Property.FlexWrap | None = Field(
         default=None,
         description='The **`flex-wrap`** CSS property sets whether flex items are forced onto one line or can wrap onto multiple lines. If wrapping is allowed, it sets the direction that lines are stacked.\n\n**Syntax**: `nowrap | wrap | wrap-reverse`\n\n**Initial value**: `nowrap`\n\n|  Chrome  | Firefox |  Safari   |  Edge  |   IE   |\n| :------: | :-----: | :-------: | :----: | :----: |\n|  **29**  | **28**  |   **9**   | **12** | **11** |\n| 21 _-x-_ |         | 6.1 _-x-_ |        |        |',
     )
-    float: Optional[Property.Float] = Field(
+    float: Property.Float | None = Field(
         default=None,
         description='The **`float`** CSS property places an element on the left or right side of its container, allowing text and inline elements to wrap around it. The element is removed from the normal flow of the page, though still remaining a part of the flow (in contrast to absolute positioning).\n\n**Syntax**: `left | right | none | inline-start | inline-end`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -4377,7 +4377,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-feature-settings`** CSS property controls advanced typographic features in OpenType fonts.\n\n**Syntax**: `normal | <feature-tag-value>#`\n\n**Initial value**: `normal`\n\n|  Chrome  | Firefox  | Safari  |  Edge  |   IE   |\n| :------: | :------: | :-----: | :----: | :----: |\n|  **48**  |  **34**  | **9.1** | **15** | **10** |\n| 16 _-x-_ | 15 _-x-_ |         |        |        |',
     )
-    fontKerning: Optional[Property.FontKerning] = Field(
+    fontKerning: Property.FontKerning | None = Field(
         default=None,
         description='The **`font-kerning`** CSS property sets the use of the kerning information stored in a font.\n\n**Syntax**: `auto | normal | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **33** | **32**  |  **9**  | **79** | No  |\n|        |         | 6 _-x-_ |        |     |',
     )
@@ -4385,11 +4385,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-language-override`** CSS property controls the use of language-specific glyphs in a typeface.\n\n**Syntax**: `normal | <string>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **34**  |   No   |  No  | No  |\n|        | 4 _-x-_ |        |      |     |',
     )
-    fontOpticalSizing: Optional[Property.FontOpticalSizing] = Field(
+    fontOpticalSizing: Property.FontOpticalSizing | None = Field(
         default=None,
         description='The **`font-optical-sizing`** CSS property sets whether text rendering is optimized for viewing at different sizes.\n\n**Syntax**: `auto | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **79** | **62**  | **11** | **17** | No  |',
     )
-    fontSize: Optional[Union[float_, str]] = Field(
+    fontSize: float_ | str | None = Field(
         default=None,
         description='The **`font-size`** CSS property sets the size of the font. Changing the font size also updates the sizes of the font size-relative `<length>` units, such as\xa0`em`, `ex`, and so forth.\n\n**Syntax**: `<absolute-size> | <relative-size> | <length-percentage>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |',
     )
@@ -4397,7 +4397,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-size-adjust`** CSS property sets the size of lower-case letters relative to the current font size (which defines the size of upper-case letters).\n\n**Syntax**: `none | [ ex-height | cap-height | ch-width | ic-width | ic-height ]? [ from-font | <number> ]`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|  n/a   |  **1**  |   No   | n/a  | No  |',
     )
-    fontSmooth: Optional[Union[float_, str]] = Field(
+    fontSmooth: float_ | str | None = Field(
         default=None,
         description='The **`font-smooth`** CSS property controls the application of anti-aliasing when fonts are rendered.\n\n**Syntax**: `auto | never | always | <absolute-size> | <length>`\n\n**Initial value**: `auto`\n\n|              Chrome              |              Firefox               |              Safari              |               Edge                | IE  |\n| :------------------------------: | :--------------------------------: | :------------------------------: | :-------------------------------: | :-: |\n| **5** _(-webkit-font-smoothing)_ | **25** _(-moz-osx-font-smoothing)_ | **4** _(-webkit-font-smoothing)_ | **79** _(-webkit-font-smoothing)_ | No  |',
     )
@@ -4484,7 +4484,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-variant-alternates`** CSS property controls the usage of alternate glyphs. These alternate glyphs may be referenced by alternative names defined in `@font-feature-values`.\n\n**Syntax**: `normal | [ stylistic( <feature-value-name> ) || historical-forms || styleset( <feature-value-name># ) || character-variant( <feature-value-name># ) || swash( <feature-value-name> ) || ornaments( <feature-value-name> ) || annotation( <feature-value-name> ) ]`\n\n**Initial value**: `normal`',
     )
-    fontVariantCaps: Optional[Property.FontVariantCaps] = Field(
+    fontVariantCaps: Property.FontVariantCaps | None = Field(
         default=None,
         description='The **`font-variant-caps`** CSS property controls the use of alternate glyphs for capital letters.\n\n**Syntax**: `normal | small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **52** | **34**  | **9.1** | **79** | No  |',
     )
@@ -4550,7 +4550,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-variant-numeric`** CSS property controls the usage of alternate glyphs for numbers, fractions, and ordinal markers.\n\n**Syntax**: `normal | [ <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero ]`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **52** | **34**  | **9.1** | **79** | No  |',
     )
-    fontVariantPosition: Optional[Property.FontVariantPosition] = Field(
+    fontVariantPosition: Property.FontVariantPosition | None = Field(
         default=None,
         description='The **`font-variant-position`** CSS property controls the use of alternate, smaller glyphs that are positioned as superscript or subscript.\n\n**Syntax**: `normal | sub | super`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  | Edge | IE  |\n| :----: | :-----: | :-----: | :--: | :-: |\n|   No   | **34**  | **9.1** |  No  | No  |',
     )
@@ -4564,11 +4564,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`font-weight`** CSS property sets the weight (or boldness) of the font. The weights available depend on the `font-family` that is currently set.\n\n**Syntax**: `<font-weight-absolute> | bolder | lighter`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **2**  |  **1**  | **1**  | **12** | **3** |',
     )
-    forcedColorAdjust: Optional[Property.ForcedColorAdjust] = Field(
+    forcedColorAdjust: Property.ForcedColorAdjust | None = Field(
         default=None,
         description='The **`forced-color-adjust`** CSS property allows authors to opt certain elements out of forced colors mode. This then restores the control of those values to CSS.\n\n**Syntax**: `auto | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |              Edge               |                 IE                  |\n| :----: | :-----: | :----: | :-----------------------------: | :---------------------------------: |\n| **89** |   No    |   No   |             **79**              | **10** _(-ms-high-contrast-adjust)_ |\n|        |         |        | 12 _(-ms-high-contrast-adjust)_ |                                     |',
     )
-    gap: Optional[Union[float_, str]] = Field(
+    gap: float_ | str | None = Field(
         default=None,
         description="The **`gap`** CSS property sets the gaps (gutters) between rows and columns. It is a shorthand for `row-gap` and `column-gap`.\n\n**Syntax**: `<'row-gap'> <'column-gap'>?`\n\n---\n\n_Supported in Flex Layout_\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **84** | **63**  | **14.1** | **84** | No  |\n\n---\n\n_Supported in Grid Layout_\n\n|     Chrome      |     Firefox     |      Safari       |  Edge  | IE  |\n| :-------------: | :-------------: | :---------------: | :----: | :-: |\n|     **66**      |     **61**      |      **12**       | **16** | No  |\n| 57 _(grid-gap)_ | 52 _(grid-gap)_ | 10.1 _(grid-gap)_ |        |     |\n\n---\n\n_Supported in Multi-column Layout_\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **66** | **61**  |   No   | **16** | No  |\n\n---",
     )
@@ -4581,7 +4581,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-area`** CSS shorthand property specifies a grid item’s size and location within a grid by contributing a line, a span, or nothing (automatic) to its grid placement, thereby specifying the edges of its grid area.\n\n**Syntax**: `<grid-line> [ / <grid-line> ]{0,3}`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
     )
-    gridAutoColumns: Optional[Union[float_, str]] = Field(
+    gridAutoColumns: float_ | str | None = Field(
         default=None,
         description='The **`grid-auto-columns`** CSS property specifies the size of an implicitly-created grid column track or pattern of tracks.\n\n**Syntax**: `<track-size>+`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  |             IE              |\n| :----: | :-----: | :------: | :----: | :-------------------------: |\n| **57** | **70**  | **10.1** | **16** | **10** _(-ms-grid-columns)_ |',
     )
@@ -4591,7 +4591,7 @@ class CSSProperties(DaraBaseModel):
             description='The **`grid-auto-flow`** CSS property controls how the auto-placement algorithm works, specifying exactly how auto-placed items get flowed into the grid.\n\n**Syntax**: `[ row | column ] || dense`\n\n**Initial value**: `row`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
         )
     )
-    gridAutoRows: Optional[Union[float_, str]] = Field(
+    gridAutoRows: float_ | str | None = Field(
         default=None,
         description='The **`grid-auto-rows`** CSS property specifies the size of an implicitly-created grid row track\xa0or pattern of tracks.\n\n**Syntax**: `<track-size>+`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  |            IE            |\n| :----: | :-----: | :------: | :----: | :----------------------: |\n| **57** | **70**  | **10.1** | **16** | **10** _(-ms-grid-rows)_ |',
     )
@@ -4603,7 +4603,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-column-end`** CSS property specifies a grid item’s end position within the grid column by contributing a line, a span, or nothing (automatic) to its grid placement, thereby specifying the block-end edge of its grid area.\n\n**Syntax**: `<grid-line>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
     )
-    gridColumnGap: Optional[Union[float_, str]] = Field(
+    gridColumnGap: float_ | str | None = Field(
         default=None,
         description="The **`column-gap`** CSS property sets the size of the gap (gutter) between an element's columns.\n\n**Syntax**: `<length-percentage>`\n\n**Initial value**: `0`",
     )
@@ -4611,7 +4611,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-column-start`** CSS property specifies a grid item’s start position within the grid column by contributing a line, a span, or nothing (automatic) to its grid placement. This start position defines the block-start edge of the grid area.\n\n**Syntax**: `<grid-line>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
     )
-    gridGap: Optional[Union[float_, str]] = Field(
+    gridGap: float_ | str | None = Field(
         default=None,
         description="The **`gap`** CSS property sets the gaps (gutters) between rows and columns. It is a shorthand for `row-gap` and `column-gap`.\n\n**Syntax**: `<'grid-row-gap'> <'grid-column-gap'>?`",
     )
@@ -4623,7 +4623,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-row-end`** CSS property specifies a grid item’s end position within the grid row by contributing a line, a span, or nothing (automatic) to its grid placement, thereby specifying the inline-end edge of its grid area.\n\n**Syntax**: `<grid-line>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
     )
-    gridRowGap: Optional[Union[float_, str]] = Field(
+    gridRowGap: float_ | str | None = Field(
         default=None,
         description="The **`row-gap`** CSS property sets the size of the gap (gutter) between an element's grid rows.\n\n**Syntax**: `<length-percentage>`\n\n**Initial value**: `0`",
     )
@@ -4639,11 +4639,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`grid-template-areas`** CSS property specifies named grid areas, establishing the cells in the grid and assigning them names.\n\n**Syntax**: `none | <string>+`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **52**  | **10.1** | **16** | No  |',
     )
-    gridTemplateColumns: Optional[Union[float_, str]] = Field(
+    gridTemplateColumns: float_ | str | None = Field(
         default=None,
         description='The **`grid-template-columns`** CSS property defines the line names and track sizing functions of the grid columns.\n\n**Syntax**: `none | <track-list> | <auto-track-list> | subgrid <line-name-list>?`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  |             IE              |\n| :----: | :-----: | :------: | :----: | :-------------------------: |\n| **57** | **52**  | **10.1** | **16** | **10** _(-ms-grid-columns)_ |',
     )
-    gridTemplateRows: Optional[Union[float_, str]] = Field(
+    gridTemplateRows: float_ | str | None = Field(
         default=None,
         description='The **`grid-template-rows`** CSS property defines the line names and track sizing functions of the grid rows.\n\n**Syntax**: `none | <track-list> | <auto-track-list> | subgrid <line-name-list>?`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  |            IE            |\n| :----: | :-----: | :------: | :----: | :----------------------: |\n| **57** | **52**  | **10.1** | **16** | **10** _(-ms-grid-rows)_ |',
     )
@@ -4653,11 +4653,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`hanging-punctuation`** CSS property specifies whether a punctuation mark should hang at the start or end of a line of text. Hanging punctuation may be placed outside the line box.\n\n**Syntax**: `none | [ first || [ force-end | allow-end ] || last ]`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   |   No    | **10** |  No  | No  |',
     )
-    height: Optional[Union[float_, str]] = Field(
+    height: float_ | str | None = Field(
         default=None,
         description='The **`height`** CSS property specifies the height of an element. By default, the property defines the height of the content area. If `box-sizing` is set to `border-box`, however, it instead determines the height of the border area.\n\n**Syntax**: `auto | <length> | <percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    hyphens: Optional[Property.Hyphens] = Field(
+    hyphens: Property.Hyphens | None = Field(
         default=None,
         description='The **`hyphens`** CSS property specifies how words should be hyphenated when text wraps across multiple lines. It can prevent hyphenation entirely, hyphenate at manually-specified points within the text, or let the browser automatically insert hyphens where appropriate.\n\n**Syntax**: `none | manual | auto`\n\n**Initial value**: `manual`\n\n|  Chrome  | Firefox |    Safari     |  Edge  |      IE      |\n| :------: | :-----: | :-----------: | :----: | :----------: |\n|  **55**  | **43**  | **5.1** _-x-_ | **79** | **10** _-x-_ |\n| 13 _-x-_ | 6 _-x-_ |               |        |              |',
     )
@@ -4667,7 +4667,7 @@ class CSSProperties(DaraBaseModel):
             description='The **`image-orientation`** CSS property specifies a layout-independent correction to the orientation of an image. It should _not_ be used for any other orientation adjustments; instead, the `transform` property should be used with the `rotate` `<transform-function>`.\n\n**Syntax**: `from-image | <angle> | [ <angle>? flip ]`\n\n**Initial value**: `from-image`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **81** | **26**  | **13.1** | **81** | No  |',
         )
     )
-    imageRendering: Optional[Property.ImageRendering] = Field(
+    imageRendering: Property.ImageRendering | None = Field(
         default=None,
         description='The **`image-rendering`** CSS property sets an image scaling algorithm. The property applies to an element itself, to any images set in its other properties, and to its descendants.\n\n**Syntax**: `auto | crisp-edges | pixelated`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **13** | **3.6** | **6**  | **79** | No  |',
     )
@@ -4675,7 +4675,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='**Syntax**: `[ from-image || <resolution> ] && snap?`\n\n**Initial value**: `1dppx`',
     )
-    imeMode: Optional[Property.ImeMode] = Field(
+    imeMode: Property.ImeMode | None = Field(
         default=None,
         description='The **`ime-mode`** CSS property controls the state of the input method editor (IME) for text fields. This property is obsolete.\n\n**Syntax**: `auto | normal | active | inactive | disabled`\n\n**Initial value**: `auto`',
     )
@@ -4683,39 +4683,39 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The `initial-letter` CSS property sets styling for dropped, raised, and sunken initial letters.\n\n**Syntax**: `normal | [ <number> <integer>? ]`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   |   No    | **9**  |  No  | No  |',
     )
-    inlineSize: Optional[Union[float_, str]] = Field(
+    inlineSize: float_ | str | None = Field(
         default=None,
         description="The **`inline-size`** CSS property defines the horizontal or vertical size of an element's block, depending on its writing mode. It corresponds to either the `width` or the `height` property, depending on the value of `writing-mode`.\n\n**Syntax**: `<'width'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **41**  | **12.1** | **79** | No  |",
     )
-    inset: Optional[Union[float_, str]] = Field(
+    inset: float_ | str | None = Field(
         default=None,
         description="The **`inset`**\xa0CSS property is a shorthand that corresponds to the `top`, `right`, `bottom`, and/or `left` properties. It has the same multi-value syntax of the `margin` shorthand.\n\n**Syntax**: `<'top'>{1,4}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    insetBlock: Optional[Union[float_, str]] = Field(
+    insetBlock: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline`** CSS property defines the logical start and end offsets of an element in the inline direction, which maps to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top` and `bottom`, or `right` and `left` properties depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>{1,2}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    insetBlockEnd: Optional[Union[float_, str]] = Field(
+    insetBlockEnd: float_ | str | None = Field(
         default=None,
         description="The **`inset-block-end`** CSS property defines the logical block end offset of an element, which maps to a physical inset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    insetBlockStart: Optional[Union[float_, str]] = Field(
+    insetBlockStart: float_ | str | None = Field(
         default=None,
         description="The **`inset-block-start`** CSS property defines the logical block start offset of an element, which maps to a physical inset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    insetInline: Optional[Union[float_, str]] = Field(
+    insetInline: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline`** CSS property defines the logical start and end offsets of an element in the inline direction, which maps to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top` and `bottom`, or `right` and `left` properties depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>{1,2}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    insetInlineEnd: Optional[Union[float_, str]] = Field(
+    insetInlineEnd: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline-end`** CSS property defines the logical inline end inset of an element, which maps to a physical offset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    insetInlineStart: Optional[Union[float_, str]] = Field(
+    insetInlineStart: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline-start`** CSS property defines the logical inline start inset of an element, which maps to a physical offset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **63**  | **14.1** | **87** | No  |",
     )
-    isolation: Optional[Property.Isolation] = Field(
+    isolation: Property.Isolation | None = Field(
         default=None,
         description='The **`isolation`** CSS property determines whether an element must create a new stacking context.\n\n**Syntax**: `auto | isolate`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **41** | **36**  | **8**  | **79** | No  |',
     )
@@ -4813,11 +4813,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`justify-tracks`**\xa0CSS property sets the alignment in the masonry axis for grid containers that have masonry in their inline\xa0axis.\n\n**Syntax**: `[ normal | <content-distribution> | <overflow-position>? [ <content-position> | left | right ] ]#`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   |   n/a   |   No   |  No  | No  |',
     )
-    left: Optional[Union[float_, str]] = Field(
+    left: float_ | str | None = Field(
         default=None,
         description='The **`left`** CSS property participates in specifying the horizontal position of a positioned element. It has no effect on non-positioned elements.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |',
     )
-    letterSpacing: Optional[Union[float_, str]] = Field(
+    letterSpacing: float_ | str | None = Field(
         default=None,
         description='The **`letter-spacing`** CSS property sets the horizontal spacing behavior between text characters. This value is added to the natural spacing between characters while rendering the text. Positive values of `letter-spacing` causes characters to spread farther apart, while negative values of `letter-spacing` bring characters closer together.\n\n**Syntax**: `normal | <length>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -5008,18 +5008,18 @@ class CSSProperties(DaraBaseModel):
         'yellowgreen',
         None,
     ] = None
-    lineBreak: Optional[Property.LineBreak] = Field(
+    lineBreak: Property.LineBreak | None = Field(
         default=None,
         description='The **`line-break`** CSS property sets how to break lines of Chinese, Japanese, or Korean (CJK) text when working with punctuation and symbols.\n\n**Syntax**: `auto | loose | normal | strict | anywhere`\n\n**Initial value**: `auto`\n\n| Chrome  | Firefox | Safari  |  Edge  |   IE    |\n| :-----: | :-----: | :-----: | :----: | :-----: |\n| **58**  | **69**  | **11**  | **14** | **5.5** |\n| 1 _-x-_ |         | 3 _-x-_ |        |         |',
     )
     lineClamp: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = Field(
         default=None, description='**Syntax**: `none | <integer>`\n\n**Initial value**: `none`'
     )
-    lineHeight: Optional[Union[float_, str]] = Field(
+    lineHeight: float_ | str | None = Field(
         default=None,
         description="The **`line-height`** CSS property sets the height of a line box. It's commonly used to set the distance between lines of text. On block-level elements, it specifies the minimum height of line boxes within the element. On non-replaced inline elements, it specifies the height that is used to calculate line box height.\n\n**Syntax**: `normal | <number> | <length> | <percentage>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    lineHeightStep: Optional[Union[float_, str]] = Field(
+    lineHeightStep: float_ | str | None = Field(
         default=None,
         description='The **`line-height-step`** CSS property sets the step unit for line box heights. When the property is set, line box heights are rounded up to the closest multiple of the unit.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|  n/a   |   No    |   No   | n/a  | No  |',
     )
@@ -5033,7 +5033,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`list-style-image`** CSS property sets an image to be used as the list item marker.\n\n**Syntax**: `<image> | none`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    listStylePosition: Optional[Property.ListStylePosition] = Field(
+    listStylePosition: Property.ListStylePosition | None = Field(
         default=None,
         description='The **`list-style-position`** CSS property sets the position of the `::marker` relative to a list item.\n\n**Syntax**: `inside | outside`\n\n**Initial value**: `outside`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -5041,47 +5041,47 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`list-style-type`** CSS property sets the marker (such as a disc, character, or custom counter style) of a list item element.\n\n**Syntax**: `<counter-style> | <string> | none`\n\n**Initial value**: `disc`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    margin: Optional[Union[float_, str]] = Field(
+    margin: float_ | str | None = Field(
         default=None,
         description='The **`margin`** CSS property sets the margin area on all four sides of an element. It is a shorthand for `margin-top`, `margin-right`, `margin-bottom`, and `margin-left`.\n\n**Syntax**: `[ <length> | <percentage> | auto ]{1,4}`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    marginBlock: Optional[Union[float_, str]] = Field(
+    marginBlock: float_ | str | None = Field(
         default=None,
         description="The **`margin-block`** CSS shorthand property defines the logical block start and end margins of an element, which maps to physical margins depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'margin-left'>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    marginBlockEnd: Optional[Union[float_, str]] = Field(
+    marginBlockEnd: float_ | str | None = Field(
         default=None,
         description="The **`margin-block-end`** CSS property defines the logical block end margin of an element, which maps to a physical margin depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'margin-left'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    marginBlockStart: Optional[Union[float_, str]] = Field(
+    marginBlockStart: float_ | str | None = Field(
         default=None,
         description="The **`margin-block-start`** CSS property defines the logical block start margin of an element, which maps to a physical margin depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'margin-left'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    marginBottom: Optional[Union[float_, str]] = Field(
+    marginBottom: float_ | str | None = Field(
         default=None,
         description='The **`margin-bottom`** CSS property sets the margin area on the bottom of an element. A positive value places it farther from its neighbors, while a negative value places it closer.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    marginInline: Optional[Union[float_, str]] = Field(
+    marginInline: float_ | str | None = Field(
         default=None,
         description="The **`margin-inline`** CSS shorthand property is a shorthand property that defines both the logical inline start and end margins of an element, which maps to physical margins depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'margin-left'>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    marginInlineEnd: Optional[Union[float_, str]] = Field(
+    marginInlineEnd: float_ | str | None = Field(
         default=None,
         description="The **`margin-inline-end`** CSS property defines the logical inline end margin of an element, which maps to a physical margin depending on the element's writing mode, directionality, and text orientation. In other words, it corresponds to the `margin-top`, `margin-right`, `margin-bottom` or `margin-left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'margin-left'>`\n\n**Initial value**: `0`\n\n|          Chrome          |        Firefox        |          Safari          |  Edge  | IE  |\n| :----------------------: | :-------------------: | :----------------------: | :----: | :-: |\n|          **69**          |        **41**         |         **12.1**         | **79** | No  |\n| 2 _(-webkit-margin-end)_ | 3 _(-moz-margin-end)_ | 3 _(-webkit-margin-end)_ |        |     |",
     )
-    marginInlineStart: Optional[Union[float_, str]] = Field(
+    marginInlineStart: float_ | str | None = Field(
         default=None,
         description="The **`margin-inline-start`** CSS property defines the logical inline start margin of an element, which maps to a physical margin depending on the element's writing mode, directionality, and text orientation. It corresponds to the `margin-top`, `margin-right`, `margin-bottom`, or `margin-left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'margin-left'>`\n\n**Initial value**: `0`\n\n|           Chrome           |         Firefox         |           Safari           |  Edge  | IE  |\n| :------------------------: | :---------------------: | :------------------------: | :----: | :-: |\n|           **69**           |         **41**          |          **12.1**          | **79** | No  |\n| 2 _(-webkit-margin-start)_ | 3 _(-moz-margin-start)_ | 3 _(-webkit-margin-start)_ |        |     |",
     )
-    marginLeft: Optional[Union[float_, str]] = Field(
+    marginLeft: float_ | str | None = Field(
         default=None,
         description='The **`margin-left`** CSS property sets the margin area on the left side of an element. A positive value places it farther from its neighbors, while a negative value places it closer.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    marginRight: Optional[Union[float_, str]] = Field(
+    marginRight: float_ | str | None = Field(
         default=None,
         description='The **`margin-right`** CSS property sets the margin area on the right side of an element. A positive value places it farther from its neighbors, while a negative value places it closer.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    marginTop: Optional[Union[float_, str]] = Field(
+    marginTop: float_ | str | None = Field(
         default=None,
         description='The **`margin-top`** CSS property sets the margin area on the top of an element. A positive value places it farther from its neighbors, while a negative value places it closer.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
@@ -5089,7 +5089,7 @@ class CSSProperties(DaraBaseModel):
     markerEnd: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = None
     markerMid: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = None
     markerStart: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = None
-    mask: Optional[Union[float_, str]] = Field(
+    mask: float_ | str | None = Field(
         default=None,
         description='The **`mask`** CSS shorthand property hides an element (partially or fully) by masking or clipping the image at specific points.\n\n**Syntax**: `<mask-layer>#`\n\n| Chrome | Firefox | Safari  | Edge  | IE  |\n| :----: | :-----: | :-----: | :---: | :-: |\n| **1**  |  **2**  | **3.1** | 12-79 | No  |',
     )
@@ -5111,11 +5111,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`mask-border`** CSS shorthand property lets you create a mask along the edge of an element's border.\n\n**Syntax**: `<'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ / <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>`\n\n|              Chrome              | Firefox |               Safari               |               Edge                | IE  |\n| :------------------------------: | :-----: | :--------------------------------: | :-------------------------------: | :-: |\n| **1** _(-webkit-mask-box-image)_ |   No    | **3.1** _(-webkit-mask-box-image)_ | **79** _(-webkit-mask-box-image)_ | No  |",
     )
-    maskBorderMode: Optional[Property.MaskBorderMode] = Field(
+    maskBorderMode: Property.MaskBorderMode | None = Field(
         default=None,
         description='The **`mask-border-mode`** CSS property specifies the blending mode used in a mask border.\n\n**Syntax**: `luminance | alpha`\n\n**Initial value**: `alpha`',
     )
-    maskBorderOutset: Optional[Union[float_, str]] = Field(
+    maskBorderOutset: float_ | str | None = Field(
         default=None,
         description="The **`mask-border-outset`** CSS property specifies the distance by which an element's mask border is set out from its border box.\n\n**Syntax**: `[ <length> | <number> ]{1,4}`\n\n**Initial value**: `0`\n\n|                 Chrome                  | Firefox |                  Safari                   |                   Edge                   | IE  |\n| :-------------------------------------: | :-----: | :---------------------------------------: | :--------------------------------------: | :-: |\n| **1** _(-webkit-mask-box-image-outset)_ |   No    | **3.1** _(-webkit-mask-box-image-outset)_ | **79** _(-webkit-mask-box-image-outset)_ | No  |",
     )
@@ -5133,7 +5133,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`mask-border-source`** CSS property sets the source image used to create an element's mask border.\n\n**Syntax**: `none | <image>`\n\n**Initial value**: `none`\n\n|                 Chrome                  | Firefox |                  Safari                   |                   Edge                   | IE  |\n| :-------------------------------------: | :-----: | :---------------------------------------: | :--------------------------------------: | :-: |\n| **1** _(-webkit-mask-box-image-source)_ |   No    | **3.1** _(-webkit-mask-box-image-source)_ | **79** _(-webkit-mask-box-image-source)_ | No  |",
     )
-    maskBorderWidth: Optional[Union[float_, str]] = Field(
+    maskBorderWidth: float_ | str | None = Field(
         default=None,
         description="The **`mask-border-width`** CSS property sets the width of an element's mask border.\n\n**Syntax**: `[ <length-percentage> | <number> | auto ]{1,4}`\n\n**Initial value**: `auto`\n\n|                 Chrome                 | Firefox |                  Safari                  |                  Edge                   | IE  |\n| :------------------------------------: | :-----: | :--------------------------------------: | :-------------------------------------: | :-: |\n| **1** _(-webkit-mask-box-image-width)_ |   No    | **3.1** _(-webkit-mask-box-image-width)_ | **79** _(-webkit-mask-box-image-width)_ | No  |",
     )
@@ -5187,7 +5187,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`mask-origin`** CSS property sets the origin of a mask.\n\n**Syntax**: `<geometry-box>#`\n\n**Initial value**: `border-box`\n\n|   Chrome    | Firefox |   Safari    |     Edge     | IE  |\n| :---------: | :-----: | :---------: | :----------: | :-: |\n| **1** _-x-_ | **53**  | **4** _-x-_ | **79** _-x-_ | No  |',
     )
-    maskPosition: Optional[Union[float_, str]] = Field(
+    maskPosition: float_ | str | None = Field(
         default=None,
         description='The **`mask-position`** CSS property sets the initial position, relative to the mask position layer set by `mask-origin`, for each defined mask image.\n\n**Syntax**: `<position>#`\n\n**Initial value**: `center`\n\n|   Chrome    | Firefox |    Safari     | Edge  | IE  |\n| :---------: | :-----: | :-----------: | :---: | :-: |\n| **1** _-x-_ | **53**  | **3.1** _-x-_ | 18-79 | No  |',
     )
@@ -5208,62 +5208,62 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`mask-repeat`** CSS property sets how mask images are repeated. A mask image can be repeated along the horizontal axis, the vertical axis, both axes, or not repeated at all.\n\n**Syntax**: `<repeat-style>#`\n\n**Initial value**: `no-repeat`\n\n|   Chrome    | Firefox |    Safari     | Edge  | IE  |\n| :---------: | :-----: | :-----------: | :---: | :-: |\n| **1** _-x-_ | **53**  | **3.1** _-x-_ | 18-79 | No  |',
     )
-    maskSize: Optional[Union[float_, str]] = Field(
+    maskSize: float_ | str | None = Field(
         default=None,
         description='The **`mask-size`** CSS property specifies the sizes of the mask images. The size of the image can be fully or partially constrained in order to preserve its intrinsic ratio.\n\n**Syntax**: `<bg-size>#`\n\n**Initial value**: `auto`\n\n|   Chrome    | Firefox |   Safari    | Edge  | IE  |\n| :---------: | :-----: | :---------: | :---: | :-: |\n| **4** _-x-_ | **53**  | **4** _-x-_ | 18-79 | No  |',
     )
-    maskType: Optional[Property.MaskType] = Field(
+    maskType: Property.MaskType | None = Field(
         default=None,
         description='The **`mask-type`** CSS property sets whether an SVG `<mask>` element is used as a _luminance_ or an _alpha_ mask. It applies to the `<mask>` element itself.\n\n**Syntax**: `luminance | alpha`\n\n**Initial value**: `luminance`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **24** | **35**  | **7**  | **79** | No  |',
     )
-    mathStyle: Optional[Property.MathStyle] = Field(
+    mathStyle: Property.MathStyle | None = Field(
         default=None,
         description='The `math-style` property\xa0indicates whether MathML equations should render with normal or compact height.\n\n**Syntax**: `normal | compact`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n|  n/a   |   n/a   | **14.1** |  No  | No  |',
     )
-    maxBlockSize: Optional[Union[float_, str]] = Field(
+    maxBlockSize: float_ | str | None = Field(
         default=None,
         description="The `**max-block-size**` CSS property specifies the maximum size of an element in the direction opposite that of the writing direction as specified by `writing-mode`. That is, if the writing direction is horizontal, then `max-block-size` is equivalent to `max-height`; if the writing direction is vertical, `max-block-size` is the same as `max-width`.\n\n**Syntax**: `<'max-width'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **41**  | **12.1** | **79** | No  |",
     )
-    maxHeight: Optional[Union[float_, str]] = Field(
+    maxHeight: float_ | str | None = Field(
         default=None,
         description='The **`max-height`** CSS property sets the maximum height of an element. It prevents the used value of the `height` property from becoming larger than the value specified for `max-height`.\n\n**Syntax**: `none | <length-percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **18** |  **1**  | **1.3** | **12** | **7** |',
     )
-    maxInlineSize: Optional[Union[float_, str]] = Field(
+    maxInlineSize: float_ | str | None = Field(
         default=None,
         description="The **`max-inline-size`** CSS property defines the horizontal or vertical maximum size of an element's block, depending on its writing mode. It corresponds to either the `max-width` or the `max-height` property, depending on the value of `writing-mode`.\n\n**Syntax**: `<'max-width'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |   Safari   |  Edge  | IE  |\n| :----: | :-----: | :--------: | :----: | :-: |\n| **57** | **41**  |  **12.1**  | **79** | No  |\n|        |         | 10.1 _-x-_ |        |     |",
     )
     maxLines: Literal['-moz-initial', 'inherit', 'initial', 'none', 'revert', 'unset', None] = Field(
         default=None, description='**Syntax**: `none | <integer>`\n\n**Initial value**: `none`'
     )
-    maxWidth: Optional[Union[float_, str]] = Field(
+    maxWidth: float_ | str | None = Field(
         default=None,
         description='The **`max-width`** CSS property sets the maximum width of an element. It prevents the used value of the `width` property from becoming larger than the value specified by `max-width`.\n\n**Syntax**: `none | <length-percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **7** |',
     )
-    minBlockSize: Optional[Union[float_, str]] = Field(
+    minBlockSize: float_ | str | None = Field(
         default=None,
         description="The **`min-block-size`** CSS property defines the minimum horizontal or vertical size of an element's block, depending on its writing mode. It corresponds to either the `min-width` or the `min-height` property, depending on the value of `writing-mode`.\n\n**Syntax**: `<'min-width'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **41**  | **12.1** | **79** | No  |",
     )
-    minHeight: Optional[Union[float_, str]] = Field(
+    minHeight: float_ | str | None = Field(
         default=None,
         description='The **`min-height`** CSS property sets the minimum height of an element. It prevents the used value of the `height` property from becoming smaller than the value specified for `min-height`.\n\n**Syntax**: `auto | <length> | <percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **3**  | **1.3** | **12** | **7** |',
     )
-    minInlineSize: Optional[Union[float_, str]] = Field(
+    minInlineSize: float_ | str | None = Field(
         default=None,
         description="The **`min-inline-size`** CSS property defines the horizontal or vertical minimal size of an element's block, depending on its writing mode. It corresponds to either the `min-width` or the `min-height` property, depending on the value of `writing-mode`.\n\n**Syntax**: `<'min-width'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **41**  | **12.1** | **79** | No  |",
     )
-    minWidth: Optional[Union[float_, str]] = Field(
+    minWidth: float_ | str | None = Field(
         default=None,
         description='The **`min-width`** CSS property sets the minimum width of an element. It prevents the used value of the `width` property from becoming smaller than the value specified for `min-width`.\n\n**Syntax**: `auto | <length> | <percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **7** |',
     )
-    mixBlendMode: Optional[Property.MixBlendMode] = Field(
+    mixBlendMode: Property.MixBlendMode | None = Field(
         default=None,
         description="The **`mix-blend-mode`** CSS property sets how an element's content should blend with the content of the element's parent and the element's background.\n\n**Syntax**: `<blend-mode>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **41** | **32**  | **8**  | **79** | No  |",
     )
-    motion: Optional[Union[float_, str]] = Field(
+    motion: float_ | str | None = Field(
         default=None,
         description="The **`offset`** CSS shorthand property sets all the properties required for animating an element along a defined path.\n\n**Syntax**: `[ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]? ]? ]! [ / <'offset-anchor'> ]?`\n\n|    Chrome     | Firefox | Safari |  Edge  | IE  |\n| :-----------: | :-----: | :----: | :----: | :-: |\n|    **55**     | **72**  |   No   | **79** | No  |\n| 46 _(motion)_ |         |        |        |     |",
     )
-    motionDistance: Optional[Union[float_, str]] = Field(
+    motionDistance: float_ | str | None = Field(
         default=None,
         description='The **`offset-distance`** CSS property specifies a position along an `offset-path` for an element to be placed.\n\n**Syntax**: `<length-percentage>`\n\n**Initial value**: `0`\n\n|         Chrome         | Firefox | Safari |  Edge  | IE  |\n| :--------------------: | :-----: | :----: | :----: | :-: |\n|         **55**         | **72**  |   No   | **79** | No  |\n| 46 _(motion-distance)_ |         |        |        |     |',
     )
@@ -5290,47 +5290,47 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`offset-rotate`** CSS property defines the orientation/direction of the element as it is positioned along the `offset-path`.\n\n**Syntax**: `[ auto | reverse ] || <angle>`\n\n**Initial value**: `auto`\n\n|         Chrome         | Firefox | Safari |  Edge  | IE  |\n| :--------------------: | :-----: | :----: | :----: | :-: |\n|         **56**         | **72**  |   No   | **79** | No  |\n| 46 _(motion-rotation)_ |         |        |        |     |',
     )
-    objectFit: Optional[Property.ObjectFit] = Field(
+    objectFit: Property.ObjectFit | None = Field(
         default=None,
         description='The **`object-fit`** CSS property sets how the content of a replaced element, such as an `<img>` or `<video>`, should be resized to fit its container.\n\n**Syntax**: `fill | contain | cover | none | scale-down`\n\n**Initial value**: `fill`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **32** | **36**  | **10** | **79** | No  |',
     )
-    objectPosition: Optional[Union[float_, str]] = Field(
+    objectPosition: float_ | str | None = Field(
         default=None,
         description="The **`object-position`** CSS property specifies the alignment of the selected replaced element's contents within the element's box. Areas of the box which aren't covered by the replaced element's object will show the element's background.\n\n**Syntax**: `<position>`\n\n**Initial value**: `50% 50%`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **32** | **36**  | **10** | **79** | No  |",
     )
-    offset: Optional[Union[float_, str]] = Field(
+    offset: float_ | str | None = Field(
         default=None,
         description="The **`offset`** CSS shorthand property sets all the properties required for animating an element along a defined path.\n\n**Syntax**: `[ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]? ]? ]! [ / <'offset-anchor'> ]?`\n\n|    Chrome     | Firefox | Safari |  Edge  | IE  |\n| :-----------: | :-----: | :----: | :----: | :-: |\n|    **55**     | **72**  |   No   | **79** | No  |\n| 46 _(motion)_ |         |        |        |     |",
     )
-    offsetAnchor: Optional[Union[float_, str]] = Field(
+    offsetAnchor: float_ | str | None = Field(
         default=None,
         description='**Syntax**: `auto | <position>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **79** | **72**  |   No   | **79** | No  |',
     )
-    offsetBlock: Optional[Union[float_, str]] = Field(
+    offsetBlock: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline`** CSS property defines the logical start and end offsets of an element in the inline direction, which maps to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top` and `bottom`, or `right` and `left` properties depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>{1,2}`\n\n**Initial value**: `auto`",
     )
-    offsetBlockEnd: Optional[Union[float_, str]] = Field(
+    offsetBlockEnd: float_ | str | None = Field(
         default=None,
         description="The **`inset-block-end`** CSS property defines the logical block end offset of an element, which maps to a physical inset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`",
     )
-    offsetBlockStart: Optional[Union[float_, str]] = Field(
+    offsetBlockStart: float_ | str | None = Field(
         default=None,
         description="The **`inset-block-start`** CSS property defines the logical block start offset of an element, which maps to a physical inset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`",
     )
-    offsetDistance: Optional[Union[float_, str]] = Field(
+    offsetDistance: float_ | str | None = Field(
         default=None,
         description='The **`offset-distance`** CSS property specifies a position along an `offset-path` for an element to be placed.\n\n**Syntax**: `<length-percentage>`\n\n**Initial value**: `0`\n\n|         Chrome         | Firefox | Safari |  Edge  | IE  |\n| :--------------------: | :-----: | :----: | :----: | :-: |\n|         **55**         | **72**  |   No   | **79** | No  |\n| 46 _(motion-distance)_ |         |        |        |     |',
     )
-    offsetInline: Optional[Union[float_, str]] = Field(
+    offsetInline: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline`** CSS property defines the logical start and end offsets of an element in the inline direction, which maps to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top` and `bottom`, or `right` and `left` properties depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>{1,2}`\n\n**Initial value**: `auto`",
     )
-    offsetInlineEnd: Optional[Union[float_, str]] = Field(
+    offsetInlineEnd: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline-end`** CSS property defines the logical inline end inset of an element, which maps to a physical offset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`",
     )
-    offsetInlineStart: Optional[Union[float_, str]] = Field(
+    offsetInlineStart: float_ | str | None = Field(
         default=None,
         description="The **`inset-inline-start`** CSS property defines the logical inline start inset of an element, which maps to a physical offset depending on the element's writing mode, directionality, and text orientation. It corresponds to the `top`, `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`, `direction`, and `text-orientation`.\n\n**Syntax**: `<'top'>`\n\n**Initial value**: `auto`",
     )
@@ -5373,7 +5373,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`orphans`** CSS property sets the minimum number of lines in a block container that must be shown at the _bottom_ of a page, region, or column.\n\n**Syntax**: `<integer>`\n\n**Initial value**: `2`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **25** |   No    | **1.3** | **12** | **8** |',
     )
-    outline: Optional[Union[float_, str]] = Field(
+    outline: float_ | str | None = Field(
         default=None,
         description="The **`outline`** CSS shorthand property set all the outline properties in a single declaration.\n\n**Syntax**: `[ <'outline-color'> || <'outline-style'> || <'outline-width'> ]`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  | **1.5** | **1.2** | **12** | **8** |",
     )
@@ -5567,7 +5567,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`outline-color`** CSS property sets the color of an element's outline.\n\n**Syntax**: `<color> | invert`\n\n**Initial value**: `invert`, for browsers supporting it, `currentColor` for the other\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  | **1.5** | **1.2** | **12** | **8** |",
     )
-    outlineOffset: Optional[Union[float_, str]] = Field(
+    outlineOffset: float_ | str | None = Field(
         default=None,
         description='The **`outline-offset`** CSS property sets the amount of space between an outline and the edge or border of an element.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **1**  | **1.5** | **1.2** | **15** | No  |',
     )
@@ -5593,7 +5593,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`outline-style`** CSS property sets the style of an element's outline. An outline is a line that is drawn around an element, outside the `border`.\n\n**Syntax**: `auto | <'border-style'>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  | **1.5** | **1.2** | **12** | **8** |",
     )
-    outlineWidth: Optional[Union[float_, str]] = Field(
+    outlineWidth: float_ | str | None = Field(
         default=None,
         description="The CSS **`outline-width`** property sets the thickness of an element's outline. An outline is a line that is drawn around an element, outside the `border`.\n\n**Syntax**: `<line-width>`\n\n**Initial value**: `medium`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  | **1.5** | **1.2** | **12** | **8** |",
     )
@@ -5614,35 +5614,35 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`overflow`** CSS shorthand property sets the desired behavior for an element's overflow — i.e. when an element's content is too big to fit in its block formatting context — in both directions.\n\n**Syntax**: `[ visible | hidden | clip | scroll | auto ]{1,2}`\n\n**Initial value**: `visible`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    overflowAnchor: Optional[Property.OverflowAnchor] = Field(
+    overflowAnchor: Property.OverflowAnchor | None = Field(
         default=None,
         description='**Syntax**: `auto | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **56** | **66**  |   No   | **79** | No  |',
     )
-    overflowBlock: Optional[Property.OverflowBlock] = Field(
+    overflowBlock: Property.OverflowBlock | None = Field(
         default=None,
         description='**Syntax**: `visible | hidden | clip | scroll | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **69**  |   No   |  No  | No  |',
     )
-    overflowClipBox: Optional[Property.OverflowClipBox] = Field(
+    overflowClipBox: Property.OverflowClipBox | None = Field(
         default=None,
         description='The **`overflow-clip-box`** CSS property specifies relative to which box the clipping happens when there is an overflow. It is short hand for the `overflow-clip-box-inline` and `overflow-clip-box-block` properties.\n\n**Syntax**: `padding-box | content-box`\n\n**Initial value**: `padding-box`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **29**  |   No   |  No  | No  |',
     )
-    overflowClipMargin: Optional[Union[float_, str]] = Field(
+    overflowClipMargin: float_ | str | None = Field(
         default=None,
         description='**Syntax**: `<visual-box> || <length [0,∞]>`\n\n**Initial value**: `0px`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **90** |   No    |   No   | **90** | No  |',
     )
-    overflowInline: Optional[Property.OverflowInline] = Field(
+    overflowInline: Property.OverflowInline | None = Field(
         default=None,
         description='**Syntax**: `visible | hidden | clip | scroll | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **69**  |   No   |  No  | No  |',
     )
-    overflowWrap: Optional[Property.OverflowWrap] = Field(
+    overflowWrap: Property.OverflowWrap | None = Field(
         default=None,
         description='The `**overflow-wrap**` CSS property applies to inline elements, setting whether the browser should insert line breaks within an otherwise unbreakable string to prevent text from overflowing its line box.\n\n**Syntax**: `normal | break-word | anywhere`\n\n**Initial value**: `normal`\n\n|     Chrome      |      Firefox      |     Safari      |       Edge       |          IE           |\n| :-------------: | :---------------: | :-------------: | :--------------: | :-------------------: |\n|     **23**      |      **49**       |      **7**      |      **18**      | **5.5** _(word-wrap)_ |\n| 1 _(word-wrap)_ | 3.5 _(word-wrap)_ | 1 _(word-wrap)_ | 12 _(word-wrap)_ |                       |',
     )
-    overflowX: Optional[Property.OverflowX] = Field(
+    overflowX: Property.OverflowX | None = Field(
         default=None,
         description="The **`overflow-x`** CSS property sets what shows when content overflows a block-level element's left and right edges. This may be nothing, a scroll bar, or the overflow content.\n\n**Syntax**: `visible | hidden | clip | scroll | auto`\n\n**Initial value**: `visible`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  | **3.5** | **3**  | **12** | **5** |",
     )
-    overflowY: Optional[Property.OverflowY] = Field(
+    overflowY: Property.OverflowY | None = Field(
         default=None,
         description="The **`overflow-y`** CSS property sets what shows when content overflows a block-level element's top and bottom edges. This may be nothing, a scroll bar, or the overflow content.\n\n**Syntax**: `visible | hidden | clip | scroll | auto`\n\n**Initial value**: `visible`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  | **3.5** | **3**  | **12** | **5** |",
     )
@@ -5652,75 +5652,75 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`overscroll-behavior`** CSS property sets what a browser does when reaching the boundary of a scrolling area. It's a shorthand for `overscroll-behavior-x` and `overscroll-behavior-y`.\n\n**Syntax**: `[ contain | none | auto ]{1,2}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **63** | **59**  |   No   | **18** | No  |",
     )
-    overscrollBehaviorBlock: Optional[Property.OverscrollBehaviorBlock] = Field(
+    overscrollBehaviorBlock: Property.OverscrollBehaviorBlock | None = Field(
         default=None,
         description="The **`overscroll-behavior-block`**\xa0CSS property sets the browser's behavior when the block direction\xa0boundary of a scrolling area is reached.\n\n**Syntax**: `contain | none | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **77** | **73**  |   No   | **79** | No  |",
     )
-    overscrollBehaviorInline: Optional[Property.OverscrollBehaviorInline] = Field(
+    overscrollBehaviorInline: Property.OverscrollBehaviorInline | None = Field(
         default=None,
         description="The **`overscroll-behavior-inline`**\xa0CSS property sets the browser's behavior when the inline\xa0direction\xa0boundary of a scrolling area is reached.\n\n**Syntax**: `contain | none | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **77** | **73**  |   No   | **79** | No  |",
     )
-    overscrollBehaviorX: Optional[Property.OverscrollBehaviorX] = Field(
+    overscrollBehaviorX: Property.OverscrollBehaviorX | None = Field(
         default=None,
         description="The **`overscroll-behavior-x`** CSS property sets the browser's behavior when the horizontal boundary of a scrolling area is reached.\n\n**Syntax**: `contain | none | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **63** | **59**  |   No   | **18** | No  |",
     )
-    overscrollBehaviorY: Optional[Property.OverscrollBehaviorY] = Field(
+    overscrollBehaviorY: Property.OverscrollBehaviorY | None = Field(
         default=None,
         description="The **`overscroll-behavior-y`** CSS property sets the browser's behavior when the vertical boundary of a scrolling area is reached.\n\n**Syntax**: `contain | none | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **63** | **59**  |   No   | **18** | No  |",
     )
-    padding: Optional[Union[float_, str]] = Field(
+    padding: float_ | str | None = Field(
         default=None,
         description='The **`padding`** CSS shorthand property sets the padding area on all four sides of an element at once.\n\n**Syntax**: `[ <length> | <percentage> ]{1,4}`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    paddingBlock: Optional[Union[float_, str]] = Field(
+    paddingBlock: float_ | str | None = Field(
         default=None,
         description="The **`padding-block`** CSS shorthand property defines the logical block start and end padding of an element, which maps to physical padding properties depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    paddingBlockEnd: Optional[Union[float_, str]] = Field(
+    paddingBlockEnd: float_ | str | None = Field(
         default=None,
         description="The **`padding-block-end`** CSS property defines the logical block end padding of an element, which maps to a physical padding depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    paddingBlockStart: Optional[Union[float_, str]] = Field(
+    paddingBlockStart: float_ | str | None = Field(
         default=None,
         description="The **`padding-block-start`** CSS property defines the logical block start padding of an element, which maps to a physical padding depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **41**  | **12.1** | **79** | No  |",
     )
-    paddingBottom: Optional[Union[float_, str]] = Field(
+    paddingBottom: float_ | str | None = Field(
         default=None,
         description='The **`padding-bottom`** CSS property sets the height of the padding area on the bottom of an element.\n\n**Syntax**: `<length> | <percentage>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    paddingInline: Optional[Union[float_, str]] = Field(
+    paddingInline: float_ | str | None = Field(
         default=None,
         description="The **`padding-inline`** CSS shorthand property defines the logical inline start and end padding of an element, which maps to physical padding properties depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **66**  | **14.1** | **87** | No  |",
     )
-    paddingInlineEnd: Optional[Union[float_, str]] = Field(
+    paddingInlineEnd: float_ | str | None = Field(
         default=None,
         description="The **`padding-inline-end`** CSS property defines the logical inline end padding of an element, which maps to a physical padding depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>`\n\n**Initial value**: `0`\n\n|          Chrome           |        Firefox         |          Safari           |  Edge  | IE  |\n| :-----------------------: | :--------------------: | :-----------------------: | :----: | :-: |\n|          **69**           |         **41**         |         **12.1**          | **79** | No  |\n| 2 _(-webkit-padding-end)_ | 3 _(-moz-padding-end)_ | 3 _(-webkit-padding-end)_ |        |     |",
     )
-    paddingInlineStart: Optional[Union[float_, str]] = Field(
+    paddingInlineStart: float_ | str | None = Field(
         default=None,
         description="The **`padding-inline-start`** CSS property defines the logical inline start padding of an element, which maps to a physical padding depending on the element's writing mode, directionality, and text orientation.\n\n**Syntax**: `<'padding-left'>`\n\n**Initial value**: `0`\n\n|           Chrome            |         Firefox          |           Safari            |  Edge  | IE  |\n| :-------------------------: | :----------------------: | :-------------------------: | :----: | :-: |\n|           **69**            |          **41**          |          **12.1**           | **79** | No  |\n| 2 _(-webkit-padding-start)_ | 3 _(-moz-padding-start)_ | 3 _(-webkit-padding-start)_ |        |     |",
     )
-    paddingLeft: Optional[Union[float_, str]] = Field(
+    paddingLeft: float_ | str | None = Field(
         default=None,
         description='The **`padding-left`** CSS property sets the width of the padding area to the left of an element.\n\n**Syntax**: `<length> | <percentage>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    paddingRight: Optional[Union[float_, str]] = Field(
+    paddingRight: float_ | str | None = Field(
         default=None,
         description='The **`padding-right`** CSS property sets the width of the padding area on the right of an element.\n\n**Syntax**: `<length> | <percentage>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    paddingTop: Optional[Union[float_, str]] = Field(
+    paddingTop: float_ | str | None = Field(
         default=None,
         description='The **`padding-top`** CSS property sets the height of the padding area on the top of an element.\n\n**Syntax**: `<length> | <percentage>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    pageBreakAfter: Optional[Property.PageBreakAfter] = Field(
+    pageBreakAfter: Property.PageBreakAfter | None = Field(
         default=None,
         description='The **`page-break-after`** CSS property adjusts page breaks _after_ the current element.\n\n**Syntax**: `auto | always | avoid | left | right | recto | verso`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **1**  | **1.2** | **12** | **4** |',
     )
-    pageBreakBefore: Optional[Property.PageBreakBefore] = Field(
+    pageBreakBefore: Property.PageBreakBefore | None = Field(
         default=None,
         description='The **`page-break-before`** CSS property adjusts page breaks _before_ the current element.\n\n**Syntax**: `auto | always | avoid | left | right | recto | verso`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **1**  | **1.2** | **12** | **4** |',
     )
-    pageBreakInside: Optional[Property.PageBreakInside] = Field(
+    pageBreakInside: Property.PageBreakInside | None = Field(
         default=None,
         description='The **`page-break-inside`** CSS property adjusts page breaks _inside_ the current element.\n\n**Syntax**: `auto | avoid`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  | **19**  | **1.3** | **12** | **8** |',
     )
@@ -5730,11 +5730,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`paint-order`** CSS property lets you control the order in which the fill and stroke (and painting markers) of text content and shapes are drawn.\n\n**Syntax**: `normal | [ fill || stroke || markers ]`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **35** | **60**  | **8**  | **17** | No  |',
     )
-    perspective: Optional[Union[float_, str]] = Field(
+    perspective: float_ | str | None = Field(
         default=None,
         description='The **`perspective`** CSS property determines the distance between the z=0 plane and the user in order to give a 3D-positioned element some perspective.\n\n**Syntax**: `none | <length>`\n\n**Initial value**: `none`\n\n|  Chrome  | Firefox  | Safari  |  Edge  |   IE   |\n| :------: | :------: | :-----: | :----: | :----: |\n|  **36**  |  **16**  |  **9**  | **12** | **10** |\n| 12 _-x-_ | 10 _-x-_ | 4 _-x-_ |        |        |',
     )
-    perspectiveOrigin: Optional[Union[float_, str]] = Field(
+    perspectiveOrigin: float_ | str | None = Field(
         default=None,
         description='The **`perspective-origin`** CSS property determines the position at which the viewer is looking. It is used as the _vanishing point_ by the `perspective` property.\n\n**Syntax**: `<position>`\n\n**Initial value**: `50% 50%`\n\n|  Chrome  | Firefox  | Safari  |  Edge  |   IE   |\n| :------: | :------: | :-----: | :----: | :----: |\n|  **36**  |  **16**  |  **9**  | **12** | **10** |\n| 12 _-x-_ | 10 _-x-_ | 4 _-x-_ |        |        |',
     )
@@ -5803,11 +5803,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`place-self`** CSS shorthand property allows you to align an individual item in both the block and inline directions at once (i.e. the `align-self` and `justify-self` properties) in a relevant layout system such as Grid or Flexbox. If the second value is not present, the first value is also used for it.\n\n**Syntax**: `<'align-self'> <'justify-self'>?`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **59** | **45**  | **11** | **79** | No  |",
     )
-    pointerEvents: Optional[Property.PointerEvents] = Field(
+    pointerEvents: Property.PointerEvents | None = Field(
         default=None,
         description='The **`pointer-events`** CSS property sets under what circumstances (if any) a particular graphic element can become the target of pointer events.\n\n**Syntax**: `auto | none | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | inherit`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n| **1**  | **1.5** | **4**  | **12** | **11** |',
     )
-    position: Optional[Property.Position] = Field(
+    position: Property.Position | None = Field(
         default=None,
         description='The **`position`** CSS property sets how an element is positioned in a document. The `top`, `right`, `bottom`, and `left` properties determine the final location of positioned elements.\n\n**Syntax**: `static | relative | absolute | sticky | fixed`\n\n**Initial value**: `static`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
@@ -5815,11 +5815,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`quotes`** CSS property sets how the browser should render quotation marks that are added using the `open-quotes` or `close-quotes` values of the CSS `content` property.\n\n**Syntax**: `none | auto | [ <string> <string> ]+`\n\n**Initial value**: depends on user agent\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **11** | **1.5** | **9**  | **12** | **8** |',
     )
-    resize: Optional[Property.Resize] = Field(
+    resize: Property.Resize | None = Field(
         default=None,
         description='The **`resize`** CSS property sets whether an element is resizable, and if so, in which directions.\n\n**Syntax**: `none | both | horizontal | vertical | block | inline`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **1**  |  **4**  | **3**  | **79** | No  |',
     )
-    right: Optional[Union[float_, str]] = Field(
+    right: float_ | str | None = Field(
         default=None,
         description='The **`right`** CSS property participates in specifying the horizontal position of a positioned element. It has no effect on non-positioned elements.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |',
     )
@@ -5827,15 +5827,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`rotate`** CSS property allows you to specify rotation transforms individually and independently of the `transform` property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the `transform` property.\n\n**Syntax**: `none | <angle> | [ x | y | z | <number>{3} ] && <angle>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n|   No   | **72**  | **14.1** |  No  | No  |',
     )
-    rowGap: Optional[Union[float_, str]] = Field(
+    rowGap: float_ | str | None = Field(
         default=None,
         description="The **`row-gap`** CSS property sets the size of the gap (gutter) between an element's grid rows.\n\n**Syntax**: `normal | <length-percentage>`\n\n**Initial value**: `normal`\n\n---\n\n_Supported in Flex Layout_\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **84** | **63**  | **14.1** | **84** | No  |\n\n---\n\n_Supported in Grid Layout_\n\n|       Chrome        |       Firefox       |        Safari         |  Edge  | IE  |\n| :-----------------: | :-----------------: | :-------------------: | :----: | :-: |\n|       **66**        |       **61**        |        **12**         | **16** | No  |\n| 57 _(grid-row-gap)_ | 52 _(grid-row-gap)_ | 10.1 _(grid-row-gap)_ |        |     |\n\n---",
     )
-    rubyAlign: Optional[Property.RubyAlign] = Field(
+    rubyAlign: Property.RubyAlign | None = Field(
         default=None,
         description='The `**ruby-align**` CSS property defines the distribution of the different ruby elements over the base.\n\n**Syntax**: `start | center | space-between | space-around`\n\n**Initial value**: `space-around`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **38**  |   No   |  No  | No  |',
     )
-    rubyMerge: Optional[Property.RubyMerge] = Field(
+    rubyMerge: Property.RubyMerge | None = Field(
         default=None,
         description='**Syntax**: `separate | collapse | auto`\n\n**Initial value**: `separate`',
     )
@@ -5849,95 +5849,95 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`scale`** CSS property allows you to specify scale transforms individually and independently of the `transform` property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the `transform` value.\n\n**Syntax**: `none | <number>{1,3}`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n|   No   | **72**  | **14.1** |  No  | No  |',
     )
-    scrollBehavior: Optional[Property.ScrollBehavior] = Field(
+    scrollBehavior: Property.ScrollBehavior | None = Field(
         default=None,
         description='The **`scroll-behavior`** CSS property sets the behavior for a scrolling box when scrolling is triggered by the navigation or CSSOM scrolling APIs.\n\n**Syntax**: `auto | smooth`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **61** | **36**  |  n/a   | **79** | No  |',
     )
-    scrollMargin: Optional[Union[float_, str]] = Field(
+    scrollMargin: float_ | str | None = Field(
         default=None,
         description='The **`scroll-margin`** shorthand property sets all of the scroll margins of an element at once, assigning values much like the `margin` property does for margins of an element.\n\n**Syntax**: `<length>{1,4}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |          Safari           |  Edge  | IE  |\n| :----: | :-----: | :-----------------------: | :----: | :-: |\n| **69** | **90**  |         **14.1**          | **79** | No  |\n|        |         | 11 _(scroll-snap-margin)_ |        |     |',
     )
-    scrollMarginBlock: Optional[Union[float_, str]] = Field(
+    scrollMarginBlock: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-block` shorthand property sets the scroll margins of an element in the block dimension.\n\n**Syntax**: `<length>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **68**  | **14.1** | **79** | No  |',
     )
-    scrollMarginBlockEnd: Optional[Union[float_, str]] = Field(
+    scrollMarginBlockEnd: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-block-end`\xa0property defines the\xa0margin of the scroll snap area at the end\xa0of the block dimension\xa0that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **68**  | **14.1** | **79** | No  |',
     )
-    scrollMarginBlockStart: Optional[Union[float_, str]] = Field(
+    scrollMarginBlockStart: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-block-start`\xa0property defines the\xa0margin of the scroll snap area at the start of the block dimension\xa0that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **68**  | **14.1** | **79** | No  |',
     )
-    scrollMarginBottom: Optional[Union[float_, str]] = Field(
+    scrollMarginBottom: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-bottom` property defines the bottom margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |              Safari              |  Edge  | IE  |\n| :----: | :-----: | :------------------------------: | :----: | :-: |\n| **69** | **68**  |             **14.1**             | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-bottom)_ |        |     |',
     )
-    scrollMarginInline: Optional[Union[float_, str]] = Field(
+    scrollMarginInline: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-inline` shorthand property sets the scroll margins of an element in the inline dimension.\n\n**Syntax**: `<length>{1,2}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n|   No   | **68**  | **14.1** |  No  | No  |',
     )
-    scrollMarginInlineEnd: Optional[Union[float_, str]] = Field(
+    scrollMarginInlineEnd: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-inline-end`\xa0property defines the\xa0margin of the scroll snap area at the end\xa0of the inline\xa0dimension\xa0that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **68**  | **14.1** | **79** | No  |',
     )
-    scrollMarginInlineStart: Optional[Union[float_, str]] = Field(
+    scrollMarginInlineStart: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-inline-start` property defines the margin of the scroll snap area at the start of the inline dimension that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **69** | **68**  | **14.1** | **79** | No  |',
     )
-    scrollMarginLeft: Optional[Union[float_, str]] = Field(
+    scrollMarginLeft: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-left` property defines the left margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |             Safari             |  Edge  | IE  |\n| :----: | :-----: | :----------------------------: | :----: | :-: |\n| **69** | **68**  |            **14.1**            | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-left)_ |        |     |',
     )
-    scrollMarginRight: Optional[Union[float_, str]] = Field(
+    scrollMarginRight: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-right` property defines the right margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |             Safari              |  Edge  | IE  |\n| :----: | :-----: | :-----------------------------: | :----: | :-: |\n| **69** | **68**  |            **14.1**             | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-right)_ |        |     |',
     )
-    scrollMarginTop: Optional[Union[float_, str]] = Field(
+    scrollMarginTop: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-top` property defines the top margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |            Safari             |  Edge  | IE  |\n| :----: | :-----: | :---------------------------: | :----: | :-: |\n| **69** | **68**  |           **14.1**            | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-top)_ |        |     |',
     )
-    scrollPadding: Optional[Union[float_, str]] = Field(
+    scrollPadding: float_ | str | None = Field(
         default=None,
         description='The **`scroll-padding`** shorthand property sets scroll padding on all sides of an element at once, much like the `padding` property does for padding on an element.\n\n**Syntax**: `[ auto | <length-percentage> ]{1,4}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
-    scrollPaddingBlock: Optional[Union[float_, str]] = Field(
+    scrollPaddingBlock: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-block` shorthand property sets the scroll padding of an element in the block dimension.\n\n**Syntax**: `[ auto | <length-percentage> ]{1,2}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingBlockEnd: Optional[Union[float_, str]] = Field(
+    scrollPaddingBlockEnd: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-block-end` property defines offsets for the end edge in the block dimension of the optimal viewing region of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingBlockStart: Optional[Union[float_, str]] = Field(
+    scrollPaddingBlockStart: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-block-start` property defines offsets for the start edge in the block dimension of the optimal viewing region of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingBottom: Optional[Union[float_, str]] = Field(
+    scrollPaddingBottom: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-bottom` property defines offsets for the bottom of the optimal viewing region of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
-    scrollPaddingInline: Optional[Union[float_, str]] = Field(
+    scrollPaddingInline: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-inline` shorthand property sets the scroll padding of an element in the inline dimension.\n\n**Syntax**: `[ auto | <length-percentage> ]{1,2}`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingInlineEnd: Optional[Union[float_, str]] = Field(
+    scrollPaddingInlineEnd: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-inline-end`\xa0property\xa0defines offsets for the end\xa0edge in the inline\xa0dimension\xa0of the\xa0optimal viewing region\xa0of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingInlineStart: Optional[Union[float_, str]] = Field(
+    scrollPaddingInlineStart: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-inline-start` property defines offsets for the start edge in the inline dimension of the optimal viewing region of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **15** | **79** | No  |',
     )
-    scrollPaddingLeft: Optional[Union[float_, str]] = Field(
+    scrollPaddingLeft: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-left` property defines offsets for the left of the optimal viewing region of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
-    scrollPaddingRight: Optional[Union[float_, str]] = Field(
+    scrollPaddingRight: float_ | str | None = Field(
         default=None,
         description='The `scroll-padding-right`\xa0property\xa0defines offsets for the right\xa0of the\xa0optimal viewing region\xa0of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
-    scrollPaddingTop: Optional[Union[float_, str]] = Field(
+    scrollPaddingTop: float_ | str | None = Field(
         default=None,
         description='The **`scroll-padding-top`** property\xa0defines offsets for the top of the\xa0optimal viewing region\xa0of the scrollport: the region used as the target region for placing things in view of the user. This allows the author to exclude regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars) or simply to put more breathing room between a targetted element and the edges of the scrollport.\n\n**Syntax**: `auto | <length-percentage>`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
@@ -5947,31 +5947,31 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The `scroll-snap-align` property specifies the box’s snap position as an alignment of its snap area (as the alignment subject) within its snap container’s snapport (as the alignment container). The two values specify the snapping alignment in the block axis and inline axis, respectively. If only one value is specified, the second value defaults to the same value.\n\n**Syntax**: `[ none | start | end | center ]{1,2}`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **69** | **68**  | **11** | **79** | No  |',
     )
-    scrollSnapCoordinate: Optional[Union[float_, str]] = Field(
+    scrollSnapCoordinate: float_ | str | None = Field(
         default=None,
         description="The **`scroll-snap-coordinate`** CSS property defines the x and y coordinate positions within an element that will align with its nearest ancestor scroll container's `scroll-snap-destination` for each respective axis.\n\n**Syntax**: `none | <position>#`\n\n**Initial value**: `none`",
     )
-    scrollSnapDestination: Optional[Union[float_, str]] = Field(
+    scrollSnapDestination: float_ | str | None = Field(
         default=None,
         description="The **`scroll-snap-destination`** CSS property defines the position in x and y coordinates within the scroll container's visual viewport which element snap points align with.\n\n**Syntax**: `<position>`\n\n**Initial value**: `0px 0px`",
     )
-    scrollSnapMargin: Optional[Union[float_, str]] = Field(
+    scrollSnapMargin: float_ | str | None = Field(
         default=None,
         description='The **`scroll-margin`** shorthand property sets all of the scroll margins of an element at once, assigning values much like the `margin` property does for margins of an element.\n\n**Syntax**: `<length>{1,4}`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |          Safari           |  Edge  | IE  |\n| :----: | :-----: | :-----------------------: | :----: | :-: |\n| **69** |  68-90  |         **14.1**          | **79** | No  |\n|        |         | 11 _(scroll-snap-margin)_ |        |     |',
     )
-    scrollSnapMarginBottom: Optional[Union[float_, str]] = Field(
+    scrollSnapMarginBottom: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-bottom` property defines the bottom margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |              Safari              |  Edge  | IE  |\n| :----: | :-----: | :------------------------------: | :----: | :-: |\n| **69** | **68**  |             **14.1**             | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-bottom)_ |        |     |',
     )
-    scrollSnapMarginLeft: Optional[Union[float_, str]] = Field(
+    scrollSnapMarginLeft: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-left` property defines the left margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |             Safari             |  Edge  | IE  |\n| :----: | :-----: | :----------------------------: | :----: | :-: |\n| **69** | **68**  |            **14.1**            | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-left)_ |        |     |',
     )
-    scrollSnapMarginRight: Optional[Union[float_, str]] = Field(
+    scrollSnapMarginRight: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-right` property defines the right margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |             Safari              |  Edge  | IE  |\n| :----: | :-----: | :-----------------------------: | :----: | :-: |\n| **69** | **68**  |            **14.1**             | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-right)_ |        |     |',
     )
-    scrollSnapMarginTop: Optional[Union[float_, str]] = Field(
+    scrollSnapMarginTop: float_ | str | None = Field(
         default=None,
         description='The `scroll-margin-top` property defines the top margin of the scroll snap area that is used for snapping this box to the snapport. The scroll snap area is determined by taking the transformed border box, finding its rectangular bounding box (axis-aligned in the scroll container’s coordinate space), then adding the specified outsets.\n\n**Syntax**: `<length>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |            Safari             |  Edge  | IE  |\n| :----: | :-----: | :---------------------------: | :----: | :-: |\n| **69** | **68**  |           **14.1**            | **79** | No  |\n|        |         | 11 _(scroll-snap-margin-top)_ |        |     |',
     )
@@ -5983,7 +5983,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`scroll-snap-points-y`** CSS property defines the vertical positioning of snap points within the content of the scroll container they are applied to.\n\n**Syntax**: `none | repeat( <length-percentage> )`\n\n**Initial value**: `none`',
     )
-    scrollSnapStop: Optional[Property.ScrollSnapStop] = Field(
+    scrollSnapStop: Property.ScrollSnapStop | None = Field(
         default=None,
         description='The **`scroll-snap-stop`** CSS property defines whether the scroll container is allowed to "pass over" possible snap positions.\n\n**Syntax**: `normal | always`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **75** |   No    | **15** | **79** | No  |',
     )
@@ -5993,11 +5993,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`scroll-snap-type`** CSS property sets how strictly snap points are enforced on the scroll container in case there is one.\n\n**Syntax**: `none | [ x | y | block | inline | both ] [ mandatory | proximity ]?`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari  |  Edge  |      IE      |\n| :----: | :-----: | :-----: | :----: | :----------: |\n| **69** |  39-68  | **11**  | **79** | **10** _-x-_ |\n|        |         | 9 _-x-_ |        |              |',
     )
-    scrollSnapTypeX: Optional[Property.ScrollSnapTypeX] = Field(
+    scrollSnapTypeX: Property.ScrollSnapTypeX | None = Field(
         default=None,
         description='The **`scroll-snap-type-x`** CSS property defines how strictly snap points are enforced on the horizontal axis of the scroll container in case there is one.\n\n**Syntax**: `none | mandatory | proximity`\n\n**Initial value**: `none`',
     )
-    scrollSnapTypeY: Optional[Property.ScrollSnapTypeY] = Field(
+    scrollSnapTypeY: Property.ScrollSnapTypeY | None = Field(
         default=None,
         description='The **`scroll-snap-type-y`** CSS property defines how strictly snap points are enforced on the vertical axis of the scroll container in case there is one.\n\n**Syntax**: `none | mandatory | proximity`\n\n**Initial value**: `none`',
     )
@@ -6384,7 +6384,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`-ms-scrollbar-track-color`** CSS property is a Microsoft extension that specifies the color of the track element of a scrollbar.\n\n**Syntax**: `<color>`\n\n**Initial value**: `Scrollbar`',
     )
-    scrollbarWidth: Optional[Property.ScrollbarWidth] = Field(
+    scrollbarWidth: Property.ScrollbarWidth | None = Field(
         default=None,
         description='The **`scrollbar-width`** property allows the author to set the maximum thickness of an element’s scrollbars when they are shown.\n\n**Syntax**: `auto | thin | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari | Edge | IE  |\n| :----: | :-----: | :----: | :--: | :-: |\n|   No   | **64**  |   No   |  No  | No  |',
     )
@@ -6392,7 +6392,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`shape-image-threshold`** CSS property sets the alpha channel threshold used to extract the shape using an image as the value for `shape-outside`.\n\n**Syntax**: `<alpha-value>`\n\n**Initial value**: `0.0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **37** | **62**  | **10.1** | **79** | No  |',
     )
-    shapeMargin: Optional[Union[float_, str]] = Field(
+    shapeMargin: float_ | str | None = Field(
         default=None,
         description='The **`shape-margin`** CSS property sets a margin for a CSS shape created using `shape-outside`.\n\n**Syntax**: `<length-percentage>`\n\n**Initial value**: `0`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **37** | **62**  | **10.1** | **79** | No  |',
     )
@@ -6412,7 +6412,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`shape-outside`** CSS property defines a shape—which may be non-rectangular—around which adjacent inline content should wrap. By default, inline content wraps around its margin box; `shape-outside` provides a way to customize this wrapping, making it possible to wrap text around complex objects rather than simple boxes.\n\n**Syntax**: `none | [ <shape-box> || <basic-shape> ] | <image>`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **37** | **62**  | **10.1** | **79** | No  |',
     )
-    shapeRendering: Optional[Property.ShapeRendering] = None
+    shapeRendering: Property.ShapeRendering | None = None
     stopColor: Literal[
         '-moz-initial',
         'ActiveBorder',
@@ -6791,30 +6791,30 @@ class CSSProperties(DaraBaseModel):
         'yellowgreen',
         None,
     ] = None
-    strokeDasharray: Optional[Union[float_, str]] = None
-    strokeDashoffset: Optional[Union[float_, str]] = None
-    strokeLinecap: Optional[Property.StrokeLinecap] = None
-    strokeLinejoin: Optional[Property.StrokeLinejoin] = None
+    strokeDasharray: float_ | str | None = None
+    strokeDashoffset: float_ | str | None = None
+    strokeLinecap: Property.StrokeLinecap | None = None
+    strokeLinejoin: Property.StrokeLinejoin | None = None
     strokeMiterlimit: Literal['-moz-initial', 'inherit', 'initial', 'revert', 'unset', None] = None
     strokeOpacity: Literal['-moz-initial', 'inherit', 'initial', 'revert', 'unset', None] = None
-    strokeWidth: Optional[Union[float_, str]] = None
-    tabSize: Optional[Union[float_, str]] = Field(
+    strokeWidth: float_ | str | None = None
+    tabSize: float_ | str | None = Field(
         default=None,
         description='The **`tab-size`** CSS property is used to customize the width of tab characters (U+0009).\n\n**Syntax**: `<integer> | <length>`\n\n**Initial value**: `8`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **21** | **91**  | **7**  | **79** | No  |\n|        | 4 _-x-_ |        |        |     |',
     )
-    tableLayout: Optional[Property.TableLayout] = Field(
+    tableLayout: Property.TableLayout | None = Field(
         default=None,
         description='The **`table-layout`** CSS property sets the algorithm used to lay out `<table>` cells, rows, and columns.\n\n**Syntax**: `auto | fixed`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **14** |  **1**  | **1**  | **12** | **5** |',
     )
-    textAlign: Optional[Property.TextAlign] = Field(
+    textAlign: Property.TextAlign | None = Field(
         default=None,
         description='The **`text-align`** CSS property sets the horizontal alignment of a\xa0block element or table-cell box. This means it works like `vertical-align` but in the horizontal direction.\n\n**Syntax**: `start | end | left | right | center | justify | match-parent`\n\n**Initial value**: `start`, or a nameless value that acts as `left` if _direction_ is `ltr`, `right` if _direction_ is `rtl` if `start` is not supported by the browser.\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    textAlignLast: Optional[Property.TextAlignLast] = Field(
+    textAlignLast: Property.TextAlignLast | None = Field(
         default=None,
         description='The **`text-align-last`** CSS property sets how the last line of a block or a line, right before a forced line break, is aligned.\n\n**Syntax**: `auto | start | end | left | right | center | justify`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **47** | **49**  |   No   | **12** | **5.5** |',
     )
-    textAnchor: Optional[Property.TextAnchor] = None
+    textAnchor: Property.TextAnchor | None = None
     textCombineUpright: Literal[
         '-moz-initial',
         '-ms-text-combine-horizontal',
@@ -6830,7 +6830,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`text-combine-upright`** CSS property sets the combination of characters into the space of a single character. If the combined text is wider than 1em, the user agent must fit the contents within 1em. The resulting composition is treated as a single upright glyph for layout and decoration. This property only has an effect in vertical writing modes.\n\n**Syntax**: `none | all | [ digits <integer>? ]`\n\n**Initial value**: `none`\n\n|           Chrome           | Firefox |              Safari              | Edge  |                   IE                   |\n| :------------------------: | :-----: | :------------------------------: | :---: | :------------------------------------: |\n|           **48**           | **48**  | **5.1** _(-webkit-text-combine)_ | 15-79 | **11** _(-ms-text-combine-horizontal)_ |\n| 9 _(-webkit-text-combine)_ |         |                                  |       |                                        |',
     )
-    textDecoration: Optional[Union[float_, str]] = Field(
+    textDecoration: float_ | str | None = Field(
         default=None,
         description="The **`text-decoration`** shorthand CSS property sets the appearance of decorative lines on text. It is a shorthand for `text-decoration-line`, `text-decoration-color`, `text-decoration-style`, and the newer `text-decoration-thickness` property.\n\n**Syntax**: `<'text-decoration-line'> || <'text-decoration-style'> || <'text-decoration-color'> || <'text-decoration-thickness'>`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |",
     )
@@ -7059,19 +7059,19 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`text-decoration-skip`** CSS property sets what parts of an element’s content any text decoration affecting the element must skip over. It controls all text decoration lines drawn by the element and also any text decoration lines drawn by its ancestors.\n\n**Syntax**: `none | [ objects || [ spaces | [ leading-spaces || trailing-spaces ] ] || edges || box-decoration ]`\n\n**Initial value**: `objects`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n| 57-64  |   No    | **12.1** |  No  | No  |\n|        |         | 7 _-x-_  |      |     |',
     )
-    textDecorationSkipInk: Optional[Property.TextDecorationSkipInk] = Field(
+    textDecorationSkipInk: Property.TextDecorationSkipInk | None = Field(
         default=None,
         description='The **`text-decoration-skip-ink`** CSS property specifies how overlines and underlines are drawn when they pass over glyph ascenders and descenders.\n\n**Syntax**: `auto | all | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **64** | **70**  |   No   | **79** | No  |',
     )
-    textDecorationStyle: Optional[Property.TextDecorationStyle] = Field(
+    textDecorationStyle: Property.TextDecorationStyle | None = Field(
         default=None,
         description='The **`text-decoration-style`** CSS property sets the style of the lines specified by `text-decoration-line`. The style applies to all lines that are set with `text-decoration-line`.\n\n**Syntax**: `solid | double | dotted | dashed | wavy`\n\n**Initial value**: `solid`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **57** | **36**  | **12.1** | **79** | No  |\n|        |         | 8 _-x-_  |        |     |',
     )
-    textDecorationThickness: Optional[Union[float_, str]] = Field(
+    textDecorationThickness: float_ | str | None = Field(
         default=None,
         description='The **`text-decoration-thickness`** CSS property sets the stroke thickness of the decoration line that is used on text in an element, such as a line-through, underline, or overline.\n\n**Syntax**: `auto | from-font | <length> | <percentage> `\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **89** | **70**  | **12.1** | **89** | No  |',
     )
-    textDecorationWidth: Optional[Union[float_, str]] = Field(
+    textDecorationWidth: float_ | str | None = Field(
         default=None,
         description='The **`text-decoration-thickness`** CSS property sets the stroke thickness of the decoration line that is used on text in an element, such as a line-through, underline, or overline.\n\n**Syntax**: `auto | from-font | <length> | <percentage> `\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  | Edge  | IE  |\n| :----: | :-----: | :------: | :---: | :-: |\n| 87-89  | **70**  | **12.1** | 87-89 | No  |',
     )
@@ -7484,15 +7484,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`text-emphasis-style`** CSS property sets the appearance of emphasis marks. It can also be set, and reset, using the `text-emphasis` shorthand.\n\n**Syntax**: `none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] | <string>`\n\n**Initial value**: `none`\n\n|    Chrome    | Firefox | Safari |     Edge     | IE  |\n| :----------: | :-----: | :----: | :----------: | :-: |\n| **25** _-x-_ | **46**  | **7**  | **79** _-x-_ | No  |',
     )
-    textIndent: Optional[Union[float_, str]] = Field(
+    textIndent: float_ | str | None = Field(
         default=None,
         description='The **`text-indent`** CSS property sets the length of empty space (indentation) that is put before lines of text in a block.\n\n**Syntax**: `<length-percentage> && hanging? && each-line?`\n\n**Initial value**: `0`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **3** |',
     )
-    textJustify: Optional[Property.TextJustify] = Field(
+    textJustify: Property.TextJustify | None = Field(
         default=None,
         description='The **`text-justify`** CSS property sets what type of justification should be applied to text when `text-align``: justify;` is set on an element.\n\n**Syntax**: `auto | inter-character | inter-word | none`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |   IE   |\n| :----: | :-----: | :----: | :----: | :----: |\n|  n/a   | **55**  |   No   | **12** | **11** |',
     )
-    textOrientation: Optional[Property.TextOrientation] = Field(
+    textOrientation: Property.TextOrientation | None = Field(
         default=None,
         description='The **`text-orientation`** CSS property sets the orientation of the text characters in a line. It only affects text in vertical mode (when `writing-mode` is not `horizontal-tb`). It is useful for controlling the display of languages that use vertical script, and also for making vertical table headers.\n\n**Syntax**: `mixed | upright | sideways`\n\n**Initial value**: `mixed`\n\n|  Chrome  | Firefox |  Safari   |  Edge  | IE  |\n| :------: | :-----: | :-------: | :----: | :-: |\n|  **48**  | **41**  |  **14**   | **79** | No  |\n| 11 _-x-_ |         | 5.1 _-x-_ |        |     |',
     )
@@ -7500,7 +7500,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`text-overflow`** CSS property sets how hidden overflow content is signaled to users. It can be clipped, display an ellipsis ('`…`'), or display a custom string.\n\n**Syntax**: `[ clip | ellipsis | <string> ]{1,2}`\n\n**Initial value**: `clip`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **1**  |  **7**  | **1.3** | **12** | **6** |",
     )
-    textRendering: Optional[Property.TextRendering] = Field(
+    textRendering: Property.TextRendering | None = Field(
         default=None,
         description='The **`text-rendering`** CSS property provides information to the rendering engine about what to optimize for when rendering text.\n\n**Syntax**: `auto | optimizeSpeed | optimizeLegibility | geometricPrecision`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **4**  |  **1**  | **5**  | **79** | No  |',
     )
@@ -7512,11 +7512,11 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`text-size-adjust`** CSS property controls the text inflation algorithm used on some smartphones and tablets. Other browsers will ignore this property.\n\n**Syntax**: `none | auto | <percentage>`\n\n**Initial value**: `auto` for smartphone browsers supporting inflation, `none` in other cases (and then not modifiable).\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **54** |   No    |   No   | **79** | No  |',
     )
-    textTransform: Optional[Property.TextTransform] = Field(
+    textTransform: Property.TextTransform | None = Field(
         default=None,
         description="The **`text-transform`** CSS property specifies how to capitalize an element's text. It can be used to make text appear in all-uppercase or all-lowercase, or with each word capitalized. It also can help improve legibility for ruby.\n\n**Syntax**: `none | capitalize | uppercase | lowercase | full-width | full-size-kana`\n\n**Initial value**: `none`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
-    textUnderlineOffset: Optional[Union[float_, str]] = Field(
+    textUnderlineOffset: float_ | str | None = Field(
         default=None,
         description='The **`text-underline-offset`** CSS property sets the offset distance of an underline text decoration line (applied using `text-decoration`) from its original position.\n\n**Syntax**: `auto | <length> | <percentage> `\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  | IE  |\n| :----: | :-----: | :------: | :----: | :-: |\n| **87** | **70**  | **12.1** | **87** | No  |',
     )
@@ -7526,7 +7526,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description="The **`text-underline-position`** CSS property specifies the position of the underline which is set using the `text-decoration` property's `underline` value.\n\n**Syntax**: `auto | from-font | [ under || [ left | right ] ]`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox |  Safari  |  Edge  |  IE   |\n| :----: | :-----: | :------: | :----: | :---: |\n| **33** | **74**  | **12.1** | **12** | **6** |\n|        |         | 9 _-x-_  |        |       |",
     )
-    top: Optional[Union[float_, str]] = Field(
+    top: float_ | str | None = Field(
         default=None,
         description='The **`top`** CSS property participates in specifying the vertical position of a positioned element. It has no effect on non-positioned elements.\n\n**Syntax**: `<length> | <percentage> | auto`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **5** |',
     )
@@ -7558,15 +7558,15 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`transform`** CSS property lets you rotate, scale, skew, or translate an element. It modifies the coordinate space of the CSS visual formatting model.\n\n**Syntax**: `none | <transform-list>`\n\n**Initial value**: `none`\n\n| Chrome  | Firefox |  Safari   |  Edge  |   IE    |\n| :-----: | :-----: | :-------: | :----: | :-----: |\n| **36**  | **16**  |   **9**   | **12** | **10**  |\n| 1 _-x-_ |         | 3.1 _-x-_ |        | 9 _-x-_ |',
     )
-    transformBox: Optional[Property.TransformBox] = Field(
+    transformBox: Property.TransformBox | None = Field(
         default=None,
         description='The **`transform-box`** CSS property defines the layout box to which the `transform` and `transform-origin` properties relate.\n\n**Syntax**: `content-box | border-box | fill-box | stroke-box | view-box`\n\n**Initial value**: `view-box`\n\n| Chrome | Firefox | Safari |  Edge  | IE  |\n| :----: | :-----: | :----: | :----: | :-: |\n| **64** | **55**  | **11** | **79** | No  |',
     )
-    transformOrigin: Optional[Union[float_, str]] = Field(
+    transformOrigin: float_ | str | None = Field(
         default=None,
         description="The **`transform-origin`** CSS property sets the origin for an element's transformations.\n\n**Syntax**: `[ <length-percentage> | left | center | right | top | bottom ] | [ [ <length-percentage> | left | center | right ] && [ <length-percentage> | top | center | bottom ] ] <length>?`\n\n**Initial value**: `50% 50% 0`\n\n| Chrome  |  Firefox  | Safari  |  Edge  |   IE    |\n| :-----: | :-------: | :-----: | :----: | :-----: |\n| **36**  |  **16**   |  **9**  | **12** | **10**  |\n| 1 _-x-_ | 3.5 _-x-_ | 2 _-x-_ |        | 9 _-x-_ |",
     )
-    transformStyle: Optional[Property.TransformStyle] = Field(
+    transformStyle: Property.TransformStyle | None = Field(
         default=None,
         description='The **`transform-style`** CSS property sets whether children of an element are positioned in the 3D space or are flattened in the plane of the element.\n\n**Syntax**: `flat | preserve-3d`\n\n**Initial value**: `flat`\n\n|  Chrome  | Firefox  | Safari  |  Edge  | IE  |\n| :------: | :------: | :-----: | :----: | :-: |\n|  **36**  |  **16**  |  **9**  | **12** | No  |\n| 12 _-x-_ | 10 _-x-_ | 4 _-x-_ |        |     |',
     )
@@ -7620,28 +7620,28 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`transition-timing-function`** CSS property sets how intermediate values are calculated for CSS properties being affected by a transition effect.\n\n**Syntax**: `<easing-function>#`\n\n**Initial value**: `ease`\n\n| Chrome  | Firefox |  Safari   |  Edge  |   IE   |\n| :-----: | :-----: | :-------: | :----: | :----: |\n| **26**  | **16**  |   **9**   | **12** | **10** |\n| 1 _-x-_ | 4 _-x-_ | 3.1 _-x-_ |        |        |',
     )
-    translate: Optional[Union[float_, str]] = Field(
+    translate: float_ | str | None = Field(
         default=None,
         description='The **`translate`** CSS property allows you to specify translation transforms individually and independently of the `transform` property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the `transform` value.\n\n**Syntax**: `none | <length-percentage> [ <length-percentage> <length>? ]?`\n\n**Initial value**: `none`\n\n| Chrome | Firefox |  Safari  | Edge | IE  |\n| :----: | :-----: | :------: | :--: | :-: |\n|   No   | **72**  | **14.1** |  No  | No  |',
     )
-    unicodeBidi: Optional[Property.UnicodeBidi] = Field(
+    unicodeBidi: Property.UnicodeBidi | None = Field(
         default=None,
         description='The **`unicode-bidi`** CSS property, together with the `direction` property, determines how bidirectional text in a document is handled. For example, if a block of content contains both left-to-right and right-to-left text, the user-agent uses a complex Unicode algorithm to decide how to display the text. The `unicode-bidi` property overrides this algorithm and allows the developer to control the text embedding.\n\n**Syntax**: `normal | embed | isolate | bidi-override | isolate-override | plaintext`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari  |  Edge  |   IE    |\n| :----: | :-----: | :-----: | :----: | :-----: |\n| **2**  |  **1**  | **1.3** | **12** | **5.5** |',
     )
-    userSelect: Optional[Property.UserSelect] = Field(
+    userSelect: Property.UserSelect | None = Field(
         default=None,
         description="The `**user-select**` CSS property controls whether the user can select text. This doesn't have any effect on content loaded as chrome, except in textboxes.\n\n**Syntax**: `auto | text | none | contain | all`\n\n**Initial value**: `auto`\n\n| Chrome  | Firefox |   Safari    |   Edge   |      IE      |\n| :-----: | :-----: | :---------: | :------: | :----------: |\n| **54**  | **69**  | **3** _-x-_ |  **79**  | **10** _-x-_ |\n| 1 _-x-_ | 1 _-x-_ |             | 12 _-x-_ |              |",
     )
-    vectorEffect: Optional[Property.VectorEffect] = None
-    verticalAlign: Optional[Union[float_, str]] = Field(
+    vectorEffect: Property.VectorEffect | None = None
+    verticalAlign: float_ | str | None = Field(
         default=None,
         description='The **`vertical-align`** CSS property sets vertical alignment of an inline, inline-block or table-cell box.\n\n**Syntax**: `baseline | sub | super | text-top | text-bottom | middle | top | bottom | <percentage> | <length>`\n\n**Initial value**: `baseline`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    visibility: Optional[Property.Visibility] = Field(
+    visibility: Property.Visibility | None = Field(
         default=None,
         description='The **`visibility`** CSS property shows or hides an element without changing the layout of a document. The property can also hide rows or columns in a `<table>`.\n\n**Syntax**: `visible | hidden | collapse`\n\n**Initial value**: `visible`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |',
     )
-    whiteSpace: Optional[Property.WhiteSpace] = Field(
+    whiteSpace: Property.WhiteSpace | None = Field(
         default=None,
         description='The **`white-space`** CSS property sets how white space inside an element is handled.\n\n**Syntax**: `normal | pre | nowrap | pre-wrap | pre-line | break-spaces`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  |  **1**  | **1**  | **12** | **5.5** |',
     )
@@ -7649,7 +7649,7 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`widows`** CSS property sets the minimum number of lines in a block container that must be shown at the _top_ of a page, region, or column.\n\n**Syntax**: `<integer>`\n\n**Initial value**: `2`\n\n| Chrome | Firefox | Safari  |  Edge  |  IE   |\n| :----: | :-----: | :-----: | :----: | :---: |\n| **25** |   No    | **1.3** | **12** | **8** |',
     )
-    width: Optional[Union[float_, str]] = Field(
+    width: float_ | str | None = Field(
         default=None,
         description="The **`width`** CSS property sets an element's width. By default, it sets the width of the content area, but if `box-sizing` is set to `border-box`, it sets the width of the border area.\n\n**Syntax**: `auto | <length> | <percentage> | min-content | max-content | fit-content | fit-content(<length-percentage>)`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **4** |",
     )
@@ -7659,19 +7659,19 @@ class CSSProperties(DaraBaseModel):
         default=None,
         description='The **`will-change`** CSS property hints to browsers how an element is expected to change. Browsers may set up optimizations before an element is actually changed. These kinds of optimizations can increase the responsiveness of a page by doing potentially expensive work before they are actually required.\n\n**Syntax**: `auto | <animateable-feature>#`\n\n**Initial value**: `auto`\n\n| Chrome | Firefox | Safari  |  Edge  | IE  |\n| :----: | :-----: | :-----: | :----: | :-: |\n| **36** | **36**  | **9.1** | **79** | No  |',
     )
-    wordBreak: Optional[Property.WordBreak] = Field(
+    wordBreak: Property.WordBreak | None = Field(
         default=None,
         description='The **`word-break`** CSS property sets whether line breaks appear wherever the text would otherwise overflow its content box.\n\n**Syntax**: `normal | break-all | keep-all | break-word`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |   IE    |\n| :----: | :-----: | :----: | :----: | :-----: |\n| **1**  | **15**  | **3**  | **12** | **5.5** |',
     )
-    wordSpacing: Optional[Union[float_, str]] = Field(
+    wordSpacing: float_ | str | None = Field(
         default=None,
         description='The **`word-spacing`** CSS property sets the length of space between words and between tags.\n\n**Syntax**: `normal | <length>`\n\n**Initial value**: `normal`\n\n| Chrome | Firefox | Safari |  Edge  |  IE   |\n| :----: | :-----: | :----: | :----: | :---: |\n| **1**  |  **1**  | **1**  | **12** | **6** |',
     )
-    wordWrap: Optional[Property.WordWrap] = Field(
+    wordWrap: Property.WordWrap | None = Field(
         default=None,
         description='The `**overflow-wrap**` CSS property applies to inline elements, setting whether the browser should insert line breaks within an otherwise unbreakable string to prevent text from overflowing its line box.\n\n**Syntax**: `normal | break-word`\n\n**Initial value**: `normal`',
     )
-    writingMode: Optional[Property.WritingMode] = Field(
+    writingMode: Property.WritingMode | None = Field(
         default=None,
         description='The **`writing-mode`** CSS property sets whether lines of text are laid out horizontally or vertically, as well as the direction in which blocks progress. When set for an entire document, it should be set on the root element (`html` element for HTML documents).\n\n**Syntax**: `horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr`\n\n**Initial value**: `horizontal-tb`\n\n| Chrome  | Firefox |  Safari   |  Edge  |  IE   |\n| :-----: | :-----: | :-------: | :----: | :---: |\n| **48**  | **41**  | **10.1**  | **12** | **9** |\n| 8 _-x-_ |         | 5.1 _-x-_ |        |       |',
     )

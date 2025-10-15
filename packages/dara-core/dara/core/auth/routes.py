@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from inspect import iscoroutinefunction
-from typing import Union, cast
+from typing import cast
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
@@ -108,7 +108,7 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 @auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
-    dara_refresh_token: Union[str, None] = Cookie(default=None),
+    dara_refresh_token: str | None = Cookie(default=None),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ):
     """

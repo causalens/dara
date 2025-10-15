@@ -15,8 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, ClassVar, List, Literal, Optional, Sequence, Union
+from typing import Any, ClassVar, Literal
 
 from fastapi.encoders import jsonable_encoder
 from pandas import DataFrame
@@ -379,27 +380,16 @@ class Column(BaseModel):
     :param type: Optional prop to specify type of column, used to determine e.g. filter type. If not specified, inferred from formatters
     """
 
-    align: Optional[str] = None
+    align: str | None = None
     col_id: str
-    unique_items: Optional[List[str]] = None
-    filter: Optional[TableFilter] = None
-    formatter: Optional[dict] = None
-    label: Optional[str] = Field(default=None, validate_default=True)  # mimics always=True in pydantic v1
-    sticky: Optional[str] = None
-    tooltip: Optional[str] = None
-    width: Optional[Union[int, str]] = None
-    type: Optional[
-        Union[
-            Literal['number'],
-            Literal['string'],
-            # Generic datetime, assumes datetime64[ns]
-            Literal['datetime'],
-            # Specific datetime64 types
-            Literal['datetime64[ns]'],
-            Literal['datetime64[ms]'],
-            Literal['datetime64[s]'],
-        ]
-    ] = None
+    unique_items: list[str] | None = None
+    filter: TableFilter | None = None
+    formatter: dict | None = None
+    label: str | None = Field(default=None, validate_default=True)  # mimics always=True in pydantic v1
+    sticky: str | None = None
+    tooltip: str | None = None
+    width: int | str | None = None
+    type: Literal['number'] | Literal['string'] | Literal['datetime'] | Literal['datetime64[ns]'] | Literal['datetime64[ms]'] | Literal['datetime64[s]'] | None = None
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -855,18 +845,18 @@ class Table(ContentComponent):
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
 
-    columns: Optional[Union[Sequence[Union[Column, dict, str]], ClientVariable]] = None
-    data: Union[AnyVariable, DataFrame, list]
+    columns: Sequence[Column | dict | str] | ClientVariable | None = None
+    data: AnyVariable | DataFrame | list
     multi_select: bool = False
     show_checkboxes: bool = True
-    onclick_row: Optional[Action] = None
-    onselect_row: Optional[Action] = None
-    selected_indices: Optional[Union[List[int], Variable]] = None
-    search_columns: Optional[List[str]] = None
+    onclick_row: Action | None = None
+    onselect_row: Action | None = None
+    selected_indices: list[int] | Variable | None = None
+    search_columns: list[str] | None = None
     searchable: bool = False
     include_index: bool = True
-    max_rows: Optional[int] = None
-    suppress_click_events_for_selection: Optional[bool] = False
+    max_rows: int | None = None
+    suppress_click_events_for_selection: bool | None = False
 
     TableFormatterType: ClassVar[TFormatterType] = TableFormatterType
     TableFilter: ClassVar[TFilterType] = TableFilter
@@ -908,7 +898,7 @@ class Table(ContentComponent):
     def validate_columns(cls, columns):
         if columns is None:
             return None
-        if isinstance(columns, List):
+        if isinstance(columns, list):
             cols = []
             for col in columns:
                 if isinstance(col, Column):
@@ -923,9 +913,9 @@ class Table(ContentComponent):
         else:
             raise ValueError(f'Invalid list passed to Table columns: {columns}, expected a list')
 
-    def add_column(self, col: Union[str, dict, Column]):
+    def add_column(self, col: str | dict | Column):
         """Adds a new column to the data"""
-        if not isinstance(self.columns, List):
+        if not isinstance(self.columns, list):
             raise ValueError('You cannot add_columns to a Variable type columns or if they are undefined')
         if isinstance(col, str):
             self.columns.append(Column(col_id=col))

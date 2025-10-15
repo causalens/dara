@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
@@ -58,8 +57,8 @@ class Input(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    id: Optional[str] = None
-    placeholder: Optional[str] = None
-    type: Optional[str] = None
-    onchange: Optional[Action] = None
-    value: Optional[Variable] = None
+    id: str | None = None
+    placeholder: str | None = None
+    type: str | None = None
+    onchange: Action | None = None
+    value: Variable | None = None

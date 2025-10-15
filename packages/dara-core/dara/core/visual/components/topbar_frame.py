@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
 
 from pydantic import ConfigDict
 
@@ -26,12 +25,12 @@ TopBarFrameDef = JsComponentDef(name='TopBarFrame', js_module='@darajs/core', py
 
 class TopBarFrame(ComponentInstance):
     content: ComponentInstance
-    hide_logo: Optional[bool] = False
-    logo_width: Optional[str] = '10rem'
-    logo_path: Optional[str] = None
-    logo_position: Optional[str] = None
-    top_bar: Optional[ComponentInstance] = None
-    top_bar_padding: Optional[str] = None
-    top_bar_position: Optional[str] = None
-    top_bar_height: Optional[str] = None
+    hide_logo: bool | None = False
+    logo_width: str | None = '10rem'
+    logo_path: str | None = None
+    logo_position: str | None = None
+    top_bar: ComponentInstance | None = None
+    top_bar_padding: str | None = None
+    top_bar_position: str | None = None
+    top_bar_height: str | None = None
     model_config = ConfigDict(extra='forbid')

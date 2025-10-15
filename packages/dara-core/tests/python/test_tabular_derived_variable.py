@@ -1,7 +1,7 @@
 import os
 from contextvars import ContextVar
 from multiprocessing import active_children
-from typing import Optional, Union, cast
+from typing import cast
 from unittest.mock import Mock
 
 import anyio
@@ -78,10 +78,10 @@ async def reset_data_variable_cache():
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, DataVariable, DerivedVariable]
-    action: Optional[Action] = None
+    text: str | DataVariable | DerivedVariable
+    action: Action | None = None
 
-    def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
+    def __init__(self, text: str | DataVariable | DerivedVariable, action: Action | None = None):
         super().__init__(text=text, uid='uid', action=action)
 
 
@@ -269,7 +269,7 @@ async def test_tabular_derived_variable_with_custom_filter_resolver():
         return a + 1
 
     async def filter_resolver(
-        data: int, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
+        data: int, filters: FilterQuery | None = None, pagination: Pagination | None = None
     ):
         slice = cast(DataFrame, TEST_DATA[TEST_DATA['col1'] == data])
         return apply_filters(slice, filters, pagination)

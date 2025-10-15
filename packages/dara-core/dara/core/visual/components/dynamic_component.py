@@ -1,4 +1,3 @@
-from typing import Union
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
@@ -14,4 +13,4 @@ class DynamicComponent(ComponentInstance):
     :param component: A Dara component instance or a dictionary representing a Dara component.
     """
 
-    component: Union[ComponentInstance, dict]
+    component: ComponentInstance | dict

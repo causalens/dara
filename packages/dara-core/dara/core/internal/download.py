@@ -18,9 +18,9 @@ limitations under the License.
 from __future__ import annotations
 
 import os
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
-from typing import Callable, Optional, Tuple
+from typing import Optional
 from uuid import uuid4
 
 import anyio
@@ -38,8 +38,8 @@ class DownloadDataEntry(BaseModel):
     uid: str
     file_path: str
     cleanup_file: bool
-    identity_name: Optional[str] = None
-    download: Callable[[DownloadDataEntry], Awaitable[Tuple[anyio.AsyncFile, Callable[..., Awaitable]]]]
+    identity_name: str | None = None
+    download: Callable[[DownloadDataEntry], Awaitable[tuple[anyio.AsyncFile, Callable[..., Awaitable]]]]
     """Handler for getting the file from the entry"""
 
 
@@ -48,7 +48,7 @@ DownloadRegistryEntry = CachedRegistryEntry(
 )  # expire the codes after 10 minutes
 
 
-async def download(data_entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Callable[..., Awaitable]]:
+async def download(data_entry: DownloadDataEntry) -> tuple[anyio.AsyncFile, Callable[..., Awaitable]]:
     """
     Get the loaded filename and path from a code
 

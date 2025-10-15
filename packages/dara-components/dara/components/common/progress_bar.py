@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Union
 
 from pydantic import field_validator
 
@@ -48,9 +47,9 @@ class ProgressBar(ContentComponent):
     :param color: Optional color property for the progress bar, this should be the hex value of the color.
     """
 
-    progress: Union[int, ClientVariable]
+    progress: int | ClientVariable
     small: bool = False
-    color: Optional[str] = None
+    color: str | None = None
 
     @field_validator('progress')
     @classmethod

@@ -18,9 +18,10 @@ limitations under the License.
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Generic, Optional, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
@@ -49,19 +50,19 @@ class Variable(ClientVariable, Generic[VariableType]):
     A Variable represents a dynamic value in the system that can be read and written to by components and actions
     """
 
-    default: Optional[VariableType] = None
-    store: Optional[PersistenceStore] = None
+    default: VariableType | None = None
+    store: PersistenceStore | None = None
     uid: str
-    nested: List[str] = Field(default_factory=list)
+    nested: list[str] = Field(default_factory=list)
     model_config = ConfigDict(extra='forbid')
 
     def __init__(
         self,
-        default: Optional[VariableType] = None,
-        persist_value: Optional[bool] = False,
-        uid: Optional[str] = None,
-        store: Optional[PersistenceStoreType_co] = None,
-        nested: Optional[List[str]] = None,
+        default: VariableType | None = None,
+        persist_value: bool | None = False,
+        uid: str | None = None,
+        store: PersistenceStoreType_co | None = None,
+        nested: list[str] | None = None,
         **kwargs,
     ):
         """
@@ -269,7 +270,7 @@ class Variable(ClientVariable, Generic[VariableType]):
         """
         return cls(default=other)  # type: ignore
 
-    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
+    async def write(self, value: Any, notify=True, ignore_channel: str | None = None):
         """
         Persist a value to the variable's BackendStore.
         Raises an error if the variable does not have a BackendStore attached.
@@ -284,7 +285,7 @@ class Variable(ClientVariable, Generic[VariableType]):
         assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
         return await self.store.write(value, notify=notify, ignore_channel=ignore_channel)
 
-    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True, in_place: bool = False):
+    async def write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
         """
         Apply partial updates to the variable's BackendStore using JSON Patch operations or automatic diffing.
         Raises an error if the variable does not have a BackendStore attached.
@@ -326,7 +327,7 @@ class Variable(ClientVariable, Generic[VariableType]):
         assert isinstance(self.store, BackendStore), 'This method can only be used with a BackendStore'
         return await self.store.delete(notify=notify)
 
-    async def get_all(self) -> Dict[str, Any]:
+    async def get_all(self) -> dict[str, Any]:
         """
         Get all the values from the variable's BackendStore as a dictionary of key-value pairs.
         Raises an error if the variable does not have a BackendStore attached.

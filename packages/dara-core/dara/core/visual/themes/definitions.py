@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity.client_variable import ClientVariable
@@ -26,42 +26,42 @@ class ThemeColors(BaseModel):
     Expected colors in a theme
     """
 
-    primary: Optional[str] = None
-    primaryHover: Optional[str] = None
-    primaryDown: Optional[str] = None
-    secondary: Optional[str] = None
-    secondaryHover: Optional[str] = None
-    secondaryDown: Optional[str] = None
-    background: Optional[str] = None
-    text: Optional[str] = None
-    grey1: Optional[str] = None
-    grey2: Optional[str] = None
-    grey3: Optional[str] = None
-    grey4: Optional[str] = None
-    grey5: Optional[str] = None
-    grey6: Optional[str] = None
-    blue1: Optional[str] = None
-    blue2: Optional[str] = None
-    blue3: Optional[str] = None
-    blue4: Optional[str] = None
-    violet: Optional[str] = None
-    turquoise: Optional[str] = None
-    purple: Optional[str] = None
-    teal: Optional[str] = None
-    orange: Optional[str] = None
-    plum: Optional[str] = None
-    error: Optional[str] = None
-    errorHover: Optional[str] = None
-    errorDown: Optional[str] = None
-    success: Optional[str] = None
-    successHover: Optional[str] = None
-    successDown: Optional[str] = None
-    warning: Optional[str] = None
-    warningHover: Optional[str] = None
-    warningDown: Optional[str] = None
-    modalBg: Optional[str] = None
-    shadowLight: Optional[str] = None
-    shadowMedium: Optional[str] = None
+    primary: str | None = None
+    primaryHover: str | None = None
+    primaryDown: str | None = None
+    secondary: str | None = None
+    secondaryHover: str | None = None
+    secondaryDown: str | None = None
+    background: str | None = None
+    text: str | None = None
+    grey1: str | None = None
+    grey2: str | None = None
+    grey3: str | None = None
+    grey4: str | None = None
+    grey5: str | None = None
+    grey6: str | None = None
+    blue1: str | None = None
+    blue2: str | None = None
+    blue3: str | None = None
+    blue4: str | None = None
+    violet: str | None = None
+    turquoise: str | None = None
+    purple: str | None = None
+    teal: str | None = None
+    orange: str | None = None
+    plum: str | None = None
+    error: str | None = None
+    errorHover: str | None = None
+    errorDown: str | None = None
+    success: str | None = None
+    successHover: str | None = None
+    successDown: str | None = None
+    warning: str | None = None
+    warningHover: str | None = None
+    warningDown: str | None = None
+    modalBg: str | None = None
+    shadowLight: str | None = None
+    shadowMedium: str | None = None
 
 
 class ThemeFont(BaseModel):
@@ -69,7 +69,7 @@ class ThemeFont(BaseModel):
     Expected font options in a theme
     """
 
-    size: Optional[str] = None
+    size: str | None = None
 
 
 class ThemeShadows(BaseModel):
@@ -77,8 +77,8 @@ class ThemeShadows(BaseModel):
     Expected shadow options in a theme
     """
 
-    light: Optional[str] = None
-    medium: Optional[str] = None
+    light: str | None = None
+    medium: str | None = None
 
 
 class ThemeDef(BaseModel):
@@ -86,10 +86,10 @@ class ThemeDef(BaseModel):
     Defines the theme schema
     """
 
-    colors: Optional[ThemeColors] = None
-    font: Optional[ThemeFont] = None
-    shadow: Optional[ThemeShadows] = None
-    themeType: Optional[Union[Literal['light'], Literal['dark']]] = None
+    colors: ThemeColors | None = None
+    font: ThemeFont | None = None
+    shadow: ThemeShadows | None = None
+    themeType: Literal['light'] | Literal['dark'] | None = None
 
 
 class BaseTheme(BaseModel):
@@ -97,5 +97,5 @@ class BaseTheme(BaseModel):
     Defines the base theming scheme of an app
     """
 
-    main: Union[ThemeDef, ClientVariable, Literal['light'], Literal['dark']]
-    base: Optional[Union[Literal['light'], Literal['dark']]] = None
+    main: ThemeDef | ClientVariable | Literal['light'] | Literal['dark']
+    base: Literal['light'] | Literal['dark'] | None = None
