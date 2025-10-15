@@ -454,6 +454,34 @@ admin_section.add_page(path="admin/users", content=UserManagement)
 admin_section.add_page(path="admin/settings", content=AdminSettings)
 ```
 
+### Route Fallbacks
+
+When definining `on_load` actions, you should be careful to consider their impact on the user experience. `on_load` actions run **before** the page content is shown. To provide an experience similar to how native browser navigations work, Dara will hold the user on the current page before navigating to the new page while the new page's `on_load` functions run. This includes nested pages - all of their `on_load` functions run in parallel.
+
+If you know certain page's `on_load` actions will take a long time to run and would rather show a fallback for that part of the page, you can do that instead by providing a custom component as the route's `fallback`:
+
+```python
+config.router.add_page(
+    path="slow-page",
+    content=SlowPage,
+    on_load=slow_page_action(),
+    fallback=Text('Slow page is loading...')
+)
+```
+
+Note that you can choose to use the default Dara loading indicator by passing `Fallback.Default()` or `Fallback.Row()`:
+
+```python
+from dara.core import Fallback
+
+config.router.add_page(
+    path="slow-page",
+    content=SlowPage,
+    on_load=slow_page_action(),
+    fallback=Fallback.Default()
+)
+```
+
 ### Case Sensitivity and Other Options
 
 ```python

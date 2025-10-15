@@ -47,6 +47,7 @@ export interface BaseRouteDefinition {
     case_sensitive: boolean;
     id: string;
     full_path: string;
+    fallback?: ComponentInstance;
     name?: string;
     on_load?: Action;
     dependency_graph?: DependencyGraph;

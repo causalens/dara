@@ -5,7 +5,7 @@ import { type Snapshot } from 'recoil';
 
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import { depsRegistry } from '@/shared';
-import { type RouteDefinition, isAnnotatedAction } from '@/types';
+import { type ComponentInstance, type RouteDefinition } from '@/types';
 
 import DynamicComponent from '../shared/dynamic-component/dynamic-component';
 import { useExecuteAction } from '../shared/interactivity/use-action';
@@ -14,24 +14,15 @@ import { type LoaderData, fetchRouteData, getFromPreloadCache } from './fetching
 
 export interface LoaderResult {
     data: LoaderData | Promise<LoaderData>;
-}
-
-function hasServerActions(route: RouteDefinition): boolean {
-    if (!route.on_load) {
-        return false;
-    }
-    const actions = Array.isArray(route.on_load) ? route.on_load : [route.on_load];
-    return actions.some(isAnnotatedAction);
+    fallback?: ComponentInstance;
 }
 
 /**
  * Determines whether to hold navigation (await promise) or let it suspend.
- * Currently holds navigation unless it's a page/index route with server actions.
- * This allows rendering fallbacks for routes with server actions while blocking
- * navigation for simpler routes.
+ * Currently holds navigation unless the page defines an explicit fallback which we can show immediately.
  */
 function shouldHoldPromise(route: RouteDefinition): boolean {
-    return !((route.__typename === 'IndexRoute' || route.__typename === 'PageRoute') && hasServerActions(route));
+    return !route.fallback;
 }
 
 export function createRouteLoader(route: RouteDefinition, snapshot: () => Snapshot) {
@@ -55,7 +46,7 @@ export function createRouteLoader(route: RouteDefinition, snapshot: () => Snapsh
             result = await result;
         }
 
-        return { data: result };
+        return { data: result, fallback: route.fallback };
     };
 }
 
@@ -128,11 +119,16 @@ function Content({
 }
 
 function RouteContent(props: { route: RouteDefinition }): React.ReactNode {
-    const { data } = useLoaderData<LoaderResult>();
+    const { data, fallback } = useLoaderData<LoaderResult>();
+
+    const fallbackComponent = React.useMemo(
+        () => (fallback ? <DynamicComponent component={fallback} /> : <DefaultFallbackStatic />),
+        [fallback]
+    );
 
     if (data instanceof Promise) {
         return (
-            <React.Suspense fallback={<DefaultFallbackStatic />}>
+            <React.Suspense fallback={fallbackComponent}>
                 <Await resolve={data}>{(resolved) => <Content {...resolved} route={props.route} />}</Await>
             </React.Suspense>
         );
