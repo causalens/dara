@@ -37,6 +37,7 @@ from fastapi import (
     Form,
     HTTPException,
     Path,
+    Query,
     Response,
     UploadFile,
 )
@@ -360,8 +361,8 @@ async def get_server_variable_sequence(
 @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
 async def upload_data(
     data: Annotated[UploadFile, File()],
-    resolver_id: Annotated[str | None, Form(default=None)],
-    data_uid: Annotated[str | None, Form(default=None)],
+    resolver_id: Annotated[str | None, Form()] = None,
+    data_uid: Annotated[str | None, Query()] = None,
 ):
     """
     Upload endpoint.

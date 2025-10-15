@@ -110,8 +110,8 @@ async def _revoke_session(
 @auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
-    dara_refresh_token: Annotated[str | None, Cookie(default=None)],
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())],
+    dara_refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     """
     Given a refresh token, issues a new session token and refresh token cookie.
