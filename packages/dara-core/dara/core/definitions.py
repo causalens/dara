@@ -28,7 +28,6 @@ from typing import (
     Literal,
     Protocol,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
@@ -266,7 +265,7 @@ class CallableClassComponent(Protocol):
     def __call__(self) -> ComponentInstance: ...
 
 
-DiscoverTarget = Union[Callable[..., ComponentInstance], ComponentInstance, type[CallableClassComponent]]
+DiscoverTarget = Callable[..., ComponentInstance] | ComponentInstance | type[CallableClassComponent]
 DiscoverT = TypeVar('DiscoverT', bound=DiscoverTarget)
 
 
@@ -425,7 +424,7 @@ class BaseFallback(StyledComponentInstance):
 
 ComponentInstance.model_rebuild()
 
-ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
+ComponentInstanceType = ComponentInstance | Callable[..., ComponentInstance]
 
 
 class JsComponentDef(BaseModel):
@@ -484,7 +483,7 @@ class PyComponentDef(BaseModel):
 
 
 # Helper type annotation for working with components
-ComponentTypeAnnotation = Union[PyComponentDef, JsComponentDef]
+ComponentTypeAnnotation = PyComponentDef | JsComponentDef
 
 
 class EndpointConfiguration(BaseModel):

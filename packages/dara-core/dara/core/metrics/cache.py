@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 from prometheus_client import Info
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel

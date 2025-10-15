@@ -317,9 +317,7 @@ class DataFactory(BaseModel):
         """
         self.file_store.delete_file(cache, name)
 
-    def delete_dataset_action(
-        self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL
-    ):
+    def delete_dataset_action(self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL):
         """
         Get a SideEffect action which deletes a given dataset
 
@@ -331,9 +329,7 @@ class DataFactory(BaseModel):
 
         return SideEffect(lambda ctx: self.delete_dataset(ctx.extras[0], ctx.extras[1]), extras=[name_var, cache_var])
 
-    def download_dataset_action(
-        self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL
-    ):
+    def download_dataset_action(self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL):
         """
         Get a DownloadContent action which downloads a dataset with a given name as a .csv
 

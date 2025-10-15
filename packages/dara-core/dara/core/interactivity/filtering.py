@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Union, cast, overload
+from typing import Any, cast, overload
 
 import numpy
 from pandas import DataFrame, Series
@@ -96,7 +96,7 @@ class ValueQuery(BaseModel):
     value: Any
 
 
-FilterQuery = Union[ClauseQuery, ValueQuery]
+FilterQuery = ClauseQuery | ValueQuery
 """
 Filter query to be applied
 """

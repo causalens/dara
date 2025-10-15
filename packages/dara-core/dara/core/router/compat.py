@@ -1,4 +1,3 @@
-
 from dara.core.definitions import ComponentInstance
 
 from .components import Outlet

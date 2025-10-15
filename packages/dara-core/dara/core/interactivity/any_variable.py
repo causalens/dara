@@ -24,7 +24,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import anyio
 from fastapi.encoders import jsonable_encoder
@@ -41,7 +41,7 @@ from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
 
-GET_VALUE_OVERRIDE = ContextVar[Optional[Callable[[dict], Any]]]('GET_VALUE_OVERRIDE', default=None)
+GET_VALUE_OVERRIDE = ContextVar[Callable[[dict], Any] | None]('GET_VALUE_OVERRIDE', default=None)
 """
 Optional context variable which can be used to override the default behaviour of `get_current_value()`.
 """

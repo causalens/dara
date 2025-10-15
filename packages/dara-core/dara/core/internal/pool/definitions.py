@@ -17,7 +17,7 @@ limitations under the License.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypeGuard, Union
+from typing import Any, TypeGuard
 
 from anyio import Event
 from typing_extensions import TypedDict
@@ -154,7 +154,7 @@ class Progress(TypedDict):
     message: str
 
 
-WorkerMessage = Union[Acknowledgement, Result, Problem, Initialization, Log, Progress]
+WorkerMessage = Acknowledgement | Result | Problem | Initialization | Log | Progress
 """Union of possible messages sent from worker processes"""
 
 

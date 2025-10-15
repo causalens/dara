@@ -1,4 +1,3 @@
-
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
 from .client_variable import ClientVariable

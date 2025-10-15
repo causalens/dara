@@ -20,7 +20,6 @@ from __future__ import annotations
 import os
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
-from typing import Optional
 from uuid import uuid4
 
 import anyio
@@ -74,7 +73,7 @@ async def download(data_entry: DownloadDataEntry) -> tuple[anyio.AsyncFile, Call
     return (async_file, cleanup)
 
 
-GENERATE_CODE_OVERRIDE = ContextVar[Optional[Callable[[str], str]]]('GENERATE_CODE_OVERRIDE', default=None)
+GENERATE_CODE_OVERRIDE = ContextVar[Callable[[str], str] | None]('GENERATE_CODE_OVERRIDE', default=None)
 """
 Optional context variable which can be used to override the default behaviour of code generation.
 Invoked with the file path to generate a download code for.

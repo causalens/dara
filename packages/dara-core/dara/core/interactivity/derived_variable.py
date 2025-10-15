@@ -25,7 +25,6 @@ from typing import (
     Any,
     Generic,
     Protocol,
-    TypeVar,
     cast,
 )
 
@@ -40,7 +39,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from typing_extensions import TypedDict, runtime_checkable
+from typing_extensions import TypedDict, TypeVar, runtime_checkable
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -64,7 +63,7 @@ from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 
-VariableType = TypeVar('VariableType')
+VariableType = TypeVar('VariableType', default=Any)
 
 # Static lock for all DV computations, keyed by cache_key
 # Explicitly not re-entrant, this prevents variable loops

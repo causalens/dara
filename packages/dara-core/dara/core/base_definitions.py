@@ -30,7 +30,6 @@ from typing import (
     Any,
     ClassVar,
     Literal,
-    Union,
     get_args,
     get_origin,
 )
@@ -283,7 +282,7 @@ class Cache:
                 raise ValueError(f'Invalid cache policy: {arg}')
 
 
-CacheArgType = Union[CacheType, BaseCachePolicy, str]
+CacheArgType = CacheType | BaseCachePolicy | str
 
 
 class CachedRegistryEntry(BaseModel):
@@ -333,7 +332,7 @@ class TaskError(BaseTaskMessage):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-TaskMessage = Union[TaskProgressUpdate, TaskResult, TaskError]
+TaskMessage = TaskProgressUpdate | TaskResult | TaskError
 
 
 class BaseTask(abc.ABC):
@@ -565,13 +564,13 @@ class ActionImpl(DaraBaseModel):
         return jsonable_encoder(value)
 
 
-ActionInstance = Union[ActionImpl, AnnotatedAction]
+ActionInstance = ActionImpl | AnnotatedAction
 """
 @deprecated alias for backwards compatibility
 """
 
 # TODO: remove List[AnnotatedAction] support in 2.0
-Action = Union[ActionImpl, AnnotatedAction, list[AnnotatedAction | ActionImpl]]
+Action = ActionImpl | AnnotatedAction | list[AnnotatedAction | ActionImpl]
 """
 Definition of an action that can be executed by the frontend.
 Supports:

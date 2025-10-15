@@ -23,7 +23,7 @@ import traceback
 from collections.abc import Callable, Mapping
 from functools import wraps
 from importlib.metadata import version
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 from urllib.parse import unquote
 
 import anyio
@@ -359,9 +359,9 @@ async def get_server_variable_sequence(
 
 @core_api_router.post('/data/upload', dependencies=[Depends(verify_session)])
 async def upload_data(
-    data_uid: str | None = None,
-    data: UploadFile = File(),
-    resolver_id: str | None = Form(default=None),
+    data: Annotated[UploadFile, File()],
+    resolver_id: Annotated[str | None, Form(default=None)],
+    data_uid: Annotated[str | None, Form(default=None)],
 ):
     """
     Upload endpoint.
@@ -448,7 +448,7 @@ async def read_backend_store(store_uid: str):
 
 
 @core_api_router.post('/store', dependencies=[Depends(verify_session)])
-async def sync_backend_store(ws_channel: str = Body(), values: dict[str, Any] = Body()):
+async def sync_backend_store(ws_channel: Annotated[str, Body()], values: Annotated[dict[str, Any], Body()]):
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
 
     async def _write(store_uid: str, value: Any):
@@ -561,7 +561,7 @@ class PyComponentChunk(BaseModel):
     result: Result
 
 
-Chunk = Union[DerivedVariableChunk, PyComponentChunk]
+Chunk = DerivedVariableChunk | PyComponentChunk
 
 
 def create_loader_route(config: Configuration, app: FastAPI):

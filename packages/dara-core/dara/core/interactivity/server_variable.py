@@ -294,9 +294,7 @@ class ServerVariable(AnyVariable):
         await self._notify(self.uid, self.key, self.backend)
         return value
 
-    async def read_filtered(
-        self, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None
-    ):
+    async def read_filtered(self, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None):
         """
         Read a filtered value from the backend.
         Depending on the scope, the value will be global or user-specific.

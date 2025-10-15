@@ -26,7 +26,6 @@ from inspect import Parameter, Signature, isclass, signature
 from typing import (
     Any,
     ClassVar,
-    Union,
     overload,
 )
 
@@ -198,7 +197,7 @@ def py_component(
         params = OrderedDict()
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
-                new_type = Union[typ, AnyVariable]
+                new_type = typ | AnyVariable
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)
                 new_annotations[var_name] = new_type

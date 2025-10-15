@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from inspect import iscoroutinefunction
-from typing import cast
+from typing import Annotated, cast
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
@@ -41,7 +41,7 @@ auth_router = APIRouter()
 @auth_router.post('/verify-session')
 async def verify_session(
     req: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer(auto_error=False))],
 ):
     """
     Helper to verify whether the user has a valid session JWT in the request they made. The function should be applied
@@ -86,7 +86,9 @@ async def verify_session(
 
 
 @auth_router.post('/revoke-session')
-async def _revoke_session(response: Response, credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+async def _revoke_session(
+    response: Response, credentials: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())]
+):
     """
     Helper to revoke a session and its' associated token
     """
@@ -108,8 +110,8 @@ async def _revoke_session(response: Response, credentials: HTTPAuthorizationCred
 @auth_router.post('/refresh-token')
 async def handle_refresh_token(
     response: Response,
-    dara_refresh_token: str | None = Cookie(default=None),
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+    dara_refresh_token: Annotated[str | None, Cookie(default=None)],
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())],
 ):
     """
     Given a refresh token, issues a new session token and refresh token cookie.

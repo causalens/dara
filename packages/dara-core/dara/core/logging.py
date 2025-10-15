@@ -20,7 +20,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Union
+from typing import Any
 
 import colorama
 from colorama import Back, Fore
@@ -31,7 +31,7 @@ from starlette.types import Message
 
 colorama.init()
 
-JsonSerializable = Union[str, int, float, dict, None]
+JsonSerializable = str | int | float | dict | None
 
 one_mb = int(1024 * 1024)
 
@@ -208,7 +208,7 @@ class DaraProdFormatter(logging.Formatter):
 
     @staticmethod
     def _get_payload(record: logging.LogRecord) -> dict[str, JsonSerializable]:
-        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(record.msecs)
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + f'.{int(record.msecs)}'
         if isinstance(record.msg, dict):
             payload: dict[str, JsonSerializable] = {
                 'timestamp': timestamp,

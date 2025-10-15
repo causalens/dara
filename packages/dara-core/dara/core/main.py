@@ -390,7 +390,7 @@ def _start_application(config: Configuration):
 
         # Catch-all, must add after adding the last api route
         @app.get('/api/{rest_of_path:path}')
-        async def not_found():
+        async def not_found(rest_of_path: str):
             raise HTTPException(status_code=404, detail='API endpoint not found')
 
         # Prepare static template data
@@ -426,13 +426,13 @@ def _start_application(config: Configuration):
             context.update(build_autojs_template(build_cache, config))
 
         @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
-        async def serve_app(request: Request):
+        async def serve_app(full_path: str, request: Request):
             return jinja_templates.TemplateResponse(request, template_name, context=context)
 
     else:
         # Catch-all, must be at the very end
         @app.get('/api/{rest_of_path:path}')
-        async def not_found():
+        async def not_found(rest_of_path: str):
             raise HTTPException(status_code=404, detail='API endpoint not found')
 
     return app

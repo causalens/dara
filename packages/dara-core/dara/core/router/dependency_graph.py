@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, Field, SerializeAsAny
 
 from dara.core.definitions import ComponentInstance

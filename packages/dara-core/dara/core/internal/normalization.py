@@ -21,7 +21,6 @@ from typing import (
     Generic,
     TypeGuard,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -30,7 +29,7 @@ from typing_extensions import TypedDict
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
-JsonLike = Union[Mapping, list]
+JsonLike = Mapping | list
 
 DataType = TypeVar('DataType')
 

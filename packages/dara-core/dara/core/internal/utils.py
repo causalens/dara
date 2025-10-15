@@ -30,7 +30,6 @@ from typing import (
     Any,
     Literal,
     TypeVar,
-    Union,
 )
 
 import anyio
@@ -50,7 +49,7 @@ if TYPE_CHECKING:
 
 # CacheScope stores as a key an user if cache is set to users, a session_id if cache is sessions or is set to 'global' otherwise
 # The value is a cache_key, for example the cache key used to store derived variable results to the store
-CacheScope = Union[Literal['global'], str]
+CacheScope = Literal['global'] | str
 
 
 def get_cache_scope(cache_type: CacheType | None) -> CacheScope:

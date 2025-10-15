@@ -20,7 +20,7 @@ import inspect
 import math
 import uuid
 from contextvars import ContextVar
-from typing import Any, Literal, Union
+from typing import Any, Literal
 from uuid import uuid4
 
 import anyio
@@ -89,7 +89,7 @@ class CustomClientMessage(BaseModel):
     message: CustomClientMessagePayload
 
 
-ClientMessage = Union[DaraClientMessage, CustomClientMessage]
+ClientMessage = DaraClientMessage | CustomClientMessage
 
 
 # Server message types
@@ -140,9 +140,9 @@ class CustomServerMessage(BaseModel):
     message: CustomServerMessagePayload
 
 
-ServerPayload = Union[ServerMessagePayload, CustomServerMessagePayload]
-LoosePayload = Union[ServerPayload, dict]
-ServerMessage = Union[DaraServerMessage, CustomServerMessage]
+ServerPayload = ServerMessagePayload | CustomServerMessagePayload
+LoosePayload = ServerPayload | dict
+ServerMessage = DaraServerMessage | CustomServerMessage
 
 WS_CHANNEL: ContextVar[str | None] = ContextVar('ws_channel', default=None)
 

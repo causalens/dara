@@ -1,4 +1,3 @@
-
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
 DynamicComponentDef = JsComponentDef(name='DynamicComponent', js_module='@darajs/core', py_module='dara.core')

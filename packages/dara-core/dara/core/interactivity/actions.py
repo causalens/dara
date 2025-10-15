@@ -30,7 +30,6 @@ from typing import (
     Any,
     ClassVar,
     Literal,
-    Optional,
     TypeAlias,
     TypeVar,
     cast,
@@ -382,9 +381,7 @@ class NavigateToImpl(ActionImpl):
 
 
 @deprecated('Use @action or `NavigateToImpl` for simple cases')
-def NavigateTo(
-    url: str | Callable[[Any], str], new_tab: bool = False, extras: list[AnyVariable] | None = None
-):
+def NavigateTo(url: str | Callable[[Any], str], new_tab: bool = False, extras: list[AnyVariable] | None = None):
     """
     @deprecated: Passing in resolvers is deprecated, use `ctx.navigate` in an `@action` or `NavigateToImpl` instead.
 
@@ -952,9 +949,7 @@ class ActionCtx:
         """
         return await TriggerVariable(variable=variable, force=force).execute(self)
 
-    async def navigate(
-        self, url: str | RouterPath, new_tab: bool = False, options: NavigateOptions | None = None
-    ):
+    async def navigate(self, url: str | RouterPath, new_tab: bool = False, options: NavigateOptions | None = None):
         """
         Navigate to a given url
 
@@ -1284,7 +1279,7 @@ class ActionCtx:
         self._action_send_stream.close()
 
 
-ACTION_CONTEXT = ContextVar[Optional[ActionCtx]]('action_context', default=None)
+ACTION_CONTEXT = ContextVar[ActionCtx | None]('action_context', default=None)
 """Current execution context"""
 
 

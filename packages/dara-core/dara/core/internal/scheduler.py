@@ -197,7 +197,7 @@ class ScheduledJobFactory(BaseModel):
         # If the job is scheduled to execute on a weekly basis
         if self.weekday is not None:
             # Set 2 intervals, where the first interval is the time from now until the first execution
-            interval = [(self.weekday - datetime.utcnow()).seconds, self.interval]  # type: Union[list, int]
+            interval: list | int = [(self.weekday - datetime.utcnow()).seconds, self.interval]
         else:
             interval = self.interval
         job = TimeScheduledJob(interval, job_time, run_once=self.run_once)
@@ -214,7 +214,7 @@ class ScheduledJobFactory(BaseModel):
         """
         if self.weekday is not None:
             # Set 2 intervals, where the first interval is the time from now until the first execution
-            interval = [(self.weekday - datetime.utcnow()).seconds, self.interval]  # type: Union[list, int]
+            interval: list | int = [(self.weekday - datetime.utcnow()).seconds, self.interval]
         else:
             interval = self.interval
         job = ScheduledJob(interval, run_once=self.run_once)
