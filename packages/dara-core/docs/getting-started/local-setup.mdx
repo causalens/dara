@@ -13,7 +13,7 @@ This page will walk you through the installation of Dara framework and the creat
 
 There are two prerequisites to being able to use the Dara framework:
 
-- Python v3.8+
+- Python v3.10+
 - NodeJS v20.19+ (Don't worry - you don't need to understand any JS, this is used to build the application in production mode)
 
 You can install both of these via the Homebrew package manager on MacOS or follow the instructions on their
@@ -83,13 +83,13 @@ poetry init
 This command will guide you through creating your `pyproject.toml` config.
 
 :::warning
-When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.9.0, <3.13.0`.
+When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.10.0, <3.15.0`.
 
 ```sh
-Compatible Python versions [^3.8]:  >=3.9.0, <3.13.0
+Compatible Python versions [^3.10]:  >=3.10.0, <3.15.0
 ```
 
-This is necessary because Dara libraries support python versions `>=3.9.0, <3.13.0`.
+This is necessary because Dara libraries support python versions `>=3.10.0, <3.15.0`.
 :::
 
 The contents of the `pyproject.toml` will be something like the following:
@@ -103,7 +103,7 @@ readme = "README.md"
 packages = [{include = "<your_app_name>"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9.0, <3.13.0"
+python = ">=3.10.0, <3.15.0"
 
 
 [build-system]
@@ -186,7 +186,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "<your_app_name>"
 version = "0.1.0"
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.10, <3.15"
 
 [tool.setuptools]
 packages = ["your_app_name"]

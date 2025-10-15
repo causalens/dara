@@ -148,19 +148,19 @@ files = [
 
 [[package]]
 name = "cai-causal-graph"
-version = "0.5.11"
+version = "0.5.12"
 description = "A Causal AI package for causal graphs."
 optional = false
-python-versions = "<3.13.0,>=3.9.0"
+python-versions = "<3.15.0,>=3.10.0"
 files = [
-    {file = "cai_causal_graph-0.5.11-py3-none-any.whl", hash = "sha256:19c121497dec717ac69d294bea524c69de692a96fd85bb8e67c283e62e4828a4"},
-    {file = "cai_causal_graph-0.5.11.tar.gz", hash = "sha256:b267e021b8ba5bb549b55f4298d2dabe19bc08d320c0e0b134b494189ad05133"},
+    {file = "cai_causal_graph-0.5.12-py3-none-any.whl", hash = "sha256:f31fe009ba76a40fd5bcf2091c0677f03744cc08c5b8902e2349567004ec0f95"},
+    {file = "cai_causal_graph-0.5.12.tar.gz", hash = "sha256:ea8dc827170c5479a58797e6b35a30416877951e70c84425a2ac27815fea2bd6"},
 ]
 
 [package.dependencies]
 mypy-extensions = ">=1.0.0,<2.0.0"
 networkx = ">=3.0.0,<3.3.0"
-numpy = {version = ">=1.18.0,<3.0.0", markers = "python_version >= \"3.10\""}
+numpy = ">=1.18.0,<3.0.0"
 pandas = ">=1.0.0,<3.0.0"
 
 [[package]]
@@ -530,7 +530,7 @@ name = "create-dara-app"
 version = "1.21.14"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
-python-versions = ">=3.10.0, <3.13.0"
+python-versions = ">=3.10.0, <3.15.0"
 files = []
 develop = true
 
@@ -655,7 +655,7 @@ name = "dara-components"
 version = "1.21.14"
 description = "Components for the Dara Framework"
 optional = false
-python-versions = ">=3.10.0, <3.13.0"
+python-versions = ">=3.10.0, <3.15.0"
 files = []
 develop = true
 
@@ -680,7 +680,7 @@ name = "dara-core"
 version = "1.21.14"
 description = "Dara Framework Core"
 optional = false
-python-versions = ">=3.10.0, <3.13.0"
+python-versions = ">=3.10.0, <3.15.0"
 files = []
 develop = true
 
@@ -732,7 +732,7 @@ name = "decision-app"
 version = "1.21.14"
 description = "Decision App"
 optional = false
-python-versions = ">=3.9.0, <3.13.0"
+python-versions = ">=3.10.0, <3.15.0"
 files = []
 develop = true
 
@@ -3475,5 +3475,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10.0,<3.13.0"
-content-hash = "5ddb29dab00f4c5c993112a777a23179c39102220309a0449f7dafdccb05e092"
+python-versions = ">=3.10.0,<3.15.0"
+content-hash = "eb5c6ef7434594837dfd9d9e88e639377dd0599319b6c0c0ca0a2164dfd00f94"
