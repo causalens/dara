@@ -13,9 +13,6 @@ concurrency:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.13"]
     outputs:
       cypress-version: ${{ steps.set-cypress.outputs.cypress }}
       pnpm-store-path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -30,7 +27,7 @@ jobs:
           git config user.email "<>"
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.9"
         id: setup-python
       - uses: snok/install-poetry@v1
         with:
@@ -80,7 +77,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.9"
         id: setup-python
       - uses: snok/install-poetry@v1
         with:
@@ -135,16 +132,13 @@ jobs:
   python-tests:
     needs: setup
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.9"
         id: setup-python
       - uses: snok/install-poetry@v1
         with:
@@ -191,16 +185,13 @@ jobs:
   e2e-tests:
     needs: setup
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.9"
         id: setup-python
       - uses: snok/install-poetry@v1
         with:

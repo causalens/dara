@@ -23,13 +23,13 @@ poetry init
 This command will guide you through creating your `pyproject.toml` config.
 
 :::note
-When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.10.0, <3.14.0`.
+When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.9.0, <3.13.0`.
 
 ```sh
-Compatible Python versions [^3.8]:  >=3.10.0, <3.14.0
+Compatible Python versions [^3.8]:  >=3.9.0, <3.13.0
 ```
 
-This is necessary because Dara libraries support python versions `>=3.10.0, <3.14.0`.
+This is necessary because Dara libraries support python versions `>=3.9.0, <3.13.0`.
 :::
 
 You will now have the following file structure:
@@ -50,7 +50,7 @@ readme = "README.md"
 packages = [{include = "my_first_app"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10.0, <3.14.0"
+python = ">=3.9.0, <3.13.0"
 
 
 [build-system]

@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Routes now hold navigation by default while `on_load` actions run. Users can provide a `fallback` component (e.g. default `Fallback.Default()` or any custom component) to opt-out and immediately show the fallback instead.
+-  Bumped minimum required Python version to `3.10`, dropping support for Python 3.9 as it reached end-of-life as of October 2025
 
 ## 1.21.14
 
