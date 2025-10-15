@@ -1,4 +1,3 @@
-
 import anyio
 import pytest
 from async_asgi_testclient import TestClient

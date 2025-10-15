@@ -389,7 +389,15 @@ class Column(BaseModel):
     sticky: str | None = None
     tooltip: str | None = None
     width: int | str | None = None
-    type: Literal['number'] | Literal['string'] | Literal['datetime'] | Literal['datetime64[ns]'] | Literal['datetime64[ms]'] | Literal['datetime64[s]'] | None = None
+    type: (
+        Literal['number']
+        | Literal['string']
+        | Literal['datetime']
+        | Literal['datetime64[ns]']
+        | Literal['datetime64[ms]']
+        | Literal['datetime64[s]']
+        | None
+    ) = None
 
     model_config = ConfigDict(use_enum_values=True)
 

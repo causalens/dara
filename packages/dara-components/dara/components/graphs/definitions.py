@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import ClassVar, Literal, Union
+from typing import ClassVar, Literal
 
 from pydantic import Field
 
@@ -49,12 +49,17 @@ class CenterSymbol(str, Enum):
     BIDIRECTED = 'bidirected'
 
 
+EdgeLegendType = type['EdgeLegend']
+SpacerLegendType = type['SpacerLegend']
+NodeLegendType = type['NodeLegend']
+
+
 class Legend(BaseModel):
     type: str
 
-    Edge: ClassVar[type['EdgeLegend']]
-    Spacer: ClassVar[type['SpacerLegend']]
-    Node: ClassVar[type['NodeLegend']]
+    Edge: ClassVar[EdgeLegendType]
+    Spacer: ClassVar[SpacerLegendType]
+    Node: ClassVar[NodeLegendType]
 
 
 class SpacerLegend(Legend):
@@ -106,7 +111,7 @@ Legend.Edge = EdgeLegend
 Legend.Spacer = SpacerLegend
 Legend.Node = NodeLegend
 
-GraphLegend = Union[EdgeLegend, SpacerLegend, NodeLegend]
+GraphLegend = EdgeLegend | SpacerLegend | NodeLegend
 
 DEFAULT_NODE_LEGENDS: list[GraphLegend] = [
     Legend.Node(color='theme.blue1', label='Latent'),

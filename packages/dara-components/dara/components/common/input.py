@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
 from dara.core.interactivity import Variable

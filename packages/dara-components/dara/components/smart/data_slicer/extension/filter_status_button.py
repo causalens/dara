@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import Action

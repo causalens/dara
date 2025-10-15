@@ -1,4 +1,3 @@
-
 import pytest
 
 from dara.core.configuration import ConfigurationBuilder

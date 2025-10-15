@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 from collections.abc import Callable
-from typing import Union
 from uuid import uuid4
 
 from pandas import DataFrame
@@ -26,10 +25,7 @@ from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import ServerVariable
 
-DropzoneResolver = Union[
-    Callable[[bytes, str], DataFrame],
-    Callable[[bytes, str], None],
-]
+DropzoneResolver = Callable[[bytes, str], DataFrame] | Callable[[bytes, str], None]
 
 
 class UploadDropzone(StyledComponentInstance):

@@ -2,7 +2,6 @@
 Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of the causaLens product.
 """
 
-
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 

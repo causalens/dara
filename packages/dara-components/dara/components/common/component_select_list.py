@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 from dara.components.common.base_component import LayoutComponent
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel

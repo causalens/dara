@@ -79,9 +79,7 @@ class MockComponent(ComponentInstance):
     text: str | DataVariable | DerivedVariable | ServerVariable
     action: Action | None = None
 
-    def __init__(
-        self, text: str | DataVariable | DerivedVariable | ServerVariable, action: Action | None = None
-    ):
+    def __init__(self, text: str | DataVariable | DerivedVariable | ServerVariable, action: Action | None = None):
         super().__init__(text=text, uid='uid', action=action)
 
 

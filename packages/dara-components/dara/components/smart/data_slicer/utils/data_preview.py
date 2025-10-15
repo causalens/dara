@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 from pandas import DataFrame
 
 from dara.components.common.table import Column, TableFormatterType

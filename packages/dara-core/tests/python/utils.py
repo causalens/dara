@@ -185,9 +185,9 @@ async def ndjson(response: Response):
 
     # otherwise keep reading until we get the entire content
     async for chunk in response.generate(n=1):
-        chunk = chunk.decode('utf-8')
-        yield json.loads(chunk)
-        buffer += chunk
+        decoded_chunk = chunk.decode('utf-8')
+        yield json.loads(decoded_chunk)
+        buffer += decoded_chunk
 
         parts = pattern.split(buffer)
         buffer = parts.pop()

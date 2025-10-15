@@ -16,7 +16,8 @@ select = [
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
     "I",   # isort
-    "PL"   # pylint
+    "PL",   # pylint
+    "FAST" # FastAPI specific
 ]
 ignore = [
     "E501",     # line-too-long

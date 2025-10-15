@@ -268,9 +268,7 @@ async def test_tabular_derived_variable_with_custom_filter_resolver():
     def func(a: int):
         return a + 1
 
-    async def filter_resolver(
-        data: int, filters: FilterQuery | None = None, pagination: Pagination | None = None
-    ):
+    async def filter_resolver(data: int, filters: FilterQuery | None = None, pagination: Pagination | None = None):
         slice = cast(DataFrame, TEST_DATA[TEST_DATA['col1'] == data])
         return apply_filters(slice, filters, pagination)
 

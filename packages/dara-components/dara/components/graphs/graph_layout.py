@@ -17,7 +17,6 @@ limitations under the License.
 
 import abc
 from enum import Enum
-from typing import Union
 
 from pydantic import Field
 
@@ -49,7 +48,7 @@ class LayeringAlgorithm(Enum):
     SIMPLEX = 'simplex'
 
 
-Number = Union[int, float]
+Number = int | float
 
 
 class GraphLayout(BaseModel, abc.ABC):
