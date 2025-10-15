@@ -20,7 +20,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import colorama
 from colorama import Back, Fore
@@ -31,7 +31,7 @@ from starlette.types import Message
 
 colorama.init()
 
-JsonSerializable = Union[str, int, float, dict, None]
+JsonSerializable = str | int | float | dict | None
 
 one_mb = int(1024 * 1024)
 
@@ -49,32 +49,32 @@ class Logger:
         """
         return self._logger.getEffectiveLevel()
 
-    def info(self, title: str, extra: Optional[Dict[str, Any]] = None):
+    def info(self, title: str, extra: dict[str, Any] | None = None):
         """
         Log a message at the INFO level
 
         :param title: short title for the log message
         :param extra: an optional field for any extra info to be passed along
         """
-        payload: Dict[str, JsonSerializable] = {
+        payload: dict[str, JsonSerializable] = {
             'title': title,
         }
         self._logger.info(payload, extra={'content': extra})
 
-    def warning(self, title: str, extra: Optional[Dict[str, Any]] = None):
+    def warning(self, title: str, extra: dict[str, Any] | None = None):
         """
         Log a message at the WARNING level
 
         :param title: short title for the log message
         :param extra: an optional field for any extra info to be passed along
         """
-        payload: Dict[str, JsonSerializable] = {
+        payload: dict[str, JsonSerializable] = {
             'title': title,
         }
 
         self._logger.warning(payload, extra={'content': extra})
 
-    def error(self, title: str, error: BaseException, extra: Optional[Dict[str, Any]] = None):
+    def error(self, title: str, error: BaseException, extra: dict[str, Any] | None = None):
         """
         Log a message at the ERROR level
 
@@ -86,7 +86,7 @@ class Logger:
 
         self._logger.error(payload, extra={'content': extra})
 
-    def debug(self, title: str, description: Optional[str] = None, extra: Optional[Dict[str, Any]] = None):
+    def debug(self, title: str, description: str | None = None, extra: dict[str, Any] | None = None):
         """
         Log a message at the DEBUG level
 
@@ -97,7 +97,7 @@ class Logger:
         # Extract the traceback so we can add the line where this debug message was from
         frame_summary = traceback.extract_stack()[-2]
 
-        payload: Dict[str, JsonSerializable] = {
+        payload: dict[str, JsonSerializable] = {
             'filename': frame_summary.filename,
             'func_name': frame_summary.name,
             'lineno': frame_summary.lineno,
@@ -171,7 +171,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def _print_stacktrace(err: Optional[BaseException] = None) -> str:
+def _print_stacktrace(err: BaseException | None = None) -> str:
     """
     Prints out the current stack trace whilst unwinding all the logging calls on the way so it just shows the relevant
     parts. Will also extract any exceptions and print them at the end.
@@ -207,10 +207,10 @@ class DaraProdFormatter(logging.Formatter):
     """
 
     @staticmethod
-    def _get_payload(record: logging.LogRecord) -> Dict[str, JsonSerializable]:
-        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + '.%s' % int(record.msecs)
+    def _get_payload(record: logging.LogRecord) -> dict[str, JsonSerializable]:
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(record.created)) + f'.{int(record.msecs)}'
         if isinstance(record.msg, dict):
-            payload: Dict[str, JsonSerializable] = {
+            payload: dict[str, JsonSerializable] = {
                 'timestamp': timestamp,
                 'level': record.levelno,
                 'name': record.name,

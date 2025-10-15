@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar, List, Optional, Union
+from typing import ClassVar
 
 from pydantic import field_validator
 
@@ -24,13 +24,13 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity import AnyVariable, Condition, Operator
 
 
-def cast_list(value: Union[ComponentInstance, List[Union[ComponentInstance, None]]]) -> List[ComponentInstance]:
+def cast_list(value: ComponentInstance | list[ComponentInstance | None]) -> list[ComponentInstance]:
     """
     Cast the value to a list if it is not or return original list if it is.
 
     :param value: the value to cast
     """
-    return [v for v in value if v is not None] if isinstance(value, List) else [value]
+    return [v for v in value if v is not None] if isinstance(value, list) else [value]
 
 
 ConditionType = type[Condition]
@@ -66,8 +66,8 @@ class If(ModifierComponent):
     """
 
     condition: Condition
-    true_children: List[ComponentInstance]
-    false_children: List[ComponentInstance]
+    true_children: list[ComponentInstance]
+    false_children: list[ComponentInstance]
 
     Condition: ClassVar[ConditionType] = Condition
 
@@ -85,9 +85,9 @@ class If(ModifierComponent):
 
     def __init__(
         self,
-        condition: Union[Condition, AnyVariable],  # type: ignore
-        true_children: Union[ComponentInstance, List[Union[ComponentInstance, None]]],
-        false_children: Optional[Union[ComponentInstance, List[Union[ComponentInstance, None]]]] = None,
+        condition: Condition | AnyVariable,  # type: ignore
+        true_children: ComponentInstance | list[ComponentInstance | None],
+        false_children: ComponentInstance | list[ComponentInstance | None] | None = None,
     ):
         if false_children is None:
             false_children = []

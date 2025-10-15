@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, cast
+from typing import TYPE_CHECKING, cast
 
 from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
@@ -76,7 +76,7 @@ INITIAL_CORE_INTERNALS = {'Store': _store}
 
 
 # These components are provided by the core JS of this module
-CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
+CORE_COMPONENTS: dict[str, ComponentTypeAnnotation] = {
     DynamicComponent.__name__: DynamicComponentDef,
     Menu.__name__: MenuDef,
     MenuLink.__name__: MenuLinkDef,
@@ -96,7 +96,7 @@ CORE_COMPONENTS: Dict[str, ComponentTypeAnnotation] = {
 }
 
 # These actions are provided by the core JS of this module
-CORE_ACTIONS: Dict[str, ActionDef] = {
+CORE_ACTIONS: dict[str, ActionDef] = {
     'NavigateTo': NavigateToDef,
     'UpdateVariable': UpdateVariableDef,
     TriggerVariable.__name__: TriggerVariableDef,

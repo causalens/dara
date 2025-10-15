@@ -19,20 +19,17 @@ from collections.abc import Mapping
 from typing import (
     Any,
     Generic,
-    List,
-    Optional,
-    Tuple,
+    TypeGuard,
     TypeVar,
-    Union,
     cast,
     overload,
 )
 
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypedDict
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
-JsonLike = Union[Mapping, List]
+JsonLike = Mapping | list
 
 DataType = TypeVar('DataType')
 
@@ -60,7 +57,7 @@ class Referrable(TypedDict):
 
 
 class ReferrableWithNested(Referrable):
-    nested: List[str]
+    nested: list[str]
 
 
 class ReferrableWithFilters(Referrable):
@@ -77,7 +74,7 @@ def _get_identifier(obj: Referrable) -> str:
 
     # If it's a Variable with 'nested', the property should be included in the identifier
     if _is_referrable_nested(obj) and len(obj['nested']) > 0:
-        nested = ','.join(cast(List[str], obj['nested']))
+        nested = ','.join(cast(list[str], obj['nested']))
         identifier = f'{identifier}:{nested}'
 
     return identifier
@@ -128,14 +125,14 @@ def _loop(iterable: JsonLike):
 
 
 @overload
-def normalize(obj: Mapping, check_root: bool = True) -> Tuple[Mapping, Mapping]: ...
+def normalize(obj: Mapping, check_root: bool = True) -> tuple[Mapping, Mapping]: ...
 
 
 @overload
-def normalize(obj: List, check_root: bool = True) -> Tuple[List, Mapping]: ...
+def normalize(obj: list, check_root: bool = True) -> tuple[list, Mapping]: ...
 
 
-def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping]:
+def normalize(obj: JsonLike, check_root: bool = True) -> tuple[JsonLike, Mapping]:
     """
     Normalize a dictionary - extract referrable data into a separate lookup dictionary, replacing instances
     found with placeholders.
@@ -148,7 +145,7 @@ def normalize(obj: JsonLike, check_root: bool = True) -> Tuple[JsonLike, Mapping
     if not isinstance(obj, (dict, list)):
         return obj, lookup
 
-    output: Union[Mapping[Any, Any], List[Any]] = {} if isinstance(obj, dict) else [None for x in range(len(obj))]
+    output: Mapping[Any, Any] | list[Any] = {} if isinstance(obj, dict) else [None for x in range(len(obj))]
 
     # The whole object is referrable
     if check_root and _is_referrable(obj):
@@ -177,10 +174,10 @@ def denormalize(normalized_obj: Mapping, lookup: Mapping) -> Mapping: ...
 
 
 @overload
-def denormalize(normalized_obj: List, lookup: Mapping) -> List: ...
+def denormalize(normalized_obj: list, lookup: Mapping) -> list: ...
 
 
-def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]:
+def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> JsonLike | None:
     """
     Denormalize data by replacing Placeholders found with objects from the lookup
 
@@ -190,7 +187,7 @@ def denormalize(normalized_obj: JsonLike, lookup: Mapping) -> Optional[JsonLike]
     if normalized_obj is None:
         return None
 
-    output: Union[Mapping[Any, Any], List[Any]] = (
+    output: Mapping[Any, Any] | list[Any] = (
         {} if isinstance(normalized_obj, dict) else [None for x in range(len(normalized_obj))]
     )
 

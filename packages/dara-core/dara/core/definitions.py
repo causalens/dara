@@ -19,19 +19,15 @@ from __future__ import annotations
 
 import json
 import uuid
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from enum import Enum
 from typing import (
+    Annotated,
     Any,
-    Callable,
     ClassVar,
-    List,
     Literal,
-    Optional,
     Protocol,
-    Type,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
@@ -45,7 +41,6 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from typing_extensions import Annotated
 
 from dara.core.base_definitions import Action, ComponentType
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -64,7 +59,7 @@ class HttpMethod(Enum):
 
 
 class Session(BaseModel):
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 DEFAULT_ERROR_TITLE = 'Unexpected error occurred'
@@ -99,7 +94,7 @@ class ErrorHandlingConfig(BaseModel):
     description: str = DEFAULT_ERROR_DESCRIPTION
     """Description to display in the error boundary"""
 
-    raw_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
+    raw_css: Annotated[Any | None, BeforeValidator(transform_raw_css)] = None
     """
     Raw styling to apply to the displayed error boundary.
     Accepts a CSSProperties, dict, str, or ClientVariable.
@@ -125,27 +120,27 @@ class ComponentInstance(BaseModel):
 
     uid: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
-    js_module: ClassVar[Optional[str]] = None
+    js_module: ClassVar[str | None] = None
     """
     JS module including the implementation of the component.
 
     Required for non-local components.
     """
 
-    py_component: ClassVar[Optional[str]] = None
+    py_component: ClassVar[str | None] = None
     """
     Python unique component name. If not set, defaults to the class name.
     """
 
-    js_component: ClassVar[Optional[str]] = None
+    js_component: ClassVar[str | None] = None
     """
     JS component name. If not set, defaults to the class name.
     """
 
-    required_routes: ClassVar[List[ApiRoute]] = []
+    required_routes: ClassVar[list[ApiRoute]] = []
     """List of routes the component depends on. Will be implicitly added to the app if this component is used"""
 
-    raw_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
+    raw_css: Annotated[Any | None, BeforeValidator(transform_raw_css)] = None
     """
     Raw styling to apply to the component.
     Can be an dict/CSSProperties instance representing the `styles` tag, a string injected directly into the CSS of the wrapping component,
@@ -172,25 +167,25 @@ class ComponentInstance(BaseModel):
     ```
     """
 
-    track_progress: Optional[bool] = False
+    track_progress: bool | None = False
     """Whether to use ProgressTracker to display progress updates from a task the component is subscribed to"""
 
-    error_handler: Optional[ErrorHandlingConfig] = None
+    error_handler: ErrorHandlingConfig | None = None
     """Configure the error handling for the component"""
 
-    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
+    fallback: BaseFallback | ComponentInstance | None = None
     """
     Fallback component to render in place of the actual UI if it has not finished loading
     """
 
-    id_: Optional[str] = None
+    id_: str | None = None
     """
     An optional unique identifier for the component, defaults to None
 
     This is intended to help identify components with human-readable names in the serialized trees, and is also set as the `id` attribute of the DOM element
     """
 
-    for_: Optional[str] = None
+    for_: str | None = None
     """
     An optional for attribute for the component, defaults to None
 
@@ -270,7 +265,7 @@ class CallableClassComponent(Protocol):
     def __call__(self) -> ComponentInstance: ...
 
 
-DiscoverTarget = Union[Callable[..., ComponentInstance], ComponentInstance, Type[CallableClassComponent]]
+DiscoverTarget = Callable[..., ComponentInstance] | ComponentInstance | type[CallableClassComponent]
 DiscoverT = TypeVar('DiscoverT', bound=DiscoverTarget)
 
 
@@ -335,32 +330,32 @@ class StyledComponentInstance(ComponentInstance):
     :param width: the width of the component, can be an number, which will be converted to pixels, or a string
     """
 
-    align: Optional[AlignItems] = None
-    background: Optional[str] = None
-    basis: Optional[Union[int, str, bool]] = None
+    align: AlignItems | None = None
+    background: str | None = None
+    basis: int | str | bool | None = None
     bold: bool = False
-    border: Optional[str] = None
-    border_radius: Optional[Union[float, int, str]] = None
-    children: Optional[List[ComponentInstance]] = None
-    color: Optional[str] = None
-    font: Optional[str] = None
-    font_size: Optional[str] = None
-    gap: Optional[Union[float, int, str]] = None
-    grow: Optional[Union[int, str, float, bool]] = None
-    height: Optional[Union[float, int, str]] = None
-    hug: Optional[bool] = None
+    border: str | None = None
+    border_radius: float | int | str | None = None
+    children: list[ComponentInstance] | None = None
+    color: str | None = None
+    font: str | None = None
+    font_size: str | None = None
+    gap: float | int | str | None = None
+    grow: int | str | float | bool | None = None
+    height: float | int | str | None = None
+    hug: bool | None = None
     italic: bool = False
-    margin: Optional[Union[float, int, str]] = None
-    max_height: Optional[Union[float, int, str]] = None
-    max_width: Optional[Union[float, int, str]] = None
-    min_height: Optional[Union[float, int, str]] = None
-    min_width: Optional[Union[float, int, str]] = None
-    overflow: Optional[str] = None
-    position: Optional[str] = None
-    padding: Optional[Union[float, int, str]] = None
-    shrink: Optional[Union[int, str, float, bool]] = None
+    margin: float | int | str | None = None
+    max_height: float | int | str | None = None
+    max_width: float | int | str | None = None
+    min_height: float | int | str | None = None
+    min_width: float | int | str | None = None
+    overflow: str | None = None
+    position: str | None = None
+    padding: float | int | str | None = None
+    shrink: int | str | float | bool | None = None
     underline: bool = False
-    width: Optional[Union[float, int, str]] = None
+    width: float | int | str | None = None
 
     @field_validator(
         'height',
@@ -401,7 +396,7 @@ class StyledComponentInstance(ComponentInstance):
 
 
 class BaseFallback(StyledComponentInstance):
-    suspend_render: Union[bool, int] = 200
+    suspend_render: bool | int = 200
     """
     :param suspend_render: bool or int, optional
         Determines the suspense behavior of the component during state updates.
@@ -429,20 +424,20 @@ class BaseFallback(StyledComponentInstance):
 
 ComponentInstance.model_rebuild()
 
-ComponentInstanceType = Union[ComponentInstance, Callable[..., ComponentInstance]]
+ComponentInstanceType = ComponentInstance | Callable[..., ComponentInstance]
 
 
 class JsComponentDef(BaseModel):
     """Definition of a JS Component"""
 
-    js_module: Optional[str] = None
+    js_module: str | None = None
     """
     JS module where the component implementation lives.
 
     Not required for local components as they are located via dara.config.json
     """
 
-    js_component: Optional[str] = None
+    js_component: str | None = None
     """
     JS component name. If not set, defaults to `name` property.
     """
@@ -459,11 +454,11 @@ class JsComponentDef(BaseModel):
 class PyComponentDef(BaseModel):
     """Definition of a Python Component"""
 
-    func: Optional[Callable[..., Any]] = None
+    func: Callable[..., Any] | None = None
     name: str
-    dynamic_kwargs: Optional[Mapping[str, AnyVariable]] = None
-    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None
-    polling_interval: Optional[int] = None
+    dynamic_kwargs: Mapping[str, AnyVariable] | None = None
+    fallback: BaseFallback | ComponentInstance | None = None
+    polling_interval: int | None = None
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 
@@ -488,7 +483,7 @@ class PyComponentDef(BaseModel):
 
 
 # Helper type annotation for working with components
-ComponentTypeAnnotation = Union[PyComponentDef, JsComponentDef]
+ComponentTypeAnnotation = PyComponentDef | JsComponentDef
 
 
 class EndpointConfiguration(BaseModel):
@@ -507,7 +502,7 @@ class EndpointConfiguration(BaseModel):
 class ApiRoute(BaseModel):
     """Definition of a route for the application's api"""
 
-    dependencies: List[Depends] = []
+    dependencies: list[Depends] = []
     handler: Callable
     method: HttpMethod
     url: str
@@ -520,13 +515,13 @@ class ApiRoute(BaseModel):
 class Page(BaseModel):
     """Definition of a Page"""
 
-    icon: Optional[str] = None
+    icon: str | None = None
     content: ComponentInstanceType
     name: str
-    sub_pages: Optional[List[Page]] = []
+    sub_pages: list[Page] | None = []
     url_safe_name: str
-    include_in_menu: Optional[bool] = None
-    on_load: Optional[Action] = None
+    include_in_menu: bool | None = None
+    on_load: Action | None = None
     model_config = ConfigDict(extra='forbid')
 
 
@@ -534,17 +529,17 @@ class TemplateRoute(BaseModel):
     """Definition of a route for the TemplateRouter"""
 
     content: ComponentInstance
-    icon: Optional[str] = None
+    icon: str | None = None
     name: str
     route: str
-    include_in_menu: Optional[bool] = None
-    on_load: Optional[Action] = None
+    include_in_menu: bool | None = None
+    on_load: Action | None = None
 
 
 class TemplateRouterLink(BaseModel):
     """Definition of a link for the TemplateRouter"""
 
-    icon: Optional[str] = None
+    icon: str | None = None
     name: str
     route: str
 
@@ -554,8 +549,8 @@ class TemplateRouterContent(BaseModel):
 
     content: ComponentInstance
     route: str
-    on_load: Optional[Action] = None
-    name: Optional[str] = None
+    on_load: Action | None = None
+    name: str | None = None
 
 
 class Template(BaseModel):

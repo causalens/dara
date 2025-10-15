@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import ClassVar, Dict, List, Literal, Optional, Type, Union
+from typing import ClassVar, Literal
 
 from pydantic import Field
 
@@ -49,12 +49,17 @@ class CenterSymbol(str, Enum):
     BIDIRECTED = 'bidirected'
 
 
+EdgeLegendType = type['EdgeLegend']
+SpacerLegendType = type['SpacerLegend']
+NodeLegendType = type['NodeLegend']
+
+
 class Legend(BaseModel):
     type: str
 
-    Edge: ClassVar[Type['EdgeLegend']]
-    Spacer: ClassVar[Type['SpacerLegend']]
-    Node: ClassVar[Type['NodeLegend']]
+    Edge: ClassVar[EdgeLegendType]
+    Spacer: ClassVar[SpacerLegendType]
+    Node: ClassVar[NodeLegendType]
 
 
 class SpacerLegend(Legend):
@@ -65,7 +70,7 @@ class SpacerLegend(Legend):
     """
 
     type: Literal['spacer'] = Field(default='spacer', frozen=True)  # type: ignore
-    label: Optional[str] = None
+    label: str | None = None
 
 
 class EdgeLegend(Legend):
@@ -80,11 +85,11 @@ class EdgeLegend(Legend):
     """
 
     type: Literal['edge'] = Field(default='edge', frozen=True)  # type: ignore
-    label: Optional[str] = None
-    arrow_type: Optional[ArrowType] = ArrowType.NORMAL
-    center_symbol: Optional[CenterSymbol] = CenterSymbol.NONE
-    color: Optional[str] = 'theme.grey5'
-    dash_array: Optional[str] = None
+    label: str | None = None
+    arrow_type: ArrowType | None = ArrowType.NORMAL
+    center_symbol: CenterSymbol | None = CenterSymbol.NONE
+    color: str | None = 'theme.grey5'
+    dash_array: str | None = None
 
 
 class NodeLegend(Legend):
@@ -97,25 +102,25 @@ class NodeLegend(Legend):
     """
 
     type: Literal['node'] = Field(default='node', frozen=True)  # type: ignore
-    label: Optional[str] = None
-    color: Optional[str] = 'theme.blue4'
-    highlight_color: Optional[str] = 'theme.primary'
+    label: str | None = None
+    color: str | None = 'theme.blue4'
+    highlight_color: str | None = 'theme.primary'
 
 
 Legend.Edge = EdgeLegend
 Legend.Spacer = SpacerLegend
 Legend.Node = NodeLegend
 
-GraphLegend = Union[EdgeLegend, SpacerLegend, NodeLegend]
+GraphLegend = EdgeLegend | SpacerLegend | NodeLegend
 
-DEFAULT_NODE_LEGENDS: List[GraphLegend] = [
+DEFAULT_NODE_LEGENDS: list[GraphLegend] = [
     Legend.Node(color='theme.blue1', label='Latent'),
     Legend.Node(color='theme.secondary', label='Target'),
     Legend.Node(label='Other'),
 ]
 
 # Default legends for each editor mode
-DEFAULT_LEGENDS: Dict[Union[EditorMode, str], List[GraphLegend]] = {
+DEFAULT_LEGENDS: dict[EditorMode | str, list[GraphLegend]] = {
     EditorMode.DEFAULT: DEFAULT_NODE_LEGENDS,
     EditorMode.PAG: [
         *DEFAULT_NODE_LEGENDS,

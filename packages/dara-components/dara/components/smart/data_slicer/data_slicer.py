@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Union
-
 from pandas import DataFrame
 
 from dara.components import (
@@ -63,7 +61,7 @@ def increment(ctx: UpdateVariable.Ctx):  # type: ignore
 
 @discover
 class DataSlicer:
-    def __init__(self, data: Union[DataFrame, AnyVariable], rows_to_show: int = 10):
+    def __init__(self, data: DataFrame | AnyVariable, rows_to_show: int = 10):
         """
         DataSlicer component allows the user to select a subset of a dataset by variable ranges or individual rows.
         Once instantiated, the `DerivedVariable` returned by `get_output()` will contain the filtered data.
@@ -110,7 +108,7 @@ class DataSlicer:
         return self.final_output
 
     @py_component
-    def describe_table(self, columns: List[Column]):
+    def describe_table(self, columns: list[Column]):
         """
         Display data.describe() as a Table
         """
@@ -120,14 +118,14 @@ class DataSlicer:
         return Table(data=self.describe_data, columns=cols, max_rows=TABLE_ROWS)
 
     @py_component
-    def table_head(self, columns: List[Column]):
+    def table_head(self, columns: list[Column]):
         """
         Display data.head() as a Table
         """
         return Table(data=self.head_data, columns=columns, max_rows=TABLE_ROWS)
 
     @py_component
-    def table_tail(self, columns: List[Column]):
+    def table_tail(self, columns: list[Column]):
         """
         Display data.tail() as a Table
         """

@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import LayoutComponent
@@ -45,7 +43,7 @@ class Overlay(LayoutComponent):
     :param position: the position of the overlay; can be top-left, top-right, bottom-left, bottom-right
     """
 
-    show: Optional[ClientVariable] = None
+    show: ClientVariable | None = None
 
     @field_validator('position')
     @classmethod

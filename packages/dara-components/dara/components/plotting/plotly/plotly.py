@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Any, ClassVar, List, Optional
+from typing import Any, ClassVar
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -80,8 +80,8 @@ class PlotlyEvent(BaseModel):
     """
 
     event_name: PlotlyEventName
-    actions: Optional[List[Action]] = None
-    custom_js: Optional[str] = None
+    actions: list[Action] | None = None
+    custom_js: str | None = None
 
 
 class Plotly(StyledComponentInstance):
@@ -112,7 +112,7 @@ class Plotly(StyledComponentInstance):
     js_module = '@darajs/components'
 
     figure: str
-    events: Optional[List[PlotlyEvent]] = None
+    events: list[PlotlyEvent] | None = None
 
     EventName: ClassVar[type[PlotlyEventName]] = PlotlyEventName
     Event: ClassVar[type[PlotlyEvent]] = PlotlyEvent
@@ -125,8 +125,8 @@ class Plotly(StyledComponentInstance):
     def __init__(
         self,
         figure: Any = None,
-        theme: Optional[dict] = None,
-        events: Optional[List[PlotlyEvent]] = None,
+        theme: dict | None = None,
+        events: list[PlotlyEvent] | None = None,
         **kwargs,
     ):
         if theme is None and figure is not None:

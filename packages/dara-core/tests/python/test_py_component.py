@@ -10,7 +10,6 @@ from dara.core import DerivedVariable, Variable, py_component
 from dara.core.base_definitions import Cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import BaseFallback, ComponentInstance
-from dara.core.internal.normalization import denormalize
 from dara.core.main import _start_application
 from dara.core.router import PageRoute, Router
 

@@ -1,5 +1,3 @@
-from typing import List
-
 import pytest
 
 from dara.core.configuration import ConfigurationBuilder
@@ -414,7 +412,7 @@ class TestTemplateToRouterConversion:
         builder = ConfigurationBuilder()
 
         class Stack(ComponentInstance):
-            children: List[ComponentInstance]
+            children: list[ComponentInstance]
 
         def template_renderer(config):
             builder = TemplateBuilder(name='side-bar')

@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 import logging
-from typing import Union
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance
@@ -135,11 +134,11 @@ class Stack(LayoutComponent):
     :param scroll: Whether to scroll the content of the stack, defaults to False
     """
 
-    collapsed: Union[Variable[bool], bool] = False
+    collapsed: Variable[bool] | bool = False
     direction: Direction = Direction.VERTICAL
-    hug: Union[bool, None] = False
+    hug: bool | None = False
     scroll: bool = False
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         super().__init__(*args, **kwargs)

@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import List, Optional
 
 from typing_extensions import TypedDict
 
@@ -61,6 +60,6 @@ class DataSlicerFilter(ComponentInstance):
 
     js_module = '@darajs/components'
 
-    filters: Variable[List[FilterInstance]]
+    filters: Variable[list[FilterInstance]]
     columns: AnyVariable
-    height: Optional[str] = None
+    height: str | None = None

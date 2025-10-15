@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar
 
 from pydantic import field_validator
 
@@ -26,15 +26,15 @@ from dara.core.interactivity import ClientVariable
 
 
 class NodeMeta(BaseModel):
-    label_size: Optional[int] = None
-    wrap_text: Optional[bool] = None
-    label: Optional[str] = None
-    tooltip: Optional[Union[str, Dict[str, str]]] = None
+    label_size: int | None = None
+    wrap_text: bool | None = None
+    label: str | None = None
+    tooltip: str | dict[str, str] | None = None
 
 
 class Node(BaseModel):
     name: str
-    meta: Optional[NodeMeta] = None
+    meta: NodeMeta | None = None
 
     Meta: ClassVar[type[NodeMeta]] = NodeMeta
 
@@ -109,15 +109,15 @@ class NodeHierarchyBuilder(StyledComponentInstance):
     js_module = '@darajs/components'
 
     editable: bool = True
-    nodes: Union[List[List[str]], List[str], List[Node], List[List[Node]], ClientVariable]
-    node_font_size: Optional[int] = None
-    node_size: Optional[int] = None
-    on_update: Optional[Action] = None
+    nodes: list[list[str]] | list[str] | list[Node] | list[list[Node]] | ClientVariable
+    node_font_size: int | None = None
+    node_size: int | None = None
+    on_update: Action | None = None
     wrap_node_text: bool = True
 
     @field_validator('nodes')
     @classmethod
-    def validate_nodes(cls, nodes: Any) -> Union[ClientVariable, List[List[str]], List[List[Node]]]:
+    def validate_nodes(cls, nodes: Any) -> ClientVariable | list[list[str]] | list[list[Node]]:
         if isinstance(nodes, ClientVariable):
             return nodes
         if not isinstance(nodes, list):

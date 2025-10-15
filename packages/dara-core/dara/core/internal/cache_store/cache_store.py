@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, Optional, cast
+from typing import Any, Generic, cast
 
 from dara.core.base_definitions import (
     CachedRegistryEntry,
@@ -20,7 +20,7 @@ def cache_impl_for_policy(policy: PolicyT) -> CacheStoreImpl[PolicyT]:
     """
     Get a cache implementation depending on the policy
     """
-    impl: Optional[CacheStoreImpl] = None
+    impl: CacheStoreImpl | None = None
 
     if isinstance(policy, (LruCachePolicy, MostRecentCachePolicy)):
         impl = LRUCache(policy)
@@ -43,7 +43,7 @@ class CacheScopeStore(Generic[PolicyT]):
     """
 
     def __init__(self, policy: PolicyT):
-        self.caches: Dict[CacheScope, CacheStoreImpl[PolicyT]] = {}
+        self.caches: dict[CacheScope, CacheStoreImpl[PolicyT]] = {}
         self.policy = policy
 
     async def delete(self, key: str) -> Any:
@@ -61,7 +61,7 @@ class CacheScopeStore(Generic[PolicyT]):
 
         return await cache.delete(key)
 
-    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
         """
         Retrieve an entry from the cache.
 
@@ -115,7 +115,7 @@ class CacheStore:
     """
 
     def __init__(self):
-        self.registry_stores: Dict[str, CacheScopeStore] = {}
+        self.registry_stores: dict[str, CacheScopeStore] = {}
         # The size is not totally accurate as we only add/subtract values stored, without accounting for keys
         # or extra memory due to hash collisions, internal cache implementation; its a 'good enough' approximation
         # of just the values stored
@@ -158,7 +158,7 @@ class CacheStore:
         key: str,
         unpin: bool = False,
         raise_for_missing: bool = False,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """
         Retrieve an entry from the cache for the given registry entry and cache key.
 

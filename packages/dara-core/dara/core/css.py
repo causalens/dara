@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 # Re-export CSSProperties for easier importing
 from dara.core.visual.css import CSSProperties  # noqa: F401
@@ -27,7 +27,7 @@ IconSize = Literal['1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x', 
 def get_icon(
     name: str,
     style: IconStyle = 'solid',
-    size: Optional[IconSize] = None,
+    size: IconSize | None = None,
 ):
     """
     Get FontAwesome icon class string. Can be used for components requiring an icon name. The size be any one of the

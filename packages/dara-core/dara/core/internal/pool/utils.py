@@ -20,9 +20,10 @@ import os
 import pickle
 import signal
 import sys
+from collections.abc import Callable
 from multiprocessing.process import BaseProcess
 from multiprocessing.shared_memory import SharedMemory
-from typing import Any, Callable, Optional, Tuple
+from typing import Any
 
 import anyio
 from tblib import Traceback
@@ -48,7 +49,7 @@ class SubprocessException:
         return self.exception.with_traceback(tb)
 
 
-SharedMemoryPointer = Tuple[str, int]
+SharedMemoryPointer = tuple[str, int]
 
 
 class PicklingException(Exception):
@@ -106,7 +107,7 @@ def read_from_shared_memory(pointer: SharedMemoryPointer) -> Any:
         raise PicklingException(*e.args) from e
 
 
-async def wait_while(condition: Callable[[], bool], timeout: Optional[float] = None):
+async def wait_while(condition: Callable[[], bool], timeout: float | None = None):
     """
     Util to wait until a condition is False or timeout is exceeded
 

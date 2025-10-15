@@ -20,7 +20,6 @@ from __future__ import annotations
 import os
 from multiprocessing import Queue, get_context
 from queue import Empty
-from typing import Optional
 
 from dara.core.internal.pool.definitions import (
     Acknowledgement,
@@ -56,7 +55,7 @@ class _PoolAPI:
 
     def get_worker_message(
         self,
-    ) -> Optional[WorkerMessage]:
+    ) -> WorkerMessage | None:
         """
         Retrieve a worker message if there is one available
 
@@ -100,7 +99,7 @@ class _WorkerAPI:
         """
         self._out_queue.put(Result(task_uid=task_uid, result=result))
 
-    def send_error(self, task_uid: Optional[str], error: BaseException):
+    def send_error(self, task_uid: str | None, error: BaseException):
         """
         Send an error back to the pool
 
@@ -131,7 +130,7 @@ class _WorkerAPI:
         """
         self._out_queue.put(Progress(task_uid=task_uid, progress=progress, message=message))
 
-    def get_task(self) -> Optional[WorkerTask]:
+    def get_task(self) -> WorkerTask | None:
         """
         Retrieve a task definition from the worker queue if there is one available
 

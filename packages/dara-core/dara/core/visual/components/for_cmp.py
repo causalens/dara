@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from pydantic import Field
 
@@ -10,7 +10,7 @@ ForDef = JsComponentDef(name='For', js_module='@darajs/core', py_module='dara.co
 
 
 class VirtualizationConfig(DaraBaseModel):
-    size: Union[str, float, None] = None
+    size: str | float | None = None
     """
     The size of each element in the virtualized list.
     If a number is provided, it will be treated as a fixed size.
@@ -148,6 +148,6 @@ class For(ComponentInstance):
 
     items: AnyVariable
     renderer: ComponentInstance
-    placeholder: Optional[ComponentInstance] = None
-    key_accessor: Optional[str] = None
-    virtualization: Optional[VirtualizationConfig] = None
+    placeholder: ComponentInstance | None = None
+    key_accessor: str | None = None
+    virtualization: VirtualizationConfig | None = None

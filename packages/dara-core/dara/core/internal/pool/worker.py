@@ -21,13 +21,13 @@ import logging
 import os
 import signal
 import sys
+from collections.abc import Callable
 from datetime import datetime
 from importlib import import_module
 from inspect import iscoroutinefunction
 from multiprocessing import get_context
 from multiprocessing.context import SpawnProcess
 from time import sleep
-from typing import Callable, Optional
 
 import anyio
 
@@ -195,7 +195,7 @@ class WorkerProcess:
 
     status: WorkerStatus
 
-    task_uid: Optional[str] = None
+    task_uid: str | None = None
     """Current task UID being processed by the worker"""
 
     channel: Channel
@@ -213,7 +213,7 @@ class WorkerProcess:
         self.process = ctx.Process(target=worker_loop, args=(worker_params, channel), name=WORKER_NAME)
         self.process.start()
 
-    def update_status(self, worker_status: WorkerStatus, task_uid: Optional[str] = None):
+    def update_status(self, worker_status: WorkerStatus, task_uid: str | None = None):
         self.status = worker_status
         self.updated_at = datetime.now()
         self.task_uid = task_uid

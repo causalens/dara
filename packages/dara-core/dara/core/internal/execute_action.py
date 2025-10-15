@@ -18,10 +18,10 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextvars import ContextVar
 from functools import partial
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Literal
 
 import anyio
 
@@ -132,7 +132,7 @@ async def execute_action_sync(
     results = []
 
     # Construct a context which handles action messages by accumulating them in an array
-    async def handle_action(act_impl: Optional[ActionImpl]):
+    async def handle_action(act_impl: ActionImpl | None):
         if act_impl is not None:
             results.append(act_impl)
 
@@ -176,7 +176,7 @@ async def execute_action(
     ws_channel: str,
     store: CacheStore,
     task_mgr: TaskManager,
-) -> Union[Any, BaseTask]:
+) -> Any | BaseTask:
     """
     Execute a given action with the provided context.
 
@@ -201,7 +201,7 @@ async def execute_action(
     assert action is not None, 'Action resolver must be defined'
 
     # Construct a context which handles action messages by sending them to the frontend
-    async def handle_action(act_impl: Optional[ActionImpl]):
+    async def handle_action(act_impl: ActionImpl | None):
         await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
 
     ctx = ActionCtx(inp, handle_action)

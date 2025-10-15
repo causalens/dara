@@ -21,13 +21,12 @@ import sys
 import traceback
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional
 
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import eng_logger
 
 
-def print_stacktrace(err: Optional[BaseException] = None) -> str:
+def print_stacktrace(err: BaseException | None = None) -> str:
     """
     Prints out the current stack trace. Will also extract any exceptions and print them at the end.
     """
@@ -59,7 +58,7 @@ def handle_system_exit(error_msg: str):
         raise InterruptedError(error_msg) from e
 
 
-def get_error_for_channel(err: Optional[BaseException] = None) -> dict:
+def get_error_for_channel(err: BaseException | None = None) -> dict:
     """
     Get error from current stacktrace to send to the client
     """

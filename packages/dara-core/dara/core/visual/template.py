@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional
-
 from dara.core.base_definitions import Action
 from dara.core.definitions import (
     ComponentInstance,
@@ -35,16 +33,16 @@ class TemplateRouter:
     """
 
     def __init__(self):
-        self._routes: List[TemplateRoute] = []
+        self._routes: list[TemplateRoute] = []
 
     def add_route(
         self,
         name: str,
         route: str,
         content: ComponentInstance,
-        icon: Optional[str] = None,
-        include_in_menu: Optional[bool] = True,
-        on_load: Optional[Action] = None,
+        icon: str | None = None,
+        include_in_menu: bool | None = True,
+        on_load: Action | None = None,
     ):
         """
         Add a single route to the router.
@@ -88,7 +86,7 @@ class TemplateRouter:
         ]
 
     @staticmethod
-    def from_pages(pages: List[Page]):
+    def from_pages(pages: list[Page]):
         """
         Create a template router from a list of page objects
 
@@ -117,11 +115,11 @@ class TemplateBuilder:
     to_template() to perform final validation and build the Template object.
     """
 
-    layout: Optional[ComponentInstance]
-    name: Optional[str]
-    _router: Optional[TemplateRouter]
+    layout: ComponentInstance | None
+    name: str | None
+    _router: TemplateRouter | None
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: str | None = None):
         """
         :param name: the name for the template
         """
@@ -139,7 +137,7 @@ class TemplateBuilder:
         self._router = TemplateRouter()
         return self._router
 
-    def add_router_from_pages(self, pages: List[Page]):
+    def add_router_from_pages(self, pages: list[Page]):
         """
         Add a router to the template based on an apps pages. The router instance is returned and can then be configured
         as the user wishes. Currently each template can only have one router registered with it.

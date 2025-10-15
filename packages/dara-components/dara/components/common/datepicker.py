@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
@@ -93,12 +93,12 @@ class Datepicker(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    value: Optional[Variable[Any]] = None
+    value: Variable[Any] | None = None
     date_format: str = 'dd/MM/yyyy'
     enable_time: bool = False
-    max_date: Optional[datetime] = None
-    min_date: Optional[datetime] = None
+    max_date: datetime | None = None
+    min_date: datetime | None = None
     range: bool = False
     select_close: bool = True
-    onchange: Optional[Action] = None
-    id: Optional[str] = None
+    onchange: Action | None = None
+    id: str | None = None

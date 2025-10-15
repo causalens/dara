@@ -1,8 +1,8 @@
 import inspect
 import json
 import tempfile
-from collections.abc import Awaitable
-from typing import Any, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -362,7 +362,7 @@ class CustomBackend(PersistenceBackend):
     Custom backend implementation that supports subscriptions
     """
 
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
     subscribers: list[Callable[[str, Any], Awaitable[None]]] = Field(default_factory=list, exclude=True)
 
     async def has(self, key: str) -> bool:

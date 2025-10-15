@@ -2,7 +2,6 @@ import inspect
 import sys
 from importlib.util import module_from_spec, spec_from_loader
 from types import ModuleType
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -338,7 +337,7 @@ from tests.component_discovery.SubModule2 import SymbolB
     with patch('dara.core.internal.import_discovery.is_ignored') as mock_is_ignored:
         encountered_ignore_lists = []
 
-        def mock_is_ignored_impl(symbol, ignore_symbols: List):
+        def mock_is_ignored_impl(symbol, ignore_symbols: list):
             # Take copy of ignore list at the time
             if inspect.isclass(symbol) and symbol.__name__ == 'SymbolA':
                 encountered_ignore_lists.append(ignore_symbols.copy())

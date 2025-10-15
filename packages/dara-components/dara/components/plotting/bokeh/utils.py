@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from bokeh.models import CustomJS
 from bokeh.plotting import figure
 
@@ -37,7 +35,7 @@ def figure_events(fig: figure):
         :param
         """
 
-        def generate_event(args: Union[dict, None] = None):
+        def generate_event(args: dict | None = None):
             """
             Generate a CustomJS event with the code, event name and arguments provided
 

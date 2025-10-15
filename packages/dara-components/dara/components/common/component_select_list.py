@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional, Union
-
 from dara.components.common.base_component import LayoutComponent
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -26,7 +24,7 @@ from dara.core.interactivity import Variable
 
 class ComponentItem(BaseModel):
     title: str
-    subtitle: Optional[str] = None
+    subtitle: str | None = None
     component: ComponentInstanceType
 
 
@@ -62,8 +60,8 @@ class ComponentSelectList(LayoutComponent):
      :param selected_items: The initial selected items, can be an list if multiSelect is true otherwise a string. This takes the titles of the items as value.
     """
 
-    items: List[ComponentItem]
-    items_per_row: Optional[int] = None
-    multi_select: Optional[bool] = None
-    on_select: Optional[Action] = None
-    selected_items: Optional[Variable[Union[str, List[str]]]] = None
+    items: list[ComponentItem]
+    items_per_row: int | None = None
+    multi_select: bool | None = None
+    on_select: Action | None = None
+    selected_items: Variable[str | list[str]] | None = None

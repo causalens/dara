@@ -17,8 +17,8 @@ limitations under the License.
 
 import inspect
 from collections import OrderedDict
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Dict, List, Type, Union
 
 from fastapi import Depends
 from fastapi.params import Depends as DependsType
@@ -26,7 +26,7 @@ from fastapi.params import Depends as DependsType
 from dara.core.definitions import ApiRoute, EndpointConfiguration, HttpMethod
 
 
-def _get_config_instances(annotations: Dict[str, type]) -> Dict[str, EndpointConfiguration]:
+def _get_config_instances(annotations: dict[str, type]) -> dict[str, EndpointConfiguration]:
     """
     Get EndpointConfiguration instances to inject given the function annotations
 
@@ -54,7 +54,7 @@ def _get_config_instances(annotations: Dict[str, type]) -> Dict[str, EndpointCon
 def _method_decorator(method: HttpMethod):
     """Create a decorator for a given HTTP method"""
 
-    def _decorator(url: str, dependencies: Union[List[DependsType], None] = None, authenticated: bool = True):
+    def _decorator(url: str, dependencies: list[DependsType] | None = None, authenticated: bool = True):
         if dependencies is None:
             dependencies = []
 
@@ -73,7 +73,7 @@ def _method_decorator(method: HttpMethod):
             new_annotations = {}
             params = OrderedDict()
 
-            configurations: List[Type[EndpointConfiguration]] = []
+            configurations: list[type[EndpointConfiguration]] = []
             sig = inspect.signature(func)
             for var_name, typ in func.__annotations__.items():
                 if inspect.isclass(typ) and issubclass(typ, EndpointConfiguration):

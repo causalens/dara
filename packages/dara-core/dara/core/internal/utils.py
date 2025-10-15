@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
-from collections.abc import Awaitable, Coroutine, Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from functools import wraps
 from importlib import import_module
 from importlib.util import find_spec
@@ -28,14 +28,8 @@ from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
     Literal,
-    Optional,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
 
 import anyio
@@ -55,10 +49,10 @@ if TYPE_CHECKING:
 
 # CacheScope stores as a key an user if cache is set to users, a session_id if cache is sessions or is set to 'global' otherwise
 # The value is a cache_key, for example the cache key used to store derived variable results to the store
-CacheScope = Union[Literal['global'], str]
+CacheScope = Literal['global'] | str
 
 
-def get_cache_scope(cache_type: Optional[CacheType]) -> CacheScope:
+def get_cache_scope(cache_type: CacheType | None) -> CacheScope:
     """
     Helper to resolve the cache scope
 
@@ -80,7 +74,7 @@ def get_cache_scope(cache_type: Optional[CacheType]) -> CacheScope:
     return 'global'
 
 
-async def run_user_handler(handler: Callable, args: Union[Sequence, None] = None, kwargs: Union[dict, None] = None):
+async def run_user_handler(handler: Callable, args: Sequence | None = None, kwargs: dict | None = None):
     """
     Run a user-defined handler function. Runs sync functions in a threadpool.
     Handles SystemExits cleanly.
@@ -123,7 +117,7 @@ def call_async(handler: Callable[..., Coroutine], *args):
                 portal.call(handler, *args)
 
 
-def import_config(config_path: str) -> Tuple[ModuleType, ConfigurationBuilder]:
+def import_config(config_path: str) -> tuple[ModuleType, ConfigurationBuilder]:
     """
     Import Dara from specified config in format "my_package.my_module:variable_name"
     """
@@ -194,9 +188,9 @@ def async_dedupe(fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     This decorator is useful for operations that might be triggered multiple times in parallel
     but should be executed only once to prevent redundant work or data fetches.
     """
-    locks: Dict[Tuple, anyio.Lock] = {}
-    results: Dict[Tuple, Any] = {}
-    wait_counts: Dict[Tuple, int] = {}
+    locks: dict[tuple, anyio.Lock] = {}
+    results: dict[tuple, Any] = {}
+    wait_counts: dict[tuple, int] = {}
 
     is_method = 'self' in inspect.signature(fn).parameters
 
@@ -243,7 +237,7 @@ def resolve_exception_group(error: Any):
     return error
 
 
-def exception_group_contains(err_type: Type[BaseException], group: BaseExceptionGroup) -> bool:
+def exception_group_contains(err_type: type[BaseException], group: BaseExceptionGroup) -> bool:
     """
     Check if an ExceptionGroup contains an error of a given type, recursively
 

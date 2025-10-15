@@ -4,6 +4,6 @@
   "venv": ".venv",
   "typeCheckingMode": "standard",
   "useLibraryCodeForTypes": true,
-  "pythonVersion" : "3.9"
+  "pythonVersion" : "3.10"
 }
 

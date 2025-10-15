@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import field_validator
 
@@ -118,13 +118,13 @@ class Carousel(ContentComponent):
     :param onchange: Action triggered when the component changes states
     """
 
-    items: Union[List[CarouselItem], ClientVariable]
-    value: Optional[Variable[int]] = None
-    onchange: Optional[Action] = None
+    items: list[CarouselItem] | ClientVariable
+    value: Variable[int] | None = None
+    onchange: Action | None = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[CarouselItem], ClientVariable]:
+    def validate_items(cls, items: Any) -> list[CarouselItem] | ClientVariable:
         if isinstance(items, ClientVariable):
             return items
         if not isinstance(items, list):

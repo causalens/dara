@@ -1,6 +1,6 @@
 import os
 from collections.abc import Mapping
-from typing import List, Union
+from typing import Union
 
 from fastapi.encoders import jsonable_encoder
 
@@ -13,13 +13,11 @@ from dara.core.interactivity import (
     DerivedVariable,
     Variable,
 )
-from dara.core.interactivity.filtering import ValueQuery
-from dara.core.internal.hashing import hash_object
 from dara.core.internal.normalization import _loop, denormalize, normalize
 
 from tests.python.utils import read_template_json
 
-JsonLike = Union[Mapping, List]
+JsonLike = Union[Mapping, list]
 
 
 def assert_dict_equal(a: JsonLike, b: JsonLike):
@@ -42,14 +40,14 @@ class MockStack(ComponentInstance):
     Imitate a Stack component
     """
 
-    children: List[ComponentInstance]
+    children: list[ComponentInstance]
 
     def __init__(self, *args: ComponentInstance, **kwargs):
         super().__init__(children=list(args), **kwargs)
 
 
 class MockText(ComponentInstance):
-    text: Union[str, AnyVariable]
+    text: str | AnyVariable
 
 
 ROOT_TEST_DATA_PATH = os.path.join('./tests/data/normalization')

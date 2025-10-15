@@ -39,10 +39,9 @@ async def test_different_resources_can_be_acquired_simultaneously():
     """Test that different resources can be locked simultaneously without interference."""
     lock = MultiResourceLock()
 
-    async with lock.acquire('resource_1'):
-        async with lock.acquire('resource_2'):
-            assert lock.is_locked('resource_1')
-            assert lock.is_locked('resource_2')
+    async with lock.acquire('resource_1'), lock.acquire('resource_2'):
+        assert lock.is_locked('resource_1')
+        assert lock.is_locked('resource_2')
 
 
 async def test_concurrent_access_to_same_resource():

@@ -18,7 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Union
+from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import SerializerFunctionWrapHandler, model_serializer
 
@@ -44,7 +44,7 @@ OperatorType = type[Operator]
 
 class Condition(BaseModel):
     operator: Operator
-    other: Union[BaseModel, int, float, str, bool, None, AnyVariable]
+    other: BaseModel | int | float | str | bool | None | AnyVariable
     variable: AnyVariable
 
     Operator: ClassVar[OperatorType] = Operator

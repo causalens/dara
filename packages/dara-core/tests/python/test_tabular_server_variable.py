@@ -1,7 +1,7 @@
 import datetime
 import os
 from contextvars import ContextVar
-from typing import Optional, Tuple, Union, cast
+from typing import cast
 from unittest.mock import Mock, patch
 
 import jwt
@@ -76,12 +76,10 @@ async def reset_data_variable_cache():
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, DataVariable, DerivedVariable, ServerVariable]
-    action: Optional[Action] = None
+    text: str | DataVariable | DerivedVariable | ServerVariable
+    action: Action | None = None
 
-    def __init__(
-        self, text: Union[str, DataVariable, DerivedVariable, ServerVariable], action: Optional[Action] = None
-    ):
+    def __init__(self, text: str | DataVariable | DerivedVariable | ServerVariable, action: Action | None = None):
         super().__init__(text=text, uid='uid', action=action)
 
 
@@ -140,8 +138,8 @@ async def test_can_support_other_tabular_data_with_custom_backend():
 
     class CustomBackend(MemoryBackend):
         async def read_filtered(
-            self, key: str, filters: Optional[Union[FilterQuery, dict]] = None, pagination: Optional[Pagination] = None
-        ) -> Tuple[Optional[DataFrame], int]:
+            self, key: str, filters: FilterQuery | dict | None = None, pagination: Pagination | None = None
+        ) -> tuple[DataFrame | None, int]:
             call_args.append((key, filters, pagination))
             # return mock dataframe
             return data, len(data.index)

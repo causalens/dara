@@ -17,7 +17,6 @@ limitations under the License.
 
 import io
 import os
-from typing import List, Optional, Union
 
 import pandas
 from pandas import DataFrame
@@ -75,7 +74,7 @@ class FileStore(BaseModel):
         scope = get_cache_scope(cache_type)
         return os.path.join(self.root_path, scope)
 
-    def list_files(self, cache_type: CacheType) -> List[str]:
+    def list_files(self, cache_type: CacheType) -> list[str]:
         """
         List files in a directory for a given cache type
 
@@ -101,7 +100,7 @@ class FileStore(BaseModel):
         file_path = os.path.join(scope_path, name)
         return os.path.exists(file_path)
 
-    def get_file(self, cache_type: CacheType, name: str) -> Optional[io.BufferedReader]:
+    def get_file(self, cache_type: CacheType, name: str) -> io.BufferedReader | None:
         """
         Get a BufferedReader to read a file from the data store
 
@@ -160,7 +159,7 @@ class DataFactory(BaseModel):
         file_store = FileStore(root_path=root_path)
         super().__init__(file_store=file_store)
 
-    def list_datasets(self, cache: CacheType = CacheType.GLOBAL) -> List[str]:
+    def list_datasets(self, cache: CacheType = CacheType.GLOBAL) -> list[str]:
         """
         Get a list of datasets (filenames) available for a given cache type
 
@@ -171,9 +170,9 @@ class DataFactory(BaseModel):
 
     def list_datasets_var(
         self,
-        cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL,
-        polling_interval: Optional[int] = None,
-    ) -> DerivedVariable[List[str]]:
+        cache: CacheType | ClientVariable = CacheType.GLOBAL,
+        polling_interval: int | None = None,
+    ) -> DerivedVariable[list[str]]:
         """
         Create a DerivedVariable which stores a list of datasets (filenames) available for a given cache type
 
@@ -262,7 +261,7 @@ class DataFactory(BaseModel):
         """
         return os.path.join(self.file_store.get_scoped_path(cache), name)
 
-    def read_dataset(self, name: str, cache: CacheType = CacheType.GLOBAL) -> Optional[DataFrame]:
+    def read_dataset(self, name: str, cache: CacheType = CacheType.GLOBAL) -> DataFrame | None:
         """
         Read a dataset from disk to a DataFrame.
 
@@ -288,9 +287,9 @@ class DataFactory(BaseModel):
 
     def read_dataset_var(
         self,
-        name: Union[str, ClientVariable],
-        cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL,
-        polling_interval: Optional[int] = None,
+        name: str | ClientVariable,
+        cache: CacheType | ClientVariable = CacheType.GLOBAL,
+        polling_interval: int | None = None,
     ) -> DerivedVariable:
         """
         Create a DerivedVariable which reads a specific dataset from disk
@@ -318,9 +317,7 @@ class DataFactory(BaseModel):
         """
         self.file_store.delete_file(cache, name)
 
-    def delete_dataset_action(
-        self, name: Union[str, ClientVariable], cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL
-    ):
+    def delete_dataset_action(self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL):
         """
         Get a SideEffect action which deletes a given dataset
 
@@ -332,9 +329,7 @@ class DataFactory(BaseModel):
 
         return SideEffect(lambda ctx: self.delete_dataset(ctx.extras[0], ctx.extras[1]), extras=[name_var, cache_var])
 
-    def download_dataset_action(
-        self, name: Union[str, ClientVariable], cache: Union[CacheType, ClientVariable] = CacheType.GLOBAL
-    ):
+    def download_dataset_action(self, name: str | ClientVariable, cache: CacheType | ClientVariable = CacheType.GLOBAL):
         """
         Get a DownloadContent action which downloads a dataset with a given name as a .csv
 

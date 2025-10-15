@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from dara.components.common.base_component import BaseDashboardComponent
 from dara.core.interactivity import ClientVariable
 
@@ -42,8 +40,8 @@ class Markdown(BaseDashboardComponent):
     if the markdown is user-provided
     """
 
-    markdown: Union[ClientVariable, str]
+    markdown: ClientVariable | str
     html_raw: bool = False
 
-    def __init__(self, markdown: Union[ClientVariable, str], html_raw: bool = False, **kwargs):
+    def __init__(self, markdown: ClientVariable | str, html_raw: bool = False, **kwargs):
         super().__init__(markdown=markdown, html_raw=html_raw, **kwargs)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 import anyio
 
@@ -20,8 +20,8 @@ class Node:
         self.key = key
         self.value = value
         self.pin = pin
-        self.prev: Optional[Node] = None
-        self.next: Optional[Node] = None
+        self.prev: Node | None = None
+        self.next: Node | None = None
 
     def __repr__(self) -> str:
         return f'Node({self.key}, {self.value}, {self.pin})'
@@ -35,9 +35,9 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
 
     def __init__(self, policy: LruCachePolicy):
         super().__init__(policy)
-        self.cache: Dict[str, Node] = {}
-        self.head: Optional[Node] = None  # No sentinel, can be None
-        self.tail: Optional[Node] = None  # No sentinel, can be None
+        self.cache: dict[str, Node] = {}
+        self.head: Node | None = None  # No sentinel, can be None
+        self.tail: Node | None = None  # No sentinel, can be None
         self.lock = anyio.Lock()
 
     def _move_to_front(self, node: Node):
@@ -88,7 +88,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
             self.cache.pop(key, None)
             return node.value
 
-    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
         """
         Retrieve a value from the cache.
 
@@ -136,7 +136,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
 
                 # Check and perform eviction
                 while len(self.cache) > self.policy.max_size:
-                    evict_node: Optional[Node] = self.tail
+                    evict_node: Node | None = self.tail
 
                     # Skip over pinned nodes
                     while evict_node and evict_node.pin:

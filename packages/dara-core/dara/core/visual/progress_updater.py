@@ -17,9 +17,9 @@ limitations under the License.
 
 import inspect
 from collections import OrderedDict
+from collections.abc import Callable
 from functools import wraps
 from inspect import Signature, signature
-from typing import Callable
 
 
 class ProgressUpdater:

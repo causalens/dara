@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Optional, Union, cast
+from typing import cast
 
 from dara.components.common.base_component import LayoutComponent
 from dara.components.common.text import Text
@@ -123,16 +123,16 @@ class Button(LayoutComponent):
     :param stop_click_propagation: Whether to stop the click event from propagating to the parent element, defaults to true
     """
 
-    disabled: Optional[Union[Condition, ClientVariable, bool]] = None
-    loading: Optional[Union[Condition, ClientVariable, bool]] = None
-    onclick: Optional[Action] = None
-    icon: Optional[str] = None
-    styling: Optional[ButtonStyle] = None
+    disabled: Condition | ClientVariable | bool | None = None
+    loading: Condition | ClientVariable | bool | None = None
+    onclick: Action | None = None
+    icon: str | None = None
+    styling: ButtonStyle | None = None
     outline: bool = False
     stop_click_propagation: bool = True
 
     def __init__(
-        self, children: Union[str, ComponentInstance, ClientVariable], styling: Optional[ButtonStyle] = None, **kwargs
+        self, children: str | ComponentInstance | ClientVariable, styling: ButtonStyle | None = None, **kwargs
     ):
         child = children
         style = styling if styling is not None else ButtonStyle.PRIMARY

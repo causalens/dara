@@ -17,10 +17,9 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import SerializerFunctionWrapHandler, model_serializer
-from typing_extensions import Literal
 
 from dara.core.interactivity.client_variable import ClientVariable
 
@@ -38,14 +37,14 @@ class StateVariable(ClientVariable):
     like loading state, error state, etc.
     """
 
-    parent_variable: 'DerivedVariable'
+    parent_variable: DerivedVariable
     property_name: Literal['loading', 'error', 'hasValue']
 
     def __init__(
         self,
-        parent_variable: 'DerivedVariable',
+        parent_variable: DerivedVariable,
         property_name: Literal['loading', 'error', 'hasValue'],
-        uid: Optional[str] = None,
+        uid: str | None = None,
         **kwargs,
     ):
         """

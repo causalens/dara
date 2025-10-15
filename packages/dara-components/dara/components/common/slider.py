@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from decimal import ROUND_FLOOR, Decimal
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import Field, ValidationInfo, field_validator
 
@@ -130,21 +130,21 @@ class Slider(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    domain: List[float]
-    onchange: Optional[Action] = None
-    step: Optional[float] = Field(None, validate_default=True)
+    domain: list[float]
+    onchange: Action | None = None
+    step: float | None = Field(None, validate_default=True)
     rail_from_start: bool = True
-    rail_labels: Optional[List[str]] = None
+    rail_labels: list[str] | None = None
     rail_to_end: bool = False
-    thumb_labels: Optional[List[str]] = None
-    ticks: Optional[List[Union[float, int]]] = None
-    value: Optional[Variable[Any]] = None
+    thumb_labels: list[str] | None = None
+    ticks: list[float | int] | None = None
+    value: Variable[Any] | None = None
     disable_input_alternative: bool = False
-    id: Optional[str] = None
+    id: str | None = None
 
     @field_validator('domain')
     @classmethod
-    def domain_valid(cls, v: List[float]) -> List[float]:
+    def domain_valid(cls, v: list[float]) -> list[float]:
         if len(v) != 2:
             raise ValueError(f'Domain must be a list of length two [min, max], found {v}')
 
@@ -155,7 +155,7 @@ class Slider(FormComponent):
 
     @field_validator('step')
     @classmethod
-    def step_valid(cls, v: Optional[float], info: ValidationInfo) -> Optional[float]:
+    def step_valid(cls, v: float | None, info: ValidationInfo) -> float | None:
         # domain validation must have failed, skip
         if 'domain' not in info.data:
             return v

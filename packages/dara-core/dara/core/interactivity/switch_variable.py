@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from pydantic import SerializerFunctionWrapHandler, field_validator, model_serializer
 
@@ -222,17 +222,17 @@ class SwitchVariable(ClientVariable):
         - Other values use standard string conversion to match JavaScript's String() behavior
     """
 
-    value: Optional[Union[Condition, ClientVariable, Any]] = None
+    value: Condition | ClientVariable | Any | None = None
     # must be typed as any, otherwise pydantic is trying to instantiate the variables incorrectly
-    value_map: Optional[Any] = None
-    default: Optional[Any] = None
+    value_map: Any | None = None
+    default: Any | None = None
 
     def __init__(
         self,
-        value: Union[Condition, ClientVariable, Any],
-        value_map: Dict[Any, Any] | ClientVariable,
-        default: Optional[Any] = None,
-        uid: Optional[str] = None,
+        value: Condition | ClientVariable | Any,
+        value_map: dict[Any, Any] | ClientVariable,
+        default: Any | None = None,
+        uid: str | None = None,
     ):
         """
         Create a SwitchVariable with a mapping of values.
@@ -270,10 +270,10 @@ class SwitchVariable(ClientVariable):
     @classmethod
     def when(
         cls,
-        condition: Union[Condition, ClientVariable, Any],
-        true_value: Union[Any, ClientVariable],
-        false_value: Union[Any, ClientVariable],
-        uid: Optional[str] = None,
+        condition: Condition | ClientVariable | Any,
+        true_value: Any | ClientVariable,
+        false_value: Any | ClientVariable,
+        uid: str | None = None,
     ) -> SwitchVariable:
         """
         Create a SwitchVariable for boolean conditions.
@@ -346,10 +346,10 @@ class SwitchVariable(ClientVariable):
     @classmethod
     def match(
         cls,
-        value: Union[ClientVariable, Any],
-        mapping: Union[Dict[Any, Any], ClientVariable],
-        default: Optional[Union[Any, ClientVariable]] = None,
-        uid: Optional[str] = None,
+        value: ClientVariable | Any,
+        mapping: dict[Any, Any] | ClientVariable,
+        default: Any | ClientVariable | None = None,
+        uid: str | None = None,
     ) -> SwitchVariable:
         """
         Create a SwitchVariable with a custom mapping.

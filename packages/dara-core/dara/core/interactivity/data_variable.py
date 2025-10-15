@@ -17,8 +17,6 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pandas import DataFrame
 
 from dara.core.base_definitions import Cache, CacheArgType
@@ -46,9 +44,9 @@ class DataVariable(ServerVariable):
 
     def __init__(
         self,
-        data: Optional[DataFrame] = None,
+        data: DataFrame | None = None,
         cache: CacheArgType = Cache.Type.GLOBAL,
-        uid: Optional[str] = None,
+        uid: str | None = None,
         **kwargs,
     ) -> None:
         """

@@ -17,7 +17,7 @@ limitations under the License.
 
 import os
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import ComponentInstanceType
@@ -26,7 +26,7 @@ from dara.core.definitions import ComponentInstanceType
 class ItemBadge(BaseModel):
     """Add a badge to an item in a list"""
 
-    color: Optional[str] = None
+    color: str | None = None
     label: str
 
 
@@ -35,17 +35,17 @@ class Item(BaseModel):
     A class for serializing a list of options for the select to show
     """
 
-    badge: Optional[ItemBadge] = None
-    image: Optional[str] = None
+    badge: ItemBadge | None = None
+    image: str | None = None
     label: str
-    value: Union[str, int, float, BaseModel]
+    value: str | int | float | BaseModel
 
     def __init__(
         self,
-        value: Union[str, int, float, BaseModel],
+        value: str | int | float | BaseModel,
         label: str,
-        badge: Optional[ItemBadge] = None,
-        image: Optional[str] = None,
+        badge: ItemBadge | None = None,
+        image: str | None = None,
     ):
         # Handle general enums in the value field
         if isinstance(value, Enum):
@@ -98,23 +98,23 @@ class CarouselItem(BaseModel):
     :param image_width: Optional string containing the width the image should take
     """
 
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    component: Optional[ComponentInstanceType] = None
-    image: Optional[str] = None
-    image_alt: Optional[str] = None
-    image_height: Optional[str] = None
-    image_width: Optional[str] = None
+    title: str | None = None
+    subtitle: str | None = None
+    component: ComponentInstanceType | None = None
+    image: str | None = None
+    image_alt: str | None = None
+    image_height: str | None = None
+    image_width: str | None = None
 
     def __init__(
         self,
-        title: Optional[str] = None,
-        subtitle: Optional[str] = None,
-        component: Optional[ComponentInstanceType] = None,
-        image: Optional[str] = None,
-        image_alt: Optional[str] = None,
-        image_height: Optional[str] = None,
-        image_width: Optional[str] = None,
+        title: str | None = None,
+        subtitle: str | None = None,
+        component: ComponentInstanceType | None = None,
+        image: str | None = None,
+        image_alt: str | None = None,
+        image_height: str | None = None,
+        image_width: str | None = None,
     ):
         super().__init__(
             title=title,

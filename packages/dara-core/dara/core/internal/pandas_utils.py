@@ -17,10 +17,10 @@ limitations under the License.
 
 import json
 import uuid
-from typing import Any, Literal, Optional, TypeVar, Union, cast, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 from pandas import DataFrame, MultiIndex, Series
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypedDict
 
 INDEX = '__index__'
 
@@ -33,7 +33,7 @@ def append_index(df: DataFrame) -> DataFrame: ...
 def append_index(df: None) -> None: ...
 
 
-def append_index(df: Optional[DataFrame]) -> Optional[DataFrame]:
+def append_index(df: DataFrame | None) -> DataFrame | None:
     """
     Add a numerical index column to the dataframe
     """
@@ -130,7 +130,7 @@ def format_for_display(df: DataFrame) -> None:
 
 
 class FieldType(TypedDict):
-    name: Union[str, tuple[str, ...]]
+    name: str | tuple[str, ...]
     type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
 
 
@@ -140,9 +140,9 @@ class DataFrameSchema(TypedDict):
 
 
 class DataResponse(TypedDict):
-    data: Optional[DataFrame]
+    data: DataFrame | None
     count: int
-    schema: Optional[DataFrameSchema]
+    schema: DataFrameSchema | None
 
 
 def is_data_response(response: Any) -> TypeGuard[DataResponse]:

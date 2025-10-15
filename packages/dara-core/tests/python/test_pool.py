@@ -1,5 +1,5 @@
 from multiprocessing import active_children
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from anyio import create_task_group
@@ -56,7 +56,7 @@ def assert_task_result(channel: Channel, task_uid: str, expected_result: Any):
     return True
 
 
-def assert_task_error(channel: Channel, task_uid: Optional[str]):
+def assert_task_error(channel: Channel, task_uid: str | None):
     error_msg = channel.pool_api.get_worker_message()
     assert error_msg is not None
     assert is_problem(error_msg)

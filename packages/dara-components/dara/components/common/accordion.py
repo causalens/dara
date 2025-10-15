@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import field_validator
 
@@ -79,9 +79,9 @@ class AccordionItem(BaseModel):
     :param content: Optional content to render
     """
 
-    badge: Optional[ItemBadge] = None
-    label: Union[str, ComponentInstance]
-    content: Optional[ComponentInstance] = None
+    badge: ItemBadge | None = None
+    label: str | ComponentInstance
+    content: ComponentInstance | None = None
 
 
 class Accordion(LayoutComponent):
@@ -245,28 +245,22 @@ class Accordion(LayoutComponent):
      :param onchange: An action to triggered when the component's state changes
     """
 
-    initial: Optional[Union[int, List[int]]] = 0
-    value: Optional[
-        Union[
-            Variable[Union[int, List[int]]],
-            int,
-            List[int],
-        ]
-    ] = 0
-    onchange: Optional[Action] = None
-    items: List[AccordionItem]
-    multi: Optional[bool] = True
+    initial: int | list[int] | None = 0
+    value: Variable[int | list[int]] | int | list[int] | None = 0
+    onchange: Action | None = None
+    items: list[AccordionItem]
+    multi: bool | None = True
 
     @field_validator('initial', mode='before')
     @classmethod
-    def validate_initial(cls, initial: Any) -> Union[int, List[int]]:
+    def validate_initial(cls, initial: Any) -> int | list[int]:
         if initial is not None:
             dev_logger.warning("Accordion's initial prop is now deprecated, please use value instead.")
         return initial
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> List[AccordionItem]:
+    def validate_items(cls, items: Any) -> list[AccordionItem]:
         if not isinstance(items, list):
             raise ValueError('AccordionItems must be passed as a list to the Accordion component')
         if len(items) == 0:

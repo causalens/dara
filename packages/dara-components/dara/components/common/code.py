@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import ClassVar, Optional, Union
+from typing import ClassVar
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import ClientVariable
@@ -67,8 +67,8 @@ class Code(ContentComponent):
     :param language: The language to use for code highlighting
     """
 
-    code: Union[str, ClientVariable]
-    theme: Optional[Themes] = None
+    code: str | ClientVariable
+    theme: Themes | None = None
     language: str = 'python'
 
     Themes: ClassVar[ThemesType] = Themes

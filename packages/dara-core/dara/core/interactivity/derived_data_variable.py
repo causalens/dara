@@ -17,8 +17,8 @@ limitations under the License.
 
 from __future__ import annotations
 
-from collections.abc import Coroutine
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from pandas import DataFrame
 from typing_extensions import deprecated
@@ -46,16 +46,13 @@ class DerivedDataVariable(DerivedVariable):
 
     def __init__(
         self,
-        func: Union[
-            Callable[..., Union[DataFrame, None]],
-            Callable[..., Coroutine[Any, Any, Union[DataFrame, None]]],
-        ],
-        variables: List[AnyVariable],
+        func: Callable[..., DataFrame | None] | Callable[..., Coroutine[Any, Any, DataFrame | None]],
+        variables: list[AnyVariable],
         cache: CacheArgType = Cache.Type.GLOBAL,
         run_as_task: bool = False,
-        polling_interval: Optional[int] = None,
-        deps: Optional[List[AnyVariable]] = None,
-        uid: Optional[str] = None,
+        polling_interval: int | None = None,
+        deps: list[AnyVariable] | None = None,
+        uid: str | None = None,
     ) -> None:
         """
         DerivedDataVariable represents a variable designed to hold datasets computed

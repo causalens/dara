@@ -16,11 +16,11 @@ limitations under the License.
 """
 
 import atexit
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from contextlib import contextmanager
 from datetime import datetime
 from multiprocessing import active_children
-from typing import Any, Callable, Dict, Optional, Union, cast
+from typing import Any, cast
 
 import anyio
 from anyio.abc import TaskGroup
@@ -61,8 +61,8 @@ class TaskPool:
     """Number of seconds worker is allowed to be idle before it is killed, if there are too many workers alive"""
 
     worker_parameters: WorkerParameters
-    workers: Dict[int, WorkerProcess] = {}
-    tasks: Dict[str, TaskDefinition] = {}
+    workers: dict[int, WorkerProcess] = {}
+    tasks: dict[str, TaskDefinition] = {}
 
     def __init__(
         self, task_group: TaskGroup, worker_parameters: WorkerParameters, max_workers: int, worker_timeout: float = 5
@@ -75,7 +75,7 @@ class TaskPool:
         self.worker_timeout = worker_timeout
 
         self._channel = Channel()
-        self._progress_subscribers: Dict[str, Callable[[float, str], Coroutine]] = {}
+        self._progress_subscribers: dict[str, Callable[[float, str], Coroutine]] = {}
 
     @property
     def running_tasks(self):
@@ -113,7 +113,7 @@ class TaskPool:
             raise RuntimeError('Pool already started')
 
     def submit(
-        self, task_uid: str, function_name: str, args: Union[tuple, None] = None, kwargs: Union[dict, None] = None
+        self, task_uid: str, function_name: str, args: tuple | None = None, kwargs: dict | None = None
     ) -> TaskDefinition:
         """
         Submit a new task to the pool
@@ -196,7 +196,7 @@ class TaskPool:
         await self.loop_stopped.wait()
         await self._terminate_workers()
 
-    async def join(self, timeout: Optional[float] = None):
+    async def join(self, timeout: float | None = None):
         """
         Join the pool and wait for workers to complete
 
@@ -473,7 +473,7 @@ class TaskPool:
         elif is_progress(worker_msg) and worker_msg['task_uid'] in self._progress_subscribers:
             await self._progress_subscribers[worker_msg['task_uid']](worker_msg['progress'], worker_msg['message'])
 
-    async def _wait_queue_depletion(self, timeout: Optional[float] = None):
+    async def _wait_queue_depletion(self, timeout: float | None = None):
         """
         Wait until all tasks have been marked as completed
 

@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from json import dumps
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 from bokeh.document import Document
 from bokeh.themes import Theme
@@ -29,7 +29,7 @@ from dara.core.definitions import StyledComponentInstance
 SETTINGS = {'THEME': light_theme}
 
 
-def _get_theme(theme_input: Optional[dict]):
+def _get_theme(theme_input: dict | None):
     if theme_input is not None:
         return Theme(json=theme_input)
     else:
@@ -52,7 +52,7 @@ class Bokeh(StyledComponentInstance):
     js_module = '@darajs/components'
 
     document: str
-    events: Optional[List[Tuple[str, Action]]] = None
+    events: list[tuple[str, Action]] | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
@@ -60,8 +60,8 @@ class Bokeh(StyledComponentInstance):
         self,
         figure: Any = None,
         document: Any = None,
-        theme: Optional[dict] = None,
-        events: Optional[List[Tuple[str, Action]]] = None,
+        theme: dict | None = None,
+        events: list[tuple[str, Action]] | None = None,
         **kwargs,
     ):
         """

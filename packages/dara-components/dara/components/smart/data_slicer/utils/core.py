@@ -17,7 +17,7 @@ limitations under the License.
 
 import re
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Optional, cast
 
 import numpy
 from pandas import DataFrame, Series
@@ -60,17 +60,17 @@ def infer_column_type(data: DataFrame, col: str) -> ColumnType:
         return ColumnType.CATEGORICAL
 
 
-def get_column_definitions(data: DataFrame) -> List[ColumnDefinition]:
-    symbols: List[str] = data.columns.values.tolist()
+def get_column_definitions(data: DataFrame) -> list[ColumnDefinition]:
+    symbols: list[str] = data.columns.values.tolist()
 
     return [ColumnDefinition(name=s, type=infer_column_type(data, s)) for s in symbols if s != '__index__']
 
 
-def get_column_items(column_defs: List[ColumnDefinition]) -> list:
+def get_column_items(column_defs: list[ColumnDefinition]) -> list:
     return [{'label': c['name'], 'value': c['name']} for c in column_defs]
 
 
-def isnumber(*values: Union[str, float]):
+def isnumber(*values: str | float):
     """
     Check if all values are numeric strings (ints, floats etc)
     """
@@ -93,7 +93,7 @@ def apply_range_filter(range_filter: str, column: Series) -> Optional['Series']:
     final_range_filter = None
 
     # Look for groups of [<something>]
-    ranges: List[str] = re.findall(r'\[[^\[\]]+\]', range_filter)
+    ranges: list[str] = re.findall(r'\[[^\[\]]+\]', range_filter)
 
     for rang in ranges:
         if ',' not in rang:
@@ -107,8 +107,8 @@ def apply_range_filter(range_filter: str, column: Series) -> Optional['Series']:
         upper_raw = upper_raw.strip()
 
         # Replace ':' symbols with (-)infinity
-        lower: Union[str, float] = float('-inf') if lower_raw == ':' else lower_raw
-        upper: Union[str, float] = float('inf') if upper_raw == ':' else upper_raw
+        lower: str | float = float('-inf') if lower_raw == ':' else lower_raw
+        upper: str | float = float('inf') if upper_raw == ':' else upper_raw
 
         # Only consider the range valid if the limits are numbers and lower < upper
         if lower != '' and upper != '' and isnumber(lower, upper):
@@ -135,7 +135,7 @@ def apply_values_filter(values_filter: str, column: Series, col_type: ColumnType
     """
     final_values_filter = None
 
-    values: List[Any] = (
+    values: list[Any] = (
         [v.strip() for v in values_filter.split(',') if v != ''] if ',' in values_filter else [values_filter.strip()]
     )
 
@@ -200,7 +200,7 @@ def apply_date_filter(from_date: str, to_date: str, column: 'Series') -> Optiona
     return final_date_filter
 
 
-def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> DataFrame:
+def apply_filters(variable_filters: list[FilterInstance], data: DataFrame) -> DataFrame:
     """
     Apply filters on data
 
@@ -212,9 +212,9 @@ def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> Da
     for fil in variable_filters:
         var = fil['column']
 
-        values_filter: Optional['Series'] = None
-        range_filter: Optional['Series'] = None
-        date_filter: Optional['Series'] = None
+        values_filter: Series | None = None
+        range_filter: Series | None = None
+        date_filter: Series | None = None
 
         if var is None or var.strip() == '':
             continue
@@ -245,7 +245,7 @@ def apply_filters(variable_filters: List[FilterInstance], data: DataFrame) -> Da
     return cast(DataFrame, output)
 
 
-def get_filter_stats(input_data: DataFrame, output_data: DataFrame, filters: List[FilterInstance]) -> FilterStats:
+def get_filter_stats(input_data: DataFrame, output_data: DataFrame, filters: list[FilterInstance]) -> FilterStats:
     """
     Get filter statistics
 

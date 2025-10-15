@@ -1,5 +1,3 @@
-from typing import Union
-
 import anyio
 import pytest
 from async_asgi_testclient import TestClient
@@ -30,7 +28,7 @@ class Stack(ComponentInstance):
 
 
 class Text(ComponentInstance):
-    text: SerializeAsAny[Union[str, AnyVariable]]
+    text: SerializeAsAny[str | AnyVariable]
 
 
 async def test_load_nested_templates():
@@ -249,14 +247,13 @@ async def test_loader_derived_values():
                 assert action_results[0]['variable']['uid'] == var.uid
                 assert action_results[0]['value'] == 2 + 10 + 1  # prev + static_kwarg + 1
                 assert action_ran.is_set()
+            # afterwards, dv and py_component
+            elif chunk['type'] == 'derived_variable':
+                dv_results.append(chunk)
+            elif chunk['type'] == 'py_component':
+                py_comp_results.append(chunk)
             else:
-                # afterwards, dv and py_component
-                if chunk['type'] == 'derived_variable':
-                    dv_results.append(chunk)
-                elif chunk['type'] == 'py_component':
-                    py_comp_results.append(chunk)
-                else:
-                    raise ValueError(f'Unexpected chunk type: {chunk["type"]}')
+                raise ValueError(f'Unexpected chunk type: {chunk["type"]}')
             i += 1
 
         # both dv and py_component should have run once each

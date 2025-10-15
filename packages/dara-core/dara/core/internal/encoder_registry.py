@@ -15,14 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from inspect import Parameter, isclass
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Optional,
-    Type,
     Union,
     get_args,
     get_origin,
@@ -47,7 +43,7 @@ def _not_implemented(x, dtype):
     raise NotImplementedError(f'No deserialization implementation for item {x} of dtype {dtype}')
 
 
-def _get_numpy_dtypes_encoder(typ: Type[Any]):
+def _get_numpy_dtypes_encoder(typ: type[Any]):
     """
     Construct numpy generic datatype
 
@@ -56,7 +52,7 @@ def _get_numpy_dtypes_encoder(typ: Type[Any]):
     return Encoder(serialize=lambda x: x.item(), deserialize=lambda x: typ(x))
 
 
-def _get_numpy_str_encoder(typ: Type[Any]):
+def _get_numpy_str_encoder(typ: type[Any]):
     """
     Construct numpy str datatype
 
@@ -65,7 +61,7 @@ def _get_numpy_str_encoder(typ: Type[Any]):
     return Encoder(serialize=lambda x: str(x), deserialize=lambda x: typ(x))
 
 
-def _get_pandas_array_encoder(array_type: Type[Any], dtype: Any, raise_: bool = False):
+def _get_pandas_array_encoder(array_type: type[Any], dtype: Any, raise_: bool = False):
     return Encoder(
         serialize=lambda x: x.astype(str).tolist(),
         deserialize=lambda x: pandas.array(x, dtype=dtype) if not raise_ else _not_implemented(x, dtype),
@@ -127,7 +123,7 @@ def _df_deserialize(x):
 
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
-encoder_registry: MutableMapping[Type[Any], Encoder] = {
+encoder_registry: MutableMapping[type[Any], Encoder] = {
     int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
     float: Encoder(serialize=lambda x: x, deserialize=lambda x: float(x)),
     str: Encoder(serialize=lambda x: x, deserialize=lambda x: str(x)),
@@ -211,14 +207,14 @@ else:
     )
 
 
-def get_jsonable_encoder() -> Dict[Type[Any], Callable[..., Any]]:
+def get_jsonable_encoder() -> dict[type[Any], Callable[..., Any]]:
     """
     Get the encoder registry as a dict of `{type: serialize}` pairs
     """
     return {k: v['serialize'] for k, v in encoder_registry.items()}
 
 
-def deserialize(value: Any, typ: Optional[Type]):
+def deserialize(value: Any, typ: type | None):
     """
     Deserialize a value into a given type.
 

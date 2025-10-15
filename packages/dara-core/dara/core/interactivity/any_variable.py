@@ -20,10 +20,11 @@ from __future__ import annotations
 import abc
 import inspect
 import uuid
+from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any
 
 import anyio
 from fastapi.encoders import jsonable_encoder
@@ -40,7 +41,7 @@ from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
 
-GET_VALUE_OVERRIDE = ContextVar[Optional[Callable[[dict], Any]]]('GET_VALUE_OVERRIDE', default=None)
+GET_VALUE_OVERRIDE = ContextVar[Callable[[dict], Any] | None]('GET_VALUE_OVERRIDE', default=None)
 """
 Optional context variable which can be used to override the default behaviour of `get_current_value()`.
 """
@@ -135,7 +136,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             )
             return None
 
-        session_channels: Dict[str, Set[str]] = {}
+        session_channels: dict[str, set[str]] = {}
         saved_ws_channel = WS_CHANNEL.get()
 
         # Collect sessions which are active
@@ -154,7 +155,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             )
             return None
 
-        raw_results: Dict[str, Any] = {}
+        raw_results: dict[str, Any] = {}
         registered_value_found = False
 
         async def retrieve_value(channel: str):
@@ -279,7 +280,7 @@ class AnyVariable(BaseModel, abc.ABC):  # noqa: PLW1641 # we override equals to 
 
     uid: str
 
-    def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, uid: str | None = None, **kwargs) -> None:
         new_uid = uid
         if new_uid is None:
             new_uid = str(uuid.uuid4())

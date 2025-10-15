@@ -1,5 +1,3 @@
-from typing import List
-
 from dara.core.definitions import ComponentInstance
 
 from .components import Outlet
@@ -24,7 +22,7 @@ def convert_template_to_router(template):
     from dara.core.visual.components.router_content import RouterContent
 
     router = Router()
-    extracted_routes: List[TemplateRouterContent] = []
+    extracted_routes: list[TemplateRouterContent] = []
 
     # Transform the layout: replace RouterContent with Outlet and extract routes
     def transform_component(component):

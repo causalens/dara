@@ -1,17 +1,11 @@
 import abc
 import json
 import os
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
-    List,
     Literal,
-    Optional,
-    Set,
-    Union,
 )
 from uuid import uuid4
 
@@ -66,7 +60,7 @@ class PersistenceBackend(BaseModel, abc.ABC):
         """
 
     @abc.abstractmethod
-    async def get_all(self) -> Dict[str, Any]:
+    async def get_all(self) -> dict[str, Any]:
         """
         Get all the values as a dictionary of key-value pairs
         """
@@ -83,7 +77,7 @@ class InMemoryBackend(PersistenceBackend):
     In-memory persistence backend
     """
 
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
     async def has(self, key: str) -> bool:
         return key in self.data
@@ -124,7 +118,7 @@ class FileBackend(PersistenceBackend):
             content = await f.read()
             return json.loads(content) if content else {}
 
-    async def _write_data(self, data: Dict[str, Any]):
+    async def _write_data(self, data: dict[str, Any]):
         async with await anyio.open_file(self.path, 'w') as f:
             await f.write(json.dumps(data))
 
@@ -199,16 +193,16 @@ class BackendStore(PersistenceStore):
     readonly: bool = False
 
     default_value: Any = Field(default=None, exclude=True)
-    initialized_scopes: Set[str] = Field(default_factory=set, exclude=True)
-    sequence_number: Dict[str, int] = Field(
+    initialized_scopes: set[str] = Field(default_factory=set, exclude=True)
+    sequence_number: dict[str, int] = Field(
         default_factory=dict, exclude=True
     )  # Track sequence numbers per user for patch validation
 
     def __init__(
         self,
-        backend: Optional[PersistenceBackend] = None,
-        uid: Optional[str] = None,
-        scope: Optional[str] = None,
+        backend: PersistenceBackend | None = None,
+        uid: str | None = None,
+        scope: str | None = None,
         readonly: bool = False,
     ):
         """
@@ -220,7 +214,7 @@ class BackendStore(PersistenceStore):
             if 'user' a value is stored per user
         :param readonly: whether to use the backend in read-only mode, i.e. skip syncing values from client to backend and raise if write()/delete() is called
         """
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if backend:
             kwargs['backend'] = backend
 
@@ -269,7 +263,7 @@ class BackendStore(PersistenceStore):
 
         raise ValueError('User not found when trying to compute the key for a user-scoped store')
 
-    def _get_user(self, key: str) -> Optional[str]:
+    def _get_user(self, key: str) -> str | None:
         """
         Get the user for a given key. Returns None if the key is global.
         Reverts the `_get_key` method to get the user for a given key.
@@ -308,7 +302,7 @@ class BackendStore(PersistenceStore):
 
         return utils_registry.get('WebsocketManager')
 
-    def _create_msg(self, scope_key: str, **payload) -> Dict[str, Any]:
+    def _create_msg(self, scope_key: str, **payload) -> dict[str, Any]:
         """
         Create a message to send to the frontend.
         :param scope_key: scope key for sequence number
@@ -333,7 +327,7 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(self, user_identifier: str, ignore_channel: Optional[str] = None, **payload):
+    async def _notify_user(self, user_identifier: str, ignore_channel: str | None = None, **payload):
         """
         Notify a given user about updates to this store.
         :param user_identifier: user to notify
@@ -346,7 +340,7 @@ class BackendStore(PersistenceStore):
             ignore_channel=ignore_channel,
         )
 
-    async def _notify_global(self, ignore_channel: Optional[str] = None, **payload):
+    async def _notify_global(self, ignore_channel: str | None = None, **payload):
         """
         Notify all users about updates to this store.
         :param ignore_channel: if specified, ignore the specified channel
@@ -357,7 +351,7 @@ class BackendStore(PersistenceStore):
             ignore_channel=ignore_channel,
         )
 
-    async def _notify_value(self, value: Any, ignore_channel: Optional[str] = None):
+    async def _notify_value(self, value: Any, ignore_channel: str | None = None):
         """
         Notify all clients about the new value for this store.
         Broadcasts to all users if scope is global or sends to the current user if scope is user.
@@ -377,7 +371,7 @@ class BackendStore(PersistenceStore):
         user_identifier = user.identity_id
         return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
 
-    async def _notify_patches(self, patches: List[Dict[str, Any]]):
+    async def _notify_patches(self, patches: list[dict[str, Any]]):
         """
         Notify all clients about partial updates to this store.
         Broadcasts to all users if scope is global or sends to the current user if scope is user.
@@ -415,7 +409,7 @@ class BackendStore(PersistenceStore):
 
             await self.backend.subscribe(_on_value)
 
-    async def write_partial(self, data: Union[List[Dict[str, Any]], Any], notify: bool = True, in_place: bool = False):
+    async def write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
         """
         Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
@@ -474,7 +468,7 @@ class BackendStore(PersistenceStore):
 
         return updated_value
 
-    async def write(self, value: Any, notify=True, ignore_channel: Optional[str] = None):
+    async def write(self, value: Any, notify=True, ignore_channel: str | None = None):
         """
         Persist a value to the store.
 
@@ -530,7 +524,7 @@ class BackendStore(PersistenceStore):
             await self._notify_value(None)
         return await run_user_handler(self.backend.delete, (key,))
 
-    async def get_all(self) -> Dict[str, Any]:
+    async def get_all(self) -> dict[str, Any]:
         """
         Get all the values from the store as a dictionary of key-value pairs.
 

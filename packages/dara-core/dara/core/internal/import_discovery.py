@@ -18,9 +18,7 @@ limitations under the License.
 import inspect
 import sys
 from types import ModuleType
-from typing import Any, List, Optional, Set, Tuple, Type, Union
-
-from typing_extensions import TypeGuard
+from typing import Any, TypeGuard
 
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
@@ -44,7 +42,7 @@ def _is_action_subclass(obj: Any) -> bool:
     return inspect.isclass(obj) and issubclass(obj, ActionImpl) and obj != ActionImpl
 
 
-def is_ignored(symbol: Any, ignore_symbols: List[Any]) -> bool:
+def is_ignored(symbol: Any, ignore_symbols: list[Any]) -> bool:
     """
     Check whether a symbol should be ignored
 
@@ -64,8 +62,8 @@ def is_ignored(symbol: Any, ignore_symbols: List[Any]) -> bool:
 
 
 def run_discovery(
-    module: Union[ModuleType, dict], ignore_symbols: Optional[List[Any]] = None, **kwargs
-) -> Tuple[Set[Type[ComponentInstance]], Set[Type[ActionImpl]]]:
+    module: ModuleType | dict, ignore_symbols: list[Any] | None = None, **kwargs
+) -> tuple[set[type[ComponentInstance]], set[type[ActionImpl]]]:
     """
     Recursively discover components available in the global namespace within the module
     and its child modules.
@@ -167,7 +165,7 @@ def run_discovery(
     return components, actions
 
 
-def _get_symbol_module(symbol: Union[Type[ComponentInstance], Type[ActionImpl]]) -> str:
+def _get_symbol_module(symbol: type[ComponentInstance] | type[ActionImpl]) -> str:
     """Get the root module of the component or action"""
     comp_module = symbol.__module__
 
@@ -182,7 +180,7 @@ def _get_symbol_module(symbol: Union[Type[ComponentInstance], Type[ActionImpl]])
     return comp_module
 
 
-def create_component_definition(component: Type[ComponentInstance], local: bool = False):
+def create_component_definition(component: type[ComponentInstance], local: bool = False):
     """
     Create a JsComponentDef for a given component class.
 
@@ -203,7 +201,7 @@ def create_component_definition(component: Type[ComponentInstance], local: bool 
     )
 
 
-def create_action_definition(action: Type[ActionImpl], local: bool = False):
+def create_action_definition(action: type[ActionImpl], local: bool = False):
     """
     Create a ActionDef for a given action class.
 

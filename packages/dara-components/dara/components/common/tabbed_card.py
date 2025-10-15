@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
-
 from dara.components.common.base_component import LayoutComponent
 from dara.core.interactivity import ClientVariable
 
@@ -63,8 +61,8 @@ class TabbedCard(LayoutComponent):
     :param selected_tab: Optional selected tab mapped to a variable so that the selected tab can be easily accessed
     """
 
-    initial_tab: Optional[str] = None
-    selected_tab: Optional[ClientVariable] = None
+    initial_tab: str | None = None
+    selected_tab: ClientVariable | None = None
 
 
 class Tab(LayoutComponent):

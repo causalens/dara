@@ -19,17 +19,13 @@ import contextlib
 import json
 import uuid
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextvars import ContextVar
 from functools import wraps
 from inspect import Parameter, Signature, isclass, signature
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Dict,
-    Optional,
-    Union,
     overload,
 )
 
@@ -55,8 +51,8 @@ CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 class PyComponentInstance(ComponentInstance):
     func_name: str
     dynamic_kwargs: Mapping[str, AnyVariable]
-    polling_interval: Optional[int] = None
-    js_module: ClassVar[Optional[str]] = None
+    polling_interval: int | None = None
+    js_module: ClassVar[str | None] = None
 
 
 # sync/async simple
@@ -69,21 +65,21 @@ def py_component(function: Callable) -> Callable[..., PyComponentInstance]: ...
 def py_component(
     function: None = None,
     *,
-    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
-    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
-    track_progress: Optional[bool] = False,
-    polling_interval: Optional[int] = None,
+    placeholder: BaseFallback | ComponentInstance | None = None,
+    fallback: BaseFallback | ComponentInstance | None = None,
+    track_progress: bool | None = False,
+    polling_interval: int | None = None,
 ) -> Callable[[Callable], Callable[..., PyComponentInstance]]: ...
 
 
 def py_component(
-    function: Optional[Callable] = None,
+    function: Callable | None = None,
     *,
-    placeholder: Optional[Union[BaseFallback, ComponentInstance]] = None,
-    fallback: Optional[Union[BaseFallback, ComponentInstance]] = None,
-    track_progress: Optional[bool] = False,
-    polling_interval: Optional[int] = None,
-) -> Union[Callable[..., PyComponentInstance], Callable[[Callable], Callable[..., PyComponentInstance]]]:
+    placeholder: BaseFallback | ComponentInstance | None = None,
+    fallback: BaseFallback | ComponentInstance | None = None,
+    track_progress: bool | None = False,
+    polling_interval: int | None = None,
+) -> Callable[..., PyComponentInstance] | Callable[[Callable], Callable[..., PyComponentInstance]]:
     """
     A decorator that can be used to trigger a component function to be rerun whenever a give variable changes. It should be
     called with a list of Variables and will call the wrapped function with the current values of each.
@@ -166,8 +162,8 @@ def py_component(
                         )
 
             # Split args based on whether they are static or dynamic
-            dynamic_kwargs: Dict[str, AnyVariable] = {}
-            static_kwargs: Dict[str, Any] = {}
+            dynamic_kwargs: dict[str, AnyVariable] = {}
+            static_kwargs: dict[str, Any] = {}
             for key, kwarg in all_kwargs.items():
                 if isinstance(kwarg, StateVariable):
                     raise ValueError(
@@ -201,7 +197,7 @@ def py_component(
         params = OrderedDict()
         for var_name, typ in func.__annotations__.items():
             if isclass(typ):
-                new_type = Union[typ, AnyVariable]
+                new_type = typ | AnyVariable
                 if old_signature.parameters.get(var_name) is not None:
                     params[var_name] = old_signature.parameters[var_name].replace(annotation=new_type)
                 new_annotations[var_name] = new_type
@@ -314,9 +310,9 @@ def _make_render_safe(handler: Callable):
     :param handler: the user handler to wrap
     """
 
-    async def _render_safe(**kwargs: Dict[str, Any]) -> NormalizedPayload[Optional[ComponentInstance]]:
+    async def _render_safe(**kwargs: dict[str, Any]) -> NormalizedPayload[ComponentInstance | None]:
         result = await run_user_handler(handler, kwargs=kwargs)
-        safe_result: Optional[ComponentInstance] = None
+        safe_result: ComponentInstance | None = None
 
         if result is None:
             safe_result = None

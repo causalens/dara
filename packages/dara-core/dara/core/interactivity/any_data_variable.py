@@ -1,4 +1,4 @@
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 from dara.core.interactivity.any_variable import AnyVariable
 

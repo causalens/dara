@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dara.core.base_definitions import CacheType, PendingTask
 from dara.core.internal.utils import get_cache_scope
@@ -34,9 +34,9 @@ class Store:
     def __init__(self):
         # This dict is the main store of values, the first level of keys is the cache type and the second level are the
         # value keys. The root key is used for any non-session/user dependant keys that are added.
-        self._store: Dict[str, Dict[str, Any]] = {'global': {}}
+        self._store: dict[str, dict[str, Any]] = {'global': {}}
 
-    def get(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> Any:
+    def get(self, key: str, cache_type: CacheType | None = CacheType.GLOBAL) -> Any:
         """
         Get a given key from the store and optionally pull it from the specified cache store or the global one
 
@@ -47,7 +47,7 @@ class Store:
         cache_key = get_cache_scope(cache_type)
         return self._store.get(cache_key, {}).get(key)
 
-    async def get_or_wait(self, key: str, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> Any:
+    async def get_or_wait(self, key: str, cache_type: CacheType | None = CacheType.GLOBAL) -> Any:
         """
         Wait for the given key to not be pending and then return the value. Optionally pull it from the specified cache specific
         store or the global one
@@ -67,8 +67,8 @@ class Store:
         self,
         key: str,
         value: Any,
-        cache_type: Optional[CacheType] = CacheType.GLOBAL,
-        error: Optional[Exception] = None,
+        cache_type: CacheType | None = CacheType.GLOBAL,
+        error: Exception | None = None,
     ):
         """
         Set the value of a given key in the store. the cache_type flag can be used to optionally pull the value from
@@ -86,7 +86,7 @@ class Store:
 
         self._store[cache_key][key] = value
 
-    def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: Optional[CacheType] = CacheType.GLOBAL):
+    def set_pending_task(self, key: str, pending_task: PendingTask, cache_type: CacheType | None = CacheType.GLOBAL):
         """
         Store a pending task state for a given key in the store. This will trigger the async behavior of the get call if subsequent
         requests ask for the same key. The PendingTask will be resolved once the underlying task is completed.
@@ -102,7 +102,7 @@ class Store:
 
         self._store[cache_key][key] = pending_task
 
-    def remove_starting_with(self, start: str, cache_type: Optional[CacheType] = CacheType.GLOBAL):
+    def remove_starting_with(self, start: str, cache_type: CacheType | None = CacheType.GLOBAL):
         """
         Remove any entries stored under keys starting with given string
 
@@ -134,7 +134,7 @@ class Store:
                     if not isinstance(cache_type_store[key], PendingTask):
                         cache_type_store.pop(key)
 
-    def list(self, cache_type: Optional[CacheType] = CacheType.GLOBAL) -> List[str]:
+    def list(self, cache_type: CacheType | None = CacheType.GLOBAL) -> list[str]:
         """
         List all keys in a specified cache store. Listed the global store unless cache_type is not None
 

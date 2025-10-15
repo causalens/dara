@@ -18,8 +18,8 @@ limitations under the License.
 import contextlib
 import inspect
 import math
-from collections.abc import Awaitable
-from typing import Any, Callable, Dict, List, Optional, Set, Union, cast, overload
+from collections.abc import Awaitable, Callable
+from typing import Any, cast, overload
 
 from anyio import (
     BrokenResourceError,
@@ -68,13 +68,13 @@ class Task(BaseTask):
     def __init__(
         self,
         func: Callable,
-        args: Union[List[Any], None] = None,
-        kwargs: Union[Dict[str, Any], None] = None,
-        reg_entry: Optional[CachedRegistryEntry] = None,
-        notify_channels: Optional[List[str]] = None,
-        cache_key: Optional[str] = None,
-        task_id: Optional[str] = None,
-        on_progress: Optional[Callable[[TaskProgressUpdate], Union[None, Awaitable[None]]]] = None,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        reg_entry: CachedRegistryEntry | None = None,
+        notify_channels: list[str] | None = None,
+        cache_key: str | None = None,
+        task_id: str | None = None,
+        on_progress: Callable[[TaskProgressUpdate], None | Awaitable[None]] | None = None,
     ):
         """
         :param func: The function to execute within the process
@@ -122,7 +122,7 @@ class Task(BaseTask):
 
         return func.__name__
 
-    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None) -> Any:
+    async def run(self, send_stream: MemoryObjectSendStream[TaskMessage] | None = None) -> Any:
         """
         Run the task asynchronously, and await its' end.
 
@@ -200,13 +200,13 @@ class MetaTask(BaseTask):
     def __init__(
         self,
         process_result: Callable[..., Any],
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
-        reg_entry: Optional[CachedRegistryEntry] = None,
-        notify_channels: Optional[List[str]] = None,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        reg_entry: CachedRegistryEntry | None = None,
+        notify_channels: list[str] | None = None,
         process_as_task: bool = False,
-        cache_key: Optional[str] = None,
-        task_id: Optional[str] = None,
+        cache_key: str | None = None,
+        task_id: str | None = None,
     ):
         """
         :param process result: A function to process the result of the other tasks
@@ -224,13 +224,13 @@ class MetaTask(BaseTask):
         self.kwargs = kwargs if kwargs is not None else {}
         self.notify_channels = notify_channels if notify_channels is not None else []
         self.process_as_task = process_as_task
-        self.cancel_scope: Optional[CancelScope] = None
+        self.cancel_scope: CancelScope | None = None
         self.cache_key = cache_key
         self.reg_entry = reg_entry
 
         super().__init__(task_id)
 
-    async def run(self, send_stream: Optional[MemoryObjectSendStream[TaskMessage]] = None):
+    async def run(self, send_stream: MemoryObjectSendStream[TaskMessage] | None = None):
         """
         Run any tasks found in the arguments to completion, collect the results and then call the process result
         function as a further task with a resultant arguments
@@ -241,7 +241,7 @@ class MetaTask(BaseTask):
 
         try:
             with self.cancel_scope:
-                tasks: List[BaseTask] = []
+                tasks: list[BaseTask] = []
 
                 # Collect up the tasks that need to be run and kick them off without awaiting them.
                 tasks.extend(x for x in self.args if isinstance(x, BaseTask))
@@ -250,7 +250,7 @@ class MetaTask(BaseTask):
                 eng_logger.info(f'MetaTask {self.task_id} running sub-tasks', {'task_ids': [x.task_id for x in tasks]})
 
                 # Wait for all tasks to complete
-                results: Dict[str, Any] = {}
+                results: dict[str, Any] = {}
 
                 async def _run_and_capture_result(task: BaseTask):
                     """
@@ -382,7 +382,7 @@ class TaskManager:
     """
 
     def __init__(self, task_group: TaskGroup, ws_manager: WebsocketManager, store: CacheStore):
-        self.tasks: Dict[str, PendingTask] = {}
+        self.tasks: dict[str, PendingTask] = {}
         self.task_group = task_group
         self.ws_manager = ws_manager
         self.store = store
@@ -396,12 +396,12 @@ class TaskManager:
         return pending_task
 
     @overload
-    async def run_task(self, task: PendingTask, ws_channel: Optional[str] = None) -> Any: ...
+    async def run_task(self, task: PendingTask, ws_channel: str | None = None) -> Any: ...
 
     @overload
-    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None) -> PendingTask: ...
+    async def run_task(self, task: BaseTask, ws_channel: str | None = None) -> PendingTask: ...
 
-    async def run_task(self, task: BaseTask, ws_channel: Optional[str] = None):
+    async def run_task(self, task: BaseTask, ws_channel: str | None = None):
         """
         Run a task and store it in the tasks dict
 
@@ -438,7 +438,7 @@ class TaskManager:
 
         return pending_task
 
-    async def _cancel_tasks(self, task_ids: List[str], notify: bool = True):
+    async def _cancel_tasks(self, task_ids: list[str], notify: bool = True):
         """
         Cancel a list of tasks
 
@@ -534,7 +534,7 @@ class TaskManager:
         """
         return await self.store.set(TaskResultEntry, key=task_id, value=value)
 
-    def _collect_all_task_ids_in_hierarchy(self, task: BaseTask) -> Set[str]:
+    def _collect_all_task_ids_in_hierarchy(self, task: BaseTask) -> set[str]:
         """
         Recursively collect all task IDs in the task hierarchy
 
@@ -556,7 +556,7 @@ class TaskManager:
 
         return task_ids
 
-    async def _multicast_notification(self, task_id: str, messages: List[dict], variable_task_id: bool = True):
+    async def _multicast_notification(self, task_id: str, messages: list[dict], variable_task_id: bool = True):
         """
         Send notifications to all task IDs that are related to a given task
 
@@ -585,7 +585,7 @@ class TaskManager:
                         pending_task = self.tasks[pending_task_id]
                         task_tg.start_soon(self._send_notification_for_task, pending_task, messages, variable_task_id)
 
-    async def _send_notification_for_task(self, task: BaseTask, messages: List[dict], variable_task_id: bool = True):
+    async def _send_notification_for_task(self, task: BaseTask, messages: list[dict], variable_task_id: bool = True):
         """
         Send notifications for a specific PendingTask
 
@@ -713,7 +713,7 @@ class TaskManager:
                             # Remove the task from the registered tasks - it finished running
                             self.tasks.pop(message.task_id, None)
 
-            task_error: Optional[ExceptionGroup] = None
+            task_error: ExceptionGroup | None = None
 
             # ExceptionGroup handler can't be async so we just mark the task as errored
             # and run the async handler in the finally block
@@ -746,7 +746,7 @@ class TaskManager:
             finally:
                 with CancelScope(shield=True):
                     # cast explicitly as otherwise pyright thinks it's always None here
-                    task_error = cast(Optional[ExceptionGroup], task_error)
+                    task_error = cast(ExceptionGroup | None, task_error)
                     if task_error is not None:
                         err = task_error
                         # Mark pending task as failed

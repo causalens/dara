@@ -24,7 +24,7 @@ import shutil
 import sys
 from enum import Enum
 from importlib.metadata import version
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Set, Union, cast
+from typing import Any, ClassVar, Literal, Optional, Union, cast
 
 from packaging.version import Version
 from pydantic import BaseModel
@@ -47,7 +47,7 @@ class JsConfig(BaseModel):
     local_entry: str
     """Relative path to the local entrypoint from the package root"""
 
-    extra_dependencies: Dict[str, str]
+    extra_dependencies: dict[str, str]
     """Extra dependencies to add to package.json before running install"""
 
     package_manager: Literal['npm', 'yarn', 'pnpm']
@@ -77,13 +77,13 @@ class BuildConfig(BaseModel):
     dev: bool
     """Whether dev (HMR) mode is enabled"""
 
-    js_config: Optional[JsConfig] = None
+    js_config: JsConfig | None = None
     """Custom JS configuration from dara.config.json file"""
 
-    npm_registry: Optional[str] = None
+    npm_registry: str | None = None
     """Optional npm registry url to pull packages from"""
 
-    npm_token: Optional[str] = None
+    npm_token: str | None = None
     """Optional npm token for the registry url added above"""
 
     @staticmethod
@@ -109,7 +109,7 @@ class BuildCacheDiff(BaseModel):
     Contains a list of keys that have changed.
     """
 
-    keys: Set[BuildCacheKey]
+    keys: set[BuildCacheKey]
 
     def should_rebuild_js(self) -> bool:
         """
@@ -119,7 +119,7 @@ class BuildCacheDiff(BaseModel):
         - package_map changed - required packages changed, we need to install new packages
         - build_config changed - build config changed, we need to install with a different config
         """
-        full_rebuild_keys: Set[BuildCacheKey] = set(['static_files_dir', 'package_map', 'build_config'])
+        full_rebuild_keys: set[BuildCacheKey] = set(['static_files_dir', 'package_map', 'build_config'])
 
         return len(full_rebuild_keys.intersection(self.keys)) > 0
 
@@ -137,13 +137,13 @@ class BuildCache(BaseModel):
     how to handle the frontend assets and statics.
     """
 
-    static_folders: List[str]
+    static_folders: list[str]
     """List of static folders registered"""
 
     static_files_dir: str
     """Static files output folder"""
 
-    package_map: Dict[str, str]
+    package_map: dict[str, str]
     """Map of py_module_name to js_module_name"""
 
     build_config: BuildConfig
@@ -152,7 +152,7 @@ class BuildCache(BaseModel):
     FILENAME: ClassVar[str] = '_build.json'
 
     @staticmethod
-    def from_config(config: Configuration, build_config: Optional[BuildConfig] = None):
+    def from_config(config: Configuration, build_config: BuildConfig | None = None):
         """
         Create a BuildCache from a Configuration
 
@@ -202,7 +202,7 @@ class BuildCache(BaseModel):
                     # Otherwise copy file if doesn't already exist
                     shutil.copy2(file_or_dir_path, self.static_files_dir)
 
-    def find_favicon(self) -> Optional[str]:
+    def find_favicon(self) -> str | None:
         """
         Find the favicon in the static files directories, looks for any .ico file
 
@@ -250,7 +250,7 @@ class BuildCache(BaseModel):
             os.unlink(new_node_modules_path)
         os.symlink(node_modules_path, new_node_modules_path)
 
-    def get_importers(self) -> Dict[str, str]:
+    def get_importers(self) -> dict[str, str]:
         """
         Get the importers map for this BuildCache.
         Includes `self.package_map` and a local entry if it exists.
@@ -265,7 +265,7 @@ class BuildCache(BaseModel):
 
         return importers
 
-    def get_py_modules(self) -> List[str]:
+    def get_py_modules(self) -> list[str]:
         """
         Get a list of all py modules used in this BuildCache
         """
@@ -279,7 +279,7 @@ class BuildCache(BaseModel):
 
         return list(py_modules)
 
-    def get_package_json(self) -> Dict[str, Any]:
+    def get_package_json(self) -> dict[str, Any]:
         """
         Generate a package.json file for this BuildCache
         """
@@ -320,7 +320,7 @@ class BuildCache(BaseModel):
 
         return pkg_json
 
-    def get_diff(self, other: Optional[Union['BuildCache', str]] = None) -> BuildCacheDiff:
+    def get_diff(self, other: Union['BuildCache', str] | None = None) -> BuildCacheDiff:
         """
         Get the diff between this BuildCache and another.
         Returns a list of keys that have changed.
@@ -339,7 +339,7 @@ class BuildCache(BaseModel):
         else:
             other_cache = other
 
-        diff: Set[BuildCacheKey] = set()
+        diff: set[BuildCacheKey] = set()
 
         if set(self.static_folders) != set(other_cache.static_folders):
             diff.add('static_folders')
@@ -439,7 +439,7 @@ def _get_module_file(module: str) -> str:
         return cast(str, imported_module.__file__)
 
 
-def rebuild_js(build_cache: BuildCache, build_diff: Union[BuildCacheDiff, None] = None):
+def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None):
     """
     Generic 'rebuild' function which bundles/prepares assets depending on the build mode chosen
 
@@ -641,7 +641,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
             shutil.copy(css_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.css'))
 
 
-def build_autojs_template(build_cache: BuildCache, config: Configuration) -> Dict[str, Any]:
+def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dict[str, Any]:
     """
     Build the autojs html template by preparing context data with required tags based on packages loaded
     and including the startup script
@@ -669,7 +669,7 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> Dic
 
     core_version = _get_py_version('dara.core')
 
-    package_tags: Dict[str, List[str]] = {
+    package_tags: dict[str, list[str]] = {
         'dara.core': [
             f'<script crossorigin src="{settings.dara_base_url}/static/dara.core.umd.js?v={core_version}"></script>',
             f'<link rel="stylesheet" href="{settings.dara_base_url}/static/dara.core.css?v={core_version}"></link>',
