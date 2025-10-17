@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.16
 
 -  Lower minimum version of `pydantic` from `2.12.0` to `2.11.7` to fix compatibility issues with other internal packages
 
