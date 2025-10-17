@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "prettier-config"
-version = "1.21.14"
+version = "1.21.15"
