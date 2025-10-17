@@ -14,7 +14,6 @@ import { RecoilURLSync } from 'recoil-sync';
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
-import { preloadActions } from '@/shared/interactivity/use-action';
 import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
@@ -30,6 +29,7 @@ import {
 import { type Component, type ComponentInstance, type DaraData, type ModuleContent } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
+import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 
 // A Mock template root component that lists the names of the provided templateCtx
 interface TemplateRootProps {
@@ -135,6 +135,7 @@ export const Wrapper = ({
 
     let child = children;
 
+
     if (withRouter) {
         const router = createBrowserRouter([
             {
@@ -149,6 +150,8 @@ export const Wrapper = ({
         ]);
         child = <RouterProvider router={router} />;
     }
+
+    preloadComponents(importers, Object.values(mockComponents));
 
     if (withTaskCtx) {
         child = (

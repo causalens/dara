@@ -3,10 +3,10 @@ import { HttpResponse, http } from 'msw';
 
 import type { DataFrameSchema } from '@/shared';
 
-import type { ActionDef, JsComponent, PyComponent } from '../../../js/types';
+import type { ActionDef, JsComponent } from '../../../js/types';
 import { ComponentType } from '../../../js/types';
 
-const mockComponents: Record<string, JsComponent | PyComponent> = {
+const mockComponents: Record<string, JsComponent> = {
     ProgressTracker: {
         js_module: '@darajs/dara_core',
         name: 'ProgressTracker',
@@ -30,10 +30,6 @@ const mockComponents: Record<string, JsComponent | PyComponent> = {
         name: 'TestPropsComponent',
         py_module: 'test',
         type: ComponentType.JS,
-    },
-    TestComponent2: {
-        name: 'TestComponent2',
-        type: ComponentType.PY,
     },
 };
 const mockActions: Record<string, ActionDef> = {
