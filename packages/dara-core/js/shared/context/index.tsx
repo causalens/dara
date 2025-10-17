@@ -3,7 +3,6 @@ export { default as ImportersCtx } from './importers-context';
 export { default as GlobalTaskProvider, useTaskContext } from './global-task-context';
 export { default as VariableCtx } from './variable-context';
 export { default as WebSocketCtx } from './websocket-context';
-export { RegistriesCtxProvider, useRegistriesCtx } from './registries-context';
 export { default as DisplayCtx } from './display-context';
 export { default as FallbackCtx } from './fallback-context';
 export {

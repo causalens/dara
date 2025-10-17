@@ -13,7 +13,6 @@ import { cleanSessionCache } from '@/shared/utils';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
 import type { DaraData } from '@/types/core';
 
-import { RegistriesCtxProvider } from '../context/registries-context';
 import { ServerVariableSyncProvider } from '../interactivity';
 import { StoreProviders } from '../interactivity/persistence';
 import DynamicContext from './dynamic-context';
@@ -112,23 +111,18 @@ function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
 
     return (
         <WebSocketCtx.Provider value={{ client: wsClient }}>
-            <RegistriesCtxProvider
-                componentRegistry={props.daraData.components}
-                actionRegistry={props.daraData.actions}
-            >
-                <DynamicContext contextComponents={props.daraData.context_components}>
-                    <StoreProviders>
-                        <ServerVariableSyncProvider>
-                            <RootWrapper>
-                                <NotificationWrapper />
-                                <Outlet />
-                                <VariableStateProvider wsClient={wsClient} />
-                                {props.daraData.enable_devtools && <DevTools />}
-                            </RootWrapper>
-                        </ServerVariableSyncProvider>
-                    </StoreProviders>
-                </DynamicContext>
-            </RegistriesCtxProvider>
+            <DynamicContext contextComponents={props.daraData.context_components}>
+                <StoreProviders>
+                    <ServerVariableSyncProvider>
+                        <RootWrapper>
+                            <NotificationWrapper />
+                            <Outlet />
+                            <VariableStateProvider wsClient={wsClient} />
+                            {props.daraData.enable_devtools && <DevTools />}
+                        </RootWrapper>
+                    </ServerVariableSyncProvider>
+                </StoreProviders>
+            </DynamicContext>
         </WebSocketCtx.Provider>
     );
 }

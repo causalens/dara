@@ -24,7 +24,6 @@ import {
     ConfigContextProvider,
     FallbackCtx,
     GlobalTaskProvider,
-    RegistriesCtxProvider,
     VariableCtx,
     WebSocketCtx,
 } from '../../../js/shared/context';
@@ -204,18 +203,13 @@ export const Wrapper = ({
                         <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
                             <RecoilRoot>
                                 <React.Suspense fallback={<div>Loading...</div>}>
-                                    <RegistriesCtxProvider
-                                        actionRegistry={mockActions}
-                                        componentRegistry={componentsRegistry}
-                                    >
-                                        <StoreProviders>
-                                            <ServerVariableSyncProvider>
-                                                <FallbackCtx.Provider value={{ suspend: true }}>
-                                                    {child}
-                                                </FallbackCtx.Provider>
-                                            </ServerVariableSyncProvider>
-                                        </StoreProviders>
-                                    </RegistriesCtxProvider>
+                                    <StoreProviders>
+                                        <ServerVariableSyncProvider>
+                                            <FallbackCtx.Provider value={{ suspend: true }}>
+                                                {child}
+                                            </FallbackCtx.Provider>
+                                        </ServerVariableSyncProvider>
+                                    </StoreProviders>
                                 </React.Suspense>
                             </RecoilRoot>
                         </WebSocketCtx.Provider>
