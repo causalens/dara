@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Unlock `click` dependency from `8.1.3` to `^8.1.3`
+
 ## 1.21.16
 
 -  Lower minimum version of `pydantic` from `2.12.0` to `2.11.7` to fix compatibility issues with other internal packages
