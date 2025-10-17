@@ -20,7 +20,13 @@ import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
 import { useInterval } from '@/shared/utils';
-import { type ComponentInstance, type DerivedVariable, type JsComponent, isDerivedVariable } from '@/types';
+import {
+    type ComponentInstance,
+    type DerivedVariable,
+    type JsComponent,
+    isDerivedVariable,
+    isPyComponent,
+} from '@/types';
 import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
@@ -57,7 +63,7 @@ function getDerivedVariablePollingInterval(variable: DerivedVariable): number | 
  */
 function computePollingInterval(
     kwargs: Record<string, AnyVariable<any>>,
-    componentInterval?: number
+    componentInterval: number | null
 ): number | undefined {
     let pollingInterval: number | undefined;
 
@@ -95,7 +101,7 @@ export function clearCaches_TEST(): void {
  * Load available components into the cache.
  *
  * @param importers - the importers object.
- * @param components - the components to pre-warm
+ * @param components - the components to register
  */
 export async function preloadComponents(
     importers: Record<string, () => Promise<ModuleContent>>,
@@ -105,26 +111,28 @@ export async function preloadComponents(
 
     // load each module and pre-load the components
     for (const [pyModule, componentsInModule] of Object.entries(componentsByModule)) {
-        if (MODULE_CACHE.has(pyModule)) {
-            continue;
-        }
-
-        // Load module
-        const importer = importers[pyModule];
-        if (!importer) {
-            throw new Error(`Missing importer for module ${pyModule}`);
-        }
-
         let moduleContent: ModuleContent | null = null;
-        try {
-            // there will be at most a couple of modules, fine to do serially
-            // eslint-disable-next-line no-await-in-loop
-            moduleContent = await importer();
-            if (moduleContent) {
-                MODULE_CACHE.set(pyModule, moduleContent);
+
+        // already cached
+        if (MODULE_CACHE.has(pyModule)) {
+            moduleContent = MODULE_CACHE.get(pyModule)!;
+        } else {
+            // Load module
+            const importer = importers[pyModule];
+            if (!importer) {
+                throw new Error(`Missing importer for module ${pyModule}`);
             }
-        } catch (e) {
-            throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
+
+            try {
+                // there will be at most a couple of modules, fine to do serially
+                // eslint-disable-next-line no-await-in-loop
+                moduleContent = await importer();
+                if (moduleContent) {
+                    MODULE_CACHE.set(pyModule, moduleContent);
+                }
+            } catch (e) {
+                throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
+            }
         }
 
         // pre-load components
@@ -153,6 +161,21 @@ function resolveComponent(component: ComponentInstance | null | undefined): JSX.
 
     // no cached metadata - must be a python component, we know we have to use the PythonWrapper
     if (!metadata) {
+        // at this point validate this is a py_component, otherwise
+        // this is some unregistered JS component
+        if (!isPyComponent(component)) {
+            return (
+                <ErrorDisplay
+                    config={{
+                        title: `Component ${component.name} could not be resolved`,
+                        description: `This likely means the component was not registered with the app.
+                            You can try re-building JavaScript for the app by running Dara with the --rebuild flag and/or explicitly registering the component with "config.add_component(MyComponent)".
+                            In most cases the import discovery system should auto-register components used throughout the app so please report the issue if you think it is a bug in the system.`,
+                    }}
+                />
+            );
+        }
+
         return (
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
             <PythonWrapper
@@ -174,7 +197,7 @@ function resolveComponent(component: ComponentInstance | null | undefined): JSX.
         return (
             <ErrorDisplay
                 config={{
-                    title: 'Component not found',
+                    title: `Component ${metadata.name} could not be resolved`,
                     description: `The JavaScript module for ${metadata.py_module} was not found`,
                 }}
             />
@@ -331,7 +354,7 @@ interface PythonWrapperProps {
     /* Py_component name/uid - the same for all instances of the py_component */
     name: string;
     /* Polling interval to use for refetching the component */
-    polling_interval: number;
+    polling_interval: number | null;
     /* Component instance uid - unique for each instances */
     uid: string;
 }

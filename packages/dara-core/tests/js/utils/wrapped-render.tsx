@@ -13,12 +13,13 @@ import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
+import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
 import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
 import { type WebSocketClientInterface } from '../../../js/api/websocket';
-import { ImportersCtx, ServerVariableSyncProvider } from '../../../js/shared';
+import { ServerVariableSyncProvider } from '../../../js/shared';
 import {
     ConfigContextProvider,
     FallbackCtx,
@@ -29,7 +30,6 @@ import {
 import { type Component, type ComponentInstance, type DaraData, type ModuleContent } from '../../../js/types';
 import MockWebSocketClient from './mock-web-socket-client';
 import { mockActions, mockComponents } from './test-server-handlers';
-import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 
 // A Mock template root component that lists the names of the provided templateCtx
 interface TemplateRootProps {
@@ -68,7 +68,6 @@ export const importers: Record<string, () => Promise<ModuleContent>> = {
 export const wsClient = new MockWebSocketClient('uid');
 
 interface WrapperProps {
-    importersObject?: Record<string, () => Promise<ModuleContent>>;
     componentsRegistry?: Record<string, Component>;
     children?: React.ReactNode;
     client?: WebSocketClientInterface;
@@ -93,6 +92,8 @@ interface DaraGlobals {
 }
 
 export const daraData: DaraData = {
+    build_mode: 'PRODUCTION',
+    build_dev: false,
     auth_components: {
         login: {
             js_module: '@darajs/dara_core',
@@ -120,21 +121,13 @@ export const daraData: DaraData = {
 };
 
 // A wrapper for testing that provides some required contexts
-export const Wrapper = ({
-    children,
-    client,
-    withRouter = true,
-    withTaskCtx = true,
-    importersObject = importers,
-    componentsRegistry = mockComponents,
-}: WrapperProps): ReactNode => {
+export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = true }: WrapperProps): ReactNode => {
     // the client needs to be created inside the wrapper so cache is not shared between tests
     const queryClient = new QueryClient();
 
     const variables = useRef<Set<string>>(new Set());
 
     let child = children;
-
 
     if (withRouter) {
         const router = createBrowserRouter([
@@ -150,8 +143,6 @@ export const Wrapper = ({
         ]);
         child = <RouterProvider router={router} />;
     }
-
-    preloadComponents(importers, Object.values(mockComponents));
 
     if (withTaskCtx) {
         child = (
@@ -202,21 +193,17 @@ export const Wrapper = ({
         >
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider theme={theme}>
-                    <ImportersCtx.Provider value={importersObject}>
-                        <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
-                            <RecoilRoot>
-                                <React.Suspense fallback={<div>Loading...</div>}>
-                                    <StoreProviders>
-                                        <ServerVariableSyncProvider>
-                                            <FallbackCtx.Provider value={{ suspend: true }}>
-                                                {child}
-                                            </FallbackCtx.Provider>
-                                        </ServerVariableSyncProvider>
-                                    </StoreProviders>
-                                </React.Suspense>
-                            </RecoilRoot>
-                        </WebSocketCtx.Provider>
-                    </ImportersCtx.Provider>
+                    <WebSocketCtx.Provider value={{ client: client ?? wsClient }}>
+                        <RecoilRoot>
+                            <React.Suspense fallback={<div>Loading...</div>}>
+                                <StoreProviders>
+                                    <ServerVariableSyncProvider>
+                                        <FallbackCtx.Provider value={{ suspend: true }}>{child}</FallbackCtx.Provider>
+                                    </ServerVariableSyncProvider>
+                                </StoreProviders>
+                            </React.Suspense>
+                        </RecoilRoot>
+                    </WebSocketCtx.Provider>
                 </ThemeProvider>
             </QueryClientProvider>
         </ConfigContextProvider>

@@ -8,14 +8,13 @@ import { setSessionToken } from '@/auth';
 import { createRoute } from '@/router/create-router';
 import { ResponseChunk } from '@/router/fetching';
 import { clearRegistries_TEST, useVariable } from '@/shared';
-import DynamicComponent, { clearCaches_TEST } from '@/shared/dynamic-component/dynamic-component';
+import DynamicComponent, { clearCaches_TEST, preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { preloadActions } from '@/shared/interactivity/use-action';
 import {
     type AnnotatedAction,
     type ComponentInstance,
     ComponentType,
     type DerivedVariable,
-    type JsComponent,
     type PathParamStore,
     type PyComponentInstance,
     type RouteDefinition,
@@ -39,6 +38,7 @@ describe('Route Loader', () => {
         clearRegistries_TEST();
         clearCaches_TEST();
         await preloadActions(importers, Object.values(mockActions));
+        await preloadComponents(importers, Object.values(mockComponents));
         vi.restoreAllMocks();
         setSessionToken(TEST_TOKEN);
 
@@ -51,6 +51,7 @@ describe('Route Loader', () => {
     });
     afterEach(() => {
         server.resetHandlers();
+        clearCaches_TEST();
         act(() => {
             setSessionToken(null);
         });
@@ -339,30 +340,25 @@ describe('Route Loader', () => {
             );
         }
 
+        await preloadComponents(
+            {
+                test_mod: () =>
+                    Promise.resolve({
+                        TestDisplay,
+                    }),
+            },
+            [
+                {
+                    js_module: 'test',
+                    name: 'TestDisplay',
+                    py_module: 'test_mod',
+                    type: ComponentType.JS,
+                },
+            ]
+        );
+
         const container = render(<Root />, {
-            wrapper: (props: { children: React.ReactNode }) => (
-                <Wrapper
-                    withRouter={false}
-                    importersObject={{
-                        ...importers,
-                        test: () =>
-                            Promise.resolve({
-                                TestDisplay,
-                            }),
-                    }}
-                    componentsRegistry={{
-                        ...mockComponents,
-                        TestDisplay: {
-                            js_module: 'test',
-                            name: 'TestDisplay',
-                            py_module: 'test',
-                            type: ComponentType.JS,
-                        } as JsComponent,
-                    }}
-                >
-                    {props.children}
-                </Wrapper>
-            ),
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
         });
         await waitFor(() =>
             expect(
@@ -500,41 +496,33 @@ describe('Route Loader', () => {
             );
         }
 
+        // setup the importers and components
+        await preloadComponents(
+            {
+                test_mod: () =>
+                    Promise.resolve({
+                        TestDisplay,
+                        Text: () => <div>Text</div>,
+                    }),
+            },
+            [
+                {
+                    js_module: 'test',
+                    name: 'TestDisplay',
+                    py_module: 'test_mod',
+                    type: ComponentType.JS,
+                },
+                {
+                    js_module: 'test',
+                    name: 'Text',
+                    py_module: 'test_mod',
+                    type: ComponentType.JS,
+                },
+            ]
+        );
+
         const container = render(<Root />, {
-            wrapper: (props: { children: React.ReactNode }) => (
-                <Wrapper
-                    withRouter={false}
-                    importersObject={{
-                        ...importers,
-                        test: () =>
-                            Promise.resolve({
-                                TestDisplay,
-                                Text: () => <div>Text</div>,
-                            }),
-                    }}
-                    componentsRegistry={{
-                        ...mockComponents,
-                        TestDisplay: {
-                            js_module: 'test',
-                            name: 'TestDisplay',
-                            py_module: 'test',
-                            type: ComponentType.JS,
-                        } as JsComponent,
-                        Text: {
-                            js_module: 'test',
-                            name: 'Text',
-                            py_module: 'test',
-                            type: ComponentType.JS,
-                        },
-                        TestPyComponent: {
-                            name: 'TestPyComponent',
-                            type: ComponentType.PY,
-                        },
-                    }}
-                >
-                    {props.children}
-                </Wrapper>
-            ),
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
         });
         await waitFor(() =>
             expect(
