@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Routes now hold navigation by default while `on_load` actions run. Users can provide a `fallback` component (e.g. default `Fallback.Default()` or any custom component) to opt-out and immediately show the fallback instead.
+-  Fixed an issue where `NavigateTo` `new_tab` option was ignored for internal links
 
 ## 1.21.14
 

@@ -445,7 +445,7 @@ class PendingTask(BaseTask):
 
 
 class RouterPath(BaseModel):
-    path: Optional[str] = None
+    pathname: Optional[str] = None
     """
     A URL pathname, beginning with '/'.
     """
