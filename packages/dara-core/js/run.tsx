@@ -10,7 +10,7 @@ import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
 import type { WebSocketClientInterface } from './api';
 import './index.css';
 import RouterRoot from './router/router-root';
-import { type Deferred, DirectionCtx, ImportersCtx, deferred } from './shared';
+import { type Deferred, DirectionCtx, deferred } from './shared';
 import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
 import { preloadComponents } from './shared/dynamic-component/dynamic-component';
 import { preloadActions } from './shared/interactivity/use-action';
@@ -27,24 +27,18 @@ interface DaraGlobals {
     ws: Deferred<WebSocketClientInterface>;
 }
 
-export function Root(props: {
-    daraData: DaraData;
-    queryClient: QueryClient;
-    importers: { [k: string]: () => Promise<any> };
-}): JSX.Element {
+export function Root(props: { daraData: DaraData; queryClient: QueryClient }): JSX.Element {
     return (
         <ConfigContextProvider initialConfig={props.daraData}>
             <QueryClientProvider client={props.queryClient}>
                 <ErrorBoundary>
-                    <ImportersCtx.Provider value={props.importers}>
-                        <DirectionCtx.Provider value={{ direction: 'row' }}>
-                            <RecoilRoot>
-                                <GlobalTaskProvider>
-                                    <RouterRoot daraData={props.daraData} />
-                                </GlobalTaskProvider>
-                            </RecoilRoot>
-                        </DirectionCtx.Provider>
-                    </ImportersCtx.Provider>
+                    <DirectionCtx.Provider value={{ direction: 'row' }}>
+                        <RecoilRoot>
+                            <GlobalTaskProvider>
+                                <RouterRoot daraData={props.daraData} />
+                            </GlobalTaskProvider>
+                        </RecoilRoot>
+                    </DirectionCtx.Provider>
                 </ErrorBoundary>
             </QueryClientProvider>
         </ConfigContextProvider>
@@ -80,7 +74,7 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
 
     const container = document.getElementById('dara_root')!;
     const root = createRoot(container);
-    root.render(<Root daraData={daraData} queryClient={queryClient} importers={importers} />);
+    root.render(<Root daraData={daraData} queryClient={queryClient} />);
 }
 
 export default run;

@@ -62,6 +62,7 @@ xlrd = "*"
 pydantic-settings = "^2.8.1"
 h11 = ">=0.16.0"
 jsonpatch = ">=1.33"
+backoff = "^2.2.1"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true

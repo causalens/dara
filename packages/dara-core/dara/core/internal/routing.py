@@ -27,6 +27,7 @@ from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Unio
 from urllib.parse import unquote
 
 import anyio
+import backoff
 from anyio.streams.memory import MemoryObjectSendStream
 from fastapi import (
     APIRouter,
@@ -213,20 +214,6 @@ async def get_download(code: str):
         raise ValueError('Invalid or expired download code') from e
 
 
-@core_api_router.get('/components/{name}/definition', dependencies=[Depends(verify_session)])
-async def get_component_definition(name: str):
-    """
-    Attempt to refetch a component definition from the backend.
-    This is used when a component isn't immediately available in the initial registry,
-    e.g. when it was added by a py_component.
-
-    :param name: the name of component
-    """
-    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    component = await registry_mgr.get(component_registry, name)
-    return component.model_dump(exclude={'func'})
-
-
 class ComponentRequestBody(BaseModel):
     # Dynamic kwarg values
     values: NormalizedPayload[Mapping[str, Any]]
@@ -243,7 +230,16 @@ async def get_component(component: str, body: ComponentRequestBody):
     store: CacheStore = utils_registry.get('Store')
     task_mgr: TaskManager = utils_registry.get('TaskManager')
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
-    comp_def = await registry_mgr.get(component_registry, component)
+
+    # Retry 5 times with a constant backoff of 1 s with 0-1 jitter
+    @backoff.on_exception(backoff.constant, ValueError, max_tries=5, jitter=backoff.full_jitter)
+    async def _get_component():
+        try:
+            return await registry_mgr.get(component_registry, component)
+        except Exception as e:
+            raise ValueError(f'Could now resolve component {component}. Was it registered in the app?') from e
+
+    comp_def = await _get_component()
 
     if isinstance(comp_def, PyComponentDef):
         static_kwargs = await registry_mgr.get(static_kwargs_registry, body.uid)

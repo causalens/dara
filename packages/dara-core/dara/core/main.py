@@ -43,6 +43,7 @@ from dara.core.defaults import (
     top_menu_template,
     top_template,
 )
+from dara.core.definitions import JsComponentDef
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
@@ -398,7 +399,12 @@ def _start_application(config: Configuration):
         template_data = {
             'auth_components': config.auth_config.component_config.model_dump(),
             'actions': action_def_registry.get_all().items(),
-            'components': {k: comp.model_dump(exclude={'func'}) for k, comp in component_registry.get_all().items()},
+            # only include JS components
+            'components': {
+                k: comp.model_dump(exclude={'func'})
+                for k, comp in component_registry.get_all().items()
+                if isinstance(comp, JsComponentDef)
+            },
             'application_name': get_settings().project_name,
             'enable_devtools': config.enable_devtools,
             'live_reload': config.live_reload,

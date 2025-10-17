@@ -92,7 +92,7 @@ export interface DaraData {
     actions: Record<string, ActionDef>;
     build_mode: BuildMode;
     build_dev: boolean;
-    components: Record<string, Component>;
+    components: Record<string, JsComponent>;
     application_name: string;
     context_components: Array<ComponentInstance<Record<never, any>>>;
     enable_devtools: boolean;

@@ -1,5 +1,4 @@
 import groupBy from 'lodash/groupBy';
-import partition from 'lodash/partition';
 import {
     type MutableRefObject,
     Suspense,
@@ -13,17 +12,21 @@ import {
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { useLatestRef } from '@darajs/ui-utils';
-
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker';
-import { FallbackCtx, ImportersCtx, VariableCtx, useRegistriesCtx, useTaskContext } from '@/shared/context';
+import { FallbackCtx, VariableCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { isJsComponent, useInterval } from '@/shared/utils';
-import { type Component, type ComponentInstance, type DerivedVariable, isDerivedVariable } from '@/types';
+import { useInterval } from '@/shared/utils';
+import {
+    type ComponentInstance,
+    type DerivedVariable,
+    type JsComponent,
+    isDerivedVariable,
+    isPyComponent,
+} from '@/types';
 import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, isRawString } from '@/types/core';
 
 import { cleanProps } from './clean-props';
@@ -60,7 +63,7 @@ function getDerivedVariablePollingInterval(variable: DerivedVariable): number | 
  */
 function computePollingInterval(
     kwargs: Record<string, AnyVariable<any>>,
-    componentInterval?: number
+    componentInterval: number | null
 ): number | undefined {
     let pollingInterval: number | undefined;
 
@@ -83,7 +86,7 @@ function computePollingInterval(
 /** py_module -> loaded module */
 const MODULE_CACHE = new Map<string, ModuleContent>();
 /** component.name -> metadata */
-const COMPONENT_METADATA_CACHE = new Map<string, Component>();
+const COMPONENT_METADATA_CACHE = new Map<string, JsComponent>();
 
 /**
  * Clear the caches for testing.
@@ -95,50 +98,41 @@ export function clearCaches_TEST(): void {
 }
 
 /**
- * Pre-warm the caches for the given components.
- * This is useful to pre-warm the core components on startup to avoid spinners
+ * Load available components into the cache.
  *
  * @param importers - the importers object.
- * @param components - the components to pre-warm
+ * @param components - the components to register
  */
 export async function preloadComponents(
     importers: Record<string, () => Promise<ModuleContent>>,
-    components: Component[]
+    jsComponents: JsComponent[]
 ): Promise<void> {
-    const [jsComponents, pyComponents] = partition(components, isJsComponent);
-
-    // for py-components we just add a metadata cache entry
-    for (const component of pyComponents) {
-        if (COMPONENT_METADATA_CACHE.has(component.name)) {
-            continue;
-        }
-
-        COMPONENT_METADATA_CACHE.set(component.name, component);
-    }
-
     const componentsByModule = groupBy(jsComponents, (component) => component.py_module);
 
-    // for js-components we load the module and pre-load the components
+    // load each module and pre-load the components
     for (const [pyModule, componentsInModule] of Object.entries(componentsByModule)) {
-        if (MODULE_CACHE.has(pyModule)) {
-            continue;
-        }
-        // Load module
-        const importer = importers[pyModule];
-        if (!importer) {
-            throw new Error(`Missing importer for module ${pyModule}`);
-        }
-
         let moduleContent: ModuleContent | null = null;
-        try {
-            // there will be at most a couple of modules, fine to do serially
-            // eslint-disable-next-line no-await-in-loop
-            moduleContent = await importer();
-            if (moduleContent) {
-                MODULE_CACHE.set(pyModule, moduleContent);
+
+        // already cached
+        if (MODULE_CACHE.has(pyModule)) {
+            moduleContent = MODULE_CACHE.get(pyModule)!;
+        } else {
+            // Load module
+            const importer = importers[pyModule];
+            if (!importer) {
+                throw new Error(`Missing importer for module ${pyModule}`);
             }
-        } catch (e) {
-            throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
+
+            try {
+                // there will be at most a couple of modules, fine to do serially
+                // eslint-disable-next-line no-await-in-loop
+                moduleContent = await importer();
+                if (moduleContent) {
+                    MODULE_CACHE.set(pyModule, moduleContent);
+                }
+            } catch (e) {
+                throw new Error(`Failed to load module ${pyModule}: ${String(e)}`);
+            }
         }
 
         // pre-load components
@@ -154,7 +148,7 @@ export async function preloadComponents(
 /**
  * Try resolving component synchronously from cache
  */
-function resolveComponentSync(component: ComponentInstance | null | undefined): JSX.Element | null {
+function resolveComponent(component: ComponentInstance | null | undefined): JSX.Element | null {
     if (!component) {
         return null;
     }
@@ -165,12 +159,23 @@ function resolveComponentSync(component: ComponentInstance | null | undefined): 
 
     const metadata = COMPONENT_METADATA_CACHE.get(component.name);
 
+    // no cached metadata - must be a python component, we know we have to use the PythonWrapper
     if (!metadata) {
-        return null; // no cached metadata
-    }
+        // at this point validate this is a py_component, otherwise
+        // this is some unregistered JS component
+        if (!isPyComponent(component)) {
+            return (
+                <ErrorDisplay
+                    config={{
+                        title: `Component ${component.name} could not be resolved`,
+                        description: `This likely means the component was not registered with the app.
+                            You can try re-building JavaScript for the app by running Dara with the --rebuild flag and/or explicitly registering the component with "config.add_component(MyComponent)".
+                            In most cases the import discovery system should auto-register components used throughout the app so please report the issue if you think it is a bug in the system.`,
+                    }}
+                />
+            );
+        }
 
-    // we've cached information that this component is a python component, we know we have to use the PythonWrapper
-    if (metadata.type === 'py') {
         return (
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
             <PythonWrapper
@@ -187,8 +192,16 @@ function resolveComponentSync(component: ComponentInstance | null | undefined): 
     // JS component - check if module is loaded
     const moduleContent = MODULE_CACHE.get(metadata.py_module);
 
+    // Somehow module wasn't loaded, show an error
     if (!moduleContent) {
-        return null; // Module not loaded yet
+        return (
+            <ErrorDisplay
+                config={{
+                    title: `Component ${metadata.name} could not be resolved`,
+                    description: `The JavaScript module for ${metadata.py_module} was not found`,
+                }}
+            />
+        );
     }
 
     const ResolvedComponent = moduleContent[metadata.js_component ?? metadata.name] as React.ComponentType<any> | null;
@@ -208,85 +221,6 @@ function resolveComponentSync(component: ComponentInstance | null | undefined): 
     // assuming we returned a component, technically could be an action
     const props = cleanProps(component.props);
     return <ResolvedComponent uid={component.uid} {...props} />;
-}
-
-class ComponentLoadError extends Error {
-    title: string;
-
-    constructor(message: string, title: string) {
-        super(message);
-        this.title = title;
-    }
-}
-
-/**
- * Resolve component asynchronously and populate caches
- */
-async function resolveComponentAsync(
-    component: ComponentInstance | null | undefined,
-    getComponent: (component: ComponentInstance) => Promise<any>,
-    importers: Record<string, () => Promise<ModuleContent>>
-): Promise<void> {
-    if (!component) {
-        return;
-    }
-
-    // Get component entry from registry
-    let entry;
-    try {
-        entry = await getComponent(component);
-    } catch (e) {
-        throw new ComponentLoadError(e instanceof Error ? e.message : String(e), 'Failed to load component');
-    }
-
-    if (!isJsComponent(entry)) {
-        // Python component, just cache metadata and nothing else to do here
-        COMPONENT_METADATA_CACHE.set(component.name, entry);
-        return;
-    }
-
-    // JS component - cache metadata first
-    COMPONENT_METADATA_CACHE.set(component.name, entry);
-
-    // Check if module is already loaded
-    if (MODULE_CACHE.has(entry.py_module)) {
-        return; // Module already cached
-    }
-
-    // Load module if not cached
-    const importer = importers[entry.py_module];
-    if (!importer) {
-        const errorDescription =
-            entry.py_module === 'LOCAL' ?
-                `This is a local component so make sure you are in production mode and dara.config.json is present.
-                    You can try re-building JavaScript by running Dara with the --rebuild flag.`
-            :   `This means that the JavaScript module for the component was not included by the discovery system.
-                    You can try re-building JavaScript by running Dara with the --rebuild flag
-                    and/or explicitly registering the component with "config.add_component(MyComponentClass)".`;
-
-        throw new ComponentLoadError(errorDescription, `Component ${entry.name} could not be resolved`);
-    }
-
-    let moduleContent: ModuleContent | null = null;
-    try {
-        moduleContent = await importer();
-        if (moduleContent) {
-            MODULE_CACHE.set(entry.py_module, moduleContent);
-        }
-    } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to load module ${entry.py_module}:`, e);
-    }
-
-    if (!moduleContent) {
-        throw new ComponentLoadError(
-            `Failed to import the JavaScript module for the component.
-                            This likely means that the module was not installed properly.
-                            You can try re-building JavaScript by running Dara with the --rebuild flag
-                            and/or explicitly registering the component with "config.add_component(MyComponentClass)".`,
-            `Component ${entry.name} could not be resolved`
-        );
-    }
 }
 
 interface DynamicComponentProps {
@@ -331,14 +265,7 @@ function getFallbackComponent(
  * @param props - the components props
  */
 function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
-    const importers = useContext(ImportersCtx);
     const fallbackCtx = useContext(FallbackCtx);
-    const { getComponent } = useRegistriesCtx();
-
-    // Try sync resolution first
-    const [component, setComponent] = useState<JSX.Element | null>(() => resolveComponentSync(props.component));
-    const [isLoading, setIsLoading] = useState(() => component === null);
-    const [loadingStarted, setLoadingStarted] = useState(false);
 
     // Sanity check - LoopVariable should NEVER leak into the actual component, should be replaced
     // by the For component. Raise a user-visible error if it does as its a developer error.
@@ -355,58 +282,8 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         }
     }, [props.component]);
 
-    // Track initial mount to avoid double resolution
-    const isInitialMount = useRef(true);
-
-    // Reset loading state when component changes to re-resolve the component
-    useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        // Try sync resolution first for the new component
-        const SyncResolved = resolveComponentSync(props.component);
-
-        if (SyncResolved) {
-            // Can resolve synchronously
-            setComponent(SyncResolved);
-            setIsLoading(false);
-            setLoadingStarted(false);
-        } else {
-            // Need async resolution
-            setIsLoading(true);
-            setLoadingStarted(false);
-        }
-    }, [props.component]);
-
-    const getComponentStable = useLatestRef(getComponent);
-
-    // Async loading effect
-    useEffect(() => {
-        if (!isLoading || loadingStarted) {
-            return;
-        }
-
-        setLoadingStarted(true);
-
-        resolveComponentAsync(props.component, getComponentStable.current, importers)
-            .then(() => {
-                // Try sync resolution again after async loading
-                const resolvedComponent = resolveComponentSync(props.component);
-                setIsLoading(false);
-                setComponent(resolvedComponent);
-            })
-            .catch((error) => {
-                // eslint-disable-next-line no-console
-                console.error('Failed to resolve component:', error);
-                setIsLoading(false);
-
-                if (error instanceof ComponentLoadError) {
-                    setComponent(<ErrorDisplay config={{ title: error.title, description: error.message }} />);
-                }
-            });
-    }, [props.component, getComponentStable, importers, isLoading, loadingStarted]);
+    // resolve component whenever it changes
+    const component = useMemo(() => resolveComponent(props.component), [props.component]);
 
     const refreshSelector = useRefreshSelector();
 
@@ -444,10 +321,6 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         return null;
     }
 
-    if (isLoading) {
-        return fallback;
-    }
-
     // Compute the suspend setting for the component in order of precedence:
     // 1) explicit suspend_render setting on the component
     // 2) setting inherited from a parent component
@@ -481,7 +354,7 @@ interface PythonWrapperProps {
     /* Py_component name/uid - the same for all instances of the py_component */
     name: string;
     /* Polling interval to use for refetching the component */
-    polling_interval: number;
+    polling_interval: number | null;
     /* Component instance uid - unique for each instances */
     uid: string;
 }
