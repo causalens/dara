@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.17
 
 -  Unlock `click` dependency from `8.1.3` to `^8.1.3`
 -  Bumped minimum required Python version to `3.10`, dropping support for Python 3.9 as it reached end-of-life as of October 2025
