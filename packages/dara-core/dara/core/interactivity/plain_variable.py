@@ -27,6 +27,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import (
     ConfigDict,
     Field,
+    SerializeAsAny,
     SerializerFunctionWrapHandler,
     field_serializer,
     model_serializer,
@@ -53,7 +54,7 @@ class Variable(ClientVariable, Generic[VariableType, PersistenceStoreType_co]):
     """
 
     default: VariableType | None = None
-    store: PersistenceStoreType_co | None = None
+    store: SerializeAsAny[PersistenceStoreType_co | None] = None
     uid: str
     nested: list[str] = Field(default_factory=list)
     model_config = ConfigDict(extra='forbid')

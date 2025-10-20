@@ -118,6 +118,18 @@ async def test_backend_store_serialization():
     assert 'backend' not in jsonable_encoder(store)
 
 
+async def test_backend_store_variable_serialization():
+    """
+    Test that store serializes correctly attached to a variable
+    """
+    var = Variable(store=BackendStore())
+    assert var.store is not None
+    serialized = var.model_dump()
+    assert serialized['store']['__typename'] == 'BackendStore'
+    assert serialized['store']['uid'] == var.store.uid
+    assert serialized['store']['scope'] == var.store.scope
+
+
 async def test_write_and_read(backend_store):
     # Write a value
     await backend_store.write('test_value')
