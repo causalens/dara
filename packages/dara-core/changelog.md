@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed a regression where `Variable`'s `store` property was not serialized correctly
+
 ## 1.21.17
 
 -  Unlock `click` dependency from `8.1.3` to `^8.1.3`
