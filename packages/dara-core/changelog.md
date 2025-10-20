@@ -4,8 +4,16 @@ title: Changelog
 
 ## NEXT
 
--  Routes now hold navigation by default while `on_load` actions run. Users can provide a `fallback` component (e.g. default `Fallback.Default()` or any custom component) to opt-out and immediately show the fallback instead.
 -  Bumped minimum required Python version to `3.10`, dropping support for Python 3.9 as it reached end-of-life as of October 2025
+
+## 1.21.16
+
+-  Lower minimum version of `pydantic` from `2.12.0` to `2.11.7` to fix compatibility issues with other internal packages
+
+## 1.21.15
+
+-  Routes now hold navigation by default while `on_load` actions run. Users can provide a `fallback` component (e.g. default `Fallback.Default()` or any custom component) to opt-out and immediately show the fallback instead.
+-  Fixed an issue where `NavigateTo` `new_tab` option was ignored for internal links
 
 ## 1.21.14
 

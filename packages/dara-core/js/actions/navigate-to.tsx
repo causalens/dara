@@ -1,3 +1,5 @@
+import { createPath } from 'react-router';
+
 import { getBasename } from '@/router/utils';
 import { type ActionHandler, type NavigateToImpl } from '@/types/core';
 
@@ -41,6 +43,21 @@ const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
     let isExternal = false;
     let to = actionImpl.url;
 
+    // Handle new tab separately
+    if (actionImpl.new_tab) {
+        // simple case, string so just use url directly
+        if (typeof to === 'string') {
+            window.open(to, '_blank');
+        } else {
+            // otherwise it's an object so create the url
+            const url = createPath(to);
+            const targetUrl = new URL(url, window.location.origin);
+            window.open(targetUrl.toString(), '_blank');
+        }
+
+        return;
+    }
+
     // detect external URLs for absolute URLs
     if (typeof actionImpl.url === 'string' && ABSOLUTE_URL_REGEX.test(actionImpl.url)) {
         try {
@@ -60,12 +77,9 @@ const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
         }
     }
 
+    // check again if the url really was external, if so use direct window.location.href navigation
     if (isExternal && typeof to === 'string') {
-        if (actionImpl.new_tab) {
-            window.open(to, '_blank');
-        } else {
-            window.location.href = to;
-        }
+        window.location.href = to;
         return;
     }
 

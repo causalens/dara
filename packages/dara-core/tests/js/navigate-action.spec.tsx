@@ -26,6 +26,22 @@ function withMockHref(callback: (hrefSetter: Mock) => void, hrefValue?: string):
     }
 }
 
+function withMockOpen(callback: (openSetter: Mock) => void): void {
+    const originalOpen = window.open;
+    try {
+        const mock = vi.fn();
+        Object.defineProperty(window, 'open', {
+            value: (url: string, target: string, features: string) => {
+                mock(url, target, features);
+            },
+            writable: true,
+        });
+        callback(mock);
+    } finally {
+        window.open = originalOpen;
+    }
+}
+
 describe('NavigateTo action', () => {
     beforeEach(() => {
         window.dara = {
@@ -52,7 +68,7 @@ describe('NavigateTo action', () => {
             new_tab: false,
             uid: 'uid',
             url,
-            options
+            options,
         } satisfies NavigateToImpl);
         // called with url, no options
         expect(ctx.navigate).toHaveBeenCalledWith(url, options);
@@ -115,4 +131,62 @@ describe('NavigateTo action', () => {
             expect(ctx.navigate).toHaveBeenCalledWith('/another-page', undefined);
         }, 'http://localhost:3000/app/test');
     });
+
+    it.each([
+        { url: './to' },
+        { url: '../to' },
+        { url: 'https://google.com' },
+        { url: 'http://localhost:3000/another-page' },
+    ])('should navigate to string URL "$url" with new_tab using window.open', ({ url }) => {
+        const ctx = {
+            navigate: vi.fn(),
+        };
+
+        withMockHref(() => {
+            withMockOpen((openMock) => {
+                NavigateTo(ctx as any, {
+                    __typename: 'ActionImpl',
+                    name: 'NavigateTo',
+                    new_tab: true,
+                    uid: 'uid',
+                    url,
+                } satisfies NavigateToImpl);
+
+                // called window.open with url
+                expect(openMock).toHaveBeenCalledWith(url, '_blank', undefined);
+
+                // router navigation is never used with new_tab
+                expect(ctx.navigate).not.toHaveBeenCalled();
+            });
+        }, 'http://localhost:3000/test');
+    });
+
+    it.each([{ url: { pathname: '../to' } }, { url: { pathname: 'to' } }])(
+        'should navigate to object URL "$url" with new_tab using window.open',
+        ({ url }) => {
+            const ctx = {
+                navigate: vi.fn(),
+            };
+
+            withMockHref(() => {
+                withMockOpen((openMock) => {
+                    NavigateTo(ctx as any, {
+                        __typename: 'ActionImpl',
+                        name: 'NavigateTo',
+                        new_tab: true,
+                        uid: 'uid',
+                        url,
+                    } satisfies NavigateToImpl);
+
+                    const expectedUrl = new URL(url.pathname, window.location.origin);
+
+                    // called window.open with url
+                    expect(openMock).toHaveBeenCalledWith(expectedUrl.toString(), '_blank', undefined);
+
+                    // router navigation is never used with new_tab
+                    expect(ctx.navigate).not.toHaveBeenCalled();
+                });
+            }, 'http://localhost:3000/test');
+        }
+    );
 });
