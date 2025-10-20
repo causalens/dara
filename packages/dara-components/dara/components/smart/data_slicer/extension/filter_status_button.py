@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
-
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import Action
@@ -45,4 +43,4 @@ class FilterStatusButton(ComponentInstance):
 
     filter_stats: AnyVariable
     on_click: Action
-    top_position: Optional[str] = '5%'
+    top_position: str | None = '5%'

@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import FormComponent
@@ -50,11 +48,11 @@ class FormPage(FormComponent):
     :param title: The title of the form page
     """
 
-    title: Optional[str] = None
+    title: str | None = None
 
     @field_validator('children')
     @classmethod
-    def validate_children(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
+    def validate_children(cls, children: list[ComponentInstance]) -> list[ComponentInstance]:
         for c in children:
             if isinstance(c, FormPage):
                 raise TypeError('FormPage detected inside another FormPage, nesting is disallowed')

@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections.abc import Coroutine
-from typing import Callable, Dict, Literal, TypeVar, Union
+from collections.abc import Callable, Coroutine
+from typing import Literal, TypeVar
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
@@ -31,7 +31,7 @@ RegistryLookupKey = Literal[
     RegistryType.BACKEND_STORE,
     RegistryType.DOWNLOAD_CODE,
 ]
-CustomRegistryLookup = Dict[RegistryLookupKey, Callable[[str], Coroutine]]
+CustomRegistryLookup = dict[RegistryLookupKey, Callable[[str], Coroutine]]
 
 RegistryType = TypeVar('RegistryType')
 
@@ -41,7 +41,7 @@ class RegistryLookup:
     Manages registry Lookup.
     """
 
-    def __init__(self, handlers: Union[CustomRegistryLookup, None] = None):
+    def __init__(self, handlers: CustomRegistryLookup | None = None):
         if handlers is None:
             handlers = {}
         self.handlers = handlers

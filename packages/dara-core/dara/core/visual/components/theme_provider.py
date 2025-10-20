@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing import Literal
 
 from dara.core.definitions import ComponentInstance, JsComponentDef, StyledComponentInstance
 from dara.core.interactivity.client_variable import ClientVariable
@@ -34,8 +34,8 @@ class ThemeProvider(StyledComponentInstance):
     config.router.add_page(path='theme', content=ThemePage)
     """
 
-    theme: Union[ThemeDef, ClientVariable, Literal['light', 'dark']]
-    base: Union[ClientVariable, Literal['light', 'dark']] = 'light'
+    theme: ThemeDef | ClientVariable | Literal['light', 'dark']
+    base: ClientVariable | Literal['light', 'dark'] = 'light'
 
     def __init__(self, *children: ComponentInstance, **kwargs):
         components = list(children)

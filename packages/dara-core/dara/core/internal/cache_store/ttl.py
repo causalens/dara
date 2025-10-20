@@ -1,6 +1,6 @@
 import heapq
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import anyio
 
@@ -38,9 +38,9 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
 
     def __init__(self, policy: TTLCachePolicy):
         super().__init__(policy)
-        self.pinned_cache: Dict[str, Node] = {}
-        self.unpinned_cache: Dict[str, Node] = {}
-        self.expiration_heap: List[Tuple[float, str]] = []  # Stores (expiration_time, key) for unpinned items
+        self.pinned_cache: dict[str, Node] = {}
+        self.unpinned_cache: dict[str, Node] = {}
+        self.expiration_heap: list[tuple[float, str]] = []  # Stores (expiration_time, key) for unpinned items
         self.lock = anyio.Lock()
 
     async def _cleanup(self):

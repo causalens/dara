@@ -38,7 +38,7 @@ authors = [
     { name = "{{ cookiecutter.author_name }}" }
 ]
 description = "{{ cookiecutter.project_name }}"
-requires-python = ">=3.9, <3.13.0"
+requires-python = ">=3.10, <3.13.0"
 
 [tool.setuptools]
 packages = ["{{ cookiecutter.__package_name }}"]

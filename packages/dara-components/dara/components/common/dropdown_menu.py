@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from typing_extensions import TypedDict
 
@@ -8,22 +8,22 @@ from dara.core import Action, ClientVariable, ComponentInstance
 
 
 class MenuItem(TypedDict, total=False):
-    label: Union[str, ComponentInstance]
+    label: str | ComponentInstance
     """the label of the menu item"""
 
-    icon: Optional[str]
+    icon: str | None
     """optional icon to show next to the label, use get_icon() helper"""
 
-    style: Optional[Dict[str, Any]]
+    style: dict[str, Any] | None
     """optional style to apply to the menu item"""
 
-    prevent_close: Optional[bool]
+    prevent_close: bool | None
     """optional flag to prevent the menu from closing when the item is clicked"""
 
-    before: Optional[ComponentInstance]
+    before: ComponentInstance | None
     """optional component to show before the label"""
 
-    after: Optional[ComponentInstance]
+    after: ComponentInstance | None
     """optional component to show after the label"""
 
 
@@ -157,5 +157,5 @@ class DropdownMenu(BaseDashboardComponent):
 
     button: Button
     onclick: Action
-    menu_items: Union[List[List[MenuItem]], ClientVariable]
-    footer: Optional[ComponentInstance] = None
+    menu_items: list[list[MenuItem]] | ClientVariable
+    footer: ComponentInstance | None = None

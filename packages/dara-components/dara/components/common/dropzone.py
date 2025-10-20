@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from uuid import uuid4
 
 from pandas import DataFrame
@@ -25,10 +25,7 @@ from dara.core.base_definitions import Action, UploadResolverDef
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import ServerVariable
 
-DropzoneResolver = Union[
-    Callable[[bytes, str], DataFrame],
-    Callable[[bytes, str], None],
-]
+DropzoneResolver = Callable[[bytes, str], DataFrame] | Callable[[bytes, str], None]
 
 
 class UploadDropzone(StyledComponentInstance):
@@ -66,21 +63,21 @@ class UploadDropzone(StyledComponentInstance):
 
     js_module = '@darajs/components'
 
-    accept: Optional[str] = None
-    target: Optional[ServerVariable] = None
-    resolver: Optional[DropzoneResolver] = None
-    on_drop: Optional[Action] = None
+    accept: str | None = None
+    target: ServerVariable | None = None
+    resolver: DropzoneResolver | None = None
+    on_drop: Action | None = None
     enable_paste: bool = False
 
     model_config = ConfigDict(extra='allow')
 
     def __init__(
         self,
-        target: Optional[ServerVariable] = None,
-        resolver: Optional[DropzoneResolver] = None,
-        on_drop: Optional[Action] = None,
-        accept: Optional[str] = None,
-        enable_paste: Optional[bool] = False,
+        target: ServerVariable | None = None,
+        resolver: DropzoneResolver | None = None,
+        on_drop: Action | None = None,
+        accept: str | None = None,
+        enable_paste: bool | None = False,
         **kwargs,
     ):
         from dara.core.interactivity.any_data_variable import upload

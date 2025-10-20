@@ -17,7 +17,7 @@ limitations under the License.
 
 import io
 import os
-from typing import Literal, Optional, TypedDict, Union, cast
+from typing import Literal, TypedDict, cast
 
 import pandas
 from fastapi import UploadFile
@@ -28,7 +28,7 @@ from dara.core.internal.utils import run_user_handler
 
 
 class FieldType(TypedDict):
-    name: Union[str, tuple[str, ...]]
+    name: str | tuple[str, ...]
     type: Literal['integer', 'number', 'boolean', 'datetime', 'duration', 'any', 'str']
 
 
@@ -37,7 +37,7 @@ class DataFrameSchema(TypedDict):
     primaryKey: list[str]
 
 
-async def upload(data: UploadFile, data_uid: Optional[str] = None, resolver_id: Optional[str] = None):
+async def upload(data: UploadFile, data_uid: str | None = None, resolver_id: str | None = None):
     """
     Handler for uploading data.
 

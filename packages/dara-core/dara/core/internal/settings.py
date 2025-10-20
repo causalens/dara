@@ -18,7 +18,6 @@ limitations under the License.
 import os
 from functools import lru_cache
 from secrets import token_hex
-from typing import List, Optional
 
 from dotenv import dotenv_values
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,7 +43,7 @@ class Settings(BaseSettings):
     sso_groups: str = ''
     sso_jwt_algo: str = 'ES256'
     sso_verify_audience: bool = False
-    sso_extra_audience: Optional[List[str]] = None
+    sso_extra_audience: list[str] | None = None
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
 
 

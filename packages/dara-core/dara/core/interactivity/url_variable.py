@@ -17,7 +17,7 @@ limitations under the License.
 
 from __future__ import annotations
 
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from pydantic import ConfigDict
 from typing_extensions import deprecated
@@ -38,12 +38,12 @@ class UrlVariable(Variable[VariableType]):
     pages as you switch from one to the other.
     """
 
-    default: Optional[VariableType] = None
+    default: VariableType | None = None
     query: str
     uid: str
     model_config = ConfigDict(extra='forbid')
 
-    def __init__(self, query: str, default: Optional[VariableType] = None, uid: Optional[str] = None):
+    def __init__(self, query: str, default: VariableType | None = None, uid: str | None = None):
         """
         A UrlVariable is very similar to a normal Variable however rather than it's state being stored in the memory of
         the client it's value is stored in the url of page as a query parameter. This is very useful for parameterizing

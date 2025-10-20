@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Any, Callable, Set
+from typing import Any
 
 from dara.core.auth import BaseAuthConfig
 from dara.core.base_definitions import ActionDef, ActionResolverDef, UploadResolverDef
@@ -55,10 +55,10 @@ auth_registry = Registry[BaseAuthConfig](RegistryType.AUTH_CONFIG)
 utils_registry = Registry[Any](RegistryType.UTILS, INITIAL_CORE_INTERNALS)
 static_kwargs_registry = Registry[Mapping[str, Any]](RegistryType.STATIC_KWARGS)
 
-websocket_registry = Registry[Set[str]](RegistryType.WEBSOCKET_CHANNELS)
+websocket_registry = Registry[set[str]](RegistryType.WEBSOCKET_CHANNELS)
 """maps session_id -> WS channel"""
 
-sessions_registry = Registry[Set[str]](RegistryType.USER_SESSION)
+sessions_registry = Registry[set[str]](RegistryType.USER_SESSION)
 """maps user_identifier -> session_ids """
 
 pending_tokens_registry = Registry[datetime](RegistryType.PENDING_TOKENS)

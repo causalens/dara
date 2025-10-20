@@ -16,9 +16,9 @@ class CustomResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        media_type: typing.Optional[str] = None,
-        background: typing.Optional[BackgroundTask] = None,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
+        background: BackgroundTask | None = None,
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
 

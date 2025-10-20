@@ -2,15 +2,10 @@ import datetime
 import inspect
 import json
 import re
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import (
     Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -23,8 +18,6 @@ import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.response import Response
 from async_asgi_testclient.websocket import WebSocketSession
-from httpx import AsyncClient as HttpxClient
-from httpx import Response as HttpxResponse
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO
@@ -92,10 +85,10 @@ def read_template_json(path: str, data: dict) -> dict:
 
 
 class ResolvedDerivedVariable(TypedDict):
-    values: List[Union[Any, 'ResolvedDerivedVariable']]
+    values: list[Union[Any, 'ResolvedDerivedVariable']]
 
 
-JsonLike = Union[Mapping, List]
+JsonLike = Union[Mapping, list]
 
 
 def _loop(iterable: JsonLike):
@@ -105,7 +98,7 @@ def _loop(iterable: JsonLike):
         return enumerate(iterable)
 
 
-def _normalize_resolved_dv(resolved_dv: dict, definition: DerivedVariable[Any]) -> Tuple[JsonLike, Mapping]:
+def _normalize_resolved_dv(resolved_dv: dict, definition: DerivedVariable[Any]) -> tuple[JsonLike, Mapping]:
     lookup = {}
     normalized_values = []
 
@@ -125,24 +118,24 @@ def _normalize_resolved_dv(resolved_dv: dict, definition: DerivedVariable[Any]) 
     return {**resolved_dv, 'values': normalized_values}, lookup
 
 
-def _get_at_index(arr: List, idx: int):
+def _get_at_index(arr: list, idx: int):
     try:
         return arr[idx]
     except:  # noqa: E722
         return None
 
 
-def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike, Mapping]:
+def normalize_request(values: JsonLike, definitions: JsonLike) -> tuple[JsonLike, Mapping]:
     """
     Normalize a request for a PyComponent or DerivedVariable.
     This implementation mimics the normalization logic in frontend - js/shared/utils/normalization
     """
-    data: Union[Mapping, List[Any]] = {} if isinstance(values, dict) else [None for x in range(len(values))]
+    data: Mapping | list[Any] = {} if isinstance(values, dict) else [None for x in range(len(values))]
     lookup = {}
 
     for i, (key, value) in enumerate(_loop(values)):
         nested_def = cast(
-            Union[DerivedVariable, DataVariable],
+            DerivedVariable | DataVariable,
             definitions.get(key, None) if isinstance(definitions, dict) else _get_at_index(definitions, i),
         )
 
@@ -152,7 +145,7 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
             nested_data, nested_lookup = _normalize_resolved_dv(value, nested_def)
             data[key] = nested_data
             lookup.update(nested_lookup)
-        elif isinstance(nested_def, Dict):
+        elif isinstance(nested_def, dict):
             identifier = f'{nested_def.__class__.__name__}:{str(nested_def.uid)}'
             lookup[identifier] = value
             data[key] = {'__ref': identifier}
@@ -165,12 +158,12 @@ def normalize_request(values: JsonLike, definitions: JsonLike) -> Tuple[JsonLike
 class ActionPayload(TypedDict):
     uid: str
     definition_uid: str
-    values: Union[Mapping[str, Any], NormalizedPayload[Any]]
+    values: Mapping[str, Any] | NormalizedPayload[Any]
 
 
 class ActionParam(TypedDict):
     action: AnnotatedAction
-    inputs: Dict[str, Any]
+    inputs: dict[str, Any]
 
 
 async def ndjson(response: Response):
@@ -192,9 +185,9 @@ async def ndjson(response: Response):
 
     # otherwise keep reading until we get the entire content
     async for chunk in response.generate(n=1):
-        chunk = chunk.decode('utf-8')
-        yield json.loads(chunk)
-        buffer += chunk
+        decoded_chunk = chunk.decode('utf-8')
+        yield json.loads(decoded_chunk)
+        buffer += decoded_chunk
 
         parts = pattern.split(buffer)
         buffer = parts.pop()
@@ -209,10 +202,10 @@ async def _get_template(
     client: AsyncClient,
     page_id: str,
     response_ok=True,
-    actions: Optional[List[ActionParam]] = None,
-    params: Optional[Dict[str, str]] = None,
+    actions: list[ActionParam] | None = None,
+    params: dict[str, str] | None = None,
     ws_channel: str = 'test_channel',
-) -> Tuple[Any, int]:
+) -> tuple[Any, int]:
     """
     Helper function to fetch the template data from the loader endpoint.
     Consumes the entire response stream of NDJSON chunks and returns them categorized by type.
@@ -288,7 +281,7 @@ async def _get_tabular_server_variable(
     data: dict,
     headers=AUTH_HEADERS,
     expect_success=True,
-    query_string: Optional[dict] = None,
+    query_string: dict | None = None,
 ):
     response = await client.post(
         f'/api/core/tabular-variable/{str(sv.uid)}', json=data, headers=headers, query_string=query_string
@@ -331,7 +324,7 @@ async def _get_latest_derived_variable(client: AsyncClient, dv: DerivedVariable,
 async def _get_py_component(
     client: AsyncClient,
     name: str,
-    kwargs: Dict[str, AnyVariable],
+    kwargs: dict[str, AnyVariable],
     data: dict,
     headers=AUTH_HEADERS,
     expect_success=True,
@@ -421,7 +414,7 @@ async def wait_for(callback: Callable[[], WaitForResult], timeout: float = 1) ->
     return callback()
 
 
-async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], timeout: float = 1):
+async def wait_assert(condition: Callable[[], bool | Awaitable[bool]], timeout: float = 1):
     """
     Wait for assertion to be true.
     Retries the assertion until succeeds or timeout is passed.
@@ -450,7 +443,7 @@ async def wait_assert(condition: Callable[[], Union[bool, Awaitable[bool]]], tim
     assert result
 
 
-async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: Optional[int] = None) -> List[dict]:
+async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: int | None = None) -> list[dict]:
     """
     Wait for ws messages until timeout is passed.
     """
@@ -470,7 +463,7 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: Optio
     return messages
 
 
-async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> List[dict]:
+async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> list[dict]:
     """
     Wait for action results until timeout is passed.
     """

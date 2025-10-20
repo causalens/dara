@@ -19,7 +19,6 @@ import logging
 import os
 import pathlib
 import subprocess
-from typing import List, Optional
 
 import uvicorn
 
@@ -69,19 +68,19 @@ def start(
     reload: bool,
     enable_hmr: bool,
     production: bool,
-    config: Optional[str],
-    port: Optional[int],
-    metrics_port: Optional[int],
+    config: str | None,
+    port: int | None,
+    metrics_port: int | None,
     disable_metrics: bool,
     host: str,
     rebuild: bool,
     require_sso: bool,
     docker: bool,
-    debug: Optional[str],
-    log: Optional[str],
-    reload_dir: Optional[List[str]],
+    debug: str | None,
+    log: str | None,
+    reload_dir: list[str] | None,
     skip_jsbuild: bool,
-    base_url: Optional[str],
+    base_url: str | None,
 ):
     if config is None:
         folder_name = os.path.basename(os.getcwd()).replace('-', '_')

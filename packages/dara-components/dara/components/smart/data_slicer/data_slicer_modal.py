@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from pandas import DataFrame
 
 from dara.components.common import Button, Heading, Modal, Stack
@@ -42,7 +40,7 @@ def increment(ctx: UpdateVariable.Ctx):  # type: ignore
 class DataSlicerModal(DataSlicer):
     def __init__(
         self,
-        data: Union[DataFrame, AnyDataVariable],
+        data: DataFrame | AnyDataVariable,
         rows_to_show: int = 10,
         button_top_position: str = '5%',
     ):

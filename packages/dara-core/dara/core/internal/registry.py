@@ -18,7 +18,7 @@ limitations under the License.
 import copy
 from collections.abc import MutableMapping
 from enum import Enum
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
 
@@ -57,8 +57,8 @@ class Registry(Generic[T]):
     def __init__(
         self,
         name: RegistryType,
-        initial_registry: Optional[MutableMapping[str, T]] = None,
-        allow_duplicates: Optional[bool] = True,
+        initial_registry: MutableMapping[str, T] | None = None,
+        allow_duplicates: bool | None = True,
     ):
         """
         :param name: human readable name of the registry; used for metrics

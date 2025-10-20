@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from dara.components.common.base_component import FormComponent
 from dara.core.base_definitions import Action
@@ -49,7 +49,7 @@ class Textarea(FormComponent):
     """
 
     autofocus: bool = False
-    value: Optional[Variable[Any]] = None
-    onchange: Optional[Action] = None
-    id: Optional[str] = None
-    resize: Optional[Literal['none', 'both', 'horizontal', 'vertical', 'block', 'inline']] = None
+    value: Variable[Any] | None = None
+    onchange: Action | None = None
+    id: str | None = None
+    resize: Literal['none', 'both', 'horizontal', 'vertical', 'block', 'inline'] | None = None

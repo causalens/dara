@@ -19,18 +19,12 @@ from __future__ import annotations
 
 import json
 import uuid
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from inspect import Parameter, signature
 from typing import (
     Any,
-    Callable,
     Generic,
-    List,
-    Optional,
     Protocol,
-    Tuple,
-    TypeVar,
-    Union,
     cast,
 )
 
@@ -45,7 +39,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from typing_extensions import TypedDict, runtime_checkable
+from typing_extensions import TypedDict, TypeVar, runtime_checkable
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -69,7 +63,7 @@ from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
 
-VariableType = TypeVar('VariableType')
+VariableType = TypeVar('VariableType', default=Any)
 
 # Static lock for all DV computations, keyed by cache_key
 # Explicitly not re-entrant, this prevents variable loops
@@ -88,19 +82,19 @@ Sentinel value to indicate that a value is missing from the cache
 
 class DerivedVariableResult(TypedDict):
     cache_key: str
-    value: Union[Any, BaseTask]
+    value: Any | BaseTask
 
 
 @runtime_checkable
 class FilterResolver(Protocol):
     async def __call__(
-        self, data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-    ) -> Tuple[DataFrame, int]: ...
+        self, data: Any, filters: FilterQuery | None = None, pagination: Pagination | None = None
+    ) -> tuple[DataFrame, int]: ...
 
 
 async def default_filter_resolver(
-    data: Any, filters: Optional[FilterQuery] = None, pagination: Optional[Pagination] = None
-) -> Tuple[DataFrame, int]:
+    data: Any, filters: FilterQuery | None = None, pagination: Pagination | None = None
+) -> tuple[DataFrame, int]:
     if not isinstance(data, DataFrame):
         raise NonTabularDataError(
             f'Default filter resolver expects a DataFrame to be returned from the DerivedVariable function, got {type(data)}'
@@ -174,25 +168,25 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
     :param uid: the unique identifier for this variable; if not provided a random one is generated
     """
 
-    cache: Optional[BaseCachePolicy]
-    variables: List[AnyVariable]
-    polling_interval: Optional[int]
-    deps: Optional[List[AnyVariable]] = Field(validate_default=True)
-    nested: List[str] = Field(default_factory=list)
+    cache: BaseCachePolicy | None
+    variables: list[AnyVariable]
+    polling_interval: int | None
+    deps: list[AnyVariable] | None = Field(validate_default=True)
+    nested: list[str] = Field(default_factory=list)
     uid: str
     model_config = ConfigDict(extra='forbid', use_enum_values=True, arbitrary_types_allowed=True)
 
     def __init__(
         self,
-        func: Union[Callable[..., VariableType], Callable[..., Awaitable[VariableType]]],
-        variables: List[AnyVariable],
-        cache: Optional[CacheArgType] = Cache.Type.GLOBAL,
+        func: Callable[..., VariableType] | Callable[..., Awaitable[VariableType]],
+        variables: list[AnyVariable],
+        cache: CacheArgType | None = Cache.Type.GLOBAL,
         run_as_task: bool = False,
-        polling_interval: Optional[int] = None,
-        deps: Optional[List[AnyVariable]] = None,
-        uid: Optional[str] = None,
-        nested: Optional[List[str]] = None,
-        filter_resolver: Optional[FilterResolver] = None,
+        polling_interval: int | None = None,
+        deps: list[AnyVariable] | None = None,
+        uid: str | None = None,
+        nested: list[str] | None = None,
+        filter_resolver: FilterResolver | None = None,
         **kwargs,
     ):
         if nested is None:
@@ -241,7 +235,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         # Import the registry of variables and register the function at import
         from dara.core.internal.registries import derived_variable_registry
 
-        deps_indexes: Optional[List[int]] = None
+        deps_indexes: list[int] | None = None
 
         # If deps is provided, compute list of indexes of values which are present in deps
         if deps is not None:
@@ -267,13 +261,13 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
     @field_validator('deps', mode='before')
     @classmethod
-    def validate_deps(cls, deps: Any, info: ValidationInfo) -> List[AnyVariable]:
+    def validate_deps(cls, deps: Any, info: ValidationInfo) -> list[AnyVariable]:
         """
         If deps is not specified, set deps to include all variables used
         """
         if deps is None:
             # This will always be set on the variable with the type verified by pydantic
-            return cast(List[AnyVariable], info.data.get('variables'))
+            return cast(list[AnyVariable], info.data.get('variables'))
 
         return deps
 
@@ -323,7 +317,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         return StateVariable(parent_variable=self, property_name='hasValue')
 
     @staticmethod
-    def _get_cache_key(*args, uid: str, deps: Optional[List[int]] = None):
+    def _get_cache_key(*args, uid: str, deps: list[int] | None = None):
         """
         Convert the set of args that will be passed into the function to a string for use as the cache key. For now this
         assumes that no classes will be passed in as the underlying values will come from the UI.
@@ -364,14 +358,14 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
         # If there is no *args argument then zip the signature with the args
         if len(var_arg_idx) == 0:
-            for param, arg in zip(parameters, args):
+            for param, arg in zip(parameters, args, strict=False):
                 typ = param.annotation
                 parsed_args.append(deserialize(arg, typ))
 
             return parsed_args
 
         # If there is a *args argument then zip the signature and args up to that point, then spread the rest
-        for param, arg in zip(parameters[: var_arg_idx[0]], args[: var_arg_idx[0]]):
+        for param, arg in zip(parameters[: var_arg_idx[0]], args[: var_arg_idx[0]], strict=False):
             typ = param.annotation
             parsed_args.append(deserialize(arg, typ))
 
@@ -411,8 +405,8 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         var_entry: DerivedVariableRegistryEntry,
         store: CacheStore,
         task_mgr: TaskManager,
-        args: List[Any],
-        force_key: Optional[str] = None,
+        args: list[Any],
+        force_key: str | None = None,
         _pin_result: bool = False,
     ) -> DerivedVariableResult:
         """
@@ -455,7 +449,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
             with histogram.time():
                 # Extract and process nested derived variables
-                values: List[Any] = [None] * len(args)
+                values: list[Any] = [None] * len(args)
 
                 eng_logger.info(
                     f'Derived Variable {_uid_short} get_value',
@@ -659,10 +653,10 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
     @classmethod
     async def _filter_data(
         cls,
-        data: Union[DataFrame, Any, None],
+        data: DataFrame | Any | None,
         filter_resolver: FilterResolver,
-        filters: Optional[FilterQuery] = None,
-        pagination: Optional[Pagination] = None,
+        filters: FilterQuery | None = None,
+        pagination: Pagination | None = None,
     ) -> DataResponse:
         if data is None:
             return DataResponse(data=None, count=0, schema=None)
@@ -682,11 +676,11 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         var_entry: DerivedVariableRegistryEntry,
         store: CacheStore,
         task_mgr: TaskManager,
-        args: List[Any],
-        force_key: Optional[str] = None,
-        pagination: Optional[Pagination] = None,
-        filters: Optional[FilterQuery] = None,
-    ) -> Union[MetaTask, DataResponse]:
+        args: list[Any],
+        force_key: str | None = None,
+        pagination: Pagination | None = None,
+        filters: FilterQuery | None = None,
+    ) -> MetaTask | DataResponse:
         """
         Get filtered tabular data from the underlying derived variable.
 
@@ -714,7 +708,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         return await cls._filter_data(result['value'], filter_resolver, filters, pagination)
 
     @classmethod
-    def check_polling(cls, variables: List[AnyVariable]):
+    def check_polling(cls, variables: list[AnyVariable]):
         for variable in variables:
             if isinstance(variable, DerivedVariable) and (
                 variable.polling_interval or cls.check_polling(variables=variable.variables)
@@ -733,15 +727,15 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
 
 class DerivedVariableRegistryEntry(CachedRegistryEntry):
-    deps: Optional[List[int]]
-    func: Optional[Callable[..., Any]]
-    filter_resolver: Optional[FilterResolver]
+    deps: list[int] | None
+    func: Callable[..., Any] | None
+    filter_resolver: FilterResolver | None
     run_as_task: bool
-    variables: List[AnyVariable]
-    polling_interval: Optional[int]
+    variables: list[AnyVariable]
+    polling_interval: int | None
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
-    get_tabular_data: Callable[..., Awaitable[Union[DataResponse, MetaTask]]]
+    get_tabular_data: Callable[..., Awaitable[DataResponse | MetaTask]]
     """Handler to get the tabular data of the derived variable. Defaults to DerivedVariable.get_tabular_data, should match the signature"""
     model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
