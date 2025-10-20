@@ -4,15 +4,16 @@ import { HttpResponse, http } from 'msw';
 import * as React from 'react';
 
 import { FallbackCtx } from '@/shared/context';
+import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { preloadActions } from '@/shared/interactivity/use-action';
 
-import { DynamicComponent, useAction, useVariable } from '../../js/shared';
+import { DynamicComponent, clearCaches_TEST, useAction, useVariable } from '../../js/shared';
 import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
-import { type DaraEventMap, type TriggerVariableImpl } from '../../js/types/core';
+import { type DaraEventMap, type PyComponentInstance, type TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
-import { mockActions } from './utils/test-server-handlers';
+import { mockActions, mockComponents } from './utils/test-server-handlers';
 import { importers } from './utils/wrapped-render';
 
 describe('DynamicComponent', () => {
@@ -24,8 +25,10 @@ describe('DynamicComponent', () => {
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
+        clearCaches_TEST();
 
         await preloadActions(importers, Object.values(mockActions));
+        await preloadComponents(importers, Object.values(mockComponents));
     });
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());
@@ -126,20 +129,26 @@ describe('DynamicComponent', () => {
     it("should load the component from the registry and call the backend if it's a python one", async () => {
         const { getByText } = wrappedRender(
             <DynamicComponent
-                component={{
-                    name: 'TestComponent2',
-                    props: {
-                        // Check that dynamic kwargs get passed to the backend
-                        dynamic_kwargs: {
-                            test: {
-                                __typename: 'Variable',
-                                default: 'test',
-                                uid: 'uid',
+                component={
+                    {
+                        name: 'TestComponent2',
+                        props: {
+                            // Check that dynamic kwargs get passed to the backend
+                            dynamic_kwargs: {
+                                test: {
+                                    __typename: 'Variable',
+                                    default: 'test',
+                                    uid: 'uid',
+                                    nested: [],
+                                },
                             },
+                            polling_interval: null,
+                            js_module: 'test',
+                            func_name: 'test',
                         },
-                    },
-                    uid: 'uid',
-                }}
+                        uid: 'uid',
+                    } satisfies PyComponentInstance
+                }
             />
         );
         await waitFor(() => {
@@ -164,20 +173,26 @@ describe('DynamicComponent', () => {
                 }}
             >
                 <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            // Check that dynamic kwargs get passed to the backend
-                            dynamic_kwargs: {
-                                test: {
-                                    __typename: 'Variable',
-                                    default: 'test',
-                                    uid: 'uid',
+                    component={
+                        {
+                            name: 'TestComponent2',
+                            props: {
+                                // Check that dynamic kwargs get passed to the backend
+                                dynamic_kwargs: {
+                                    test: {
+                                        __typename: 'Variable',
+                                        default: 'test',
+                                        uid: 'uid',
+                                        nested: [],
+                                    },
                                 },
+                                polling_interval: null,
+                                js_module: 'test',
+                                func_name: 'test',
                             },
-                        },
-                        uid: 'uid',
-                    }}
+                            uid: 'uid',
+                        } satisfies PyComponentInstance
+                    }
                 />
             </EventCapturer>
         );
@@ -220,13 +235,18 @@ describe('DynamicComponent', () => {
         const { getByTestId, queryByTestId } = wrappedRender(
             <div data-testid="content">
                 <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            dynamic_kwargs: {},
-                        },
-                        uid: 'uid',
-                    }}
+                    component={
+                        {
+                            name: 'TestComponent2',
+                            props: {
+                                dynamic_kwargs: {},
+                                polling_interval: null,
+                                js_module: 'test',
+                                func_name: 'test',
+                            },
+                            uid: 'uid',
+                        } satisfies PyComponentInstance
+                    }
                 />
             </div>
         );
@@ -254,13 +274,18 @@ describe('DynamicComponent', () => {
         const { getByTestId } = wrappedRender(
             <div data-testid="content">
                 <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            dynamic_kwargs: {},
-                        },
-                        uid: 'uid',
-                    }}
+                    component={
+                        {
+                            name: 'TestComponent2',
+                            props: {
+                                dynamic_kwargs: {},
+                                polling_interval: null,
+                                js_module: 'test',
+                                func_name: 'test',
+                            },
+                            uid: 'uid',
+                        } satisfies PyComponentInstance
+                    }
                 />
             </div>
         );
@@ -272,27 +297,33 @@ describe('DynamicComponent', () => {
     it("should load the component from the registry, call the backend if it's a python one and also render the fallback while the component is fetched", async () => {
         const { container, getByText } = wrappedRender(
             <DynamicComponent
-                component={{
-                    name: 'TestComponent2',
-                    props: {
-                        // Check that both dynamic and static kwargs get passed to the backend
-                        dynamic_kwargs: {
-                            test: {
-                                __typename: 'Variable',
-                                default: 'test',
-                                uid: 'uid',
+                component={
+                    {
+                        name: 'TestComponent2',
+                        props: {
+                            // Check that both dynamic and static kwargs get passed to the backend
+                            dynamic_kwargs: {
+                                test: {
+                                    __typename: 'Variable',
+                                    default: 'test',
+                                    uid: 'uid',
+                                    nested: [],
+                                },
                             },
-                        },
-                        fallback: {
-                            name: 'TestComponent',
-                            props: {
-                                suspend_render: true,
+                            fallback: {
+                                name: 'TestComponent',
+                                props: {
+                                    suspend_render: true,
+                                },
+                                uid: 'uid3',
                             },
-                            uid: 'uid3',
+                            polling_interval: null,
+                            js_module: 'test',
+                            func_name: 'test',
                         },
-                    },
-                    uid: 'uid',
-                }}
+                        uid: 'uid',
+                    } satisfies PyComponentInstance
+                }
             />
         );
         // Check that the new fallback gets loaded first and then gets removed
@@ -313,28 +344,33 @@ describe('DynamicComponent', () => {
         const { getByTestId } = wrappedRender(
             <div data-testid="wrapper">
                 <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            // Check that both dynamic and static kwargs get passed to the backend
-                            dynamic_kwargs: {
-                                test: {
-                                    __typename: 'DerivedVariable',
-                                    default: 'test_derived',
-                                    deps: [
-                                        { __typename: 'Variable', default: 1, uid: 'dep1' },
-                                        { __typename: 'Variable', default: 2, uid: 'dep2' },
-                                    ],
-                                    uid: 'uid',
-                                    variables: [
-                                        { __typename: 'Variable', default: 1, uid: 'dep1' },
-                                        { __typename: 'Variable', default: 2, uid: 'dep2' },
-                                    ],
+                    component={
+                        {
+                            name: 'TestComponent2',
+                            props: {
+                                // Check that both dynamic and static kwargs get passed to the backend
+                                dynamic_kwargs: {
+                                    test: {
+                                        __typename: 'DerivedVariable',
+                                        deps: [
+                                            { __typename: 'Variable', default: 1, uid: 'dep1' },
+                                            { __typename: 'Variable', default: 2, uid: 'dep2' },
+                                        ],
+                                        uid: 'uid',
+                                        variables: [
+                                            { __typename: 'Variable', default: 1, uid: 'dep1' },
+                                            { __typename: 'Variable', default: 2, uid: 'dep2' },
+                                        ],
+                                        nested: [],
+                                    },
                                 },
+                                polling_interval: null,
+                                js_module: 'test',
+                                func_name: 'test',
                             },
-                        },
-                        uid: 'uid',
-                    }}
+                            uid: 'uid',
+                        } satisfies PyComponentInstance
+                    }
                 />
             </div>
         );
@@ -390,15 +426,20 @@ describe('DynamicComponent', () => {
                 <>
                     <span data-testid="dynamic-wrapper">
                         <DynamicComponent
-                            component={{
-                                name: 'TestComponent2',
-                                props: {
-                                    dynamic_kwargs: {
-                                        test: variableResult,
+                            component={
+                                {
+                                    name: 'TestComponent2',
+                                    props: {
+                                        dynamic_kwargs: {
+                                            test: variableResult,
+                                        },
+                                        polling_interval: null,
+                                        js_module: 'test',
+                                        func_name: 'test',
                                     },
-                                },
-                                uid: 'uid',
-                            }}
+                                    uid: 'uid',
+                                } satisfies PyComponentInstance
+                            }
                         />
                     </span>
                     <input data-testid="a" onChange={(e) => setA(Number(e.target.value))} value={a} />
@@ -480,15 +521,20 @@ describe('DynamicComponent', () => {
                 <>
                     <span data-testid="dynamic-wrapper">
                         <DynamicComponent
-                            component={{
-                                name: 'TestComponent2',
-                                props: {
-                                    dynamic_kwargs: {
-                                        test: variableEmpty,
+                            component={
+                                {
+                                    name: 'TestComponent2',
+                                    props: {
+                                        dynamic_kwargs: {
+                                            test: variableEmpty,
+                                        },
+                                        polling_interval: null,
+                                        js_module: 'test',
+                                        func_name: 'test',
                                     },
-                                },
-                                uid: 'uid',
-                            }}
+                                    uid: 'uid',
+                                } satisfies PyComponentInstance
+                            }
                         />
                     </span>
                     <input data-testid="a" onChange={(e) => setA(Number(e.target.value))} value={a} />
@@ -589,15 +635,20 @@ describe('DynamicComponent', () => {
                 <>
                     <span data-testid="dynamic-wrapper">
                         <DynamicComponent
-                            component={{
-                                name: 'TestComponent2',
-                                props: {
-                                    dynamic_kwargs: {
-                                        test: finalResult,
+                            component={
+                                {
+                                    name: 'TestComponent2',
+                                    props: {
+                                        dynamic_kwargs: {
+                                            test: finalResult,
+                                        },
+                                        polling_interval: null,
+                                        js_module: 'test',
+                                        func_name: 'test',
                                     },
-                                },
-                                uid: 'uid',
-                            }}
+                                    uid: 'uid',
+                                } satisfies PyComponentInstance
+                            }
                         />
                     </span>
                     <input data-testid="a" onChange={(e) => setA(Number(e.target.value))} value={a} />
@@ -740,15 +791,20 @@ describe('DynamicComponent', () => {
                 <>
                     <span data-testid="dynamic-wrapper">
                         <DynamicComponent
-                            component={{
-                                name: 'TestComponent2',
-                                props: {
-                                    dynamic_kwargs: {
-                                        test: derivedVariable,
+                            component={
+                                {
+                                    name: 'TestComponent2',
+                                    props: {
+                                        dynamic_kwargs: {
+                                            test: derivedVariable,
+                                        },
+                                        polling_interval: null,
+                                        js_module: 'test',
+                                        func_name: 'test',
                                     },
-                                },
-                                uid: 'uid',
-                            }}
+                                    uid: 'uid',
+                                } satisfies PyComponentInstance
+                            }
                         />
                     </span>
                     <input data-testid="a" onChange={(e) => setA(Number(e.target.value))} value={a} />
@@ -842,15 +898,20 @@ describe('DynamicComponent', () => {
                 <>
                     <span data-testid="dynamic-wrapper">
                         <DynamicComponent
-                            component={{
-                                name: 'TestComponent2',
-                                props: {
-                                    dynamic_kwargs: {
-                                        test: finalResult,
+                            component={
+                                {
+                                    name: 'TestComponent2',
+                                    props: {
+                                        dynamic_kwargs: {
+                                            test: finalResult,
+                                        },
+                                        polling_interval: null,
+                                        js_module: 'test',
+                                        func_name: 'test',
                                     },
-                                },
-                                uid: 'uid',
-                            }}
+                                    uid: 'uid',
+                                } satisfies PyComponentInstance
+                            }
                         />
                     </span>
                     <input data-testid="a" onChange={(e) => setA(Number(e.target.value))} value={a} />
