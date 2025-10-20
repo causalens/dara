@@ -17,7 +17,6 @@ limitations under the License.
 
 from contextvars import ContextVar
 from datetime import datetime
-from typing import List, Optional, Union
 
 from typing_extensions import TypedDict
 
@@ -38,12 +37,12 @@ class TokenData(BaseModel):
     """
 
     session_id: str
-    exp: Union[float, int, datetime]
+    exp: float | int | datetime
     identity_id: str
     identity_name: str
-    identity_email: Optional[str] = None
-    id_token: Optional[str] = None
-    groups: Optional[List[str]] = []
+    identity_email: str | None = None
+    id_token: str | None = None
+    groups: list[str] | None = []
 
 
 class UserData(BaseModel):
@@ -58,8 +57,8 @@ class UserData(BaseModel):
 
     identity_id: str
     identity_name: str
-    identity_email: Optional[str] = None
-    groups: Optional[List[str]] = []
+    identity_email: str | None = None
+    groups: list[str] | None = []
 
 
 class TokenResponse(TypedDict):
@@ -75,15 +74,15 @@ class SuccessResponse(TypedDict):
 
 
 class SessionRequestBody(BaseModel):
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
 
 
 class AuthError(Exception):
-    detail: Union[str, dict]
+    detail: str | dict
     code: int
 
-    def __init__(self, detail: Union[str, dict], code: int):
+    def __init__(self, detail: str | dict, code: int):
         self.detail = detail
         self.code = code
 
@@ -115,6 +114,6 @@ def BAD_REQUEST_ERROR(msg):
 JWT_ALGO = 'HS256'
 
 # Context
-SESSION_ID: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
-USER: ContextVar[Optional[UserData]] = ContextVar('user', default=None)
-ID_TOKEN: ContextVar[Optional[str]] = ContextVar('id_token', default=None)
+SESSION_ID: ContextVar[str | None] = ContextVar('session_id', default=None)
+USER: ContextVar[UserData | None] = ContextVar('user', default=None)
+ID_TOKEN: ContextVar[str | None] = ContextVar('id_token', default=None)

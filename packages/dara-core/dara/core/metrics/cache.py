@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Dict, Union
-
 from prometheus_client import Info
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -24,7 +22,7 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 cache_metric = Info('cache_size', 'Current size of cache stores and registries', labelnames=['registry_name'])
 
 
-def format_bytes(num: Union[int, float]) -> str:
+def format_bytes(num: int | float) -> str:
     """
     Efficient way to format bytes to human readable,
     simplified version of https://stackoverflow.com/a/63839503
@@ -55,7 +53,7 @@ class CacheMetricsTracker(BaseModel):
     Stores and aggregates cache sizes for metrics
     """
 
-    registries: Dict[str, int] = {}
+    registries: dict[str, int] = {}
     cache_store: int = 0
 
     def update_registry(self, name: str, size: int):

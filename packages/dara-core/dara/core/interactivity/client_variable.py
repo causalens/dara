@@ -18,7 +18,6 @@ limitations under the License.
 from __future__ import annotations
 
 import abc
-from typing import Optional
 
 from dara.core.interactivity.any_variable import AnyVariable
 
@@ -32,7 +31,7 @@ class ClientVariable(AnyVariable, abc.ABC):
 
     uid: str
 
-    def __init__(self, uid: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, uid: str | None = None, **kwargs) -> None:
         super().__init__(uid=uid, **kwargs)
 
     @property

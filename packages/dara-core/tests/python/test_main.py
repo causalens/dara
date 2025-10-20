@@ -1,7 +1,6 @@
 import asyncio
 import json
 from html.parser import HTMLParser
-from typing import Union
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -64,9 +63,9 @@ def config():
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, Variable, DerivedVariable]
+    text: str | Variable | DerivedVariable
 
-    def __init__(self, text: Union[str, Variable, DerivedVariable]):
+    def __init__(self, text: str | Variable | DerivedVariable):
         super().__init__(text=text, uid='uid')
 
 

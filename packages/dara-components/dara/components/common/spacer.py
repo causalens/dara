@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
@@ -84,8 +82,8 @@ class Spacer(ContentComponent):
     """
 
     line: bool = False
-    size: Union[int, str] = '0.75rem'
-    inset: Union[int, str] = '0rem'
+    size: int | str = '0.75rem'
+    inset: int | str = '0rem'
 
     @field_validator('size', 'inset')
     @classmethod

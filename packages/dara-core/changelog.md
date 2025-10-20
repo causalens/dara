@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Bumped minimum required Python version to `3.10`, dropping support for Python 3.9 as it reached end-of-life as of October 2025
+
 ## 1.21.16
 
 -  Lower minimum version of `pydantic` from `2.12.0` to `2.11.7` to fix compatibility issues with other internal packages

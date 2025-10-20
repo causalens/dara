@@ -17,8 +17,9 @@ limitations under the License.
 
 import asyncio
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import jwt
 from anyio import to_thread
@@ -53,11 +54,11 @@ def decode_token(token: str, **kwargs) -> TokenData:
 def sign_jwt(
     identity_id: str,
     identity_name: str,
-    identity_email: Optional[str],
-    groups: List[str],
-    id_token: Optional[str] = None,
-    exp: Optional[Union[datetime, int]] = None,
-    session_id: Optional[str] = None,
+    identity_email: str | None,
+    groups: list[str],
+    id_token: str | None = None,
+    exp: datetime | int | None = None,
+    session_id: str | None = None,
 ):
     """
     Create a new Dara JWT token
@@ -115,8 +116,8 @@ class AsyncTokenRefreshCache:
     """
 
     def __init__(self, ttl_seconds: int = 5):
-        self.cache: Dict[str, Tuple[Any, datetime]] = {}
-        self.locks: Dict[str, asyncio.Lock] = {}
+        self.cache: dict[str, tuple[Any, datetime]] = {}
+        self.locks: dict[str, asyncio.Lock] = {}
         self.locks_lock = asyncio.Lock()
         self.ttl = timedelta(seconds=ttl_seconds)
 
@@ -148,7 +149,7 @@ class AsyncTokenRefreshCache:
             # We can modify self.locks here because we're always under an async lock when calling this
             self.locks.pop(key, None)
 
-    def get_cached_value(self, key: str) -> Tuple[Any, bool]:
+    def get_cached_value(self, key: str) -> tuple[Any, bool]:
         """
         Retrieve a value from the cache if it exists and hasn't expired.
 
@@ -186,7 +187,7 @@ Shared token refresh cache instance
 
 
 async def cached_refresh_token(
-    do_refresh_token: Callable[[TokenData, str], Tuple[str, str]], old_token_data: TokenData, refresh_token: str
+    do_refresh_token: Callable[[TokenData, str], tuple[str, str]], old_token_data: TokenData, refresh_token: str
 ):
     """
     A utility to run a token refresh method with caching to prevent multiple concurrent refreshes

@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
@@ -53,8 +51,8 @@ class Text(ContentComponent):
     :param formatted: Whether to display the text with existing formatting intact or not, default False
     """
 
-    text: Union[str, ClientVariable]
-    align: Union[str, None] = 'left'  # type: ignore # this is actually textAlign not align-items
+    text: str | ClientVariable
+    align: str | None = 'left'  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False
 
     @field_validator('text')
@@ -64,5 +62,5 @@ class Text(ContentComponent):
             raise ValueError(f'Invalid text passed to Text: {value}, expected a string')
         return value
 
-    def __init__(self, text: Union[str, ClientVariable], **kwargs):
+    def __init__(self, text: str | ClientVariable, **kwargs):
         super().__init__(text=text, **kwargs)

@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import field_validator
 
@@ -106,15 +106,15 @@ class ButtonBar(FormComponent):
     :param styling: A style of the ButtonBar, can be 'primary' or 'secondary'
     """
 
-    items: List[Item]
-    value: Optional[Variable] = None
-    onchange: Optional[Action] = None
-    id: Optional[str] = None
+    items: list[Item]
+    value: Variable | None = None
+    onchange: Action | None = None
+    id: str | None = None
     styling: ButtonBarStyle = ButtonBarStyle.PRIMARY
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> List[Item]:
+    def validate_items(cls, items: Any) -> list[Item]:
         if not isinstance(items, list):
             raise ValueError('Items must be passed as a list to the button bar component')
         if len(items) == 0:

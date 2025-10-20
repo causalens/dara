@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 import anyio
 
@@ -23,7 +23,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
 
     def __init__(self, policy: KeepAllCachePolicy):
         super().__init__(policy)
-        self.cache: Dict[str, Any] = {}
+        self.cache: dict[str, Any] = {}
         self.lock = anyio.Lock()
 
     async def delete(self, key: str) -> Any:
@@ -42,7 +42,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
             del self.cache[key]
             return entry
 
-    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Optional[Any]:
+    async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
         """
         Retrieve a value from the cache.
 

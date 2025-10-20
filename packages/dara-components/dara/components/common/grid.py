@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import ClassVar, Optional, Union
+from typing import ClassVar
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -24,11 +24,11 @@ from dara.core.visual.components.types import Direction
 
 
 class ScreenBreakpoints(BaseModel):
-    xs: Optional[int] = None
-    sm: Optional[int] = None
-    md: Optional[int] = None
-    lg: Optional[int] = None
-    xl: Optional[int] = None
+    xs: int | None = None
+    sm: int | None = None
+    md: int | None = None
+    lg: int | None = None
+    xl: int | None = None
 
 
 class Column(LayoutComponent):
@@ -67,11 +67,11 @@ class Column(LayoutComponent):
 
     # TODO: :param order: optional number denoting the order of priority of the columns, with 1 being first to appear, and 12 the last to be added.
 
-    span: Optional[Union[int, ScreenBreakpoints]] = None
-    offset: Optional[Union[int, ScreenBreakpoints]] = None
+    span: int | ScreenBreakpoints | None = None
+    offset: int | ScreenBreakpoints | None = None
     direction: Direction = Direction.HORIZONTAL
 
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         super().__init__(*args, **kwargs)
 
 
@@ -99,9 +99,9 @@ class Row(LayoutComponent):
     :param align: How to align the content of the row, accepts any flexbox alignments
     """
 
-    column_gap: Optional[int] = None
+    column_gap: int | None = None
 
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         super().__init__(*args, **kwargs)
 
 
@@ -120,14 +120,14 @@ class Grid(LayoutComponent):
     """
 
     row_gap: str = '0.75rem'
-    breakpoints: Optional[ScreenBreakpoints] = ScreenBreakpoints()
+    breakpoints: ScreenBreakpoints | None = ScreenBreakpoints()
 
     Column: ClassVar[ColumnType] = Column
     Row: ClassVar[RowType] = Row
     Breakpoints: ClassVar[type[ScreenBreakpoints]] = ScreenBreakpoints
 
     # Dummy init that just passes through arguments to superclass, fixes Pylance complaining about types
-    def __init__(self, *args: Union[ComponentInstance, None], **kwargs):
+    def __init__(self, *args: ComponentInstance | None, **kwargs):
         """
         Grid Layout provides a flexbox grid with a twelve column system.
         Rows will automatically calculate their widths and wrap on the page as needed.

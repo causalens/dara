@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional
-
 from pydantic import ConfigDict
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
@@ -26,13 +24,13 @@ SideBarFrameDef = JsComponentDef(name='SideBarFrame', js_module='@darajs/core', 
 
 class SideBarFrame(ComponentInstance):
     content: ComponentInstance
-    hide_logo: Optional[bool] = False
-    logo_width: Optional[str] = '80%'
-    logo_path: Optional[str] = None
-    logo_position: Optional[str] = None
+    hide_logo: bool | None = False
+    logo_width: str | None = '80%'
+    logo_path: str | None = None
+    logo_position: str | None = None
     side_bar: ComponentInstance
-    side_bar_padding: Optional[str] = None
-    side_bar_position: Optional[str] = None
-    side_bar_width: Optional[str] = None
-    powered_by_causalens: Optional[bool] = False
+    side_bar_padding: str | None = None
+    side_bar_position: str | None = None
+    side_bar_width: str | None = None
+    powered_by_causalens: bool | None = False
     model_config = ConfigDict(extra='forbid')

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import ValidationInfo, field_validator
 
@@ -36,11 +36,11 @@ class ListSection(BaseModel):
     """
 
     label: str
-    items: List[Union[Item, str, dict]]
+    items: list[Item | str | dict]
 
     @field_validator('items')
     @classmethod
-    def validate_items(cls, items: Any) -> List[Item]:
+    def validate_items(cls, items: Any) -> list[Item]:
         if len(items) == 0:
             raise ValueError('Items of ListSection was empty, you must provide at least one item to the component')
         return [Item.to_item(item) for item in items]
@@ -125,18 +125,18 @@ class Select(FormComponent):
     :param value: A Variable instance recording the component's state
     """
 
-    id: Optional[str] = None
+    id: str | None = None
     multiselect: bool = False
     searchable: bool = False
-    items: Union[List[Union[Item, ListSection]], ClientVariable]
+    items: list[Item | ListSection] | ClientVariable
     max_rows: int = 3
-    onchange: Optional[Action] = None
-    placeholder: Optional[str] = None
-    value: Optional[Variable[Any]] = None
+    onchange: Action | None = None
+    placeholder: str | None = None
+    value: Variable[Any] | None = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any, info: ValidationInfo) -> Union[List[Union[Item, ListSection]], ClientVariable]:
+    def validate_items(cls, items: Any, info: ValidationInfo) -> list[Item | ListSection] | ClientVariable:
         multiselect = info.data.get('multiselect')
         searchable = info.data.get('searchable')
         if isinstance(items, ClientVariable):
@@ -156,7 +156,7 @@ class Select(FormComponent):
         return [Item.to_item(item) for item in items]
 
 
-def _parse_item(item: Any, return_listsection: bool = False) -> Union[Item, ListSection]:
+def _parse_item(item: Any, return_listsection: bool = False) -> Item | ListSection:
     """
     Converts items to Item objects for a SectionedList. Can return a ListSection for a dictionary if
     return_listsection is set to True.

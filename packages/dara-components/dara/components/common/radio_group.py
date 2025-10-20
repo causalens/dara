@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import field_validator
 from typing_extensions import TypedDict
@@ -29,7 +29,7 @@ from dara.core.visual.components.types import Direction
 
 class RadioItem(TypedDict):
     value: Any
-    label: Union[str, ComponentInstance]
+    label: str | ComponentInstance
 
 
 class RadioGroup(FormComponent):
@@ -91,16 +91,16 @@ class RadioGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
-    items: Union[List[RadioItem], List[str], ClientVariable]
-    value: Optional[Variable[Any]] = None
-    list_styling: Optional[bool] = False
-    onchange: Optional[Action] = None
+    items: list[RadioItem] | list[str] | ClientVariable
+    value: Variable[Any] | None = None
+    list_styling: bool | None = False
+    onchange: Action | None = None
     direction: Direction = Direction.VERTICAL
-    id: Optional[str] = None
+    id: str | None = None
 
     @field_validator('items', mode='before')
     @classmethod
-    def validate_items(cls, items: Any) -> Union[List[RadioItem], ClientVariable]:
+    def validate_items(cls, items: Any) -> list[RadioItem] | ClientVariable:
         if isinstance(items, ClientVariable):
             return items
         if len(items) == 0:

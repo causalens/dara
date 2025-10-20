@@ -17,20 +17,13 @@ limitations under the License.
 
 import os
 import pathlib
+from collections.abc import Callable
 from inspect import isclass, isfunction
 from types import ModuleType
 from typing import (
     Any,
-    Callable,
-    Dict,
-    List,
     Literal,
-    Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
 
 from fastapi.middleware import Middleware
@@ -75,34 +68,34 @@ class Configuration(BaseModel):
 
     auth_config: BaseAuthConfig
     registry_lookup: CustomRegistryLookup
-    actions: List[ActionDef]
-    endpoint_configurations: List[EndpointConfiguration]
-    components: List[ComponentTypeAnnotation]
-    context_components: List[ComponentInstance]
+    actions: list[ActionDef]
+    endpoint_configurations: list[EndpointConfiguration]
+    components: list[ComponentTypeAnnotation]
+    context_components: list[ComponentInstance]
     enable_devtools: bool
-    module_dependencies: Dict[str, str]
+    module_dependencies: dict[str, str]
     live_reload: bool
     powered_by_causalens: bool
     router: Router
-    pages: Dict[str, Page]
-    routes: Set[ApiRoute]
-    scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
-    startup_functions: List[Callable]
-    static_folders: List[str]
+    pages: dict[str, Page]
+    routes: set[ApiRoute]
+    scheduled_jobs: list[tuple[ScheduledJob | ScheduledJobFactory, Callable, list[Any] | None]] = []
+    startup_functions: list[Callable]
+    static_folders: list[str]
     static_files_dir: str
-    package_tag_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
+    package_tag_processors: list[Callable[[dict[str, list[str]]], dict[str, list[str]]]]
     template_extra_js: str
-    task_module: Optional[str] = None
+    task_module: str | None = None
     template: str
-    template_renderers: Dict[str, Callable[..., Template]]
-    theme: Union[BaseTheme, str]
+    template_renderers: dict[str, Callable[..., Template]]
+    theme: BaseTheme | str
     title: str
-    ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    encoders: Dict[Type[Any], Encoder]
-    middlewares: List[Middleware]
+    ws_handlers: dict[str, Callable[[str, Any], Any]]
+    encoders: dict[type[Any], Encoder]
+    middlewares: list[Middleware]
     model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
 
-    def get_package_map(self) -> Dict[str, str]:
+    def get_package_map(self) -> dict[str, str]:
         """
         Get a map of python package names to js package names, based on currently
         registered components, actions etc.
@@ -145,28 +138,28 @@ class ConfigurationBuilder:
 
     auth_config: BaseAuthConfig
     registry_lookup: CustomRegistryLookup
-    _actions: List[ActionDef]
-    _components: List[ComponentTypeAnnotation]
-    _module_dependencies: Dict[str, str]
-    _errors: List[str]
+    _actions: list[ActionDef]
+    _components: list[ComponentTypeAnnotation]
+    _module_dependencies: dict[str, str]
+    _errors: list[str]
     enable_devtools: bool
     live_reload: bool
-    _pages: Dict[str, Page]
-    _template_renderers: Dict[str, Callable[..., Template]]
-    _endpoint_configurations: List[EndpointConfiguration]
-    _static_folders: List[str]
-    _package_tags_processors: List[Callable[[Dict[str, List[str]]], Dict[str, List[str]]]]
+    _pages: dict[str, Page]
+    _template_renderers: dict[str, Callable[..., Template]]
+    _endpoint_configurations: list[EndpointConfiguration]
+    _static_folders: list[str]
+    _package_tags_processors: list[Callable[[dict[str, list[str]]], dict[str, list[str]]]]
     _template_extra_js: str
-    _custom_ws_handlers: Dict[str, Callable[[str, Any], Any]]
-    _custom_encoders: Dict[Type[Any], Encoder]
-    _middlewares: List[Middleware]
-    routes: Set[ApiRoute]
+    _custom_ws_handlers: dict[str, Callable[[str, Any], Any]]
+    _custom_encoders: dict[type[Any], Encoder]
+    _middlewares: list[Middleware]
+    routes: set[ApiRoute]
     router: Router
     static_files_dir: str
-    scheduled_jobs: List[Tuple[Union[ScheduledJob, ScheduledJobFactory], Callable, Optional[List[Any]]]] = []
-    startup_functions: List[Callable]
-    context_components: List[ComponentInstance]
-    task_module: Optional[str]
+    scheduled_jobs: list[tuple[ScheduledJob | ScheduledJobFactory, Callable, list[Any] | None]] = []
+    startup_functions: list[Callable]
+    context_components: list[ComponentInstance]
+    task_module: str | None
     _template: str
     theme: BaseTheme
     title: str
@@ -224,7 +217,7 @@ class ConfigurationBuilder:
     def powered_by_causalens(self, value):
         self._powered_by_causalens = value
 
-    def add_action(self, action: Type[ActionImpl], local: bool = False):
+    def add_action(self, action: type[ActionImpl], local: bool = False):
         """
         Register an Action with the application.
 
@@ -276,7 +269,7 @@ class ConfigurationBuilder:
         self.context_components.append(component)
         self.add_component(component.__class__)
 
-    def add_component(self, component: Type[ComponentInstance], local: bool = False):
+    def add_component(self, component: type[ComponentInstance], local: bool = False):
         """
         Register a Component with the application.
 
@@ -381,7 +374,7 @@ class ConfigurationBuilder:
     EncoderType = TypeVar('EncoderType')
 
     def add_encoder(
-        self, typ: Type[EncoderType], serialize: Callable[[EncoderType], Any], deserialize: Callable[[Any], EncoderType]
+        self, typ: type[EncoderType], serialize: Callable[[EncoderType], Any], deserialize: Callable[[Any], EncoderType]
     ):
         """
         Register a custom encoder, which serialize and deserialize the type
@@ -398,7 +391,7 @@ class ConfigurationBuilder:
         self._custom_encoders[typ] = encoder
         return encoder
 
-    def add_package_tags_processor(self, processor: Callable[[Dict[str, List[str]]], Dict[str, List[str]]]):
+    def add_package_tags_processor(self, processor: Callable[[dict[str, list[str]]], dict[str, list[str]]]):
         """
         Append a package tag processor. This is a function that takes a dictionary of package names to lists of script/link tags included
         when running in the UMD mode.
@@ -411,12 +404,12 @@ class ConfigurationBuilder:
     def add_page(
         self,
         name: str,
-        content: Union[ComponentInstanceType, Type[CallableClassComponent], str],
-        icon: Optional[str] = None,
-        route: Optional[str] = None,
-        include_in_menu: Optional[bool] = True,
-        reset_vars_on_load: Optional[List[AnyVariable]] = None,
-        on_load: Optional[Action] = None,
+        content: ComponentInstanceType | type[CallableClassComponent] | str,
+        icon: str | None = None,
+        route: str | None = None,
+        include_in_menu: bool | None = True,
+        reset_vars_on_load: list[AnyVariable] | None = None,
+        on_load: Action | None = None,
     ):
         """
         Add a new page to the layout of the platform. Switching between pages relies on the template implementing a
@@ -508,7 +501,7 @@ class ConfigurationBuilder:
 
         return registry_lookup
 
-    def add_middleware(self, middleware: Union[type, Callable], **options: Any):
+    def add_middleware(self, middleware: type | Callable, **options: Any):
         """
         Add a middleware to the application. The middleware can be a class or a callable.
         """
@@ -526,8 +519,8 @@ class ConfigurationBuilder:
 
     def set_theme(
         self,
-        main_theme: Optional[Union[ThemeDef, ClientVariable, Literal['light'], Literal['dark']]] = None,
-        base_theme: Optional[Union[Literal['light'], Literal['dark']]] = None,
+        main_theme: ThemeDef | ClientVariable | Literal['light'] | Literal['dark'] | None = None,
+        base_theme: Literal['light'] | Literal['dark'] | None = None,
     ):
         """
         Sets the color theme of the app. Takes ThemeDef models for the app, and reverts
@@ -554,7 +547,7 @@ class ConfigurationBuilder:
         """
         self.startup_functions.append(startup_function)
 
-    def scheduler(self, job: ScheduledJob, args: Union[None, List[Any]] = None):
+    def scheduler(self, job: ScheduledJob, args: None | list[Any] = None):
         if args is None:
             args = []
 
@@ -563,7 +556,7 @@ class ConfigurationBuilder:
 
         return _wrapper_func
 
-    def _run_discovery(self, module: Union[ModuleType, dict]):
+    def _run_discovery(self, module: ModuleType | dict):
         """
         Run import discovery in a given module, adding actions and components found to the config
 

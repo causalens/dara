@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import abc
-from typing import Any, ClassVar, Dict, Union
+from typing import Any, ClassVar
 
 from fastapi import HTTPException, Response
 from pydantic import model_serializer
@@ -57,7 +57,7 @@ class AuthComponentConfig(BaseModel):
     logout: AuthComponent
     """Logout component"""
 
-    extra: Dict[str, AuthComponent] = {}
+    extra: dict[str, AuthComponent] = {}
     """Extra components, map of route -> component"""
 
     @model_serializer()
@@ -72,7 +72,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_token(self, body: SessionRequestBody) -> Union[TokenResponse, RedirectResponse]:
+    def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
         """
         Get a session token.
 
@@ -82,7 +82,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
 
     @abc.abstractmethod
-    def verify_token(self, token: str) -> Union[Any, TokenData]:
+    def verify_token(self, token: str) -> Any | TokenData:
         """
         Verify a session token.
 
@@ -105,7 +105,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
         raise HTTPException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
 
-    def revoke_token(self, token: str, response: Response) -> Union[SuccessResponse, RedirectResponse]:
+    def revoke_token(self, token: str, response: Response) -> SuccessResponse | RedirectResponse:
         """
         Revoke a session token.
 
