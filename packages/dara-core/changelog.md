@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.18
 
 -  Fixed a regression where `Variable`'s `store` property was not serialized correctly
 -  Internal: improve efficiency of the component resolution system by only using the registry fallback for py_components and moving the py_component resolution retry logic to the server.
