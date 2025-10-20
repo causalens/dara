@@ -17,12 +17,11 @@ limitations under the License.
 
 import hashlib
 import json
-from typing import Union
 
 from pydantic import BaseModel
 
 
-def hash_object(obj: Union[BaseModel, dict, None]):
+def hash_object(obj: BaseModel | dict | None):
     """
     Create a unique hash for the object.
 

@@ -1,7 +1,8 @@
 import inspect
 import re
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict, Union
+from collections.abc import Callable
+from typing import Any, Literal, Optional, TypedDict
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -29,7 +30,7 @@ PARAM_REGEX = re.compile(r':([\w-]+)\??')
 STAR_REGEX = re.compile(r'\*$')
 
 
-def find_patterns(path: str) -> List[str]:
+def find_patterns(path: str) -> list[str]:
     """
     Extract param names from a React-Router-style path.
 
@@ -85,10 +86,10 @@ class RouteData(BaseModel):
     Data structure representing a route in the router
     """
 
-    content: Optional[ComponentInstance] = None
-    on_load: Optional[Action] = None
+    content: ComponentInstance | None = None
+    on_load: Action | None = None
     definition: Optional['BaseRoute'] = None
-    dependency_graph: Optional[DependencyGraph] = Field(default=None, exclude=True)
+    dependency_graph: DependencyGraph | None = Field(default=None, exclude=True)
 
 
 class BaseRoute(BaseModel):
@@ -101,13 +102,13 @@ class BaseRoute(BaseModel):
     Whether the route is case sensitive
     """
 
-    id: Optional[str] = Field(default=None, pattern=r'^[a-zA-Z0-9-_]+$')
+    id: str | None = Field(default=None, pattern=r'^[a-zA-Z0-9-_]+$')
     """
     Unique identifier for the route.
     Must only contain alphanumeric characters, dashes and underscores.
     """
 
-    name: Optional[str] = None
+    name: str | None = None
     """
     Name of the route, used for window.title display. If not set, defaults to
     the route path.
@@ -118,7 +119,7 @@ class BaseRoute(BaseModel):
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
 
-    fallback: SerializeAsAny[Optional[ComponentInstance]] = Field(default=None)
+    fallback: SerializeAsAny[ComponentInstance | None] = Field(default=None)
     """
     Fallback component to render while `on_load` is running.
     If not set, Dara will wait until `on_load` completes before completing the navigation.
@@ -131,7 +132,7 @@ class BaseRoute(BaseModel):
     if it's desirable to navigate to the other route immediately.
     """
 
-    on_load: SerializeAsAny[Optional[Action]] = Field(default=None)
+    on_load: SerializeAsAny[Action | None] = Field(default=None)
     """
     Action to execute when the route is loaded.
     Guaranteed to be executed before the route content is rendered.
@@ -142,7 +143,7 @@ class BaseRoute(BaseModel):
     Internal unique identifier for the route
     """
 
-    compiled_data: Optional[RouteData] = Field(default=None, exclude=True, repr=False)
+    compiled_data: RouteData | None = Field(default=None, exclude=True, repr=False)
     """
     Internal compiled data for the route
     """
@@ -235,7 +236,7 @@ class BaseRoute(BaseModel):
         return self.compiled_data
 
     @property
-    def full_path(self) -> Optional[str]:
+    def full_path(self) -> str | None:
         """
         Compute the full path from root to this route.
         Returns None if route is not attached to a router.
@@ -279,7 +280,7 @@ class HasChildRoutes(BaseModel):
     Mixin class for objects that can have child routes.
     """
 
-    children: SerializeAsAny[List['BaseRoute']] = Field(default_factory=list)
+    children: SerializeAsAny[list['BaseRoute']] = Field(default_factory=list)
     """
     List of child routes.
     Should not be set directly. Use `set_children` or one of the `add_*` methods instead.
@@ -310,13 +311,13 @@ class HasChildRoutes(BaseModel):
         self,
         *,
         path: str,
-        content: Union[Callable[..., ComponentInstance], ComponentInstance],
+        content: Callable[..., ComponentInstance] | ComponentInstance,
         case_sensitive: bool = False,
-        name: Optional[str] = None,
-        id: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        on_load: Optional[Action] = None,
-        fallback: Optional[ComponentInstance] = None,
+        name: str | None = None,
+        id: str | None = None,
+        metadata: dict | None = None,
+        on_load: Action | None = None,
+        fallback: ComponentInstance | None = None,
     ):
         """
         Standard route with a unique URL segment and content to render
@@ -350,12 +351,12 @@ class HasChildRoutes(BaseModel):
     def add_layout(
         self,
         *,
-        content: Union[Callable[..., ComponentInstance], ComponentInstance],
+        content: Callable[..., ComponentInstance] | ComponentInstance,
         case_sensitive: bool = False,
-        id: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        on_load: Optional[Action] = None,
-        fallback: Optional[ComponentInstance] = None,
+        id: str | None = None,
+        metadata: dict | None = None,
+        on_load: Action | None = None,
+        fallback: ComponentInstance | None = None,
     ):
         """
         Layout route creates a route with a layout component to render without adding any segments to the URL
@@ -409,10 +410,10 @@ class HasChildRoutes(BaseModel):
         *,
         path: str,
         case_sensitive: bool = False,
-        id: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        on_load: Optional[Action] = None,
-        fallback: Optional[ComponentInstance] = None,
+        id: str | None = None,
+        metadata: dict | None = None,
+        on_load: Action | None = None,
+        fallback: ComponentInstance | None = None,
     ):
         """
         Prefix route creates a group of routes with a common prefix without a specific component to render
@@ -450,13 +451,13 @@ class HasChildRoutes(BaseModel):
     def add_index(
         self,
         *,
-        content: Union[Callable[..., ComponentInstance], ComponentInstance],
+        content: Callable[..., ComponentInstance] | ComponentInstance,
         case_sensitive: bool = False,
-        name: Optional[str] = None,
-        id: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        on_load: Optional[Action] = None,
-        fallback: Optional[ComponentInstance] = None,
+        name: str | None = None,
+        id: str | None = None,
+        metadata: dict | None = None,
+        on_load: Action | None = None,
+        fallback: ComponentInstance | None = None,
     ):
         """
         Index routes render into their parent's Outlet() at their parent URL (like a default child route).
@@ -518,7 +519,7 @@ class IndexRoute(BaseRoute):
     """
 
     index: Literal[True] = True
-    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
+    content: Callable[..., ComponentInstance] | ComponentInstance = Field(exclude=True)
 
     def compile(self):
         super().compile()
@@ -538,7 +539,7 @@ class PageRoute(BaseRoute, HasChildRoutes):
     """
 
     path: str
-    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
+    content: Callable[..., ComponentInstance] | ComponentInstance = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
@@ -588,7 +589,7 @@ class LayoutRoute(BaseRoute, HasChildRoutes):
     - Project and EditProject will be rendered into the ProjectLayout outlet while ProjectsHome will not.
     """
 
-    content: Union[Callable[..., ComponentInstance], ComponentInstance] = Field(exclude=True)
+    content: Callable[..., ComponentInstance] | ComponentInstance = Field(exclude=True)
 
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
@@ -723,11 +724,11 @@ class Router(HasChildRoutes):
         for child in self.children:
             child.compile()
 
-    def to_route_map(self) -> Dict[str, RouteData]:
+    def to_route_map(self) -> dict[str, RouteData]:
         """
         Convert the route tree into a dictionary of route data keyed by unique route identifiers.
         """
-        routes: Dict[str, RouteData] = {}
+        routes: dict[str, RouteData] = {}
 
         def _walk(route: BaseRoute):
             identifier = route.get_identifier()
@@ -749,7 +750,7 @@ class Router(HasChildRoutes):
         id: str
         metadata: dict
 
-    def get_navigable_routes(self) -> List[NavigableRoute]:
+    def get_navigable_routes(self) -> list[NavigableRoute]:
         """
         Get a flattened list of all navigable routes (PageRoute and IndexRoute only).
 
@@ -810,10 +811,10 @@ class Router(HasChildRoutes):
         print('Router')
         self._print_routes(self.children, prefix='')
 
-    def _print_routes(self, routes: List['BaseRoute'], prefix: str = ''):
+    def _print_routes(self, routes: list['BaseRoute'], prefix: str = ''):
         """Helper method to recursively print route tree structure"""
 
-        def _format_content(content: Union[Callable[..., ComponentInstance], ComponentInstance]):
+        def _format_content(content: Callable[..., ComponentInstance] | ComponentInstance):
             if isinstance(content, ComponentInstance):
                 return content.__class__.__name__
             return content.__name__
@@ -870,7 +871,7 @@ class Router(HasChildRoutes):
 
 
 def _execute_route_func(
-    content: Union[Callable[..., ComponentInstance], ComponentInstance], path: Optional[str]
+    content: Callable[..., ComponentInstance] | ComponentInstance, path: str | None
 ) -> ComponentInstance:
     """
     Executes a route function or returns a ComponentInstance directly.

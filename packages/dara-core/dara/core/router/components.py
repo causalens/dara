@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Literal, Optional, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BeforeValidator
 
@@ -38,7 +38,7 @@ class Navigate(ComponentInstance):
     ```
     """
 
-    to: Union[str, RouterPath, ClientVariable]
+    to: str | RouterPath | ClientVariable
 
     replace: bool = False
     """
@@ -132,21 +132,21 @@ class Link(StyledComponentInstance):
     ```
     """
 
-    to: Union[str, RouterPath, ClientVariable]
+    to: str | RouterPath | ClientVariable
     """
     Can be a string or RouterPath object
     """
 
     # core anchor element attributes
-    target: Optional[str] = None
-    download: Optional[str] = None
-    rel: Optional[str] = None
-    referrer_policy: Optional[str] = None
+    target: str | None = None
+    download: str | None = None
+    rel: str | None = None
+    referrer_policy: str | None = None
 
-    active_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
-    inactive_css: Annotated[Optional[Any], BeforeValidator(transform_raw_css)] = None
+    active_css: Annotated[Any | None, BeforeValidator(transform_raw_css)] = None
+    inactive_css: Annotated[Any | None, BeforeValidator(transform_raw_css)] = None
 
-    def __init__(self, *children: Union[str, ComponentInstance], **kwargs):
+    def __init__(self, *children: str | ComponentInstance, **kwargs):
         components = list(children)
         if 'children' not in kwargs:
             kwargs['children'] = components

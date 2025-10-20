@@ -17,10 +17,10 @@ limitations under the License.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, TypeGuard
 
 from anyio import Event
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypedDict
 
 from dara.core.internal.pool.utils import SharedMemoryPointer, SubprocessException
 
@@ -75,16 +75,16 @@ class TaskDefinition:
     event: Event
     result: Any
     payload: TaskPayload
-    worker_id: Optional[int] = None
-    started_at: Optional[datetime] = None
+    worker_id: int | None = None
+    started_at: datetime | None = None
     """TODO: can be used for task timeout or metrics/visibility"""
 
     def __init__(
         self,
         uid: str,
         payload: TaskPayload,
-        worker_id: Optional[int] = None,
-        started_at: Optional[datetime] = None,
+        worker_id: int | None = None,
+        started_at: datetime | None = None,
     ):
         self.uid = uid
         self.payload = payload
@@ -135,14 +135,14 @@ class Result(TypedDict):
 class Problem(TypedDict):
     """Sent when a worker encounters an issue processing a task"""
 
-    task_uid: Optional[str]
+    task_uid: str | None
     error: SubprocessException
 
 
 class Log(TypedDict):
     """Sent when a task emits a stdout message"""
 
-    task_uid: Optional[str]
+    task_uid: str | None
     log: str
 
 
@@ -154,7 +154,7 @@ class Progress(TypedDict):
     message: str
 
 
-WorkerMessage = Union[Acknowledgement, Result, Problem, Initialization, Log, Progress]
+WorkerMessage = Acknowledgement | Result | Problem | Initialization | Log | Progress
 """Union of possible messages sent from worker processes"""
 
 

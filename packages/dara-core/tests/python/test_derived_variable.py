@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 from contextvars import ContextVar
-from typing import Union
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -36,9 +35,9 @@ pytestmark = pytest.mark.anyio
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, Variable, DerivedVariable]
+    text: str | Variable | DerivedVariable
 
-    def __init__(self, text: Union[str, Variable, DerivedVariable]):
+    def __init__(self, text: str | Variable | DerivedVariable):
         super().__init__(text=text, uid='uid')
 
 
@@ -139,7 +138,7 @@ async def test_restoring_args_derived_variable():
     def serialize(value: CustomClass):
         return value.value
 
-    def deserialize(value: Union[int, str]):
+    def deserialize(value: int | str):
         return CustomClass(int(value))
 
     mock_deserialize = Mock(wraps=deserialize, side_effect=deserialize)

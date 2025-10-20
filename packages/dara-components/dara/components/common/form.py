@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import LayoutComponent
@@ -82,12 +80,12 @@ class Form(LayoutComponent):
     :param align: How to align the content of the form, accepts any flexbox alignments
     """
 
-    value: Optional[Variable[dict]] = None
-    onsubmit: Optional[Action] = None
+    value: Variable[dict] | None = None
+    onsubmit: Action | None = None
 
     @field_validator('children')
     @classmethod
-    def validate_children_pages(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
+    def validate_children_pages(cls, children: list[ComponentInstance]) -> list[ComponentInstance]:
         # Make sure if FormPage is included, non-pages are not direct children of the Form
         page_found = False
         non_page_found = False

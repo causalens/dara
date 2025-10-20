@@ -2,8 +2,6 @@
 Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of the causaLens product.
 """
 
-from typing import List, Optional
-
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 
 
@@ -17,9 +15,9 @@ class ChatUserData(BaseModel):
     :param groups: list of groups user belongs to
     """
 
-    id: Optional[str] = None
+    id: str | None = None
     name: str
-    email: Optional[str] = None
+    email: str | None = None
 
 
 class ChatMessage(BaseModel):
@@ -50,5 +48,5 @@ class NewMessageBody(BaseModel):
     """
 
     app_url: str
-    users: List[ChatUserData]
+    users: list[ChatUserData]
     content: ChatMessage

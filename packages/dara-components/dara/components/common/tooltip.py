@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union
-
 from dara.components.common.base_component import ModifierComponent
 from dara.components.common.stack import Stack
 from dara.core.definitions import ComponentInstance
@@ -74,14 +72,14 @@ class Tooltip(ModifierComponent):
     :param styling: Defines the style of the tooltip, can be 'default' or 'error'
     """
 
-    content: Union[str, ComponentInstance, Variable[str], DerivedVariable[str]]
+    content: str | ComponentInstance | Variable[str] | DerivedVariable[str]
     placement: str = 'auto'
     styling: str = 'default'
 
     def __init__(
         self,
-        *components: Union[ComponentInstance, None],
-        content: Union[str, ComponentInstance, Variable[str], DerivedVariable[str]],
+        *components: ComponentInstance | None,
+        content: str | ComponentInstance | Variable[str] | DerivedVariable[str],
         placement: str = 'auto',
         styling: str = 'default',
         **kwargs,

@@ -1,7 +1,6 @@
 import io
 import os
 import re
-from typing import Optional, Union
 
 import numpy
 import pytest
@@ -51,10 +50,10 @@ def reset_data_variable_cache():
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, DataVariable, DerivedVariable]
-    action: Optional[Action] = None
+    text: str | DataVariable | DerivedVariable
+    action: Action | None = None
 
-    def __init__(self, text: Union[str, DataVariable, DerivedVariable], action: Optional[Action] = None):
+    def __init__(self, text: str | DataVariable | DerivedVariable, action: Action | None = None):
         super().__init__(text=text, uid='uid', action=action)
 
 

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from dara.core.definitions import StyledComponentInstance
 from dara.core.interactivity import ClientVariable
@@ -45,4 +45,4 @@ class CodeEditor(StyledComponentInstance):
 
     script: ClientVariable
 
-    language: Optional[Union[Literal['json'], Literal['python'], Literal['markdown'], Literal['sql']]] = None
+    language: Literal['json'] | Literal['python'] | Literal['markdown'] | Literal['sql'] | None = None

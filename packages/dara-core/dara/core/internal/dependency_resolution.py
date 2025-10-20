@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, Literal, TypeGuard
 
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask, PendingTask
 from dara.core.interactivity import DerivedVariable
@@ -31,8 +31,8 @@ from dara.core.logging import dev_logger
 class ResolvedDerivedVariable(TypedDict):
     type: Literal['derived']
     uid: str
-    values: List[Any]
-    force_key: Optional[str]
+    values: list[Any]
+    force_key: str | None
 
 
 class ResolvedServerVariable(TypedDict):
@@ -90,11 +90,7 @@ def clean_force_key(value: Any) -> Any:
 
 
 async def resolve_dependency(
-    entry: Union[
-        ResolvedDerivedVariable,
-        ResolvedSwitchVariable,
-        Any,
-    ],
+    entry: ResolvedDerivedVariable | ResolvedSwitchVariable | Any,
     store: CacheStore,
     task_mgr: TaskManager,
 ):
@@ -135,7 +131,7 @@ async def _resolve_derived_var(
 
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
     var = await registry_mgr.get(derived_variable_registry, str(derived_variable_entry.get('uid')))
-    input_values: List[Any] = derived_variable_entry.get('values', [])
+    input_values: list[Any] = derived_variable_entry.get('values', [])
     result = await DerivedVariable.get_value(
         var_entry=var,
         store=store,

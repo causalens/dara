@@ -2,7 +2,7 @@
 Copyright (c) 2023 by Impulse Innovations Ltd. Private and confidential. Part of the causaLens product.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from dara.components.smart.chat.types import NewMessageBody
 from dara.core.definitions import EndpointConfiguration

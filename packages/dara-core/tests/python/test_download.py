@@ -1,8 +1,8 @@
 import inspect
 import os
+from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from tempfile import TemporaryDirectory
-from typing import Awaitable, Callable, Optional, Tuple, Union
 from unittest.mock import patch
 
 import anyio
@@ -34,11 +34,11 @@ pytestmark = pytest.mark.anyio
 
 
 class MockComponent(ComponentInstance):
-    text: Union[str, Variable]
+    text: str | Variable
 
-    action: Optional[Action] = None
+    action: Action | None = None
 
-    def __init__(self, text: Union[str, Variable], action: Optional[Action] = None):
+    def __init__(self, text: str | Variable, action: Action | None = None):
         super().__init__(text=text, uid='uid', action=action)
 
 
@@ -332,7 +332,7 @@ async def test_download_override():
         custom_download_called = False
         code_override_called = False
 
-        async def custom_download(entry: DownloadDataEntry) -> Tuple[anyio.AsyncFile, Callable[..., Awaitable]]:
+        async def custom_download(entry: DownloadDataEntry) -> tuple[anyio.AsyncFile, Callable[..., Awaitable]]:
             nonlocal custom_download_called
             custom_download_called = True
 

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional, Union
+from typing import Optional
 
 from dara.core.base_definitions import Action
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -29,13 +29,13 @@ class Node(BaseModel):
     are represented by stacking further Node components as children of a Node.
     """
 
-    children: Optional[List['Node']]
+    children: list['Node'] | None
     id: str
     label: str
     weight: float
 
     @staticmethod
-    def from_string(name: str, weight: Optional[float] = None, children: Optional[List['Node']] = None):
+    def from_string(name: str, weight: float | None = None, children: list['Node'] | None = None):
         return Node(id=name, label=name, children=children, weight=weight if weight is not None else 0.0)
 
     def find_node(self, target: str) -> Optional['Node']:
@@ -86,5 +86,5 @@ class HierarchyViewer(StyledComponentInstance):
 
     allow_leaf_click: bool = True
     allow_parent_click: bool = True
-    hierarchy: Union[Node, ClientVariable]
-    on_click_node: Optional[Action] = None
+    hierarchy: Node | ClientVariable
+    on_click_node: Action | None = None

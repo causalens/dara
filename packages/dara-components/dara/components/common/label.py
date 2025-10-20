@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List, Optional, Union
-
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
@@ -65,13 +63,13 @@ class Label(ContentComponent):
     :param label_width: A optional string containing the width the label should take
     """
 
-    value: Union[str, ComponentInstance]
+    value: str | ComponentInstance
     direction: Direction = Direction.VERTICAL
-    label_width: Optional[str] = None
+    label_width: str | None = None
 
     @field_validator('children')
     @classmethod
-    def validate_only_one_child(cls, children: List[ComponentInstance]) -> List[ComponentInstance]:
+    def validate_only_one_child(cls, children: list[ComponentInstance]) -> list[ComponentInstance]:
         if len(children) > 1:
             raise TypeError(
                 'More than one component was passed to the Label component. Label accepts only one child component'

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import ConfigDict, SerializerFunctionWrapHandler, field_serializer
 
@@ -57,24 +57,24 @@ class BaseGraphComponent(StyledComponentInstance):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See [ZoomThresholds](../definitions/#zoomthresholds) for more details.
     """
 
-    additional_legends: Optional[List[GraphLegend]] = None
-    allow_selection_when_not_editable: Optional[bool] = False
-    available_inputs: Optional[List[str]] = None
-    default_legends: Dict[Union[EditorMode, str], List[GraphLegend]] = DEFAULT_LEGENDS
-    disable_edge_add: Optional[bool] = None
-    disable_latent_node_add: Optional[bool] = None
-    disable_node_removal: Optional[bool] = None
-    editable: Optional[bool] = False
-    graph_layout: Optional[GraphLayout] = FcoseLayout()
-    non_removable_nodes: Optional[List[str]] = None
-    on_click_edge: Optional[Action] = None
-    on_click_node: Optional[Action] = None
-    on_update: Optional[Action] = None
-    require_focus_to_zoom: Optional[bool] = True
-    simultaneous_edge_node_selection: Optional[bool] = False
-    tooltip_size: Optional[int] = None
-    verbose_descriptions: Optional[bool] = None
-    zoom_thresholds: Optional[ZoomThresholds] = None
+    additional_legends: list[GraphLegend] | None = None
+    allow_selection_when_not_editable: bool | None = False
+    available_inputs: list[str] | None = None
+    default_legends: dict[EditorMode | str, list[GraphLegend]] = DEFAULT_LEGENDS
+    disable_edge_add: bool | None = None
+    disable_latent_node_add: bool | None = None
+    disable_node_removal: bool | None = None
+    editable: bool | None = False
+    graph_layout: GraphLayout | None = FcoseLayout()
+    non_removable_nodes: list[str] | None = None
+    on_click_edge: Action | None = None
+    on_click_node: Action | None = None
+    on_update: Action | None = None
+    require_focus_to_zoom: bool | None = True
+    simultaneous_edge_node_selection: bool | None = False
+    tooltip_size: int | None = None
+    verbose_descriptions: bool | None = None
+    zoom_thresholds: ZoomThresholds | None = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

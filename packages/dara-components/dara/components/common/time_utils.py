@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 import datetime
-from typing import Union
 
 import numpy
 
@@ -37,7 +36,7 @@ def date_to_datetime(d: datetime.date, hh=23, mm=59, ss=59) -> datetime.datetime
     return datetime.datetime(d.year, d.month, d.day, hh, mm, ss)
 
 
-def coerce_to_timemilli(t: Union[int, float, datetime.date, datetime.datetime]) -> float:
+def coerce_to_timemilli(t: int | float | datetime.date | datetime.datetime) -> float:
     """Convert any of int/float/date/datetime into a timemilli."""
     if isinstance(t, (int, numpy.signedinteger, float, numpy.floating)):
         return float(t)

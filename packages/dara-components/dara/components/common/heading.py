@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 import re
-from typing import Union
 
 from dara.components.common.base_component import ContentComponent
 from dara.core.interactivity import ClientVariable
@@ -69,7 +68,7 @@ class Heading(ContentComponent):
     :param level: The level of heading to display, defaults to 1
     """
 
-    heading: Union[str, ClientVariable]
+    heading: str | ClientVariable
     level: int = 1
 
     @property
@@ -78,5 +77,5 @@ class Heading(ContentComponent):
             raise ValueError('Heading anchor name cannot be accessed directly from a variable')
         return re.sub(r'\s+', '-', self.heading.lower())
 
-    def __init__(self, heading: Union[str, ClientVariable], **kwargs):
+    def __init__(self, heading: str | ClientVariable, **kwargs):
         super().__init__(heading=heading, **kwargs)

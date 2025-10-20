@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
@@ -129,18 +129,18 @@ class VisualEdgeEncoder(StyledComponentInstance):
 
     js_module = '@darajs/components'
 
-    additional_legends: Optional[List[GraphLegend]] = None
-    allow_selection_when_not_editable: Optional[bool] = False
-    default_legends: Dict[Union[EditorMode, str], List[GraphLegend]] = DEFAULT_LEGENDS
-    editable: Optional[bool] = False
-    graph_layout: Optional[GraphLayout] = MarketingLayout()
-    initial_constraints: Optional[Union[List[EdgeConstraint], ClientVariable]] = None
-    nodes: Union[List[str], Dict[str, Node], ClientVariable]
-    on_click_edge: Optional[Action] = None
-    on_click_node: Optional[Action] = None
-    on_update: Optional[Action] = None
-    require_focus_to_zoom: Optional[bool] = True
-    tooltip_size: Optional[str] = None
+    additional_legends: list[GraphLegend] | None = None
+    allow_selection_when_not_editable: bool | None = False
+    default_legends: dict[EditorMode | str, list[GraphLegend]] = DEFAULT_LEGENDS
+    editable: bool | None = False
+    graph_layout: GraphLayout | None = MarketingLayout()
+    initial_constraints: list[EdgeConstraint] | ClientVariable | None = None
+    nodes: list[str] | dict[str, Node] | ClientVariable
+    on_click_edge: Action | None = None
+    on_click_node: Action | None = None
+    on_update: Action | None = None
+    require_focus_to_zoom: bool | None = True
+    tooltip_size: str | None = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
