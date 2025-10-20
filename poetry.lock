@@ -405,13 +405,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.1.3"
+version = "8.3.0"
 description = "Composable command line interface toolkit"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.10"
 files = [
-    {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
-    {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
+    {file = "click-8.3.0-py3-none-any.whl", hash = "sha256:9b9f285302c6e3064f4330c05f05b81945b2a39544279343e6e7c5f27a9baddc"},
+    {file = "click-8.3.0.tar.gz", hash = "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4"},
 ]
 
 [package.dependencies]
@@ -536,7 +536,7 @@ develop = true
 
 [package.dependencies]
 certifi = ">=2024.7.4"
-click = "=8.1.3"
+click = "^8.1.3"
 cookiecutter = "^2.1.1"
 
 [package.source]
@@ -690,7 +690,7 @@ anyio = ">=4.0.0"
 async-asgi-testclient = "^1.4.11"
 cachetools = "^5.0.0"
 certifi = ">=2024.7.4"
-click = "8.1.3"
+click = "^8.1.3"
 colorama = "^0.4.6"
 croniter = ">=1.0.15, <3.0.0"
 cryptography = ">=42.0.4"
@@ -3461,4 +3461,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "3c9a2884042786e9df73c3ebf87c3147f3090fc78312908c491b48cedc42fd54"
+content-hash = "b4804d11a59e3854f1c2745de74d4e4e22cf53777654fc66c409a3b47593bb89"
