@@ -12,14 +12,18 @@ import { filter, take } from 'rxjs/operators';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
+import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
+import type { PyComponentInstance } from '@/types';
 
 import { TaskStatus } from '../../js/api/websocket';
 import { DefaultFallback, ProgressTracker } from '../../js/components';
-import { DynamicComponent, WebSocketCtx } from '../../js/shared';
+import { DynamicComponent, WebSocketCtx, clearCaches_TEST } from '../../js/shared';
 import { GlobalTaskProvider, useTaskContext } from '../../js/shared/context';
 import { Wrapper, server } from './utils';
 import MockWebSocketClient from './utils/mock-web-socket-client';
+import { mockComponents } from './utils/test-server-handlers';
+import { importers } from './utils/wrapped-render';
 
 const vuid = 'VUID';
 const tuid = 'TASKID';
@@ -133,10 +137,12 @@ function renderProgressTracker(ProgressWrapper: () => JSX.Element = ProgressTrac
 // to work around task being passed around as a ref and the use of `setInterval`
 
 describe('ProgressTracker', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         server.listen();
         vi.useFakeTimers();
         clearRegistries_TEST();
+        clearCaches_TEST();
+        await preloadComponents(importers, Object.values(mockComponents));
     });
 
     afterEach(() => {
@@ -555,20 +561,26 @@ describe('ProgressTracker', () => {
         const { getByTestId, getByText } = render(
             <Wrapper client={client}>
                 <DynamicComponent
-                    component={{
-                        name: 'TestComponent2',
-                        props: {
-                            dynamic_kwargs: {
-                                test: {
-                                    __typename: 'Variable',
-                                    default: 'test',
-                                    uid: 'var-id',
+                    component={
+                        {
+                            name: 'TestComponent2',
+                            props: {
+                                dynamic_kwargs: {
+                                    test: {
+                                        __typename: 'Variable',
+                                        default: 'test',
+                                        uid: 'var-id',
+                                        nested: [],
+                                    },
                                 },
+                                track_progress: true,
+                                func_name: 'TestComponent2',
+                                js_module: 'test',
+                                polling_interval: null,
                             },
-                            track_progress: true,
-                        },
-                        uid: vuid,
-                    }}
+                            uid: vuid,
+                        } satisfies PyComponentInstance
+                    }
                 />
             </Wrapper>
         );
