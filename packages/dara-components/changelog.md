@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal (JS): exported custom `json` extension that wraps newlines inside string values for nicer display, for use in custom displays
+
 ## 1.21.13
 
 - Added an explicit `loading` prop to `Button` to let users opt out of the default loading state behaviour. The previous behaviour is preserved, i.e. while the `onclick` action is running `loading` is set to `True`.
