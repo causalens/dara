@@ -1,10 +1,15 @@
 // This file is an adapted version of https://github.com/codemirror/lang-json/blob/main/src/json.ts,
 // utilizing an extended grammar to support JSON with newlines in strings
-import { CMLanguage } from '@darajs/components';
+import {
+    LRLanguage,
+    LanguageSupport,
+    continuedIndent,
+    foldInside,
+    foldNodeProp,
+    indentNodeProp,
+} from '@codemirror/language';
 
 import { parser } from './extended-json-parser';
-
-const { LRLanguage, LanguageSupport, continuedIndent, foldInside, foldNodeProp, indentNodeProp } = CMLanguage;
 
 /// A language provider that provides JSON parsing.
 export const jsonLanguage = LRLanguage.define({
@@ -27,6 +32,6 @@ export const jsonLanguage = LRLanguage.define({
 });
 
 /// JSON language support.
-export function json(): CMLanguage.LanguageSupport {
+export function json(): LanguageSupport {
     return new LanguageSupport(jsonLanguage);
 }
