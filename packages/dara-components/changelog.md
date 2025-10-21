@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.19
 
 - Internal (JS): exported custom `json` extension that wraps newlines inside string values for nicer display, for use in custom displays
 
