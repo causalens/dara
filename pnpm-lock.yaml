@@ -84,6 +84,15 @@ importers:
       '@darajs/ui-utils':
         specifier: 1.21.18
         version: link:../ui-utils
+      '@lezer/highlight':
+        specifier: ^1.2.1
+        version: 1.2.1
+      '@lezer/json':
+        specifier: ^1.0.3
+        version: 1.0.3
+      '@lezer/lr':
+        specifier: ^1.4.2
+        version: 1.4.2
       '@popperjs/core':
         specifier: 2.4.0
         version: 2.4.0
@@ -2681,8 +2690,8 @@ packages:
   '@lezer/javascript@1.4.19':
     resolution: {integrity: sha512-j44kbR1QL26l6dMunZ1uhKBFteVGLVCBGNUD2sUaMnic+rbTviVuoK0CD1l9FTW31EueWvFFswCKMH7Z+M3JRA==}
 
-  '@lezer/json@1.0.2':
-    resolution: {integrity: sha512-xHT2P4S5eeCYECyKNPhr4cbEL9tc8w83SPwRC373o9uEdrvGKTZoJVAGxpOsZckMlEh9W23Pc72ew918RWQOBQ==}
+  '@lezer/json@1.0.3':
+    resolution: {integrity: sha512-BP9KzdF9Y35PDpv04r0VeSTKDeox5vVr3efE7eBbx3r4s3oNLfunchejZhjArmeieBH+nVOpgIiBJpEAv8ilqQ==}
 
   '@lezer/lr@1.4.2':
     resolution: {integrity: sha512-pu0K1jCIdnQ12aWNaAVU5bzi7Bd1w54J3ECgANPmYLtQKP0HBj2cE/5coBD66MT10xbtIuUr7tg0Shbsvk0mDA==}
@@ -11643,7 +11652,7 @@ snapshots:
   '@codemirror/lang-json@6.0.1':
     dependencies:
       '@codemirror/language': 6.10.3
-      '@lezer/json': 1.0.2
+      '@lezer/json': 1.0.3
 
   '@codemirror/lang-markdown@6.3.0':
     dependencies:
@@ -12442,7 +12451,7 @@ snapshots:
       '@lezer/highlight': 1.2.1
       '@lezer/lr': 1.4.2
 
-  '@lezer/json@1.0.2':
+  '@lezer/json@1.0.3':
     dependencies:
       '@lezer/common': 1.2.3
       '@lezer/highlight': 1.2.1

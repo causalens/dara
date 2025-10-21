@@ -24,6 +24,7 @@ export { getSQLExtensions } from './extensions/sql';
 export { getExtensionsForLang, type LangsType } from './extensions/lang';
 export * from './extensions/shared';
 export * from './extensions/lsp-utils';
+export * from './extensions/extended-json';
 export * from './code-editor';
 export * from './codemirror-context';
 export * from './types';
