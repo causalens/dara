@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.20
 
 -  Bump `croniter` dependency to `^6.0.0`
 
