@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Bump `croniter` dependency to `^6.0.0`
+
 ## 1.21.18
 
 -  Fixed a regression where `Variable`'s `store` property was not serialized correctly
