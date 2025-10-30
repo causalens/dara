@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Relaxed `fastapi` dependency to `>=0.115.0, <0.121.0`
+
 ## 1.21.20
 
 -  Bump `croniter` dependency to `^6.0.0`
