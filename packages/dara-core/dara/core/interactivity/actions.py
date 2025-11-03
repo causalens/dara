@@ -727,6 +727,41 @@ class DownloadVariable(ActionImpl):
     type: Literal['csv', 'xlsx', 'json'] = 'csv'
 
 
+CopyToClipboardDef = ActionDef(name='CopyToClipboard', js_module='@darajs/core', py_module='dara.core')
+
+
+class CopyToClipboard(ActionImpl):
+    """
+    CopyToClipboard action copies the provided value to the user's clipboard.
+
+    ```python
+
+    from dara.core import action, ConfigurationBuilder, CopyToClipboard
+    from dara.components import Stack, Button
+
+    config = ConfigurationBuilder()
+
+    def test_page():
+        return Stack(
+            Button(
+                'Copy to clipboard',
+                onclick=CopyToClipboard(value='Hello, World!')
+            )
+        )
+
+
+    config.router.add_page(path='copy-to-clipboard', content=test_page)
+    """
+
+    value: str
+
+    success_message: str | None = None
+    """Message to display when the value is copied to the clipboard"""
+
+    error_message: str | None = None
+    """Message to display when the value could not be copied to the clipboard"""
+
+
 @deprecated('Use @action instead')
 def SideEffect(
     function: Callable[[ComponentActionContext], Any],
@@ -825,6 +860,51 @@ class ActionCtx:
             max_buffer_size=math.inf
         )
         self._on_action = _on_action
+
+    async def copy_to_clipboard(
+        self,
+        value: str,
+        success_message: str | None = None,
+        error_message: str | None = None,
+    ):
+        """
+        Copy a given value to the user's clipboard.
+
+        Note that this could fail in some browsers if e.g. user has disabled clipboard access.
+        Dara will display an error notification in this case, the message can be customized with the `error_message` parameter.
+
+        ```python
+
+        from dara.core import action, ConfigurationBuilder, CopyToClipboard
+        from dara.components import Stack, Button
+
+        config = ConfigurationBuilder()
+
+        @action
+        async def copy_demo(ctx: action.Ctx, value: str):
+            await ctx.copy_to_clipboard(value)
+
+        def test_page():
+            return Stack(
+                Button(
+                    'Copy to clipboard',
+                    onclick=copy_demo(value='Hello, World!')
+                )
+            )
+
+
+        config.router.add_page(path='copy-to-clipboard', content=test_page)
+        ```
+
+        :param value: the value to copy to the clipboard
+        :param success_message: the message to display when the value is copied to the clipboard
+        :param error_message: the message to display when the value could not be copied to the clipboard
+        """
+        return await CopyToClipboard(
+            value=value,
+            success_message=success_message,
+            error_message=error_message,
+        ).execute(self)
 
     @overload
     async def update(self, variable: ServerVariable, value: DataFrame | None): ...

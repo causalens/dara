@@ -508,6 +508,12 @@ export interface DownloadVariableImpl extends ActionImpl {
     type: 'csv' | 'json' | 'xlsx';
 }
 
+export interface CopyToClipboardImpl extends ActionImpl {
+    value: string;
+    success_message: string | null;
+    error_message: string | null;
+}
+
 export type NotifyImpl = ActionImpl & NotificationPayload;
 
 export interface GlobalTaskContext {
