@@ -12,3 +12,4 @@ export { default as Outlet } from './outlet';
 export { default as Navigate } from './navigate';
 export { default as PoweredByCausalens } from './powered-by-causalens';
 export { default as ThemeProvider } from './theme-provider';
+export { default as PublicDynamicComponent } from './public-dynamic-component';
