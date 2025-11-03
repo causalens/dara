@@ -549,7 +549,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.21.21"
+version = "1.21.22"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -674,7 +674,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.21.21"
+version = "1.21.22"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -685,7 +685,7 @@ develop = true
 bokeh = ">=3.1.0, <3.2.0"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.21.21"
+dara-core = "1.21.22"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -699,7 +699,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.21.21"
+version = "1.21.22"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -744,7 +744,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.21.21)"]
+all = ["dara-components (==1.21.22)"]
 
 [package.source]
 type = "directory"
@@ -778,7 +778,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -833,13 +833,13 @@ testing = ["hatch", "pre-commit", "pytest", "tox"]
 
 [[package]]
 name = "fastapi"
-version = "0.120.2"
+version = "0.120.4"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "fastapi-0.120.2-py3-none-any.whl", hash = "sha256:bedcf2c14240e43d56cb9a339b32bcf15104fe6b5897c0222603cb7ec416c8eb"},
-    {file = "fastapi-0.120.2.tar.gz", hash = "sha256:4c5ab43e2a90335bbd8326d1b659eac0f3dbcc015e2af573c4f5de406232c4ac"},
+    {file = "fastapi-0.120.4-py3-none-any.whl", hash = "sha256:9bdf192308676480d3593e10fd05094e56d6fdc7d9283db26053d8104d5f82a0"},
+    {file = "fastapi-0.120.4.tar.gz", hash = "sha256:2d856bc847893ca4d77896d4504ffdec0fb04312b705065fca9104428eca3868"},
 ]
 
 [package.dependencies]
@@ -964,13 +964,13 @@ python-dateutil = ">=2.7"
 
 [[package]]
 name = "google-auth"
-version = "2.42.0"
+version = "2.42.1"
 description = "Google Authentication Library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google_auth-2.42.0-py2.py3-none-any.whl", hash = "sha256:f8f944bcb9723339b0ef58a73840f3c61bc91b69bf7368464906120b55804473"},
-    {file = "google_auth-2.42.0.tar.gz", hash = "sha256:9bbbeef3442586effb124d1ca032cfb8fb7acd8754ab79b55facd2b8f3ab2802"},
+    {file = "google_auth-2.42.1-py2.py3-none-any.whl", hash = "sha256:eb73d71c91fc95dbd221a2eb87477c278a355e7367a35c0d84e6b0e5f9b4ad11"},
+    {file = "google_auth-2.42.1.tar.gz", hash = "sha256:30178b7a21aa50bffbdc1ffcb34ff770a2f65c712170ecd5446c4bef4dc2b94e"},
 ]
 
 [package.dependencies]
@@ -2022,7 +2022,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -2669,30 +2669,30 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "ruff"
-version = "0.14.2"
+version = "0.14.3"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "ruff-0.14.2-py3-none-linux_armv6l.whl", hash = "sha256:7cbe4e593505bdec5884c2d0a4d791a90301bc23e49a6b1eb642dd85ef9c64f1"},
-    {file = "ruff-0.14.2-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:8d54b561729cee92f8d89c316ad7a3f9705533f5903b042399b6ae0ddfc62e11"},
-    {file = "ruff-0.14.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:5c8753dfa44ebb2cde10ce5b4d2ef55a41fb9d9b16732a2c5df64620dbda44a3"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3d0bbeffb8d9f4fccf7b5198d566d0bad99a9cb622f1fc3467af96cb8773c9e3"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:7047f0c5a713a401e43a88d36843d9c83a19c584e63d664474675620aaa634a8"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3bf8d2f9aa1602599217d82e8e0af7fd33e5878c4d98f37906b7c93f46f9a839"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:1c505b389e19c57a317cf4b42db824e2fca96ffb3d86766c1c9f8b96d32048a7"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:a307fc45ebd887b3f26b36d9326bb70bf69b01561950cdcc6c0bdf7bb8e0f7cc"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:61ae91a32c853172f832c2f40bd05fd69f491db7289fb85a9b941ebdd549781a"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bc1967e40286f63ee23c615e8e7e98098dedc7301568bd88991f6e544d8ae096"},
-    {file = "ruff-0.14.2-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:2877f02119cdebf52a632d743a2e302dea422bfae152ebe2f193d3285a3a65df"},
-    {file = "ruff-0.14.2-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:e681c5bc777de5af898decdcb6ba3321d0d466f4cb43c3e7cc2c3b4e7b843a05"},
-    {file = "ruff-0.14.2-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:e21be42d72e224736f0c992cdb9959a2fa53c7e943b97ef5d081e13170e3ffc5"},
-    {file = "ruff-0.14.2-py3-none-musllinux_1_2_i686.whl", hash = "sha256:b8264016f6f209fac16262882dbebf3f8be1629777cf0f37e7aff071b3e9b92e"},
-    {file = "ruff-0.14.2-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:5ca36b4cb4db3067a3b24444463ceea5565ea78b95fe9a07ca7cb7fd16948770"},
-    {file = "ruff-0.14.2-py3-none-win32.whl", hash = "sha256:41775927d287685e08f48d8eb3f765625ab0b7042cc9377e20e64f4eb0056ee9"},
-    {file = "ruff-0.14.2-py3-none-win_amd64.whl", hash = "sha256:0df3424aa5c3c08b34ed8ce099df1021e3adaca6e90229273496b839e5a7e1af"},
-    {file = "ruff-0.14.2-py3-none-win_arm64.whl", hash = "sha256:ea9d635e83ba21569fbacda7e78afbfeb94911c9434aff06192d9bc23fd5495a"},
-    {file = "ruff-0.14.2.tar.gz", hash = "sha256:98da787668f239313d9c902ca7c523fe11b8ec3f39345553a51b25abc4629c96"},
+    {file = "ruff-0.14.3-py3-none-linux_armv6l.whl", hash = "sha256:876b21e6c824f519446715c1342b8e60f97f93264012de9d8d10314f8a79c371"},
+    {file = "ruff-0.14.3-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:b6fd8c79b457bedd2abf2702b9b472147cd860ed7855c73a5247fa55c9117654"},
+    {file = "ruff-0.14.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:71ff6edca490c308f083156938c0c1a66907151263c4abdcb588602c6e696a14"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:786ee3ce6139772ff9272aaf43296d975c0217ee1b97538a98171bf0d21f87ed"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:cd6291d0061811c52b8e392f946889916757610d45d004e41140d81fb6cd5ddc"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a497ec0c3d2c88561b6d90f9c29f5ae68221ac00d471f306fa21fa4264ce5fcd"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:e231e1be58fc568950a04fbe6887c8e4b85310e7889727e2b81db205c45059eb"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:469e35872a09c0e45fecf48dd960bfbce056b5db2d5e6b50eca329b4f853ae20"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:3d6bc90307c469cb9d28b7cfad90aaa600b10d67c6e22026869f585e1e8a2db0"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0e2f8a0bbcffcfd895df39c9a4ecd59bb80dca03dc43f7fb63e647ed176b741e"},
+    {file = "ruff-0.14.3-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:678fdd7c7d2d94851597c23ee6336d25f9930b460b55f8598e011b57c74fd8c5"},
+    {file = "ruff-0.14.3-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:1ec1ac071e7e37e0221d2f2dbaf90897a988c531a8592a6a5959f0603a1ecf5e"},
+    {file = "ruff-0.14.3-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:afcdc4b5335ef440d19e7df9e8ae2ad9f749352190e96d481dc501b753f0733e"},
+    {file = "ruff-0.14.3-py3-none-musllinux_1_2_i686.whl", hash = "sha256:7bfc42f81862749a7136267a343990f865e71fe2f99cf8d2958f684d23ce3dfa"},
+    {file = "ruff-0.14.3-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:a65e448cfd7e9c59fae8cf37f9221585d3354febaad9a07f29158af1528e165f"},
+    {file = "ruff-0.14.3-py3-none-win32.whl", hash = "sha256:f3d91857d023ba93e14ed2d462ab62c3428f9bbf2b4fbac50a03ca66d31991f7"},
+    {file = "ruff-0.14.3-py3-none-win_amd64.whl", hash = "sha256:d7b7006ac0756306db212fd37116cce2bd307e1e109375e1c6c106002df0ae5f"},
+    {file = "ruff-0.14.3-py3-none-win_arm64.whl", hash = "sha256:26eb477ede6d399d898791d01961e16b86f02bc2486d0d1a7a9bb2379d055dc1"},
+    {file = "ruff-0.14.3.tar.gz", hash = "sha256:4ff876d2ab2b161b6de0aa1f5bd714e8e9b4033dc122ee006925fbacc4f62153"},
 ]
 
 [[package]]
@@ -2803,13 +2803,13 @@ files = [
 
 [[package]]
 name = "starlette"
-version = "0.49.1"
+version = "0.49.3"
 description = "The little ASGI library that shines."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "starlette-0.49.1-py3-none-any.whl", hash = "sha256:d92ce9f07e4a3caa3ac13a79523bd18e3bc0042bb8ff2d759a8e7dd0e1859875"},
-    {file = "starlette-0.49.1.tar.gz", hash = "sha256:481a43b71e24ed8c43b11ea02f5353d77840e01480881b8cb5a26b8cae64a8cb"},
+    {file = "starlette-0.49.3-py3-none-any.whl", hash = "sha256:b579b99715fdc2980cf88c8ec96d3bf1ce16f5a8051a7c2b84ef9b1cdecaea2f"},
+    {file = "starlette-0.49.3.tar.gz", hash = "sha256:1c14546f299b5901a1ea0e34410575bc33bbd741377a10484a54445588d00284"},
 ]
 
 [package.dependencies]
@@ -2832,7 +2832,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -2845,7 +2845,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3050,7 +3050,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3063,7 +3063,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3076,7 +3076,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3089,7 +3089,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3102,7 +3102,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3115,7 +3115,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3128,7 +3128,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.21.21"
+version = "1.21.22"
 description = ""
 optional = false
 python-versions = "*"
@@ -3462,16 +3462,16 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "xyzservices"
-version = "2025.4.0"
+version = "2025.10.0"
 description = "Source of XYZ tiles providers"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "xyzservices-2025.4.0-py3-none-any.whl", hash = "sha256:8d4db9a59213ccb4ce1cf70210584f30b10795bff47627cdfb862b39ff6e10c9"},
-    {file = "xyzservices-2025.4.0.tar.gz", hash = "sha256:6fe764713648fac53450fbc61a3c366cb6ae5335a1b2ae0c3796b495de3709d8"},
+    {file = "xyzservices-2025.10.0-py3-none-any.whl", hash = "sha256:cfd6423367c7bc717ed5824d4dd7de2c91486886c1c193db9d8f0fa7fd43bc1b"},
+    {file = "xyzservices-2025.10.0.tar.gz", hash = "sha256:c6b7648276c98e8222fbec84d9c763128cf3653705017a4d6c4c3652480ee144"},
 ]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "4af6681aac7471ca9f2f24273e96d1c64f8a8ba7b544edcab69dc36ed5dcc290"
+content-hash = "2ed630bde91d8f7163805546b142fb870ae47ad1c9f046669e2aec510c17efc9"

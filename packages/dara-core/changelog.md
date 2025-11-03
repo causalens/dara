@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.22
 
 -  Allow passing a `ClientVariable` to the `DynamicComponent` component
 
