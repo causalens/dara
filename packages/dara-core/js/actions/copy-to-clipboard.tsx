@@ -1,9 +1,25 @@
 import { Status, copyToClipboard } from '@darajs/ui-utils';
 
-import { type ActionHandler, type CopyToClipboardImpl } from '@/types/core';
+import { resolveVariable } from '@/shared/interactivity/resolve-variable';
+import { isSingleVariable, isVariable } from '@/types';
+import { type ActionHandler, type CopyToClipboardImpl, UserError } from '@/types/core';
 
 const CopyToClipboard: ActionHandler<CopyToClipboardImpl> = async (ctx, actionImpl): Promise<void> => {
-    const success = await copyToClipboard(actionImpl.value);
+    let value;
+
+    if (!isVariable(actionImpl.value)) {
+        value = actionImpl.value;
+    } else {
+        if (!isSingleVariable(actionImpl.value)) {
+            throw new UserError('CopyToClipboard only supports simple Variables');
+        }
+
+        value = (await resolveVariable(actionImpl.value, ctx.wsClient, ctx.taskCtx, ctx.extras, (v) =>
+            ctx.snapshot.getPromise(v)
+        )) as string;
+    }
+
+    const success = await copyToClipboard(value);
     if (!success) {
         ctx.notificationCtx.pushNotification({
             key: '_copyToClipboard',

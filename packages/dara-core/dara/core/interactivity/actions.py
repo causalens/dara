@@ -62,6 +62,7 @@ from dara.core.internal.utils import run_user_handler
 if TYPE_CHECKING:
     from dara.core.interactivity import (
         AnyVariable,
+        ClientVariable,
         DerivedVariable,
         Variable,
     )
@@ -753,7 +754,7 @@ class CopyToClipboard(ActionImpl):
     config.router.add_page(path='copy-to-clipboard', content=test_page)
     """
 
-    value: str
+    value: str | ClientVariable
 
     success_message: str | None = None
     """Message to display when the value is copied to the clipboard"""
