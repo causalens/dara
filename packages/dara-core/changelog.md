@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.21
 
 -  Relaxed `fastapi` dependency to `>=0.115.0, <0.121.0`
 -  Allow passing a `ClientVariable` to the `DynamicComponent` component
