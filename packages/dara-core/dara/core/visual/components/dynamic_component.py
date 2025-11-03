@@ -1,7 +1,12 @@
 from dara.core.definitions import ComponentInstance, JsComponentDef
 from dara.core.interactivity.client_variable import ClientVariable
 
-DynamicComponentDef = JsComponentDef(name='PublicDynamicComponent', js_module='@darajs/core', py_module='dara.core')
+DynamicComponentDef = JsComponentDef(
+    name='DynamicComponent',
+    js_module='@darajs/core',
+    js_component='PublicDynamicComponent',
+    py_module='dara.core',
+)
 
 
 class DynamicComponent(ComponentInstance):
