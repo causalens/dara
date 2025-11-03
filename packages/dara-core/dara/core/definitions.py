@@ -509,7 +509,7 @@ class ApiRoute(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __hash__(self):
-        return hash((self.handler, self.method, self.url, tuple(self.dependencies)))
+        return hash((self.handler, self.method, self.url))
 
 
 class Page(BaseModel):
