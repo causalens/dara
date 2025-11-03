@@ -2,10 +2,13 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added a new `CopyToClipboard` action (also available as `ctx.copy_to_clipboard`) to copy a given value to the user's clipboard
+
 ## 1.21.22
 
 -  Allow passing a `ClientVariable` to the `DynamicComponent` component
--  Added a new `CopyToClipboard` action (also available as `ctx.copy_to_clipboard`) to copy a given value to the user's clipboard
 
 ## 1.21.21
 
