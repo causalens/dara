@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING, cast
 
 from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
-    CopyToClipboardDef,
     CopyToClipboard,
+    CopyToClipboardDef,
     DownloadContentDef,
     DownloadVariable,
     DownloadVariableDef,
