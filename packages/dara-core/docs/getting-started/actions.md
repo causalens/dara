@@ -297,6 +297,19 @@ config.router.add_page(path='another-page', content=another_page)
 
 In the example above, on 'Test Page', clicking on a button 'Go to Another Page' takes you to the 'Another Page' page. This demonstrates how you can pass a static URL to the `navigate` action method. On the 'Another Page' page, you can see how to control `navigate` by using a dynamic URL - in this case the selected value of a `Select` component.
 
+### `copy_to_clipboard`
+
+```python
+async def copy_to_clipboard(value: str, success_message: str | None = None, error_message: str | None = None)
+```
+
+`copy_to_clipboard` is a method to copy a given value to the user's clipboard.
+
+The success of this operation depends on the browser and the user's settings. For example, if the user denied your app access to the clipboard, the operation will fail.
+
+Dara will display a generic success and error messages depending on the outcome of the operation.
+You can add extra context to the success and error messages by passing a `success_message` and `error_message` parameter.
+
 ### `logout`
 
 ```python
@@ -648,6 +661,7 @@ The following action implementation objects are available:
 - `dara.core.interactivity.actions.Notify`
 - `dara.core.interactivity.actions.DownloadContentImpl`
 - `dara.core.interactivity.actions.DownloadVariable`
+- `dara.core.interactivity.actions.CopyToClipboard`
 
 :::info
 

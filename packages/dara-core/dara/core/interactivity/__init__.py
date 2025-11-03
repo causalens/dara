@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from dara.core.interactivity.actions import (
     ActionCtx,
+    CopyToClipboard,
     DownloadContent,
     DownloadContentImpl,
     DownloadVariable,
@@ -64,6 +65,7 @@ __all__ = [
     'DerivedVariable',
     'DerivedDataVariable',
     'UrlVariable',
+    'CopyToClipboard',
     'DownloadVariable',
     'DownloadContent',
     'DownloadContentImpl',
