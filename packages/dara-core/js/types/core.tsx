@@ -1,4 +1,4 @@
-import type { Location, NavigateFunction, NavigateOptions, To } from 'react-router';
+import type { Location, NavigateFunction, NavigateOptions, Path, To } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 import * as z from 'zod/v4';
 
@@ -83,6 +83,10 @@ export type RouteDefinition =
 
 export interface RouterDefinition {
     children: Array<RouteDefinition>;
+}
+
+export interface RouterPath extends Path {
+    params: Record<string, Variable<any> | any>;
 }
 
 type BuildMode = 'AUTO_JS' | 'PRODUCTION';
@@ -493,7 +497,7 @@ export interface TriggerVariableImpl extends ActionImpl {
 }
 
 export interface NavigateToImpl extends ActionImpl {
-    url: To;
+    url: string | Partial<RouterPath>;
     new_tab: boolean;
     options?: NavigateOptions;
 }

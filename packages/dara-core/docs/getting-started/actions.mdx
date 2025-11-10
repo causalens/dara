@@ -297,6 +297,14 @@ config.router.add_page(path='another-page', content=another_page)
 
 In the example above, on 'Test Page', clicking on a button 'Go to Another Page' takes you to the 'Another Page' page. This demonstrates how you can pass a static URL to the `navigate` action method. On the 'Another Page' page, you can see how to control `navigate` by using a dynamic URL - in this case the selected value of a `Select` component.
 
+:::tip
+
+In most cases you should prefer the `Link` component over the `navigate` action as it is more accessible and performant. The action form is mostly required in very dynamic scenarios where you need to navigate only under some circumstances or the target URL needs to be computed in the action itself.
+
+See the [Routing](./routing) section for more details.
+
+:::
+
 ### `copy_to_clipboard`
 
 ```python

@@ -1,5 +1,6 @@
 import { createPath } from 'react-router';
 
+import { resolveTo } from '@/router/resolve-to';
 import { getBasename } from '@/router/utils';
 import { type ActionHandler, type NavigateToImpl } from '@/types/core';
 
@@ -38,7 +39,7 @@ export function stripBasename(pathname: string, basename: string): string | null
  * Absolute/relative and external/internal differentiation follows logic from react-router's Link component:
  * https://github.com/remix-run/react-router/blob/32d759958978b9fbae676806dd6c84ade9866746/packages/react-router/lib/dom/lib.tsx#L623-L658
  */
-const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
+const NavigateTo: ActionHandler<NavigateToImpl> = async (ctx, actionImpl): Promise<void> => {
     const basename = getBasename();
     let isExternal = false;
     let to = actionImpl.url;
@@ -84,7 +85,8 @@ const NavigateTo: ActionHandler<NavigateToImpl> = (ctx, actionImpl): void => {
     }
 
     // use router navigate if the url is relative
-    ctx.navigate(to, actionImpl.options);
+    const resolvedTo = await resolveTo(to, ctx);
+    ctx.navigate(resolvedTo, actionImpl.options);
 };
 
 export default NavigateTo;

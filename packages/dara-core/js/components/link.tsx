@@ -3,11 +3,12 @@ import { NavLink, type NavLinkProps } from 'react-router';
 import styled from 'styled-components';
 
 import { usePreloadRoute } from '@/router/fetching';
+import { useResolvedTo } from '@/router/resolve-to';
 import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { useVariable } from '@/shared/interactivity';
 import useComponentStyles from '@/shared/utils/use-component-styles';
-import type { ComponentInstance, StyledComponentProps, Variable } from '@/types';
+import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable, isVariable } from '@/types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
@@ -16,7 +17,7 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
     prefetch?: boolean;
-    to: MaybeVariable<NavLinkProps['to']>;
+    to: MaybeVariable<string | Partial<RouterPath>>;
     // Used via useComponentStyles
     // eslint-disable-next-line react/no-unused-prop-types
     active_css?: StyledComponentProps['raw_css'];
@@ -69,7 +70,10 @@ function Link(props: LinkProps): React.ReactNode {
     const [style, css] = useComponentStyles(props);
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
-    const [to] = useVariable(props.to);
+
+    // We only support resolving params in non-variable links as object keys need to be
+    // stable to not break react rules
+    const to = isVariable(props.to) ? useVariable(props.to)[0] : useResolvedTo(props.to);
 
     // Prefetching approach inspired by SolidJS's router:
     // https://github.com/solidjs/solid-router/blob/30f08665e87829736a9333d55863d27905f4a92d/src/data/events.ts#L7
