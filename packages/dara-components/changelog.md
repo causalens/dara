@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Implemented `Match` component to allow conditional rendering based on a variable value without needing to use multiple `If` components
+
 ## 1.21.19
 
 - Internal (JS): exported custom `json` extension that wraps newlines inside string values for nicer display, for use in custom displays
