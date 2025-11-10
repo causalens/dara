@@ -51,6 +51,9 @@ declare module 'styled-components' {
             teal: string;
             orange: string;
             plum: string;
+            carrot: string;
+            kale: string;
+            chestnut: string;
 
             error: string;
             errorHover: string;

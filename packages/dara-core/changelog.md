@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added 3 new accent colors to the base theme definition and existing Light and Dark themes: `carrot`, `kale` and `chestnut`
+
 ## 1.21.23
 
 -  Added a new `CopyToClipboard` action (also available as `ctx.copy_to_clipboard`) to copy a given value to the user's clipboard

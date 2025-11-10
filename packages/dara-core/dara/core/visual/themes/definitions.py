@@ -50,6 +50,9 @@ class ThemeColors(BaseModel):
     teal: str | None = None
     orange: str | None = None
     plum: str | None = None
+    carrot: str | None = None
+    kale: str | None = None
+    chestnut: str | None = None
     error: str | None = None
     errorHover: str | None = None
     errorDown: str | None = None

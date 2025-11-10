@@ -51,6 +51,9 @@ interface Theme {
         teal: string;
         orange: string;
         plum: string;
+        carrot: string;
+        kale: string;
+        chestnut: string;
 
         error: string;
         errorHover: string;
@@ -123,6 +126,9 @@ const theme: Theme = {
         teal: '#0790AE',
         orange: '#FF8F80',
         plum: '#BA3C8B',
+        carrot: '#E48015',
+        kale: '#277357',
+        chestnut: '#974741',
 
         error: '#DA6087',
         errorHover: '#D14975',
@@ -181,6 +187,9 @@ const darkTheme: Theme = {
         teal: '#00849F',
         orange: '#DB6D5E',
         plum: '#AB2178',
+        carrot: '#E48015',
+        kale: '#277357',
+        chestnut: '#974741',
 
         error: '#CA456F',
         errorHover: '#D1567E',
