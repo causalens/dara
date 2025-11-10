@@ -2,9 +2,9 @@
 import type { Mock } from 'vitest';
 
 import { NavigateTo } from '@/actions';
-import type { NavigateToImpl } from '@/types/core';
+import type { NavigateToImpl, SingleVariable } from '@/types/core';
 
-function withMockHref(callback: (hrefSetter: Mock) => void, hrefValue?: string): void {
+async function withMockHref(callback: (hrefSetter: Mock) => void | Promise<void>, hrefValue?: string): Promise<void> {
     const originalLocation = window.location;
     try {
         const mock = vi.fn();
@@ -20,7 +20,7 @@ function withMockHref(callback: (hrefSetter: Mock) => void, hrefValue?: string):
             },
             writable: true,
         });
-        callback(mock);
+        await callback(mock);
     } finally {
         window.location = originalLocation;
     }
@@ -189,4 +189,54 @@ describe('NavigateTo action', () => {
             }, 'http://localhost:3000/test');
         }
     );
+
+    it('should resolve variables in the url', async () => {
+        const param1: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'param1',
+            nested: [],
+            store: undefined,
+            uid: 'param1',
+        };
+        const param2: SingleVariable<string> = {
+            __typename: 'Variable',
+            default: 'param2',
+            nested: [],
+            store: undefined,
+            uid: 'param2',
+        };
+
+        const ctx = {
+            navigate: vi.fn(),
+            snapshot: {
+                getPromise: vi.fn().mockImplementation((v) => {
+                    // NOTE: this is coupled to how Recoil transforms atom keys right now
+                    if (v.key === 'param1__null') {
+                        return Promise.resolve('value1');
+                    }
+                    if (v.key === 'param2__null') {
+                        return Promise.resolve('value2');
+                    }
+                    console.error(`Can't resolve variable: ${JSON.stringify(v)}`);
+                    return Promise.reject();
+                }),
+            },
+        };
+
+        await withMockHref(async () => {
+            await NavigateTo(ctx as any, {
+                __typename: 'ActionImpl',
+                name: 'NavigateTo',
+                new_tab: false,
+                uid: 'uid',
+                url: { pathname: ':param1/:param2', params: { param1, param2 } },
+            } satisfies NavigateToImpl);
+
+            // called with resolved URL
+            expect(ctx.navigate).toHaveBeenCalledWith(
+                expect.objectContaining({ pathname: 'value1/value2' }),
+                undefined
+            );
+        }, 'http://localhost:3000/test');
+    });
 });

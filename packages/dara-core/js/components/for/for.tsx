@@ -56,12 +56,14 @@ const ForChild = React.memo((props: ListChildComponentProps<ItemData>): React.Re
         let component;
 
         try {
-            component = applyMarkers(
-                props.data.renderer,
-                props.data.markers,
-                props.data.items[props.index],
-                props.data.getItemKey(props.index, props.data)
-            );
+            component = applyMarkers({
+                renderer: props.data.renderer,
+                markers: props.data.markers,
+                loopValue: props.data.items[props.index],
+                itemKey: props.data.getItemKey(props.index, props.data),
+                index: props.index,
+                itemsLength: props.data.items.length,
+            });
         } catch (e) {
             // eslint-disable-next-line no-console
             console.error('Failed to apply markers', e);

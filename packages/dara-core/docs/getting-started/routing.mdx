@@ -297,6 +297,36 @@ For top-level layouts, you'll want to provide navigation links. Dara provides se
 - **`SideBarFrame`/`TopBarFrame`** - Convenience frames with slots for navigation links and content
 - **`MenuLink`** - Styled Link tailored for frames (you can achieve the same with Link's `active_css`/`inactive_css`)
 
+### Dynamic Links
+
+The `Link` component supports dynamic paths in addition to static paths. This comes in two flavors:
+
+1. Passing a `Variable` as the `to` prop
+
+```python
+from dara.core import Variable
+from dara.components import Link
+
+foo_var = Variable('/foo_value/bar/baz')
+
+Link('Link to foo', to=foo_var)
+```
+
+2. Passing a `RouterPath` object as the `to` prop
+
+```python
+from dara.core import RouterPath, Variable
+from dara.components import Link
+
+foo_var = Variable('foo_value')
+path = RouterPath(pathname='/:foo/bar/baz', params={'foo': foo_var})
+Link('Link to path', to=path)
+```
+
+The `RouterPath` object accepts an optional `params` mapping of dynamic path params to their values. This allows you to pass dynamic values to the path, which will be resolved to a static path before navigation.
+
+Both of these will resolve to the same URL: `/foo_value/bar/baz`.
+
 ### Example: Static Layout with SideBarFrame
 
 ```python
@@ -481,6 +511,49 @@ config.router.add_page(
     fallback=Fallback.Default()
 )
 ```
+
+### Accessing Current Route Matches
+
+You can access the currently matched routes as a `Variable` using the `route_matches` property of the `Router` instance:
+
+```python
+from dara.core import Variable, ConfigurationBuilder, For, Outlet
+from dara.components import Stack, Text, Link, If
+
+config = ConfigurationBuilder()
+
+def Breadcrumbs():
+    # Get the current route matches as a Variable[list[RouteMatch]]
+    rm = config.router.route_matches
+
+    return Stack(
+        For(
+            items=rm,
+            renderer=Stack(
+                If(
+                    rm.list_item.is_first != True,
+                    Text('>'),
+                ),
+                Link(Text(rm.list_item.get('definition').get('name')), to=rm.list_item.get('pathname')),
+                direction='horizontal',
+                hug=True,
+            ),
+        ),
+        direction='horizontal',
+        hug=True,
+    )
+
+def RootLayout():
+    return Stack(
+        Breadcrumbs(),
+        Outlet()
+    )
+
+root = config.router.add_layout(content=RootLayout)
+```
+
+The above example will render a rudimentary breadcrumbs component that shows the current route matches.
+
 
 ### Case Sensitivity and Other Options
 

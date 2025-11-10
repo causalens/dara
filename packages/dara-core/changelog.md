@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added support for parametrized routes in the `Link` component and `navigate` action by passing optional dynamic `params` kwarg
+-  Added `route_matches` property to the `Router` instance which lets you access the current route matches as a variable. This can be useful for e.g. dynamic breadcrumb components
+-  Added `is_first`, `is_last` and `index` properties to the `LoopVariable` class exposed as `Variable().list_item`. These "meta" properties can be useful inside the `For` component renderer
+
 ## 1.21.23
 
 -  Added a new `CopyToClipboard` action (also available as `ctx.copy_to_clipboard`) to copy a given value to the user's clipboard

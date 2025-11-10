@@ -13,6 +13,8 @@ import {
     type PageRouteDefinition,
     type PrefixRouteDefinition,
     type RouteDefinition,
+    type RouteMatch,
+    type Variable,
 } from '@/types/core';
 
 import DynamicAuthComponent from '../shared/dynamic-component/dynamic-auth-component';
@@ -160,6 +162,7 @@ interface RouterWithRoutes {
     routeObjects: RouteObject[];
     routeDefMap: Map<string, RouteDefinition>;
     defaultPath: string;
+    routeMatches: Variable<RouteMatch[]>;
 }
 
 /**
@@ -257,5 +260,6 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
         routeObjects: userRoutes,
         routeDefMap,
         defaultPath,
+        routeMatches: config.router.route_matches,
     };
 }
