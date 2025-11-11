@@ -13,7 +13,7 @@ const safeGeneratePath: typeof generatePath = (...args) => {
         return generatePath(...args);
     } catch (e) {
         throw new UserError(
-            `Invalid RouterPath provided (\`${JSON.stringify(args)}\`)- failed to generate path - "${e}"`
+            `Invalid RouterPath provided (\`${JSON.stringify(args)}\`)- failed to generate path - "${String(e)}"`
         );
     }
 };
