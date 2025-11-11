@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- When there is only a single action in an `ActionCell` we make sure that clicking the whole cell should trigger that action.
+
+
 ## 1.21.8
 
 - Exported markdown component wrapper and code display component
