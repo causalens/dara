@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 -  Added 3 new accent colors to the base theme definition and existing Light and Dark themes: `carrot`, `kale` and `chestnut`
+-  Added `is_first`, `is_last` and `index` properties to the `LoopVariable` class exposed as `Variable().list_item`. These "meta" properties can be useful inside the `For` component renderer
 
 ## 1.21.23
 

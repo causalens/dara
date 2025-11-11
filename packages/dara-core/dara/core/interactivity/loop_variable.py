@@ -2,6 +2,10 @@ from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
 from .client_variable import ClientVariable
 
+_INDEX = '__index'
+_IS_LAST = '__is_last'
+_IS_FIRST = '__is_first'
+
 
 class LoopVariable(ClientVariable):
     """
@@ -75,6 +79,27 @@ class LoopVariable(ClientVariable):
 
     def __getitem__(self, key: str):
         return self.get(key)
+
+    @property
+    def index(self):
+        """
+        Value of the index of the current item in the list.
+        """
+        return self.model_copy(update={'nested': [_INDEX]}, deep=True)
+
+    @property
+    def is_last(self):
+        """
+        Whether the current item is the last item in the list.
+        """
+        return self.model_copy(update={'nested': [_IS_LAST]}, deep=True)
+
+    @property
+    def is_first(self):
+        """
+        Whether the current item is the first item in the list.
+        """
+        return self.model_copy(update={'nested': [_IS_FIRST]}, deep=True)
 
     @property
     def list_item(self):

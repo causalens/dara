@@ -101,6 +101,11 @@ export function getInjectionMarkers(renderer: Record<string, any>): Marker[] {
     return markers;
 }
 
+// Special markers used by the For component
+export const MARKER_INDEX = '__index';
+export const MARKER_IS_LAST = '__is_last';
+export const MARKER_IS_FIRST = '__is_first';
+
 /**
  * Inject a loop variable into a renderer.
  * This will replace any loop variable in the renderer with the loop value.
@@ -109,12 +114,21 @@ export function getInjectionMarkers(renderer: Record<string, any>): Marker[] {
  * @param markers paths of loop variables in the renderer
  * @param loopValue value to inject
  */
-export function applyMarkers<T extends Record<string, any>>(
-    renderer: T,
-    markers: Marker[],
-    loopValue: any,
-    itemKey: React.Key
-): T {
+export function applyMarkers<T extends Record<string, any>>({
+    renderer,
+    markers,
+    loopValue,
+    itemKey,
+    index,
+    itemsLength,
+}: {
+    renderer: T;
+    markers: Marker[];
+    loopValue: any;
+    itemKey: React.Key;
+    index: number;
+    itemsLength: number;
+}): T {
     // early exit if there are no markers
     if (markers.length === 0) {
         return renderer;
@@ -125,8 +139,21 @@ export function applyMarkers<T extends Record<string, any>>(
     for (const marker of markers) {
         switch (marker.type) {
             case 'loop_var': {
-                // replace loop variable with the loop value using the nested path
-                set(clonedRenderer, marker.path, resolveNested(loopValue, marker.nested));
+                let value;
+
+                // special case for index, is_last, and is_first markers
+                if (marker.nested.length === 1 && marker.nested[0] === MARKER_INDEX) {
+                    value = index;
+                } else if (marker.nested.length === 1 && marker.nested[0] === MARKER_IS_LAST) {
+                    value = index === itemsLength - 1;
+                } else if (marker.nested.length === 1 && marker.nested[0] === MARKER_IS_FIRST) {
+                    value = index === 0;
+                } else {
+                    // replace loop variable with the loop value using the nested path
+                    value = resolveNested(loopValue, marker.nested);
+                }
+
+                set(clonedRenderer, marker.path, value);
                 break;
             }
             case 'action': {
