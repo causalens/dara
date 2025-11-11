@@ -1,11 +1,13 @@
 import NProgress from 'nprogress';
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-import { Outlet, useNavigation } from 'react-router';
+import { Outlet, useMatches, useNavigation } from 'react-router';
 import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider } from '@darajs/styled-components';
 
 import { GlobalStyle } from '@/global-styles';
+import { useRouterContext } from '@/router/context';
+import type { RouteMatch } from '@/types';
 
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
@@ -24,6 +26,30 @@ function StyleRoot(props: { children: ReactNode }): JSX.Element {
             {props.children}
         </ThemeProvider>
     );
+}
+
+function MatchesSync(props: { children: ReactNode }): ReactNode {
+    const routerCtx = useRouterContext();
+    const matches = useMatches();
+    const [routerMatches, setRouteMatchesVar] = useVariable(routerCtx.routeMatches);
+
+    useEffect(() => {
+        const daraMatches = matches
+            .filter((m) => routerCtx.routeDefMap.has(m.id))
+            .map((m) => {
+                const routeDef = routerCtx.routeDefMap.get(m.id)!;
+
+                return {
+                    id: m.id,
+                    pathname: m.pathname,
+                    params: m.params,
+                    definition: routeDef,
+                } satisfies RouteMatch;
+            }) satisfies RouteMatch[];
+        setRouteMatchesVar(daraMatches);
+    }, [matches, routerCtx.routeDefMap]);
+
+    return props.children;
 }
 
 /**
@@ -61,7 +87,9 @@ function UnauthenticatedRoot(): JSX.Element {
         <PathParamSync>
             <RecoilURLSync {...syncOptions}>
                 <StyleRoot>
-                    <Outlet />
+                    <MatchesSync>
+                        <Outlet />
+                    </MatchesSync>
                 </StyleRoot>
             </RecoilURLSync>
         </PathParamSync>

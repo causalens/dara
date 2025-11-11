@@ -83,6 +83,17 @@ export type RouteDefinition =
 
 export interface RouterDefinition {
     children: Array<RouteDefinition>;
+    route_matches: SingleVariable<RouteMatch[]>;
+}
+
+/**
+ * Route match, as expected by Dara Router.route_matches variable
+ */
+export interface RouteMatch {
+    id: string;
+    pathname: string;
+    params: Record<string, any>;
+    definition: RouteDefinition;
 }
 
 export interface RouterPath extends Path {
