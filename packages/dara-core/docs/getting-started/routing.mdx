@@ -312,7 +312,7 @@ foo_var = Variable('/foo_value/bar/baz')
 Link('Link to foo', to=foo_var)
 ```
 
-2. Passing a `RouterPath` object as the `to` prop
+2. When passing a `RouterPath` object as the `to` prop, use the `params` property to pass dynamic parameters:
 
 ```python
 from dara.core import RouterPath, Variable

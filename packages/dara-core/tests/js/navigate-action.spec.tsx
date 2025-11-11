@@ -228,12 +228,12 @@ describe('NavigateTo action', () => {
                 name: 'NavigateTo',
                 new_tab: false,
                 uid: 'uid',
-                url: { pathname: ':param1/:param2', params: { param1, param2 } },
+                url: { pathname: ':param1/:param2/:param3', params: { param1, param2, param3: 'static' } },
             } satisfies NavigateToImpl);
 
             // called with resolved URL
             expect(ctx.navigate).toHaveBeenCalledWith(
-                expect.objectContaining({ pathname: 'value1/value2' }),
+                expect.objectContaining({ pathname: 'value1/value2/static' }),
                 undefined
             );
         }, 'http://localhost:3000/test');
