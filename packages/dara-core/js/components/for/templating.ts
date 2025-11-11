@@ -102,9 +102,9 @@ export function getInjectionMarkers(renderer: Record<string, any>): Marker[] {
 }
 
 // Special markers used by the For component
-const MARKER_INDEX = '__index';
-const MARKER_IS_LAST = '__is_last';
-const MARKER_IS_FIRST = '__is_first';
+export const MARKER_INDEX = '__index';
+export const MARKER_IS_LAST = '__is_last';
+export const MARKER_IS_FIRST = '__is_first';
 
 /**
  * Inject a loop variable into a renderer.

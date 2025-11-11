@@ -2,7 +2,15 @@ import { nanoid } from 'nanoid';
 
 import type { ComponentInstance, DerivedVariable, LoopVariable } from '@/types/core';
 
-import { type Marker, applyMarkers, getInjectionMarkers, hasMarkers } from '../../js/components/for/templating';
+import {
+    MARKER_INDEX,
+    MARKER_IS_FIRST,
+    MARKER_IS_LAST,
+    type Marker,
+    applyMarkers,
+    getInjectionMarkers,
+    hasMarkers,
+} from '../../js/components/for/templating';
 
 // Mock the nanoid function to return predictable values for testing
 vi.mock('nanoid', () => ({
@@ -216,7 +224,14 @@ describe('templating utilities', () => {
                 uid: 'component-uid',
             };
 
-            const result = applyMarkers(renderer, [], { name: 'John' }, 'item-1');
+            const result = applyMarkers({
+                renderer,
+                markers: [],
+                loopValue: { name: 'John' },
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
             expect(result).toEqual(renderer);
             expect(result).toBe(renderer); // should NOT be a deep clone for perf
         });
@@ -240,7 +255,7 @@ describe('templating utilities', () => {
             ];
 
             const loopValue = { name: 'John Doe', age: 30 };
-            const result = applyMarkers(renderer, markers, loopValue, 'item-1');
+            const result = applyMarkers({ renderer, markers, loopValue, itemKey: 'item-1', index: 0, itemsLength: 1 });
 
             expect(result.props.user).toBe('John Doe');
             expect(result.props.title).toBe('Hello');
@@ -251,7 +266,21 @@ describe('templating utilities', () => {
                 name: 'TestComponent',
                 props: {
                     data: {
-                        user: mockLoopVariableWithDeepNesting,
+                        user: {
+                            uid: 'loop-uid-index',
+                            nested: [MARKER_INDEX],
+                            __typename: 'LoopVariable',
+                        } satisfies LoopVariable,
+                        profile: {
+                            uid: 'loop-uid-first',
+                            nested: [MARKER_IS_FIRST],
+                            __typename: 'LoopVariable',
+                        } satisfies LoopVariable,
+                        data: {
+                            uid: 'loop-uid-last',
+                            nested: [MARKER_IS_LAST],
+                            __typename: 'LoopVariable',
+                        } satisfies LoopVariable,
                     },
                 },
                 uid: 'component-uid',
@@ -261,21 +290,55 @@ describe('templating utilities', () => {
                 {
                     type: 'loop_var',
                     path: 'props.data.user',
-                    nested: ['user', 'profile', 'email'],
+                    nested: [MARKER_INDEX],
+                },
+                {
+                    type: 'loop_var',
+                    path: 'props.data.profile',
+                    nested: [MARKER_IS_FIRST],
+                },
+                {
+                    type: 'loop_var',
+                    path: 'props.data.data',
+                    nested: [MARKER_IS_LAST],
                 },
             ];
 
-            const loopValue = {
-                user: {
-                    profile: {
-                        email: 'john@example.com',
-                        name: 'John',
-                    },
-                },
-            };
+            const resultFirst = applyMarkers({
+                renderer,
+                markers,
+                loopValue: 'whatever',
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 3,
+            });
+            expect(resultFirst.props.data.user).toBe(0);
+            expect(resultFirst.props.data.profile).toBe(true);
+            expect(resultFirst.props.data.data).toBe(false);
 
-            const result = applyMarkers(renderer, markers, loopValue, 'item-1');
-            expect(result.props.data.user).toBe('john@example.com');
+            const resultSecond = applyMarkers({
+                renderer,
+                markers,
+                loopValue: 'whatever',
+                itemKey: 'item-2',
+                index: 1,
+                itemsLength: 3,
+            });
+            expect(resultSecond.props.data.user).toBe(1);
+            expect(resultSecond.props.data.profile).toBe(false);
+            expect(resultSecond.props.data.data).toBe(false);
+
+            const resultThird = applyMarkers({
+                renderer,
+                markers,
+                loopValue: 'whatever',
+                itemKey: 'item-3',
+                index: 2,
+                itemsLength: 3,
+            });
+            expect(resultThird.props.data.user).toBe(2);
+            expect(resultThird.props.data.profile).toBe(false);
+            expect(resultThird.props.data.data).toBe(true);
         });
 
         it('should apply derived variable markers with loop instance uid', () => {
@@ -295,7 +358,14 @@ describe('templating utilities', () => {
                 },
             ];
 
-            const result = applyMarkers(renderer, markers, { name: 'John' }, 'item-5');
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { name: 'John' },
+                itemKey: 'item-5',
+                index: 0,
+                itemsLength: 1,
+            });
 
             expect(result.props.computed.loop_instance_uid).toBe('loop-uid-123:item-5');
             expect(result.props.computed.uid).toBe('derived-uid-456'); // original uid preserved
@@ -327,7 +397,14 @@ describe('templating utilities', () => {
                 },
             ];
 
-            const result = applyMarkers(renderer, markers, { name: 'John' }, 'item-10');
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { name: 'John' },
+                itemKey: 'item-10',
+                index: 0,
+                itemsLength: 1,
+            });
 
             expect(result.props.serverComp.loop_instance_uid).toBe('loop-uid-789:item-10');
         });
@@ -351,7 +428,14 @@ describe('templating utilities', () => {
                 },
             ];
 
-            const result = applyMarkers(renderer, markers, { name: 'John' }, 'item-1');
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { name: 'John' },
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
 
             expect(result.props.action.loading.uid).toBe('mock-nanoid-123');
             expect(nanoid).toHaveBeenCalled();
@@ -381,7 +465,7 @@ describe('templating utilities', () => {
                 user: { profile: { email: 'jane@example.com' } },
             };
 
-            const result = applyMarkers(renderer, markers, loopValue, 'item-2');
+            const result = applyMarkers({ renderer, markers, loopValue, itemKey: 'item-2', index: 0, itemsLength: 1 });
 
             expect(result.props.user).toBe('Jane Doe');
             expect(result.props.computed.loop_instance_uid).toBe('loop-uid-123:item-2');
