@@ -9,9 +9,11 @@ import { type ActionContext, type RouterPath, isVariable } from '@/types';
  * This resolves extra 'params' variables in the path to their values.
  * It's a noop for strings or path objects with no params.
  *
+ * NOTE: This calls useVariable on each param, be careful about rules-of-hooks
+ *
  * @param path the path to resolve
  */
-export function useResolvedTo<T extends Partial<RouterPath> | string>(path: T): T {
+export function useResolvedTo(path: string | Partial<RouterPath>): string | Partial<RouterPath> {
     if (typeof path === 'string') {
         return path;
     }
@@ -21,13 +23,17 @@ export function useResolvedTo<T extends Partial<RouterPath> | string>(path: T): 
     }
 
     const resolvedParams = Object.fromEntries(
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         Object.entries(path.params).map(([key, value]) => [key, useVariable(value)[0]])
     );
-    const resolvedPath = generatePath(path.pathname!, resolvedParams);
-    return { ...(path as Partial<RouterPath>), pathname: resolvedPath } as T;
+    const resolvedPath = generatePath(path.pathname, resolvedParams);
+    return { ...path, pathname: resolvedPath };
 }
 
-export async function resolveTo<T extends Partial<RouterPath> | string>(path: T, ctx: ActionContext): Promise<T> {
+export async function resolveTo(
+    path: string | Partial<RouterPath>,
+    ctx: ActionContext
+): Promise<string | Partial<RouterPath>> {
     if (typeof path === 'string') {
         return path;
     }
@@ -47,6 +53,6 @@ export async function resolveTo<T extends Partial<RouterPath> | string>(path: T,
     );
     // zip new values with param keys
     const resolvedParams = Object.fromEntries(Object.keys(path.params).map((key, idx) => [key, values[idx]]));
-    const resolvedPath = generatePath(path.pathname!, resolvedParams);
-    return { ...(path as Partial<RouterPath>), pathname: resolvedPath } as T;
+    const resolvedPath = generatePath(path.pathname, resolvedParams);
+    return { ...path, pathname: resolvedPath };
 }

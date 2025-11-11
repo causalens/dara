@@ -217,8 +217,7 @@ describe('NavigateTo action', () => {
                     if (v.key === 'param2__null') {
                         return Promise.resolve('value2');
                     }
-                    console.error(`Can't resolve variable: ${JSON.stringify(v)}`);
-                    return Promise.reject();
+                    return Promise.reject(new Error(`Can't resolve variable: ${JSON.stringify(v)}`));
                 }),
             },
         };

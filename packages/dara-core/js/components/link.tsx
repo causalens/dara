@@ -8,7 +8,7 @@ import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { useVariable } from '@/shared/interactivity';
 import useComponentStyles from '@/shared/utils/use-component-styles';
-import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable, isVariable } from '@/types';
+import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '@/types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
@@ -25,6 +25,11 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     inactive_css?: StyledComponentProps['raw_css'];
     referrer_policy?: NavLinkProps['referrerPolicy'];
 }
+
+type ResolvedLinkProps = Omit<LinkProps, 'to'> & {
+    to: string | Partial<RouterPath>;
+    children: Array<ComponentInstance>;
+};
 
 const NavLinkWrapper = React.forwardRef(
     (
@@ -65,15 +70,14 @@ const StyledNavLink = styled(NavLinkWrapper)<{ $activeCss: string; $inactiveCss:
     }
 `;
 
-function Link(props: LinkProps): React.ReactNode {
+
+function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
     const displayCtx = React.useContext(DisplayCtx);
     const [style, css] = useComponentStyles(props);
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
 
-    // We only support resolving params in non-variable links as object keys need to be
-    // stable to not break react rules
-    const to = isVariable(props.to) ? useVariable(props.to)[0] : useResolvedTo(props.to);
+    const [to] = useVariable(props.to);
 
     // Prefetching approach inspired by SolidJS's router:
     // https://github.com/solidjs/solid-router/blob/30f08665e87829736a9333d55863d27905f4a92d/src/data/events.ts#L7
@@ -162,6 +166,20 @@ function Link(props: LinkProps): React.ReactNode {
             </StyledNavLink>
         </DisplayCtx.Provider>
     );
+}
+
+function LinkResolveImpl(props: ResolvedLinkProps): React.ReactNode {
+    // resolve variable param variable values
+    const to = useResolvedTo(props.to);
+    return <LinkImpl {...props} to={to} />;
+}
+
+function Link(props: LinkProps): React.ReactNode {
+    // unwrap variable -> value
+    const [to] = useVariable(props.to);
+
+    // key required to ensure we remount since we call hooks in a loop on props.to
+    return <LinkResolveImpl {...props} to={to} key={JSON.stringify(to)} />;
 }
 
 export default Link;
