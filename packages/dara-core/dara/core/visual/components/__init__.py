@@ -34,6 +34,7 @@ from .fallback import (
 )
 from .for_cmp import For, ForDef
 from .invalid_component import InvalidComponent
+from .match_cmp import Match, MatchDef
 from .menu import Menu, MenuDef
 from .powered_by_causalens import PoweredByCausalens, PoweredByCausalensDef
 from .progress_tracker import (
@@ -52,6 +53,8 @@ __all__ = [
     'InvalidComponent',
     'ProgressTracker',
     'ProgressTrackerDef',
+    'Match',
+    'MatchDef',
     'Menu',
     'MenuDef',
     'For',

@@ -2,9 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
--  Implemented `Match` component to allow conditional rendering based on a variable value without needing to use multiple `If` components
 
 ## 1.21.19
 

@@ -1,26 +1,10 @@
-"""
-Copyright 2023 Impulse Innovations Limited
+from dara.core.definitions import ComponentInstance, JsComponentDef
+from dara.core.interactivity.client_variable import ClientVariable
+
+MatchDef = JsComponentDef(name='Match', js_module='@darajs/core', py_module='dara.core')
 
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
-from dara.components.common.base_component import ModifierComponent
-from dara.core import ClientVariable
-from dara.core.definitions import ComponentInstance
-
-
-class Match(ModifierComponent):
+class Match(ComponentInstance):
     """
     The Match component allows the children to be rendered based on a value, at runtime in the JS code.
     The component then accepts a map of primitive values to children and a a default children set.

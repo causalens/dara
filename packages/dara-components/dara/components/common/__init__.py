@@ -52,7 +52,6 @@ from dara.components.common.image import Image
 from dara.components.common.input import Input
 from dara.components.common.label import Label
 from dara.components.common.markdown import Markdown
-from dara.components.common.match_cmp import Match
 from dara.components.common.modal import Modal
 from dara.components.common.overlay import Overlay
 from dara.components.common.paragraph import Paragraph
@@ -103,7 +102,6 @@ __all__ = [
     'ItemBadge',
     'Label',
     'ListSection',
-    'Match',
     'MenuItem',
     'Markdown',
     'Modal',
