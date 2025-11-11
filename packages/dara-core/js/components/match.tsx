@@ -1,14 +1,10 @@
 import { useMemo } from 'react';
 
-import {
-    type ComponentInstance,
-    DynamicComponent,
-    type StyledComponentProps,
-    type Variable,
-    useVariable,
-} from '@darajs/core';
+import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
+import { useVariable } from '@/shared/interactivity';
+import type { BaseComponentProps, ComponentInstance, Variable } from '@/types';
 
-interface MatchProps extends StyledComponentProps {
+interface MatchProps extends BaseComponentProps {
     value: Variable<any>;
     when: Record<string | number, ComponentInstance | null>;
     default: ComponentInstance | null;

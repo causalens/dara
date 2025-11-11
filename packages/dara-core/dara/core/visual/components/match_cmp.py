@@ -13,8 +13,8 @@ class Match(ComponentInstance):
 
     ```python
     from enum import StrEnum
-    from dara.core import Variable
-    from dara.components import Match, Text
+    from dara.core import Variable, Match
+    from dara.components import Text
 
     class Status(StrEnum):
         OK = 'OK'
