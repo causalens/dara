@@ -44,6 +44,7 @@ from dara.core.interactivity.condition import Condition, Operator
 from dara.core.interactivity.data_variable import DataVariable
 from dara.core.interactivity.derived_data_variable import DerivedDataVariable
 from dara.core.interactivity.derived_variable import DerivedVariable
+from dara.core.interactivity.loop_variable import LoopVariable
 from dara.core.interactivity.non_data_variable import NonDataVariable
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.interactivity.server_variable import ServerVariable
@@ -69,6 +70,7 @@ __all__ = [
     'DownloadVariable',
     'DownloadContent',
     'DownloadContentImpl',
+    'LoopVariable',
     'NavigateTo',
     'NavigateToImpl',
     'Notify',

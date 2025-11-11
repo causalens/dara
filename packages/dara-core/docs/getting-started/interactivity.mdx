@@ -780,6 +780,30 @@ For(
 
 To support a list of objects (dicts), `LoopVariable` behaves like a dict (i.e. supports index access with `[key]` or `.get(key)`) to retrieve a reference to a given field which will be replaced with the value of that key for each item in the list.
 
+`LoopVariable` also supports the `is_first`, `is_last` and `index` "meta" properties which can be useful to change part of the display depending on the item's position in the list.
+
+```python
+from dara.core import Variable, For, If
+from dara.components import Text, Stack
+
+my_list = Variable([1, 2, 3])
+
+# Renders a list of Text components joined by '>'
+For(
+    items=my_list,
+    renderer=Stack(
+        If(
+            my_list.list_item.is_first != True,
+            Text('>')
+        ),
+        Text(text=my_list.list_item),
+        direction='horizontal',
+        hug=True
+    ),
+    placeholder=Text('No items') # fallback component to render if the data source is empty
+)
+```
+
 Note that you should specify the `key_accessor` argument to specify which field to use as the unique identifier to optimize the performance of the component. If you don't specify it, the index of the item in the list will be used instead which might cause issues when the list is updated or re-ordered.
 
 ```python
