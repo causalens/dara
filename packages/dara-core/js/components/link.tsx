@@ -3,11 +3,12 @@ import { NavLink, type NavLinkProps } from 'react-router';
 import styled from 'styled-components';
 
 import { usePreloadRoute } from '@/router/fetching';
+import { useResolvedTo } from '@/router/resolve-to';
 import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { useVariable } from '@/shared/interactivity';
 import useComponentStyles from '@/shared/utils/use-component-styles';
-import type { ComponentInstance, StyledComponentProps, Variable } from '@/types';
+import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '@/types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
@@ -16,7 +17,7 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
     prefetch?: boolean;
-    to: MaybeVariable<NavLinkProps['to']>;
+    to: MaybeVariable<string | Partial<RouterPath>>;
     // Used via useComponentStyles
     // eslint-disable-next-line react/no-unused-prop-types
     active_css?: StyledComponentProps['raw_css'];
@@ -24,6 +25,11 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     inactive_css?: StyledComponentProps['raw_css'];
     referrer_policy?: NavLinkProps['referrerPolicy'];
 }
+
+type ResolvedLinkProps = Omit<LinkProps, 'to'> & {
+    to: string | Partial<RouterPath>;
+    children: Array<ComponentInstance>;
+};
 
 const NavLinkWrapper = React.forwardRef(
     (
@@ -64,11 +70,12 @@ const StyledNavLink = styled(NavLinkWrapper)<{ $activeCss: string; $inactiveCss:
     }
 `;
 
-function Link(props: LinkProps): React.ReactNode {
+function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
     const displayCtx = React.useContext(DisplayCtx);
     const [style, css] = useComponentStyles(props);
     const [activeStyle, activeCss] = useComponentStyles(props, true, 'active_css');
     const [inactiveStyle, inactiveCss] = useComponentStyles(props, false, 'inactive_css');
+
     const [to] = useVariable(props.to);
 
     // Prefetching approach inspired by SolidJS's router:
@@ -158,6 +165,20 @@ function Link(props: LinkProps): React.ReactNode {
             </StyledNavLink>
         </DisplayCtx.Provider>
     );
+}
+
+function LinkResolveImpl(props: ResolvedLinkProps): React.ReactNode {
+    // resolve variable param variable values
+    const to = useResolvedTo(props.to);
+    return <LinkImpl {...props} to={to} />;
+}
+
+function Link(props: LinkProps): React.ReactNode {
+    // unwrap variable -> value
+    const [to] = useVariable(props.to);
+
+    // key required to ensure we remount since we call hooks in a loop on props.to
+    return <LinkResolveImpl {...props} to={to} key={JSON.stringify(to)} />;
 }
 
 export default Link;

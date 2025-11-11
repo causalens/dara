@@ -454,6 +454,29 @@ class RouterPath(BaseModel):
     A URL hash string, beginning with '#'.
     """
 
+    params: dict[str, ClientVariable | Any] | None = None  # type: ignore # noqa: F821
+    """
+    Optional mapping of dynamic path params to their values.
+
+    ```python
+    from dara.core import RouterPath, Variable
+
+    foo_var = Variable('foo_value')
+
+    # Will resolve to '/foo_value/bar'
+    path = RouterPath(pathname='/:foo/:bar', params={'foo': foo_var, 'bar': 'bar'})
+
+    Link('Link to path', to=path)
+    ```
+    """
+
+    def __init__(self, **data):
+        # Resolve the circular dependency to use ClientVariable as the type of the params
+        from dara.core.interactivity.client_variable import ClientVariable  # noqa: F401
+
+        self.model_rebuild()
+        super().__init__(**data)
+
 
 class NavigateOptions(BaseModel):
     """
