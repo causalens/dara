@@ -77,14 +77,12 @@ const ActionWrapper = styled.div`
 // We are making the single action wrapper absolute to ensure it covers the entire cell and is clickable wherever you click on the cell
 const SingleActionWrapper = styled(ActionWrapper)`
     cursor: pointer;
+
+    position: absolute;
+    inset: 0;
+
     width: 100%;
     height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-   
 `;
 /** Interface is very loose because react table basically lets anything go through here */
 interface ActionCellProps {
