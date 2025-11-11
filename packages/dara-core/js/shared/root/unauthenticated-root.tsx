@@ -1,17 +1,15 @@
 import NProgress from 'nprogress';
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-import { Outlet, useMatches, useNavigation } from 'react-router';
+import { Outlet, useNavigation } from 'react-router';
 import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider } from '@darajs/styled-components';
 
 import { GlobalStyle } from '@/global-styles';
-import { useRouterContext } from '@/router/context';
-import type { RouteMatch } from '@/types';
 
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
-import { PathParamSync } from '../interactivity/persistence';
+import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';
 import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
 
@@ -26,30 +24,6 @@ function StyleRoot(props: { children: ReactNode }): JSX.Element {
             {props.children}
         </ThemeProvider>
     );
-}
-
-function MatchesSync(props: { children: ReactNode }): ReactNode {
-    const routerCtx = useRouterContext();
-    const matches = useMatches();
-    const [routerMatches, setRouteMatchesVar] = useVariable(routerCtx.routeMatches);
-
-    useEffect(() => {
-        const daraMatches = matches
-            .filter((m) => routerCtx.routeDefMap.has(m.id))
-            .map((m) => {
-                const routeDef = routerCtx.routeDefMap.get(m.id)!;
-
-                return {
-                    id: m.id,
-                    pathname: m.pathname,
-                    params: m.params,
-                    definition: routeDef,
-                } satisfies RouteMatch;
-            }) satisfies RouteMatch[];
-        setRouteMatchesVar(daraMatches);
-    }, [matches, routerCtx.routeDefMap]);
-
-    return props.children;
 }
 
 /**
@@ -85,13 +59,13 @@ function UnauthenticatedRoot(): JSX.Element {
 
     return (
         <PathParamSync>
-            <RecoilURLSync {...syncOptions}>
-                <StyleRoot>
-                    <MatchesSync>
+            <RouteMatchSync>
+                <RecoilURLSync {...syncOptions}>
+                    <StyleRoot>
                         <Outlet />
-                    </MatchesSync>
-                </StyleRoot>
-            </RecoilURLSync>
+                    </StyleRoot>
+                </RecoilURLSync>
+            </RouteMatchSync>
         </PathParamSync>
     );
 }

@@ -2,19 +2,18 @@ import { generatePath } from 'react-router';
 
 import { useVariable } from '@/shared';
 import { resolveVariable } from '@/shared/interactivity/resolve-variable';
-import { type ActionContext, type RouterPath, UserError, isVariable } from '@/types';
+import { type ActionContext, type RouterPath, isVariable } from '@/types';
 
 /**
- * Wrapper around generatePath that catches errors and throws a UserError
- * so our ErrorBoundary displays the error for the developer
+ * Wrapper around generatePath that falls back to returning the raw path if an error occurs.
+ * This is needed as in some cases e.g. when relying on the path param variable, it is updated
+ * on a next render cycle which means the first time this runs the path might be invalid.
  */
-const safeGeneratePath: typeof generatePath = (...args) => {
+const safeGeneratePath: typeof generatePath = (path, params) => {
     try {
-        return generatePath(...args);
-    } catch (e) {
-        throw new UserError(
-            `Invalid RouterPath provided (\`${JSON.stringify(args)}\`)- failed to generate path - "${String(e)}"`
-        );
+        return generatePath(path, params);
+    } catch {
+        return path;
     }
 };
 

@@ -5,11 +5,11 @@ import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
-import { resolveReferrer } from '@/auth';
+import { resolveReferrer } from '@/auth/auth';
 import { getSessionToken, onTokenChange, useSessionToken } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
 import { WebSocketCtx } from '@/shared/context';
-import { cleanSessionCache } from '@/shared/utils';
+import cleanSessionCache from '@/shared/utils/clean-session-cache';
 import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
 import type { DaraData } from '@/types/core';
 

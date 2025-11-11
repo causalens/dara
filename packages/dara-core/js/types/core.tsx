@@ -1,4 +1,4 @@
-import type { Location, NavigateFunction, NavigateOptions, Path, To } from 'react-router';
+import type { Location, NavigateFunction, NavigateOptions, Path, To, UIMatch } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 import * as z from 'zod/v4';
 
@@ -96,6 +96,27 @@ export interface RouteMatch {
     definition: RouteDefinition;
 }
 
+/**
+ * Create a RouteMatch array from a UIMatch array and a definition map
+ *
+ * @param uiMatches UI matches
+ * @param definitionMap definition map
+ */
+export function createRouteMatches(uiMatches: UIMatch[], definitionMap: Map<string, RouteDefinition>): RouteMatch[] {
+    return uiMatches
+        .filter((m) => definitionMap.has(m.id))
+        .map((m) => {
+            const routeDef = definitionMap.get(m.id)!;
+
+            return {
+                id: m.id,
+                pathname: m.pathname,
+                params: m.params,
+                definition: routeDef,
+            } satisfies RouteMatch;
+        });
+}
+
 export interface RouterPath extends Path {
     params: Record<string, Variable<any> | any>;
 }
@@ -185,6 +206,14 @@ export interface PathParamStore extends PersistenceStore {
 
 export function isPathParamStore(store: PersistenceStore): store is PathParamStore {
     return store.__typename === '_PathParamStore';
+}
+
+export interface RouteMatchStore extends PersistenceStore {
+    __typename: '_RouteMatchStore';
+}
+
+export function isRouteMatchStore(store: PersistenceStore): store is RouteMatchStore {
+    return store.__typename === '_RouteMatchStore';
 }
 
 export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
