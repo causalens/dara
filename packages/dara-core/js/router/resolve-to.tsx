@@ -2,7 +2,21 @@ import { generatePath } from 'react-router';
 
 import { useVariable } from '@/shared';
 import { resolveVariable } from '@/shared/interactivity/resolve-variable';
-import { type ActionContext, type RouterPath, isVariable } from '@/types';
+import { type ActionContext, type RouterPath, UserError, isVariable } from '@/types';
+
+/**
+ * Wrapper around generatePath that catches errors and throws a UserError
+ * so our ErrorBoundary displays the error for the developer
+ */
+const safeGeneratePath: typeof generatePath = (...args) => {
+    try {
+        return generatePath(...args);
+    } catch (e) {
+        throw new UserError(
+            `Invalid RouterPath provided (\`${JSON.stringify(args)}\`)- failed to generate path - "${e}"`
+        );
+    }
+};
 
 /**
  * Resolve a "To" value.
@@ -26,7 +40,7 @@ export function useResolvedTo(path: string | Partial<RouterPath>): string | Part
         // eslint-disable-next-line react-hooks/rules-of-hooks
         Object.entries(path.params).map(([key, value]) => [key, useVariable(value)[0]])
     );
-    const resolvedPath = generatePath(path.pathname, resolvedParams);
+    const resolvedPath = safeGeneratePath(path.pathname, resolvedParams);
     return { ...path, pathname: resolvedPath };
 }
 
@@ -53,6 +67,6 @@ export async function resolveTo(
     );
     // zip new values with param keys
     const resolvedParams = Object.fromEntries(Object.keys(path.params).map((key, idx) => [key, values[idx]]));
-    const resolvedPath = generatePath(path.pathname, resolvedParams);
+    const resolvedPath = safeGeneratePath(path.pathname, resolvedParams);
     return { ...path, pathname: resolvedPath };
 }
