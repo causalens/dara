@@ -26,7 +26,7 @@ async function withMockHref(callback: (hrefSetter: Mock) => void | Promise<void>
     }
 }
 
-function withMockOpen(callback: (openSetter: Mock) => void): void {
+async function withMockOpen(callback: (openSetter: Mock) => void | Promise<void>): Promise<void> {
     const originalOpen = window.open;
     try {
         const mock = vi.fn();
@@ -36,7 +36,7 @@ function withMockOpen(callback: (openSetter: Mock) => void): void {
             },
             writable: true,
         });
-        callback(mock);
+        await callback(mock);
     } finally {
         window.open = originalOpen;
     }
@@ -57,12 +57,12 @@ describe('NavigateTo action', () => {
         { url: { pathname: './to' } },
         { url: { pathname: '../to' } },
         { url: { pathname: 'to' } },
-    ])('should navigate relatively to "$url" using react router with options "$options"', ({ url, options }) => {
+    ])('should navigate relatively to "$url" using react router with options "$options"', async ({ url, options }) => {
         const ctx = {
             navigate: vi.fn(),
         };
 
-        NavigateTo(ctx as any, {
+        await NavigateTo(ctx as any, {
             __typename: 'ActionImpl',
             name: 'NavigateTo',
             new_tab: false,
@@ -76,13 +76,13 @@ describe('NavigateTo action', () => {
 
     it.each([{ url: 'https://google.com' }, { url: 'http://example.com' }])(
         'should navigate absolutely to "$url" using href',
-        ({ url }) => {
-            withMockHref((hrefSetter) => {
+        async ({ url }) => {
+            await withMockHref(async (hrefSetter) => {
                 const ctx = {
                     navigate: vi.fn(),
                 };
 
-                NavigateTo(ctx as any, {
+                await NavigateTo(ctx as any, {
                     __typename: 'ActionImpl',
                     name: 'NavigateTo',
                     new_tab: false,
@@ -95,13 +95,13 @@ describe('NavigateTo action', () => {
         }
     );
 
-    it('should navigate to same-origin absolute URLs using react router', () => {
+    it('should navigate to same-origin absolute URLs using react router', async () => {
         const ctx = {
             navigate: vi.fn(),
         };
 
-        withMockHref(() => {
-            NavigateTo(ctx as any, {
+        await withMockHref(async () => {
+            await NavigateTo(ctx as any, {
                 __typename: 'ActionImpl',
                 name: 'NavigateTo',
                 new_tab: false,
@@ -113,14 +113,14 @@ describe('NavigateTo action', () => {
         }, 'http://localhost:3000/test');
     });
 
-    it('should navigate to same-origin absolute URLs with base-url using react router', () => {
+    it('should navigate to same-origin absolute URLs with base-url using react router', async () => {
         window.dara.base_url = '/app';
         const ctx = {
             navigate: vi.fn(),
         };
 
-        withMockHref(() => {
-            NavigateTo(ctx as any, {
+        await withMockHref(async () => {
+            await NavigateTo(ctx as any, {
                 __typename: 'ActionImpl',
                 name: 'NavigateTo',
                 new_tab: false,
@@ -137,13 +137,13 @@ describe('NavigateTo action', () => {
         { url: '../to' },
         { url: 'https://google.com' },
         { url: 'http://localhost:3000/another-page' },
-    ])('should navigate to string URL "$url" with new_tab using window.open', ({ url }) => {
+    ])('should navigate to string URL "$url" with new_tab using window.open', async ({ url }) => {
         const ctx = {
             navigate: vi.fn(),
         };
 
-        withMockHref(() => {
-            withMockOpen((openMock) => {
+        await withMockHref(async () => {
+            await withMockOpen((openMock) => {
                 NavigateTo(ctx as any, {
                     __typename: 'ActionImpl',
                     name: 'NavigateTo',
@@ -163,14 +163,14 @@ describe('NavigateTo action', () => {
 
     it.each([{ url: { pathname: '../to' } }, { url: { pathname: 'to' } }])(
         'should navigate to object URL "$url" with new_tab using window.open',
-        ({ url }) => {
+        async ({ url }) => {
             const ctx = {
                 navigate: vi.fn(),
             };
 
-            withMockHref(() => {
-                withMockOpen((openMock) => {
-                    NavigateTo(ctx as any, {
+            await withMockHref(async () => {
+                await withMockOpen(async (openMock) => {
+                    await NavigateTo(ctx as any, {
                         __typename: 'ActionImpl',
                         name: 'NavigateTo',
                         new_tab: true,

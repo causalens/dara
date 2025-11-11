@@ -70,7 +70,6 @@ const StyledNavLink = styled(NavLinkWrapper)<{ $activeCss: string; $inactiveCss:
     }
 `;
 
-
 function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
     const displayCtx = React.useContext(DisplayCtx);
     const [style, css] = useComponentStyles(props);
