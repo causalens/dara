@@ -276,6 +276,7 @@ Table.args = {
     data: sampleData,
     onFilter: null,
     onSort: null,
+    onClickRow: fn(),
 } as Props<any>;
 
 export const TableSmallFont = (args: Props<any>): JSX.Element => {

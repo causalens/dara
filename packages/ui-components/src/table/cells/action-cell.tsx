@@ -74,6 +74,16 @@ const ActionWrapper = styled.div`
     }
 `;
 
+// We are making the single action wrapper absolute to ensure it covers the entire cell and is clickable wherever you click on the cell
+const SingleActionWrapper = styled(ActionWrapper)`
+    cursor: pointer;
+
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+`;
 /** Interface is very loose because react table basically lets anything go through here */
 interface ActionCellProps {
     column: any;
@@ -92,6 +102,26 @@ export function ActionCell(props: ActionCellProps): JSX.Element {
     if (!props.column.actions) {
         throw new Error('Must pass an array of actions to the column def when using the ActionCell');
     }
+    const onClick = (e: React.SyntheticEvent, actionId: string): void => {
+        e.stopPropagation();
+        props.onAction?.(actionId, props.row.original);
+    };
+
+    // A single action cell should have the functionality of the action cell wherever you click on the cell
+    if (props.column.actions.length === 1) {
+        const action = props.column.actions[0];
+        const Icon = action.getIcon ? action.getIcon(props.row.original) : action.icon;
+        if (Icon === undefined) {
+            return;
+        }
+        const label = action.getLabel ? action.getLabel(props.row.original) : action.label;
+        return (
+            <SingleActionWrapper className="table-action-cell" onClick={(e) => onClick(e, action.id)}>
+                <Icon asButton key={action.label} title={label} />
+            </SingleActionWrapper>
+        );
+    }
+
     return (
         <ActionWrapper className="table-action-cell">
             {props.column.actions.map((action: ActionCol) => {
@@ -100,11 +130,7 @@ export function ActionCell(props: ActionCellProps): JSX.Element {
                     return;
                 }
                 const label = action.getLabel ? action.getLabel(props.row.original) : action.label;
-                const onClick = (e: React.SyntheticEvent<SVGSVGElement>): void => {
-                    e.stopPropagation();
-                    props.onAction?.(action.id, props.row.original);
-                };
-                return <Icon asButton key={action.label} onClick={onClick} title={label} />;
+                return <Icon asButton key={action.label} onClick={(e) => onClick(e, action.id)} title={label} />;
             })}
         </ActionWrapper>
     );
