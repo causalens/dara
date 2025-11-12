@@ -754,6 +754,69 @@ The component also accepts a `DerivedVariable` as the condition for more complex
 
 This component should be the go-to component for conditional rendering in Dara apps as it's optimized to perform client-side comparisons in most cases without extra round-trips to the server.
 
+### Conditional rendering with `Match`
+
+In cases where you want to simply display different components based on a predefined set of values that your dynamic variable can take, using `If` would be cumbersome as you would need to nest multiple instances of it. It would also not be very efficient as the same variable would be used at each layer:
+
+
+```python
+from enum import StrEnum
+from dara.core import Variable
+from dara.components import If, Text
+
+class Status(StrEnum):
+    OK = 'OK'
+    ERROR = 'ERROR'
+    WARNING = 'WARNING'
+
+var_status = Variable[Status](Status.OK)
+
+If(
+    condition=var_status == Status.OK,
+    true_children=Text('OK'),
+    false_children=If(
+        condition=var_status == Status.ERROR,
+        true_children=Text('ERROR'),
+        false_children=If(
+            condition=var_status == Status.WARNING,
+            true_children=Text('WARNING'),
+            false_children=Text('Unknown status')
+        )
+    )
+)
+```
+
+This can be simplified by using the `Match` component to "map" values to different UI elements:
+
+```python
+from enum import StrEnum
+from dara.core import Variable, Match
+from dara.components import Text
+
+class Status(StrEnum):
+    OK = 'OK'
+    ERROR = 'ERROR'
+    WARNING = 'WARNING'
+
+var_status = Variable[Status](Status.OK)
+
+Match(
+    value=var_status,
+    when={
+        Status.OK: Text('OK'),
+        Status.ERROR: Text('ERROR'),
+        Status.WARNING: Text('WARNING'),
+    },
+    default=Text('Unknown status')
+)
+```
+
+:::tip
+
+In very simple cases like the above, you can also use `SwitchVariable` instead of `Match` to achieve the same result, i.e. `Text(SwitchVariable.match(...))`, since we are just changing the value of the `Text`. `Match` is useful in all more complex cases though where you might want to change which component is displayed depending on the case matched.
+
+:::
+
 ### List rendering with `For`
 
 The `dara.core.visual.components.for_cmp.For` component lets you generate multiple elements from a collection of data where each element corresponds to an item in the collection.
