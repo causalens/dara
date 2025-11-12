@@ -512,6 +512,49 @@ config.router.add_page(
 )
 ```
 
+### Accessing Current Route Matches
+
+You can access the currently matched routes as a `Variable` using the `route_matches` property of the `Router` instance:
+
+```python
+from dara.core import Variable, ConfigurationBuilder, For, Outlet
+from dara.components import Stack, Text, Link, If
+
+config = ConfigurationBuilder()
+
+def Breadcrumbs():
+    # Get the current route matches as a Variable[list[RouteMatch]]
+    rm = config.router.route_matches
+
+    return Stack(
+        For(
+            items=rm,
+            renderer=Stack(
+                If(
+                    rm.list_item.is_first != True,
+                    Text('>'),
+                ),
+                Link(Text(rm.list_item.get('definition').get('name')), to=rm.list_item.get('pathname')),
+                direction='horizontal',
+                hug=True,
+            ),
+        ),
+        direction='horizontal',
+        hug=True,
+    )
+
+def RootLayout():
+    return Stack(
+        Breadcrumbs(),
+        Outlet()
+    )
+
+root = config.router.add_layout(content=RootLayout)
+```
+
+The above example will render a rudimentary breadcrumbs component that shows the current route matches.
+
+
 ### Case Sensitivity and Other Options
 
 ```python

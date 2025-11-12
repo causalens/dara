@@ -9,7 +9,7 @@ import { GlobalStyle } from '@/global-styles';
 
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
-import { PathParamSync } from '../interactivity/persistence';
+import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';
 import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
 
@@ -59,11 +59,13 @@ function UnauthenticatedRoot(): JSX.Element {
 
     return (
         <PathParamSync>
-            <RecoilURLSync {...syncOptions}>
-                <StyleRoot>
-                    <Outlet />
-                </StyleRoot>
-            </RecoilURLSync>
+            <RouteMatchSync>
+                <RecoilURLSync {...syncOptions}>
+                    <StyleRoot>
+                        <Outlet />
+                    </StyleRoot>
+                </RecoilURLSync>
+            </RouteMatchSync>
         </PathParamSync>
     );
 }

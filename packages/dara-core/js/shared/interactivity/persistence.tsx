@@ -3,7 +3,7 @@ import { applyPatch } from 'fast-json-patch';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import * as React from 'react';
-import { type Params, generatePath, useLocation, useMatches, useNavigate, useParams } from 'react-router';
+import { type Params, type UIMatch, generatePath, useLocation, useMatches, useNavigate, useParams } from 'react-router';
 import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
 import { type ListenToItems, type ReadItem, RecoilSync, type WriteItems, syncEffect, urlSyncEffect } from 'recoil-sync';
 
@@ -13,16 +13,24 @@ import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
 import { getSessionToken } from '@/auth/use-session-token';
-import type { LoaderData } from '@/router';
+import { useRouterContext } from '@/router/context';
+import { type LoaderData } from '@/router/fetching';
 import { isEmbedded } from '@/shared/utils/embed';
 import {
     type GlobalTaskContext,
     type PathParamStore,
     type QueryParamStore,
+    type RouteMatchStore,
     type SingleVariable,
     isDerivedVariable,
 } from '@/types';
-import { type BackendStore, type BrowserStore, type DerivedVariable, type PersistenceStore } from '@/types/core';
+import {
+    type BackendStore,
+    type BrowserStore,
+    type DerivedVariable,
+    type PersistenceStore,
+    createRouteMatches,
+} from '@/types/core';
 
 import { WebSocketCtx } from '../context';
 // eslint-disable-next-line import/no-cycle
@@ -48,6 +56,11 @@ const STORE_SEQUENCE_MAP = new Map<string, number>();
  * Global map to track the latest read value for each store, to prevent cyclic updates
  */
 const STORE_LATEST_VALUE_MAP = new Map<string, any>();
+
+/**
+ * Shared item key used for the route matches store
+ */
+const ROUTE_MATCHES_KEY = '__route_matches';
 
 /**
  * RecoilSync implementation for BackendStore
@@ -455,6 +468,53 @@ export function PathParamSync({ children }: { children: React.ReactNode }): Reac
     );
 }
 
+export function RouteMatchSync({ children }: { children: React.ReactNode }): React.ReactNode {
+    const routerCtx = useRouterContext();
+
+    const matches = useMatches();
+    const matchesRef = React.useRef<UIMatch[]>(matches);
+
+    const matchesSubscribers = React.useRef<Array<(params: UIMatch[]) => void>>([]);
+
+    React.useLayoutEffect(() => {
+        // skip running subs when the matches are the same
+        if (isEqual(matchesRef.current, matches)) {
+            return;
+        }
+        matchesRef.current = matches;
+        for (const subscriber of matchesSubscribers.current) {
+            subscriber(matches);
+        }
+    }, [matchesRef, matches]);
+
+    const getStoreValue = React.useCallback<ReadItem>(() => {
+        return createRouteMatches(matchesRef.current, routerCtx.routeDefMap);
+    }, [matchesRef, routerCtx.routeDefMap]);
+
+    const listenToStoreChanges = React.useCallback<ListenToItems>(
+        ({ updateAllKnownItems }) => {
+            function handleUpdate(newMatches: UIMatch[]): void {
+                const newRouteMatches = createRouteMatches(newMatches, routerCtx.routeDefMap);
+                updateAllKnownItems(new Map([[ROUTE_MATCHES_KEY, newRouteMatches]]));
+            }
+
+            matchesSubscribers.current.push(handleUpdate);
+
+            return () => {
+                matchesSubscribers.current = matchesSubscribers.current.filter((item) => item !== handleUpdate);
+            };
+        },
+        [routerCtx.routeDefMap]
+    );
+
+    return (
+        // NOTE: write is not defined as we don't support updating the route matches
+        <RecoilSync listen={listenToStoreChanges} read={getStoreValue} storeKey="_RouteMatchStore">
+            {children}
+        </RecoilSync>
+    );
+}
+
 /**
  * Create a syncEffect for BrowserStore
  *
@@ -527,6 +587,28 @@ function pathParamEffect<T>(variable: SingleVariable<T, PathParamStore>): AtomEf
     };
 }
 
+/**
+ * Global effect that syncs variables connected to the current route matches in the router
+ */
+function routeMatchEffect(): AtomEffect<any> {
+    const effect = syncEffect({
+        itemKey: ROUTE_MATCHES_KEY,
+        refine: mixed(),
+        storeKey: '_RouteMatchStore',
+    });
+    return (effectParams) => {
+        const cleanup = effect(effectParams);
+        // NOTE: this is a hack to immediately commit the value of the atom to the recoil snapshot
+        // Without this, the first time we try to read it in e.g. an action, the value is null
+        // I wasn't able to find why this happens, but this seems to work.
+        // `valueOrThrow` should be safe here as we always initialize the atom in the syncEffect.
+        effectParams.setSelf(effectParams.getLoadable(effectParams.node).valueOrThrow());
+        return () => {
+            cleanup?.();
+        };
+    };
+}
+
 interface Effect<T = any, TStore extends PersistenceStore = PersistenceStore> {
     (
         variable: SingleVariable<T, TStore>,
@@ -542,6 +624,7 @@ type StoreTypeMap = {
     BrowserStore: BrowserStore;
     QueryParamStore: QueryParamStore;
     _PathParamStore: PathParamStore;
+    _RouteMatchStore: RouteMatchStore;
 };
 
 // Type-safe STORES configuration
@@ -563,6 +646,9 @@ export const STORES: StoresConfig = {
     },
     _PathParamStore: {
         effect: pathParamEffect,
+    },
+    _RouteMatchStore: {
+        effect: routeMatchEffect,
     },
 };
 

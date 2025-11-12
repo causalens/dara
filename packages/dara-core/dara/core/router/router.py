@@ -81,6 +81,44 @@ class _PathParamStore(PersistenceStore):
         pass
 
 
+class _RouteMatchStore(PersistenceStore):
+    """
+    Internal store for route matches.
+    Should not be used directly, Dara will use this internally to keep a variable
+    in sync with the current route matches.
+    """
+
+    async def init(self, variable: 'Variable'):
+        # noop
+        pass
+
+
+class RouteMatch(BaseModel):
+    """
+    Data structure representing a route match in the router
+    """
+
+    id: str
+    """
+    Route ID, as set when defining the route
+    """
+
+    pathname: str
+    """
+    Full pathname of the route
+    """
+
+    params: dict[str, Any]
+    """
+    Mapping of dynamic path params to their values
+    """
+
+    definition: 'BaseRoute'
+    """
+    Definition of the route
+    """
+
+
 class RouteData(BaseModel):
     """
     Data structure representing a route in the router
@@ -707,6 +745,12 @@ class Router(HasChildRoutes):
 
     Both approaches create the same routing structure. The fluent API is more readable for
     building routes step by step, while the object API is more declarative and compact.
+    """
+
+    route_matches: Variable[list[RouteMatch]] = Field(default_factory=lambda: Variable([], store=_RouteMatchStore()))
+    """
+    Variable containing current list of route matches.
+    Note that this will be updated by Dara automatically, so you should not modify it directly.
     """
 
     def __init__(self, *children: BaseRoute, **kwargs):

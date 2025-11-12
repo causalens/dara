@@ -21,6 +21,7 @@ function RouterRoot({ daraData }: RouterRootProps): JSX.Element {
             routeObjects={routerData.routeObjects}
             routeDefMap={routerData.routeDefMap}
             defaultPath={routerData.defaultPath}
+            routeMatches={routerData.routeMatches}
         >
             <RouterProvider router={routerData.router} />
         </RouterContextProvider>
