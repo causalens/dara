@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.24
 
 - When there is only a single action in an `ActionCell` we make sure that clicking the whole cell should trigger that action.
 
