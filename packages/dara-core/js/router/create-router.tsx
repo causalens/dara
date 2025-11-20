@@ -181,7 +181,8 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
     // Create map to collect route definitions during route creation
     const routeDefMap = new Map<string, RouteDefinition>();
     const userRoutes = config.router.children.map((r) => createRoute(r, snapshot, routeDefMap));
-    const defaultPath = findFirstPath(config.router.children) || '/';
+    // Use default path from config if set, otherwise fallback to first navigatable path
+    const defaultPath = config.router.default_path ?? (findFirstPath(config.router.children) || '/');
 
     const router = createBrowserRouter(
         [
