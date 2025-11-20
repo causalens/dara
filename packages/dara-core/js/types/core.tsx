@@ -84,6 +84,7 @@ export type RouteDefinition =
 export interface RouterDefinition {
     children: Array<RouteDefinition>;
     route_matches: SingleVariable<RouteMatch[]>;
+    default_path: string | null;
 }
 
 /**

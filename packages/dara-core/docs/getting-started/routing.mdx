@@ -398,6 +398,25 @@ For more complex routing, you might want to hand-pick only routes that should be
 
 ## Advanced Features
 
+### Default route
+
+By default, Dara will infer the first navigatable (least-nested) route in the router and use it as the default route.
+This route is used when the user navigates to a URL that doesn't match any route, or when users go through the login flow.
+
+You can choose to override the default route by setting the `default_path` property on the router instance:
+
+```python
+from dara.core import ConfigurationBuilder
+
+config = ConfigurationBuilder()
+
+config.router.add_page(path="home", content=HomePage)
+config.router.add_page(path="about", content=AboutPage)
+
+# normally, first navigatable route is '/home' - explicitly set it to '/about'
+config.router.default_path = '/about'
+```
+
 ### Link prefetching
 
 `Link` component supports prefetching of navigation data by setting its `prefetch` prop to `True`.

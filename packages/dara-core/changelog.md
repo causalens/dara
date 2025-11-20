@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Added `default_path` property to the Router instance to allow overriding a default path for the router. If not set, Dara infers the first navigatable path in the router.
+
 ## 1.21.24
 
 -  Added 3 new accent colors to the base theme definition and existing Light and Dark themes: `carrot`, `kale` and `chestnut`

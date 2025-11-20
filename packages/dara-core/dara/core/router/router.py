@@ -753,6 +753,15 @@ class Router(HasChildRoutes):
     Note that this will be updated by Dara automatically, so you should not modify it directly.
     """
 
+    default_path: str | None = None
+    """
+    Default path to navigate to in scenarios such as:
+    - user navigates to a URL that doesn't match any route
+    - after successful login
+
+    Defaults to None, which will result in the first least-nested navigatable route being used.
+    """
+
     def __init__(self, *children: BaseRoute, **kwargs):
         routes = list(children)
         if 'children' not in kwargs:
