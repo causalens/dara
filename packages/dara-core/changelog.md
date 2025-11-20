@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.21.25
 
 -  Added `default_path` property to the Router instance to allow overriding a default path for the router. If not set, Dara infers the first navigatable path in the router.
 

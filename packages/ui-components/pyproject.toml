@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "ui-components"
-version = "1.21.24"
+version = "1.21.25"
