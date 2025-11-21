@@ -774,7 +774,7 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
                 module_tags.append(
                     f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></link>'
                 )
-            elif asset_name.endswith('.js'):
+            elif asset_name.endswith('.js') or asset_name.endswith('.cjs'):
                 module_tags.append(
                     f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></script>'
                 )

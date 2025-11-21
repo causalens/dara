@@ -46,7 +46,7 @@ pytest = "^7.0.0"
 pyright = "^1.1.400"
 pytest-xdist = "^3.8.0"
 
-[project.entry-points."dara_assets"]
+[tool.poetry.plugins."dara_assets"]
 dara-components = "dara.components._assets:asset_manifest"
 
 
