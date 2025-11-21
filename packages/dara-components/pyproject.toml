@@ -27,7 +27,7 @@ source = []
 include = "dara"
 
 [tool.poetry.dependencies]
-bokeh = ">=3.1.0, <3.2.0"
+bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
 dara-core = "1.21.25"

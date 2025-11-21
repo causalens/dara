@@ -13,14 +13,26 @@ import {
 } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
+/**
+ * Templates to build the URLs for the Bokeh libraries from.
+ * {version} will be replaced with the version of Bokeh to use.
+ *
+ * NOTE: we assume that the assets for each are available in the static_files_dir
+ * under `dara.components`; this works because we lock down the version of Bokeh to a patch
+ * */
 const BOKEH_LIBRARIES = [
-    'https://cdn.bokeh.org/bokeh/release/bokeh-{version}.min.js',
-    'https://cdn.bokeh.org/bokeh/release/bokeh-widgets-{version}.min.js',
-    'https://cdn.bokeh.org/bokeh/release/bokeh-tables-{version}.min.js',
-    'https://cdn.bokeh.org/bokeh/release/bokeh-api-{version}.min.js',
-    'https://cdn.bokeh.org/bokeh/release/bokeh-gl-{version}.min.js',
-    'https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-{version}.min.js',
+    'bokeh-{version}.min.js',
+    'bokeh-widgets-{version}.min.js',
+    'bokeh-tables-{version}.min.js',
+    'bokeh-api-{version}.min.js',
+    'bokeh-gl-{version}.min.js',
+    'bokeh-mathjax-{version}.min.js',
 ];
+
+function makeBokehUrl(version: string, file: string): string {
+    const baseUrl = window.dara.base_url;
+    return `${baseUrl}/static/dara.components/${file.replace('{version}', version)}`;
+}
 
 const BokehRoot = injectCss(styled.div`
     display: flex;
@@ -96,7 +108,7 @@ function Bokeh(props: BokehProps): JSX.Element {
             resolve = r;
         });
         const script = document.createElement('script');
-        script.src = url.replace('{version}', version);
+        script.src = makeBokehUrl(version, url);
         script.async = true;
         script.onload = () => {
             resolve();

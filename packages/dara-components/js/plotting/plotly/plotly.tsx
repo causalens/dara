@@ -30,7 +30,7 @@ import {
 // eslint-disable-next-line import/extensions
 import createPlotlyComponent from './plotly-factory';
 
-const PLOTLY_URL = 'https://cdn.plot.ly/plotly-2.28.0.min.js';
+const PLOTLY_URL = `${window.dara.base_url}/static/dara.components/plotly.min.js`;
 
 /**
  * Names defined by plotly.js, this is what Python will send us
