@@ -16,16 +16,13 @@ limitations under the License.
 """
 
 import contextlib
-import importlib
 import json
 import os
 import shutil
-import sys
 from enum import Enum
 from importlib.metadata import EntryPoint, entry_points, version
 from pathlib import Path
-from types import ModuleType
-from typing import Any, ClassVar, Literal, Optional, Union, cast
+from typing import Any, ClassVar, Literal, Optional, Union
 
 from packaging.version import Version
 from pydantic import BaseModel
@@ -313,7 +310,7 @@ class BuildCache(BaseModel):
             Given an entrypoint module name, return the package name it matches
             Tries matching the name or module name with the package_map keys
             """
-            for pkg in self.package_map.keys():
+            for pkg in self.package_map:
                 if ep.module.startswith(pkg):
                     return pkg
                 if ep.name == pkg:
