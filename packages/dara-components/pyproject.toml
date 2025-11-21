@@ -15,7 +15,7 @@ test = "poetry run pytest ./tests -n auto -v"
 authors = ["Patricia Jacob <patricia@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>", "Sam Smith <sam@causalens.com>"]
 description = "Components for the Dara Framework"
 homepage = "https://dara.causalens.com/"
-include = ["dara/components/umd/**/*"]
+include = ["dara/components/_assets/**/*"]
 license = "Apache-2.0"
 name = "dara-components"
 readme = "README.md"
@@ -27,7 +27,7 @@ source = []
 include = "dara"
 
 [tool.poetry.dependencies]
-bokeh = ">=3.1.0, <3.2.0"
+bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
 dara-core = "1.21.25"
@@ -45,3 +45,8 @@ bandit = "^1.7.5"
 pytest = "^7.0.0"
 pyright = "^1.1.400"
 pytest-xdist = "^3.8.0"
+
+[tool.poetry.plugins."dara_assets"]
+dara-components = "dara.components._assets:asset_manifest"
+
+

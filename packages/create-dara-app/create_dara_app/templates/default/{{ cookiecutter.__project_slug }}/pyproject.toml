@@ -10,13 +10,13 @@ description = "{{ cookiecutter.project_name }}"
 authors = ["{{ cookiecutter.author_name }}"]
 
 [tool.poetry.dependencies]
-python = ">=3.9.0, <3.13.0"
+python = ">=3.10.0, <3.13.0"
 dara-core = "^{{ cookiecutter.__dara_version }}"
 dara-components = "^{{ cookiecutter.__dara_version }}"
 
 [tool.poetry.dev-dependencies]
-blue = "^0.9.1"
-isort = "^5.10.1"
+ruff = ">=0.12.2"
+pyright = "^1.1.400"
 
 
 {% else %}
@@ -31,8 +31,8 @@ version = "0.1.0"
 dependencies = [
     "dara-core == {{ cookiecutter.__dara_version }}",
     "dara-components == {{ cookiecutter.__dara_version }}",
-    "blue >= 0.9.0",
-    "isort >= 5.10.1"
+    "ruff >=0.12.2",
+    "pyright >= 1.1.400"
 ]
 authors = [
     { name = "{{ cookiecutter.author_name }}" }
@@ -44,11 +44,3 @@ requires-python = ">=3.10, <3.13.0"
 packages = ["{{ cookiecutter.__package_name }}"]
 
 {% endif %}
-
-[tool.blue]
-line-length = 120
-
-[tool.isort]
-known_dara = ["dara"]
-profile = "black"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DARA", "FIRSTPARTY", "LOCALFOLDER"]

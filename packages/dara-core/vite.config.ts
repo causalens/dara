@@ -31,7 +31,6 @@ export default defineConfig(({ mode }) => ({
             name: 'dara.core',
             formats: ['umd'],
             fileName: 'dara.core',
-            cssFileName: 'style',
         },
         outDir: 'dist/umd',
         emptyOutDir: false,

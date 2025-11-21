@@ -16,7 +16,7 @@ test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto
 authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
 description = "Dara Framework Core"
 homepage = "https://dara.causalens.com/"
-include = ["dara/core/js_tooling/**/*", "dara/core/umd/**/*", "dara/core/log_configs/**/*"]
+include = ["dara/core/js_tooling/**/*", "dara/core/_assets/**/*", "dara/core/log_configs/**/*"]
 license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
@@ -104,3 +104,8 @@ timeout = 300
 markers = [
     "pool: worker pool tests, should not be used with xdist"
 ]
+
+[tool.poetry.plugins."dara_assets"]
+dara-core = "dara.core._assets:asset_manifest"
+
+

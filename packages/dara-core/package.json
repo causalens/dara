@@ -19,7 +19,7 @@
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
   ],
   "scripts": {
-    "build": "rimraf dist && rimraf dara/core/umd && vite build && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias && cp -R dist/umd/ dara/core/umd/",
+    "build": "rimraf dist && rimraf dara/core/umd && vite build && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias && cp -R dist/umd/. dara/core/_assets/auto_js/",
     "prepare-dev": "mkdir -p dist && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias",
     "build-dev": "mkdir -p dist && cp js/index.css dist/ && cp -R js/assets dist/ && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "clean": "rimraf api assets components shared types *.js.map *.d.ts '!(*.config).js' *.css",

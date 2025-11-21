@@ -31,8 +31,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
-from starlette.responses import FileResponse
+from starlette.staticfiles import PathLike
 from starlette.templating import Jinja2Templates, _TemplateResponse
+from starlette.types import Scope
 
 from dara.core.auth import auth_router
 from dara.core.configuration import Configuration, ConfigurationBuilder
@@ -70,6 +71,7 @@ from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
     build_autojs_template,
+    build_vite_template,
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
@@ -77,12 +79,18 @@ from dara.core.router import convert_template_to_router
 
 
 class CacheStaticFiles(StaticFiles):
-    async def get_response(self, path, scope):
-        response = await super().get_response(path, scope)
-        # add 1 year cache for static assets
-        if isinstance(response, FileResponse) and path.endswith('.css') or path.endswith('.umd.js'):
-            response.headers['Cache-Control'] = 'public, max-age=31536000'
-        return response
+    def file_response(
+        self,
+        full_path: PathLike,
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ):
+        resp = super().file_response(full_path, stat_result, scope, status_code)
+        # add 1 year cache for static assets which are versioned or favicon
+        if '?v=' in str(full_path) or 'favicon.ico' in str(full_path):
+            resp.headers.setdefault('Cache-Control', 'public, max-age=31536000, immutable')
+        return resp
 
 
 def _start_application(config: Configuration):
@@ -430,6 +438,8 @@ def _start_application(config: Configuration):
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
             template_name = 'index_autojs.html'
             context.update(build_autojs_template(build_cache, config))
+        else:
+            context.update(build_vite_template(build_cache, config))
 
         @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
         async def serve_app(full_path: str, request: Request):
