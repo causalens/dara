@@ -105,7 +105,7 @@ markers = [
     "pool: worker pool tests, should not be used with xdist"
 ]
 
-[project.entry-points."dara-assets"]
+[project.entry-points."dara_assets"]
 dara-core = "dara.core._assets:asset_manifest"
 
 

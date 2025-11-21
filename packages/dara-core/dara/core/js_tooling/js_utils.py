@@ -19,19 +19,39 @@ import contextlib
 import importlib
 import json
 import os
-import pathlib
 import shutil
 import sys
 from enum import Enum
-from importlib.metadata import version
+from functools import cache
+from importlib.metadata import entry_points, version
+from pathlib import Path
+from types import ModuleType
 from typing import Any, ClassVar, Literal, Optional, Union, cast
 
 from packaging.version import Version
 from pydantic import BaseModel
 
+from dara.core.base_definitions import AssetManifest
 from dara.core.configuration import Configuration
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
+
+ASSETS_SUBDIR = '_assets'
+"""
+Subdirectory within the main module folder where assets are stored.
+"""
+
+COMMON_SUBDIR = 'common'
+"""
+Subdirectory within the ASSETS_SUBDIR where common assets are stored,
+i.e. required regardless of build mode.
+"""
+
+AUTOJS_ASSETS_SUBDIR = 'auto_js'
+"""
+Subdirectory within the ASSETS_SUBDIR where autojs assets are stored,
+i.e. required only in autojs mode.
+"""
 
 
 class BuildMode(Enum):
@@ -63,7 +83,8 @@ class JsConfig(BaseModel):
         if not os.path.exists(path):
             return None
 
-        return JsConfig.parse_file(path)
+        with open(path, 'r') as f:
+            return JsConfig.model_validate_json(f.read())
 
 
 class BuildConfig(BaseModel):
@@ -274,10 +295,29 @@ class BuildCache(BaseModel):
         for module in self.package_map:
             py_modules.add(module)
 
-        if 'dara.core' in py_modules:
-            py_modules.remove('dara.core')
-
         return list(py_modules)
+
+    @cache
+    def get_asset_manifests(self) -> dict[str, AssetManifest]:
+        """
+        Get a map of package name to asset manifest for this BuildCache
+        """
+        manifests = {}
+
+        for module in self.package_map:
+            # import the entrypoint
+            eps = entry_points(group='dara_assets')
+            for ep in eps:
+                manifest = ep.load()
+
+                if not isinstance(manifest, AssetManifest):
+                    raise ValueError(
+                        f'Invalid asset manifest entrypoint for {module}: {manifest}, expected instance of dara.core.base_definitions.AssetManifest'
+                    )
+
+                manifests[module] = manifest
+
+        return AssetManifest.topo_sort(manifests)
 
     def get_package_json(self) -> dict[str, Any]:
         """
@@ -333,7 +373,8 @@ class BuildCache(BaseModel):
             path = other or os.path.join(self.static_files_dir, BuildCache.FILENAME)
 
             try:
-                other_cache = BuildCache.parse_file(path)
+                with open(path, 'r') as f:
+                    other_cache = BuildCache.model_validate_json(f.read())
             except BaseException:
                 return BuildCacheDiff.full_diff()
         else:
@@ -360,16 +401,16 @@ def setup_js_scaffolding():
     """
     Create a dara custom js config
     """
-    jsconfig_template_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/dara.config.json')
+    jsconfig_template_path = os.path.join(Path(__file__).parent.absolute(), 'templates/dara.config.json')
     js_config_path = os.path.join(os.getcwd(), 'dara.config.json')
 
     shutil.copyfile(jsconfig_template_path, js_config_path)
 
-    js_scaffold_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'custom_js_scaffold')
+    js_scaffold_path = os.path.join(Path(__file__).parent.absolute(), 'custom_js_scaffold')
     shutil.copytree(js_scaffold_path, os.path.join(os.getcwd(), 'js'))
 
 
-def _copytree(src: str, dst: str):
+def _copytree(src: str | Path, dst: str | Path):
     """
     Copy a directory recursively.
     Works like shutil.copytree, except replaces files if they already exist.
@@ -425,18 +466,27 @@ def _py_version_to_js(package_name: str) -> str:
     return raw_version
 
 
+def _get_module(module: str) -> ModuleType:
+    """
+    Get the module object for the given module
+
+    :param module: module name, e.g. 'dara.core'
+    """
+    try:
+        return sys.modules[module]
+    except KeyError:
+        # module wasn't imported, try to load it explicitly
+        imported_module = importlib.import_module(module)
+        return imported_module
+
+
 def _get_module_file(module: str) -> str:
     """
     Get the file containing the given module
 
     :param module: module name, e.g. 'dara.core'
     """
-    try:
-        return cast(str, sys.modules[module].__file__)
-    except KeyError:
-        # module wasn't imported, try to load it explicitly
-        imported_module = importlib.import_module(module)
-        return cast(str, imported_module.__file__)
+    return cast(str, _get_module(module).__file__)
 
 
 def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None):
@@ -469,12 +519,14 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None
 
     # JS rebuild required, run mode-specific logic
     if build_diff.should_rebuild_js():
-        # If we are in autoJS mode, just prepare pre-built assets to be included directly
-        if build_cache.build_config.mode == BuildMode.AUTO_JS:
-            prepare_autojs_assets(build_cache)
-        else:
+        migrate_package_assets(build_cache)
+
+        if build_cache.build_config.mode == BuildMode.PRODUCTION:
             # In production mode, build using Vite production build
             bundle_js(build_cache)
+        else:
+            # If we are in autoJS mode, also move pre-built assets
+            migrate_core_autojs_assets(build_cache)
 
     # Always migrate static assets
     build_cache.migrate_static_assets()
@@ -505,10 +557,10 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
             build_cache.symlink_js()
 
     # Determine template paths
-    entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry.template.tsx')
-    vite_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/vite.config.template.ts')
-    npmrc_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/.npmrc')
-    statics = os.path.join(pathlib.Path(__file__).parent.absolute(), 'statics')
+    entry_template = os.path.join(Path(__file__).parent.absolute(), 'templates/_entry.template.tsx')
+    vite_template = os.path.join(Path(__file__).parent.absolute(), 'templates/vite.config.template.ts')
+    npmrc_template = os.path.join(Path(__file__).parent.absolute(), 'templates/.npmrc')
+    statics = os.path.join(Path(__file__).parent.absolute(), 'statics')
 
     # Ensure the static files directory exists
     os.makedirs(build_cache.static_files_dir, exist_ok=True)
@@ -591,7 +643,53 @@ def bundle_js(build_cache: BuildCache, copy_js: bool = False):
     os.chdir(cwd)
 
 
-def prepare_autojs_assets(build_cache: BuildCache):
+def migrate_package_assets(build_cache: BuildCache):
+    """
+    Migrate package assets based on asset manifests.
+    Handles common and autojs assets, moving them to the static_files_dir under the package name.
+
+    E.g.
+
+    ```
+    dara/core
+    - _assets/
+      - common/
+        - jquery.min.js
+      - auto_js/
+        - dara.core.umd.js
+        - dara.core.css
+    ```
+
+    Assuming `static_files_dir` is set to `dist/`, the above would result in:
+
+    ```
+    dist/
+    - dara.core/
+      - jquery.min.js
+      - dara.core.umd.js
+      - dara.core.css
+    ```
+
+    Files are nested to avoid name collisions.
+    """
+    # Prepare directories
+    (Path(build_cache.static_files_dir) / COMMON_SUBDIR).mkdir(parents=True, exist_ok=True)
+    (Path(build_cache.static_files_dir) / AUTOJS_ASSETS_SUBDIR).mkdir(parents=True, exist_ok=True)
+
+    for pkg, manifest in build_cache.get_asset_manifests().items():
+        (Path(build_cache.static_files_dir) / pkg).mkdir(parents=True, exist_ok=True)
+
+        # Always move common assets
+        for cdn_asset in manifest.resolved_common_assets():
+            shutil.copy2(cdn_asset, Path(build_cache.static_files_dir) / pkg / cdn_asset.name)
+
+        # In autojs mode, also copy autojs assets
+        if build_cache.build_config.mode == BuildMode.AUTO_JS:
+            for autojs_asset in manifest.resolved_autojs_assets():
+                shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg / autojs_asset.name)
+
+
+def migrate_core_autojs_assets(build_cache: BuildCache):
     """
     Prepare the JS (and CSS) assets to use in autoJS mode.
     Copies over UMD pre-bundled files from loaded packages into static_files_dir directory,
@@ -599,11 +697,7 @@ def prepare_autojs_assets(build_cache: BuildCache):
 
     :param config: the main app configuration
     """
-    # copy over dara.core js/css into static dir
-    core_path = os.path.dirname(_get_module_file('dara.core'))
-    core_js_path = os.path.join(core_path, 'umd', 'dara.core.umd.cjs')
-    core_css_path = os.path.join(core_path, 'umd', 'style.css')
-    statics = os.path.join(pathlib.Path(__file__).parent.absolute(), 'statics')
+    statics = os.path.join(Path(__file__).parent.absolute(), 'statics')
 
     # Copy dara-core statics, i.e. default favicon, tsconfig, etc.
     files = os.listdir(statics)
@@ -615,30 +709,27 @@ def prepare_autojs_assets(build_cache: BuildCache):
     if custom_favicon is not None:
         shutil.copyfile(custom_favicon, os.path.join(build_cache.static_files_dir, 'favicon.ico'))
 
-    shutil.copy(core_js_path, os.path.join(build_cache.static_files_dir, 'dara.core.umd.js'))
-    shutil.copy(core_css_path, os.path.join(build_cache.static_files_dir, 'dara.core.css'))
 
-    py_modules = build_cache.get_py_modules()
+def build_common_tags(build_cache: BuildCache) -> list[str]:
+    """
+    Build common HTML tags based on declared order in the asset manifests.
 
-    # Copy over js/css for all modules
-    for module_name in py_modules:
-        # Get path to the module
-        module_path = os.path.dirname(_get_module_file(module_name))
+    Excludes autojs assets.
+    """
+    settings = get_settings()
+    tags: list[str] = []
 
-        # Build paths to the JS and CSS assets for the given module
-        # Note: this assumes assets structure of module/umd folder with the module.umd.(c)js and style.css file
-        js_asset_path = os.path.join(module_path, 'umd', f'{module_name}.umd.js')
-        cjs_asset_path = os.path.join(module_path, 'umd', f'{module_name}.umd.cjs')
-        css_asset_path = os.path.join(module_path, 'umd', 'style.css')
+    # Iterate in manifest topo order, and in tag_order - to ensure tags are added in the correct order
+    for pkg, manifest in build_cache.get_asset_manifests().items():
+        for _path in manifest.tag_order:
+            if _path not in manifest.common_assets:
+                continue
 
-        # copy over the JSS/CSS from python package into dist/umd so they are available under /static
-        if os.path.exists(js_asset_path):
-            shutil.copy(js_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.umd.js'))
-        elif os.path.exists(cjs_asset_path):
-            shutil.copy(cjs_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.umd.js'))
+            file_name = Path(_path).name
 
-        if os.path.exists(css_asset_path):
-            shutil.copy(css_asset_path, os.path.join(build_cache.static_files_dir, f'{module_name}.css'))
+            tags.append(f'<script crossorigin src="{settings.dara_base_url}/static/{pkg}/{file_name}"></script>')
+
+    return tags
 
 
 def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dict[str, Any]:
@@ -652,7 +743,7 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
     """
 
     settings = get_settings()
-    entry_template = os.path.join(pathlib.Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
+    entry_template = os.path.join(Path(__file__).parent.absolute(), 'templates/_entry_autojs.template.tsx')
     with open(entry_template, encoding='utf-8') as f:
         entry_template_str = f.read()
 
@@ -667,34 +758,26 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
         '$$extraJs$$', config.template_extra_js + '\n' + settings.dara_template_extra_js
     )
 
-    core_version = _get_py_version('dara.core')
+    # In autojs mode, we add both autojs and common tags
+    package_tags: dict[str, list[str]] = {}
 
-    package_tags: dict[str, list[str]] = {
-        'dara.core': [
-            f'<script crossorigin src="{settings.dara_base_url}/static/dara.core.umd.js?v={core_version}"></script>',
-            f'<link rel="stylesheet" href="{settings.dara_base_url}/static/dara.core.css?v={core_version}"></link>',
-        ]
-    }
-
-    py_modules = build_cache.get_py_modules()
-
-    for module_name in py_modules:
+    # topo-sorted modules
+    for module_name, manifest in build_cache.get_asset_manifests().items():
         module_tags = []
-        version = _get_py_version(module_name)
 
-        # Include tag for JS if file exists
-        if os.path.exists(os.path.join(config.static_files_dir, f'{module_name}.umd.js')):
-            js_tag = (
-                f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}.umd.js?v={version}"></script>'
-            )
-            module_tags.append(js_tag)
+        # respect tag_order in manifest
+        for asset_path in manifest.tag_order:
+            asset_name = Path(asset_path).name
 
-        # Include tag for CSS if file exists
-        if os.path.exists(os.path.join(config.static_files_dir, f'{module_name}.css')):
-            css_tag = (
-                f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}.css?v={version}"></link>'
-            )
-            module_tags.append(css_tag)
+            # simple heuristic - .css is link, .js is script
+            if asset_name.endswith('.css'):
+                module_tags.append(
+                    f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></link>'
+                )
+            elif asset_name.endswith('.js'):
+                module_tags.append(
+                    f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></script>'
+                )
 
         package_tags[module_name] = module_tags
 
@@ -714,4 +797,15 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
     return {
         'assets': '\n'.join(tags),
         'base_url': settings.dara_base_url,
+    }
+
+
+def build_vite_template(build_cache: BuildCache, config: Configuration) -> dict[str, Any]:
+    """
+    Build the vite template context
+    """
+    tags = build_common_tags(build_cache)
+
+    return {
+        'common_tags': '\n'.join(tags),
     }

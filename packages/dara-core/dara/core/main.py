@@ -70,6 +70,7 @@ from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
     build_autojs_template,
+    build_vite_template,
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
@@ -430,6 +431,8 @@ def _start_application(config: Configuration):
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
             template_name = 'index_autojs.html'
             context.update(build_autojs_template(build_cache, config))
+        else:
+            context.update(build_vite_template(build_cache, config))
 
         @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
         async def serve_app(full_path: str, request: Request):

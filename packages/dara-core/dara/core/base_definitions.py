@@ -21,9 +21,11 @@ from __future__ import annotations
 # between other parts of the framework
 import abc
 import uuid
-from collections.abc import Awaitable, Callable, Mapping
+from collections import defaultdict
+from collections.abc import Awaitable, Callable, Generator, Mapping
 from enum import Enum
 from inspect import isclass
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -647,20 +649,92 @@ class ComponentType(Enum):
 
 
 class AssetManifest(BaseModel):
+    base_path: str
+    """
+    Base path to resolve assets from.
+    """
+
     autojs_assets: list[str]
     """
     List of autojs assets to copy to static_files_dir
-    and build tags for in autojs mode.
+    and build tags for, ONLY in autojs mode.
     """
 
-    cdn_assets: list[str]
+    common_assets: list[str]
     """
-    List of cdn assets to copy to static_files_dir.
+    List of common assets to copy to static_files_dir,
+    in all modes.
     """
 
-    cdn_tag_order: list[str]
+    tag_order: list[str]
     """
-    Order of cdn tags to include in the index.html.
-    Excluded cdn_assets will not have their tags included in the HTML file,
+    Order of tags to include in the index.html.
+    Excluded assets will not have their tags included in the HTML file,
     this can be useful if components lazy-load their assets by adding the tag at runtime.
     """
+
+    depends_on: list[str]
+    """
+    List of other packages that this package depends on.
+    For example, dara.components might specify `depends_on=['dara.core']`.
+
+    Used to determine the order in which assets should be added as HTML tags.
+    """
+
+    def resolved_common_assets(self) -> Generator[Path]:
+        base = Path(self.base_path)
+
+        for cdn in self.common_assets:
+            yield base / cdn
+
+    def resolved_autojs_assets(self) -> Generator[Path]:
+        base = Path(self.base_path)
+
+        for autojs in self.autojs_assets:
+            yield base / autojs
+
+    @staticmethod
+    def topo_sort(manifests: dict[str, AssetManifest]) -> dict[str, AssetManifest]:
+        """
+        Topologically sort the asset manifests based on their dependencies.
+        Returns a dict ordered topologically with dependencies before dependents.
+
+        For example, if A depends_on B, then B will come before A in the result.
+
+        :param manifests: the asset manifests to sort
+        :return: a dict of sorted asset manifests (dependencies first)
+        """
+        ordered: dict[str, AssetManifest] = {}
+
+        # Build adjacency list of dependencies
+        graph = defaultdict(list)
+        for pkg, manifest in manifests.items():
+            for dep in manifest.depends_on:
+                if dep in manifests:
+                    graph[pkg].append(dep)
+
+        visited: dict[str, Literal['unvisited', 'visiting', 'done']] = {}
+
+        def _visit(pkg: str):
+            state = visited.get(pkg)
+            if state == 'visiting':
+                raise ValueError(f'Cyclic dependency detected for package {pkg}')
+            if state == 'done':
+                return
+
+            visited[pkg] = 'visiting'
+
+            # Visit dependencies first
+            for dep in graph[pkg]:
+                _visit(dep)
+
+            visited[pkg] = 'done'
+            # Add to result after visiting all dependencies
+            # This ensures dependencies come before dependents
+            ordered[pkg] = manifests[pkg]
+
+        for pkg in manifests:
+            if visited.get(pkg) is None:
+                _visit(pkg)
+
+        return ordered

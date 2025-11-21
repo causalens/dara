@@ -1,17 +1,26 @@
+from pathlib import Path
+
 from dara.core.base_definitions import AssetManifest
 
-CDN_ASSETS = [
-    './cdn/jquery.min.js',
-    './cdn/react.development.js'
-    './cdn/react-dom.development.js'
-    './cdn/react-is.development.js'
-    './cdn/styled-components.min.js'
-    './cdn/react-query.development.js'
+AUTOJS_ASSETS = [
+    './auto_js/react.development.js'
+    './auto_js/react-dom.development.js'
+    './auto_js/react-is.development.js'
+    './auto_js/styled-components.min.js'
+    './auto_js/react-query.development.js',
+    './auto_js/dara.core.umd.js',
+    './auto_js/dara.core.css',
+]
+
+COMMON_ASSETS = [
+    # jquery is required for bokeh etc so is always included to be safe
+    './common/jquery.min.js',
 ]
 
 asset_manifest = AssetManifest(
-    autojs_assets=['./autojs/dara.core.umd.js', './autojs/dara.core.css'],
-    # in this case all cdn assets should have tags so tag_order==assets
-    cdn_assets=CDN_ASSETS,
-    cdn_tag_order=CDN_ASSETS,
+    base_path=Path(__file__).parent.absolute().as_posix(),
+    autojs_assets=AUTOJS_ASSETS,
+    common_assets=COMMON_ASSETS,
+    tag_order=[*COMMON_ASSETS, *AUTOJS_ASSETS],
+    depends_on=[],
 )
