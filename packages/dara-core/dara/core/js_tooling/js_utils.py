@@ -734,13 +734,17 @@ def build_common_tags(build_cache: BuildCache) -> list[str]:
 
     # Iterate in manifest topo order, and in tag_order - to ensure tags are added in the correct order
     for pkg, manifest in build_cache.get_asset_manifests().items():
-        for _path in manifest.tag_order:
-            if _path not in manifest.common_assets:
+        py_version = _get_py_version(pkg)
+
+        for path in manifest.tag_order:
+            if path not in manifest.common_assets:
                 continue
 
-            file_name = Path(_path).name
+            file_name = Path(path).name
 
-            tags.append(f'<script crossorigin src="{settings.dara_base_url}/static/{pkg}/{file_name}"></script>')
+            tags.append(
+                f'<script crossorigin src="{settings.dara_base_url}/static/{pkg}/{file_name}?v={py_version}"></script>'
+            )
 
     return tags
 
@@ -803,10 +807,6 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
     tags = [tag for tags in package_tags.values() for tag in tags]
 
     tags.append(f'<script type="module">{start_script}</script>')
-    # Include tag for favicon
-    tags.append(
-        f'<link id="favicon" rel="icon" type="image/x-icon" href="{settings.dara_base_url}/static/favicon.ico"></link>'
-    )
 
     return {
         'assets': '\n'.join(tags),
