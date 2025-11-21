@@ -22,7 +22,7 @@ import os
 import shutil
 import sys
 from enum import Enum
-from importlib.metadata import entry_points, version
+from importlib.metadata import EntryPoint, entry_points, version
 from pathlib import Path
 from types import ModuleType
 from typing import Any, ClassVar, Literal, Optional, Union, cast
@@ -82,7 +82,7 @@ class JsConfig(BaseModel):
         if not os.path.exists(path):
             return None
 
-        with open(path, 'r') as f:
+        with open(path) as f:
             return JsConfig.model_validate_json(f.read())
 
 
@@ -308,20 +308,43 @@ class BuildCache(BaseModel):
         if self._asset_manifests_cache is not None:
             return self._asset_manifests_cache
 
+        def _match_package_name(ep: EntryPoint) -> str | None:
+            """
+            Given an entrypoint module name, return the package name it matches
+            Tries matching the name or module name with the package_map keys
+            """
+            for pkg in self.package_map.keys():
+                if ep.module.startswith(pkg):
+                    return pkg
+                if ep.name == pkg:
+                    return pkg
+
+                normalized = _normalize_dara_name(pkg)
+                if ep.module.startswith(normalized):
+                    return pkg
+                if ep.name == normalized:
+                    return pkg
+
+            return None
+
         manifests = {}
 
-        for module in self.package_map:
-            # import the entrypoint
-            eps = entry_points(group='dara_assets')
-            for ep in eps:
-                manifest = ep.load()
+        eps = entry_points(group='dara_assets')
 
-                if not isinstance(manifest, AssetManifest):
-                    raise ValueError(
-                        f'Invalid asset manifest entrypoint for {module}: {manifest}, expected instance of dara.core.base_definitions.AssetManifest'
-                    )
+        for ep in eps:
+            module = _match_package_name(ep)
+            # Unrecognized packages are ignored, name must match a package included
+            if module is None:
+                continue
 
-                manifests[module] = manifest
+            manifest = ep.load()
+
+            if not isinstance(manifest, AssetManifest):
+                raise ValueError(
+                    f'Invalid asset manifest entrypoint for {module}: {manifest}, expected instance of dara.core.base_definitions.AssetManifest'
+                )
+
+            manifests[module] = manifest
 
         # Cache the result before returning
         self._asset_manifests_cache = AssetManifest.topo_sort(manifests)
@@ -381,7 +404,7 @@ class BuildCache(BaseModel):
             path = other or os.path.join(self.static_files_dir, BuildCache.FILENAME)
 
             try:
-                with open(path, 'r') as f:
+                with open(path) as f:
                     other_cache = BuildCache.model_validate_json(f.read())
             except BaseException:
                 return BuildCacheDiff.full_diff()
@@ -432,15 +455,21 @@ def _copytree(src: str | Path, dst: str | Path):
             shutil.copy2(from_file, to_file)
 
 
-def _get_py_version(package_name: str) -> str:
+def _normalize_dara_name(package_name: str) -> str:
     """
-    Get the python version for a given package name
+    Normalize a dara package name to a standard format
     """
     # For dara.* packages, replace . with -
     if package_name.startswith('dara.'):
         package_name = package_name.replace('.', '-')
+    return package_name
 
-    return version(package_name)
+
+def _get_py_version(package_name: str) -> str:
+    """
+    Get the python version for a given package name
+    """
+    return version(_normalize_dara_name(package_name))
 
 
 def _py_version_to_js(package_name: str) -> str:
@@ -472,29 +501,6 @@ def _py_version_to_js(package_name: str) -> str:
         return f'{parsed_version.base_version}-dev.{parsed_version.dev}'
 
     return raw_version
-
-
-def _get_module(module: str) -> ModuleType:
-    """
-    Get the module object for the given module
-
-    :param module: module name, e.g. 'dara.core'
-    """
-    try:
-        return sys.modules[module]
-    except KeyError:
-        # module wasn't imported, try to load it explicitly
-        imported_module = importlib.import_module(module)
-        return imported_module
-
-
-def _get_module_file(module: str) -> str:
-    """
-    Get the file containing the given module
-
-    :param module: module name, e.g. 'dara.core'
-    """
-    return cast(str, _get_module(module).__file__)
 
 
 def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None):
@@ -680,21 +686,17 @@ def migrate_package_assets(build_cache: BuildCache):
 
     Files are nested to avoid name collisions.
     """
-    # Prepare directories
-    (Path(build_cache.static_files_dir) / COMMON_SUBDIR).mkdir(parents=True, exist_ok=True)
-    (Path(build_cache.static_files_dir) / AUTOJS_ASSETS_SUBDIR).mkdir(parents=True, exist_ok=True)
-
     for pkg, manifest in build_cache.get_asset_manifests().items():
         (Path(build_cache.static_files_dir) / pkg).mkdir(parents=True, exist_ok=True)
 
         # Always move common assets
         for cdn_asset in manifest.resolved_common_assets():
-            shutil.copy2(cdn_asset, Path(build_cache.static_files_dir) / pkg / cdn_asset.name)
+            shutil.copy2(cdn_asset, Path(build_cache.static_files_dir) / pkg)
 
         # In autojs mode, also copy autojs assets
         if build_cache.build_config.mode == BuildMode.AUTO_JS:
             for autojs_asset in manifest.resolved_autojs_assets():
-                shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg / autojs_asset.name)
+                shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg)
 
 
 def migrate_core_autojs_assets(build_cache: BuildCache):
@@ -771,6 +773,7 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
 
     # topo-sorted modules
     for module_name, manifest in build_cache.get_asset_manifests().items():
+        py_version = _get_py_version(module_name)
         module_tags = []
 
         # respect tag_order in manifest
@@ -780,11 +783,11 @@ def build_autojs_template(build_cache: BuildCache, config: Configuration) -> dic
             # simple heuristic - .css is link, .js is script
             if asset_name.endswith('.css'):
                 module_tags.append(
-                    f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></link>'
+                    f'<link rel="stylesheet" href="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={py_version}"></link>'
                 )
             elif asset_name.endswith('.js') or asset_name.endswith('.cjs'):
                 module_tags.append(
-                    f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={version}"></script>'
+                    f'<script crossorigin src="{settings.dara_base_url}/static/{module_name}/{asset_name}?v={py_version}"></script>'
                 )
 
         package_tags[module_name] = module_tags

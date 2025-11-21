@@ -3,12 +3,12 @@ from pathlib import Path
 from dara.core.base_definitions import AssetManifest
 
 AUTOJS_ASSETS = [
-    './auto_js/react.development.js'
-    './auto_js/react-dom.development.js'
-    './auto_js/react-is.development.js'
-    './auto_js/styled-components.min.js'
+    './auto_js/react.development.js',
+    './auto_js/react-dom.development.js',
+    './auto_js/react-is.development.js',
+    './auto_js/styled-components.min.js',
     './auto_js/react-query.development.js',
-    './auto_js/dara.core.umd.js',
+    './auto_js/dara.core.umd.cjs',
     './auto_js/dara.core.css',
 ]
 
