@@ -314,7 +314,11 @@ class BuildCache(BaseModel):
         for ep in eps:
             module = _match_package_name(ep)
             # Unrecognized packages are ignored, name must match a package included
+            # Could be installed but not used
             if module is None:
+                dev_logger.warning(
+                    f'Unrecognized `dara_assets` entrypoint {ep.name}, skipping as no matching used package was found'
+                )
                 continue
 
             manifest = ep.load()
@@ -669,8 +673,6 @@ def migrate_package_assets(build_cache: BuildCache):
     for pkg, manifest in build_cache.get_asset_manifests().items():
         (Path(build_cache.static_files_dir) / pkg).mkdir(parents=True, exist_ok=True)
 
-        available_assets = list(Path(manifest.base_path).glob('**/*'))
-
         try:
             # Always move common assets
             for cdn_asset in manifest.resolved_common_assets():
@@ -681,6 +683,7 @@ def migrate_package_assets(build_cache: BuildCache):
                 for autojs_asset in manifest.resolved_autojs_assets():
                     shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg)
         except Exception as e:
+            available_assets = list(Path(manifest.base_path).glob('**/*'))
             dev_logger.error(f'Failed to copy assets for package {pkg}, available assets: {available_assets}', error=e)
             raise
 
