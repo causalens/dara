@@ -22,7 +22,6 @@ import os
 import shutil
 import sys
 from enum import Enum
-from functools import cache
 from importlib.metadata import entry_points, version
 from pathlib import Path
 from types import ModuleType
@@ -172,6 +171,10 @@ class BuildCache(BaseModel):
 
     FILENAME: ClassVar[str] = '_build.json'
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._asset_manifests_cache: dict[str, AssetManifest] | None = None
+
     @staticmethod
     def from_config(config: Configuration, build_config: BuildConfig | None = None):
         """
@@ -297,11 +300,14 @@ class BuildCache(BaseModel):
 
         return list(py_modules)
 
-    @cache
     def get_asset_manifests(self) -> dict[str, AssetManifest]:
         """
         Get a map of package name to asset manifest for this BuildCache
         """
+        # Return cached result if available
+        if self._asset_manifests_cache is not None:
+            return self._asset_manifests_cache
+
         manifests = {}
 
         for module in self.package_map:
@@ -317,7 +323,9 @@ class BuildCache(BaseModel):
 
                 manifests[module] = manifest
 
-        return AssetManifest.topo_sort(manifests)
+        # Cache the result before returning
+        self._asset_manifests_cache = AssetManifest.topo_sort(manifests)
+        return self._asset_manifests_cache
 
     def get_package_json(self) -> dict[str, Any]:
         """
