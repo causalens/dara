@@ -644,3 +644,23 @@ class ComponentType(Enum):
 
     JS = 'js'
     PY = 'py'
+
+
+class AssetManifest(BaseModel):
+    autojs_assets: list[str]
+    """
+    List of autojs assets to copy to static_files_dir
+    and build tags for in autojs mode.
+    """
+
+    cdn_assets: list[str]
+    """
+    List of cdn assets to copy to static_files_dir.
+    """
+
+    cdn_tag_order: list[str]
+    """
+    Order of cdn tags to include in the index.html.
+    Excluded cdn_assets will not have their tags included in the HTML file,
+    this can be useful if components lazy-load their assets by adding the tag at runtime.
+    """
