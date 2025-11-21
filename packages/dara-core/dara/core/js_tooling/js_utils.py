@@ -32,23 +32,6 @@ from dara.core.configuration import Configuration
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
-ASSETS_SUBDIR = '_assets'
-"""
-Subdirectory within the main module folder where assets are stored.
-"""
-
-COMMON_SUBDIR = 'common'
-"""
-Subdirectory within the ASSETS_SUBDIR where common assets are stored,
-i.e. required regardless of build mode.
-"""
-
-AUTOJS_ASSETS_SUBDIR = 'auto_js'
-"""
-Subdirectory within the ASSETS_SUBDIR where autojs assets are stored,
-i.e. required only in autojs mode.
-"""
-
 
 class BuildMode(Enum):
     AUTO_JS = 'AUTO_JS'
