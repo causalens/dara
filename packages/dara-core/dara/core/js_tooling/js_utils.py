@@ -686,14 +686,20 @@ def migrate_package_assets(build_cache: BuildCache):
     for pkg, manifest in build_cache.get_asset_manifests().items():
         (Path(build_cache.static_files_dir) / pkg).mkdir(parents=True, exist_ok=True)
 
-        # Always move common assets
-        for cdn_asset in manifest.resolved_common_assets():
-            shutil.copy2(cdn_asset, Path(build_cache.static_files_dir) / pkg)
+        available_assets = list(Path(manifest.base_path).glob('**/*'))
 
-        # In autojs mode, also copy autojs assets
-        if build_cache.build_config.mode == BuildMode.AUTO_JS:
-            for autojs_asset in manifest.resolved_autojs_assets():
-                shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg)
+        try:
+            # Always move common assets
+            for cdn_asset in manifest.resolved_common_assets():
+                shutil.copy2(cdn_asset, Path(build_cache.static_files_dir) / pkg)
+
+            # In autojs mode, also copy autojs assets
+            if build_cache.build_config.mode == BuildMode.AUTO_JS:
+                for autojs_asset in manifest.resolved_autojs_assets():
+                    shutil.copy2(autojs_asset, Path(build_cache.static_files_dir) / pkg)
+        except Exception as e:
+            dev_logger.error(f'Failed to copy assets for package {pkg}, available assets: {available_assets}', error=e)
+            raise
 
 
 def migrate_core_autojs_assets(build_cache: BuildCache):
