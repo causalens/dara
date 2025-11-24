@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.22.0-alpha.1
 
 -  Internal: overhaul of the asset handling system. Dara no longer relies on external CDN assets, they are now bundled with the wheels and served together with the framework assets. See Custom JS docs page for more details.
 
