@@ -111,12 +111,8 @@
 
         <base href="{{ base_url }}" />
 
-        <!-- jQuery is required for i.e. bokeh; due to bundling issues it needs to be included as UMD  -->
-        <script
-            src="https://code.jquery.com/jquery-3.6.1.slim.min.js"
-            integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA="
-            crossorigin="anonymous"
-        ></script>
+        {{ common_tags | safe }}
+
         {{ vite_hmr_client() }} {{ vite_asset(entry) }}
     </head>
 

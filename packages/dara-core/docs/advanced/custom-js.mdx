@@ -583,14 +583,26 @@ This makes it so that your `npm` module will be installed in the user's app when
 
 3. Distribute your Python package via `PyPi`
 
-4. Optional: include a `umd` bundle to make the package work in non-production mode
+4. Include a `umd` bundle to make the package work in non-production mode
 
 In order for your package to work when running the Dara CLI with a simple `dara start` (non-production mode), your package needs to distribute a pre-built UMD JavaScript bundle which can be pulled without running an `npm install`.
 If the file is not present, your custom components and actions will only work in production mode, e.g. with `dara start --production`.
 
 The requirements for the UMD bundle are:
 
-- the expected location for it is `your_package_name/umd/your_package_name.umd.js`
+- define an entry-point for `dara_assets` in your `pyproject.toml` file:
+
+For example, `dara-core` defines the following entry-point:
+
+```toml
+[tool.poetry.plugins."dara_assets"]
+dara-core = "dara.core._assets:asset_manifest"
+```
+
+This must point to a variable of type `dara.core.base_definitions.AssetManifest` which defines which assets need to be included. The manifest can also be useful to include external bundles which are relied on by your custom components.
+Note that ALL of the assets depended on should be included in the wheel and the manifest - Dara in principle does not rely on external CDNs for its dependencies, in order to e.g. work in air-gapped environments without internet access.
+You can see examples of this in action by looking at `dara.core` and `dara.components` asset manifests.
+
 - your UMD module needs to expose a global variable with its name matching the Python's module name
 - make sure not to include `react`, `react-dom`, `styled-components` or `@darajs/core` with your bundle as those will already be included in the core bundle
 
@@ -629,7 +641,17 @@ export default defineConfig({
       name: "your_python_package_name",
       formats: ["umd"],
     },
-    outDir: "your_python_package_name/umd",
+    outDir: "your_python_package_name/_assets/auto_js",
   },
 });
+```
+
+Make sure to include the files inside your wheel, by specifying an `include` key in the `pyproject.toml` file:
+
+```toml
+[tool.poetry.plugins."dara_assets"]
+my-package = "my_package._assets:asset_manifest"
+
+[tool.poetry.build]
+include = ["my-package/_assets/*"]
 ```

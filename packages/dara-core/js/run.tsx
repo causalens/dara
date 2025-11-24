@@ -56,7 +56,7 @@ export function Root(props: { daraData: DaraData; queryClient: QueryClient }): J
 async function run(importers: { [k: string]: () => Promise<any> }): Promise<void> {
     const queryClient = new QueryClient();
 
-    const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent!);
+    const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent);
 
     document.title = daraData.title;
     NProgress.configure({ showSpinner: false });

@@ -152,7 +152,7 @@ class BaseRoute(BaseModel):
     the route path.
     """
 
-    metadata: dict = Field(default_factory=dict, exclude=True)
+    metadata: dict[str, Any] = Field(default_factory=dict, exclude=True)
     """
     Metadata for the route. This is used to store arbitrary data that can be used by the application.
     """
@@ -353,7 +353,7 @@ class HasChildRoutes(BaseModel):
         case_sensitive: bool = False,
         name: str | None = None,
         id: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         on_load: Action | None = None,
         fallback: ComponentInstance | None = None,
     ):
@@ -392,7 +392,7 @@ class HasChildRoutes(BaseModel):
         content: Callable[..., ComponentInstance] | ComponentInstance,
         case_sensitive: bool = False,
         id: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         on_load: Action | None = None,
         fallback: ComponentInstance | None = None,
     ):
@@ -449,7 +449,7 @@ class HasChildRoutes(BaseModel):
         path: str,
         case_sensitive: bool = False,
         id: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         on_load: Action | None = None,
         fallback: ComponentInstance | None = None,
     ):
@@ -493,7 +493,7 @@ class HasChildRoutes(BaseModel):
         case_sensitive: bool = False,
         name: str | None = None,
         id: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         on_load: Action | None = None,
         fallback: ComponentInstance | None = None,
     ):

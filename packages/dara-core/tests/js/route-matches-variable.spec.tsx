@@ -142,7 +142,7 @@ describe('Route Matches Variable', () => {
 
         await waitFor(() => {
             expect(getByTestId('index')).toBeInTheDocument();
-            const parsed = JSON.parse(getByTestId('value').textContent!);
+            const parsed = JSON.parse(getByTestId('value').textContent);
             expect(parsed).toEqual([
                 expect.objectContaining({ pathname: '/home', id: 'home', definition: homeDefinition }),
                 expect.objectContaining({
@@ -158,7 +158,7 @@ describe('Route Matches Variable', () => {
 
         await waitFor(() => {
             expect(getByTestId('posts')).toBeInTheDocument();
-            const parsed = JSON.parse(getByTestId('value').textContent!);
+            const parsed = JSON.parse(getByTestId('value').textContent);
             expect(parsed).toEqual([
                 // still matches existing route
                 expect.objectContaining({ pathname: '/home', id: 'home', definition: homeDefinition }),

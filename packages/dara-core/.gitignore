@@ -1,6 +1,8 @@
 dist/
 cypress_dist/
-dara/core/umd/
+dara/core/_assets/auto_js/dara.core.umd.js
+dara/core/_assets/auto_js/dara.core.umd.cjs
+dara/core/_assets/auto_js/dara.core.css
 package-lock.json
 yarn-error.log
 .env

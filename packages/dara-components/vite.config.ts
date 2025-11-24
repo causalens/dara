@@ -38,7 +38,6 @@ export default defineConfig({
             name: 'dara.components',
             formats: ['umd'],
             fileName: 'dara.components',
-            cssFileName: 'style',
         },
         outDir: 'dist/umd',
         emptyOutDir: false,

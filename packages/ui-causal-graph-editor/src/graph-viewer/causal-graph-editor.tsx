@@ -873,10 +873,37 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     );
 }
 
-const PIXI_CORE = 'https://cdn.jsdelivr.net/npm/pixi.js@8.5.0/dist/pixi.min.js';
-const PIXI_VIEWPORT = 'https://unpkg.com/pixi-viewport@5.0.3/dist/pixi_viewport.umd.cjs';
-const PIXI_FILTERS = 'https://cdn.jsdelivr.net/npm/pixi-filters@6.0.4/dist/pixi-filters.min.js';
+const PIXI_URLS = {
+    core: {
+        cdn: 'https://cdn.jsdelivr.net/npm/pixi.js@8.5.0/dist/pixi.min.js',
+        local: 'pixi.min.js',
+    },
+    viewport: {
+        cdn: 'https://unpkg.com/pixi-viewport@5.0.3/dist/pixi_viewport.umd.cjs',
+        local: 'pixi_viewport.js',
+    },
+    filters: {
+        cdn: 'https://cdn.jsdelivr.net/npm/pixi-filters@6.0.4/dist/pixi-filters.min.js',
+        local: 'pixi-filters.min.js',
+    },
+};
 
+/**
+ * Prepare the URL for the pixi package.
+ * If used within Dara, we use a vendored version of the package stored by dara.components.
+ * Otherwise, we use the CDN.
+ *
+ * @param pkg - the package to get the URL for
+ * @returns the URL for the package
+ */
+function makePixiUrl(pkg: 'core' | 'viewport' | 'filters'): string {
+    if ('dara' in window && window.dara) {
+        const baseUrl = (window.dara as { base_url: string }).base_url;
+        return `${baseUrl}/static/dara.components/${PIXI_URLS[pkg].local}`;
+    }
+
+    return PIXI_URLS[pkg].cdn;
+}
 function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
     const [isPixiLoaded, setIsPixiLoaded] = React.useState(() => !!window.PIXI);
 
@@ -891,13 +918,13 @@ function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
         });
     }
 
-    function loadPixiLibrary(url: string): Promise<void> {
+    function loadPixiLibrary(pkg: 'core' | 'viewport' | 'filters'): Promise<void> {
         let resolve: () => void;
         const promise = new Promise<void>((r) => {
             resolve = r;
         });
         const script = document.createElement('script');
-        script.src = url;
+        script.src = makePixiUrl(pkg);
         script.onload = () => {
             resolve();
         };
@@ -910,11 +937,11 @@ function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
             await waitForPixi();
         } else if (!window.PIXI) {
             window.pixiLoading = true;
-            await loadPixiLibrary(PIXI_CORE);
+            await loadPixiLibrary('core');
             // required for pixi-viewport/plugins
             window.pixi_js = PIXI;
-            await loadPixiLibrary(PIXI_VIEWPORT);
-            await loadPixiLibrary(PIXI_FILTERS);
+            await loadPixiLibrary('viewport');
+            await loadPixiLibrary('filters');
             window.pixiLoading = false;
         }
 
