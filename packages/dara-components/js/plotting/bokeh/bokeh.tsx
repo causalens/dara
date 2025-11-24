@@ -34,6 +34,61 @@ function makeBokehUrl(version: string, file: string): string {
     return `${baseUrl}/static/dara.components/${file.replace('{version}', version)}`;
 }
 
+/**
+ * Wait for Bokeh to be available on window
+ */
+async function waitForBokeh(): Promise<void> {
+    return new Promise<void>((resolve) => {
+        const interval = setInterval(() => {
+            if (window.Bokeh) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+    });
+}
+
+/**
+ * Load a Bokeh library
+ * @param url - the URL of the library
+ * @param version - the version of Bokeh to use
+ */
+function loadBokehLibrary(url: string, version: string): Promise<void> {
+    let resolve: () => void;
+    const promise = new Promise<void>((r) => {
+        resolve = r;
+    });
+    const script = document.createElement('script');
+    script.src = makeBokehUrl(version, url);
+    script.async = true;
+    script.onload = () => {
+        resolve();
+    };
+    document.head.appendChild(script);
+    return promise;
+}
+
+/**
+ * Load Bokeh assets.
+ * If already loading, wait for it to be available.
+ * Otherwise, load it.
+ * If already loaded, do nothing.
+ */
+export async function setupBokehAssets(version: string): Promise<void> {
+    // if it's already loading, wait for it to be available
+    if (window.bokehLoading) {
+        await waitForBokeh();
+    } else if (!window.Bokeh) {
+        // otherwise, load it
+        const [core, ...libraries] = BOKEH_LIBRARIES;
+
+        // Core needs to be loaded before all the other libraries
+        await loadBokehLibrary(core!, version);
+
+        await Promise.all(libraries.map((url) => loadBokehLibrary(url, version)));
+    }
+}
+
 const BokehRoot = injectCss(styled.div`
     display: flex;
     flex: 1 1 auto;
@@ -88,50 +143,10 @@ function Bokeh(props: BokehProps): JSX.Element {
         }
     }
 
-    /**
-     * Wait for Bokeh to be available on window
-     */
-    async function waitForBokeh(): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const interval = setInterval(() => {
-                if (window.Bokeh) {
-                    clearInterval(interval);
-                    resolve();
-                }
-            }, 100);
-        });
-    }
-
-    function loadBokehLibrary(url: string, version: string): Promise<void> {
-        let resolve: () => void;
-        const promise = new Promise<void>((r) => {
-            resolve = r;
-        });
-        const script = document.createElement('script');
-        script.src = makeBokehUrl(version, url);
-        script.async = true;
-        script.onload = () => {
-            resolve();
-        };
-        document.head.appendChild(script);
-        return promise;
-    }
-
     async function initializeBokeh(): Promise<void> {
         const bokehVersion = docJson.version!;
 
-        // if it's already loading, wait for it to be available
-        if (window.bokehLoading) {
-            await waitForBokeh();
-        } else if (!window.Bokeh) {
-            // otherwise, load it
-            const [core, ...libraries] = BOKEH_LIBRARIES;
-
-            // Core needs to be loaded before all the other libraries
-            await loadBokehLibrary(core!, bokehVersion);
-
-            await Promise.all(libraries.map((url) => loadBokehLibrary(url, bokehVersion)));
-        }
+        await setupBokehAssets(bokehVersion);
 
         events.forEach(([ev, handler]) => {
             document.removeEventListener(ev, handler);
