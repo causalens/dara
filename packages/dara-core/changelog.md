@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
--  Internal: overhaul of the asset handling system. Dara no longer relies on external CDN assets, they are now bundled with the wheels and served together with the framework assets. See Custom JS docs page for more details.
+-  Internal: overhaul of the asset handling system. Dara no longer relies on external CDN assets, they are now bundled with the wheels and served together with the framework assets. See Custom JS docs page for more details
 
 ## 1.21.25
 
