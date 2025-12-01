@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.22.4
 
 -  Relaxed `cachetools` dependency to `>=5.0.0`
 

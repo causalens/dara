@@ -1,6 +1,6 @@
 {
   "name": "@darajs/prettier-config",
-  "version": "1.22.0",
+  "version": "1.22.4",
   "description": "Dara Prettier configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
