@@ -7,7 +7,7 @@ on:
 
 permissions:
   id-token: write  # Required for OIDC and npm trusted publishing
-  contents: read
+  contents: write  # The action-gh-release needs this to write to the release
 
 jobs:
   package-and-publish:
