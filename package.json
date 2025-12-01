@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "glob": "*",
-    "lerna": "^7.0.0"
+    "lerna": "^9.0.0"
   },
   "pnpm": {
     "packageExtensions": {
