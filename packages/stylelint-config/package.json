@@ -18,5 +18,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/causalens/dara.git",
+    "directory": "packages/stylelint-config"
   }
 }

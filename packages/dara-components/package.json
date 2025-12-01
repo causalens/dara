@@ -19,7 +19,7 @@
   "homepage": "https://dara.causalens.com/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/causalens/dara.git",
+    "url": "git+https://github.com/causalens/dara.git",
     "directory": "packages/dara-components"
   },
   "contributors": [
