@@ -5,6 +5,10 @@ on:
     tags:
       - v*
 
+permissions:
+  id-token: write  # Required for OIDC and npm trusted publishing
+  contents: read
+
 jobs:
   package-and-publish:
     runs-on: ubuntu-latest
@@ -110,7 +114,6 @@ jobs:
         run: make publish
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
           VERSION_TAG: ${{ steps.extract_tag.outputs.tag }}
       - name: Package and Publish Docs
         run: make publish-docs

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Relaxed `cachetools` dependency to `>=5.0.0`
+
 ## 1.22.0
 
 -  Internal: overhaul of the asset handling system. Dara no longer relies on external CDN assets, they are now bundled with the wheels and served together with the framework assets. See Custom JS docs page for more details
