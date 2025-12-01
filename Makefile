@@ -86,10 +86,7 @@ publish:
 	git add .
 	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
 
-	echo "//registry.npmjs.org/:_authToken=$${NPMJS_TOKEN}" >> .npmrc
-	git update-index --assume-unchanged .npmrc
 	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
-	sed -i '$$ d' .npmrc
 
 publish-docs:
 	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple
