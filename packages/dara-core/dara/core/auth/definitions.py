@@ -76,6 +76,8 @@ class SuccessResponse(TypedDict):
 class SessionRequestBody(BaseModel):
     username: str | None = None
     password: str | None = None
+    redirect_to: str | None = None
+    """Optional URL to redirect to after successful authentication (used in OIDC flows)"""
 
 
 class AuthError(Exception):

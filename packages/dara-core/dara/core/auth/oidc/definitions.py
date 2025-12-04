@@ -1,5 +1,9 @@
 from pydantic import BaseModel, Field
 
+JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
+
+REFRESH_TOKEN_COOKIE_NAME = 'dara_refresh_token'
+
 
 class OIDCDiscoveryMetadata(BaseModel):
     """
@@ -184,3 +188,60 @@ class OIDCDiscoveryMetadata(BaseModel):
 
     class Config:
         extra = 'allow'  # Allow additional fields as per spec: "Additional OpenID Provider Metadata parameters MAY also be used"
+
+
+class IdTokenClaims(BaseModel):
+    """
+    Standard OIDC ID Token claims as defined in OpenID Connect Core 1.0 Section 2.
+    https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+
+    This model allows extra fields for provider-specific claims.
+    Subclass this to add custom claim extraction logic for specific IDPs.
+    """
+
+    # Required claims
+    iss: str = Field(..., description='Issuer Identifier')
+    sub: str = Field(..., description='Subject Identifier - unique identifier for the user')
+    aud: str | list[str] = Field(..., description='Audience(s) the token is intended for')
+    exp: int = Field(..., description='Expiration time (Unix timestamp)')
+    iat: int = Field(..., description='Issued at time (Unix timestamp)')
+
+    # Optional but commonly used claims
+    auth_time: int | None = Field(default=None, description='Time of authentication (Unix timestamp)')
+    nonce: str | None = Field(default=None, description='Nonce value from the authentication request')
+    acr: str | None = Field(default=None, description='Authentication Context Class Reference')
+    amr: list[str] | None = Field(default=None, description='Authentication Methods References')
+    azp: str | None = Field(default=None, description='Authorized party')
+
+    # Standard profile claims (from scope: profile)
+    name: str | None = Field(default=None, description="End-User's full name")
+    given_name: str | None = Field(default=None, description="End-User's given name(s)")
+    family_name: str | None = Field(default=None, description="End-User's surname(s)")
+    middle_name: str | None = Field(default=None, description="End-User's middle name(s)")
+    nickname: str | None = Field(default=None, description="End-User's casual name")
+    preferred_username: str | None = Field(default=None, description="End-User's preferred username")
+    profile: str | None = Field(default=None, description='URL of the End-User profile page')
+    picture: str | None = Field(default=None, description='URL of the End-User profile picture')
+    website: str | None = Field(default=None, description='URL of the End-User web page or blog')
+    gender: str | None = Field(default=None, description="End-User's gender")
+    birthdate: str | None = Field(default=None, description="End-User's birthday (YYYY-MM-DD or YYYY)")
+    zoneinfo: str | None = Field(default=None, description="End-User's time zone (e.g., Europe/Paris)")
+    locale: str | None = Field(default=None, description="End-User's locale (e.g., en-US)")
+    updated_at: int | None = Field(default=None, description='Time the information was last updated (Unix timestamp)')
+
+    # Email claims (from scope: email)
+    email: str | None = Field(default=None, description="End-User's email address")
+    email_verified: bool | None = Field(default=None, description='Whether the email has been verified')
+
+    # Phone claims (from scope: phone)
+    phone_number: str | None = Field(default=None, description="End-User's phone number")
+    phone_number_verified: bool | None = Field(default=None, description='Whether the phone number has been verified')
+
+    # Address claim (from scope: address) - typically a JSON object
+    address: dict | None = Field(default=None, description="End-User's postal address")
+
+    # Groups claim (non-standard but common)
+    groups: list[str] | None = Field(default=None, description='Groups the user belongs to (non-standard claim)')
+
+    class Config:
+        extra = 'allow'  # Allow provider-specific claims
