@@ -162,15 +162,10 @@ def enforce_sso(conf: ConfigurationBuilder):
 
     Raises if SSO is not used
     """
-    try:
-        from dara.enterprise import SSOAuthConfig  # pyright: ignore[reportMissingImports]
+    from dara.core.auth.oidc.config import OIDCAuthConfig
 
-        if conf.auth_config is None or not isinstance(conf.auth_config, SSOAuthConfig):
-            raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')
-    except ImportError as err:
-        raise ValueError(
-            'SSO is not enabled. Please install the dara_enterprise package and configure SSO to use this feature.'
-        ) from err
+    if conf.auth_config is None or not isinstance(conf.auth_config, OIDCAuthConfig):
+        raise ValueError('Config does not have SSO auth enabled. Please update your application to configure SSO.')
 
 
 P = ParamSpec('P')
