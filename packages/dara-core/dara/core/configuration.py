@@ -582,8 +582,9 @@ class ConfigurationBuilder:
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
 
-        # Use configured auth startup hook first, then any other startup functions
+        # Merge selected auth config's configuration
         all_startup_functions = [self.auth_config.startup_hook, *self.startup_functions]
+        all_routes = [*self.auth_config.required_routes, *self.routes]
 
         return Configuration(
             actions=self._actions,
@@ -598,7 +599,7 @@ class ConfigurationBuilder:
             pages=self._pages,
             powered_by_causalens=self.powered_by_causalens,
             package_tag_processors=self._package_tags_processors,
-            routes=self.routes,
+            routes=all_routes,
             router=self.router,
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,

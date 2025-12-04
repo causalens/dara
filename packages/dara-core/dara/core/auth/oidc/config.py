@@ -8,6 +8,7 @@ import jwt
 from fastapi import HTTPException, Response
 from jwt import PyJWKClient
 
+from dara.core.definitions import ApiRoute
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
@@ -16,7 +17,9 @@ from ..definitions import (
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
+    OTHER_AUTH_ERROR,
     SESSION_ID,
+    UNAUTHORIZED_ERROR,
     USER,
     AuthError,
     RedirectResponse,
@@ -29,9 +32,10 @@ from ..definitions import (
 )
 from ..utils import decode_token, sign_jwt
 from .definitions import JWK_CLIENT_REGISTRY_KEY, REFRESH_TOKEN_COOKIE_NAME, IdTokenClaims, OIDCDiscoveryMetadata
+from .routes import sso_callback
 from .utils import decode_id_token, get_token_from_idp
 
-# Expiration time for the state JWT (5 minutes should be plenty for the OAuth flow)
+# Expiration time for the state JWT
 STATE_EXPIRATION_MINUTES = 5
 
 OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
@@ -46,7 +50,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     Generic OIDC auth config
     """
 
-    # TODO: required routes, move definitions here
+    required_routes: ClassVar[list[ApiRoute]] = [sso_callback]
 
     component_config: ClassVar[AuthComponentConfig] = AuthComponentConfig(
         login=OIDCAuthLogin,
@@ -338,10 +342,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 error=Exception('Unauthorized'),
                 extra={'user_groups': user_groups, 'allowed_groups': list(allowed_groups)},
             )
-            raise HTTPException(
-                status_code=403,
-                detail={'message': 'You are not authorized to access this application.', 'reason': 'unauthorized'},
-            )
+            raise HTTPException(status_code=403, detail=UNAUTHORIZED_ERROR)
 
     def get_token_endpoint(self) -> str:
         """
@@ -380,10 +381,7 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         # Ensure we got an id_token back
         if not oidc_tokens.id_token:
-            raise HTTPException(
-                status_code=401,
-                detail={'message': 'No ID token returned from refresh', 'reason': 'invalid_token'},
-            )
+            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
         # Decode and verify the new ID token
         claims = decode_id_token(oidc_tokens.id_token)
