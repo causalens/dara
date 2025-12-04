@@ -1,13 +1,15 @@
 from typing import ClassVar
+from urllib.parse import quote
 
-from fastapi import Response
+import httpx
+from fastapi import HTTPException, Response
 from jwt import PyJWKClient
-from pydantic import BaseModel, Field
 
 from dara.core.internal.settings import get_settings
 
 from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import RedirectResponse, SessionRequestBody, SuccessResponse, TokenData, TokenResponse, UserGroup
+from .definitions import OIDCDiscoveryMetadata
 
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 
@@ -16,191 +18,6 @@ OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', j
 OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogout')
 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
-
-
-class OIDCDiscoveryMetadata(BaseModel):
-    """
-    OpenID Provider Metadata as defined in OpenID Connect Discovery 1.0.
-    https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
-    """
-
-    issuer: str = Field(
-        ...,
-        description='REQUIRED. URL using the https scheme with no query or fragment components that the OP asserts as its Issuer Identifier. If Issuer discovery is supported, this value MUST be identical to the issuer value returned by WebFinger. This also MUST be identical to the iss Claim value in ID Tokens issued from this Issuer.',
-    )
-
-    authorization_endpoint: str = Field(
-        ...,
-        description="REQUIRED. URL of the OP's OAuth 2.0 Authorization Endpoint. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.",
-    )
-
-    token_endpoint: str | None = Field(
-        default=None,
-        description="URL of the OP's OAuth 2.0 Token Endpoint. This is REQUIRED unless only the Implicit Flow is used. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.",
-    )
-
-    userinfo_endpoint: str | None = Field(
-        default=None,
-        description="RECOMMENDED. URL of the OP's UserInfo Endpoint. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.",
-    )
-
-    jwks_uri: str = Field(
-        ...,
-        description="REQUIRED. URL of the OP's JWK Set document, which MUST use the https scheme. This contains the signing key(s) the RP uses to validate signatures from the OP. The JWK Set MAY also contain the Server's encryption key(s), which are used by RPs to encrypt requests to the Server.",
-    )
-
-    registration_endpoint: str | None = Field(
-        default=None,
-        description="RECOMMENDED. URL of the OP's Dynamic Client Registration Endpoint, which MUST use the https scheme.",
-    )
-
-    scopes_supported: list[str] | None = Field(
-        default=None,
-        description='RECOMMENDED. JSON array containing a list of the OAuth 2.0 scope values that this server supports. The server MUST support the openid scope value. Servers MAY choose not to advertise some supported scope values even when this parameter is used.',
-    )
-
-    response_types_supported: list[str] = Field(
-        ...,
-        description='REQUIRED. JSON array containing a list of the OAuth 2.0 response_type values that this OP supports. Dynamic OpenID Providers MUST support the code, id_token, and the id_token token Response Type values.',
-    )
-
-    response_modes_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the OAuth 2.0 response_mode values that this OP supports. If omitted, the default for Dynamic OpenID Providers is ["query", "fragment"].',
-    )
-
-    grant_types_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the OAuth 2.0 Grant Type values that this OP supports. Dynamic OpenID Providers MUST support the authorization_code and implicit Grant Type values and MAY support other Grant Types. If omitted, the default value is ["authorization_code", "implicit"].',
-    )
-
-    acr_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the Authentication Context Class References that this OP supports.',
-    )
-
-    subject_types_supported: list[str] = Field(
-        ...,
-        description='REQUIRED. JSON array containing a list of the Subject Identifier types that this OP supports. Valid types include pairwise and public.',
-    )
-
-    id_token_signing_alg_values_supported: list[str] = Field(
-        ...,
-        description='REQUIRED. JSON array containing a list of the JWS signing algorithms (alg values) supported by the OP for the ID Token to encode the Claims in a JWT. The algorithm RS256 MUST be included. The value none MAY be supported but MUST NOT be used unless the Response Type used returns no ID Token from the Authorization Endpoint.',
-    )
-
-    id_token_encryption_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (alg values) supported by the OP for the ID Token to encode the Claims in a JWT.',
-    )
-
-    id_token_encryption_enc_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (enc values) supported by the OP for the ID Token to encode the Claims in a JWT.',
-    )
-
-    userinfo_signing_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWS signing algorithms (alg values) supported by the UserInfo Endpoint to encode the Claims in a JWT. The value none MAY be included.',
-    )
-
-    userinfo_encryption_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (alg values) supported by the UserInfo Endpoint to encode the Claims in a JWT.',
-    )
-
-    userinfo_encryption_enc_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (enc values) supported by the UserInfo Endpoint to encode the Claims in a JWT.',
-    )
-
-    request_object_signing_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWS signing algorithms (alg values) supported by the OP for Request Objects. These algorithms are used both when the Request Object is passed by value (using the request parameter) and when it is passed by reference (using the request_uri parameter). Servers SHOULD support none and RS256.',
-    )
-
-    request_object_encryption_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (alg values) supported by the OP for Request Objects. These algorithms are used both when the Request Object is passed by value and when it is passed by reference.',
-    )
-
-    request_object_encryption_enc_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWE encryption algorithms (enc values) supported by the OP for Request Objects. These algorithms are used both when the Request Object is passed by value and when it is passed by reference.',
-    )
-
-    token_endpoint_auth_methods_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of Client Authentication methods supported by this Token Endpoint. The options are client_secret_post, client_secret_basic, client_secret_jwt, and private_key_jwt. Other authentication methods MAY be defined by extensions. If omitted, the default is client_secret_basic.',
-    )
-
-    token_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the JWS signing algorithms (alg values) supported by the Token Endpoint for the signature on the JWT used to authenticate the Client at the Token Endpoint for the private_key_jwt and client_secret_jwt authentication methods. Servers SHOULD support RS256. The value none MUST NOT be used.',
-    )
-
-    display_values_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the display parameter values that the OpenID Provider supports.',
-    )
-
-    claim_types_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. JSON array containing a list of the Claim Types that the OpenID Provider supports. Values defined by this specification are normal, aggregated, and distributed. If omitted, the implementation supports only normal Claims.',
-    )
-
-    claims_supported: list[str] | None = Field(
-        default=None,
-        description='RECOMMENDED. JSON array containing a list of the Claim Names of the Claims that the OpenID Provider MAY be able to supply values for. Note that for privacy or other reasons, this might not be an exhaustive list.',
-    )
-
-    service_documentation: str | None = Field(
-        default=None,
-        description='OPTIONAL. URL of a page containing human-readable information that developers might want or need to know when using the OpenID Provider. In particular, if the OpenID Provider does not support Dynamic Client Registration, then information on how to register Clients needs to be provided in this documentation.',
-    )
-
-    claims_locales_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. Languages and scripts supported for values in Claims being returned, represented as a JSON array of BCP47 language tag values. Not all languages and scripts are necessarily supported for all Claim values.',
-    )
-
-    ui_locales_supported: list[str] | None = Field(
-        default=None,
-        description='OPTIONAL. Languages and scripts supported for the user interface, represented as a JSON array of BCP47 language tag values.',
-    )
-
-    claims_parameter_supported: bool | None = Field(
-        default=None,
-        description='OPTIONAL. Boolean value specifying whether the OP supports use of the claims parameter, with true indicating support. If omitted, the default value is false.',
-    )
-
-    request_parameter_supported: bool | None = Field(
-        default=None,
-        description='OPTIONAL. Boolean value specifying whether the OP supports use of the request parameter, with true indicating support. If omitted, the default value is false.',
-    )
-
-    request_uri_parameter_supported: bool | None = Field(
-        default=None,
-        description='OPTIONAL. Boolean value specifying whether the OP supports use of the request_uri parameter, with true indicating support. If omitted, the default value is true.',
-    )
-
-    require_request_uri_registration: bool | None = Field(
-        default=None,
-        description='OPTIONAL. Boolean value specifying whether the OP requires any request_uri values used to be pre-registered using the request_uris registration parameter. Pre-registration is REQUIRED when the value is true. If omitted, the default value is false.',
-    )
-
-    op_policy_uri: str | None = Field(
-        default=None,
-        description="OPTIONAL. URL that the OpenID Provider provides to the person registering the Client to read about the OP's requirements on how the Relying Party can use the data provided by the OP. The registration process SHOULD display this URL to the person registering the Client if it is given.",
-    )
-
-    op_tos_uri: str | None = Field(
-        default=None,
-        description="OPTIONAL. URL that the OpenID Provider provides to the person registering the Client to read about the OpenID Provider's terms of service. The registration process SHOULD display this URL to the person registering the Client if it is given.",
-    )
-
-    class Config:
-        extra = 'allow'  # Allow additional fields as per spec: "Additional OpenID Provider Metadata parameters MAY also be used"
 
 
 class OIDCAuthConfig(BaseAuthConfig):
@@ -218,12 +35,26 @@ class OIDCAuthConfig(BaseAuthConfig):
         },
     )
 
+    # Populated during startup_hook
+    _discovery: OIDCDiscoveryMetadata | None = None
+
+    @property
+    def discovery(self) -> OIDCDiscoveryMetadata:
+        """Get the OIDC discovery metadata. Raises if not initialized."""
+        if self._discovery is None:
+            raise RuntimeError('OIDC discovery metadata not initialized. Ensure startup_hook has been called.')
+        return self._discovery
+
     @property
     def allowed_groups(self):
         # initialise user groups from ENV
         env_groups = get_settings().sso_groups
         parsed_groups = env_groups.split(',')
         return {group.strip(): UserGroup(name=group.strip()) for group in parsed_groups}
+
+    def get_discovery_url(self) -> str:
+        issuer_url = get_settings().sso_issuer_url
+        return f'{issuer_url}/.well-known/openid-configuration'
 
     async def startup_hook(self) -> None:
         # Enforce SSO env vars are set
@@ -232,18 +63,29 @@ class OIDCAuthConfig(BaseAuthConfig):
             if k.startswith('sso_') and (v in (None, '')) and k != 'sso_extra_audience':
                 raise ValueError(f'SSO Auth module requires {k.upper()} .env key to be a non-empty string')
 
-        # Register a PyJWKClient instance bound to the url; this caches the JWKS based on `kid` requested
-        from dara.core.internal.registries import auth_registry, utils_registry
+        # Fetch OIDC discovery document
+        discovery_url = self.get_discovery_url()
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(discovery_url)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                raise RuntimeError(
+                    f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
+                ) from e
+            except httpx.RequestError as e:
+                raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
 
-        # TODO: do discovery here and get url
-        # Register a shared instance of JWKS client bound to the url; this caches the JWKS based on `kid` requested
-        jwks_url = ''
-        py_jwk_client = PyJWKClient(jwks_url, lifespan=86400)
+            try:
+                self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
+            except Exception as e:
+                raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
+
+        # Register a PyJWKClient instance bound to the jwks_uri from discovery
+        from dara.core.internal.registries import utils_registry
+
+        py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=86400)
         utils_registry.register(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
-
-    def get_discovery_url(self):
-        issuer_url = get_settings().sso_issuer_url
-        return f'{issuer_url}/.well-known/openid-configuration'
 
     def get_redirect_url(self):
         client_id = get_settings().sso_client_id
