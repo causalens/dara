@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     sso_redirect_uri: str = ''
     sso_groups: str = ''
     sso_jwt_algo: str = 'ES256'
+    sso_scopes: str = 'openid'
     sso_verify_audience: bool = False
     sso_extra_audience: list[str] | None = None
     model_config = SettingsConfigDict(env_file='.env', extra='allow')

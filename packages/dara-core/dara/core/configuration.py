@@ -582,6 +582,9 @@ class ConfigurationBuilder:
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
 
+        # Use configured auth startup hook first, then any other startup functions
+        all_startup_functions = [self.auth_config.startup_hook, *self.startup_functions]
+
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
@@ -599,7 +602,7 @@ class ConfigurationBuilder:
             router=self.router,
             static_files_dir=self.static_files_dir,
             scheduled_jobs=self.scheduled_jobs,
-            startup_functions=self.startup_functions,
+            startup_functions=all_startup_functions,
             static_folders=self._static_folders,
             task_module=self.task_module,
             template=self.template,

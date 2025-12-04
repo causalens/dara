@@ -30,6 +30,7 @@ from dara.core.auth.definitions import (
     TokenResponse,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.definitions import ApiRoute
 
 
 class AuthComponent(TypedDict):
@@ -71,6 +72,17 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     Defines components to use for auth routes
     """
 
+    required_routes: ClassVar[list[ApiRoute]] = []
+    """
+    List of routes the auth config depends on.
+    Will be added to the app if this auth config is used.
+    """
+
+    async def startup_hook(self) -> None:
+        """
+        Called when the server is starting up, can be used to set up e.g. JWKS clients for OIDC auth
+        """
+
     @abc.abstractmethod
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
         """
@@ -82,7 +94,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
 
     @abc.abstractmethod
-    def verify_token(self, token: str) -> Any | TokenData:
+    def verify_token(self, token: str) -> TokenData:
         """
         Verify a session token.
 

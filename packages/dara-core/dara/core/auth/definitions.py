@@ -116,4 +116,6 @@ JWT_ALGO = 'HS256'
 # Context
 SESSION_ID: ContextVar[str | None] = ContextVar('session_id', default=None)
 USER: ContextVar[UserData | None] = ContextVar('user', default=None)
+
 ID_TOKEN: ContextVar[str | None] = ContextVar('id_token', default=None)
+"""Current ID token, set when using OIDC auth"""
