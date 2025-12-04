@@ -1,9 +1,14 @@
+import { jwtDecode } from 'jwt-decode';
 import { useEffect } from 'react';
 
 import { Center, DefaultFallback, ReactRouter, handleAuthErrors, request, setSessionToken } from '@darajs/core';
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
 const DEFAULT_REDIRECT = '/';
+
+interface StatePayload {
+    redirect_to?: string;
+}
 
 /**
  * Decode the state parameter which is a JWT containing the redirect URL.
@@ -18,23 +23,10 @@ function decodeStateRedirect(state: string | null): string {
     }
 
     try {
-        // JWT structure: header.payload.signature
-        const parts = state.split('.');
-        if (parts.length !== 3) {
-            // Not a JWT, treat as raw redirect URL (fallback)
-            return decodeURIComponent(state);
-        }
-
-        // Decode the payload (second part), handling base64url encoding
-        const base64Payload = parts[1];
-        if (!base64Payload) {
-            return DEFAULT_REDIRECT;
-        }
-        const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(base64));
+        const payload = jwtDecode<StatePayload>(state);
         return payload.redirect_to ?? DEFAULT_REDIRECT;
     } catch {
-        // If decoding fails, try using the raw state as a URL (fallback)
+        // If decoding fails, try using the raw state as a URL (fallback for non-JWT states)
         try {
             return decodeURIComponent(state);
         } catch {
@@ -81,7 +73,7 @@ export async function getSSOCallbackToken(search: string): Promise<{ token: stri
     }
 }
 
-function SSOCallbackPage(): JSX.Element {
+function OIDCAuthSSOCallback(): JSX.Element {
     const { search } = ReactRouter.useLocation();
     const navigate = ReactRouter.useNavigate();
 
@@ -108,4 +100,4 @@ function SSOCallbackPage(): JSX.Element {
     );
 }
 
-export default SSOCallbackPage;
+export default OIDCAuthSSOCallback;

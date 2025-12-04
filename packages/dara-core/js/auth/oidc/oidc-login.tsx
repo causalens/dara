@@ -15,7 +15,7 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 /**
  * The Login component gets the username and password from the user and generates a session token.
  */
-function LoginPage(): JSX.Element {
+function OIDCAuthLogin(): JSX.Element {
     const navigate = ReactRouter.useNavigate();
     const location = ReactRouter.useLocation();
     const token = useSessionToken();
@@ -84,4 +84,4 @@ function LoginPage(): JSX.Element {
     );
 }
 
-export default LoginPage;
+export default OIDCAuthLogin;
