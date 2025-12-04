@@ -27,9 +27,9 @@ from ..definitions import (
     UserData,
     UserGroup,
 )
-from ..utils import decode_token
+from ..utils import decode_token, sign_jwt
 from .definitions import JWK_CLIENT_REGISTRY_KEY, REFRESH_TOKEN_COOKIE_NAME, IdTokenClaims, OIDCDiscoveryMetadata
-from .utils import decode_id_token
+from .utils import decode_id_token, get_token_from_idp
 
 # Expiration time for the state JWT (5 minutes should be plenty for the OAuth flow)
 STATE_EXPIRATION_MINUTES = 5
@@ -343,17 +343,72 @@ class OIDCAuthConfig(BaseAuthConfig):
                 detail={'message': 'You are not authorized to access this application.', 'reason': 'unauthorized'},
             )
 
-    def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+    def get_token_endpoint(self) -> str:
         """
-        Create a new session token and refresh token from a refresh token.
+        Get the token endpoint URL from discovery.
 
-        Note: the new issued session token should include the same session_id as the old token
-
-        :param old_token: old session token data
-        :param refresh_token: encoded refresh token
-        :return: new session token, new refresh token
+        :return: Token endpoint URL
+        :raises RuntimeError: If token_endpoint is not available in discovery
         """
-        raise HTTPException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
+        if not self._discovery or not self._discovery.token_endpoint:
+            raise RuntimeError('Token endpoint not available in OIDC discovery')
+        return self._discovery.token_endpoint
+
+    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        """
+        Refresh the session using an OIDC refresh token.
+
+        Per RFC 6749 Section 6, sends a refresh token grant to the token endpoint
+        to obtain new access/id tokens.
+
+        Note: the new issued session token includes the same session_id as the old token
+        to maintain session continuity.
+
+        :param old_token: Old session token data (used to preserve session_id)
+        :param refresh_token: OIDC refresh token
+        :return: Tuple of (new_session_token, new_refresh_token)
+        :raises HTTPException: If the refresh fails
+        """
+        # Request new tokens from the IDP
+        oidc_tokens = await get_token_from_idp(
+            self,
+            {
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token,
+            },
+        )
+
+        # Ensure we got an id_token back
+        if not oidc_tokens.id_token:
+            raise HTTPException(
+                status_code=401,
+                detail={'message': 'No ID token returned from refresh', 'reason': 'invalid_token'},
+            )
+
+        # Decode and verify the new ID token
+        claims = decode_id_token(oidc_tokens.id_token)
+
+        # Extract user data from claims
+        user_data = self.extract_user_data_from_id_token(claims)
+
+        # Verify user still has access
+        self._verify_user_access(user_data.groups or [])
+
+        # Create a new Dara session token, preserving the original session_id
+        new_session_token = sign_jwt(
+            identity_id=user_data.identity_id,
+            identity_name=user_data.identity_name,
+            identity_email=user_data.identity_email,
+            groups=user_data.groups or [],
+            id_token=oidc_tokens.id_token,
+            exp=claims.exp,
+            session_id=old_token.session_id,
+        )
+
+        # Return new session token and refresh token (or the old one if not rotated)
+        new_refresh_token = oidc_tokens.refresh_token or refresh_token
+
+        return new_session_token, new_refresh_token
 
     def get_end_session_endpoint(self) -> str | None:
         """

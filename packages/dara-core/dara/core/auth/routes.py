@@ -34,7 +34,6 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.utils import cached_refresh_token, decode_token
 from dara.core.logging import dev_logger
-from dara.core.http import post, get
 
 auth_router = APIRouter()
 

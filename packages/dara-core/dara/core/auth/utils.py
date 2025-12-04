@@ -19,7 +19,7 @@ import asyncio
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Awaitable
 
 import jwt
 from anyio import to_thread
@@ -187,7 +187,9 @@ Shared token refresh cache instance
 
 
 async def cached_refresh_token(
-    do_refresh_token: Callable[[TokenData, str], tuple[str, str]], old_token_data: TokenData, refresh_token: str
+    do_refresh_token: Callable[[TokenData, str], Awaitable[tuple[str, str]]],
+    old_token_data: TokenData,
+    refresh_token: str,
 ):
     """
     A utility to run a token refresh method with caching to prevent multiple concurrent refreshes
@@ -214,7 +216,7 @@ async def cached_refresh_token(
             return cached_result
 
         # Run the refresh function
-        result = await to_thread.run_sync(do_refresh_token, old_token_data, refresh_token)
+        result = await do_refresh_token(old_token_data, refresh_token)
 
         # update cache
         token_refresh_cache.set_cached_value(cache_key, result)
