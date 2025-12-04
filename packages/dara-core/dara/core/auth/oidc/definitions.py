@@ -5,6 +5,16 @@ JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 REFRESH_TOKEN_COOKIE_NAME = 'dara_refresh_token'
 
 
+class AuthCodeRequestBody(BaseModel):
+    """Request body for the SSO callback endpoint."""
+
+    auth_code: str
+    """The authorization code received from the IDP"""
+
+    state: str | None = None
+    """The state parameter for CSRF validation (optional for backward compatibility)"""
+
+
 class OIDCDiscoveryMetadata(BaseModel):
     """
     OpenID Provider Metadata as defined in OpenID Connect Discovery 1.0.
