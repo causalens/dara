@@ -186,6 +186,17 @@ class OIDCDiscoveryMetadata(BaseModel):
         description="OPTIONAL. URL that the OpenID Provider provides to the person registering the Client to read about the OpenID Provider's terms of service. The registration process SHOULD display this URL to the person registering the Client if it is given.",
     )
 
+    # OpenID Connect Session Management / RP-Initiated Logout fields
+    end_session_endpoint: str | None = Field(
+        default=None,
+        description='OPTIONAL. URL at the OP to which an RP can perform a redirect to request that the End-User be logged out at the OP. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.',
+    )
+
+    check_session_iframe: str | None = Field(
+        default=None,
+        description='OPTIONAL. URL of an OP iframe that supports cross-origin communications for session state information with the RP Client, using the HTML5 postMessage API.',
+    )
+
     class Config:
         extra = 'allow'  # Allow additional fields as per spec: "Additional OpenID Provider Metadata parameters MAY also be used"
 

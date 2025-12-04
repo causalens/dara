@@ -355,37 +355,103 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         raise HTTPException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
 
-    def get_logout_url(self, token: str, verify_audience: bool):
-        issuer_url = get_settings().sso_issuer_url
-        url = f'{issuer_url}/logout?id_token_hint={token}'
+    def get_end_session_endpoint(self) -> str | None:
+        """
+        Get the end session endpoint URL.
 
-        # Only add client_id if we are verifying audience
-        if verify_audience:
-            client_id = get_settings().sso_client_id
-            url += f'&client_id={client_id}'
+        Uses the end_session_endpoint from OIDC discovery if available.
 
-        return url
+        Override this method in subclasses to customize the logout endpoint.
+        """
+        if self._discovery and self._discovery.end_session_endpoint:
+            return self._discovery.end_session_endpoint
+
+        # Not supported
+        return None
+
+    def get_logout_params(self, id_token: str | None) -> dict[str, str]:
+        """
+        Build the query parameters for the logout/end session request.
+
+        Per OpenID Connect RP-Initiated Logout 1.0:
+        - id_token_hint: RECOMMENDED. ID Token previously issued by the OP, used as a hint
+          about the End-User's current authenticated session.
+        - client_id: OPTIONAL. OAuth 2.0 Client Identifier. Required if id_token_hint is not provided.
+        - post_logout_redirect_uri: OPTIONAL. URI to redirect to after logout.
+        - state: OPTIONAL. Opaque value for maintaining state.
+
+        Override this method to add custom parameters like post_logout_redirect_uri.
+
+        :param id_token: The ID token to use as a hint, or None if not available
+        :return: Dictionary of query parameters
+        """
+        settings = get_settings()
+        params: dict[str, str] = {}
+
+        if id_token:
+            params['id_token_hint'] = id_token
+
+        # Include client_id if we're verifying audience, or if no id_token_hint is provided
+        if settings.sso_verify_audience or not id_token:
+            params['client_id'] = settings.sso_client_id
+
+        return params
+
+    def get_logout_url(self, id_token: str | None = None) -> str | None:
+        """
+        Build the full logout URL for RP-Initiated Logout.
+
+        :param id_token: The ID token to use as a hint, or None if not available
+        :return: Full logout URL with query parameters
+        """
+        endpoint = self.get_end_session_endpoint()
+
+        if not endpoint:
+            return None
+
+        params = self.get_logout_params(id_token)
+
+        if params:
+            return f'{endpoint}?{urlencode(params)}'
+        return endpoint
 
     def revoke_token(self, token: str, response: Response) -> SuccessResponse | RedirectResponse:
         """
-        Revoke the token and redirect to the logout url
+        Revoke the session and redirect to the OP's end session endpoint.
 
-        :param token: token to revoke
+        Per OpenID Connect RP-Initiated Logout 1.0, this initiates logout at the OP
+        by redirecting to the end_session_endpoint with the id_token_hint.
+
+        :param token: Session token to revoke (Dara-issued or raw IDP token)
         :param response: FastAPI response object
+        :return: RedirectResponse to the logout URL
         """
         settings = get_settings()
 
-        # Clean up the refresh token cookie and redirect to the logout url
+        # Clean up the refresh token cookie
         response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
 
-        # DO NOT TRUST! Decode the token without verifying to check who issued it
-        do_not_trust_me = jwt.decode(token, options={'verify_signature': False})
+        # Extract the ID token to use as a hint
+        id_token: str | None = None
 
-        if do_not_trust_me.get('iss', None) == settings.sso_issuer_url:
-            # IDP issued token, use directly
-            id_token = token
-        else:
-            # Dara issued token, use the id_token from the payload
-            id_token: str = do_not_trust_me.get('id_token', None)  # type: ignore
+        try:
+            # Decode without verification to check the issuer
+            unverified = jwt.decode(token, options={'verify_signature': False})
 
-        return RedirectResponse(redirect_uri=self.get_logout_url(id_token, settings.sso_verify_audience))
+            if unverified.get('iss') == settings.sso_issuer_url:
+                # Raw IDP token, use directly as the id_token_hint
+                id_token = token
+            else:
+                # Dara-issued token, extract the embedded id_token
+                id_token = unverified.get('id_token')
+        except jwt.DecodeError:
+            # If we can't decode the token, proceed without id_token_hint
+            dev_logger.warning('Failed to decode token for logout, proceeding without id_token_hint')
+
+        logout_url = self.get_logout_url(id_token)
+
+        # IDP doesn't support RP-Initiated Logout, so treat logout as success
+        if not logout_url:
+            return {'success': True}
+
+        return RedirectResponse(redirect_uri=logout_url)
