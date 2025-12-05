@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 
@@ -34,4 +35,5 @@ def test_error_on_missing_env():
     """
     Check that the settings error out on missing env vars
     """
-    OIDCSettings(_env_file=None)  # disable env loading # type: ignore
+    with pytest.raises(ValidationError):
+        OIDCSettings(_env_file=None)  # disable env loading # type: ignore
