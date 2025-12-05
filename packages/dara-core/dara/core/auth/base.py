@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import abc
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from fastapi import HTTPException, Response
 from pydantic import model_serializer

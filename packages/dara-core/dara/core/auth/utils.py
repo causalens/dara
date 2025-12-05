@@ -17,12 +17,11 @@ limitations under the License.
 
 import asyncio
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable
+from typing import Any
 
 import jwt
-from anyio import to_thread
 
 from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,

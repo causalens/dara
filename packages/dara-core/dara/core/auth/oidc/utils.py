@@ -23,13 +23,13 @@ from typing import TYPE_CHECKING
 import httpx
 import jwt
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dara.core.auth.definitions import OTHER_AUTH_ERROR
-from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
 from .definitions import JWK_CLIENT_REGISTRY_KEY, IdTokenClaims
+from .settings import get_oidc_settings
 
 if TYPE_CHECKING:
     from .config import OIDCAuthConfig
@@ -37,18 +37,23 @@ if TYPE_CHECKING:
 
 class OIDCTokenResponse(BaseModel):
     """
-    Token response from the OIDC token endpoint per RFC 6749 Section 5.1.
+    Token response from the OIDC token endpoint per OIDC Core 1.0 Section 3.1.3.3
     """
 
+    id_token: str
     access_token: str
-    token_type: str
-    expires_in: int | None = None
     refresh_token: str | None = None
-    scope: str | None = None
-    id_token: str | None = None
 
-    class Config:
-        extra = 'allow'
+    token_type: str | None = None
+    """
+    CONCESSION: Not provided by our internal IDP so marking as optional.
+    Normally should be 'Bearer'
+    """
+
+    expires_in: int | None = None
+    scope: str | None = None
+
+    model_config = ConfigDict(extra='allow')
 
 
 def decode_id_token(id_token: str) -> IdTokenClaims:
@@ -64,20 +69,20 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
     from dara.core.internal.registries import utils_registry
 
     jwks_client: jwt.PyJWKClient = utils_registry.get(JWK_CLIENT_REGISTRY_KEY)
-    settings = get_settings()
+    oidc_settings = get_oidc_settings()
 
     # Build audience list for verification if enabled
     audience = None
-    if settings.sso_verify_audience:
-        audience = [settings.sso_client_id]
-        if settings.sso_extra_audience:
-            audience.extend(settings.sso_extra_audience)
+    if oidc_settings.verify_audience:
+        audience = [oidc_settings.client_id]
+        if oidc_settings.extra_audience:
+            audience.extend(oidc_settings.extra_audience)
 
     # Decode and verify the token
     decoded = jwt.decode(
         id_token,
         jwks_client.get_signing_key_from_jwt(id_token).key,
-        algorithms=[settings.sso_jwt_algo],
+        algorithms=[oidc_settings.jwt_algo],
         audience=audience,
     )
 
@@ -121,13 +126,13 @@ async def get_token_from_idp(auth_config: OIDCAuthConfig, body: dict) -> OIDCTok
     :return: Token response containing access_token, id_token, refresh_token, etc.
     :raises HTTPException: If the IDP returns an error
     """
-    settings = get_settings()
+    oidc_settings = get_oidc_settings()
 
     # Get token endpoint from discovery
     token_endpoint = auth_config.get_token_endpoint()
 
     # Build Basic auth header: base64(client_id:client_secret)
-    credentials = f'{settings.sso_client_id}:{settings.sso_client_secret}'
+    credentials = f'{oidc_settings.client_id}:{oidc_settings.client_secret}'
     encoded_credentials = b64encode(credentials.encode()).decode()
 
     # Make the token request per RFC 6749
@@ -146,5 +151,7 @@ async def get_token_from_idp(auth_config: OIDCAuthConfig, body: dict) -> OIDCTok
 
     if response.status_code >= 400:
         raise handle_idp_error(response)
+
+    print('RECEIVED TOKEN RESPONSE', response.json())
 
     return OIDCTokenResponse.model_validate(response.json())

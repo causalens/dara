@@ -17,7 +17,6 @@ from ..definitions import (
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
-    OTHER_AUTH_ERROR,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
     USER,
@@ -33,6 +32,7 @@ from ..definitions import (
 from ..utils import decode_token, sign_jwt
 from .definitions import JWK_CLIENT_REGISTRY_KEY, REFRESH_TOKEN_COOKIE_NAME, IdTokenClaims, OIDCDiscoveryMetadata
 from .routes import sso_callback
+from .settings import get_oidc_settings
 from .utils import decode_id_token, get_token_from_idp
 
 # Expiration time for the state JWT
@@ -53,7 +53,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_ISSUER_URL - URL of the identity provider issuer; should expose a `SSO_ISSUER_URL/.well-known/openid-configuration` endpoint for discovery
     - SSO_CLIENT_ID - client_id generated for the application by the identity provider
     - SSO_CLIENT_SECRET - client_secret generated for the application by the identity provider
-    - SSO_REDIRECT_URI - URL that identity provider should redirect back to, in most cases https://\{deployed-app-url\}/sso-callback
+    - SSO_REDIRECT_URI - URL that identity provider should redirect back to, in most cases https://deployed-app-url/sso-callback
     - SSO_GROUPS - comma separated list of allowed SSO groups
 
     In addition, the following ENV variables can be set:
@@ -63,6 +63,8 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
     """
+    # NOTE: the config follows OIDC specification, but makes a few concessions
+    # to be more lenient with the internal IDP. These are marked with CONCESSION comments.
 
     required_routes: ClassVar[list[ApiRoute]] = [sso_callback]
 
@@ -87,23 +89,24 @@ class OIDCAuthConfig(BaseAuthConfig):
     @property
     def allowed_groups(self):
         # initialise user groups from ENV
-        env_groups = get_settings().sso_groups
+        env_groups = get_oidc_settings().groups
         parsed_groups = env_groups.split(',')
         return {group.strip(): UserGroup(name=group.strip()) for group in parsed_groups}
 
     def get_discovery_url(self) -> str:
-        issuer_url = get_settings().sso_issuer_url
+        issuer_url = get_oidc_settings().issuer_url
         return f'{issuer_url}/.well-known/openid-configuration'
 
     async def startup_hook(self) -> None:
-        # 1. Enforce SSO env vars are set
-        settings = get_settings()
-        for k, v in settings:
-            if k.startswith('sso_') and (v in (None, '')) and k != 'sso_extra_audience':
-                raise ValueError(f'SSO Auth module requires {k.upper()} .env key to be a non-empty string')
+        # 1. Enforce SSO env vars are set - this will run validation and raise if not set
+        get_settings.cache_clear()
+        get_settings()
+        get_oidc_settings.cache_clear()
+        get_oidc_settings()
 
         # 2. Fetch OIDC discovery document
         discovery_url = self.get_discovery_url()
+        dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(discovery_url)
@@ -119,6 +122,8 @@ class OIDCAuthConfig(BaseAuthConfig):
                 self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
             except Exception as e:
                 raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
+
+        dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
 
         # 3. Register a PyJWKClient instance bound to the jwks_uri from discovery
         from dara.core.internal.registries import utils_registry
@@ -138,7 +143,6 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param redirect_to: Optional URL to redirect to after successful authentication
         :return: Signed JWT string to use as the state parameter
         """
-        settings = get_settings()
         now = datetime.now(timezone.utc)
 
         payload = {
@@ -150,7 +154,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         if redirect_to:
             payload['redirect_to'] = redirect_to
 
-        return jwt.encode(payload, settings.jwt_secret, algorithm=JWT_ALGO)
+        return jwt.encode(payload, get_settings().jwt_secret, algorithm=JWT_ALGO)
 
     def verify_state(self, state: str) -> dict:
         """
@@ -161,8 +165,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :raises jwt.ExpiredSignatureError: If the state has expired
         :raises jwt.InvalidTokenError: If the state is invalid
         """
-        settings = get_settings()
-        return jwt.decode(state, settings.jwt_secret, algorithms=[JWT_ALGO])
+        return jwt.decode(state, get_settings().jwt_secret, algorithms=[JWT_ALGO])
 
     def get_authorization_params(self, state: str) -> dict[str, str]:
         """
@@ -179,12 +182,12 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         Override this method to add optional parameters like nonce, display, prompt, max_age, etc.
         """
-        settings = get_settings()
+        oidc_settings = get_oidc_settings()
         return {
-            'scope': settings.sso_scopes,
+            'scope': oidc_settings.scopes,
             'response_type': 'code',
-            'client_id': settings.sso_client_id,
-            'redirect_uri': settings.sso_redirect_uri,
+            'client_id': oidc_settings.client_id,
+            'redirect_uri': oidc_settings.redirect_uri,
             'state': state,
         }
 
@@ -266,8 +269,6 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param token: encoded JWT token (either Dara session token or raw IDP token)
         :return: TokenData for the verified token
         """
-        settings = get_settings()
-
         # First, decode without verification to check the issuer
         try:
             unverified = jwt.decode(token, options={'verify_signature': False})
@@ -275,7 +276,7 @@ class OIDCAuthConfig(BaseAuthConfig):
             raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
 
         # Check if this is a raw IDP token (issuer matches the configured SSO issuer)
-        if unverified.get('iss') == settings.sso_issuer_url:
+        if unverified.get('iss') == get_oidc_settings().issuer_url:
             return self._verify_idp_token(token)
         else:
             return self._verify_dara_token(token)
@@ -342,7 +343,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :raises HTTPException: If user doesn't have access
         """
         # Identity verification enabled
-        if (allowed_identity_id := get_settings().sso_allowed_identity_id) is not None:
+        if (allowed_identity_id := get_oidc_settings().allowed_identity_id) is not None:
             identity_id = user_data.identity_id
             if identity_id != allowed_identity_id:
                 dev_logger.error(
@@ -454,15 +455,15 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param id_token: The ID token to use as a hint, or None if not available
         :return: Dictionary of query parameters
         """
-        settings = get_settings()
+        oidc_settings = get_oidc_settings()
         params: dict[str, str] = {}
 
         if id_token:
             params['id_token_hint'] = id_token
 
         # Include client_id if we're verifying audience, or if no id_token_hint is provided
-        if settings.sso_verify_audience or not id_token:
-            params['client_id'] = settings.sso_client_id
+        if oidc_settings.verify_audience or not id_token:
+            params['client_id'] = oidc_settings.client_id
 
         return params
 
@@ -495,7 +496,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param response: FastAPI response object
         :return: RedirectResponse to the logout URL
         """
-        settings = get_settings()
+        oidc_settings = get_oidc_settings()
 
         # Clean up the refresh token cookie
         response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
@@ -507,12 +508,9 @@ class OIDCAuthConfig(BaseAuthConfig):
             # Decode without verification to check the issuer
             unverified = jwt.decode(token, options={'verify_signature': False})
 
-            if unverified.get('iss') == settings.sso_issuer_url:
-                # Raw IDP token, use directly as the id_token_hint
-                id_token = token
-            else:
-                # Dara-issued token, extract the embedded id_token
-                id_token = unverified.get('id_token')
+            # Raw IDP token -> use directly as the id_token_hint
+            # Dara-issued token -> extract the embedded id_token
+            id_token = token if unverified.get('iss') == oidc_settings.issuer_url else unverified.get('id_token')
         except jwt.DecodeError:
             # If we can't decode the token, proceed without id_token_hint
             dev_logger.warning('Failed to decode token for logout, proceeding without id_token_hint')

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 
@@ -76,9 +76,12 @@ class OIDCDiscoveryMetadata(BaseModel):
         description='OPTIONAL. JSON array containing a list of the Authentication Context Class References that this OP supports.',
     )
 
-    subject_types_supported: list[str] = Field(
-        ...,
-        description='REQUIRED. JSON array containing a list of the Subject Identifier types that this OP supports. Valid types include pairwise and public.',
+    subject_types_supported: list[str] | None = Field(
+        default_factory=lambda: ['pairwise'],  # default to unique identifiers if not provided
+        description="""
+        REQUIRED. JSON array containing a list of the Subject Identifier types that this OP supports. Valid types include pairwise and public.
+        CONCESSION: Not provided by our internal IDP so marking as optional.
+        """,
     )
 
     id_token_signing_alg_values_supported: list[str] = Field(
@@ -207,8 +210,8 @@ class OIDCDiscoveryMetadata(BaseModel):
         description='OPTIONAL. URL of an OP iframe that supports cross-origin communications for session state information with the RP Client, using the HTML5 postMessage API.',
     )
 
-    class Config:
-        extra = 'allow'  # Allow additional fields as per spec: "Additional OpenID Provider Metadata parameters MAY also be used"
+    # Allow additional fields as per spec: "Additional OpenID Provider Metadata parameters MAY also be used"
+    model_config = ConfigDict(extra='allow')
 
 
 class IdTokenClaims(BaseModel):
@@ -223,7 +226,18 @@ class IdTokenClaims(BaseModel):
     # Required claims
     iss: str = Field(..., description='Issuer Identifier')
     sub: str = Field(..., description='Subject Identifier - unique identifier for the user')
-    aud: str | list[str] = Field(..., description='Audience(s) the token is intended for')
+    aud: str | list[str] | None = Field(
+        default=None,
+        description="""
+    REQUIRED. Audience(s) that this ID Token is intended for.
+    It MUST contain the OAuth 2.0 client_id of the Relying Party as an audience value.
+    It MAY also contain identifiers for other audiences.
+    In the general case, the aud value is an array of case-sensitive strings.
+    In the common special case when there is one audience, the aud value MAY be a single case-sensitive string.
+
+    CONCESSION: Not provided by our internal IDP so marking as optional.
+    """,
+    )
     exp: int = Field(..., description='Expiration time (Unix timestamp)')
     iat: int = Field(..., description='Issued at time (Unix timestamp)')
 
@@ -264,5 +278,5 @@ class IdTokenClaims(BaseModel):
     # Groups claim (non-standard but common)
     groups: list[str] | None = Field(default=None, description='Groups the user belongs to (non-standard claim)')
 
-    class Config:
-        extra = 'allow'  # Allow provider-specific claims
+    # Allow provider-specific claims
+    model_config = ConfigDict(extra='allow')
