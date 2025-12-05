@@ -9,6 +9,7 @@ class OIDCSettings(BaseSettings):
     """
     OIDC-specific settings, prefixed with SSO_.
     """
+
     # Required, using field with default=... to have pyright not complain about missing values
     client_id: str = Field(default=...)
     client_secret: str = Field(default=...)

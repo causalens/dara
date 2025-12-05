@@ -113,7 +113,7 @@ async def sso_callback(
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
             id_token=oidc_tokens.id_token,
-            exp=claims.exp,
+            exp=int(claims.exp),
         )
 
         # Set refresh token cookie if provided
