@@ -86,8 +86,8 @@ config.add_auth(OIDCAuthConfig())
 The `OIDCAuthConfig` reads its configuration from environment variables. The following environment variables are required:
 
 | Variable            | Description                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `SSO_ISSUER_URL`    | `https://login.causalens.com/api/authentication`                                                              | URL of the OIDC identity provider issuer |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `SSO_ISSUER_URL`    | URL of the OIDC identity provider issuer                                                                      |
 | `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
 | `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
 | `SSO_CLIENT_SECRET` | OAuth 2.0 client secret provided by your identity provider                                                    |
@@ -200,12 +200,12 @@ def user_greeting():
 
 The `get_user_data()` function returns a `UserData` object with the following fields:
 
-| Field            | Type       | Description                    |
-| ---------------- | ---------- | ------------------------------ | ---------------------------------------- |
-| `identity_id`    | `str`      | Unique identifier for the user |
-| `identity_name`  | `str`      | Display name of the user       |
-| `identity_email` | `str       | None`                          | Email address of the user (if available) |
-| `groups`         | `list[str] | None`                          | List of groups the user belongs to       |
+| Field            | Type                | Description                              |
+| ---------------- | ------------------- | ---------------------------------------- |
+| `identity_id`    | `str`               | Unique identifier for the user           |
+| `identity_name`  | `str`               | Display name of the user                 |
+| `identity_email` | `str \| None`       | Email address of the user (if available) |
+| `groups`         | `list[str] \| None` | List of groups the user belongs to       |
 
 ### Using Context Variables Directly
 
@@ -226,11 +226,11 @@ def session_info():
 
 The following context variables are available:
 
-| Variable     | Type                 | Description |
-| ------------ | -------------------- | ----------- | -------------------------------------------- |
-| `USER`       | `ContextVar[UserData | None]`      | Current user data                            |
-| `SESSION_ID` | `ContextVar[str      | None]`      | Current session ID                           |
-| `ID_TOKEN`   | `ContextVar[str      | None]`      | Raw ID token (only set when using OIDC auth) |
+| Variable     | Type                           | Description                                  |
+| ------------ | ------------------------------ | -------------------------------------------- |
+| `USER`       | `ContextVar[UserData \| None]` | Current user data                            |
+| `SESSION_ID` | `ContextVar[str \| None]`      | Current session ID                           |
+| `ID_TOKEN`   | `ContextVar[str \| None]`      | Raw ID token (only set when using OIDC auth) |
 
 :::caution
 
