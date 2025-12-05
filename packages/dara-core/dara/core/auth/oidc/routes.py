@@ -25,9 +25,9 @@ from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
 )
+from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.utils import sign_jwt
 from dara.core.http import post
-from dara.core.internal.settings import Settings, get_settings
 from dara.core.logging import dev_logger
 
 from .definitions import REFRESH_TOKEN_COOKIE_NAME, AuthCodeRequestBody
@@ -35,7 +35,9 @@ from .utils import decode_id_token, get_token_from_idp
 
 
 @post('/auth/sso-callback', authenticated=False)
-async def sso_callback(body: AuthCodeRequestBody, response: Response, settings: Settings = Depends(get_settings)):
+async def sso_callback(
+    body: AuthCodeRequestBody, response: Response, oidc_settings: OIDCSettings = Depends(get_oidc_settings)
+):
     """
     Handle the OIDC authorization callback.
 
@@ -84,7 +86,7 @@ async def sso_callback(body: AuthCodeRequestBody, response: Response, settings: 
             {
                 'grant_type': 'authorization_code',
                 'code': body.auth_code,
-                'redirect_uri': settings.sso_redirect_uri,
+                'redirect_uri': oidc_settings.redirect_uri,
             },
         )
 

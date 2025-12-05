@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta, timezone
+from secrets import token_urlsafe
+
 from pydantic import BaseModel, ConfigDict, Field
 
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
@@ -238,8 +241,8 @@ class IdTokenClaims(BaseModel):
     CONCESSION: Not provided by our internal IDP so marking as optional.
     """,
     )
-    exp: int = Field(..., description='Expiration time (Unix timestamp)')
-    iat: int = Field(..., description='Issued at time (Unix timestamp)')
+    exp: int | float = Field(..., description='Expiration time (Unix timestamp)')
+    iat: int | float = Field(..., description='Issued at time (Unix timestamp)')
 
     # Optional but commonly used claims
     auth_time: int | None = Field(default=None, description='Time of authentication (Unix timestamp)')
@@ -280,3 +283,30 @@ class IdTokenClaims(BaseModel):
 
     # Allow provider-specific claims
     model_config = ConfigDict(extra='allow')
+
+
+# Expiration time for the state JWT
+STATE_EXPIRATION_MINUTES = 5
+
+
+class StateObject(BaseModel):
+    """
+    State object content used by Dara when sending `state` to the authorization endpoint of the IDP
+    """
+
+    nonce: str = Field(
+        default_factory=lambda: token_urlsafe(16),
+        description='Nonce value',
+    )
+    iat: datetime = Field(
+        default_factory=lambda: datetime.now(tz=timezone.utc),
+        description='Issued at time',
+    )
+    exp: datetime = Field(
+        default_factory=lambda: datetime.now(tz=timezone.utc) + timedelta(minutes=STATE_EXPIRATION_MINUTES),
+        description='Expiration time',
+    )
+    redirect_to: str | None = Field(
+        default=None,
+        description='Optional redirect to URL',
+    )

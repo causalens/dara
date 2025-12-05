@@ -41,7 +41,12 @@ class OIDCTokenResponse(BaseModel):
     """
 
     id_token: str
-    access_token: str
+
+    access_token: str | None = None
+    """
+    CONCESSION: Not used by Dara so accepting missing token here
+    """
+
     refresh_token: str | None = None
 
     token_type: str | None = None
@@ -112,7 +117,10 @@ def handle_idp_error(response: httpx.Response) -> HTTPException:
     return exc
 
 
-async def get_token_from_idp(auth_config: OIDCAuthConfig, body: dict) -> OIDCTokenResponse:
+async def get_token_from_idp(
+    auth_config: OIDCAuthConfig,
+    body: dict,
+) -> OIDCTokenResponse:
     """
     Request tokens from the OIDC provider's token endpoint.
 
@@ -137,21 +145,18 @@ async def get_token_from_idp(auth_config: OIDCAuthConfig, body: dict) -> OIDCTok
 
     # Make the token request per RFC 6749
     # Note: Using application/x-www-form-urlencoded as required by spec
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url=token_endpoint,
-            headers={
-                'Accept': 'application/json',
-                'Authorization': f'Basic {encoded_credentials}',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            data=body,  # httpx will encode as form data
-            timeout=10,
-        )
+    response = await auth_config.client.post(
+        url=token_endpoint,
+        headers={
+            'Accept': 'application/json',
+            'Authorization': f'Basic {encoded_credentials}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        data=body,  # httpx will encode as form data
+        timeout=10,
+    )
 
     if response.status_code >= 400:
         raise handle_idp_error(response)
-
-    print('RECEIVED TOKEN RESPONSE', response.json())
 
     return OIDCTokenResponse.model_validate(response.json())

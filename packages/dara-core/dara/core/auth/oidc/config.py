@@ -7,6 +7,8 @@ import httpx
 import jwt
 from fastapi import HTTPException, Response
 from jwt import PyJWKClient
+from pydantic import Field
+from pydantic.config import ConfigDict
 
 from dara.core.definitions import ApiRoute
 from dara.core.internal.settings import get_settings
@@ -30,13 +32,16 @@ from ..definitions import (
     UserGroup,
 )
 from ..utils import decode_token, sign_jwt
-from .definitions import JWK_CLIENT_REGISTRY_KEY, REFRESH_TOKEN_COOKIE_NAME, IdTokenClaims, OIDCDiscoveryMetadata
+from .definitions import (
+    JWK_CLIENT_REGISTRY_KEY,
+    REFRESH_TOKEN_COOKIE_NAME,
+    IdTokenClaims,
+    OIDCDiscoveryMetadata,
+    StateObject,
+)
 from .routes import sso_callback
 from .settings import get_oidc_settings
 from .utils import decode_id_token, get_token_from_idp
-
-# Expiration time for the state JWT
-STATE_EXPIRATION_MINUTES = 5
 
 OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
 
@@ -63,6 +68,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
     """
+
     # NOTE: the config follows OIDC specification, but makes a few concessions
     # to be more lenient with the internal IDP. These are marked with CONCESSION comments.
 
@@ -75,6 +81,10 @@ class OIDCAuthConfig(BaseAuthConfig):
             'sso-callback': OIDCAuthSSOCallback,
         },
     )
+
+    client: httpx.AsyncClient = Field(default_factory=httpx.AsyncClient, exclude=True)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Populated during startup_hook
     _discovery: OIDCDiscoveryMetadata | None = None
@@ -98,6 +108,8 @@ class OIDCAuthConfig(BaseAuthConfig):
         return f'{issuer_url}/.well-known/openid-configuration'
 
     async def startup_hook(self) -> None:
+        await self.client.__aenter__()
+
         # 1. Enforce SSO env vars are set - this will run validation and raise if not set
         get_settings.cache_clear()
         get_settings()
@@ -107,21 +119,20 @@ class OIDCAuthConfig(BaseAuthConfig):
         # 2. Fetch OIDC discovery document
         discovery_url = self.get_discovery_url()
         dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(discovery_url)
-                response.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                raise RuntimeError(
-                    f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
-                ) from e
-            except httpx.RequestError as e:
-                raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+        try:
+            response = await self.client.get(discovery_url)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
+            ) from e
+        except httpx.RequestError as e:
+            raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
 
-            try:
-                self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
-            except Exception as e:
-                raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
+        try:
+            self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
+        except Exception as e:
+            raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
 
         dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
 
@@ -143,20 +154,10 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param redirect_to: Optional URL to redirect to after successful authentication
         :return: Signed JWT string to use as the state parameter
         """
-        now = datetime.now(timezone.utc)
+        payload = StateObject(redirect_to=redirect_to)
+        return jwt.encode(payload.model_dump(), get_settings().jwt_secret, algorithm=JWT_ALGO)
 
-        payload = {
-            'nonce': token_urlsafe(16),
-            'iat': now,
-            'exp': now + timedelta(minutes=STATE_EXPIRATION_MINUTES),
-        }
-
-        if redirect_to:
-            payload['redirect_to'] = redirect_to
-
-        return jwt.encode(payload, get_settings().jwt_secret, algorithm=JWT_ALGO)
-
-    def verify_state(self, state: str) -> dict:
+    def verify_state(self, state: str) -> StateObject:
         """
         Verify and decode the state JWT.
 
@@ -165,7 +166,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :raises jwt.ExpiredSignatureError: If the state has expired
         :raises jwt.InvalidTokenError: If the state is invalid
         """
-        return jwt.decode(state, get_settings().jwt_secret, algorithms=[JWT_ALGO])
+        return StateObject.model_validate(jwt.decode(state, get_settings().jwt_secret, algorithms=[JWT_ALGO]))
 
     def get_authorization_params(self, state: str) -> dict[str, str]:
         """
