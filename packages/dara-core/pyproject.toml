@@ -89,6 +89,7 @@ types-cachetools = "^6.0.0.20250525"
 types-croniter = "^1.0.10"
 types-requests = "^2.27.29"
 google-auth = "^2.37.0"
+respx = "^0.22.0"
 
 [tool.poetry.extras]
 all = ["dara-components"]
@@ -98,9 +99,6 @@ docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 
 [tool.poetry.scripts]
 dara = "dara.core.cli:cli"
-
-[tool.poetry.group.dev.dependencies]
-respx = "^0.22.0"
 
 [tool.pytest.ini_options]
 timeout = 300
