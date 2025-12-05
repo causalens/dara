@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     sso_scopes: str = 'openid'
     sso_verify_audience: bool = False
     sso_extra_audience: list[str] | None = None
+    sso_allowed_identity_id: str | None = None
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
 
 

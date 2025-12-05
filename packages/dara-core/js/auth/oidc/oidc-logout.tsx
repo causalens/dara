@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 
-import { Center, DefaultFallback, ReactRouter, revokeSession, setSessionToken } from '@darajs/core';
+import DefaultFallback from '@/components/fallback/default';
+import Center from '@/shared/center/center';
+
+import { revokeSession } from '../auth';
+import { setSessionToken } from '../use-session-token';
 
 /**
  * Auth component that handles OIDC logout.
@@ -12,7 +17,7 @@ import { Center, DefaultFallback, ReactRouter, revokeSession, setSessionToken } 
  * clears the local session and redirects to /login.
  */
 function OIDCAuthLogout(): JSX.Element {
-    const navigate = ReactRouter.useNavigate();
+    const navigate = useNavigate();
 
     useEffect(() => {
         revokeSession().then((responseData) => {

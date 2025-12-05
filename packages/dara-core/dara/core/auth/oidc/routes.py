@@ -102,7 +102,7 @@ async def sso_callback(body: AuthCodeRequestBody, response: Response, settings: 
         user_data = auth_config.extract_user_data_from_id_token(claims)
 
         # Verify user has access based on groups
-        auth_config._verify_user_access(user_data.groups or [])
+        auth_config.verify_user_access(user_data)
 
         # Create a Dara session token wrapping the ID token data
         session_token = sign_jwt(

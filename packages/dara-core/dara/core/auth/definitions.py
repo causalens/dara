@@ -60,6 +60,15 @@ class UserData(BaseModel):
     identity_email: str | None = None
     groups: list[str] | None = []
 
+    @classmethod
+    def from_token_data(cls, token_data: TokenData):
+        return cls(
+            identity_id=token_data.identity_id,
+            identity_name=token_data.identity_name,
+            identity_email=token_data.identity_email,
+            groups=token_data.groups,
+        )
+
 
 class TokenResponse(TypedDict):
     token: str

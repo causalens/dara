@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
-import {
-    Center,
-    DefaultFallback,
-    ReactRouter,
-    handleAuthErrors,
-    request,
-    useRouterContext,
-    useSessionToken,
-    verifySessionToken,
-} from '@darajs/core';
 import { HTTP_METHOD } from '@darajs/ui-utils';
+
+import { request } from '@/api/http';
+import DefaultFallback from '@/components/fallback/default';
+import { useRouterContext } from '@/router/context';
+import Center from '@/shared/center/center';
+
+import { handleAuthErrors, verifySessionToken } from '../auth';
+import { useSessionToken } from '../use-session-token';
 
 /**
  * The Login component gets the username and password from the user and generates a session token.
  */
 function OIDCAuthLogin(): JSX.Element {
-    const navigate = ReactRouter.useNavigate();
-    const location = ReactRouter.useLocation();
+    const navigate = useNavigate();
+    const location = useLocation();
     const token = useSessionToken();
     const { defaultPath } = useRouterContext();
 

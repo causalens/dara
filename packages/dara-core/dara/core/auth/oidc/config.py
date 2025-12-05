@@ -47,7 +47,21 @@ OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.co
 
 class OIDCAuthConfig(BaseAuthConfig):
     """
-    Generic OIDC auth config
+    Generic OIDC auth config.
+
+    This config requires the following ENV variables to be set:
+    - SSO_ISSUER_URL - URL of the identity provider issuer; should expose a `SSO_ISSUER_URL/.well-known/openid-configuration` endpoint for discovery
+    - SSO_CLIENT_ID - client_id generated for the application by the identity provider
+    - SSO_CLIENT_SECRET - client_secret generated for the application by the identity provider
+    - SSO_REDIRECT_URI - URL that identity provider should redirect back to, in most cases https://\{deployed-app-url\}/sso-callback
+    - SSO_GROUPS - comma separated list of allowed SSO groups
+
+    In addition, the following ENV variables can be set:
+    - SSO_ALLOWED_IDENTITY_ID - if set, only the user with matching identity_id will be allowed to access the app
+    - SSO_VERIFY_AUDIENCE - if set, the ID token will be verified against the configured audience, by default `sso_client_id`
+    - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
+    - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
+    - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
     """
 
     required_routes: ClassVar[list[ApiRoute]] = [sso_callback]
@@ -280,7 +294,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         user_data = self.extract_user_data_from_id_token(claims)
 
         # Verify user has access based on groups
-        self._verify_user_access(user_data.groups or [])
+        self.verify_user_access(user_data)
 
         # Set context variables
         SESSION_ID.set(user_data.identity_id)
@@ -308,39 +322,47 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Decode and verify with our jwt_secret
         token_data = decode_token(token)
 
+        user_data = UserData.from_token_data(token_data)
+
         # Verify user has access based on groups
-        self._verify_user_access(token_data.groups or [])
+        self.verify_user_access(user_data)
 
         # Set context variables
         SESSION_ID.set(token_data.session_id)
-        USER.set(
-            UserData(
-                identity_id=token_data.identity_id,
-                identity_name=token_data.identity_name,
-                identity_email=token_data.identity_email,
-                groups=token_data.groups,
-            )
-        )
+        USER.set(user_data)
         ID_TOKEN.set(token_data.id_token)
 
         return token_data
 
-    def _verify_user_access(self, user_groups: list[str]) -> None:
+    def verify_user_access(self, user_data: UserData) -> None:
         """
         Verify that the user has access based on their groups.
 
         :param user_groups: List of groups the user belongs to
         :raises HTTPException: If user doesn't have access
         """
+        # Identity verification enabled
+        if (allowed_identity_id := get_settings().sso_allowed_identity_id) is not None:
+            identity_id = user_data.identity_id
+            if identity_id != allowed_identity_id:
+                dev_logger.error(
+                    'User identity does not have access to this app',
+                    error=Exception(UNAUTHORIZED_ERROR),
+                    extra={
+                        'identity_id': identity_id,
+                    },
+                )
+                raise HTTPException(status_code=403, detail=UNAUTHORIZED_ERROR)
+
         allowed_groups = set(self.allowed_groups.keys())
-        user_group_set = set(user_groups)
+        user_group_set = set(user_data.groups or [])
 
         # Check if there's any intersection between allowed and user groups
         if not allowed_groups.intersection(user_group_set):
             dev_logger.error(
                 'User group does not have access to this app',
                 error=Exception('Unauthorized'),
-                extra={'user_groups': user_groups, 'allowed_groups': list(allowed_groups)},
+                extra={'user_groups': user_data.groups or [], 'allowed_groups': list(allowed_groups)},
             )
             raise HTTPException(status_code=403, detail=UNAUTHORIZED_ERROR)
 
@@ -388,7 +410,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         user_data = self.extract_user_data_from_id_token(claims)
 
         # Verify user still has access
-        self._verify_user_access(user_data.groups or [])
+        self.verify_user_access(user_data)
 
         # Create a new Dara session token, preserving the original session_id
         new_session_token = sign_jwt(
