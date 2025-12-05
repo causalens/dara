@@ -31,9 +31,9 @@ class OIDCDiscoveryMetadata(BaseModel):
         description="REQUIRED. URL of the OP's OAuth 2.0 Authorization Endpoint. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.",
     )
 
-    token_endpoint: str | None = Field(
-        default=None,
-        description="URL of the OP's OAuth 2.0 Token Endpoint. This is REQUIRED unless only the Implicit Flow is used. This URL MUST use the https scheme and MAY contain port, path, and query parameter components.",
+    token_endpoint: str = Field(
+        ...,
+        description="URL of the OP's OAuth 2.0 Token Endpoint. This is REQUIRED unless only the Implicit Flow is used. This URL MUST use the https scheme and MAY contain port, path, and query parameter components. Dara relies on the token flow so this is required.",
     )
 
     userinfo_endpoint: str | None = Field(

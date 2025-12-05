@@ -351,9 +351,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :return: Token endpoint URL
         :raises RuntimeError: If token_endpoint is not available in discovery
         """
-        if not self._discovery or not self._discovery.token_endpoint:
-            raise RuntimeError('Token endpoint not available in OIDC discovery')
-        return self._discovery.token_endpoint
+        return self.discovery.token_endpoint
 
     async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
         """
@@ -416,11 +414,7 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         Override this method in subclasses to customize the logout endpoint.
         """
-        if self._discovery and self._discovery.end_session_endpoint:
-            return self._discovery.end_session_endpoint
-
-        # Not supported
-        return None
+        return self.discovery.end_session_endpoint
 
     def get_logout_params(self, id_token: str | None) -> dict[str, str]:
         """
