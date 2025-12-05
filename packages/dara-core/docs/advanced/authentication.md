@@ -272,4 +272,82 @@ def user_info_handler():
 ## Custom Authentication
 
 If the built-in authentication configurations do not meet your needs, you can create a custom authentication configuration by extending the `BaseAuthConfig` class. This allows you to implement your own authentication logic while integrating with the Dara framework.
-Refer to the existing authentication configurations in `dara.core.auth` for examples of how to implement custom authentication.
+
+### Required Methods
+
+When extending `BaseAuthConfig`, you must implement the following abstract methods:
+
+| Method         | Description                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| `get_token`    | Generate or retrieve a session token. Can return a token directly or a redirect response for OAuth flows. |
+| `verify_token` | Verify a session token and set the `SESSION_ID` and `USER` context variables.                             |
+
+You can optionally override these methods for additional functionality:
+
+| Method          | Description                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `refresh_token` | Create a new session token from a refresh token.                                              |
+| `revoke_token`  | Revoke a session token (logout). Can return a redirect for SSO logout.                        |
+| `startup_hook`  | Called when the server starts. Useful for initializing clients (e.g., JWKS clients for OIDC). |
+
+### Auth Components
+
+Custom authentication configurations must define a `component_config` class variable that specifies which frontend components to use for authentication UI. The `AuthComponentConfig` class defines:
+
+-   `login` - Component shown on the login page
+-   `logout` - Component shown on the logout page
+-   `extra` - Additional components for custom auth routes (e.g., SSO callback pages)
+
+Each component is defined as an `AuthComponent` with the JavaScript module and component name:
+
+```python
+from typing import ClassVar
+from dara.core.auth.base import AuthComponent, AuthComponentConfig, BaseAuthConfig
+
+MyLoginComponent = AuthComponent(
+    js_module='my-custom-auth-package',
+    py_module='my_custom_auth',
+    js_name='MyLoginComponent'
+)
+
+MyLogoutComponent = AuthComponent(
+    js_module='my-custom-auth-package',
+    py_module='my_custom_auth',
+    js_name='MyLogoutComponent'
+)
+
+class MyCustomAuthConfig(BaseAuthConfig):
+    component_config: ClassVar[AuthComponentConfig] = AuthComponentConfig(
+        login=MyLoginComponent,
+        logout=MyLogoutComponent,
+    )
+
+    def get_token(self, body):
+        ...
+
+    def verify_token(self, token):
+        ...
+```
+
+### Required Routes
+
+If your authentication flow requires additional API endpoints (e.g., an SSO callback endpoint), you can declare them using the `required_routes` class variable. These routes will be automatically registered when your auth config is used.
+
+```python
+from typing import ClassVar
+from dara.core.auth.base import BaseAuthConfig
+from dara.core.definitions import ApiRoute
+from dara.core.http import post
+
+@post('/auth/my-callback')
+async def my_callback_route():
+    # Handle the callback
+    ...
+
+class MyCustomAuthConfig(BaseAuthConfig):
+    required_routes: ClassVar[list[ApiRoute]] = [my_callback_route]
+
+    ...
+```
+
+Refer to the existing authentication configurations in `dara.core.auth` for complete examples of how to implement custom authentication.
