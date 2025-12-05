@@ -33,6 +33,7 @@
       "collapsible": true,
       "collapsed": true,
       "items": [
+        "docs/advanced/authentication",
         "docs/advanced/loading-states",
         "docs/advanced/styling-components",
         "docs/advanced/persistence-and-collaboration",

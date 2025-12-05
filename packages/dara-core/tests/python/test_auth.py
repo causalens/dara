@@ -154,7 +154,7 @@ async def test_refresh_token_success():
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             return f'session_token_{old_token.session_id}', 'new_refresh_token'
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -176,7 +176,7 @@ async def test_refresh_token_expired():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             raise jwt.ExpiredSignatureError()
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -198,7 +198,7 @@ async def test_refresh_token_error():
     config = ConfigurationBuilder()
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             raise Exception('some error')
 
     config.add_auth(TestAuthConfig('test', 'test'))
@@ -234,7 +234,7 @@ async def test_refresh_token_live_ws_connection():
     old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
 
     class TestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             return (
                 jwt.encode(
                     TokenData(
@@ -298,7 +298,7 @@ async def test_refresh_token_concurrent_requests():
     refresh_count = 0
 
     class ConcurrentTestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             # Add a small delay to simulate work and increase chance of concurrent access
             time.sleep(0.1)
@@ -348,7 +348,7 @@ async def test_refresh_token_cache_expiration():
     refresh_count = 0
 
     class ExpirationTestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             refresh_count += 1
             return f'session_token_{refresh_count}', f'refresh_token_{refresh_count}'
@@ -405,7 +405,7 @@ async def test_refresh_token_different_tokens_not_cached():
     refresh_count = 0
 
     class DifferentTokenTestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             refresh_count += 1
             return f'session_token_{refresh_token}_{refresh_count}', f'refresh_token_{refresh_count}'
@@ -454,7 +454,7 @@ async def test_refresh_token_error_not_cached():
     success_count = 0
 
     class ErrorTestAuthConfig(BasicAuthConfig):
-        def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal error_count, success_count
             if error_count < 1:  # First call fails
                 error_count += 1

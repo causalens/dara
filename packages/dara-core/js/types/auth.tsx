@@ -9,8 +9,3 @@ export interface UserData {
     identity_id?: string;
     identity_name: string;
 }
-
-export enum AuthType {
-    BASIC = 'BASIC',
-    SSO = 'SSO',
-}

@@ -35,15 +35,6 @@ class Settings(BaseSettings):
     # Feature flags
     cgroup_memory_limit_enabled: bool = False
 
-    # SSO envs
-    sso_issuer_url: str = 'https://login.causalens.com/api/authentication'
-    sso_client_id: str = ''
-    sso_client_secret: str = ''
-    sso_redirect_uri: str = ''
-    sso_groups: str = ''
-    sso_jwt_algo: str = 'ES256'
-    sso_verify_audience: bool = False
-    sso_extra_audience: list[str] | None = None
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
 
 
@@ -53,12 +44,6 @@ def generate_env_content():
     """
     env_content = {
         'JWT_SECRET': token_hex(32),
-        'SSO_ISSUER_URL': '',
-        'SSO_CLIENT_ID': '',
-        'SSO_CLIENT_SECRET': '',
-        'SSO_REDIRECT_URI': '',
-        'SSO_GROUPS': 'Everyone',
-        'SSO_VERIFY_AUDIENCE': False,
     }
     return '\n'.join(f'{key}={value}' for key, value in env_content.items())
 
@@ -86,7 +71,8 @@ def get_settings():
 
     env_error = False
 
-    # Generate .env file if it's missing
+    # Generate .env file if it's missing - this is to persistn the JWT_SECRET so
+    # tokens are valid across restarts
     if not os.path.isfile(os.path.join(os.getcwd(), '.env')):
         dev_logger.debug('.env file not found, generating the file...')
         try:
@@ -98,16 +84,5 @@ def get_settings():
     settings_kwargs = {}
     if env_error:
         settings_kwargs['_env_file'] = None
-
-    # If AUDIENCE sso env variants are provided, use them and force verify audience to True
-    # SSO_VERIFY_AUDIENCE can be set explicitly to False to override this behavior.
-    dotenv_vals = dotenv_values(os.path.join(os.getcwd(), '.env')) if not env_error else {}
-    audience_id = os.environ.get('SSO_AUDIENCE_CLIENT_ID', dotenv_vals.get('SSO_AUDIENCE_CLIENT_ID'))
-    audience_secret = os.environ.get('SSO_AUDIENCE_CLIENT_SECRET', dotenv_vals.get('SSO_AUDIENCE_CLIENT_SECRET'))
-    enable_audience_check = os.environ.get('SSO_VERIFY_AUDIENCE', dotenv_vals.get('SSO_VERIFY_AUDIENCE'))
-    if enable_audience_check != 'False' and audience_id is not None and audience_secret is not None:
-        return Settings(
-            sso_client_id=audience_id, sso_client_secret=audience_secret, sso_verify_audience=True, **settings_kwargs
-        )
 
     return Settings(**settings_kwargs)

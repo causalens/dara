@@ -60,6 +60,15 @@ class UserData(BaseModel):
     identity_email: str | None = None
     groups: list[str] | None = []
 
+    @classmethod
+    def from_token_data(cls, token_data: TokenData):
+        return cls(
+            identity_id=token_data.identity_id,
+            identity_name=token_data.identity_name,
+            identity_email=token_data.identity_email,
+            groups=token_data.groups,
+        )
+
 
 class TokenResponse(TypedDict):
     token: str
@@ -76,6 +85,8 @@ class SuccessResponse(TypedDict):
 class SessionRequestBody(BaseModel):
     username: str | None = None
     password: str | None = None
+    redirect_to: str | None = None
+    """Optional URL to redirect to after successful authentication (used in OIDC flows)"""
 
 
 class AuthError(Exception):
@@ -116,4 +127,6 @@ JWT_ALGO = 'HS256'
 # Context
 SESSION_ID: ContextVar[str | None] = ContextVar('session_id', default=None)
 USER: ContextVar[UserData | None] = ContextVar('user', default=None)
+
 ID_TOKEN: ContextVar[str | None] = ContextVar('id_token', default=None)
+"""Current ID token, set when using OIDC auth"""

@@ -39,9 +39,6 @@ from pydantic import (
 )
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from dara.core.auth.base import BaseAuthConfig
-from dara.core.auth.definitions import AuthError, TokenData
-from dara.core.auth.utils import decode_token
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger, eng_logger
 
@@ -434,7 +431,9 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     if token is None:
         raise WebSocketException(code=403, reason='Token missing from websocket connection query parameter')
 
-    from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, UserData
+    from dara.core.auth.base import BaseAuthConfig
+    from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, AuthError, TokenData, UserData
+    from dara.core.auth.utils import decode_token
     from dara.core.internal.registries import (
         auth_registry,
         pending_tokens_registry,
