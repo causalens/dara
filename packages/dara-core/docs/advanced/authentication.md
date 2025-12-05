@@ -86,8 +86,8 @@ config.add_auth(OIDCAuthConfig())
 The `OIDCAuthConfig` reads its configuration from environment variables. The following environment variables are required:
 
 | Variable            | Description                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `SSO_ISSUER_URL`    | `https://login.causalens.com/api/authentication` | URL of the OIDC identity provider issuer                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `SSO_ISSUER_URL`    | `https://login.causalens.com/api/authentication`                                                              | URL of the OIDC identity provider issuer |
 | `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
 | `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
 | `SSO_CLIENT_SECRET` | OAuth 2.0 client secret provided by your identity provider                                                    |
@@ -96,13 +96,13 @@ The `OIDCAuthConfig` reads its configuration from environment variables. The fol
 
 The following environment variables are optional:
 
-| Variable                  | Default                                          | Description                                                          |
-| ------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
-| `SSO_JWT_ALGO`            | `ES256`                                          | Algorithm for verifying identity provider JWTs                       |
-| `SSO_SCOPES`              | `openid`                                         | Space-separated list of OAuth scopes to request                      |
-| `SSO_VERIFY_AUDIENCE`     | `False`                                          | Whether to verify the `aud` claim in ID tokens                       |
-| `SSO_EXTRA_AUDIENCE`      | `None`                                           | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`) |
-| `SSO_ALLOWED_IDENTITY_ID` | `None`                                           | If set, restricts access to a specific identity ID                   |
+| Variable                  | Default  | Description                                                          |
+| ------------------------- | -------- | -------------------------------------------------------------------- |
+| `SSO_JWT_ALGO`            | `ES256`  | Algorithm for verifying identity provider JWTs                       |
+| `SSO_SCOPES`              | `openid` | Space-separated list of OAuth scopes to request                      |
+| `SSO_VERIFY_AUDIENCE`     | `False`  | Whether to verify the `aud` claim in ID tokens                       |
+| `SSO_EXTRA_AUDIENCE`      | `None`   | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`) |
+| `SSO_ALLOWED_IDENTITY_ID` | `None`   | If set, restricts access to a specific identity ID                   |
 
 ### OIDC Authentication Flow
 
@@ -115,6 +115,58 @@ When using OIDC authentication, the following flow occurs:
 5. The app exchanges the authorization code for tokens
 6. The app verifies the ID token and checks group membership
 7. A Dara session token is issued to the user
+
+### Handling Custom Claims
+
+Identity providers may return claims in non-standard formats or use custom claim names. To handle these cases, you can subclass `OIDCAuthConfig` and override the `extract_user_data_from_id_token` method to customize how claims are mapped to user data.
+
+The `extract_user_data_from_id_token` method receives an `IdTokenClaims` object containing all claims from the ID token and should return a `UserData` object:
+
+```python
+from dara.core import ConfigurationBuilder
+from dara.core.auth import OIDCAuthConfig
+from dara.core.auth.definitions import UserData
+from dara.core.auth.oidc.definitions import IdTokenClaims
+
+class CustomOIDCAuthConfig(OIDCAuthConfig):
+    def extract_user_data_from_id_token(self, claims: IdTokenClaims) -> UserData:
+        # Access standard claims
+        user_id = claims.sub
+        email = claims.email
+
+        # Access provider-specific claims using getattr
+        # (IdTokenClaims allows extra fields)
+        custom_name = getattr(claims, 'custom_display_name', None)
+        department = getattr(claims, 'department', None)
+
+        # Build user data with your custom mapping
+        return UserData(
+            identity_id=user_id,
+            identity_name=custom_name or claims.preferred_username or email or user_id,
+            identity_email=email,
+            groups=claims.groups or [],
+        )
+
+config = ConfigurationBuilder()
+config.add_auth(CustomOIDCAuthConfig())
+```
+
+The `IdTokenClaims` model includes all standard OIDC claims such as:
+
+-   `sub` - Subject identifier (required)
+-   `email`, `email_verified` - Email claims
+-   `name`, `given_name`, `family_name`, `nickname`, `preferred_username` - Name-related claims
+-   `groups` - Group membership (non-standard but commonly used)
+
+Since `IdTokenClaims` allows extra fields, you can access any provider-specific claims using `getattr(claims, 'claim_name', default_value)`.
+
+Other methods you may want to override for advanced customization include:
+
+| Method                     | Purpose                                                |
+| -------------------------- | ------------------------------------------------------ |
+| `verify_user_access`       | Customize access control logic beyond group membership |
+| `get_authorization_params` | Add custom parameters to the authorization request     |
+| `get_logout_params`        | Customize the logout/end session request               |
 
 ### Audience Override
 
@@ -152,8 +204,8 @@ The `get_user_data()` function returns a `UserData` object with the following fi
 | ---------------- | ---------- | ------------------------------ | ---------------------------------------- |
 | `identity_id`    | `str`      | Unique identifier for the user |
 | `identity_name`  | `str`      | Display name of the user       |
-| `identity_email` | `str | None` | Email address of the user (if available) |
-| `groups`         | `list[str] | None`  | List of groups the user belongs to |
+| `identity_email` | `str       | None`                          | Email address of the user (if available) |
+| `groups`         | `list[str] | None`                          | List of groups the user belongs to       |
 
 ### Using Context Variables Directly
 
