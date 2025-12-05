@@ -18,6 +18,7 @@ class OIDCSettings(BaseSettings):
 
     # Optional
     issuer_url: str = 'https://login.causalens.com/api/authentication'
+    jwks_lifespan: int = 86400  # 1 day
     jwt_algo: str = 'ES256'
     scopes: str = 'openid'
     verify_audience: bool = False

@@ -112,7 +112,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         get_settings.cache_clear()
         get_settings()
         get_oidc_settings.cache_clear()
-        get_oidc_settings()
+        oidc_settings = get_oidc_settings()
 
         # 2. Fetch OIDC discovery document
         discovery_url = self.get_discovery_url()
@@ -137,7 +137,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         # 3. Register a PyJWKClient instance bound to the jwks_uri from discovery
         from dara.core.internal.registries import utils_registry
 
-        py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=86400)
+        py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=oidc_settings.jwks_lifespan)
         utils_registry.register(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
 
     def generate_state(self, redirect_to: str | None = None) -> str:

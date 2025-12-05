@@ -98,6 +98,7 @@ The following environment variables are optional:
 
 | Variable                  | Default  | Description                                                          |
 | ------------------------- | -------- | -------------------------------------------------------------------- |
+| `SSO_JWKS_LIFESPAN`       | `86400`  | Lifespan of the JWKS cache in seconds (default 1 day)                |
 | `SSO_JWT_ALGO`            | `ES256`  | Algorithm for verifying identity provider JWTs                       |
 | `SSO_SCOPES`              | `openid` | Space-separated list of OAuth scopes to request                      |
 | `SSO_VERIFY_AUDIENCE`     | `False`  | Whether to verify the `aud` claim in ID tokens                       |
