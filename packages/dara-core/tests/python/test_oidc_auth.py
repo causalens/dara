@@ -62,10 +62,10 @@ MOCK_JWKS_DATA = {'keys': [MOCK_JWK]}
 
 MOCK_ID_TOKEN = {
     'sub': 'uuid',
-    'iat': (datetime.now(tz=timezone.utc)).timestamp(),
+    'iat': int((datetime.now(tz=timezone.utc)).timestamp()),
     'identity': {'id': 'uuid', 'name': 'Joe', 'email': 'joe@causalens.com'},
     'persona': {'id': 'uuid', 'description': 'Joe (engineer)'},
-    'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)).timestamp(),
+    'exp': int((datetime.now(tz=timezone.utc) + timedelta(hours=2)).timestamp()),
     'groups': ['dev'],
     'iss': get_oidc_settings().issuer_url,
 }
