@@ -421,7 +421,7 @@ class OIDCAuthConfig(BaseAuthConfig):
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
             id_token=oidc_tokens.id_token,
-            exp=claims.exp,
+            exp=int(claims.exp),
             session_id=old_token.session_id,
         )
 
