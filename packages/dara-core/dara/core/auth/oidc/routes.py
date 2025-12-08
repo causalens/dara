@@ -100,8 +100,13 @@ async def sso_callback(
         # Decode and verify the ID token
         claims = decode_id_token(oidc_tokens.id_token)
 
+        # Fetch userinfo if enabled and we have an access token
+        userinfo = None
+        if oidc_settings.use_userinfo and oidc_tokens.access_token:
+            userinfo = await auth_config.fetch_userinfo(oidc_tokens.access_token)
+
         # Extract user data from claims (handles both standard OIDC and Causalens identity claim)
-        user_data = auth_config.extract_user_data_from_id_token(claims)
+        user_data = auth_config.extract_user_data(claims, userinfo=userinfo)
 
         # Verify user has access based on groups
         auth_config.verify_user_access(user_data)

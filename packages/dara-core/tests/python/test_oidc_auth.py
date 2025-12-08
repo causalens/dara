@@ -872,3 +872,297 @@ async def test_revoke_session_expired_token():
             assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
             assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
             assert 'Max-Age=0' in response.headers['Set-Cookie']
+
+
+# Mock userinfo response
+MOCK_USERINFO = {
+    'sub': 'uuid',
+    'name': 'Joe from Userinfo',
+    'email': 'joe.userinfo@causalens.com',
+    'groups': ['dev', 'userinfo-group'],
+}
+
+# Mock discovery with userinfo endpoint
+MOCK_DISCOVERY_WITH_USERINFO = OIDCDiscoveryMetadata(
+    issuer='http://test-identity-provider.com/api/authentication',
+    authorization_endpoint='http://test-identity-provider.com/api/authentication/authenticate',
+    token_endpoint='http://test-identity-provider.com/api/authentication/token',
+    jwks_uri='http://test-identity-provider.com/api/authentication/keys',
+    registration_endpoint='http://test-identity-provider.com/api/authentication/register',
+    response_types_supported=['code', 'id_token', 'token id_token'],
+    token_endpoint_auth_methods_supported=['client_secret_post', 'client_secret_basic'],
+    id_token_signing_alg_values_supported=['ES256'],
+    end_session_endpoint='http://test-identity-provider.com/api/authentication/logout',
+    userinfo_endpoint='http://test-identity-provider.com/api/authentication/userinfo',
+)
+
+
+@pytest.fixture
+def mock_discovery_with_userinfo():
+    """Fixture that mocks discovery to include userinfo endpoint"""
+    with respx.mock:
+        env_issuer_url = os.environ.get('SSO_ISSUER_URL', '')
+        env_discovery_url = f'{env_issuer_url}/.well-known/openid-configuration'
+        respx.get(env_discovery_url).mock(
+            return_value=httpx.Response(status_code=200, json=MOCK_DISCOVERY_WITH_USERINFO.model_dump())
+        )
+        yield
+
+
+async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
+    """
+    Test that /sso-callback fetches and uses userinfo when SSO_USE_USERINFO is enabled
+    """
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        # Clear settings cache to pick up the new env var
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                jwk = PyJWK(MOCK_JWK)
+                id_token = jwt.encode(
+                    MOCK_ID_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                # Mock the token endpoint
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                # Mock the userinfo endpoint
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                assert response.status_code == 200
+
+                # JWKS endpoint should have been called once to retrieve the key
+                assert mock_urllib.call_count == 1
+
+                session_token = response.json()['token']
+                decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
+
+                # User data should come from userinfo, not id_token
+                assert decoded_session_token.get('identity_name') == MOCK_USERINFO['name']
+                assert decoded_session_token.get('identity_email') == MOCK_USERINFO['email']
+                # Groups should come from userinfo
+                assert decoded_session_token.get('groups') == MOCK_USERINFO['groups']
+
+
+async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_userinfo):
+    """
+    Test that /sso-callback does NOT fetch userinfo when SSO_USE_USERINFO is not set
+    """
+    # Ensure SSO_USE_USERINFO is not set
+    env_copy = {k: v for k, v in os.environ.items() if k != 'SSO_USE_USERINFO'}
+    with mock.patch.dict(os.environ, env_copy, clear=True):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                jwk = PyJWK(MOCK_JWK)
+                id_token = jwt.encode(
+                    MOCK_ID_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                # Mock the token endpoint
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                # Mock the userinfo endpoint - should NOT be called
+                userinfo_route = respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                assert response.status_code == 200
+
+                # Userinfo endpoint should NOT have been called
+                assert userinfo_route.call_count == 0
+
+                session_token = response.json()['token']
+                decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
+
+                # User data should come from id_token (identity claim), not userinfo
+                assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN['identity']['name']
+                assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN['identity']['email']
+                assert decoded_session_token.get('groups') == MOCK_ID_TOKEN['groups']
+
+
+async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_userinfo):
+    """
+    Test that /sso-callback continues with id_token data if userinfo fetch fails
+    """
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                jwk = PyJWK(MOCK_JWK)
+                id_token = jwt.encode(
+                    MOCK_ID_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                # Mock the token endpoint
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                # Mock the userinfo endpoint to fail
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=500, json={'error': 'Internal Server Error'})
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                # Should still succeed
+                assert response.status_code == 200
+
+                session_token = response.json()['token']
+                decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
+
+                # User data should fall back to id_token data
+                assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN['identity']['name']
+                assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN['identity']['email']
+                assert decoded_session_token.get('groups') == MOCK_ID_TOKEN['groups']
+
+
+async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
+    """
+    Test that /refresh-token fetches and uses userinfo when SSO_USE_USERINFO is enabled
+    """
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                jwk = PyJWK(MOCK_JWK)
+                old_refresh_token_mock = str(uuid4())
+                id_token = jwt.encode(
+                    MOCK_ID_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                # Mock the token endpoint
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                # Mock the userinfo endpoint
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
+                )
+
+                response = await client.post(
+                    '/api/auth/refresh-token',
+                    cookies={'dara_refresh_token': old_refresh_token_mock},
+                    headers={'Authorization': f'Bearer {MOCK_DARA_TOKEN}'},
+                )
+
+                assert response.status_code == 200
+
+                session_token = response.json()['token']
+                decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
+
+                # User data should come from userinfo
+                assert decoded_session_token.get('identity_name') == MOCK_USERINFO['name']
+                assert decoded_session_token.get('identity_email') == MOCK_USERINFO['email']
+                assert decoded_session_token.get('groups') == MOCK_USERINFO['groups']
+                # Session ID should be preserved from old token
+                assert decoded_session_token.get('session_id') == MOCK_DARA_TOKEN_DATA.get('session_id')

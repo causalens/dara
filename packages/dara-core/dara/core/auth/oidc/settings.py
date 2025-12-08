@@ -24,6 +24,8 @@ class OIDCSettings(BaseSettings):
     verify_audience: bool = False
     extra_audience: list[str] | None = None
     allowed_identity_id: str | None = None
+    use_userinfo: bool = False
+    """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow', env_prefix='sso_')
 

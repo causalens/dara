@@ -18,6 +18,7 @@ limitations under the License.
 from contextvars import ContextVar
 from datetime import datetime
 
+from pydantic import ConfigDict
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -59,6 +60,9 @@ class UserData(BaseModel):
     identity_name: str
     identity_email: str | None = None
     groups: list[str] | None = []
+
+    # allow extra for more flexibility in custom oidc configs
+    model_config = ConfigDict(extra='allow')
 
     @classmethod
     def from_token_data(cls, token_data: TokenData):

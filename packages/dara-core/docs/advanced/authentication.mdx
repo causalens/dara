@@ -96,14 +96,15 @@ The `OIDCAuthConfig` reads its configuration from environment variables. The fol
 
 The following environment variables are optional:
 
-| Variable                  | Default  | Description                                                          |
-| ------------------------- | -------- | -------------------------------------------------------------------- |
-| `SSO_JWKS_LIFESPAN`       | `86400`  | Lifespan of the JWKS cache in seconds (default 1 day)                |
-| `SSO_JWT_ALGO`            | `ES256`  | Algorithm for verifying identity provider JWTs                       |
-| `SSO_SCOPES`              | `openid` | Space-separated list of OAuth scopes to request                      |
-| `SSO_VERIFY_AUDIENCE`     | `False`  | Whether to verify the `aud` claim in ID tokens                       |
-| `SSO_EXTRA_AUDIENCE`      | `None`   | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`) |
-| `SSO_ALLOWED_IDENTITY_ID` | `None`   | If set, restricts access to a specific identity ID                   |
+| Variable                  | Default  | Description                                                                        |
+| ------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `SSO_JWKS_LIFESPAN`       | `86400`  | Lifespan of the JWKS cache in seconds (default 1 day)                              |
+| `SSO_JWT_ALGO`            | `ES256`  | Algorithm for verifying identity provider JWTs                                     |
+| `SSO_SCOPES`              | `openid` | Space-separated list of OAuth scopes to request                                    |
+| `SSO_VERIFY_AUDIENCE`     | `False`  | Whether to verify the `aud` claim in ID tokens                                     |
+| `SSO_EXTRA_AUDIENCE`      | `None`   | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`)               |
+| `SSO_ALLOWED_IDENTITY_ID` | `None`   | If set, restricts access to a specific identity ID                                 |
+| `SSO_USE_USERINFO`        | `False`  | If `true`, fetch additional claims from the userinfo endpoint during login/refresh |
 
 ### OIDC Authentication Flow
 
@@ -119,9 +120,9 @@ When using OIDC authentication, the following flow occurs:
 
 ### Handling Custom Claims
 
-Identity providers may return claims in non-standard formats or use custom claim names. To handle these cases, you can subclass `OIDCAuthConfig` and override the `extract_user_data_from_id_token` method to customize how claims are mapped to user data.
+Identity providers may return claims in non-standard formats or use custom claim names. To handle these cases, you can subclass `OIDCAuthConfig` and override the `extract_user_data` method to customize how claims are mapped to user data.
 
-The `extract_user_data_from_id_token` method receives an `IdTokenClaims` object containing all claims from the ID token and should return a `UserData` object:
+The `extract_user_data` method receives an `IdTokenClaims` object containing all claims from the ID token, an optional `userinfo` dictionary (when `SSO_USE_USERINFO=true` and an access token is available), and should return a `UserData` object:
 
 ```python
 from dara.core import ConfigurationBuilder
@@ -130,27 +131,40 @@ from dara.core.auth.definitions import UserData
 from dara.core.auth.oidc.definitions import IdTokenClaims
 
 class CustomOIDCAuthConfig(OIDCAuthConfig):
-    def extract_user_data_from_id_token(self, claims: IdTokenClaims) -> UserData:
-        # Access standard claims
+    def extract_user_data(
+        self, claims: IdTokenClaims, userinfo: dict | None = None
+    ) -> UserData:
+        # When SSO_USE_USERINFO is enabled, userinfo may contain additional claims
+        # not present in the ID token. You can choose which source to prefer.
+
+        # Access standard claims from ID token
         user_id = claims.sub
         email = claims.email
 
         # Access provider-specific claims using getattr
         # (IdTokenClaims allows extra fields)
         custom_name = getattr(claims, 'custom_display_name', None)
-        department = getattr(claims, 'department', None)
+
+        # Override with userinfo if available
+        if userinfo:
+            email = userinfo.get('email') or email
+            custom_name = userinfo.get('custom_display_name') or custom_name
 
         # Build user data with your custom mapping
         return UserData(
             identity_id=user_id,
             identity_name=custom_name or claims.preferred_username or email or user_id,
             identity_email=email,
-            groups=claims.groups or [],
+            groups=userinfo.get('groups') if userinfo else claims.groups or [],
         )
 
 config = ConfigurationBuilder()
 config.add_auth(CustomOIDCAuthConfig())
 ```
+
+:::note
+The `userinfo` parameter is only populated during initial login (`sso_callback`) and token refresh, when an access token is available to call the userinfo endpoint. When verifying raw IDP tokens directly (e.g., for programmatic API access), `userinfo` will be `None`.
+:::
 
 The `IdTokenClaims` model includes all standard OIDC claims such as:
 

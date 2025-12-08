@@ -65,6 +65,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
+    - SSO_USE_USERINFO - if set to `true`, fetch additional claims from the userinfo endpoint when an access token is available
     """
 
     # NOTE: the config follows OIDC specification, but makes a few concessions
@@ -209,29 +210,84 @@ class OIDCAuthConfig(BaseAuthConfig):
         state = self.generate_state(redirect_to=body.redirect_to)
         return RedirectResponse(redirect_uri=self.get_authorization_url(state))
 
-    def extract_user_data_from_id_token(self, claims: IdTokenClaims) -> UserData:
+    async def fetch_userinfo(self, access_token: str) -> dict | None:
         """
-        Extract user data from ID token claims.
+        Fetch user information from the OIDC userinfo endpoint.
+
+        Per OpenID Connect Core 1.0 Section 5.3, the userinfo endpoint returns claims
+        about the authenticated user. This is useful when the ID token doesn't contain
+        all required claims.
+
+        :param access_token: The access token to authenticate the request
+        :return: Dictionary of userinfo claims, or None if the request fails
+        """
+        userinfo_endpoint = self.discovery.userinfo_endpoint
+        if not userinfo_endpoint:
+            dev_logger.warning('Userinfo endpoint not available in OIDC discovery')
+            return None
+
+        try:
+            response = await self.client.get(
+                userinfo_endpoint,
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            dev_logger.warning(
+                f'Failed to fetch userinfo: HTTP {e.response.status_code}',
+            )
+            return None
+        except httpx.RequestError as e:
+            dev_logger.warning(f'Failed to fetch userinfo: {e}')
+            return None
+
+    def extract_user_data(self, claims: IdTokenClaims, userinfo: dict | None = None) -> UserData:
+        """
+        Extract user data from ID token claims and optional userinfo response.
 
         Override this method in subclasses to handle provider-specific claim structures.
         The default implementation uses standard OIDC claims, with support for the
-        non-standard 'identity' claim.
+        non-standard 'identity' claim. When userinfo is provided and SSO_USE_USERINFO
+        is enabled, userinfo claims take precedence over ID token claims.
 
         :param claims: Decoded ID token claims
+        :param userinfo: Optional userinfo response from the userinfo endpoint
         :return: UserData extracted from the claims
         """
-        # Check for non-standard 'identity' claim (Causalens IDP)
-        # This is a nested object with id, name, email fields
-        identity_claim = getattr(claims, 'identity', None)
-        if isinstance(identity_claim, dict):
-            identity_id = identity_claim.get('id') or claims.sub
-            identity_name = identity_claim.get('name')
-            identity_email = identity_claim.get('email') or claims.email
+        oidc_settings = get_oidc_settings()
+
+        # When userinfo is provided and use_userinfo is enabled, prefer userinfo claims
+        if userinfo and oidc_settings.use_userinfo:
+            # userinfo 'sub' must match id_token 'sub' per OIDC spec
+            identity_id = userinfo.get('sub') or claims.sub
+            identity_email = userinfo.get('email') or claims.email
+            identity_name = (
+                userinfo.get('name')
+                or userinfo.get('preferred_username')
+                or userinfo.get('nickname')
+                or (
+                    f'{userinfo.get("given_name", "")} {userinfo.get("family_name", "")}'.strip()
+                    if userinfo.get('given_name') or userinfo.get('family_name')
+                    else None
+                )
+            )
+            groups = userinfo.get('groups') or claims.groups
         else:
-            # Standard OIDC: use 'sub' as the identity ID
-            identity_id = claims.sub
-            identity_email = claims.email
-            identity_name = None
+            # Check for non-standard 'identity' claim (Causalens IDP)
+            # This is a nested object with id, name, email fields
+            identity_claim = getattr(claims, 'identity', None)
+            if isinstance(identity_claim, dict):
+                identity_id = identity_claim.get('id') or claims.sub
+                identity_name = identity_claim.get('name')
+                identity_email = identity_claim.get('email') or claims.email
+            else:
+                # Standard OIDC: use 'sub' as the identity ID
+                identity_id = claims.sub
+                identity_email = claims.email
+                identity_name = None
+            groups = claims.groups
 
         # Fall back to standard claims for name if not set
         if not identity_name:
@@ -252,7 +308,7 @@ class OIDCAuthConfig(BaseAuthConfig):
             identity_id=identity_id,
             identity_name=identity_name,
             identity_email=identity_email,
-            groups=claims.groups,
+            groups=groups,
         )
 
     def verify_token(self, token: str) -> TokenData:
@@ -291,7 +347,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         claims = decode_id_token(token)
 
         # Extract user data (can be overridden for provider-specific claim structures)
-        user_data = self.extract_user_data_from_id_token(claims)
+        user_data = self.extract_user_data(claims)
 
         # Verify user has access based on groups
         self.verify_user_access(user_data)
@@ -390,6 +446,8 @@ class OIDCAuthConfig(BaseAuthConfig):
         :return: Tuple of (new_session_token, new_refresh_token)
         :raises HTTPException: If the refresh fails
         """
+        oidc_settings = get_oidc_settings()
+
         # Request new tokens from the IDP
         oidc_tokens = await get_token_from_idp(
             self,
@@ -406,8 +464,13 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Decode and verify the new ID token
         claims = decode_id_token(oidc_tokens.id_token)
 
+        # Fetch userinfo if enabled and we have an access token
+        userinfo = None
+        if oidc_settings.use_userinfo and oidc_tokens.access_token:
+            userinfo = await self.fetch_userinfo(oidc_tokens.access_token)
+
         # Extract user data from claims
-        user_data = self.extract_user_data_from_id_token(claims)
+        user_data = self.extract_user_data(claims, userinfo=userinfo)
 
         # Verify user still has access
         self.verify_user_access(user_data)
