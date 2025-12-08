@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.23.0-alpha.1
+
+-  Added a new generic `OIDCAuthConfig` that can be used to configure any OIDC provider. See new "Authentication" docs page for more details.
+
 ## 1.22.4
 
 -  Relaxed `cachetools` dependency to `>=5.0.0`

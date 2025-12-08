@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import abc
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from fastapi import HTTPException, Response
 from pydantic import model_serializer
@@ -30,6 +30,7 @@ from dara.core.auth.definitions import (
     TokenResponse,
 )
 from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.definitions import ApiRoute
 
 
 class AuthComponent(TypedDict):
@@ -71,6 +72,17 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     Defines components to use for auth routes
     """
 
+    required_routes: ClassVar[list[ApiRoute]] = []
+    """
+    List of routes the auth config depends on.
+    Will be added to the app if this auth config is used.
+    """
+
+    async def startup_hook(self) -> None:
+        """
+        Called when the server is starting up, can be used to set up e.g. JWKS clients for OIDC auth
+        """
+
     @abc.abstractmethod
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
         """
@@ -82,7 +94,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
 
     @abc.abstractmethod
-    def verify_token(self, token: str) -> Any | TokenData:
+    def verify_token(self, token: str) -> TokenData:
         """
         Verify a session token.
 
@@ -93,7 +105,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         :param token: encoded token
         """
 
-    def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
         """
         Create a new session token and refresh token from a refresh token.
 

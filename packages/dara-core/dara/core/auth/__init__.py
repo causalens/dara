@@ -17,6 +17,7 @@ limitations under the License.
 
 from .base import BaseAuthConfig
 from .basic import BasicAuthConfig, DefaultAuthConfig, MultiBasicAuthConfig
+from .oidc import OIDCAuthConfig
 from .routes import auth_router
 
 __all__ = [
@@ -24,5 +25,6 @@ __all__ = [
     'MultiBasicAuthConfig',
     'BasicAuthConfig',
     'DefaultAuthConfig',
+    'OIDCAuthConfig',
     'auth_router',
 ]
