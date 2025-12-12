@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed alignment issue in `DropdownMenu`
+- Fixed an issue where `raw_css` on `DropdownMenu` wasn't applied correctly
+
 ## 1.21.19
 
 - Internal (JS): exported custom `json` extension that wraps newlines inside string values for nicer display, for use in custom displays

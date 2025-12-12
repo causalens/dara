@@ -7,7 +7,9 @@ import {
     type StyledComponentProps,
     type Variable,
     getIcon,
+    injectCss,
     useAction,
+    useComponentStyles,
     useVariable,
 } from '@darajs/core';
 import { type MenuItem, DropdownMenu as UIDropdownMenu } from '@darajs/ui-components';
@@ -24,6 +26,8 @@ interface ServerMenuItem {
     after?: ComponentInstance;
 }
 
+const StyledDropdown = injectCss(UIDropdownMenu);
+
 interface DropdownMenuProps extends StyledComponentProps {
     button: ComponentInstance;
     menu_items: ServerMenuItem[][] | Variable<ServerMenuItem[][]>;
@@ -32,6 +36,7 @@ interface DropdownMenuProps extends StyledComponentProps {
 }
 
 function DropdownMenu(props: DropdownMenuProps): JSX.Element {
+    const [style, css] = useComponentStyles(props);
     const [serverMenuItems] = useVariable(props.menu_items);
     const onClickAction = useAction(props.onclick);
 
@@ -62,12 +67,14 @@ function DropdownMenu(props: DropdownMenuProps): JSX.Element {
     );
 
     return (
-        <UIDropdownMenu
+        <StyledDropdown
             id={props.id_}
             onClick={onClick}
             menuItems={menuItems}
             button={<Button {...props.button.props} />}
             footer={props.footer ? <DynamicComponent component={props.footer} /> : undefined}
+            style={style}
+            $rawCss={css}
         />
     );
 }

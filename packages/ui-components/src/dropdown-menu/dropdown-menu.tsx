@@ -108,8 +108,10 @@ export const HorizontalDivider = styled.hr`
 
 const ItemLabel = styled.div`
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     width: 100%;
+    line-height: 1;
 `;
 
 export const Hotkey = styled.div`
@@ -147,6 +149,7 @@ export type DropdownMenuProps = {
     footer?: React.ReactNode;
     /** Optional id property */
     id?: string;
+    style?: React.CSSProperties;
 };
 
 interface DropdownProps {
@@ -165,13 +168,15 @@ interface DropdownProps {
     footer?: React.ReactNode;
     /** Optional id property */
     id?: string;
+    /** Optional style prop */
+    style?: React.CSSProperties;
 }
 
 export const Dropdown = (props: DropdownProps): JSX.Element => {
-    const { menuItems, onClick } = props;
+    const { menuItems, onClick, style } = props;
 
     return (
-        <DropdownMenu id={props.id}>
+        <DropdownMenu id={props.id} style={style}>
             {menuItems.map((section: MenuItem[], index) => (
                 <React.Fragment key={`dropdown-section-${index}`}>
                     {section.map((item: MenuItem, itemIndex) => (
