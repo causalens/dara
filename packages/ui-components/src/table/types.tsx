@@ -39,3 +39,9 @@ export interface TableColumn extends ColumnInterface<Record<string, unknown>> {
     stickyOffset?: number;
     tooltip?: string;
 }
+
+// Get the row height from the font size of the root element to respect rem units
+const { fontSize } = window.getComputedStyle(document.documentElement);
+
+export const DEFAULT_ROW_HEIGHT = parseFloat(fontSize) * 2.5;
+

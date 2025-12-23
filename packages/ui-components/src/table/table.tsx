@@ -51,13 +51,7 @@ import { FilterContainer, HeaderIconWrapper, TextFilter, categorical, datetime, 
 import SelectHeader from './headers/select-header';
 import OptionsMenu from './options-menu';
 import RenderRow, { shouldForwardProp } from './render-row';
-import { type TableColumn } from './types';
-
-
-// Get the row height from the font size of the root element to respect rem units
-const { fontSize } = window.getComputedStyle(document.documentElement);
-
-export const ROW_HEIGHT = parseFloat(fontSize) * 2.5;
+import { type TableColumn, DEFAULT_ROW_HEIGHT } from './types';
 
 const Wrapper = styled.div<{ $hasMaxRows: boolean }>`
     display: inline-block;
@@ -124,7 +118,7 @@ const HeaderCell = styled.div`
     justify-content: space-between;
 
     min-width: 80px;
-    height: ${ROW_HEIGHT}px;
+    height: ${DEFAULT_ROW_HEIGHT}px;
 
     color: ${(props) => props.theme.colors.text};
 
@@ -526,7 +520,7 @@ const Table = forwardRef(
         // This state helps in retaining the current sorted column even if the data gets updated
         const [currentSortBy, setCurrentSortBy] = useState<Array<SortingRule<string>>>(initialSort);
 
-        const tableRowHeight = rowHeight || ROW_HEIGHT;
+        const tableRowHeight = rowHeight || DEFAULT_ROW_HEIGHT;
         useEffect(
             () => {
                 setCurrentSortBy(initialSort);
