@@ -51,7 +51,7 @@ import { FilterContainer, HeaderIconWrapper, TextFilter, categorical, datetime, 
 import SelectHeader from './headers/select-header';
 import OptionsMenu from './options-menu';
 import RenderRow, { shouldForwardProp } from './render-row';
-import { type TableColumn, DEFAULT_ROW_HEIGHT } from './types';
+import { DEFAULT_ROW_HEIGHT, type TableColumn } from './types';
 
 const Wrapper = styled.div<{ $hasMaxRows: boolean }>`
     display: inline-block;
@@ -257,7 +257,10 @@ const appendStickyOffsets = (columns: Array<TableColumn>): Array<TableColumn> =>
     let rightOffset = 0;
 
     // Get a list of all the right sticky column widths, without the first one
-    const rightStickyColumnWidths = columns.filter((col) => col.sticky === 'right').slice(1).map((col) => parseInt(col.width as any) || 150);
+    const rightStickyColumnWidths = columns
+        .filter((col) => col.sticky === 'right')
+        .slice(1)
+        .map((col) => parseInt(col.width as any) || 150);
 
     return columns.map((col) => {
         // Handle left-sticky columns: offset increases from left to right
@@ -573,13 +576,13 @@ const Table = forwardRef(
          */
         const mappedColumns = useMemo(() => {
             let processedColumns = columns;
-            
+
             // Add action column if actions prop is provided
             if (actions && actions.length > 0) {
                 const actionColumn = createActionColumn(actions);
                 processedColumns = [...columns, actionColumn];
             }
-            
+
             return appendStickyOffsets(appendFilterComponents(orderStickyCols(processedColumns)));
         }, [columns, actions]);
 
@@ -694,16 +697,16 @@ const Table = forwardRef(
                                                     // For left-sticky columns, explicitly set the left offset so
                                                     // multiple sticky columns are positioned correctly next to
                                                     // each other.
-                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number'
-                                                        ? {
-                                                              left: `${col.stickyOffset}px`,
-                                                          }
-                                                        : {}),
-                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number'
-                                                        ? {
-                                                              right: `${col.stickyOffset}px`,
-                                                          }
-                                                        : {}),
+                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number' ?
+                                                        {
+                                                            left: `${col.stickyOffset}px`,
+                                                        }
+                                                    :   {}),
+                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number' ?
+                                                        {
+                                                            right: `${col.stickyOffset}px`,
+                                                        }
+                                                    :   {}),
                                                 }}
                                             >
                                                 <HeaderTooltipContainer

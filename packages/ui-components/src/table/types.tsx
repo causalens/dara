@@ -44,4 +44,3 @@ export interface TableColumn extends ColumnInterface<Record<string, unknown>> {
 const { fontSize } = window.getComputedStyle(document.documentElement);
 
 export const DEFAULT_ROW_HEIGHT = parseFloat(fontSize) * 2.5;
-

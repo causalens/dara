@@ -5,7 +5,7 @@ import { areEqual } from 'react-window';
 
 import styled from '@darajs/styled-components';
 
-import { type TableColumn, DEFAULT_ROW_HEIGHT } from './types';
+import { DEFAULT_ROW_HEIGHT, type TableColumn } from './types';
 
 interface RowProps {
     onClickRow?: (row: any) => void | Promise<void>;
@@ -213,7 +213,7 @@ const RenderRow = React.memo(
                     ...rowStyle,
 
                     // The first row is the header row which is not controlled by this rowHeight prop so it needs to be part of the calculation.
-                    top: index === 0 ? DEFAULT_ROW_HEIGHT : (index * rowHeight) + DEFAULT_ROW_HEIGHT,
+                    top: index === 0 ? DEFAULT_ROW_HEIGHT : index * rowHeight + DEFAULT_ROW_HEIGHT,
                     width: totalColumnsWidth > width ? totalColumnsWidth : '100%',
                 }}
             >
@@ -237,21 +237,25 @@ const RenderRow = React.memo(
                                 // For left-sticky columns, explicitly set the left offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...(mappedColumns[colIdx]?.sticky === 'left' &&
-                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                    ? {
-                                          left: `${mappedColumns[colIdx].stickyOffset}px`,
-                                      }
-                                    : {}),
+                                ...((
+                                    mappedColumns[colIdx]?.sticky === 'left' &&
+                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                ) ?
+                                    {
+                                        left: `${mappedColumns[colIdx].stickyOffset}px`,
+                                    }
+                                :   {}),
                                 // For right-sticky columns, explicitly set the right offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...(mappedColumns[colIdx]?.sticky === 'right' &&
-                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                    ? {
-                                          right: `${mappedColumns[colIdx].stickyOffset}px`,
-                                      }
-                                    : {}),
+                                ...((
+                                    mappedColumns[colIdx]?.sticky === 'right' &&
+                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                ) ?
+                                    {
+                                        right: `${mappedColumns[colIdx].stickyOffset}px`,
+                                    }
+                                :   {}),
                             }}
                         >
                             <CellContent>

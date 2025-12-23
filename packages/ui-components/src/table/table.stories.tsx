@@ -18,8 +18,9 @@ import type { Meta } from '@storybook/react-vite';
 import { useRef } from 'react';
 import { fn } from 'storybook/test';
 
-import { type Props, default as TableComponent, type TableHandle } from './table';
 import { Copy, Trash } from '@darajs/ui-icons';
+
+import { type Props, default as TableComponent, type TableHandle } from './table';
 
 export default {
     component: TableComponent,
@@ -358,7 +359,7 @@ const stickyColumnsLeft = [
     },
 ];
 TableMultipleStickyColumnsLeft.args = {
-    columns:stickyColumnsLeft,
+    columns: stickyColumnsLeft,
     data: sampleData,
 } as Props<any>;
 
@@ -397,7 +398,7 @@ const stickyColumnsRight = [
     },
 ];
 TableMultipleStickyColumnsRight.args = {
-    columns:stickyColumnsRight,
+    columns: stickyColumnsRight,
     data: sampleData,
 } as Props<any>;
 
@@ -438,4 +439,3 @@ TableWithActions.args = {
     columns,
     data: sampleData,
 } as Props<any>;
-

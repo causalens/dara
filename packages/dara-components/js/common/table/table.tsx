@@ -697,11 +697,15 @@ function Table(props: TableProps): JSX.Element {
         [onSelect]
     );
 
-    const actions = useMemo(() => props.actions?.map((action) =>({
-        icon: getIcon(action.icon_name),
-        label: action.label,
-        id: action.id,
-    })) ?? [], [props.actions]);
+    const actions = useMemo(
+        () =>
+            props.actions?.map((action) => ({
+                icon: getIcon(action.icon_name),
+                label: action.label,
+                id: action.id,
+            })) ?? [],
+        [props.actions]
+    );
 
     const searchColumns = useMemo(() => props.search_columns ?? [], [props.search_columns]);
 
