@@ -506,6 +506,7 @@ class Column(BaseModel):
                 )
         return filter
 
+
 class TableAction(BaseModel):
     icon_name: str
     label: str
