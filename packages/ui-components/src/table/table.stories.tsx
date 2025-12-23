@@ -19,6 +19,7 @@ import { useRef } from 'react';
 import { fn } from 'storybook/test';
 
 import { type Props, default as TableComponent, type TableHandle } from './table';
+import { Copy, Trash } from '@darajs/ui-icons';
 
 export default {
     component: TableComponent,
@@ -319,3 +320,122 @@ TableInfinite.args = {
     itemCount: sampleData.length,
     onItemsRendered: () => Promise.resolve(),
 } as Props<any>;
+
+export const TableMultipleStickyColumnsLeft = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+const stickyColumnsLeft = [
+    {
+        Header: 'First Name',
+        accessor: 'firstName',
+        sticky: 'left',
+        width: '100px',
+    },
+    {
+        Header: 'Last Name',
+        accessor: 'lastName',
+        sticky: 'left',
+        width: '100px',
+    },
+
+    {
+        Header: 'Age',
+        accessor: 'age',
+        sticky: 'left',
+        width: '100px',
+    },
+    {
+        Cell: TableComponent.cells.DATETIME(),
+        Header: 'Date of Birth',
+        accessor: 'dob',
+        filter: 'datetime',
+        width: '5000px',
+    },
+];
+TableMultipleStickyColumnsLeft.args = {
+    columns:stickyColumnsLeft,
+    data: sampleData,
+} as Props<any>;
+
+export const TableMultipleStickyColumnsRight = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+const stickyColumnsRight = [
+    {
+        Header: 'First Name',
+        accessor: 'firstName',
+        sticky: 'right',
+        width: '150px',
+    },
+    {
+        Header: 'Last Name',
+        accessor: 'lastName',
+        sticky: 'right',
+        width: '150px',
+    },
+    {
+        Header: 'Age',
+        accessor: 'age',
+        sticky: 'right',
+        width: '100px',
+    },
+    {
+        Cell: TableComponent.cells.DATETIME(),
+        Header: 'Date of Birth',
+        accessor: 'dob',
+        filter: 'datetime',
+        width: '5000px',
+    },
+];
+TableMultipleStickyColumnsRight.args = {
+    columns:stickyColumnsRight,
+    data: sampleData,
+} as Props<any>;
+
+export const TableWithRowHeight = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+TableWithRowHeight.args = {
+    rowHeight: 100,
+    columns,
+    data: sampleData,
+} as Props<any>;
+
+export const TableWithActions = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithActions.args = {
+    actions: [
+        {
+            icon: Copy,
+            label: 'Edit',
+            id: 'edit',
+        },
+        {
+            icon: Trash,
+            label: 'Delete',
+            id: 'delete',
+        },
+    ],
+    columns,
+    data: sampleData,
+} as Props<any>;
+

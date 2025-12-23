@@ -6,15 +6,11 @@ import { areEqual } from 'react-window';
 import styled from '@darajs/styled-components';
 
 import { type TableColumn } from './types';
+import { ROW_HEIGHT } from './table';
 
 interface RowProps {
     onClickRow?: (row: any) => void | Promise<void>;
 }
-
-// Get the row height from the font size of the root element to respect rem units
-const { fontSize } = window.getComputedStyle(document.documentElement);
-
-export const ROW_HEIGHT = parseFloat(fontSize) * 2.5;
 
 // Prevents the isSorted or onClickRow prop being added to the dom element
 export const shouldForwardProp = (prop: any): boolean => !['isSorted', 'onClickRow'].includes(prop);
@@ -74,12 +70,12 @@ const CellPlaceholder = styled.div`
     }
 `;
 
-const Cell = styled.div`
+const Cell = styled.div<{ rowHeight: number }>`
     display: flex !important;
     align-items: center;
 
     min-width: 80px;
-    height: ${() => `${ROW_HEIGHT}px`};
+    height: ${({ rowHeight }) => `${rowHeight}px`};
 
     color: ${(props) => props.theme.colors.grey6};
 
@@ -128,6 +124,7 @@ type Props = {
         throttledClickRow: (row: any) => void | Promise<void>;
         totalColumnsWidth: number;
         width: number;
+        rowHeight: number;
     };
     index: number;
     style: React.CSSProperties;
@@ -147,6 +144,7 @@ const RenderRow = React.memo(
             throttledClickRow,
             backgroundColor,
             mappedColumns,
+            rowHeight,
         },
         index,
         style: renderRowStyle,
@@ -171,8 +169,8 @@ const RenderRow = React.memo(
                         <RowPlaceholder
                             key={`row-${gidx}`}
                             style={{
-                                height: ROW_HEIGHT,
-                                top: (index + 1) * ROW_HEIGHT,
+                                height: rowHeight,
+                                top: (index + 1) * rowHeight,
                                 width: totalColumnsWidth > width ? totalColumnsWidth : '100%',
                             }}
                         >
@@ -215,7 +213,8 @@ const RenderRow = React.memo(
                 style={{
                     ...rowStyle,
 
-                    top: (index + 1) * ROW_HEIGHT,
+                    // The first row is the header row which is not controlled by this rowHeight prop so it needs to be part of the calculation.
+                    top: index === 0 ? ROW_HEIGHT : (index * rowHeight) + ROW_HEIGHT,
                     width: totalColumnsWidth > width ? totalColumnsWidth : '100%',
                 }}
             >
@@ -224,10 +223,10 @@ const RenderRow = React.memo(
                     return (
                         <Cell
                             {...cellProps}
+                            rowHeight={rowHeight}
                             key={`cell-${index}-${colIdx}`}
                             style={{
                                 ...cellProps.style,
-
                                 backgroundColor,
                                 justifyContent: mappedColumns[colIdx].align,
                                 maxWidth: cell.column?.maxWidth,
@@ -236,6 +235,24 @@ const RenderRow = React.memo(
                                     cellProps.style.width === 'NaNpx' ?
                                         mappedColumns[colIdx].width
                                     :   cellProps.style.width,
+                                // For left-sticky columns, explicitly set the left offset so
+                                // multiple sticky columns are positioned correctly next to
+                                // each other.
+                                ...(mappedColumns[colIdx]?.sticky === 'left' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          left: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
+                                // For right-sticky columns, explicitly set the right offset so
+                                // multiple sticky columns are positioned correctly next to
+                                // each other.
+                                ...(mappedColumns[colIdx]?.sticky === 'right' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          right: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
                             }}
                         >
                             <CellContent>

@@ -506,6 +506,11 @@ class Column(BaseModel):
                 )
         return filter
 
+class TableAction(BaseModel):
+    icon_name: str
+    label: str
+    id: str
+
 
 class Table(ContentComponent):
     """
@@ -849,6 +854,8 @@ class Table(ContentComponent):
     :param include_index: Boolean, if True the table will render the index column(s), defaults to True
     :param max_rows: if specified, table height will be fixed to accommodate the specified number of rows
     :param suppress_click_events_for_selection: Whether to suppress click events for clicks in select boxes. Defaults to False
+    :param actions: Optional list of actions to display in the table
+    :param row_height: Optional row height for the table
     """
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
@@ -865,6 +872,9 @@ class Table(ContentComponent):
     include_index: bool = True
     max_rows: int | None = None
     suppress_click_events_for_selection: bool | None = False
+
+    actions: list[TableAction] | None = None
+    row_height: int | None = None
 
     TableFormatterType: ClassVar[TFormatterType] = TableFormatterType
     TableFilter: ClassVar[TFilterType] = TableFilter

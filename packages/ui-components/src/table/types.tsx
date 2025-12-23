@@ -29,5 +29,13 @@ export interface TableColumn extends ColumnInterface<Record<string, unknown>> {
     filter?: 'text' | 'categorical' | 'numeric' | 'datetime';
     sortKey?: string;
     sticky?: string;
+    /**
+     * Internal-only helper used by the table implementation to determine
+     * how far from the left edge a left-sticky column should be offset.
+     *
+     * This is derived from the widths of the sticky columns that appear
+     * before it and is not intended to be set by consumers.
+     */
+    stickyOffset?: number;
     tooltip?: string;
 }
