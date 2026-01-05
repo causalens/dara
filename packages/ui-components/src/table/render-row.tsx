@@ -86,14 +86,15 @@ const Cell = styled.div<{ rowHeight: number }>`
     }
 `;
 
-const CellContent = styled.span`
-    overflow: hidden;
+// If rowHeight is set, we want to allow the cell content to wrap and overflow with ellipsis
+const CellContent = styled.span<{ hasRowHeight: boolean }>`
+    overflow: ${({ hasRowHeight }) => hasRowHeight ? 'unset' : 'hidden'};
 
     width: 100%;
     padding: 0 1rem;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-overflow: ${({ hasRowHeight }) => hasRowHeight ? 'unset' : 'ellipsis'};
+    white-space: ${({ hasRowHeight }) => hasRowHeight ? 'normal' : 'nowrap'};
 `;
 
 /**
@@ -202,6 +203,7 @@ const RenderRow = React.memo(
                 throttledClickRow(row.original);
             }
         };
+        console.log('rowHeight', rowHeight);
         const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
         return (
             <Row
@@ -258,7 +260,7 @@ const RenderRow = React.memo(
                                 :   {}),
                             }}
                         >
-                            <CellContent>
+                            <CellContent hasRowHeight={rowHeight !== DEFAULT_ROW_HEIGHT}>
                                 {cell.render('Cell', {
                                     colIdx,
                                     currentEditCell,
