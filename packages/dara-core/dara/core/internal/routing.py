@@ -561,6 +561,14 @@ class PyComponentChunk(BaseModel):
 Chunk = DerivedVariableChunk | PyComponentChunk
 
 
+class UnserializablePayloadError(Exception):
+    payload_type: type
+
+    def __init__(self, message: str, payload_type: type):
+        super().__init__(message)
+        self.payload_type = payload_type
+
+
 def create_loader_route(config: Configuration, app: FastAPI):
     route_map = config.router.to_route_map()
 
@@ -617,6 +625,14 @@ def create_loader_route(config: Configuration, app: FastAPI):
                 CURRENT_ACTION_ID.set('')
                 ACTION_CONTEXT.set(None)
 
+        def create_payload(x):
+            try:
+                return jsonable_encoder(x)
+            except Exception as e:
+                raise UnserializablePayloadError(
+                    f'Unserializable payload found - {str(e)}', payload_type=type(x)
+                ) from e
+
         async def process_variables(send_stream: MemoryObjectSendStream[Chunk]):
             for payload in body.derived_variable_payloads:
                 try:
@@ -629,7 +645,17 @@ def create_loader_route(config: Configuration, app: FastAPI):
                             force_key=None,
                         ),
                     )
-                    await send_stream.send(DerivedVariableChunk(uid=payload.uid, result=Result.success(result)))
+
+                    await send_stream.send(
+                        DerivedVariableChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                    )
+                except UnserializablePayloadError as e:
+                    dev_logger.warning(
+                        f'Unserializable payload found for derived variable, skipping preload - {str(e)}',
+                    )
+                    await send_stream.send(
+                        DerivedVariableChunk(uid=payload.uid, result=Result.error(str(e))),
+                    )
                 except BaseException as e:
                     dev_logger.error(f'Error streaming derived_variable {payload.uid}', error=e)
                     await send_stream.send(
@@ -647,7 +673,16 @@ def create_loader_route(config: Configuration, app: FastAPI):
                             ws_channel=body.ws_channel,
                         ),
                     )
-                    await send_stream.send(PyComponentChunk(uid=payload.uid, result=Result.success(result)))
+                    await send_stream.send(
+                        PyComponentChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                    )
+                except UnserializablePayloadError as e:
+                    dev_logger.warning(
+                        f'Unserializable payload found for py_component, skipping preload - {str(e)}',
+                    )
+                    await send_stream.send(
+                        PyComponentChunk(uid=payload.uid, result=Result.error(str(e))),
+                    )
                 except BaseException as e:
                     dev_logger.error(f'Error streaming py_component {payload.name}', error=e)
                     await send_stream.send(
