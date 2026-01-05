@@ -32,7 +32,8 @@
       "tinykeys": "patches/tinykeys.patch"
     },
     "overrides": {
-      "qs": ">=6.14.1"
+      "qs": ">=6.14.1",
+      "form-data": ">=2.5.4"
     }
   }
 }
