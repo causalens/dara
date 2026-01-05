@@ -120,7 +120,7 @@ async def resolve_dependency(
     entry: ResolvedDerivedVariable | ResolvedSwitchVariable | Any,
     store: CacheStore,
     task_mgr: TaskManager,
-):
+) -> Any:
     """
     Resolve an incoming dependency to its value.
     Handles 'Resolved(Derived)(Data)Variable' structures, and returns the same value for any other input.
@@ -130,12 +130,8 @@ async def resolve_dependency(
     :param store: store instance
     :param task_mgr: task manager instance
     """
-    result = None
-    nested: list[str] = []
-
     # Extract nested property if present
-    if isinstance(entry, dict):
-        nested = entry.get('nested', [])
+    nested: list[str] = entry.get('nested', []) if isinstance(entry, dict) else []
 
     if is_resolved_derived_variable(entry):
         result = await _resolve_derived_var(entry, store, task_mgr)
@@ -257,7 +253,7 @@ async def _resolve_switch_var(
     switch_variable_entry: ResolvedSwitchVariable,
     store: CacheStore,
     task_mgr: TaskManager,
-):
+) -> Any:
     """
     Resolve a switch variable by evaluating its constituent parts and returning the appropriate value.
 
