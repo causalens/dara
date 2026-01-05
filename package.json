@@ -33,7 +33,8 @@
     },
     "overrides": {
       "qs": ">=6.14.1",
-      "form-data": ">=2.5.4"
+      "form-data": ">=2.5.4",
+      "mdast-util-to-hast": ">=13.2.1"
     }
   }
 }
