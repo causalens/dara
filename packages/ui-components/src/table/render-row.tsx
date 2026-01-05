@@ -88,13 +88,13 @@ const Cell = styled.div<{ rowHeight: number }>`
 
 // If rowHeight is set, we want to allow the cell content to wrap and overflow with ellipsis
 const CellContent = styled.span<{ hasRowHeight: boolean }>`
-    overflow: ${({ hasRowHeight }) => hasRowHeight ? 'unset' : 'hidden'};
+    overflow: ${({ hasRowHeight }) => (hasRowHeight ? 'unset' : 'hidden')};
 
     width: 100%;
     padding: 0 1rem;
 
-    text-overflow: ${({ hasRowHeight }) => hasRowHeight ? 'unset' : 'ellipsis'};
-    white-space: ${({ hasRowHeight }) => hasRowHeight ? 'normal' : 'nowrap'};
+    text-overflow: ${({ hasRowHeight }) => (hasRowHeight ? 'unset' : 'ellipsis')};
+    white-space: ${({ hasRowHeight }) => (hasRowHeight ? 'normal' : 'nowrap')};
 `;
 
 /**
