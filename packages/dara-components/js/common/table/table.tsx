@@ -794,7 +794,7 @@ function Table(props: TableProps): JSX.Element {
                         width: 'calc(100% - 1px)',
                     }}
                 >
-                <UiTable
+                    <UiTable
                         columns={columns}
                         getItem={getItemWithSelected}
                         itemCount={totalCount}
