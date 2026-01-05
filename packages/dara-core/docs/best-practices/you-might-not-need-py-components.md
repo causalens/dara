@@ -176,6 +176,26 @@ def Content():
 
 This makes the code more readable and performant. The `For` component will not show its fallback display after the initial load of `items`, and will update whenever `items` changes.
 
+:::warning
+
+Do not use `@py_component` inside a `For` renderer - this defeats the purpose of the optimized loop since each item would require a separate backend call. If you need to transform item data, precompute the fields in a `DerivedVariable`:
+
+```python
+# GOOD: precompute derived fields once for the whole list
+def add_formatted_fields(items):
+    return [{'display_name': f"{item['name']} - {item['description'][:20]}", **item} for item in items]
+
+formatted_items = DerivedVariable(add_formatted_fields, variables=[items])
+
+For(
+    items=formatted_items,
+    renderer=Card(Text(formatted_items.list_item['display_name'])),
+    key_accessor='id'
+)
+```
+
+:::
+
 You might notice that we're introducing a new problem here, state tearing - the `For` component will display effectively stale content while the new items are being fetched. You can show an affordance to the user while the content is being reloaded by combining the [`is_loading` state variable](#state-tracking) on `items` with the `SwitchVariable`:
 
 ```python
