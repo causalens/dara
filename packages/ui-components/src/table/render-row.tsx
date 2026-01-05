@@ -203,7 +203,6 @@ const RenderRow = React.memo(
                 throttledClickRow(row.original);
             }
         };
-        console.log('rowHeight', rowHeight);
         const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
         return (
             <Row
