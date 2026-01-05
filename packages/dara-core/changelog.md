@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where `DerivedVariable`s returning `DataFrame`s would cause error logs during route data loading
+
 ## 1.23.0-alpha.1
 
 -  Added a new generic `OIDCAuthConfig` that can be used to configure any OIDC provider. See new "Authentication" docs page for more details.
