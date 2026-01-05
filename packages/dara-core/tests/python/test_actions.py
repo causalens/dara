@@ -1050,3 +1050,109 @@ async def test_calling_an_action_returns_task_loop():
             assert len(actions) == 1
             assert actions[0]['name'] == 'UpdateVariable'
             assert actions[0]['value'] == 11
+
+
+async def test_calling_action_with_nested_derived_variable():
+    """
+    Test that an action can receive a DerivedVariable with .get() nested property
+    and the nested value is properly resolved on the backend.
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var1 = Variable()
+    result = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2, 'extra': 'ignored'}}
+
+    inner_dv = DerivedVariable(inner_func, variables=[var1])
+
+    def resolver(ctx: UpdateVariable.Ctx):
+        # ctx.extras[0] should be just the nested 'value' field (a * 2)
+        return ctx.extras[0] + 100
+
+    action = UpdateVariable(resolver, variable=result, extras=[inner_dv.get('data').get('value')])
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        # Inner DV returns {'data': {'value': 10, 'extra': 'ignored'}} for input 5
+        # Nested path ['data', 'value'] should extract 10
+        # Action receives 10 and returns 10 + 100 = 110
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': None,
+                'values': {
+                    'old': None,
+                    'kwarg_0': {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['data', 'value'],
+                    },
+                },
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 110
+
+
+async def test_calling_action_with_nested_derived_variable_missing_path():
+    """
+    Test that an action receives None when the nested path doesn't exist in the DerivedVariable.
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var1 = Variable()
+    result = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2}}
+
+    inner_dv = DerivedVariable(inner_func, variables=[var1])
+
+    def resolver(ctx: UpdateVariable.Ctx):
+        # ctx.extras[0] should be None when nested path doesn't exist
+        return ctx.extras[0]
+
+    action = UpdateVariable(resolver, variable=result, extras=[inner_dv.get('nonexistent').get('path')])
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_id'
+        res = await _call_action(
+            client,
+            action,
+            {
+                'input': None,
+                'values': {
+                    'old': None,
+                    'kwarg_0': {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['nonexistent', 'path'],
+                    },
+                },
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] is None

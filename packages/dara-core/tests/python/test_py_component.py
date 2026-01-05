@@ -1393,3 +1393,117 @@ async def test_switch_variables():
             },
         )
         assert data == {'name': 'MockComponent', 'props': {'text': 'guest'}, 'uid': 'uid'}
+
+
+async def test_nested_derived_variable_in_py_component():
+    """
+    Check that a DerivedVariable with .get() nested property can be passed to a py_component
+    and the nested value is properly resolved on the backend.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2, 'extra': 'ignored'}}
+
+    inner_mock = Mock(wraps=inner_func)
+    inner_dv = DerivedVariable(inner_mock, variables=[var1])
+
+    @py_component
+    def TestBasicComp(input_val: int):
+        # input_val should be just the nested 'value' field (a * 2)
+        return MockComponent(text=str(input_val + 100))
+
+    # Use .get() to access nested property
+    builder.router = Router()
+    builder.router.add_page(path='test', content=TestBasicComp(inner_dv.get('data').get('value')), id='test')
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
+
+        # Check that a component with a uid name has been generated
+        assert isinstance(component.get('name'), str) and component.get('name') != 'MockComponent'
+        assert 'input_val' in component.get('props').get('dynamic_kwargs')
+
+        # Check that the nested property is serialized correctly in dynamic_kwargs
+        dv_def = component.get('props').get('dynamic_kwargs').get('input_val')
+        assert dv_def.get('nested') == ['data', 'value']
+
+        # Request the py_component with the nested DerivedVariable
+        # Inner DV returns {'data': {'value': 10, 'extra': 'ignored'}} for input 5
+        # Nested path ['data', 'value'] should extract 10
+        # py_component receives 10 and returns str(10 + 100) = '110'
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': inner_dv.get('data').get('value')},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['data', 'value'],
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': '110'}, 'uid': 'uid'}
+        inner_mock.assert_called_once()
+
+
+async def test_nested_derived_variable_missing_path_in_py_component():
+    """
+    Check that a DerivedVariable with .get() nested property returns None when path doesn't exist.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2}}
+
+    inner_dv = DerivedVariable(inner_func, variables=[var1])
+
+    @py_component
+    def TestBasicComp(input_val):
+        # input_val should be None when nested path doesn't exist
+        return MockComponent(text=str(input_val))
+
+    # Use .get() to access a non-existent nested property
+    builder.router = Router()
+    builder.router.add_page(path='test', content=TestBasicComp(inner_dv.get('nonexistent').get('path')), id='test')
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
+
+        # Request the py_component with a nested path that doesn't exist
+        data = await _get_py_component(
+            client,
+            component.get('name'),
+            kwargs={'input_val': inner_dv.get('nonexistent').get('path')},
+            data={
+                'uid': component.get('uid'),
+                'values': {
+                    'input_val': {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['nonexistent', 'path'],
+                    }
+                },
+                'ws_channel': 'test_channel',
+            },
+        )
+        assert data == {'name': 'MockComponent', 'props': {'text': 'None'}, 'uid': 'uid'}

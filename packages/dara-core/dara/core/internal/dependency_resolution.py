@@ -61,6 +61,33 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
+def _resolve_nested(value: Any, nested: list[str]) -> Any:
+    """
+    Resolve a nested value from an object using a list of keys.
+    This matches the frontend resolveNested function in nested.tsx.
+
+    :param value: The value to extract nested data from
+    :param nested: A list of keys to traverse
+    :return: The nested value, or None if the path doesn't exist
+    """
+    # Nested not provided
+    if not nested or len(nested) == 0:
+        return value
+
+    # Not a dict (equivalent to frontend's object check)
+    if value is None or not isinstance(value, dict):
+        return value
+
+    result = value
+    for key in nested:
+        # If the key doesn't exist, return None as we're referring to a path which doesn't exist yet
+        if not isinstance(result, dict) or key not in result:
+            return None
+        result = result[key]
+
+    return result
+
+
 def is_forced(value: Any) -> bool:
     """
     Whether a value is a Derived(Data)Variable with a force_key or any of its values are forced
@@ -97,21 +124,33 @@ async def resolve_dependency(
     """
     Resolve an incoming dependency to its value.
     Handles 'Resolved(Derived)(Data)Variable' structures, and returns the same value for any other input.
+    Also handles the 'nested' property to extract nested values from resolved variables.
 
     :param entry: dependency entry to resolve
     :param store: store instance
     :param task_mgr: task manager instance
     """
+    result = None
+    nested: list[str] = []
+
+    # Extract nested property if present
+    if isinstance(entry, dict):
+        nested = entry.get('nested', [])
+
     if is_resolved_derived_variable(entry):
-        return await _resolve_derived_var(entry, store, task_mgr)
+        result = await _resolve_derived_var(entry, store, task_mgr)
+    elif is_resolved_server_variable(entry):
+        result = await _resolve_server_var(entry)
+    elif is_resolved_switch_variable(entry):
+        result = await _resolve_switch_var(entry, store, task_mgr)
+    else:
+        return entry
 
-    if is_resolved_server_variable(entry):
-        return await _resolve_server_var(entry)
+    # Apply nested extraction if present
+    if nested:
+        result = _resolve_nested(result, nested)
 
-    if is_resolved_switch_variable(entry):
-        return await _resolve_switch_var(entry, store, task_mgr)
-
-    return entry
+    return result
 
 
 async def _resolve_derived_var(
