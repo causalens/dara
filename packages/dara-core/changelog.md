@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.24.0
 
 -  Fixed an issue where `DerivedVariable`s returning `DataFrame`s would cause error logs during route data loading
 -  Attempting to use `@py_component`s inside a `For` component will now raise an error at startup time as it's a very inefficient pattern. The recommended usage is to instead precompute fields in a `DerivedVariable` passed to `For.items`, the docs now include a section on those best practices.

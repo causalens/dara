@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.23.1
 
 - Fixed alignment issue in `DropdownMenu`
 - Fixed an issue where `raw_css` on `DropdownMenu` wasn't applied correctly
