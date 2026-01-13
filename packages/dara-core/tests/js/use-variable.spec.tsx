@@ -1103,6 +1103,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1122,6 +1123,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1141,6 +1143,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1160,6 +1163,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate',
                             values: [{ __ref: 'Variable:a' }, { __ref: 'Variable:b' }],
@@ -1336,6 +1340,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1355,6 +1360,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null,
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1377,6 +1383,7 @@ describe('useVariable', () => {
                             {
                                 // Nested variable is forced, not top-level
                                 force_key: expect.any(String),
+                                nested: [],
                                 type: 'derived',
                                 uid: 'intermediate_variable',
                                 values: [{ __ref: 'Variable:base_variable' }],
@@ -1463,6 +1470,7 @@ describe('useVariable', () => {
                     data: [
                         {
                             force_key: null, // Initially no force key
+                            nested: [],
                             type: 'derived',
                             uid: 'intermediate_variable',
                             values: [{ __ref: 'Variable:base_variable' }],
@@ -1487,6 +1495,7 @@ describe('useVariable', () => {
                         data: [
                             {
                                 force_key: expect.any(String), // intermediate variable gets force key
+                                nested: [],
                                 type: 'derived',
                                 uid: 'intermediate_variable',
                                 values: [{ __ref: 'Variable:base_variable' }],
