@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where using `.get` on a `DerivedVariable` would not resolve when passed to `DerivedVariable`, `py_component` or `action`
+
 ## 1.24.0
 
 -  Fixed an issue where `DerivedVariable`s returning `DataFrame`s would cause error logs during route data loading
