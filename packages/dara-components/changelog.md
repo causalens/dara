@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added `on_attempt_close` and `on_closed` props to `Modal` component
+
 ## 1.23.1
 
 - Fixed alignment issue in `DropdownMenu`
