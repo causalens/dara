@@ -252,6 +252,7 @@ describe('ServerVariable', () => {
                 data: [
                     {
                         force_key: null,
+                        nested: [],
                         type: 'derived',
                         uid: 'uid',
                         values: [{ __ref: 'Variable:dep1' }, { __ref: 'ServerVariable:dep2' }],
@@ -439,6 +440,7 @@ describe('ServerVariable', () => {
                 data: [
                     {
                         force_key: null,
+                        nested: [],
                         type: 'derived',
                         uid: 'uid',
                         values: [{ __ref: 'Variable:dep1' }, { __ref: 'ServerVariable:dep2' }],
@@ -537,6 +539,7 @@ describe('ServerVariable', () => {
                         uid: 'uid',
                         values: [{ __ref: 'Variable:dep1' }, { __ref: 'ServerVariable:dep2' }],
                         force_key: null,
+                        nested: [],
                     },
                 ],
                 lookup: {

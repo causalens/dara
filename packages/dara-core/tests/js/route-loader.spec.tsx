@@ -672,6 +672,7 @@ describe('Route Loader', () => {
                                         },
                                     ],
                                     force_key: null,
+                                    nested: [],
                                 },
                             },
                             lookup: {

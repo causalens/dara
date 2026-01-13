@@ -280,6 +280,7 @@ export interface ResolvedDerivedVariable {
     type: 'derived';
     uid: string;
     values: Array<any>;
+    nested: Array<string>;
 }
 
 export interface ResolvedServerVariable {

@@ -33,6 +33,7 @@ class ResolvedDerivedVariable(TypedDict):
     uid: str
     values: list[Any]
     force_key: str | None
+    nested: list[str]
 
 
 class ResolvedServerVariable(TypedDict):
@@ -61,7 +62,7 @@ def is_resolved_switch_variable(obj: Any) -> TypeGuard[ResolvedSwitchVariable]:
     return isinstance(obj, dict) and 'uid' in obj and obj.get('type') == 'switch'
 
 
-def _resolve_nested(value: Any, nested: list[str]) -> Any:
+def _resolve_nested(value: Any, nested: list[str] | None) -> Any:
     """
     Resolve a nested value from an object using a list of keys.
     This matches the frontend resolveNested function in nested.tsx.
@@ -130,23 +131,18 @@ async def resolve_dependency(
     :param store: store instance
     :param task_mgr: task manager instance
     """
-    # Extract nested property if present
-    nested: list[str] = entry.get('nested', []) if isinstance(entry, dict) else []
-
     if is_resolved_derived_variable(entry):
         result = await _resolve_derived_var(entry, store, task_mgr)
-    elif is_resolved_server_variable(entry):
-        result = await _resolve_server_var(entry)
-    elif is_resolved_switch_variable(entry):
-        result = await _resolve_switch_var(entry, store, task_mgr)
-    else:
-        return entry
+        # Apply nested extraction if present
+        return _resolve_nested(result, entry.get('nested'))
 
-    # Apply nested extraction if present
-    if nested:
-        result = _resolve_nested(result, nested)
+    if is_resolved_server_variable(entry):
+        return await _resolve_server_var(entry)
 
-    return result
+    if is_resolved_switch_variable(entry):
+        return await _resolve_switch_var(entry, store, task_mgr)
+
+    return entry
 
 
 async def _resolve_derived_var(
