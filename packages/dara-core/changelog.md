@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.24.1
 
 -  Fixed an issue where using `.get` on a `DerivedVariable` would not resolve when passed to `DerivedVariable`, `py_component` or `action`
 
