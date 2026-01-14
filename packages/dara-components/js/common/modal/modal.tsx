@@ -41,7 +41,7 @@ function Modal(props: ModalProps): JSX.Element {
     const [show, setShow] = useVariable(props.show);
 
     function onAttemptClose(): void {
-        if (onAttemptCloseAction) {
+        if (props.on_attempt_close) {
             onAttemptCloseAction();
         } else {
             setShow(false);
@@ -53,7 +53,7 @@ function Modal(props: ModalProps): JSX.Element {
             id={props.id_}
             $rawCss={css}
             onAttemptClose={onAttemptClose}
-            onClosed={onClosedAction}
+            onClosed={props.on_closed ? onClosedAction : undefined}
             render={show}
             style={{ alignItems: props.align, gap: '0.75rem', justifyContent: props.justify, ...style }}
         >
