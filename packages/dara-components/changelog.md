@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.24.2
 
 - Added `on_attempt_close` and `on_closed` props to `Modal` component
 
