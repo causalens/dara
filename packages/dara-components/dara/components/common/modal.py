@@ -74,7 +74,7 @@ class Modal(LayoutComponent):
 
     :param show: Boolean Variable instance recording the state, if True it renders the model and it's children
     :param on_attempt_close: An optional event listener for if an external event (e.g. esc key) tries to close the modal, it's up to the
-        parent component to decide whether to close the modal
+        parent component to decide whether to close the modal. if not passed, by default the modal will set the show variable to False.
     :param on_closed: A handler that's called when the modal has finished closing and has unmounted
     :param justify: How to justify the content of the modal, accepts any flexbox justifications
     :param align: How to align the content of the modal, accepts any flexbox alignments
