@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Updated `CheckboxGroup` component to accept `ClientVariable` as the `value` prop
+- Updated `Tooltip` component to accept `ClientVariable` as the `content` prop
+- Updated `Anchor` component to accept `ClientVariable` as the `child` prop
+
 ## 1.24.2
 
 - Added `on_attempt_close` and `on_closed` props to `Modal` component
