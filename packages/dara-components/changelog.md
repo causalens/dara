@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.24.3
 
 - Updated `CheckboxGroup` component to accept `ClientVariable` as the `value` prop
 - Updated `Tooltip` component to accept `ClientVariable` as the `content` prop
