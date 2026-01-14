@@ -24,7 +24,7 @@ from dara.components.common.base_component import (
 )
 from dara.components.common.text import Text
 from dara.core.definitions import discover
-from dara.core.interactivity import AnyVariable, DerivedVariable, Variable
+from dara.core.interactivity import ClientVariable
 
 
 @deprecated('Use `dara.core.Link` instead')
@@ -66,12 +66,12 @@ class Anchor(ModifierComponent):
     clean: bool = False
     new_tab: bool = False
 
-    def __init__(self, child: ContentComponent | str | Variable[str] | DerivedVariable[str], **kwargs):
-        if isinstance(child, (ContentComponent, Variable, DerivedVariable, str)) is False:
+    def __init__(self, child: ContentComponent | str | ClientVariable, **kwargs):
+        if isinstance(child, ContentComponent | ClientVariable | str) is False:
             raise LayoutError(f'Only a single ContentComponent may be passed as an Anchors child, passed : {child}')
 
         # Handle a string or Variable being passed directly to an anchor
-        if isinstance(child, (str, AnyVariable)):
+        if isinstance(child, str | ClientVariable):
             child = Text(child)
         parsed_args: list[ContentComponent] = [child]
         super().__init__(*parsed_args, **kwargs)
