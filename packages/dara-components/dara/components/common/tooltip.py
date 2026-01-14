@@ -18,7 +18,7 @@ limitations under the License.
 from dara.components.common.base_component import ModifierComponent
 from dara.components.common.stack import Stack
 from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import DerivedVariable, Variable
+from dara.core.interactivity import ClientVariable
 
 
 class Tooltip(ModifierComponent):
@@ -72,14 +72,14 @@ class Tooltip(ModifierComponent):
     :param styling: Defines the style of the tooltip, can be 'default' or 'error'
     """
 
-    content: str | ComponentInstance | Variable[str] | DerivedVariable[str]
+    content: str | ComponentInstance | ClientVariable
     placement: str = 'auto'
     styling: str = 'default'
 
     def __init__(
         self,
         *components: ComponentInstance | None,
-        content: str | ComponentInstance | Variable[str] | DerivedVariable[str],
+        content: str | ComponentInstance | ClientVariable,
         placement: str = 'auto',
         styling: str = 'default',
         **kwargs,
