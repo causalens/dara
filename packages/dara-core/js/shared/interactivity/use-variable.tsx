@@ -11,6 +11,7 @@ import {
     isDerivedVariable,
     isServerVariable,
     isStateVariable,
+    isStreamVariable,
     isSwitchVariable,
     isVariable,
 } from '@/types';
@@ -23,6 +24,7 @@ import {
     useDerivedVariable,
     useSwitchVariable,
 } from './internal';
+import { getOrRegisterStreamVariable } from './stream-variable';
 import { useTabularVariable } from './use-tabular-variable';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
@@ -160,6 +162,13 @@ export function useVariable<T>(
             refetchOnWindowFocus: false,
         });
         return [(data?.[0] ?? null) as T, warnUpdateOnDerivedState];
+    }
+
+    if (isStreamVariable(variable)) {
+        const selector = getOrRegisterStreamVariable(variable, wsClient, taskContext, extras);
+        const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
+        const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
+        return [deferred as T, warnUpdateOnDerivedState];
     }
 
     const recoilState = getOrRegisterPlainVariable(variable, wsClient, taskContext, extras);

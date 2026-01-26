@@ -15,12 +15,14 @@ import {
     isResolvedSwitchVariable,
     isServerVariable,
     isStateVariable,
+    isStreamVariable,
     isSwitchVariable,
     isVariable,
 } from '@/types';
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolvePlainVariableStatic } from './internal';
+import { getOrRegisterStreamVariable } from './stream-variable';
 import { getOrRegisterServerVariable, resolveServerVariable, resolveServerVariableStatic } from './server-variable';
 
 export async function resolveVariable<VariableType>(
@@ -99,6 +101,13 @@ export async function resolveVariable<VariableType>(
         throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
     }
 
+    if (isStreamVariable(variable)) {
+        // StreamVariable returns a Recoil selector that can be used as a dependency
+        return resolver(
+            getOrRegisterStreamVariable(variable, client, taskContext, extras) as RecoilState<VariableType>
+        );
+    }
+
     return resolver(getOrRegisterPlainVariable(variable, client, taskContext, extras));
 }
 
@@ -162,6 +171,12 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
         // StateVariables should not be resolved as they are internal client-side variables
         // They should be handled by useVariable hook directly
         throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
+    }
+
+    if (isStreamVariable(variable)) {
+        // StreamVariable static resolution - for now return undefined as streams cannot be
+        // statically resolved without an active connection
+        return undefined;
     }
 
     // plain variable

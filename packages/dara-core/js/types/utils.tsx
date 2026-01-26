@@ -15,6 +15,7 @@ import {
     type ServerVariable,
     type SingleVariable,
     type StateVariable,
+    type StreamVariable,
     type SwitchVariable,
 } from './core';
 
@@ -87,6 +88,15 @@ export function isSwitchVariable<T>(variable: AnyVariable<T> | T): variable is S
  */
 export function isStateVariable<T>(variable: AnyVariable<T> | T): variable is StateVariable {
     return isVariable(variable) && variable.__typename === 'StateVariable';
+}
+
+/**
+ * Check if a value is a stream variable instance and type guard the response
+ *
+ * @param variable the potential variable to check
+ */
+export function isStreamVariable<T>(variable: AnyVariable<T> | T): variable is StreamVariable {
+    return isVariable(variable) && variable.__typename === 'StreamVariable';
 }
 
 /**
