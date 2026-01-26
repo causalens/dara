@@ -39,6 +39,7 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
+    Request,
     Response,
     UploadFile,
 )
@@ -72,6 +73,7 @@ from dara.core.internal.registries import (
     latest_value_registry,
     server_variable_registry,
     static_kwargs_registry,
+    stream_variable_registry,
     upload_resolver_registry,
     utils_registry,
 )
@@ -506,6 +508,72 @@ async def get_version():
 
 # Add the main websocket connection
 core_api_router.add_api_websocket_route('/ws', ws_handler)
+
+
+class StreamRequestBody(BaseModel):
+    """Request body for StreamVariable SSE endpoint."""
+
+    values: NormalizedPayload[list[Any]]
+    """Normalized payload of resolved variable values to pass to the stream generator."""
+
+
+@core_api_router.post('/stream/{stream_uid}', dependencies=[Depends(verify_session)])
+async def stream_endpoint(
+    request: Request,
+    stream_uid: str,
+    body: StreamRequestBody,
+):
+    """
+    SSE endpoint for StreamVariable.
+
+    Opens a Server-Sent Events connection and streams events from the
+    StreamVariable's async generator.
+
+    :param stream_uid: The UID of the StreamVariable
+    :param body: Request body containing resolved variable values
+    """
+    from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
+
+    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+
+    try:
+        entry = await registry_mgr.get(stream_variable_registry, stream_uid)
+    except (KeyError, ValueError) as err:
+        raise HTTPException(status_code=404, detail=f'StreamVariable {stream_uid} not found') from err
+
+    # Denormalize the values (resolve any nested structures)
+    values = denormalize(body.values.data, body.values.lookup)
+
+    async def generate():
+        generator = None
+        try:
+            generator = entry.func(*values)
+            async for event in generator:
+                if await request.is_disconnected():
+                    break
+                yield f'data: {event.model_dump_json()}\n\n'
+        except ReconnectException:
+            yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
+        except Exception as e:
+            dev_logger.error('Stream error', error=e)
+            yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
+        finally:
+            # Cleanup: close generator if it's still open
+            if generator is not None:
+                try:
+                    await generator.aclose()
+                except Exception:
+                    pass
+
+    return StreamingResponse(
+        generate(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        },
+    )
 
 
 class ActionPayload(BaseModel):

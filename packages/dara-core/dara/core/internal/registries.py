@@ -32,6 +32,7 @@ from dara.core.interactivity.derived_variable import (
     LatestValueRegistryEntry,
 )
 from dara.core.interactivity.server_variable import ServerVariableRegistryEntry
+from dara.core.interactivity.stream_variable import StreamVariableRegistryEntry
 from dara.core.internal.download import DownloadDataEntry
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.websocket import CustomClientMessagePayload
@@ -75,3 +76,6 @@ backend_store_registry = Registry[BackendStoreEntry](RegistryType.BACKEND_STORE,
 
 download_code_registry = Registry[DownloadDataEntry](RegistryType.DOWNLOAD_CODE, allow_duplicates=False)
 """map of download codes -> download data entry, used only to allow overriding download code behaviour via RegistryLookup"""
+
+stream_variable_registry = Registry[StreamVariableRegistryEntry](RegistryType.STREAM_VARIABLE, allow_duplicates=False)
+"""map of stream variable uid -> stream variable registry entry"""
