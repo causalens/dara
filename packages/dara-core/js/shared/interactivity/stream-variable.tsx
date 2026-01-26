@@ -49,9 +49,10 @@ export interface StreamEvent {
 }
 
 /**
- * State of a stream connection
+ * State of a stream connection.
+ * 'loading' is the initial state before first data arrives.
  */
-export type StreamStatus = 'connecting' | 'connected' | 'reconnecting' | 'error' | 'closed';
+export type StreamStatus = 'loading' | 'connected' | 'reconnecting' | 'error' | 'closed';
 
 /**
  * Internal state for a stream variable atom
@@ -253,36 +254,32 @@ type SetSelf = (
     valOrUpdater: StreamState | DefaultValue | ((currVal: StreamState | DefaultValue) => StreamState | DefaultValue)
 ) => void;
 
-/**
- * Helper to safely update stream state, handling DefaultValue case.
- */
-function updateStreamState(
-    setSelf: SetSelf,
-    updater: (curr: StreamState) => StreamState,
-    defaultState: StreamState
-): void {
-    setSelf((curr) => {
-        if (curr instanceof DefaultValue) {
-            return updater(defaultState);
-        }
-        return updater(curr);
-    });
-}
-
-/** Default stream state */
-const DEFAULT_STREAM_STATE: StreamState = {
+/** Stream state after first data arrives */
+const INITIAL_CONNECTED_STATE: StreamState = {
     data: undefined,
-    status: 'connecting',
+    status: 'connected',
 };
+
+/**
+ * Callback interface for stream connection events.
+ */
+interface StreamConnectionCallbacks {
+    /** Called when first data arrives - resolves the initial Promise */
+    onFirstData: (state: StreamState) => void;
+    /** Called for subsequent data updates */
+    onUpdate: (state: StreamState) => void;
+    /** Called on error after max retries */
+    onError: (error: string) => void;
+}
 
 /**
  * Start an SSE connection for a stream variable.
  *
  * @param params Stream atom params (contains uid, resolved values, etc.)
- * @param setSelf Function to update atom state
+ * @param callbacks Callbacks for stream events
  * @returns Cleanup function to abort the connection
  */
-function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () => void {
+function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnectionCallbacks): () => void {
     const connectionKey = serializeAtomParams(params);
 
     // Abort any existing connection for this key
@@ -295,6 +292,7 @@ function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () =
     activeConnections.set(connectionKey, controller);
 
     let retryCount = 0;
+    let isFirstMessage = true;
 
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
@@ -308,7 +306,6 @@ function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () =
         onopen: async (response) => {
             if (response.ok) {
                 retryCount = 0; // Reset retry count on successful connection
-                updateStreamState(setSelf, (curr) => ({ ...curr, status: 'connected' }), DEFAULT_STREAM_STATE);
                 return;
             }
 
@@ -319,11 +316,14 @@ function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () =
         onmessage: (msg: EventSourceMessage) => {
             try {
                 const event = JSON.parse(msg.data) as StreamEvent;
-                updateStreamState(
-                    setSelf,
-                    (curr) => applyStreamEvent(curr, event, params.keyAccessor),
-                    DEFAULT_STREAM_STATE
-                );
+                const newState = applyStreamEvent(INITIAL_CONNECTED_STATE, event, params.keyAccessor);
+                
+                if (isFirstMessage) {
+                    isFirstMessage = false;
+                    callbacks.onFirstData(newState);
+                } else {
+                    callbacks.onUpdate(newState);
+                }
             } catch (parseError) {
                 // eslint-disable-next-line no-console
                 console.error('Failed to parse SSE event:', parseError, msg.data);
@@ -338,21 +338,10 @@ function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () =
 
             retryCount++;
             if (retryCount > MAX_RETRIES) {
-                updateStreamState(
-                    setSelf,
-                    (curr) => ({
-                        ...curr,
-                        status: 'error',
-                        error: err instanceof Error ? err.message : String(err),
-                    }),
-                    DEFAULT_STREAM_STATE
-                );
+                callbacks.onError(err instanceof Error ? err.message : String(err));
                 // Return undefined to stop retrying
                 return;
             }
-
-            // Update status to reconnecting
-            updateStreamState(setSelf, (curr) => ({ ...curr, status: 'reconnecting' }), DEFAULT_STREAM_STATE);
 
             // Return delay to retry
             const delay = getBackoffDelay(retryCount - 1);
@@ -385,6 +374,7 @@ function startStreamConnection(params: StreamAtomParams, setSelf: SetSelf): () =
 
 /**
  * Atom effect that manages SSE connection lifecycle.
+ * Uses recoil-sync pattern: setSelf(promise) to enable native Recoil Suspense.
  * Starts connection on mount, cleans up on unmount.
  */
 function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
@@ -392,23 +382,65 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
         // Deserialize params from atom key
         const params = deserializeAtomParams(atomKey);
 
-        // Start SSE connection
-        const cleanup = startStreamConnection(params, setSelf);
+        // Create a Promise that resolves when first data arrives.
+        // Following recoil-sync pattern: setSelf(promise) enables native Suspense.
+        let resolveInitialData: ((state: StreamState) => void) | null = null;
+        let rejectInitialData: ((error: Error) => void) | null = null;
+        
+        const initialDataPromise = new Promise<StreamState>((resolve, reject) => {
+            resolveInitialData = resolve;
+            rejectInitialData = reject;
+        });
+
+        // Set atom to the Promise - Recoil will handle Suspense natively
+        setSelf(initialDataPromise);
+
+        // Start SSE connection with callbacks
+        const cleanup = startStreamConnection(params, {
+            onFirstData: (state) => {
+                // Resolve the initial Promise - this wakes up suspended components
+                if (resolveInitialData) {
+                    resolveInitialData(state);
+                    resolveInitialData = null;
+                    rejectInitialData = null;
+                }
+                // Also explicitly set the atom value to ensure Recoil sees the update
+                setSelf(state);
+            },
+            onUpdate: (state) => {
+                // Subsequent updates use setSelf directly
+                setSelf(state);
+            },
+            onError: (error) => {
+                if (rejectInitialData) {
+                    // If we haven't received first data yet, reject the Promise
+                    rejectInitialData(new Error(error));
+                    resolveInitialData = null;
+                    rejectInitialData = null;
+                } else {
+                    // Otherwise update the state with error
+                    setSelf({
+                        data: undefined,
+                        status: 'error',
+                        error,
+                    });
+                }
+            },
+        });
 
         // Cleanup on unmount
-        return () => {
-            cleanup();
-        };
+        return cleanup;
     };
 }
 
 /**
  * Stream atom family - holds the accumulated state for each unique params combination.
  * Key is JSON-serialized StreamAtomParams containing everything needed for SSE.
+ * No default value - atom starts in "pending" state. The effect sets it to a Promise
+ * that resolves when first data arrives (recoil-sync pattern for native Suspense).
  */
 const streamAtomFamily = atomFamily<StreamState, string>({
     key: 'StreamVariable/state',
-    default: DEFAULT_STREAM_STATE,
     effects: (atomKey) => [streamConnectionEffect(atomKey)],
 });
 
@@ -421,11 +453,13 @@ const streamAtomFamily = atomFamily<StreamState, string>({
  * @returns Recoil atom for stream state
  */
 export function getOrCreateStreamVariableAtom(atomKey: string): RecoilState<StreamState> {
+    // Just use atomFamily directly - it already caches atoms by key
+    const atom = streamAtomFamily(atomKey);
+    // Still register for tracking purposes
     if (!streamAtomRegistry.has(atomKey)) {
-        const atom = streamAtomFamily(atomKey);
         streamAtomRegistry.set(atomKey, atom);
     }
-    return streamAtomRegistry.get(atomKey)!;
+    return atom;
 }
 
 /**
@@ -540,8 +574,12 @@ function getOrRegisterStreamVariableValue(
                         );
                         const atomKey = get(paramsSelector);
 
-                        // Get atom and read state
-                        const atom = getOrCreateStreamVariableAtom(atomKey);
+                        // Get atom from atomFamily
+                        const atom = streamAtomFamily(atomKey);
+                        // Track in registry
+                        if (!streamAtomRegistry.has(atomKey)) {
+                            streamAtomRegistry.set(atomKey, atom);
+                        }
                         const streamState = get(atom);
 
                         // Get the exposed value (array for keyed mode)
@@ -593,7 +631,7 @@ export function getOrRegisterStreamVariable(
                 get:
                     (extrasSerializable: RequestExtrasSerializable) =>
                     ({ get }) => {
-                        // Get raw value from layer 2
+                        // Get value from layer 2
                         const valueSelector = getOrRegisterStreamVariableValue(
                             variable,
                             client,
@@ -604,8 +642,8 @@ export function getOrRegisterStreamVariable(
 
                         // Unwrap nested if needed
                         return 'nested' in variable ?
-                                resolveNested(value as Record<string, unknown>, variable.nested)
-                            :   value;
+                            resolveNested(value as Record<string, unknown>, variable.nested)
+                        :   value;
                     },
             })
         );

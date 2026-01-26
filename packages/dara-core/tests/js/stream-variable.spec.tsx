@@ -6,10 +6,10 @@
  * - Atom state management
  * - SSE connection lifecycle (with mocks)
  */
-
 import { HttpResponse, http } from 'msw';
 
 import { setSessionToken } from '@/auth/use-session-token';
+import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import {
     type StreamAtomParams,
     type StreamEvent,
@@ -19,7 +19,6 @@ import {
     extractKey,
     getStreamValue,
 } from '@/shared/interactivity/stream-variable';
-import { clearRegistries_TEST } from '@/shared/interactivity/store';
 
 import { server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
@@ -96,9 +95,11 @@ describe('StreamVariable', () => {
     });
 
     describe('applyStreamEvent', () => {
+        // Use 'connected' as initial status - in real usage, atom starts pending (no state)
+        // until first event, then applyStreamEvent creates state with 'connected'
         const initialState: StreamState = {
             data: undefined,
-            status: 'connecting',
+            status: 'connected',
         };
 
         describe('snapshot events', () => {
@@ -459,7 +460,7 @@ describe('StreamVariable', () => {
 
         it('returns null/undefined data as-is', () => {
             const nullState: StreamState = { data: null, status: 'connected' };
-            const undefinedState: StreamState = { data: undefined, status: 'connecting' };
+            const undefinedState: StreamState = { data: undefined, status: 'connected' };
 
             expect(getStreamValue(nullState, 'id')).toBeNull();
             expect(getStreamValue(undefinedState, 'id')).toBeUndefined();

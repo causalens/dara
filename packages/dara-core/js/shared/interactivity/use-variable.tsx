@@ -1,7 +1,13 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import { type Dispatch, type SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
-import { useRecoilState, useRecoilStateLoadable, useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE } from 'recoil';
+import {
+    useRecoilState,
+    useRecoilStateLoadable,
+    useRecoilValue,
+    useRecoilValueLoadable,
+    useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE,
+} from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import useDeferLoadable from '@/shared/utils/use-defer-loadable';
@@ -166,7 +172,10 @@ export function useVariable<T>(
 
     if (isStreamVariable(variable)) {
         const selector = getOrRegisterStreamVariable(variable, wsClient, taskContext, extras);
-        const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
+        // Use the standard loadable + useDeferLoadable pattern.
+        // This works because we use the recoil-sync pattern: setSelf(promise) in the atom effect
+        // which enables native Recoil Suspense handling.
+        const selectorLoadable = useRecoilValueLoadable(selector);
         const deferred = useDeferLoadable(selectorLoadable, opts.suspend);
         return [deferred as T, warnUpdateOnDerivedState];
     }

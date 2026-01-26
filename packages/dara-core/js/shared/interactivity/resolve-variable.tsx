@@ -22,8 +22,8 @@ import {
 
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolvePlainVariableStatic } from './internal';
-import { getOrRegisterStreamVariable } from './stream-variable';
 import { getOrRegisterServerVariable, resolveServerVariable, resolveServerVariableStatic } from './server-variable';
+import { getOrRegisterStreamVariable } from './stream-variable';
 
 export async function resolveVariable<VariableType>(
     variable: AnyVariable<VariableType>,
@@ -174,9 +174,8 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
     }
 
     if (isStreamVariable(variable)) {
-        // StreamVariable static resolution - for now return undefined as streams cannot be
-        // statically resolved without an active connection
-        return undefined;
+        // Streams cannot be statically resolved without an active connection
+        throw new Error('StreamVariable should not be resolved - it should be handled by useVariable hook');
     }
 
     // plain variable
