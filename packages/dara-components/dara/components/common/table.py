@@ -841,6 +841,30 @@ class Table(ContentComponent):
     )
     ```
 
+    You can also set row height for the table. This is particularly useful if you have text that is overflowing and you want the table to be taller. The height is a number that defines the height in pixels.
+
+    ```python
+    Table(
+        columns=columns,
+        data=data,
+        row_height=100,
+    )
+    ```
+
+    A table component can also work with custom actions. This will automatically add an action column to the table at the end, where you can define the actions you want to display.
+
+    ```python
+    from dara.components.common import Table, TableAction
+
+    Table(
+        columns=columns,
+        data=data,
+        actions=[
+            TableAction(icon_name='trash', label='Delete', id='delete'),
+            TableAction(icon_name='pencil', label='Edit', id='edit'),
+        ],
+    )
+    ```
     :param columns: The table's columns, this can be a list, a Variable/DerivedVariable or if left undefined it will be inferred from the data
     :param data: The table's data, can be a list of records or a Variable resolving to a list of records
     :param multi_select: Whether to allow selection of multiple rows, works with onclick_row and defaults to False
