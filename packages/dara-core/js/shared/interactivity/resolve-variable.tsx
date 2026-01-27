@@ -25,6 +25,17 @@ import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolvePlainV
 import { getOrRegisterServerVariable, resolveServerVariable, resolveServerVariableStatic } from './server-variable';
 import { getOrRegisterStreamVariable } from './stream-variable';
 
+/**
+ * Error thrown when a variable cannot be resolved during preloading.
+ * This signals to the preloader to skip this variable and resolve it at runtime.
+ */
+export class PreloadSkipError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'PreloadSkipError';
+    }
+}
+
 export async function resolveVariable<VariableType>(
     variable: AnyVariable<VariableType>,
     client: WebSocketClientInterface,
@@ -168,14 +179,19 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
     }
 
     if (isStateVariable(variable)) {
-        // StateVariables should not be resolved as they are internal client-side variables
-        // They should be handled by useVariable hook directly
-        throw new Error('StateVariable should not be resolved - it should be handled by useVariable hook');
+        // StateVariables cannot be preloaded - they track parent DerivedVariable state at runtime
+        throw new PreloadSkipError(
+            'StateVariable cannot be used in on_load actions or preloaded. ' +
+                'StateVariables track DerivedVariable loading/error state and are only available at runtime.'
+        );
     }
 
     if (isStreamVariable(variable)) {
-        // Streams cannot be statically resolved without an active connection
-        throw new Error('StreamVariable should not be resolved - it should be handled by useVariable hook');
+        // StreamVariables cannot be preloaded - they receive data via SSE at runtime
+        throw new PreloadSkipError(
+            'StreamVariable cannot be used in on_load actions or preloaded. ' +
+                'StreamVariables receive data via server-sent events and are only available at runtime.'
+        );
     }
 
     // plain variable
