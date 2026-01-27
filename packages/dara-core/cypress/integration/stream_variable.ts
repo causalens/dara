@@ -7,7 +7,7 @@ describe('StreamVariable - Keyed Mode', () => {
      * Helper to reset keyed mode test state.
      * Call at the start of tests that need clean state.
      */
-    function resetKeyedState() {
+    function resetKeyedState(): void {
         cy.cardContent('Keyed Mode').within(() => {
             cy.get('button').contains('Reset Keyed Test State').click();
         });
@@ -151,7 +151,7 @@ describe('StreamVariable - Custom JSON Mode', () => {
      * Helper to reset custom mode test state.
      * Call at the start of tests that need clean state.
      */
-    function resetCustomState() {
+    function resetCustomState(): void {
         cy.cardContent('Custom JSON Mode').within(() => {
             cy.get('button').contains('Reset Custom Test State').click();
         });
@@ -164,7 +164,7 @@ describe('StreamVariable - Custom JSON Mode', () => {
      * Finds the parent Stack containing the label, then clicks the combobox within it.
      * Uses aria-controls to find the portaled dropdown.
      */
-    function selectOptionByLabel(label: string, optionValue: string) {
+    function selectOptionByLabel(label: string, optionValue: string): void {
         // Find the label, get its parent Stack, then find the combobox within
         cy.contains('div', label)
             .parent()

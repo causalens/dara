@@ -18,6 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import Any, Generic, Literal
@@ -200,7 +201,7 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
             ),
         )
 
-    def get(self, *keys: str) -> 'StreamVariable[Any]':
+    def get(self, *keys: str) -> StreamVariable[Any]:
         """
         Access a nested value within the stream's accumulated state.
 
@@ -329,7 +330,5 @@ async def run_stream(
     finally:
         # Cleanup: close generator if it's still open
         if generator is not None:
-            try:
+            with contextlib.suppress(Exception):
                 await generator.aclose()
-            except Exception:
-                pass

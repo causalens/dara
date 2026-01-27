@@ -102,7 +102,7 @@ class StreamEvent(BaseModel):
     # === Keyed mode events ===
 
     @classmethod
-    def add(cls, *items: Any) -> 'StreamEvent':
+    def add(cls, *items: Any) -> StreamEvent:
         """
         Add one or more items to the keyed collection.
 
@@ -134,7 +134,7 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.ADD, data=data)
 
     @classmethod
-    def remove(cls, *keys: str | int) -> 'StreamEvent':
+    def remove(cls, *keys: str | int) -> StreamEvent:
         """
         Remove one or more items by key from the keyed collection.
 
@@ -162,7 +162,7 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.REMOVE, data=data)
 
     @classmethod
-    def clear(cls) -> 'StreamEvent':
+    def clear(cls) -> StreamEvent:
         """
         Clear all items from the keyed collection.
 
@@ -177,7 +177,7 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.CLEAR, data=None)
 
     @classmethod
-    def replace(cls, *items: Any) -> 'StreamEvent':
+    def replace(cls, *items: Any) -> StreamEvent:
         """
         Atomically replace all items in the keyed collection.
 
@@ -212,7 +212,7 @@ class StreamEvent(BaseModel):
     # === Custom state mode events ===
 
     @classmethod
-    def json_snapshot(cls, data: Any) -> 'StreamEvent':
+    def json_snapshot(cls, data: Any) -> StreamEvent:
         """
         Replace the entire state with new JSON data.
 
@@ -234,7 +234,7 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.JSON_SNAPSHOT, data=data)
 
     @classmethod
-    def json_patch(cls, operations: list[dict[str, Any]]) -> 'StreamEvent':
+    def json_patch(cls, operations: list[dict[str, Any]]) -> StreamEvent:
         """
         Apply JSON Patch operations (RFC 6902) to the current state.
 
@@ -262,7 +262,7 @@ class StreamEvent(BaseModel):
     # === Control events ===
 
     @classmethod
-    def reconnect(cls) -> 'StreamEvent':
+    def reconnect(cls) -> StreamEvent:
         """
         Signal to the client that it should reconnect.
 
@@ -274,7 +274,7 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.RECONNECT, data=None)
 
     @classmethod
-    def error(cls, message: str) -> 'StreamEvent':
+    def error(cls, message: str) -> StreamEvent:
         """
         Signal that an error occurred in the stream.
 

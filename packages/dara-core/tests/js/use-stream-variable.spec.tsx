@@ -26,13 +26,18 @@ mockLocalStorage();
  * Create an SSE handler using MSW.
  * Returns SSE-formatted stream with the given events.
  */
-function createSSEHandler(uid: string, events: Array<{ type: string; data: unknown }>, delayMs = 10) {
+function createSSEHandler(
+    uid: string,
+    events: Array<{ type: string; data: unknown }>,
+    delayMs = 10
+): ReturnType<typeof http.post> {
     return http.post(`/api/core/stream/${uid}`, () => {
         const encoder = new TextEncoder();
 
         const stream = new ReadableStream({
             async start(controller) {
                 for (const event of events) {
+                    // eslint-disable-next-line no-await-in-loop
                     await new Promise((resolve) => setTimeout(resolve, delayMs));
                     const sseData = `data: ${JSON.stringify({ type: event.type, data: event.data })}\n\n`;
                     controller.enqueue(encoder.encode(sseData));
@@ -200,7 +205,7 @@ describe('useVariable with StreamVariable', () => {
                         await new Promise((resolve) => setTimeout(resolve, 50));
                         const data = `data: ${JSON.stringify({ 
                             type: 'json_snapshot', 
-                            data: { dep: depValue, message: `data for ${depValue}` }
+                            data: { dep: depValue, message: `data for ${String(depValue)}` }
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));
                         controller.close();
@@ -219,13 +224,13 @@ describe('useVariable with StreamVariable', () => {
 
         // Component that allows changing the dependency
         function TestComponent(): JSX.Element {
-            const [depValue, setDepValue] = useVariable(dependencyVar);
+            const [, setDepValue] = useVariable(dependencyVar);
             const [streamData] = useVariable(streamVar);
             
             return (
                 <div>
                     <div data-testid="stream-data">{JSON.stringify(streamData)}</div>
-                    <button data-testid="change-dep" onClick={() => setDepValue('changed')}>
+                    <button type="button" data-testid="change-dep" onClick={() => setDepValue('changed')}>
                         Change
                     </button>
                 </div>
@@ -294,7 +299,7 @@ describe('useVariable with StreamVariable', () => {
                         await new Promise((resolve) => setTimeout(resolve, 100));
                         const data = `data: ${JSON.stringify({
                             type: 'json_snapshot',
-                            data: { dep: depValue, message: `data for ${depValue}` }
+                            data: { dep: depValue, message: `data for ${String(depValue)}` }
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));
                         controller.close();
@@ -313,13 +318,13 @@ describe('useVariable with StreamVariable', () => {
 
         // Component that allows changing the dependency, with suspend=false passed directly
         function TestComponent(): JSX.Element {
-            const [depValue, setDepValue] = useVariable(dependencyVar);
+            const [, setDepValue] = useVariable(dependencyVar);
             const [streamData] = useVariable(streamVar, { suspend: false });
 
             return (
                 <div>
                     <div data-testid="stream-data">{JSON.stringify(streamData)}</div>
-                    <button data-testid="change-dep" onClick={() => setDepValue('changed')}>
+                    <button type="button" data-testid="change-dep" onClick={() => setDepValue('changed')}>
                         Change
                     </button>
                 </div>

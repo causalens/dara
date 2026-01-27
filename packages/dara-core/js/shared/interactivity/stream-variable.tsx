@@ -27,7 +27,7 @@ import { type EventSourceMessage, fetchEventSource } from '@microsoft/fetch-even
 import { type Operation, applyPatch } from 'fast-json-patch';
 import getPath from 'lodash/get';
 import { nanoid } from 'nanoid';
-import { type AtomEffect, DefaultValue, type RecoilState, type RecoilValue, atomFamily, selectorFamily } from 'recoil';
+import { type AtomEffect, type RecoilState, type RecoilValue, atomFamily, selectorFamily } from 'recoil';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
