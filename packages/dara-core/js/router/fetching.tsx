@@ -18,10 +18,16 @@ import {
     type NormalizedPayload,
     type PyComponentInstance,
     type RouteDefinition,
+    UserError,
     isAnnotatedAction,
 } from '@/types';
 
-import { cleanArgs, cleanKwargs, resolveVariableStatic } from '../shared/interactivity/resolve-variable';
+import {
+    PreloadSkipError,
+    cleanArgs,
+    cleanKwargs,
+    resolveVariableStatic,
+} from '../shared/interactivity/resolve-variable';
 import { denormalize, normalizeRequest } from '../shared/utils/normalization';
 import { SingleUseCache } from './cache';
 import { useRouterContext } from './context';
@@ -174,64 +180,95 @@ export async function fetchRouteData(
         actions = [route.on_load];
     }
     const actionPayloads = actions.filter(isAnnotatedAction).map((a) => {
-        const kwargs = cleanKwargs(
-            Object.fromEntries(
-                Object.entries(a.dynamic_kwargs).map(([k, v]) => {
-                    return [k, resolveVariableStatic(v, snapshot, params)];
-                })
-            ),
-            null
-        );
-        return {
-            uid: a.uid,
-            definition_uid: a.definition_uid,
-            values: normalizeRequest(kwargs, a.dynamic_kwargs),
-        } satisfies ActionPayload;
+        try {
+            const kwargs = cleanKwargs(
+                Object.fromEntries(
+                    Object.entries(a.dynamic_kwargs).map(([k, v]) => {
+                        return [k, resolveVariableStatic(v, snapshot, params)];
+                    })
+                ),
+                null
+            );
+            return {
+                uid: a.uid,
+                definition_uid: a.definition_uid,
+                values: normalizeRequest(kwargs, a.dynamic_kwargs),
+            } satisfies ActionPayload;
+        } catch (e) {
+            if (e instanceof PreloadSkipError) {
+                // on_load actions cannot use variables that require runtime resolution
+                throw new UserError(
+                    `on_load action cannot use StreamVariable or StateVariable. ` +
+                        `These variables are only available at runtime after the page has loaded. ` +
+                        `Consider using a regular action triggered by user interaction instead.`
+                );
+            }
+            throw e;
+        }
     });
 
     // Collect payloads for DVs and py_components,
-    // preloading ones that don't have a cached value
+    // preloading ones that don't have a cached value.
+    // Skip variables that throw PreloadSkipError (e.g., StreamVariable, StateVariable)
     const dvHandles = Object.values(route.dependency_graph?.derived_variables ?? {}).flatMap((dv) => {
-        const handle = preloadDerivedVariable(dv, snapshot, params);
-        if (!handle) {
-            return [];
+        try {
+            const handle = preloadDerivedVariable(dv, snapshot, params);
+            if (!handle) {
+                return [];
+            }
+            return {
+                ...handle,
+                dv,
+                payload: {
+                    values: normalizeRequest(cleanArgs(handle.result.values, null), dv.variables) as any,
+                    uid: dv.uid,
+                } satisfies DerivedVariablePayload,
+            };
+        } catch (e) {
+            if (e instanceof PreloadSkipError) {
+                // Skip preloading for variables that can't be resolved statically
+                // They will be resolved at runtime instead
+                return [];
+            }
+            throw e;
         }
-        return {
-            ...handle,
-            dv,
-            payload: {
-                values: normalizeRequest(cleanArgs(handle.result.values, null), dv.variables) as any,
-                uid: dv.uid,
-            } satisfies DerivedVariablePayload,
-        };
     });
     const pyHandles = Object.values(route.dependency_graph?.py_components ?? {}).flatMap((py) => {
-        const handle = preloadServerComponent(py, snapshot, params);
+        try {
+            const handle = preloadServerComponent(py, snapshot, params);
 
-        if (!handle) {
-            return [];
+            if (!handle) {
+                return [];
+            }
+
+            // turn the resolved values back into an object and clean them up
+            const kwargValues = cleanKwargs(
+                Object.keys(py.props.dynamic_kwargs).reduce(
+                    (acc, k, idx) => {
+                        acc[k] = handle.result.values[idx];
+                        return acc;
+                    },
+                    {} as Record<string, any>
+                )
+            );
+
+            return {
+                ...handle,
+                py,
+                payload: {
+                    uid: py.uid,
+                    name: py.name,
+                    values: normalizeRequest(kwargValues, py.props.dynamic_kwargs),
+                } satisfies PyComponentPayload,
+            };
+        } catch (e) {
+            if (e instanceof PreloadSkipError) {
+                // Skip preloading for variables that can't be resolved statically
+                // They will be resolved at runtime instead
+                return [];
+            }
+            throw e;
         }
-
-        // turn the resolved values back into an object and clean them up
-        const kwargValues = cleanKwargs(
-            Object.keys(py.props.dynamic_kwargs).reduce(
-                (acc, k, idx) => {
-                    acc[k] = handle.result.values[idx];
-                    return acc;
-                },
-                {} as Record<string, any>
-            )
-        );
-
-        return {
-            ...handle,
-            py,
-            payload: {
-                uid: py.uid,
-                name: py.name,
-                values: normalizeRequest(kwargValues, py.props.dynamic_kwargs),
-            } satisfies PyComponentPayload,
-        };
     });
 
     const dvHandlesByUid = dvHandles.reduce(

@@ -48,6 +48,7 @@ function getEntries(obj: JsonLike): Iterable<any> {
 
 export function denormalize(obj: Mapping, lookup: Mapping): Mapping;
 export function denormalize(obj: JsonArray, lookup: Mapping): JsonArray;
+export function denormalize<T extends string | number | boolean>(obj: T, lookup: Mapping): T;
 
 /**
  * Denormalize data by replacing Placeholders with objects from lookup
@@ -55,7 +56,7 @@ export function denormalize(obj: JsonArray, lookup: Mapping): JsonArray;
  * @param obj JSON-like structure containing placeholders
  * @param lookup map of identifier -> referrable
  */
-export function denormalize(obj: JsonLike, lookup: Mapping): Mapping | JsonArray {
+export function denormalize(obj: JsonLike, lookup: Mapping): Mapping | JsonArray | string | number | boolean {
     if (!obj) {
         return obj;
     }
@@ -63,6 +64,11 @@ export function denormalize(obj: JsonLike, lookup: Mapping): Mapping | JsonArray
     if (isPlaceholder(obj)) {
         const referrable = lookup[obj.__ref];
         return denormalize(referrable, lookup);
+    }
+
+    // Primitives (strings, numbers, booleans) should be returned as-is
+    if (typeof obj !== 'object') {
+        return obj;
     }
 
     const output: Record<string | number, any> = Array.isArray(obj) ? [] : {};

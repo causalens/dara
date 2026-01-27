@@ -188,7 +188,7 @@ async function debouncedFetchDerivedVariable({
  * @param value value to resolve
  * @param getter recoil getter function
  */
-function resolveValue(
+export function resolveValue(
     value: ResolvedDerivedVariable | ResolvedServerVariable | ResolvedSwitchVariable | RecoilValue<any>,
     getter: GetRecoilValue
 ): any {
@@ -549,7 +549,7 @@ export function getOrRegisterDerivedVariableResult(
                                     return Promise.resolve(v);
                                 }
 
-                                return resolveVariable(v, wsClient, taskContext, currentExtras);
+                                return resolveVariable(v, wsClient, taskContext, extrasSerializable.extras);
                             })
                         );
 

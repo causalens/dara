@@ -3,7 +3,14 @@ import { nanoid } from 'nanoid';
 import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
 import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
 import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
-import { isDerivedVariable, isServerVariable, isStateVariable, isSwitchVariable, isVariable } from '@/types/utils';
+import {
+    isDerivedVariable,
+    isServerVariable,
+    isStateVariable,
+    isStreamVariable,
+    isSwitchVariable,
+    isVariable,
+} from '@/types/utils';
 
 /**
  * Front-end handler for ResetVariables action.
@@ -26,6 +33,8 @@ const ResetVariables: ActionHandler<ResetVariablesImpl> = (ctx, actionImpl) => {
             // This is a noop - the state will update when the parent DerivedVariable changes
         } else if (isServerVariable(variable)) {
             // ServerVariables cannot be reset currently as they might not even have a default value (user stores)
+        } else if (isStreamVariable(variable)) {
+            // StreamVariables cannot be reset - they're read-only and managed by the server stream
         } else {
             const plainAtom = getOrRegisterPlainVariable(variable, ctx.wsClient, ctx.taskCtx, ctx.extras);
             if (variable.store?.__typename === 'QueryParamStore') {

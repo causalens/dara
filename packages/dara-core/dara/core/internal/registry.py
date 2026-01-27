@@ -45,6 +45,7 @@ class RegistryType(str, Enum):
     CUSTOM_WS_HANDLERS = 'Custom WS handlers'
     BACKEND_STORE = 'Backend Store'
     DOWNLOAD_CODE = 'Download Code'
+    STREAM_VARIABLE = 'StreamVariable'
 
 
 class Registry(Generic[T]):

@@ -35,6 +35,7 @@
       "items": [
         "docs/advanced/authentication",
         "docs/advanced/loading-states",
+        "docs/advanced/stream-variable",
         "docs/advanced/styling-components",
         "docs/advanced/persistence-and-collaboration",
         "docs/advanced/custom-js",

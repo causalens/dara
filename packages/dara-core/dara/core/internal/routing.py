@@ -39,6 +39,7 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
+    Request,
     Response,
     UploadFile,
 )
@@ -56,6 +57,8 @@ from dara.core.interactivity.actions import ACTION_CONTEXT
 from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.interactivity.server_variable import ServerVariable
+from dara.core.interactivity.stream_utils import track_stream
+from dara.core.interactivity.stream_variable import run_stream
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import print_stacktrace
 from dara.core.internal.download import DownloadRegistryEntry
@@ -72,6 +75,7 @@ from dara.core.internal.registries import (
     latest_value_registry,
     server_variable_registry,
     static_kwargs_registry,
+    stream_variable_registry,
     upload_resolver_registry,
     utils_registry,
 )
@@ -506,6 +510,57 @@ async def get_version():
 
 # Add the main websocket connection
 core_api_router.add_api_websocket_route('/ws', ws_handler)
+
+
+class StreamRequestBody(BaseModel):
+    """Request body for StreamVariable SSE endpoint."""
+
+    values: NormalizedPayload[list[Any]]
+    """Normalized payload of resolved variable values to pass to the stream generator."""
+
+
+@core_api_router.post('/stream/{stream_uid}', dependencies=[Depends(verify_session)])
+async def stream_endpoint(
+    request: Request,
+    stream_uid: str,
+    body: StreamRequestBody,
+):
+    """
+    SSE endpoint for StreamVariable.
+
+    Opens a Server-Sent Events connection and streams events from the
+    StreamVariable's async generator.
+
+    :param stream_uid: The UID of the StreamVariable
+    :param body: Request body containing resolved variable values
+    """
+    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+    store: CacheStore = utils_registry.get('Store')
+    task_mgr: TaskManager = utils_registry.get('TaskManager')
+
+    try:
+        entry = await registry_mgr.get(stream_variable_registry, stream_uid)
+    except (KeyError, ValueError) as err:
+        raise HTTPException(status_code=404, detail=f'StreamVariable {stream_uid} not found') from err
+
+    # Denormalize the values (resolve any nested structures)
+    values = denormalize(body.values.data, body.values.lookup)
+
+    @track_stream
+    async def stream():
+        async for event in run_stream(entry, request, values, store, task_mgr):
+            yield event
+
+    return StreamingResponse(
+        stream(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream',
+        },
+    )
 
 
 class ActionPayload(BaseModel):

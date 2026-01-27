@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added `StreamVariable` - a new variable type for SSE-based real-time event streams. Supports keyed mode (list of items with unique IDs) and custom JSON mode (arbitrary state with JSON Patch). Includes automatic reconnection with exponential backoff and proper lifecycle management via Recoil atom effects.
+
 ## 1.24.1
 
 -  Fixed an issue where using `.get` on a `DerivedVariable` would not resolve when passed to `DerivedVariable`, `py_component` or `action`

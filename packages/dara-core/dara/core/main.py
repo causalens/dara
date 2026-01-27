@@ -44,6 +44,7 @@ from dara.core.defaults import (
     top_template,
 )
 from dara.core.definitions import JsComponentDef
+from dara.core.interactivity.stream_utils import setup_signal_handlers
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.cgroup import get_cpu_count, set_memory_limit
 from dara.core.internal.custom_response import CustomResponse
@@ -136,6 +137,7 @@ def _start_application(config: Configuration):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # STARTUP
+        setup_signal_handlers()
 
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables
