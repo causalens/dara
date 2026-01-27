@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "d3-scale": "3.2.1",
-    "lodash": "4.17.21",
+    "lodash": "4.17.23",
     "nanoid": "^3.3.0",
     "react": "^18.0",
     "rxjs": "^7.0.0",
