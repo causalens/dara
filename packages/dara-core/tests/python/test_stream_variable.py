@@ -88,6 +88,35 @@ def test_stream_event_clear():
     assert event.data is None
 
 
+def test_stream_event_replace_multiple():
+    """Test StreamEvent.replace with multiple items."""
+    event = StreamEvent.replace({'id': '1'}, {'id': '2'}, {'id': '3'})
+    assert event.type == StreamEventType.REPLACE
+    assert event.data == [{'id': '1'}, {'id': '2'}, {'id': '3'}]
+
+
+def test_stream_event_replace_single():
+    """Test StreamEvent.replace with a single item."""
+    event = StreamEvent.replace({'id': '1', 'data': 'test'})
+    assert event.type == StreamEventType.REPLACE
+    assert event.data == [{'id': '1', 'data': 'test'}]
+
+
+def test_stream_event_replace_empty():
+    """Test StreamEvent.replace with no items (equivalent to clear)."""
+    event = StreamEvent.replace()
+    assert event.type == StreamEventType.REPLACE
+    assert event.data == []
+
+
+def test_stream_event_replace_from_list():
+    """Test StreamEvent.replace with unpacked list."""
+    items = [{'id': '1'}, {'id': '2'}]
+    event = StreamEvent.replace(*items)
+    assert event.type == StreamEventType.REPLACE
+    assert event.data == [{'id': '1'}, {'id': '2'}]
+
+
 # --- StreamEvent Tests: Custom State Mode ---
 
 
@@ -205,6 +234,19 @@ def test_stream_variable_prevents_stream_dependency():
         StreamVariable(stream_b, variables=[stream_a_var])
 
 
+def test_stream_variable_prevents_run_as_task_derived():
+    """Test that StreamVariable raises when DerivedVariable has run_as_task=True."""
+
+    async def test_stream(value: str):
+        yield StreamEvent.add({'id': '1', 'value': value})
+
+    var = Variable('test')
+    derived_with_task = DerivedVariable(lambda x: x.upper(), variables=[var], run_as_task=True)
+
+    with pytest.raises(ValueError, match='cannot depend on a DerivedVariable with run_as_task=True'):
+        StreamVariable(test_stream, variables=[derived_with_task])
+
+
 def test_stream_variable_with_derived_variable():
     """Test that StreamVariable can depend on a DerivedVariable."""
 
@@ -290,6 +332,67 @@ async def test_stream_endpoint_keyed_mode():
         assert received_values == ['hello']
 
 
+async def test_stream_endpoint_replace():
+    """Test stream endpoint with replace event for atomic state replacement."""
+    builder = ConfigurationBuilder()
+
+    async def test_stream(value: str):
+        # Use replace for atomic initial state (no flash of empty)
+        yield StreamEvent.replace(
+            {'id': '1', 'value': value},
+            {'id': '2', 'value': 'second'},
+        )
+        # Then stream incremental updates
+        yield StreamEvent.add({'id': '3', 'value': 'third'})
+
+    var = Variable('test_input')
+    stream_var = StreamVariable(test_stream, variables=[var], key_accessor='id')
+
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, ['hello'])
+
+        assert response.status_code == 200
+        events = parse_sse_events(response.text)
+
+        assert len(events) == 2
+        assert events[0]['type'] == 'replace'
+        assert events[0]['data'] == [
+            {'id': '1', 'value': 'hello'},
+            {'id': '2', 'value': 'second'},
+        ]
+        assert events[1]['type'] == 'add'
+        assert events[1]['data'] == {'id': '3', 'value': 'third'}
+
+
+async def test_stream_endpoint_replace_empty():
+    """Test stream endpoint with empty replace (equivalent to clear)."""
+    builder = ConfigurationBuilder()
+
+    async def test_stream(value: str):
+        yield StreamEvent.replace()  # Empty replace = clear
+
+    var = Variable('test_input')
+    stream_var = StreamVariable(test_stream, variables=[var], key_accessor='id')
+
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, ['hello'])
+
+        assert response.status_code == 200
+        events = parse_sse_events(response.text)
+
+        assert len(events) == 1
+        assert events[0]['type'] == 'replace'
+        assert events[0]['data'] == []
+
+
 async def test_stream_endpoint_custom_state_mode():
     """Test stream endpoint with custom state mode events (json_snapshot/json_patch)."""
     builder = ConfigurationBuilder()
@@ -326,7 +429,6 @@ async def test_stream_endpoint_custom_state_mode():
         ]
 
 
-@pytest.mark.skip(reason='DerivedVariable resolution in stream tests needs fixing')
 async def test_stream_endpoint_with_derived_variable():
     """Test stream endpoint with a DerivedVariable as input."""
     builder = ConfigurationBuilder()

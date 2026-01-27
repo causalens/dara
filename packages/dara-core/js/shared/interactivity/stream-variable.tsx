@@ -10,6 +10,7 @@
  * 3. Atom with effects - SSE lifecycle managed by atom effects
  *
  * Event types (keyed mode - requires key_accessor):
+ * - replace: Atomically replace all items (recommended for initial state)
  * - add: Add/update items by key
  * - remove: Remove items by key
  * - clear: Clear all items
@@ -49,6 +50,7 @@ export type StreamEventType =
     | 'add'
     | 'remove'
     | 'clear'
+    | 'replace'
     // Custom state mode events
     | 'json_snapshot'
     | 'json_patch'
@@ -184,6 +186,39 @@ export function applyStreamEvent(
             return {
                 ...currentState,
                 data: {},
+                status: 'connected',
+                error: undefined,
+            };
+        }
+
+        case 'replace': {
+            if (keyAccessor === null) {
+                // eslint-disable-next-line no-console
+                console.warn(
+                    'StreamVariable: replace() event received but no key_accessor is set. Use json_snapshot instead.'
+                );
+                return currentState;
+            }
+
+            const items = Array.isArray(event.data) ? event.data : [];
+            const newData: Record<string | number, unknown> = {};
+
+            for (const item of items) {
+                const key = extractKey(item, keyAccessor);
+                if (key === undefined) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        `StreamVariable: Could not extract key using accessor '${keyAccessor}' from item:`,
+                        item
+                    );
+                    continue;
+                }
+                newData[key] = item;
+            }
+
+            return {
+                ...currentState,
+                data: newData,
                 status: 'connected',
                 error: undefined,
             };

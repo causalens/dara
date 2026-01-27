@@ -36,6 +36,9 @@ class StreamEventType(str, Enum):
     CLEAR = 'clear'
     """Clear all items from the keyed collection."""
 
+    REPLACE = 'replace'
+    """Atomically replace all items in the keyed collection."""
+
     # === Custom state mode events ===
     JSON_SNAPSHOT = 'json_snapshot'
     """Replace entire state with arbitrary JSON data."""
@@ -57,32 +60,40 @@ class StreamEvent(BaseModel):
 
     StreamEvents are used to update the client-side state of a StreamVariable.
 
-    **Keyed mode** (when `key_accessor` is set on StreamVariable):
-    - `add(*items)`: Add/update items by key
-    - `remove(*keys)`: Remove items by key
-    - `clear()`: Clear all items
+    **Keyed mode** (when ``key_accessor`` is set on StreamVariable):
+
+    - ``replace(*items)``: Atomically replace all items (recommended for initial state)
+    - ``add(*items)``: Add/update items by key
+    - ``remove(*keys)``: Remove items by key
+    - ``clear()``: Clear all items
 
     **Custom state mode** (for arbitrary JSON state):
-    - `json_snapshot(data)`: Replace entire state
-    - `json_patch(operations)`: Apply RFC 6902 JSON Patch operations
 
-    Examples:
-        Keyed collection (e.g., events with unique IDs)::
+    - ``json_snapshot(data)``: Replace entire state
+    - ``json_patch(operations)``: Apply RFC 6902 JSON Patch operations
 
-            async def events_stream():
-                yield StreamEvent.clear()  # Start with empty state
-                yield StreamEvent.add(event1, event2)  # Add initial events
-                async for event in live_feed:
-                    yield StreamEvent.add(event)  # Add new events
+    Examples
+    --------
+    Keyed collection (e.g., events with unique IDs):
 
-        Custom state with JSON patches::
+    ```python
+    async def events_stream():
+        # Use replace() for initial state to avoid flash of empty content
+        yield StreamEvent.replace(*await fetch_initial_events())
+        async for event in live_feed:
+            yield StreamEvent.add(event)
+    ```
 
-            async def dashboard_stream():
-                yield StreamEvent.json_snapshot({'items': {}, 'count': 0})
-                yield StreamEvent.json_patch([
-                    {"op": "add", "path": "/items/123", "value": item},
-                    {"op": "replace", "path": "/count", "value": 1}
-                ])
+    Custom state with JSON patches:
+
+    ```python
+    async def dashboard_stream():
+        yield StreamEvent.json_snapshot({'items': {}, 'count': 0})
+        yield StreamEvent.json_patch([
+            {"op": "add", "path": "/items/123", "value": item},
+            {"op": "replace", "path": "/count", "value": 1}
+        ])
+    ```
     """
 
     type: StreamEventType
@@ -95,12 +106,12 @@ class StreamEvent(BaseModel):
         """
         Add one or more items to the keyed collection.
 
-        Items are keyed using the `key_accessor` property path defined on the StreamVariable.
+        Items are keyed using the ``key_accessor`` property path defined on the StreamVariable.
         If an item with the same key exists, it will be updated.
 
         Args:
             *items: One or more items to add. Each item must have the property
-                   specified by `key_accessor`.
+                   specified by ``key_accessor``.
 
         Returns:
             StreamEvent with type ADD
@@ -108,11 +119,12 @@ class StreamEvent(BaseModel):
         Raises:
             ValueError: If no items are provided
 
-        Example::
-
+        Example:
+            ```python
             yield StreamEvent.add(event)
             yield StreamEvent.add(event1, event2, event3)
             yield StreamEvent.add(*events_list)
+            ```
         """
         if not items:
             raise ValueError('StreamEvent.add() requires at least one item')
@@ -135,11 +147,12 @@ class StreamEvent(BaseModel):
         Raises:
             ValueError: If no keys are provided
 
-        Example::
-
+        Example:
+            ```python
             yield StreamEvent.remove('item-1')
             yield StreamEvent.remove('item-1', 'item-2', 'item-3')
             yield StreamEvent.remove(*keys_to_remove)
+            ```
         """
         if not keys:
             raise ValueError('StreamEvent.remove() requires at least one key')
@@ -156,11 +169,45 @@ class StreamEvent(BaseModel):
         Returns:
             StreamEvent with type CLEAR
 
-        Example::
-
+        Example:
+            ```python
             yield StreamEvent.clear()  # Empty the collection
+            ```
         """
         return cls(type=StreamEventType.CLEAR, data=None)
+
+    @classmethod
+    def replace(cls, *items: Any) -> 'StreamEvent':
+        """
+        Atomically replace all items in the keyed collection.
+
+        This is the recommended way to set initial state in keyed mode.
+        Unlike ``clear()`` followed by ``add()``, this avoids a flash of empty
+        content because the swap happens in a single update.
+
+        Calling with no arguments is equivalent to ``clear()``.
+
+        Args:
+            *items: Items to replace the collection with. Each item must have
+                   the property specified by ``key_accessor``.
+
+        Returns:
+            StreamEvent with type REPLACE
+
+        Example:
+            ```python
+            # Set initial state without flash of empty content
+            yield StreamEvent.replace(*await fetch_all_events())
+
+            # Then stream live updates
+            async for event in live_feed:
+                yield StreamEvent.add(event)
+
+            # Equivalent to clear()
+            yield StreamEvent.replace()
+            ```
+        """
+        return cls(type=StreamEventType.REPLACE, data=list(items))
 
     # === Custom state mode events ===
 
@@ -178,10 +225,11 @@ class StreamEvent(BaseModel):
         Returns:
             StreamEvent with type JSON_SNAPSHOT
 
-        Example::
-
+        Example:
+            ```python
             yield StreamEvent.json_snapshot({'items': {}, 'meta': {'count': 0}})
             yield StreamEvent.json_snapshot(await api.get_current_state())
+            ```
         """
         return cls(type=StreamEventType.JSON_SNAPSHOT, data=data)
 
@@ -200,13 +248,14 @@ class StreamEvent(BaseModel):
         Returns:
             StreamEvent with type JSON_PATCH
 
-        Example::
-
+        Example:
+            ```python
             yield StreamEvent.json_patch([
                 {"op": "add", "path": "/items/-", "value": new_item},
                 {"op": "replace", "path": "/count", "value": 5},
                 {"op": "remove", "path": "/items/0"}
             ])
+            ```
         """
         return cls(type=StreamEventType.JSON_PATCH, data=operations)
 
@@ -242,21 +291,31 @@ class StreamEvent(BaseModel):
 
 class ReconnectException(Exception):
     """
-    Exception to signal that the stream should reconnect.
+    Exception to signal a recoverable error - client should reconnect with backoff.
 
-    Raise this exception in a StreamVariable generator to indicate that
-    a recoverable error occurred and the client should attempt to reconnect.
-    The framework will send a reconnect event to the client, which will
-    then attempt to reconnect with exponential backoff.
+    Use this to distinguish between recoverable and fatal errors in your stream:
 
-    Example::
+    - **Recoverable errors** (raise ``ReconnectException``): Temporary issues like
+      network timeouts, upstream service unavailable, connection drops. The client
+      will automatically retry with exponential backoff.
 
+    - **Fatal errors** (raise any other exception): Permanent issues like invalid
+      configuration, authentication failures, resource not found. The error message
+      is shown to the user and the stream stops.
+
+    Example:
+        ```python
         async def events_stream(invocation_id: str):
             try:
-                async for event in api.stream_events(invocation_id):
+                async for event in upstream_api.stream_events(invocation_id):
                     yield StreamEvent.add(event)
             except ConnectionError:
+                # Network issue - recoverable, trigger reconnect with backoff
                 raise ReconnectException()
+            except AuthenticationError:
+                # Auth failed - fatal, show error to user
+                raise ValueError("Invalid API credentials")
+        ```
     """
 
     pass

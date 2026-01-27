@@ -257,6 +257,178 @@ describe('StreamVariable', () => {
             });
         });
 
+        describe('remove events', () => {
+            it('removes single item by key', () => {
+                const state: StreamState = {
+                    data: { '1': { id: '1' }, '2': { id: '2' }, '3': { id: '3' } },
+                    status: 'connected',
+                };
+                const event: StreamEvent = { type: 'remove', data: '2' };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({
+                    '1': { id: '1' },
+                    '3': { id: '3' },
+                });
+            });
+
+            it('removes multiple items from array', () => {
+                const state: StreamState = {
+                    data: { '1': { id: '1' }, '2': { id: '2' }, '3': { id: '3' } },
+                    status: 'connected',
+                };
+                const event: StreamEvent = { type: 'remove', data: ['1', '3'] };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({ '2': { id: '2' } });
+            });
+
+            it('warns and returns unchanged state when no key_accessor', () => {
+                const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                const state: StreamState = { data: { '1': { id: '1' } }, status: 'connected' };
+                const event: StreamEvent = { type: 'remove', data: '1' };
+
+                const result = applyStreamEvent(state, event, null);
+
+                expect(consoleSpy).toHaveBeenCalledWith(
+                    expect.stringContaining('remove() event received but no key_accessor')
+                );
+                expect(result).toBe(state);
+            });
+        });
+
+        describe('clear events', () => {
+            it('clears all items from keyed collection', () => {
+                const state: StreamState = {
+                    data: { '1': { id: '1' }, '2': { id: '2' } },
+                    status: 'connected',
+                };
+                const event: StreamEvent = { type: 'clear', data: null };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({});
+                expect(result.status).toBe('connected');
+            });
+
+            it('clears previous error on clear', () => {
+                const errorState: StreamState = {
+                    data: { '1': { id: '1' } },
+                    status: 'error',
+                    error: 'Previous error',
+                };
+                const event: StreamEvent = { type: 'clear', data: null };
+
+                const result = applyStreamEvent(errorState, event, 'id');
+
+                expect(result.data).toEqual({});
+                expect(result.status).toBe('connected');
+                expect(result.error).toBeUndefined();
+            });
+        });
+
+        describe('replace events', () => {
+            it('atomically replaces all items in keyed collection', () => {
+                const state: StreamState = {
+                    data: { '1': { id: '1', old: true }, '2': { id: '2', old: true } },
+                    status: 'connected',
+                };
+                const event: StreamEvent = {
+                    type: 'replace',
+                    data: [
+                        { id: '3', new: true },
+                        { id: '4', new: true },
+                    ],
+                };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({
+                    '3': { id: '3', new: true },
+                    '4': { id: '4', new: true },
+                });
+                expect(result.status).toBe('connected');
+            });
+
+            it('replaces with empty array (equivalent to clear)', () => {
+                const state: StreamState = {
+                    data: { '1': { id: '1' }, '2': { id: '2' } },
+                    status: 'connected',
+                };
+                const event: StreamEvent = { type: 'replace', data: [] };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({});
+                expect(result.status).toBe('connected');
+            });
+
+            it('handles single item replacement', () => {
+                const state: StreamState = { data: {}, status: 'connected' };
+                const event: StreamEvent = {
+                    type: 'replace',
+                    data: [{ id: '1', name: 'Only one' }],
+                };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(result.data).toEqual({ '1': { id: '1', name: 'Only one' } });
+            });
+
+            it('clears previous error on replace', () => {
+                const errorState: StreamState = {
+                    data: { '1': { id: '1' } },
+                    status: 'error',
+                    error: 'Previous error',
+                };
+                const event: StreamEvent = {
+                    type: 'replace',
+                    data: [{ id: '2', name: 'New' }],
+                };
+
+                const result = applyStreamEvent(errorState, event, 'id');
+
+                expect(result.status).toBe('connected');
+                expect(result.error).toBeUndefined();
+            });
+
+            it('warns and returns unchanged state when no key_accessor', () => {
+                const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                const state: StreamState = { data: {}, status: 'connected' };
+                const event: StreamEvent = {
+                    type: 'replace',
+                    data: [{ id: '1', name: 'Test' }],
+                };
+
+                const result = applyStreamEvent(state, event, null);
+
+                expect(consoleSpy).toHaveBeenCalledWith(
+                    expect.stringContaining('replace() event received but no key_accessor')
+                );
+                expect(result).toBe(state);
+            });
+
+            it('warns when key cannot be extracted from item', () => {
+                const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                const state: StreamState = { data: {}, status: 'connected' };
+                const event: StreamEvent = {
+                    type: 'replace',
+                    data: [{ name: 'No ID field' }],
+                };
+
+                const result = applyStreamEvent(state, event, 'id');
+
+                expect(consoleSpy).toHaveBeenCalledWith(
+                    expect.stringContaining("Could not extract key using accessor 'id'"),
+                    expect.anything()
+                );
+                // Should still return new state (just empty since no valid items)
+                expect(result.data).toEqual({});
+            });
+        });
+
         describe('patch events', () => {
             it('applies add operation', () => {
                 const state: StreamState = {

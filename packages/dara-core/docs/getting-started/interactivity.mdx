@@ -913,6 +913,27 @@ For(
 
 :::
 
+## `StreamVariable`
+
+For real-time data that updates continuously—like live events, notifications, or monitoring data—you can use a `StreamVariable`. It connects to the server using Server-Sent Events (SSE) and receives updates as they happen, without polling.
+
+```python
+from dara.core import StreamVariable, StreamEvent, Variable
+
+category = Variable('alerts')
+
+async def events_stream(category: str):
+    # Set initial state atomically (handles reconnection correctly)
+    yield StreamEvent.replace(*await api.get_events(category))
+    # Stream new events as they arrive
+    async for event in api.stream_events(category):
+        yield StreamEvent.add(event)
+
+events = StreamVariable(events_stream, variables=[category], key_accessor='id')
+```
+
+This is useful when you need to display data that changes frequently and want updates to appear immediately without the user refreshing. Learn more in [Advanced: Stream Variables](../advanced/stream-variable.md).
+
 ## `ServerVariable`
 
 There are cases where your data is too large to send to the client, or is simply unserializable. In those and other cases, you can use a `ServerVariable`. It represents **synchronized server state**.

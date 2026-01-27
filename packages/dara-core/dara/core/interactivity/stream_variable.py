@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Literal
 
 from fastapi import Request
-from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
+from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
 
 from dara.core.base_definitions import BaseTask
@@ -42,35 +42,45 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     A StreamVariable represents a stream of events that are accumulated on the client.
 
     It takes an async generator function that yields StreamEvents, and dependencies
-    (other variables). When dependencies change, a new stream is opened and
-    the previous one is closed.
+    (other variables). When dependencies change, a new stream is opened. Old streams
+    might be cleaned up when unused to save resources.
 
     The stream is managed via Server-Sent Events (SSE) and the client handles
     reconnection automatically with exponential backoff.
 
-    **Keyed mode** (when `key_accessor` is set):
+    IMPORTANT: Handling Reconnection
+    --------------------------------
+    Stream functions MUST be idempotent - they should produce the correct state even
+    when called multiple times due to reconnection. Streams can disconnect and reconnect
+    at any time (network issues, browser tab suspension, server restarts). Your stream
+    function runs from the beginning on each reconnection.
+
+    Always start with ``StreamEvent.replace()`` (keyed mode) or ``StreamEvent.json_snapshot()``
+    (custom mode) to set the full initial state atomically. This ensures clients always
+    converge to the correct state regardless of when they connect, and avoids a flash of
+    empty content on reconnection.
+
+    Keyed mode (when ``key_accessor`` is set):
+
     - Items are stored in a dict keyed by the accessor, exposed as a list
-    - Use `add()`, `remove()`, `clear()` events
+    - Use ``replace()``, ``add()``, ``remove()``, ``clear()`` events
 
-    **Custom state mode** (no `key_accessor`):
+    Custom state mode (no ``key_accessor``):
+
     - State can be any JSON structure
-    - Use `json_snapshot()`, `json_patch()` events
+    - Use ``json_snapshot()``, ``json_patch()`` events
 
-    Examples:
-
-    Keyed event stream (e.g., events with unique IDs)
+    Examples
+    --------
+    Keyed event stream (e.g., events with unique IDs):
 
     ```python
-
     from dara.core import StreamVariable, StreamEvent
 
     async def events_stream(invocation_id: str):
-        # Start with empty collection
-        yield StreamEvent.clear()
-
-        # Add initial events
-        for event in await api.get_events(invocation_id):
-            yield StreamEvent.add(event)
+        # Set initial state atomically (handles reconnection, no flash of empty)
+        initial_events = await api.get_events(invocation_id)
+        yield StreamEvent.replace(*initial_events)
 
         # Stream new events
         async for event in api.stream_events(invocation_id):
@@ -86,12 +96,13 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     For(items=events, renderer=EventCard(events.list_item))
     ```
 
-    Custom state with JSON patches
+    Custom state with JSON patches:
 
     ```python
-
     async def dashboard_stream(dashboard_id: str):
-        yield StreamEvent.json_snapshot({'items': {}, 'count': 0})
+        # Set initial state atomically (handles reconnection)
+        current_state = await api.get_dashboard_state(dashboard_id)
+        yield StreamEvent.json_snapshot(current_state)
 
         async for update in api.stream_updates(dashboard_id):
             yield StreamEvent.json_patch([
@@ -110,6 +121,37 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     nested: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
+
+    @field_validator('variables')
+    @classmethod
+    def validate_variables(cls, variables: list[AnyVariable]) -> list[AnyVariable]:
+        """Validate that variables don't contain unsupported types."""
+        from dara.core.interactivity.derived_variable import DerivedVariable
+        from dara.core.internal.registries import derived_variable_registry
+
+        for v in variables:
+            # Disallow StreamVariable -> StreamVariable dependency
+            if isinstance(v, StreamVariable):
+                raise ValueError(
+                    'StreamVariable cannot depend on another StreamVariable. '
+                    'Compose generators in Python instead. Example:\n\n'
+                    'async def enriched_events(id):\n'
+                    '    async for event in source_stream(id):\n'
+                    '        yield StreamEvent.add(enrich(event))\n\n'
+                    'events = StreamVariable(enriched_events, variables=[id_var])'
+                )
+
+            # Disallow DerivedVariable with run_as_task=True
+            if isinstance(v, DerivedVariable):
+                entry = derived_variable_registry.get(str(v.uid))
+                if entry is not None and entry.run_as_task:
+                    raise ValueError(
+                        'StreamVariable cannot depend on a DerivedVariable with run_as_task=True. '
+                        'Task-based variables resolve asynchronously which is incompatible with '
+                        'streaming. Remove run_as_task=True or compute the value in the stream function.'
+                    )
+
+        return variables
 
     def __init__(
         self,
@@ -136,18 +178,6 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
             variables = []
         if nested is None:
             nested = []
-
-        # Validate: no StreamVariables in variables (stream->stream not supported)
-        for v in variables:
-            if isinstance(v, StreamVariable):
-                raise ValueError(
-                    'StreamVariable cannot depend on another StreamVariable. '
-                    'Compose generators in Python instead. Example:\n\n'
-                    'async def enriched_events(id):\n'
-                    '    async for event in source_stream(id):\n'
-                    '        yield StreamEvent.add(enrich(event))\n\n'
-                    'events = StreamVariable(enriched_events, variables=[id_var])'
-                )
 
         super().__init__(
             uid=uid,
@@ -244,9 +274,8 @@ async def run_stream(
 
     generator = None
     try:
-        generator = entry.func(*values)
+        generator = entry.func(*resolved_values)
         async for event in generator:
-            print('gen event', event)
             if await request.is_disconnected():
                 break
             yield f'data: {event.model_dump_json()}\n\n'
