@@ -343,7 +343,6 @@ export function deserializeAtomParams(key: string): StreamAtomParams {
  */
 const activeConnections = new Map<string, AbortController>();
 
-
 /** Stream state after first data arrives */
 const INITIAL_CONNECTED_STATE: StreamState = {
     data: undefined,
@@ -744,8 +743,8 @@ export function getOrRegisterStreamVariable(
 
                         // Unwrap nested if needed
                         return 'nested' in variable ?
-                            resolveNested(value as Record<string, unknown>, variable.nested)
-                        :   value;
+                                resolveNested(value as Record<string, unknown>, variable.nested)
+                            :   value;
                     },
             })
         );
