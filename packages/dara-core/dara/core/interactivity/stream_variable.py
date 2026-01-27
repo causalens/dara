@@ -17,16 +17,22 @@ limitations under the License.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import Any, Generic, Literal
 
+from fastapi import Request
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 from typing_extensions import TypeVar
 
+from dara.core.base_definitions import BaseTask
 from dara.core.interactivity.any_variable import AnyVariable
 from dara.core.interactivity.client_variable import ClientVariable
-from dara.core.interactivity.stream_event import StreamEvent
+from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
+from dara.core.internal.cache_store import CacheStore
+from dara.core.internal.tasks import TaskManager
+from dara.core.logging import dev_logger
 
 VariableType = TypeVar('VariableType', default=Any)
 
@@ -42,19 +48,31 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     The stream is managed via Server-Sent Events (SSE) and the client handles
     reconnection automatically with exponential backoff.
 
+    **Keyed mode** (when `key_accessor` is set):
+    - Items are stored in a dict keyed by the accessor, exposed as a list
+    - Use `add()`, `remove()`, `clear()` events
+
+    **Custom state mode** (no `key_accessor`):
+    - State can be any JSON structure
+    - Use `json_snapshot()`, `json_patch()` events
+
     Examples:
 
-    Simple event stream with list accumulation
+    Keyed event stream (e.g., events with unique IDs)
 
     ```python
 
     from dara.core import StreamVariable, StreamEvent
 
     async def events_stream(invocation_id: str):
-        # Always yield snapshot first for reconnect safety
-        initial = await api.get_events(invocation_id)
-        yield StreamEvent.snapshot(initial)
+        # Start with empty collection
+        yield StreamEvent.clear()
 
+        # Add initial events
+        for event in await api.get_events(invocation_id):
+            yield StreamEvent.add(event)
+
+        # Stream new events
         async for event in api.stream_events(invocation_id):
             yield StreamEvent.add(event)
 
@@ -73,10 +91,10 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     ```python
 
     async def dashboard_stream(dashboard_id: str):
-        yield StreamEvent.snapshot({'items': {}, 'count': 0})
+        yield StreamEvent.json_snapshot({'items': {}, 'count': 0})
 
         async for update in api.stream_updates(dashboard_id):
-            yield StreamEvent.patch([
+            yield StreamEvent.json_patch([
                 {"op": "add", "path": f"/items/{update.id}", "value": update},
                 {"op": "replace", "path": "/count", "value": update.count}
             ])
@@ -207,3 +225,40 @@ class StreamVariableRegistryEntry:
     func: Callable[..., AsyncGenerator[StreamEvent, None]]
     variables: list[AnyVariable]
     key_accessor: str | None
+
+
+async def run_stream(
+    entry: StreamVariableRegistryEntry, request: Request, values: list[Any], store: CacheStore, task_mgr: TaskManager
+):
+    """Run a StreamVariable."""
+    # dynamic import due to circular import
+    from dara.core.internal.dependency_resolution import (
+        resolve_dependency,
+    )
+
+    resolved_values = await asyncio.gather(*[resolve_dependency(v, store, task_mgr) for v in values])
+
+    has_tasks = any(isinstance(v, BaseTask) for v in resolved_values)
+    if has_tasks:
+        raise NotImplementedError('StreamVariable does not support tasks')
+
+    generator = None
+    try:
+        generator = entry.func(*values)
+        async for event in generator:
+            print('gen event', event)
+            if await request.is_disconnected():
+                break
+            yield f'data: {event.model_dump_json()}\n\n'
+    except ReconnectException:
+        yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
+    except Exception as e:
+        dev_logger.error('Stream error', error=e)
+        yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
+    finally:
+        # Cleanup: close generator if it's still open
+        if generator is not None:
+            try:
+                await generator.aclose()
+            except Exception:
+                pass

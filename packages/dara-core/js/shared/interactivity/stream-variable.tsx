@@ -9,10 +9,16 @@
  * 2. Value selector - reads params, gets atom via getOrCreateStreamVariableAtom, reads value
  * 3. Atom with effects - SSE lifecycle managed by atom effects
  *
- * Event types:
- * - snapshot: Replace entire state
- * - add: Add items to keyed collection (requires key_accessor)
- * - patch: Apply JSON Patch operations (RFC 6902)
+ * Event types (keyed mode - requires key_accessor):
+ * - add: Add/update items by key
+ * - remove: Remove items by key
+ * - clear: Clear all items
+ *
+ * Event types (custom state mode):
+ * - json_snapshot: Replace entire state with arbitrary JSON
+ * - json_patch: Apply JSON Patch operations (RFC 6902)
+ *
+ * Control events:
  * - reconnect: Signal to reconnect
  * - error: Signal stream error
  */
@@ -38,7 +44,17 @@ import { buildTriggerList, registerChildTriggers } from './triggers';
 /**
  * Stream event types as sent from the server
  */
-export type StreamEventType = 'add' | 'snapshot' | 'patch' | 'reconnect' | 'error';
+export type StreamEventType =
+    // Keyed mode events
+    | 'add'
+    | 'remove'
+    | 'clear'
+    // Custom state mode events
+    | 'json_snapshot'
+    | 'json_patch'
+    // Control events
+    | 'reconnect'
+    | 'error';
 
 /**
  * Stream event as received from SSE
@@ -102,20 +118,13 @@ export function applyStreamEvent(
     keyAccessor: string | null
 ): StreamState {
     switch (event.type) {
-        // replace the whole state
-        case 'snapshot':
-            return {
-                ...currentState,
-                data: event.data,
-                status: 'connected',
-                error: undefined,
-            };
+        // === Keyed mode events ===
 
         case 'add': {
             if (keyAccessor === null) {
                 // eslint-disable-next-line no-console
                 console.warn(
-                    'StreamVariable: add() event received but no key_accessor is set. Use snapshot/patch instead.'
+                    'StreamVariable: add() event received but no key_accessor is set. Use json_snapshot/json_patch instead.'
                 );
                 return currentState;
             }
@@ -144,10 +153,58 @@ export function applyStreamEvent(
             };
         }
 
-        case 'patch': {
+        case 'remove': {
+            if (keyAccessor === null) {
+                // eslint-disable-next-line no-console
+                console.warn(
+                    'StreamVariable: remove() event received but no key_accessor is set. Use json_snapshot/json_patch instead.'
+                );
+                return currentState;
+            }
+
+            const keys = Array.isArray(event.data) ? event.data : [event.data];
+            const currentData = (currentState.data ?? {}) as Record<string | number, unknown>;
+            const newData = { ...currentData };
+
+            for (const key of keys) {
+                if (typeof key === 'string' || typeof key === 'number') {
+                    delete newData[key];
+                }
+            }
+
+            return {
+                ...currentState,
+                data: newData,
+                status: 'connected',
+                error: undefined,
+            };
+        }
+
+        case 'clear': {
+            return {
+                ...currentState,
+                data: {},
+                status: 'connected',
+                error: undefined,
+            };
+        }
+
+        // === Custom state mode events ===
+
+        case 'json_snapshot':
+            return {
+                ...currentState,
+                data: event.data,
+                status: 'connected',
+                error: undefined,
+            };
+
+        case 'json_patch': {
             if (currentState.data === undefined || currentState.data === null) {
                 // eslint-disable-next-line no-console
-                console.warn('StreamVariable: patch event received but no state exists. Send a snapshot first.');
+                console.warn(
+                    'StreamVariable: json_patch event received but no state exists. Send a json_snapshot first.'
+                );
                 return currentState;
             }
 
@@ -162,7 +219,7 @@ export function applyStreamEvent(
                 };
             } catch (e) {
                 // eslint-disable-next-line no-console
-                console.error('StreamVariable: Failed to apply patch:', e);
+                console.error('StreamVariable: Failed to apply json_patch:', e);
                 return {
                     ...currentState,
                     status: 'error',
@@ -170,6 +227,8 @@ export function applyStreamEvent(
                 };
             }
         }
+
+        // === Control events ===
 
         case 'reconnect':
             return {
@@ -293,6 +352,7 @@ function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnec
 
     let retryCount = 0;
     let isFirstMessage = true;
+    let currentState: StreamState = INITIAL_CONNECTED_STATE;
 
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
@@ -316,13 +376,14 @@ function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnec
         onmessage: (msg: EventSourceMessage) => {
             try {
                 const event = JSON.parse(msg.data) as StreamEvent;
-                const newState = applyStreamEvent(INITIAL_CONNECTED_STATE, event, params.keyAccessor);
-                
+                // Apply event to current state (accumulate)
+                currentState = applyStreamEvent(currentState, event, params.keyAccessor);
+
                 if (isFirstMessage) {
                     isFirstMessage = false;
-                    callbacks.onFirstData(newState);
+                    callbacks.onFirstData(currentState);
                 } else {
-                    callbacks.onUpdate(newState);
+                    callbacks.onUpdate(currentState);
                 }
             } catch (parseError) {
                 // eslint-disable-next-line no-console
@@ -386,7 +447,7 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
         // Following recoil-sync pattern: setSelf(promise) enables native Suspense.
         let resolveInitialData: ((state: StreamState) => void) | null = null;
         let rejectInitialData: ((error: Error) => void) | null = null;
-        
+
         const initialDataPromise = new Promise<StreamState>((resolve, reject) => {
             resolveInitialData = resolve;
             rejectInitialData = reject;

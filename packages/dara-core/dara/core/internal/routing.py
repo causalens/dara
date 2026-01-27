@@ -57,6 +57,8 @@ from dara.core.interactivity.actions import ACTION_CONTEXT
 from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.interactivity.server_variable import ServerVariable
+from dara.core.interactivity.stream_utils import track_stream
+from dara.core.interactivity.stream_variable import run_stream
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import print_stacktrace
 from dara.core.internal.download import DownloadRegistryEntry
@@ -532,9 +534,9 @@ async def stream_endpoint(
     :param stream_uid: The UID of the StreamVariable
     :param body: Request body containing resolved variable values
     """
-    from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
-
     registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+    store: CacheStore = utils_registry.get('Store')
+    task_mgr: TaskManager = utils_registry.get('TaskManager')
 
     try:
         entry = await registry_mgr.get(stream_variable_registry, stream_uid)
@@ -544,34 +546,19 @@ async def stream_endpoint(
     # Denormalize the values (resolve any nested structures)
     values = denormalize(body.values.data, body.values.lookup)
 
-    async def generate():
-        generator = None
-        try:
-            generator = entry.func(*values)
-            async for event in generator:
-                if await request.is_disconnected():
-                    break
-                yield f'data: {event.model_dump_json()}\n\n'
-        except ReconnectException:
-            yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
-        except Exception as e:
-            dev_logger.error('Stream error', error=e)
-            yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
-        finally:
-            # Cleanup: close generator if it's still open
-            if generator is not None:
-                try:
-                    await generator.aclose()
-                except Exception:
-                    pass
+    @track_stream
+    async def stream():
+        async for event in run_stream(entry, request, values, store, task_mgr):
+            yield event
 
     return StreamingResponse(
-        generate(),
+        stream(),
         media_type='text/event-stream',
         headers={
             'Cache-Control': 'no-cache',
             'X-Accel-Buffering': 'no',
             'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream',
         },
     )
 

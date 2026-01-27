@@ -26,15 +26,24 @@ from pydantic import BaseModel
 class StreamEventType(str, Enum):
     """Types of events that can be sent from a StreamVariable."""
 
+    # === Keyed mode events (require key_accessor) ===
     ADD = 'add'
-    """Add one or more items to the collection. Requires key_accessor on StreamVariable."""
+    """Add one or more items to the keyed collection."""
 
-    SNAPSHOT = 'snapshot'
-    """Replace entire state with the provided data (any shape)."""
+    REMOVE = 'remove'
+    """Remove one or more items by key from the keyed collection."""
 
-    PATCH = 'patch'
+    CLEAR = 'clear'
+    """Clear all items from the keyed collection."""
+
+    # === Custom state mode events ===
+    JSON_SNAPSHOT = 'json_snapshot'
+    """Replace entire state with arbitrary JSON data."""
+
+    JSON_PATCH = 'json_patch'
     """Apply JSON Patch operations (RFC 6902) to the current state."""
 
+    # === Control events ===
     RECONNECT = 'reconnect'
     """Signal to client to reconnect (sent when ReconnectException is raised)."""
 
@@ -47,41 +56,51 @@ class StreamEvent(BaseModel):
     An event emitted by a StreamVariable generator.
 
     StreamEvents are used to update the client-side state of a StreamVariable.
-    The type of event determines how the data is applied:
 
-    - `add`: Add items to a keyed collection (requires key_accessor)
-    - `snapshot`: Replace entire state with new data
-    - `patch`: Apply JSON Patch operations to current state
+    **Keyed mode** (when `key_accessor` is set on StreamVariable):
+    - `add(*items)`: Add/update items by key
+    - `remove(*keys)`: Remove items by key
+    - `clear()`: Clear all items
+
+    **Custom state mode** (for arbitrary JSON state):
+    - `json_snapshot(data)`: Replace entire state
+    - `json_patch(operations)`: Apply RFC 6902 JSON Patch operations
 
     Examples:
-        Simple list accumulation::
+        Keyed collection (e.g., events with unique IDs)::
 
-            yield StreamEvent.add(event)
-            yield StreamEvent.add(event1, event2, event3)
+            async def events_stream():
+                yield StreamEvent.clear()  # Start with empty state
+                yield StreamEvent.add(event1, event2)  # Add initial events
+                async for event in live_feed:
+                    yield StreamEvent.add(event)  # Add new events
 
-        Custom state with patches::
+        Custom state with JSON patches::
 
-            yield StreamEvent.snapshot({'items': [], 'count': 0})
-            yield StreamEvent.patch([
-                {"op": "add", "path": "/items/-", "value": item},
-                {"op": "replace", "path": "/count", "value": new_count}
-            ])
+            async def dashboard_stream():
+                yield StreamEvent.json_snapshot({'items': {}, 'count': 0})
+                yield StreamEvent.json_patch([
+                    {"op": "add", "path": "/items/123", "value": item},
+                    {"op": "replace", "path": "/count", "value": 1}
+                ])
     """
 
     type: StreamEventType
     data: Any = None
 
+    # === Keyed mode events ===
+
     @classmethod
     def add(cls, *items: Any) -> 'StreamEvent':
         """
-        Add one or more items to the collection.
+        Add one or more items to the keyed collection.
 
         Items are keyed using the `key_accessor` property path defined on the StreamVariable.
-        Duplicate keys will update the existing item (deduplication).
+        If an item with the same key exists, it will be updated.
 
         Args:
-            *items: One or more items to add. Each item should have the property
-                   specified by key_accessor.
+            *items: One or more items to add. Each item must have the property
+                   specified by `key_accessor`.
 
         Returns:
             StreamEvent with type ADD
@@ -103,28 +122,71 @@ class StreamEvent(BaseModel):
         return cls(type=StreamEventType.ADD, data=data)
 
     @classmethod
-    def snapshot(cls, data: Any) -> 'StreamEvent':
+    def remove(cls, *keys: str | int) -> 'StreamEvent':
         """
-        Replace the entire state with new data.
-
-        This is typically used as the first event in a stream to establish
-        initial state, ensuring consistent state on reconnection.
+        Remove one or more items by key from the keyed collection.
 
         Args:
-            data: The new state (any shape - list, dict, or complex structure)
+            *keys: One or more keys to remove.
 
         Returns:
-            StreamEvent with type SNAPSHOT
+            StreamEvent with type REMOVE
+
+        Raises:
+            ValueError: If no keys are provided
 
         Example::
 
-            yield StreamEvent.snapshot(await api.get_current_state())
-            yield StreamEvent.snapshot({'items': {}, 'meta': {'count': 0}})
+            yield StreamEvent.remove('item-1')
+            yield StreamEvent.remove('item-1', 'item-2', 'item-3')
+            yield StreamEvent.remove(*keys_to_remove)
         """
-        return cls(type=StreamEventType.SNAPSHOT, data=data)
+        if not keys:
+            raise ValueError('StreamEvent.remove() requires at least one key')
+
+        # Single key: send as-is, multiple keys: send as list
+        data = keys[0] if len(keys) == 1 else list(keys)
+        return cls(type=StreamEventType.REMOVE, data=data)
 
     @classmethod
-    def patch(cls, operations: list[dict[str, Any]]) -> 'StreamEvent':
+    def clear(cls) -> 'StreamEvent':
+        """
+        Clear all items from the keyed collection.
+
+        Returns:
+            StreamEvent with type CLEAR
+
+        Example::
+
+            yield StreamEvent.clear()  # Empty the collection
+        """
+        return cls(type=StreamEventType.CLEAR, data=None)
+
+    # === Custom state mode events ===
+
+    @classmethod
+    def json_snapshot(cls, data: Any) -> 'StreamEvent':
+        """
+        Replace the entire state with new JSON data.
+
+        Use this for custom state structures or as the first event
+        in a stream to establish initial state.
+
+        Args:
+            data: The new state (any JSON-serializable structure)
+
+        Returns:
+            StreamEvent with type JSON_SNAPSHOT
+
+        Example::
+
+            yield StreamEvent.json_snapshot({'items': {}, 'meta': {'count': 0}})
+            yield StreamEvent.json_snapshot(await api.get_current_state())
+        """
+        return cls(type=StreamEventType.JSON_SNAPSHOT, data=data)
+
+    @classmethod
+    def json_patch(cls, operations: list[dict[str, Any]]) -> 'StreamEvent':
         """
         Apply JSON Patch operations (RFC 6902) to the current state.
 
@@ -136,17 +198,19 @@ class StreamEvent(BaseModel):
                        with keys like 'op', 'path', and 'value'.
 
         Returns:
-            StreamEvent with type PATCH
+            StreamEvent with type JSON_PATCH
 
         Example::
 
-            yield StreamEvent.patch([
+            yield StreamEvent.json_patch([
                 {"op": "add", "path": "/items/-", "value": new_item},
                 {"op": "replace", "path": "/count", "value": 5},
                 {"op": "remove", "path": "/items/0"}
             ])
         """
-        return cls(type=StreamEventType.PATCH, data=operations)
+        return cls(type=StreamEventType.JSON_PATCH, data=operations)
+
+    # === Control events ===
 
     @classmethod
     def reconnect(cls) -> 'StreamEvent':

@@ -117,7 +117,7 @@ describe('useVariable with StreamVariable', () => {
 
     afterAll(() => server.close());
 
-    it('suspends and shows loading until first snapshot arrives (useRecoilValue)', async () => {
+    it('suspends and shows loading until first data arrives (useRecoilValue)', async () => {
         const streamVar: StreamVariable = {
             __typename: 'StreamVariable',
             uid: 'test-stream-direct',
@@ -126,7 +126,7 @@ describe('useVariable with StreamVariable', () => {
             nested: [],
         };
 
-        server.use(createSSEHandler('test-stream-direct', [{ type: 'snapshot', data: { message: 'hello' } }]));
+        server.use(createSSEHandler('test-stream-direct', [{ type: 'json_snapshot', data: { message: 'hello' } }]));
 
         wrappedRender(<StreamWithSuspenseDirect variable={streamVar} />);
 
@@ -143,7 +143,7 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
     });
 
-    it('suspends and shows loading until first snapshot arrives (useVariable)', async () => {
+    it('suspends and shows loading until first data arrives (useVariable)', async () => {
         const streamVar: StreamVariable = {
             __typename: 'StreamVariable',
             uid: 'test-stream',
@@ -152,7 +152,7 @@ describe('useVariable with StreamVariable', () => {
             nested: [],
         };
 
-        server.use(createSSEHandler('test-stream', [{ type: 'snapshot', data: { message: 'hello' } }]));
+        server.use(createSSEHandler('test-stream', [{ type: 'json_snapshot', data: { message: 'hello' } }]));
 
         wrappedRender(<StreamWithSuspense variable={streamVar} />);
 
@@ -199,7 +199,7 @@ describe('useVariable with StreamVariable', () => {
                     async start(controller) {
                         await new Promise((resolve) => setTimeout(resolve, 50));
                         const data = `data: ${JSON.stringify({ 
-                            type: 'snapshot', 
+                            type: 'json_snapshot', 
                             data: { dep: depValue, message: `data for ${depValue}` }
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));
@@ -293,7 +293,7 @@ describe('useVariable with StreamVariable', () => {
                         // Longer delay to give time to verify stale value is shown
                         await new Promise((resolve) => setTimeout(resolve, 100));
                         const data = `data: ${JSON.stringify({
-                            type: 'snapshot',
+                            type: 'json_snapshot',
                             data: { dep: depValue, message: `data for ${depValue}` }
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));

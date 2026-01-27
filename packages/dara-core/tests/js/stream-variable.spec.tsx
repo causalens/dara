@@ -102,10 +102,10 @@ describe('StreamVariable', () => {
             status: 'connected',
         };
 
-        describe('snapshot events', () => {
+        describe('json_snapshot events', () => {
             it('replaces entire state with snapshot data', () => {
                 const event: StreamEvent = {
-                    type: 'snapshot',
+                    type: 'json_snapshot',
                     data: { items: [1, 2, 3], count: 3 },
                 };
 
@@ -118,7 +118,7 @@ describe('StreamVariable', () => {
 
             it('works with array snapshot', () => {
                 const event: StreamEvent = {
-                    type: 'snapshot',
+                    type: 'json_snapshot',
                     data: ['a', 'b', 'c'],
                 };
 
@@ -134,7 +134,7 @@ describe('StreamVariable', () => {
                     status: 'error',
                     error: 'Previous error',
                 };
-                const event: StreamEvent = { type: 'snapshot', data: 'new data' };
+                const event: StreamEvent = { type: 'json_snapshot', data: 'new data' };
 
                 const result = applyStreamEvent(errorState, event, null);
 
@@ -264,7 +264,7 @@ describe('StreamVariable', () => {
                     status: 'connected',
                 };
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     data: [{ op: 'add', path: '/items/-', value: 'c' }],
                 };
 
@@ -279,7 +279,7 @@ describe('StreamVariable', () => {
                     status: 'connected',
                 };
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     data: [{ op: 'replace', path: '/count', value: 10 }],
                 };
 
@@ -294,7 +294,7 @@ describe('StreamVariable', () => {
                     status: 'connected',
                 };
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     data: [{ op: 'remove', path: '/b' }],
                 };
 
@@ -309,7 +309,7 @@ describe('StreamVariable', () => {
                     status: 'connected',
                 };
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     data: [
                         { op: 'add', path: '/items/-', value: 'first' },
                         { op: 'replace', path: '/meta/count', value: 1 },
@@ -327,7 +327,7 @@ describe('StreamVariable', () => {
             it('warns and returns unchanged when patching undefined state', () => {
                 const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     data: [{ op: 'add', path: '/items/-', value: 'x' }],
                 };
 
@@ -346,7 +346,7 @@ describe('StreamVariable', () => {
                     status: 'connected',
                 };
                 const event: StreamEvent = {
-                    type: 'patch',
+                    type: 'json_patch',
                     // Invalid: trying to replace non-existent path
                     data: [{ op: 'replace', path: '/nonexistent/deep/path', value: 'x' }],
                 };
