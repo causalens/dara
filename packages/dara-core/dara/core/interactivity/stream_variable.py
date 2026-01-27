@@ -257,6 +257,43 @@ class StreamVariableRegistryEntry:
     key_accessor: str | None
 
 
+class StreamVariableModeError(Exception):
+    """Raised when a StreamEvent is used with the wrong mode (keyed vs custom)."""
+
+    pass
+
+
+# Event types that require key_accessor (keyed mode)
+_KEYED_MODE_EVENT_TYPES = {'add', 'remove', 'replace', 'clear'}
+# Event types for custom mode (no key_accessor)
+_CUSTOM_MODE_EVENT_TYPES = {'json_snapshot', 'json_patch'}
+
+
+def _validate_event_mode(event: StreamEvent, key_accessor: str | None) -> None:
+    """
+    Validate that the event type matches the StreamVariable mode.
+
+    Raises StreamVariableModeError if:
+    - Keyed mode event (add/remove/replace/clear) is used without key_accessor
+    - Custom mode event (json_snapshot/json_patch) is used with key_accessor
+    """
+    event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
+
+    if event_type in _KEYED_MODE_EVENT_TYPES and key_accessor is None:
+        raise StreamVariableModeError(
+            f'StreamEvent.{event_type}() requires key_accessor to be set on StreamVariable. '
+            f"Either set key_accessor='your_id_field' on the StreamVariable, "
+            f'or use StreamEvent.json_snapshot()/json_patch() for custom state mode.'
+        )
+
+    if event_type in _CUSTOM_MODE_EVENT_TYPES and key_accessor is not None:
+        raise StreamVariableModeError(
+            f'StreamEvent.{event_type}() is for custom state mode but key_accessor is set. '
+            f'Either remove key_accessor from StreamVariable, '
+            f'or use StreamEvent.add()/remove()/replace()/clear() for keyed mode.'
+        )
+
+
 async def run_stream(
     entry: StreamVariableRegistryEntry, request: Request, values: list[Any], store: CacheStore, task_mgr: TaskManager
 ):
@@ -278,9 +315,14 @@ async def run_stream(
         async for event in generator:
             if await request.is_disconnected():
                 break
+            # Validate event type matches the StreamVariable mode
+            _validate_event_mode(event, entry.key_accessor)
             yield f'data: {event.model_dump_json()}\n\n'
     except ReconnectException:
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
+    except StreamVariableModeError as e:
+        dev_logger.error('Stream mode error', error=e)
+        yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     except Exception as e:
         dev_logger.error('Stream error', error=e)
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'

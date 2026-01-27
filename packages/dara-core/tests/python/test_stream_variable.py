@@ -540,3 +540,60 @@ async def test_stream_endpoint_not_found():
             headers=AUTH_HEADERS,
         )
         assert response.status_code == 404
+
+
+# --- Mode Validation Tests ---
+
+
+async def test_stream_endpoint_keyed_event_without_key_accessor_errors():
+    """Test that using keyed mode events (add) without key_accessor results in error."""
+    builder = ConfigurationBuilder()
+
+    async def bad_stream(value: str):
+        # Using add() without key_accessor should error
+        yield StreamEvent.add({'id': '1', 'value': value})
+
+    var = Variable('test')
+    # No key_accessor - custom mode
+    stream_var = StreamVariable(bad_stream, variables=[var])
+
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, ['hello'])
+
+        assert response.status_code == 200
+        events = parse_sse_events(response.text)
+
+        assert len(events) == 1
+        assert events[0]['type'] == 'error'
+        assert 'key_accessor' in events[0]['data']
+
+
+async def test_stream_endpoint_custom_event_with_key_accessor_errors():
+    """Test that using custom mode events (json_snapshot) with key_accessor results in error."""
+    builder = ConfigurationBuilder()
+
+    async def bad_stream(value: str):
+        # Using json_snapshot() with key_accessor should error
+        yield StreamEvent.json_snapshot({'value': value})
+
+    var = Variable('test')
+    # Has key_accessor - keyed mode
+    stream_var = StreamVariable(bad_stream, variables=[var], key_accessor='id')
+
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, ['hello'])
+
+        assert response.status_code == 200
+        events = parse_sse_events(response.text)
+
+        assert len(events) == 1
+        assert events[0]['type'] == 'error'
+        assert 'key_accessor' in events[0]['data']

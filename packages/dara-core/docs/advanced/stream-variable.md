@@ -25,12 +25,9 @@ category = Variable('general')
 
 async def events_stream(category: str):
     """Stream events filtered by category."""
-    # Clear any existing items
-    yield StreamEvent.clear()
-
-    # Add initial events
-    for event in await fetch_initial_events(category):
-        yield StreamEvent.add(event)
+    # Set initial state atomically (no flash of empty content on reconnect)
+    initial_events = await fetch_initial_events(category)
+    yield StreamEvent.replace(*initial_events)
 
     # Listen for new events (this runs until the stream closes)
     async for event in subscribe_to_events(category):
@@ -107,6 +104,14 @@ async def also_bad_stream():
     async for event in subscribe():  # misses events that happened before connect
         yield StreamEvent.add(event)
 
+# BAD: No cleanup - leaks resources when client disconnects
+async def leaky_stream():
+    subscription = api.subscribe()
+    yield StreamEvent.replace(*await api.get_initial())
+    async for event in subscription:
+        yield StreamEvent.add(event)
+    # subscription is never closed if client disconnects!
+
 # OK but has flash of empty content on reconnection:
 async def ok_stream():
     yield StreamEvent.clear()
@@ -115,11 +120,15 @@ async def ok_stream():
     async for event in subscribe():
         yield StreamEvent.add(event)
 
-# BEST: Atomic replace, then stream
+# BEST: Atomic replace, cleanup in finally
 async def good_stream():
-    yield StreamEvent.replace(*await get_all_events())  # atomic, no flash
-    async for event in subscribe():
-        yield StreamEvent.add(event)
+    subscription = api.subscribe()
+    try:
+        yield StreamEvent.replace(*await api.get_initial())
+        async for event in subscription:
+            yield StreamEvent.add(event)
+    finally:
+        await subscription.close()  # Always cleanup!
 ```
 
 ## Stream Events
@@ -233,60 +242,77 @@ page = Stack(
 )
 ```
 
-## Broadcasting Updates
+## Connecting to External Data Sources
 
-A common pattern is broadcasting updates to multiple connected clients. Here's a simple broadcaster using `asyncio.Queue`:
+StreamVariable is ideal for connecting to external APIs, databases, or message queues that provide streaming data.
+
+### External API with SSE/WebSocket
+
+```python
+import httpx
+from dara.core import StreamVariable, StreamEvent, ReconnectException
+
+async def stock_prices_stream(symbol: str):
+    """Stream stock prices from an external API."""
+    async with httpx.AsyncClient() as client:
+        try:
+            # Fetch initial state
+            response = await client.get(f'https://api.example.com/stocks/{symbol}')
+            yield StreamEvent.json_snapshot(response.json())
+
+            # Connect to streaming endpoint
+            async with client.stream('GET', f'https://api.example.com/stocks/{symbol}/stream') as stream:
+                async for line in stream.aiter_lines():
+                    if line:
+                        data = json.loads(line)
+                        yield StreamEvent.json_patch([
+                            {'op': 'replace', 'path': '/price', 'value': data['price']},
+                            {'op': 'replace', 'path': '/updated_at', 'value': data['timestamp']}
+                        ])
+        except httpx.ConnectError:
+            raise ReconnectException()  # Retry on connection issues
+
+stock_data = StreamVariable(stock_prices_stream, variables=[symbol_var])
+```
+
+### Database Polling
 
 ```python
 import asyncio
-from dara.core import StreamVariable, StreamEvent, Variable, action
+from sqlalchemy.ext.asyncio import AsyncSession
 
-class EventBroadcaster:
-    def __init__(self):
-        self._subscribers: set[asyncio.Queue] = set()
-        self._events: list[dict] = []
-
-    def subscribe(self) -> asyncio.Queue:
-        queue = asyncio.Queue()
-        self._subscribers.add(queue)
-        return queue
-
-    def unsubscribe(self, queue: asyncio.Queue):
-        self._subscribers.discard(queue)
-
-    def broadcast(self, event: dict):
-        self._events.append(event)
-        for queue in self._subscribers:
-            queue.put_nowait(event)
-
-    def get_events(self) -> list[dict]:
-        return self._events.copy()
-
-# Global broadcaster instance
-broadcaster = EventBroadcaster()
-
-async def live_events_stream():
-    queue = broadcaster.subscribe()
+async def recent_orders_stream(customer_id: str):
+    """Poll database for new orders."""
+    last_seen_id = None
+    
     try:
-        # Send existing events
-        yield StreamEvent.clear()
-        for event in broadcaster.get_events():
-            yield StreamEvent.add(event)
-
-        # Wait for new events
         while True:
-            event = await queue.get()
-            yield StreamEvent.add(event)
-    finally:
-        broadcaster.unsubscribe(queue)
+            async with AsyncSession(engine) as session:
+                # Get initial or new orders
+                query = select(Order).where(Order.customer_id == customer_id)
+                if last_seen_id:
+                    query = query.where(Order.id > last_seen_id)
+                query = query.order_by(Order.id)
+                
+                result = await session.execute(query)
+                orders = result.scalars().all()
+                
+                if not last_seen_id:
+                    # Initial load
+                    yield StreamEvent.replace(*[o.to_dict() for o in orders])
+                else:
+                    # Incremental updates
+                    for order in orders:
+                        yield StreamEvent.add(order.to_dict())
+                
+                if orders:
+                    last_seen_id = orders[-1].id
+            
+            await asyncio.sleep(5)  # Poll every 5 seconds
+    except Exception as e:
+        raise ReconnectException()
 
-events = StreamVariable(live_events_stream, variables=[], key_accessor='id')
-
-# Action to add a new event (broadcasts to all connected clients)
-@action
-async def add_event(ctx: action.Ctx):
-    event = {'id': str(uuid.uuid4()), 'message': 'New event!', 'time': datetime.now().isoformat()}
-    broadcaster.broadcast(event)
+orders = StreamVariable(recent_orders_stream, variables=[customer_id_var], key_accessor='id')
 ```
 
 ## Error Handling
