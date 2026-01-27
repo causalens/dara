@@ -855,10 +855,25 @@ class Table(ContentComponent):
 
     ```python
     from dara.components.common import Table, TableAction
+    from dara.core import action
+
+
+    @action
+    async def on_action(ctx: action.Ctx):
+        action_params = ctx.input
+        action_id = action_params['action_id']
+        data = action_params['data']
+        print(f'Action performed: {action_id} with data: {data}')
+
+        if action_id == 'delete':
+            # Do delete here
+        elif action_id == 'edit':
+            # Do edit here
 
     Table(
         columns=columns,
         data=data,
+        on_action=on_action,
         actions=[
             TableAction(icon_name='trash', label='Delete', id='delete'),
             TableAction(icon_name='pencil', label='Edit', id='edit'),
@@ -871,6 +886,7 @@ class Table(ContentComponent):
     :param show_checkboxes: Whether to show or hide checkboxes column when onclick_row is set. Defaults to True
     :param onclick_row: An action handler for when a row is clicked on the table
     :param onselect_row: An action handler for when a row is selected via the checkbox column
+    :param on_action: An action handler for when an action is performed on the table, tied to the actions list
     :param selected_indices: Optional variable to store the selected rows indices, must be a list of numbers. Note that these indices are
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value. If you would like the selection to persist over
     page reloads, you must use a `BrowserStore` on a `Variable`.
@@ -891,6 +907,7 @@ class Table(ContentComponent):
     show_checkboxes: bool = True
     onclick_row: Action | None = None
     onselect_row: Action | None = None
+    on_action: Action | None = None
     selected_indices: list[int] | Variable | None = None
     search_columns: list[str] | None = None
     searchable: bool = False

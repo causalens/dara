@@ -70,6 +70,10 @@ interface TableProps extends StyledComponentProps {
      */
     onselect_row?: Action;
     /**
+     * On action handler; when provided, is called when an action is performed
+     */
+    on_action?: Action;
+    /**
      * List of searchable columns
      */
     search_columns?: Array<string>;
@@ -688,13 +692,22 @@ function Table(props: TableProps): JSX.Element {
         ]
     );
 
+    const onActionRaw = useAction(props.on_action);
+
     const onAction = useCallback(
         (actionId: string, row: any): void => {
             if (actionId === UiTable.Actions.SELECT.id) {
                 onSelect(row, true);
             }
+
+            if (onActionRaw) {
+                onActionRaw({
+                    action_id: actionId,
+                    data: row,
+                });
+            }
         },
-        [onSelect]
+        [onSelect, onActionRaw]
     );
 
     const actions = useMemo(
