@@ -343,10 +343,6 @@ export function deserializeAtomParams(key: string): StreamAtomParams {
  */
 const activeConnections = new Map<string, AbortController>();
 
-/** Type for setSelf from Recoil atom effects */
-type SetSelf = (
-    valOrUpdater: StreamState | DefaultValue | ((currVal: StreamState | DefaultValue) => StreamState | DefaultValue)
-) => void;
 
 /** Stream state after first data arrives */
 const INITIAL_CONNECTED_STATE: StreamState = {
@@ -409,20 +405,30 @@ function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnec
         },
 
         onmessage: (msg: EventSourceMessage) => {
+            let event: StreamEvent;
             try {
-                const event = JSON.parse(msg.data) as StreamEvent;
-                // Apply event to current state (accumulate)
-                currentState = applyStreamEvent(currentState, event, params.keyAccessor);
-
-                if (isFirstMessage) {
-                    isFirstMessage = false;
-                    callbacks.onFirstData(currentState);
-                } else {
-                    callbacks.onUpdate(currentState);
-                }
+                event = JSON.parse(msg.data) as StreamEvent;
             } catch (parseError) {
                 // eslint-disable-next-line no-console
                 console.error('Failed to parse SSE event:', parseError, msg.data);
+                return;
+            }
+
+            // Handle reconnect event - throw to trigger retry logic
+            if (event.type === 'reconnect') {
+                // eslint-disable-next-line no-console
+                console.info('StreamVariable: Server requested reconnect, reconnecting...');
+                throw new Error('Server requested reconnect');
+            }
+
+            // Apply event to current state (accumulate)
+            currentState = applyStreamEvent(currentState, event, params.keyAccessor);
+
+            if (isFirstMessage) {
+                isFirstMessage = false;
+                callbacks.onFirstData(currentState);
+            } else {
+                callbacks.onUpdate(currentState);
             }
         },
 
