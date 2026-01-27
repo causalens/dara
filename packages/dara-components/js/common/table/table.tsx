@@ -700,12 +700,11 @@ function Table(props: TableProps): JSX.Element {
                 onSelect(row, true);
             }
 
-            if (onActionRaw) {
-                onActionRaw({
-                    action_id: actionId,
-                    data: row,
-                });
-            }
+            // Call the on_action handler, if it doesn't exist, it is a no-op anyways
+            onActionRaw({
+                action_id: actionId,
+                data: row,
+            });
         },
         [onSelect, onActionRaw]
     );
