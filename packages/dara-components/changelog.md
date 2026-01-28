@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+ - Added `row_height` prop to table to allow users to set the table height
+ - Added `on_action` and `actions` property to the table, this allows the user to append an action column at the end of the table to allow us to action a specific item on a table in the dara side.
+
 ## 1.24.3
 
 - Updated `CheckboxGroup` component to accept `ClientVariable` as the `value` prop

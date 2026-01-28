@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+ - Added fix on table stickiness property
+ - Added way to adjust table row height
+ - Added functionality to inject actions into the table via dara-components
+
 ## 1.21.24
 
 - When there is only a single action in an `ActionCell` we make sure that clicking the whole cell should trigger that action.
