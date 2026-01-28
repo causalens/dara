@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from dara.components.common.base_component import LayoutComponent
+from dara.core.base_definitions import Action
 from dara.core.interactivity import ClientVariable
 
 
@@ -42,9 +43,43 @@ class Modal(LayoutComponent):
 
     ```
 
+    A modal can also be closed by an external event, for example by clicking outside the modal.
+    To run something when this happens, you can pass an `on_attempt_close` action.
+    When you pass this action, the modal will not close automatically when the external event happens, it is up to the action to decide whether to close the modal.
+    You can also pass an `on_closed` action to run something when the modal has finished closing and has unmounted.
+
+    ```python
+    from dara.core.interactivity import ActionCtx, action
+    from dara.components.common import Modal, Text
+
+    show = Variable(True)
+
+    @action
+    async def on_attempt_close(ctx: ActionCtx):
+        print('Modal attempting to close')
+        ctx.update(show, False)
+
+    @action
+    async def on_closed(ctx: ActionCtx):
+        print('Modal closed')
+
+    Modal(
+        Text('Test Text'),
+        show=show,
+        on_attempt_close=on_attempt_close(),
+        on_closed=on_closed()
+    )
+
+    ```
+
     :param show: Boolean Variable instance recording the state, if True it renders the model and it's children
+    :param on_attempt_close: An optional event listener for if an external event (e.g. esc key) tries to close the modal, it's up to the
+        parent component to decide whether to close the modal. if not passed, by default the modal will set the show variable to False.
+    :param on_closed: A handler that's called when the modal has finished closing and has unmounted
     :param justify: How to justify the content of the modal, accepts any flexbox justifications
     :param align: How to align the content of the modal, accepts any flexbox alignments
     """
 
     show: ClientVariable
+    on_attempt_close: Action | None = None
+    on_closed: Action | None = None

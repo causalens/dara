@@ -34,6 +34,11 @@ def _analyze_component_dependencies(component: ComponentInstance, graph: Depende
     """
     Recursively analyze a component tree to build a dependency graph of DerivedVariables and PyComponentInstances.
     """
+    try:
+        from dara.components import Table
+    except ImportError:
+        Table = None
+
     # The component itself is a PyComponentInstance
     if isinstance(component, PyComponentInstance):
         if component.uid not in graph.py_components:
@@ -46,6 +51,9 @@ def _analyze_component_dependencies(component: ComponentInstance, graph: Depende
 
         # Handle encountered variables and py_components
         if isinstance(value, DerivedVariable) and value.uid not in graph.derived_variables:
+            # SPECIAL CASE: exclude Table.data since it's tabular and preloading it would be a waste
+            if Table and isinstance(component, Table) and attr == 'data':
+                continue
             graph.derived_variables[value.uid] = value
         elif isinstance(value, PyComponentInstance) and value.uid not in graph.py_components:
             graph.py_components[value.uid] = value

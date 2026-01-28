@@ -4,6 +4,7 @@ export * from './plain-variable';
 export * from './tabular-variable';
 export * from './server-variable';
 export * from './derived-variable';
+export * from './stream-variable';
 export * from './nested';
 export * from './triggers';
 export * from './resolve-variable';

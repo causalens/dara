@@ -2,6 +2,20 @@
 title: Changelog
 ---
 
+## 1.25.0
+
+- Added `StreamVariable` - a new variable type for SSE-based real-time event streams. Supports keyed mode (list of items with unique IDs) and custom JSON mode (arbitrary state with JSON Patch). Includes automatic reconnection with exponential backoff and proper lifecycle management via Recoil atom effects.
+
+## 1.24.1
+
+-  Fixed an issue where using `.get` on a `DerivedVariable` would not resolve when passed to `DerivedVariable`, `py_component` or `action`
+
+## 1.24.0
+
+-  Fixed an issue where `DerivedVariable`s returning `DataFrame`s would cause error logs during route data loading
+-  Attempting to use `@py_component`s inside a `For` component will now raise an error at startup time as it's a very inefficient pattern. The recommended usage is to instead precompute fields in a `DerivedVariable` passed to `For.items`, the docs now include a section on those best practices.
+-  Fixed an issue where `.get()` calls on a variable would not be resolved when a variable was passed as an input to a `DerivedVariable`, `py_component` or `action`
+
 ## 1.23.0-alpha.1
 
 -  Added a new generic `OIDCAuthConfig` that can be used to configure any OIDC provider. See new "Authentication" docs page for more details.

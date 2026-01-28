@@ -1916,3 +1916,173 @@ async def test_derived_variable_with_switch_variable():
         assert response.status_code == 200
         assert response.json()['value'] == 5
         assert func.call_count == 3
+
+
+async def test_nested_derived_variable_as_input():
+    """
+    Test that a DerivedVariable with nested property can be used as input to another DerivedVariable,
+    and the nested value is properly resolved on the backend.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2, 'extra': 'ignored'}}
+
+    def outer_func(nested_value):
+        # nested_value should be just the 'value' field (a * 2)
+        return nested_value + 100
+
+    inner_mock = Mock(wraps=inner_func)
+    outer_mock = Mock(wraps=outer_func)
+
+    inner_dv = DerivedVariable(inner_mock, variables=[var1])
+    outer_dv = DerivedVariable(outer_mock, variables=[inner_dv.get('data').get('value')])
+
+    builder.add_page('Test', content=MockComponent(text=outer_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Request outer_dv with nested inner_dv
+        # Inner returns {'data': {'value': 10, 'extra': 'ignored'}} for input 5
+        # Nested path ['data', 'value'] should extract 10
+        # Outer should receive 10 and return 10 + 100 = 110
+        response = await _get_derived_variable(
+            client,
+            outer_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['data', 'value'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 110
+        assert inner_mock.call_count == 1
+        assert outer_mock.call_count == 1
+
+
+async def test_nested_derived_variable_missing_path():
+    """
+    Test that when nested path doesn't exist, None is returned.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a):
+        return {'data': {'value': a * 2}}
+
+    def outer_func(nested_value):
+        # nested_value should be None if path doesn't exist
+        return nested_value
+
+    inner_mock = Mock(wraps=inner_func)
+    outer_mock = Mock(wraps=outer_func)
+
+    inner_dv = DerivedVariable(inner_mock, variables=[var1])
+    outer_dv = DerivedVariable(outer_mock, variables=[inner_dv.get('nonexistent').get('path')])
+
+    builder.add_page('Test', content=MockComponent(text=outer_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Request with a nested path that doesn't exist
+        response = await _get_derived_variable(
+            client,
+            outer_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['nonexistent', 'path'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] is None
+
+
+async def test_deeply_nested_derived_variable_chain():
+    """
+    Test a chain of derived variables where nested properties are used at multiple levels.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def level1_func(a):
+        return {'l1': {'data': a * 2}}
+
+    def level2_func(l1_val):
+        return {'l2': {'data': l1_val + 10}}
+
+    def level3_func(l2_val):
+        return l2_val * 3
+
+    l1_mock = Mock(wraps=level1_func)
+    l2_mock = Mock(wraps=level2_func)
+    l3_mock = Mock(wraps=level3_func)
+
+    level1_dv = DerivedVariable(l1_mock, variables=[var1])
+    level2_dv = DerivedVariable(l2_mock, variables=[level1_dv.get('l1').get('data')])
+    level3_dv = DerivedVariable(l3_mock, variables=[level2_dv.get('l2').get('data')])
+
+    builder.add_page('Test', content=MockComponent(text=level3_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Input: 5
+        # Level1: {'l1': {'data': 10}} -> nested extracts 10
+        # Level2: receives 10, returns {'l2': {'data': 20}} -> nested extracts 20
+        # Level3: receives 20, returns 20 * 3 = 60
+        response = await _get_derived_variable(
+            client,
+            level3_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(level2_dv.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(level1_dv.uid),
+                                'values': [5],
+                                'nested': ['l1', 'data'],
+                            }
+                        ],
+                        'nested': ['l2', 'data'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 60
+        assert l1_mock.call_count == 1
+        assert l2_mock.call_count == 1
+        assert l3_mock.call_count == 1

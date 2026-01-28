@@ -271,7 +271,21 @@ export interface ServerVariable {
     scope: 'global' | 'user';
 }
 
-export type AnyVariable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable | ServerVariable;
+export interface StreamVariable {
+    __typename: 'StreamVariable';
+    uid: string;
+    variables: Array<AnyVariable<any> | any>;
+    key_accessor: string | null;
+    nested: string[];
+}
+
+export type AnyVariable<T> =
+    | SingleVariable<T>
+    | DerivedVariable
+    | SwitchVariable<T>
+    | StateVariable
+    | ServerVariable
+    | StreamVariable;
 export type Variable<T> = SingleVariable<T> | DerivedVariable | SwitchVariable<T> | StateVariable;
 
 export interface ResolvedDerivedVariable {
@@ -280,6 +294,7 @@ export interface ResolvedDerivedVariable {
     type: 'derived';
     uid: string;
     values: Array<any>;
+    nested: Array<string>;
 }
 
 export interface ResolvedServerVariable {

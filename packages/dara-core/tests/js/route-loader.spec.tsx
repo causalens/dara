@@ -19,6 +19,7 @@ import {
     type PyComponentInstance,
     type RouteDefinition,
     type SingleVariable,
+    type StreamVariable,
     type UpdateVariableImpl,
 } from '@/types';
 
@@ -672,6 +673,7 @@ describe('Route Loader', () => {
                                         },
                                     ],
                                     force_key: null,
+                                    nested: [],
                                 },
                             },
                             lookup: {
@@ -689,5 +691,296 @@ describe('Route Loader', () => {
             })
         );
         expect(mockPyCall).not.toHaveBeenCalled();
+    });
+
+    it('skips preloading DVs that depend on StreamVariable', async () => {
+        // Reset browser location to root
+        window.history.pushState(null, '', '/');
+
+        const streamVar: StreamVariable = {
+            __typename: 'StreamVariable',
+            uid: 'stream_var_uid',
+            nested: [],
+            variables: [],
+            key_accessor: 'id',
+        };
+
+        const dv: DerivedVariable = {
+            __typename: 'DerivedVariable',
+            deps: [streamVar],
+            nested: [],
+            uid: 'dv_uid',
+            variables: [streamVar],
+        };
+
+        const route = {
+            id: 'test',
+            case_sensitive: false,
+            index: true,
+            full_path: '/test',
+            __typename: 'IndexRoute',
+            dependency_graph: {
+                derived_variables: {
+                    [dv.uid]: dv,
+                },
+                py_components: {},
+            },
+        } satisfies RouteDefinition;
+
+        const routeCall = vi.fn();
+
+        server.use(
+            http.post('/api/core/route/:route_id', async (ctx) => {
+                const body = await ctx.request.json();
+                routeCall(body);
+
+                const stream = new ReadableStream({
+                    start(controller) {
+                        const te = new TextEncoder();
+                        const sendChunk = (x: ResponseChunk): void => {
+                            controller.enqueue(te.encode(`${JSON.stringify(x)}\r\n`));
+                        };
+
+                        sendChunk({
+                            type: 'template',
+                            template: {
+                                lookup: {},
+                                data: {
+                                    name: 'TestDisplay',
+                                    props: {},
+                                    uid: 'test-content',
+                                } satisfies ComponentInstance,
+                            },
+                        });
+                        sendChunk({
+                            type: 'actions',
+                            actions: {},
+                        });
+                        controller.close();
+                    },
+                });
+
+                return new HttpResponse(stream, {
+                    headers: {
+                        'content-type': 'application/x-ndjson',
+                    },
+                });
+            })
+        );
+
+        function TestDisplay(): JSX.Element {
+            return <div data-testid="content">Content</div>;
+        }
+
+        function Root(): JSX.Element {
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
+            return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
+        }
+
+        await preloadComponents(
+            {
+                test_mod: () => Promise.resolve({ TestDisplay }),
+            },
+            [{ js_module: 'test', name: 'TestDisplay', py_module: 'test_mod', type: ComponentType.JS }]
+        );
+
+        const container = render(<Root />, {
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
+        });
+
+        await waitFor(() => expect(container.getByTestId('content')).toBeVisible());
+
+        // DV with StreamVariable dependency should be skipped - no payload sent
+        expect(routeCall).toHaveBeenCalledWith(
+            expect.objectContaining({
+                derived_variable_payloads: [],
+            })
+        );
+    });
+
+    it('skips preloading py_components that depend on StreamVariable', async () => {
+        // Reset browser location to root
+        window.history.pushState(null, '', '/');
+
+        const streamVar: StreamVariable = {
+            __typename: 'StreamVariable',
+            uid: 'stream_var_uid',
+            nested: [],
+            variables: [],
+            key_accessor: 'id',
+        };
+
+        const pyComponent: PyComponentInstance = {
+            uid: 'py_comp_uid',
+            name: 'TestPyComponent',
+            props: {
+                dynamic_kwargs: {
+                    stream_input: streamVar,
+                },
+                func_name: 'TestComponent',
+                js_module: '@test',
+                polling_interval: null,
+            },
+        };
+
+        const route = {
+            id: 'test',
+            case_sensitive: false,
+            index: true,
+            full_path: '/test',
+            __typename: 'IndexRoute',
+            dependency_graph: {
+                derived_variables: {},
+                py_components: {
+                    py_comp_uid: pyComponent,
+                },
+            },
+        } satisfies RouteDefinition;
+
+        const routeCall = vi.fn();
+
+        server.use(
+            http.post('/api/core/route/:route_id', async (ctx) => {
+                const body = await ctx.request.json();
+                routeCall(body);
+
+                const stream = new ReadableStream({
+                    start(controller) {
+                        const te = new TextEncoder();
+                        const sendChunk = (x: ResponseChunk): void => {
+                            controller.enqueue(te.encode(`${JSON.stringify(x)}\r\n`));
+                        };
+
+                        sendChunk({
+                            type: 'template',
+                            template: {
+                                lookup: {},
+                                data: {
+                                    name: 'TestDisplay',
+                                    props: {},
+                                    uid: 'test-content',
+                                } satisfies ComponentInstance,
+                            },
+                        });
+                        sendChunk({
+                            type: 'actions',
+                            actions: {},
+                        });
+                        controller.close();
+                    },
+                });
+
+                return new HttpResponse(stream, {
+                    headers: {
+                        'content-type': 'application/x-ndjson',
+                    },
+                });
+            })
+        );
+
+        function TestDisplay(): JSX.Element {
+            return <div data-testid="content">Content</div>;
+        }
+
+        function Root(): JSX.Element {
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
+            return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
+        }
+
+        await preloadComponents(
+            {
+                test_mod: () => Promise.resolve({ TestDisplay }),
+            },
+            [{ js_module: 'test', name: 'TestDisplay', py_module: 'test_mod', type: ComponentType.JS }]
+        );
+
+        const container = render(<Root />, {
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
+        });
+
+        await waitFor(() => expect(container.getByTestId('content')).toBeVisible());
+
+        // py_component with StreamVariable dependency should be skipped - no payload sent
+        expect(routeCall).toHaveBeenCalledWith(
+            expect.objectContaining({
+                py_component_payloads: [],
+            })
+        );
+    });
+
+    it('throws error when on_load action uses StreamVariable', async () => {
+        // Reset browser location to root
+        window.history.pushState(null, '', '/');
+
+        const streamVar: StreamVariable = {
+            __typename: 'StreamVariable',
+            uid: 'stream_var_uid',
+            nested: [],
+            variables: [],
+            key_accessor: 'id',
+        };
+
+        const loadingVar: SingleVariable<boolean> = {
+            __typename: 'Variable',
+            default: false,
+            nested: [],
+            uid: 'loading_var_uid',
+        };
+
+        const onLoadAction: AnnotatedAction = {
+            definition_uid: 'test_action_def',
+            uid: 'test_action',
+            dynamic_kwargs: {
+                stream_input: streamVar,
+            },
+            loading: loadingVar,
+        };
+
+        const route = {
+            id: 'test',
+            case_sensitive: false,
+            index: true,
+            full_path: '/test',
+            __typename: 'IndexRoute',
+            on_load: onLoadAction,
+            dependency_graph: {
+                derived_variables: {},
+                py_components: {},
+            },
+        } satisfies RouteDefinition;
+
+        function Root(): JSX.Element {
+            const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
+            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
+            return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
+        }
+
+        // Suppress console.error for this test since we expect an error
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const container = render(<Root />, {
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
+        });
+
+        // Should show error boundary - either generic or specific depending on build mode
+        // The key assertion is that the error was thrown and caught
+        await waitFor(() => {
+            // Check for any error indication - could be "Unexpected error" (prod) or "Unknown error" (dev)
+            const errorElement =
+                container.queryByText(/Unexpected error/i) || container.queryByText(/Unknown error/i);
+            expect(errorElement).toBeInTheDocument();
+        });
+
+        // Verify the error was logged (contains our message about StreamVariable)
+        expect(consoleSpy).toHaveBeenCalled();
+        const errorCalls = consoleSpy.mock.calls.flat();
+        const hasStreamVarError = errorCalls.some(
+            (call) => call instanceof Error && call.message.includes('StreamVariable')
+        );
+        expect(hasStreamVarError).toBe(true);
+
+        consoleSpy.mockRestore();
     });
 });

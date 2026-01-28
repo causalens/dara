@@ -1,9 +1,11 @@
 import {
+    type Action,
     type ComponentInstance,
     DynamicComponent,
     type LayoutComponentProps,
     type Variable,
     injectCss,
+    useAction,
     useComponentStyles,
     useVariable,
 } from '@darajs/core';
@@ -14,6 +16,15 @@ interface ModalProps extends LayoutComponentProps {
     children: Array<ComponentInstance>;
     /** The show flag, tells the modal whether or not to display */
     show: Variable<boolean>;
+    /**
+     * An optional event listener for if an external event (e.g. esc key) tries to close the modal, it's up to the
+     * parent component to decide whether to close the modal
+     */
+    on_attempt_close?: Action;
+    /**
+     * A handler that's called when the modal has finished closing and has unmounted
+     */
+    on_closed?: Action;
 }
 
 const StyledModal = injectCss(UiModal);
@@ -24,11 +35,17 @@ const StyledModal = injectCss(UiModal);
  * @param props the component props
  */
 function Modal(props: ModalProps): JSX.Element {
+    const onAttemptCloseAction = useAction(props.on_attempt_close);
+    const onClosedAction = useAction(props.on_closed);
     const [style, css] = useComponentStyles(props, false);
     const [show, setShow] = useVariable(props.show);
 
     function onAttemptClose(): void {
-        setShow(false);
+        if (props.on_attempt_close) {
+            onAttemptCloseAction();
+        } else {
+            setShow(false);
+        }
     }
 
     return (
@@ -36,6 +53,7 @@ function Modal(props: ModalProps): JSX.Element {
             id={props.id_}
             $rawCss={css}
             onAttemptClose={onAttemptClose}
+            onClosed={props.on_closed ? onClosedAction : undefined}
             render={show}
             style={{ alignItems: props.align, gap: '0.75rem', justifyContent: props.justify, ...style }}
         >

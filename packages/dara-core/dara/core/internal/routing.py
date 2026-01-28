@@ -39,6 +39,7 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
+    Request,
     Response,
     UploadFile,
 )
@@ -56,6 +57,8 @@ from dara.core.interactivity.actions import ACTION_CONTEXT
 from dara.core.interactivity.any_data_variable import upload
 from dara.core.interactivity.filtering import FilterQuery, Pagination
 from dara.core.interactivity.server_variable import ServerVariable
+from dara.core.interactivity.stream_utils import track_stream
+from dara.core.interactivity.stream_variable import run_stream
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.devtools import print_stacktrace
 from dara.core.internal.download import DownloadRegistryEntry
@@ -72,6 +75,7 @@ from dara.core.internal.registries import (
     latest_value_registry,
     server_variable_registry,
     static_kwargs_registry,
+    stream_variable_registry,
     upload_resolver_registry,
     utils_registry,
 )
@@ -508,6 +512,57 @@ async def get_version():
 core_api_router.add_api_websocket_route('/ws', ws_handler)
 
 
+class StreamRequestBody(BaseModel):
+    """Request body for StreamVariable SSE endpoint."""
+
+    values: NormalizedPayload[list[Any]]
+    """Normalized payload of resolved variable values to pass to the stream generator."""
+
+
+@core_api_router.post('/stream/{stream_uid}', dependencies=[Depends(verify_session)])
+async def stream_endpoint(
+    request: Request,
+    stream_uid: str,
+    body: StreamRequestBody,
+):
+    """
+    SSE endpoint for StreamVariable.
+
+    Opens a Server-Sent Events connection and streams events from the
+    StreamVariable's async generator.
+
+    :param stream_uid: The UID of the StreamVariable
+    :param body: Request body containing resolved variable values
+    """
+    registry_mgr: RegistryLookup = utils_registry.get('RegistryLookup')
+    store: CacheStore = utils_registry.get('Store')
+    task_mgr: TaskManager = utils_registry.get('TaskManager')
+
+    try:
+        entry = await registry_mgr.get(stream_variable_registry, stream_uid)
+    except (KeyError, ValueError) as err:
+        raise HTTPException(status_code=404, detail=f'StreamVariable {stream_uid} not found') from err
+
+    # Denormalize the values (resolve any nested structures)
+    values = denormalize(body.values.data, body.values.lookup)
+
+    @track_stream
+    async def stream():
+        async for event in run_stream(entry, request, values, store, task_mgr):
+            yield event
+
+    return StreamingResponse(
+        stream(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream',
+        },
+    )
+
+
 class ActionPayload(BaseModel):
     uid: str
     definition_uid: str
@@ -559,6 +614,14 @@ class PyComponentChunk(BaseModel):
 
 
 Chunk = DerivedVariableChunk | PyComponentChunk
+
+
+class UnserializablePayloadError(Exception):
+    payload_type: type
+
+    def __init__(self, message: str, payload_type: type):
+        super().__init__(message)
+        self.payload_type = payload_type
 
 
 def create_loader_route(config: Configuration, app: FastAPI):
@@ -617,6 +680,14 @@ def create_loader_route(config: Configuration, app: FastAPI):
                 CURRENT_ACTION_ID.set('')
                 ACTION_CONTEXT.set(None)
 
+        def create_payload(x):
+            try:
+                return jsonable_encoder(x)
+            except Exception as e:
+                raise UnserializablePayloadError(
+                    f'Unserializable payload found - {str(e)}', payload_type=type(x)
+                ) from e
+
         async def process_variables(send_stream: MemoryObjectSendStream[Chunk]):
             for payload in body.derived_variable_payloads:
                 try:
@@ -629,7 +700,17 @@ def create_loader_route(config: Configuration, app: FastAPI):
                             force_key=None,
                         ),
                     )
-                    await send_stream.send(DerivedVariableChunk(uid=payload.uid, result=Result.success(result)))
+
+                    await send_stream.send(
+                        DerivedVariableChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                    )
+                except UnserializablePayloadError as e:
+                    dev_logger.warning(
+                        f'Unserializable payload found for derived variable, skipping preload - {str(e)}',
+                    )
+                    await send_stream.send(
+                        DerivedVariableChunk(uid=payload.uid, result=Result.error(str(e))),
+                    )
                 except BaseException as e:
                     dev_logger.error(f'Error streaming derived_variable {payload.uid}', error=e)
                     await send_stream.send(
@@ -647,7 +728,16 @@ def create_loader_route(config: Configuration, app: FastAPI):
                             ws_channel=body.ws_channel,
                         ),
                     )
-                    await send_stream.send(PyComponentChunk(uid=payload.uid, result=Result.success(result)))
+                    await send_stream.send(
+                        PyComponentChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                    )
+                except UnserializablePayloadError as e:
+                    dev_logger.warning(
+                        f'Unserializable payload found for py_component, skipping preload - {str(e)}',
+                    )
+                    await send_stream.send(
+                        PyComponentChunk(uid=payload.uid, result=Result.error(str(e))),
+                    )
                 except BaseException as e:
                     dev_logger.error(f'Error streaming py_component {payload.name}', error=e)
                     await send_stream.send(

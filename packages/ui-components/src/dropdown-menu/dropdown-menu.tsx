@@ -108,9 +108,11 @@ export const HorizontalDivider = styled.hr`
 
 const ItemLabel = styled.div`
     display: flex;
-    align-items: center;
     gap: 0.5rem;
+    align-items: center;
+
     width: 100%;
+
     line-height: 1;
 `;
 

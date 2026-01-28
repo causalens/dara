@@ -43,6 +43,12 @@ export const selectorFamilyRegistry = new Map<string, SelectorFamily>();
  */
 export const selectorFamilyMembersRegistry = new Map<SelectorFamily, Map<string | null, RecoilValue<any>>>();
 /**
+ * StreamVariable atom instances registry.
+ * Key is serialized StreamAtomParams, value is the atom instance.
+ * Used to track active stream connections and check if a stream variable is registered.
+ */
+export const streamAtomRegistry = new Map<string, RecoilState<any>>();
+/**
  * Key -> dependencies data for a selector
  */
 export const depsRegistry = new Map<
@@ -96,6 +102,7 @@ export function clearRegistries_TEST(): void {
         depsRegistry,
         selectorFamilyRegistry,
         selectorFamilyMembersRegistry,
+        streamAtomRegistry,
     ]) {
         registry.clear();
     }
@@ -131,6 +138,16 @@ export function isRegistered<T>(variable: AnyVariable<T>): boolean {
         case 'DerivedVariable': {
             const key = getRegistryKey(variable, 'selector-nested');
             return selectorFamilyRegistry.has(key);
+        }
+
+        case 'StreamVariable': {
+            // Check if any atoms exist for this stream variable uid
+            for (const atomKey of streamAtomRegistry.keys()) {
+                if (atomKey.includes(`"uid":"${variable.uid}"`)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         default:

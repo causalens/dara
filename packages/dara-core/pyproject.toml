@@ -21,7 +21,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.23.0"
+version = "1.25.0"
 source = []
 
 [[tool.poetry.packages]]
@@ -46,7 +46,7 @@ odfpy = "*"
 openpyxl = "*"
 packaging = ">=23.1"
 pandas = ">=1.1.0, <3.0.0"
-prometheus-client = "^0.14.1"
+prometheus-client = ">=0.14.1, <1.0.0"
 pyarrow = "*"
 pydantic = ">=2.11.7, <3.0.0"
 pyjwt = ">=2.3.0, <3.0.0"
@@ -66,11 +66,11 @@ backoff = "^2.2.1"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.23.0"
+version = "1.25.0"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.23.0"
+version = "1.25.0"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]

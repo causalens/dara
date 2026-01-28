@@ -22,7 +22,7 @@ from pydantic import field_validator
 from dara.components.common.base_component import FormComponent
 from dara.components.common.utils import Item
 from dara.core.base_definitions import Action
-from dara.core.interactivity import ClientVariable, Variable
+from dara.core.interactivity import ClientVariable
 
 
 class CheckboxGroup(FormComponent):
@@ -101,7 +101,7 @@ class CheckboxGroup(FormComponent):
     select_max: int | None = None
     select_min: int | None = None
     list_styling: bool = False
-    value: Variable[Any] | None = None
+    value: ClientVariable | None = None
     onchange: Action | None = None
     id: str | None = None
 

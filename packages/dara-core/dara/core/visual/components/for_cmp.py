@@ -1,10 +1,13 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from dara.core.base_definitions import DaraBaseModel
 from dara.core.definitions import ComponentInstance, JsComponentDef
 from dara.core.interactivity.any_variable import AnyVariable
+
+if TYPE_CHECKING:
+    from dara.core.visual.dynamic_component import PyComponentInstance
 
 ForDef = JsComponentDef(name='For', js_module='@darajs/core', py_module='dara.core')
 
@@ -61,12 +64,16 @@ class For(ComponentInstance):
     )
     ```
 
-    For interactivity can use list items in Dara actions, DerivedVariables, py_components, and `If` component for conditional rendering.
+    For interactivity can use list items in Dara actions, DerivedVariables, and `If` component for conditional rendering.
+
+    Note: Using `@py_component` inside a For renderer is not allowed as it would require a backend call for each
+    item rendered, defeating the purpose of the optimized loop primitive. Instead, precompute any derived fields
+    in the `items` variable itself using a DerivedVariable - this runs the logic once for the whole list rather
+    than per item.
 
     ```python
-    import asyncio
-    from dara.core import Variable, action, DerivedVariable, py_component
-    from dara.components import Text, Card, Button, Stack, Input
+    from dara.core import Variable, action, DerivedVariable
+    from dara.components import Text, Card, Button, Stack
 
     # Define a variable that holds a list of items
     arr_var = Variable(
@@ -81,10 +88,6 @@ class For(ComponentInstance):
     @action
     async def say_hello(ctx: ActionCtx, item):
         await ctx.notify(f'Hello {item}!', title='Hello', status='SUCCESS')
-
-    @py_component
-    async def display_city(city: str):
-        return Text(text=f'Server-rendered city: {city}')
 
     Stack(
         Text(text='Items:'),
@@ -107,8 +110,6 @@ class For(ComponentInstance):
                     Text(
                         text=DerivedVariable(lambda x: f'age doubled is {x * 2}', variables=[arr_var.list_item['age']])
                     ),
-                    # Pass item data into a py_component
-                    display_city(arr_var.list_item['data']['city']),
                 ),
                 title=arr_var.list_item.get('name'),
                 subtitle=arr_var.list_item.get('age'),
@@ -151,3 +152,55 @@ class For(ComponentInstance):
     placeholder: ComponentInstance | None = None
     key_accessor: str | None = None
     virtualization: VirtualizationConfig | None = None
+
+    @model_validator(mode='after')
+    def validate_no_py_components(self):
+        """
+        Validate that the renderer does not contain any PyComponentInstance.
+        Using @py_component inside a For loop is inefficient as it requires a backend call for each render,
+        defeating the purpose of the optimized loop primitive.
+        """
+        py_components = _find_py_components(self.renderer)
+        if py_components:
+            func_names = ', '.join(f"'{pc.func_name}'" for pc in py_components)
+            raise ValueError(
+                f'For component renderer contains @py_component(s): {func_names}. '
+                'Using @py_component inside a For loop is inefficient as it requires a backend call '
+                'for each item rendered. Instead, precompute any derived fields in the `items` variable '
+                'using a DerivedVariable - this runs the logic once for the whole list rather than per item.'
+            )
+
+        return self
+
+
+def _find_py_components(component: ComponentInstance) -> list['PyComponentInstance']:
+    """
+    Recursively search a component tree for any PyComponentInstance nodes.
+
+    :param component: The root component to search
+    :return: List of PyComponentInstance found in the tree
+    """
+    from dara.core.visual.dynamic_component import PyComponentInstance
+
+    found: list[PyComponentInstance] = []
+
+    if isinstance(component, PyComponentInstance):
+        found.append(component)
+        return found
+
+    # Check each field set on the component
+    for attr in component.model_fields_set:
+        value = getattr(component, attr, None)
+
+        if isinstance(value, PyComponentInstance):
+            found.append(value)
+        elif isinstance(value, ComponentInstance):
+            found.extend(_find_py_components(value))
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, PyComponentInstance):
+                    found.append(item)
+                elif isinstance(item, ComponentInstance):
+                    found.extend(_find_py_components(item))
+
+    return found

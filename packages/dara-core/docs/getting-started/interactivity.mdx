@@ -885,6 +885,55 @@ For(
 
 This component should be preferred whenever you need to render a list of elements based on a collection of data. It is optimized to perform rendering client-side and doesn't require any extra round-trips to the server.
 
+:::warning
+
+Do not use `@py_component` inside a `For` renderer. This defeats the purpose of the optimized loop - each item would require a separate backend call, making the component slower than just using a `py_component` directly.
+
+If you need to transform your data before rendering, precompute the fields in the `items` variable using a `DerivedVariable`:
+
+```python
+# AVOID: py_component inside For
+@py_component
+def format_item(item):
+    return Text(f"Formatted: {item['name'].upper()}")
+
+For(items=my_list, renderer=format_item(my_list.list_item))  # This will error
+
+# GOOD: precompute in DerivedVariable, runs once for the whole list
+def preprocess_items(items):
+    return [{'formatted_name': item['name'].upper(), **item} for item in items]
+
+processed_items = DerivedVariable(preprocess_items, variables=[my_list])
+
+For(
+    items=processed_items,
+    renderer=Text(processed_items.list_item['formatted_name'])
+)
+```
+
+:::
+
+## `StreamVariable`
+
+For real-time data that updates continuously—like live events, notifications, or monitoring data—you can use a `StreamVariable`. It connects to the server using Server-Sent Events (SSE) and receives updates as they happen, without polling.
+
+```python
+from dara.core import StreamVariable, StreamEvent, Variable
+
+category = Variable('alerts')
+
+async def events_stream(category: str):
+    # Set initial state atomically (handles reconnection correctly)
+    yield StreamEvent.replace(*await api.get_events(category))
+    # Stream new events as they arrive
+    async for event in api.stream_events(category):
+        yield StreamEvent.add(event)
+
+events = StreamVariable(events_stream, variables=[category], key_accessor='id')
+```
+
+This is useful when you need to display data that changes frequently and want updates to appear immediately without the user refreshing. Learn more in [Advanced: Stream Variables](../advanced/stream-variable.md).
+
 ## `ServerVariable`
 
 There are cases where your data is too large to send to the client, or is simply unserializable. In those and other cases, you can use a `ServerVariable`. It represents **synchronized server state**.
