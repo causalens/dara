@@ -101,7 +101,7 @@ export const InputWrapper = styled.div<InputWrapperProps>`
     }
 `;
 
-export const Input = styled.input`
+export const Input = styled.input<{ size?: number }>`
     overflow: hidden;
     flex: 1 1 auto;
 

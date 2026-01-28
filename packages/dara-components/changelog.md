@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added `size` prop to `Select` component to control font-size of each sub-component
+
 ## 1.24.3
 
 - Updated `CheckboxGroup` component to accept `ClientVariable` as the `value` prop
