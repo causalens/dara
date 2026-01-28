@@ -79,6 +79,8 @@ interface SelectProps extends FormComponentProps {
     /** The selectedItem variable to read and update */
     // eslint-disable-next-line react/no-unused-prop-types
     value?: SingleVariable<any>;
+    /** Optional font size for the select component, in REM units */
+    size?: number;
 }
 
 // Disabling rules-of-hook as the assumption is that props changing the type of the select won't change
@@ -184,6 +186,7 @@ function Select(props: SelectProps): JSX.Element {
                 placeholder={props.placeholder}
                 onSelect={onSelect}
                 selectedItem={selectedItem as any}
+                size={props.size}
                 style={style}
             />
         );
@@ -223,6 +226,7 @@ function Select(props: SelectProps): JSX.Element {
                 onSelect={onSelect}
                 placeholder={props.placeholder}
                 selectedItems={selectedItems}
+                size={props.size}
                 style={style}
             />
         );
@@ -254,6 +258,7 @@ function Select(props: SelectProps): JSX.Element {
                 onSelect={onSelect}
                 placeholder={props.placeholder}
                 selectedItem={selectedItem as any}
+                size={props.size}
                 style={style}
             />
         );
@@ -268,6 +273,7 @@ function Select(props: SelectProps): JSX.Element {
             onSelect={onSelect}
             placeholder={props.placeholder}
             selectedItem={selectedItem as any}
+            size={props.size}
             style={style}
         />
     );

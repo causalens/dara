@@ -191,10 +191,11 @@ const Tag = styled.span<TagProps>`
     }
 `;
 
-const TagText = styled.span`
+const TagText = styled.span<{ size?: number }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 `;
 
 export interface MultiSelectProps extends InteractiveComponentProps<Array<Item>> {
@@ -345,7 +346,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
                                 key={selectedItem.value}
                                 {...getSelectedItemProps({ index, selectedItem })}
                             >
-                                <TagText>{selectedItem.label}</TagText>
+                                <TagText size={props.size}>{selectedItem.label}</TagText>
                                 <Cross
                                     asButton
                                     onClick={(e) => {
