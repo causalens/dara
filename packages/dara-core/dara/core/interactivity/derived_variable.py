@@ -22,6 +22,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from inspect import Parameter, signature
 from typing import (
+    TYPE_CHECKING,
     Any,
     Generic,
     Protocol,
@@ -40,6 +41,15 @@ from pydantic import (
     model_serializer,
 )
 from typing_extensions import TypedDict, TypeVar, runtime_checkable
+
+if TYPE_CHECKING:
+    from dara.core.interactivity.loop_variable import LoopVariable
+
+    # Type alias for static type checking
+    NestedKey = str | LoopVariable
+else:
+    # At runtime, use Any to avoid forward reference issues with Pydantic
+    NestedKey = Any
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -172,7 +182,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
     variables: list[AnyVariable]
     polling_interval: int | None
     deps: list[AnyVariable] | None = Field(validate_default=True)
-    nested: list[str] = Field(default_factory=list)
+    nested: list[NestedKey] = Field(default_factory=list)
     uid: str
     model_config = ConfigDict(extra='forbid', use_enum_values=True, arbitrary_types_allowed=True)
 
@@ -185,7 +195,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         polling_interval: int | None = None,
         deps: list[AnyVariable] | None = None,
         uid: str | None = None,
-        nested: list[str] | None = None,
+        nested: list[NestedKey] | None = None,
         filter_resolver: FilterResolver | None = None,
         **kwargs,
     ):
@@ -271,7 +281,14 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
         return deps
 
-    def get(self, key: str):
+    def get(self, key: NestedKey):
+        """
+        Create a copy of this DerivedVariable that points to a nested key.
+
+        The key can be a string or a LoopVariable for dynamic access within a For loop.
+
+        :param key: the key to access; can be a string or LoopVariable
+        """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
     def trigger(self, force: bool = True):

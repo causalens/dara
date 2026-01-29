@@ -1,11 +1,12 @@
 import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
 import isPlainObject from 'lodash/isPlainObject';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
 import * as React from 'react';
 
 import { resolveNested } from '@/shared/interactivity/nested';
-import type { ComponentInstance } from '@/types';
+import type { ComponentInstance, NestedKey } from '@/types';
 import { isAnnotatedAction, isDerivedVariable, isLoopVariable, isPyComponent } from '@/types/utils';
 
 export type Marker =
@@ -16,7 +17,24 @@ export type Marker =
           path: string;
           loopInstanceUid: string;
       }
-    | { type: 'server_component'; path: string; loopInstanceUid: string };
+    | { type: 'server_component'; path: string; loopInstanceUid: string }
+    // LoopVariable found inside a variable's nested array
+    | { type: 'nested_loop_var'; path: string; nestedIndex: number; loopVarNested: string[] };
+
+/**
+ * Check if a value is a variable with a nested array (Variable, DerivedVariable, StreamVariable)
+ */
+function isVariableWithNested(value: any): value is { nested: NestedKey[]; __typename: string } {
+    return (
+        value &&
+        typeof value === 'object' &&
+        '__typename' in value &&
+        typeof value.__typename === 'string' &&
+        value.__typename.includes('Variable') &&
+        'nested' in value &&
+        Array.isArray(value.nested)
+    );
+}
 
 interface ScopeContext {
     action?: string;
@@ -87,6 +105,37 @@ export function getInjectionMarkers(renderer: Record<string, any>): Marker[] {
                 continue;
             }
 
+            // Check if this is a variable with a nested array containing LoopVariables
+            // (Variable, DerivedVariable, StreamVariable - but not LoopVariable itself)
+            if (isVariableWithNested(value) && !isLoopVariable(value)) {
+                for (let i = 0; i < value.nested.length; i++) {
+                    const nestedKey = value.nested[i];
+                    if (isLoopVariable(nestedKey)) {
+                        markers.push({
+                            type: 'nested_loop_var',
+                            path: dotPath,
+                            nestedIndex: i,
+                            loopVarNested: nestedKey.nested,
+                        });
+                        // Also add derived_var/server_component markers if this variable needs separate caching
+                        if (isDerivedVariable(value)) {
+                            markers.push({
+                                type: 'derived_var',
+                                path: dotPath,
+                                loopInstanceUid: nestedKey.uid,
+                            });
+                        }
+                        if (isPyComponent(value)) {
+                            markers.push({
+                                type: 'server_component',
+                                path: dotPath,
+                                loopInstanceUid: nestedKey.uid,
+                            });
+                        }
+                    }
+                }
+            }
+
             if (isPlainObject(value) || Array.isArray(value)) {
                 const newScope = updateScope(scope, value, dotPath);
 
@@ -154,6 +203,16 @@ export function applyMarkers<T extends Record<string, any>>({
                 }
 
                 set(clonedRenderer, marker.path, value);
+                break;
+            }
+            case 'nested_loop_var': {
+                // Resolve LoopVariable inside a variable's nested array to a string key
+                const resolvedKey = resolveNested(loopValue, marker.loopVarNested);
+                // Replace the LoopVariable in the nested array with the resolved string
+                const variable = get(clonedRenderer, marker.path);
+                if (variable && Array.isArray(variable.nested)) {
+                    variable.nested[marker.nestedIndex] = String(resolvedKey);
+                }
                 break;
             }
             case 'action': {

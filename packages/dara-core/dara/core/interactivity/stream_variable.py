@@ -21,11 +21,20 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
-from typing import Any, Generic, Literal
+from typing import TYPE_CHECKING, Any, Generic, Literal
 
 from fastapi import Request
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
+
+if TYPE_CHECKING:
+    from dara.core.interactivity.loop_variable import LoopVariable
+
+    # Type alias for static type checking
+    NestedKey = str | LoopVariable
+else:
+    # At runtime, use Any to avoid forward reference issues with Pydantic
+    NestedKey = Any
 
 from dara.core.base_definitions import BaseTask
 from dara.core.interactivity.any_variable import AnyVariable
@@ -119,7 +128,7 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
     uid: str
     variables: list[AnyVariable] = Field(default_factory=list)
     key_accessor: str | None = None
-    nested: list[str] = Field(default_factory=list)
+    nested: list[NestedKey] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -160,7 +169,7 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
         variables: list[AnyVariable] | None = None,
         key_accessor: str | None = None,
         uid: str | None = None,
-        nested: list[str] | None = None,
+        nested: list[NestedKey] | None = None,
         **kwargs,
     ):
         """
@@ -201,12 +210,14 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
             ),
         )
 
-    def get(self, *keys: str) -> StreamVariable[Any]:
+    def get(self, *keys: NestedKey) -> StreamVariable[Any]:
         """
         Access a nested value within the stream's accumulated state.
 
         This is useful when the stream accumulates complex state (via snapshot/patch)
         and you want to access a specific part of it.
+
+        Keys can be strings or LoopVariables for dynamic access within a For loop.
 
         Example::
 
@@ -215,11 +226,20 @@ class StreamVariable(ClientVariable, Generic[VariableType]):
             # Access nested value
             Text(dashboard.get('meta', 'count'))
 
+            # Dynamic access using LoopVariable
+            items = Variable([{'id': 'a'}, {'id': 'b'}])
+            For(items=items, renderer=Text(dashboard.get(items.list_item.get('id'))))
+
         :param keys: One or more keys to traverse into the nested structure.
+                    Can be strings or LoopVariables.
         :return: A new StreamVariable pointing to the nested path.
         """
+        from dara.core.interactivity.loop_variable import LoopVariable
+
+        # Preserve LoopVariables as-is, convert other types to strings
+        processed_keys: list[NestedKey] = [k if isinstance(k, LoopVariable) else str(k) for k in keys]
         return self.model_copy(
-            update={'nested': [*self.nested, *[str(k) for k in keys]]},
+            update={'nested': [*self.nested, *processed_keys]},
             deep=True,
         )
 

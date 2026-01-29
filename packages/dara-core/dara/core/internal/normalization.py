@@ -57,11 +57,24 @@ class Referrable(TypedDict):
 
 
 class ReferrableWithNested(Referrable):
-    nested: list[str]
+    nested: list[str | dict]  # dict represents serialized LoopVariable
 
 
 class ReferrableWithFilters(Referrable):
     filters: dict
+
+
+def _serialize_nested_key(key: str | dict) -> str:
+    """
+    Serialize a single nested key for identifier computation.
+
+    Handles both string keys and LoopVariable dicts.
+    """
+    if isinstance(key, dict) and key.get('__typename') == 'LoopVariable':
+        # Format: LoopVar:uid:nested.joined
+        loop_nested = ','.join(key.get('nested', []))
+        return f'LoopVar:{key["uid"]}:{loop_nested}'
+    return str(key)
 
 
 def _get_identifier(obj: Referrable) -> str:
@@ -74,7 +87,9 @@ def _get_identifier(obj: Referrable) -> str:
 
     # If it's a Variable with 'nested', the property should be included in the identifier
     if _is_referrable_nested(obj) and len(obj['nested']) > 0:
-        nested = ','.join(cast(list[str], obj['nested']))
+        # Handle mixed string/LoopVariable nested
+        nested_parts = [_serialize_nested_key(k) for k in obj['nested']]
+        nested = ','.join(nested_parts)
         identifier = f'{identifier}:{nested}'
 
     return identifier
