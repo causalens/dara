@@ -745,23 +745,6 @@ type = "directory"
 url = "packages/dara-core"
 
 [[package]]
-name = "decision-app"
-version = "1.25.0"
-description = "Decision App"
-optional = false
-python-versions = ">=3.10.0, <3.13.0"
-files = []
-develop = true
-
-[package.dependencies]
-dara-components = "1.25.0"
-dara-core = "1.25.0"
-
-[package.source]
-type = "directory"
-url = "packages/decision-app"
-
-[[package]]
 name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
