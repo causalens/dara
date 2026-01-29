@@ -122,6 +122,72 @@ class TestVariables(unittest.TestCase):
         with self.assertRaises(ValueError):
             (DerivedVariable(test_resolver, variables=[variable], uid='test_task_var'),)
 
+    def test_getter_with_loop_variable(self):
+        """Test that Variable.get() accepts LoopVariable for dynamic nested access"""
+        from dara.core.interactivity.loop_variable import LoopVariable
+
+        variable = Variable({'user1': 'Alice', 'user2': 'Bob'})
+        items = Variable([{'id': 'user1'}, {'id': 'user2'}])
+
+        # Get with LoopVariable
+        nested_var = variable.get(items.list_item.get('id'))
+
+        # Should have one element in nested, which is a LoopVariable
+        assert len(nested_var.nested) == 1
+        assert isinstance(nested_var.nested[0], LoopVariable)
+        assert nested_var.nested[0].nested == ['id']
+
+    def test_getter_with_loop_variable_chained(self):
+        """Test chaining .get() with both strings and LoopVariable"""
+        from dara.core.interactivity.loop_variable import LoopVariable
+
+        variable = Variable({'data': {'user1': {'name': 'Alice'}, 'user2': {'name': 'Bob'}}})
+        items = Variable([{'id': 'user1'}, {'id': 'user2'}])
+
+        # Chain string and LoopVariable
+        nested_var = variable.get('data').get(items.list_item.get('id')).get('name')
+
+        # Should have: 'data', LoopVariable, 'name'
+        assert len(nested_var.nested) == 3
+        assert nested_var.nested[0] == 'data'
+        assert isinstance(nested_var.nested[1], LoopVariable)
+        assert nested_var.nested[2] == 'name'
+
+    def test_getter_with_loop_variable_serialization(self):
+        """Test that Variable with LoopVariable in nested serializes correctly"""
+        from dara.core.interactivity.loop_variable import LoopVariable
+
+        variable = Variable({})
+        items = Variable([])
+        nested_var = variable.get(items.list_item.get('key'))
+
+        class Component(ComponentInstance):
+            value: Variable[Any]
+
+        component = Component(value=nested_var)
+
+        # Check serialization
+        serialized = jsonable_encoder(component)
+        assert serialized['props']['value']['__typename'] == 'Variable'
+        assert len(serialized['props']['value']['nested']) == 1
+        # The LoopVariable should be serialized as a dict
+        assert serialized['props']['value']['nested'][0]['__typename'] == 'LoopVariable'
+        assert serialized['props']['value']['nested'][0]['nested'] == ['key']
+
+    def test_derived_variable_getter_with_loop_variable(self):
+        """Test that DerivedVariable.get() accepts LoopVariable"""
+        from dara.core.interactivity.loop_variable import LoopVariable
+
+        variable = Variable()
+        derived_variable = DerivedVariable(test_resolver, variables=[variable])
+        items = Variable([{'id': 'a'}])
+
+        # Get with LoopVariable
+        nested_dv = derived_variable.get(items.list_item.get('id'))
+
+        assert len(nested_dv.nested) == 1
+        assert isinstance(nested_dv.nested[0], LoopVariable)
+
 
 async def test_derived_variables_with_df_nan():
     """

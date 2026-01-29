@@ -130,6 +130,43 @@ def test_normalizes_components_with_plain_variable():
     assert denormalize(normalized_layout, lookup_map) == denormalized_data
 
 
+def test_normalizes_variable_with_loop_variable_nested():
+    """
+    Test that a Variable with a LoopVariable in its nested array is normalized correctly.
+    The identifier should include the serialized LoopVariable.
+    """
+    from dara.core.interactivity.loop_variable import LoopVariable
+
+    items = Variable([{'id': 'user1'}, {'id': 'user2'}])
+    # Create a variable with LoopVariable in nested
+    text_var = Variable({}).get('static_key').get(items.list_item.get('id'))
+
+    layout = MockStack(MockText(text=text_var))
+
+    # Get the LoopVariable uid from the nested array
+    loop_var = text_var.nested[1]
+    assert isinstance(loop_var, LoopVariable)
+
+    template_data = {
+        'var_uid': str(text_var.uid),
+        'loop_var_uid': str(loop_var.uid),
+        'mock_stack_uid': str(layout.uid),
+        'mock_text_uid': str(layout.children[0].uid),
+    }
+
+    layout_dict = jsonable_encoder(layout)
+    normalized_layout, lookup_map = normalize(layout_dict)
+
+    test_data_path = os.path.join(ROOT_TEST_DATA_PATH, 'variable_with_loop_variable_nested')
+    lookup_data = read_template_json(os.path.join(test_data_path, 'lookup.json'), template_data)
+    normalized_data = read_template_json(os.path.join(test_data_path, 'normalized.json'), template_data)
+    denormalized_data = read_template_json(os.path.join(test_data_path, 'denormalized.json'), template_data)
+
+    assert normalized_layout == normalized_data, 'Failed for variable_with_loop_variable_nested'
+    assert_dict_equal(lookup_map, lookup_data)
+    assert denormalize(normalized_layout, lookup_map) == denormalized_data
+
+
 def test_normalizes_components_with_derived_variable():
     root_var = Variable('test')
     dv = DerivedVariable(func=lambda x: x, variables=[root_var])
@@ -242,6 +279,44 @@ def test_normalizes_nested_derived_variables():
     assert normalized_var == normalized_data, 'Failed for nested_derived_variable'
     assert_dict_equal(lookup_map, lookup_data)
     assert_dict_equal(denormalize(normalized_var, lookup_map), denormalized_data)
+
+
+def test_get_identifier_with_loop_variable_in_nested():
+    """Test that _get_identifier handles LoopVariable in nested array correctly"""
+    from dara.core.internal.normalization import _get_identifier
+
+    # Test with string-only nested
+    obj_string_nested = {
+        '__typename': 'Variable',
+        'uid': 'var-123',
+        'nested': ['a', 'b', 'c'],
+    }
+    identifier = _get_identifier(obj_string_nested)
+    assert identifier == 'Variable:var-123:a,b,c'
+
+    # Test with LoopVariable in nested
+    obj_with_loop_var = {
+        '__typename': 'Variable',
+        'uid': 'var-456',
+        'nested': [
+            'static_key',
+            {'__typename': 'LoopVariable', 'uid': 'loop-789', 'nested': ['id']},
+        ],
+    }
+    identifier_with_loop = _get_identifier(obj_with_loop_var)
+    assert identifier_with_loop == 'Variable:var-456:static_key,LoopVar:loop-789:id'
+
+    # Test with multiple LoopVariables
+    obj_multi_loop = {
+        '__typename': 'DerivedVariable',
+        'uid': 'dv-abc',
+        'nested': [
+            {'__typename': 'LoopVariable', 'uid': 'loop-1', 'nested': ['section']},
+            {'__typename': 'LoopVariable', 'uid': 'loop-2', 'nested': ['key', 'subkey']},
+        ],
+    }
+    identifier_multi = _get_identifier(obj_multi_loop)
+    assert identifier_multi == 'DerivedVariable:dv-abc:LoopVar:loop-1:section,LoopVar:loop-2:key,subkey'
 
 
 def test_denormalizes_request_data():

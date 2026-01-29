@@ -1,0 +1,28 @@
+{
+  "name": "MockStack",
+  "props": {
+    "children": [
+      {
+        "name": "MockText",
+        "props": {
+          "text": {
+            "default": {},
+            "nested": [
+              "static_key",
+              {
+                "__typename": "LoopVariable",
+                "uid": "{{loop_var_uid}}",
+                "nested": ["id"]
+              }
+            ],
+            "uid": "{{var_uid}}",
+            "__typename": "Variable",
+            "store": null
+          }
+        },
+        "uid": "{{mock_text_uid}}"
+      }
+    ]
+  },
+  "uid": "{{mock_stack_uid}}"
+}
