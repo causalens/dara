@@ -89,10 +89,8 @@ def _resolve_nested(value: Any, nested: list[str] | None) -> Any:
                 return None
             result = result[key]
         elif isinstance(result, BaseModel):
-            # not a key that's defined on the model, resolve to None
-            if not key in result.__class__.model_fields:
-                return None
-            result = getattr(result, key)
+            # fall back to None, if key doesn't exist/is None, we'll skip iterating anyway
+            result = getattr(result, key, None)
 
     return result
 
