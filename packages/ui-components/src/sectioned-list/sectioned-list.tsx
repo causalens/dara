@@ -61,6 +61,7 @@ const ListItemSpan = styled(StyledListItem)<ListSpanProps>`
 
     font-weight: ${(props) => (props?.heading ? 'bold' : 'normal')};
     color: ${(props) => getTextColor(props?.heading, props.isSelected, props.theme)};
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 
     ${(props) => {
         if (props.heading) {
@@ -115,6 +116,8 @@ export interface SectionedListProps extends InteractiveComponentProps<Item> {
     placeholder?: string;
     /** Pass through of style property to the root element */
     style?: React.CSSProperties;
+    /** Font size in rem to show in the Select */
+    size?: number;
 }
 
 type SectionedListItemProps = {
@@ -123,6 +126,7 @@ type SectionedListItemProps = {
     getItemProps: (options: { index: number; item: Item }) => any;
     isSelected: boolean;
     isHighlighted?: boolean;
+    size?: number;
 };
 
 const SectionedListItem = ({
@@ -131,6 +135,7 @@ const SectionedListItem = ({
     getItemProps,
     isSelected,
     isHighlighted,
+    size,
 }: SectionedListItemProps): JSX.Element => {
     const theme = useTheme();
     const { itemClassName, ...itemProps } = getItemProps({ index, item });
@@ -147,6 +152,7 @@ const SectionedListItem = ({
             title={item.label}
             item={item}
             index={index}
+            size={size}
             isHighlighted={isHighlighted}
         >
             {item.label || item.section}
@@ -343,11 +349,12 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                 item={item}
                 index={index}
                 getItemProps={getItemProps}
+                size={props.size}
                 isSelected={selectedItem?.value === item.value}
                 isHighlighted={isOpen && kbdHighlightIdx !== undefined && kbdHighlightIdx === index}
             />
         ),
-        [getItemProps, selectedItem, isOpen, kbdHighlightIdx]
+        [getItemProps, selectedItem, isOpen, kbdHighlightIdx, props.size]
     );
 
     return (
@@ -360,7 +367,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             id={props.id}
         >
             <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
-                <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} />
+                <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} size={props.size} />
                 <ChevronButton disabled={props.disabled} isOpen={isOpen} getToggleButtonProps={getToggleButtonProps} />
             </InputWrapper>
             {ReactDOM.createPortal(
@@ -370,6 +377,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                     getFloatingProps={getFloatingProps}
                     style={dropdownStyle}
                     isOpen={isOpen}
+                    size={props.size}
                     getMenuProps={getMenuProps}
                     ref={refs.setFloating}
                     kbdHighlightIdx={kbdHighlightIdx}
