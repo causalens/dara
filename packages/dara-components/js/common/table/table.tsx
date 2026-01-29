@@ -20,6 +20,7 @@ import {
     UserError,
     type Variable,
     combineFilters,
+    getIcon,
     injectCss,
     useAction,
     useComponentStyles,
@@ -69,6 +70,10 @@ interface TableProps extends StyledComponentProps {
      */
     onselect_row?: Action;
     /**
+     * On action handler; when provided, is called when an action is performed
+     */
+    on_action?: Action;
+    /**
      * List of searchable columns
      */
     search_columns?: Array<string>;
@@ -93,6 +98,23 @@ interface TableProps extends StyledComponentProps {
      * Whether to render the index column
      */
     include_index?: boolean;
+
+    /**
+     * Set a Row Height for the table, if not set, the row height will be the table default(font size * 2.5)
+     */
+
+    row_height?: number;
+
+    /**
+     * Optional actions for the table
+     */
+    actions?: Array<ActionProps>;
+}
+
+interface ActionProps {
+    icon_name: string;
+    label: string;
+    id: string;
 }
 
 interface ColumnProps {
@@ -670,13 +692,31 @@ function Table(props: TableProps): JSX.Element {
         ]
     );
 
+    const onActionRaw = useAction(props.on_action);
+
     const onAction = useCallback(
         (actionId: string, row: any): void => {
             if (actionId === UiTable.Actions.SELECT.id) {
                 onSelect(row, true);
             }
+
+            // Call the on_action handler, if it doesn't exist, it is a no-op anyways
+            onActionRaw({
+                action_id: actionId,
+                data: row,
+            });
         },
-        [onSelect]
+        [onSelect, onActionRaw]
+    );
+
+    const actions = useMemo(
+        () =>
+            props.actions?.map((action) => ({
+                icon: getIcon(action.icon_name),
+                label: action.label,
+                id: action.id,
+            })) ?? [],
+        [props.actions]
     );
 
     const searchColumns = useMemo(() => props.search_columns ?? [], [props.search_columns]);
@@ -776,6 +816,8 @@ function Table(props: TableProps): JSX.Element {
                         onFilter={onFilter}
                         onItemsRendered={onItemsRendered}
                         onSort={onSort}
+                        rowHeight={props.row_height}
+                        actions={actions}
                         style={{ padding: 0 }}
                     />
                 </div>
