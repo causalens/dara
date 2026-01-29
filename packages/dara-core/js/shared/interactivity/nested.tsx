@@ -27,8 +27,8 @@ export function resolveNested<T extends Record<string, any>>(obj: T, nested: Nes
     let returnVal = obj;
 
     for (const key of nested) {
-        // After templating, all keys should be strings. If a non-string is found, it's a bug.
-        const stringKey = typeof key === 'string' ? key : String(key);
+        // After templating, all keys are guaranteed to be strings
+        const stringKey = key as string;
 
         // If the key doesn't exist, return null as we're referring to a path which doesn't exist yet
         if (!Object.keys(returnVal).includes(stringKey)) {
@@ -66,8 +66,8 @@ export function setNested<T extends Record<string, any>>(obj: T, nested: NestedK
     // Need to clone to prevent reference issues
     const cloned = clone(obj);
 
-    // After templating, all keys should be strings. If a non-string is found, convert it.
-    const key = typeof nested[0] === 'string' ? nested[0] : String(nested[0]);
+    // After templating, all keys are guaranteed to be strings
+    const key = nested[0] as string;
     if (!Object.keys(obj).includes(key)) {
         (cloned as any)[key] = {};
     }

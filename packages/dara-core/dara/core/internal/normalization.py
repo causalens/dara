@@ -21,7 +21,6 @@ from typing import (
     Generic,
     TypeGuard,
     TypeVar,
-    cast,
     overload,
 )
 
