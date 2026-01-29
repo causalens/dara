@@ -14,8 +14,8 @@ def loop_variable_nested():
 
     # ==================== BASIC DYNAMIC ACCESS ====================
     # A dictionary where keys come from loop items
-    user_data = Variable({'user1': 'Alice', 'user2': 'Bob', 'user3': 'Charlie'})
-    user_ids = Variable([{'id': 'user1'}, {'id': 'user2'}, {'id': 'user3'}])
+    user_data = Variable({'user1': 'Alice', 'user2': 'Bob'})
+    user_ids = Variable([{'id': 'user1'}, {'id': 'user2'}])
 
     basic_section = Card(
         Stack(
@@ -65,17 +65,15 @@ def loop_variable_nested():
     deep_data = Variable(
         {
             'categories': {
-                'fruits': {'apple': 'Red', 'banana': 'Yellow'},
-                'vegetables': {'carrot': 'Orange', 'lettuce': 'Green'},
+                'fruits': {'apple': 'Red'},
+                'vegetables': {'carrot': 'Orange'},
             }
         }
     )
     category_items = Variable(
         [
             {'category': 'fruits', 'item': 'apple'},
-            {'category': 'fruits', 'item': 'banana'},
             {'category': 'vegetables', 'item': 'carrot'},
-            {'category': 'vegetables', 'item': 'lettuce'},
         ]
     )
 
@@ -152,4 +150,8 @@ def loop_variable_nested():
         title='Dynamic List Update',
     )
 
-    return Stack(basic_section, editable_section, deep_section, dynamic_section)
+    # Use 2x2 grid layout to fit on screen
+    return Stack(
+        Stack(basic_section, editable_section, direction='horizontal'),
+        Stack(deep_section, dynamic_section, direction='horizontal'),
+    )
