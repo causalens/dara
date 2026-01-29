@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added support for `LoopVariable` in `Variable.get()` nested property, enabling dynamic property access like `my_var.get(items.list_item.get('id'))` inside `For` loops
+
 ## 1.25.0
 
 - Added `StreamVariable` - a new variable type for SSE-based real-time event streams. Supports keyed mode (list of items with unique IDs) and custom JSON mode (arbitrary state with JSON Patch). Includes automatic reconnection with exponential backoff and proper lifecycle management via Recoil atom effects.
