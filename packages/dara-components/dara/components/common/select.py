@@ -123,6 +123,7 @@ class Select(FormComponent):
     :param placeholder: Placeholder text to be displayed when the select is empty
     :param searchable: Boolean, if True the items can be filtered via a search term
     :param value: A Variable instance recording the component's state
+    :param size: An optional font size for the select component, in REM units
     """
 
     id: str | None = None
@@ -133,6 +134,7 @@ class Select(FormComponent):
     onchange: Action | None = None
     placeholder: str | None = None
     value: Variable[Any] | None = None
+    size: int | float | None = None
 
     @field_validator('items', mode='before')
     @classmethod
