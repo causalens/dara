@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { nanoid } from 'nanoid';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import type { Params } from 'react-router';
 import {
     type RecoilState,
@@ -33,6 +33,7 @@ import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
 import { preloadDerivedValue, resolveDerivedValue } from './derived-variable';
+import { findStreamVariablesInArray } from './find-stream-variables';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
 import { cleanKwargs, resolveVariable } from './resolve-variable';
 import {
@@ -42,6 +43,7 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
+import { useStreamSubscription } from './use-stream-subscription';
 
 function isTaskResponse(response: any): response is TaskResponse {
     return response && typeof response === 'object' && 'task_id' in response;
@@ -394,6 +396,15 @@ export default function useServerComponent(
             variablesContext?.variables.current.delete(getComponentRegistryKey(uid));
         };
     }, []);
+
+    // Find all StreamVariables in dynamicKwargs and subscribe to them
+    // This runs in useEffect - tracks active users so we know when to cleanup
+    // Keyed by uid+extras so different auth contexts are independent
+    const streamUids = useMemo(
+        () => findStreamVariablesInArray(Object.values(dynamicKwargs)).map((s) => s.uid),
+        [dynamicKwargs]
+    );
+    useStreamSubscription(streamUids, extras);
 
     const componentSelector = getOrRegisterServerComponent({
         name,

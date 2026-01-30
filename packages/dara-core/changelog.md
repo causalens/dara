@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Improved: Stream variables now properly cleanup SSE connections when components unmount using reference counting, instead of relying on Recoil's unreliable atom release
+
 ## 1.25.1
 
 - Added support for `LoopVariable` in `Variable.get()` nested property, enabling dynamic property access like `my_var.get(items.list_item.get('id'))` inside `For` loops
