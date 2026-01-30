@@ -247,8 +247,56 @@ jobs:
           path: packages/dara-core/cypress/screenshots
           retention-days: 30
 
+  changelog-parser-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install changelog-parser dependencies
+        run: npm install --registry https://registry.npmjs.org/
+        working-directory: tooling/changelog-parser
+      - name: Build changelog-parser
+        run: node ./esbuild.js
+        working-directory: tooling/changelog-parser
+      - name: Test changelog parser output is valid JSON
+        run: |
+          # Run parser for v1.25.1 (known to contain single quotes that previously broke parsing)
+          OUTPUT=$(./tooling/changelog-parser/main.js v1.25.1)
+          echo "Parser output: $OUTPUT"
+          
+          # Verify it's valid JSON and can be used in JS string contexts
+          node -e "
+            const output = process.argv[1];
+            
+            // 1. Verify it's valid JSON
+            const parsed = JSON.parse(output);
+            console.log('✓ Valid JSON with', parsed.length, 'sections');
+            
+            // 2. Simulate the old workflow: single-quoted JS string (what used to break)
+            // This tests that single quotes are properly escaped
+            try {
+              eval(\"JSON.parse('\" + output + \"')\");
+              console.log('✓ Safe for single-quoted JS string interpolation');
+            } catch (e) {
+              console.error('✗ Failed single-quote test:', e.message);
+              process.exit(1);
+            }
+            
+            // 3. Simulate toJSON() output (defense in depth)
+            try {
+              eval('JSON.parse(' + JSON.stringify(output) + ')');
+              console.log('✓ Safe for toJSON() interpolation');
+            } catch (e) {
+              console.error('✗ Failed toJSON test:', e.message);
+              process.exit(1);
+            }
+            
+            console.log('All validations passed');
+          " "$OUTPUT"
+
   notify:
-    needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests]
+    needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests, changelog-parser-test]
     runs-on: ubuntu-latest
     if: always()
     steps:
