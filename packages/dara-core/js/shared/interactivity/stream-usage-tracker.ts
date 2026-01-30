@@ -118,6 +118,7 @@ function restartConnections(key: string): void {
                 conn.active = true;
             } catch (err) {
                 // Log but don't throw - allow other connections to restart
+                // eslint-disable-next-line no-console
                 console.error(`Failed to restart stream connection ${atomKey}:`, err);
             }
         }

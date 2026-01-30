@@ -9,7 +9,7 @@ import { useRecoilValue } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { _internal, getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
+import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import {
     clearStreamUsage_TEST,
     getActiveConnectionCount,

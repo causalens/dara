@@ -98,7 +98,7 @@ export function findStreamVariables(variable: AnyVariable<unknown>): StreamVaria
  * @param variables Array of variables to search
  * @returns Array of all unique StreamVariables found
  */
-export function findStreamVariablesInArray(variables: Array<AnyVariable<unknown> | unknown>): StreamVariable[] {
+export function findStreamVariablesInArray(variables: unknown[]): StreamVariable[] {
     const allStreams: StreamVariable[] = [];
     const seenUids = new Set<string>();
 

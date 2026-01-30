@@ -19,12 +19,7 @@ import {
     extractKey,
     getStreamValue,
 } from '@/shared/interactivity/stream-variable';
-import {
-    clearStreamUsage_TEST,
-    getActiveConnectionCount,
-    getActiveConnectionKeys,
-    getConnectionController,
-} from '@/shared/interactivity/stream-usage-tracker';
+import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 
 import { server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
