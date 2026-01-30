@@ -109,12 +109,17 @@ function restartConnections(key: string): void {
     }
 
     // Restart any inactive connections
-    for (const [, conn] of usage.connections) {
+    for (const [atomKey, conn] of usage.connections) {
         if (!conn.active) {
-            const { cleanup, controller } = conn.start();
-            conn.cleanup = cleanup;
-            conn.controller = controller;
-            conn.active = true;
+            try {
+                const { cleanup, controller } = conn.start();
+                conn.cleanup = cleanup;
+                conn.controller = controller;
+                conn.active = true;
+            } catch (err) {
+                // Log but don't throw - allow other connections to restart
+                console.error(`Failed to restart stream connection ${atomKey}:`, err);
+            }
         }
     }
 }

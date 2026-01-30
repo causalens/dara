@@ -67,8 +67,9 @@ export function findStreamVariables(variable: AnyVariable<unknown>): StreamVaria
             } else if (isCondition(v.value)) {
                 walk(v.value.variable);
             }
-            if (isVariable(v.value_map)) {
-                walk(v.value_map);
+            // value_map is Record<string, Variable> - walk all values
+            if (v.value_map && typeof v.value_map === 'object') {
+                Object.values(v.value_map).forEach(walk);
             }
             if (isVariable(v.default)) {
                 walk(v.default);

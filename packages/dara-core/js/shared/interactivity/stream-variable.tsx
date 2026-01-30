@@ -40,18 +40,15 @@ import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { resolveNested, resolveValue, resolveVariable } from './internal';
 import { registerStreamConnection } from './stream-usage-tracker';
+import { type SelectorFamily } from './store';
+import { buildTriggerList, registerChildTriggers } from './triggers';
+
 /**
  * Local registry for stream selector families.
  * Only stores families (factory functions), NOT instances.
  * This allows Recoil to properly release instances when components unmount.
  */
 const streamSelectorFamilyRegistry = new Map<string, SelectorFamily>();
-
-/**
- * Selector family type (copied from store.tsx to avoid import)
- */
-type SelectorFamily = (P: RequestExtrasSerializable) => RecoilValue<unknown>;
-import { buildTriggerList, registerChildTriggers } from './triggers';
 
 /**
  * Stream event types as sent from the server
