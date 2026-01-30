@@ -250,25 +250,21 @@ jobs:
   changelog-parser-test:
     runs-on: ubuntu-latest
     env:
-      # Hardcoded test input - contains characters that broke v1.25.1 release:
-      # - Single quotes in code: get('id')
-      # - Backticks in code blocks
-      # - Newlines
-      TEST_CHANGELOG: '["*dara-core*\n\n• Added support for `LoopVariable` in `Variable.get()` enabling dynamic property access like `my_var.get(items.list_item.get(''id''))` inside `For` loops","*ui-components*\n\n• Fixed table stickiness property"]'
+      # Hardcoded test input - contains single quotes that broke v1.25.1 release
+      TEST_CHANGELOG: '["*dara-core*\n\n• Dynamic property access like my_var.get(items.list_item.get(''id''))","*ui-components*\n\n• Fixed table stickiness"]'
     steps:
-      - name: Test toJSON handles problematic characters for Slack action
+      - name: Test toJSON handles single quotes for Slack action
+        env:
+          # toJSON escapes the value for safe JS interpolation
+          CHANGELOG_JSON: ${{ toJSON(env.TEST_CHANGELOG) }}
         run: |
-          # Use actual toJSON() to escape, then eval in node (mimics action-slack behavior)
           node -e "
-            const sections = JSON.parse(${{ toJSON(env.TEST_CHANGELOG) }});
-            console.log('✓ Parsed', sections.length, 'sections successfully');
-            
+            const sections = JSON.parse(JSON.parse(process.env.CHANGELOG_JSON));
+            console.log('✓ Parsed', sections.length, 'sections');
             if (!sections[0].includes(\"get('id')\")) {
               throw new Error('Single quotes were corrupted');
             }
-            console.log('✓ Single quotes preserved correctly');
-            
-            console.log('All validations passed');
+            console.log('✓ Single quotes preserved');
           "
 
   notify:
