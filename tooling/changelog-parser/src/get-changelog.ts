@@ -81,6 +81,8 @@ export async function getChangelogForTag(tag: string, rootDirectory: string): Pr
 
     await Promise.allSettled(tasks);
 
-    // Postprocess - escape newlines
-    return changelogSections.map((section) => section.replace(/\n/g, '\\n'));
+    // Postprocess - escape backslashes, single quotes, and newlines for safe JS string interpolation
+    return changelogSections.map((section) =>
+        section.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')
+    );
 }
