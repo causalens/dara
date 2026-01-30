@@ -81,6 +81,7 @@ export async function getChangelogForTag(tag: string, rootDirectory: string): Pr
 
     await Promise.allSettled(tasks);
 
-    // Postprocess - escape newlines
-    return changelogSections.map((section) => section.replace(/\n/g, '\\n'));
+    // No additional escaping needed - JSON.stringify in the caller handles it,
+    // and the workflow uses toJSON() for safe interpolation
+    return changelogSections;
 }

@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.1
 
 - Added `size` prop to `Select` component to control font-size of each sub-component
 - Added `row_height` prop to table to allow users to set the table height
