@@ -8,6 +8,7 @@ import jwt
 import pytest
 from anyio import create_task_group
 from async_asgi_testclient import TestClient as AsyncClient
+from pydantic import BaseModel
 
 from dara.core import DerivedVariable, Variable
 from dara.core.auth.basic import MultiBasicAuthConfig
@@ -2074,6 +2075,195 @@ async def test_deeply_nested_derived_variable_chain():
                             }
                         ],
                         'nested': ['l2', 'data'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 60
+        assert l1_mock.call_count == 1
+        assert l2_mock.call_count == 1
+        assert l3_mock.call_count == 1
+
+
+class InnerPydanticModel(BaseModel):
+    value: int
+    extra: str
+
+
+class OuterPydanticModel(BaseModel):
+    data: InnerPydanticModel
+
+
+async def test_nested_derived_variable_pydantic_model():
+    """
+    Test that a DerivedVariable returning a pydantic model can have nested properties resolved.
+    Regression test for: nested property access did not work if DV resolved to a pydantic model.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a: int) -> OuterPydanticModel:
+        return OuterPydanticModel(data=InnerPydanticModel(value=a * 2, extra='ignored'))
+
+    def outer_func(nested_value: int) -> int:
+        # nested_value should be just the 'value' field (a * 2)
+        return nested_value + 100
+
+    inner_mock = Mock(wraps=inner_func)
+    outer_mock = Mock(wraps=outer_func)
+
+    inner_dv = DerivedVariable(inner_mock, variables=[var1])
+    outer_dv = DerivedVariable(outer_mock, variables=[inner_dv.get('data').get('value')])
+
+    builder.add_page('Test', content=MockComponent(text=outer_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Inner returns OuterPydanticModel(data=InnerPydanticModel(value=10, extra='ignored')) for input 5
+        # Nested path ['data', 'value'] should extract 10
+        # Outer should receive 10 and return 10 + 100 = 110
+        response = await _get_derived_variable(
+            client,
+            outer_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['data', 'value'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] == 110
+        assert inner_mock.call_count == 1
+        assert outer_mock.call_count == 1
+
+
+async def test_nested_derived_variable_pydantic_model_missing_path():
+    """
+    Test that when nested path doesn't exist on a pydantic model, None is returned.
+    Regression test for: nested property access did not work if DV resolved to a pydantic model.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def inner_func(a: int) -> OuterPydanticModel:
+        return OuterPydanticModel(data=InnerPydanticModel(value=a * 2, extra='test'))
+
+    def outer_func(nested_value):
+        # nested_value should be None if path doesn't exist
+        return nested_value
+
+    inner_mock = Mock(wraps=inner_func)
+    outer_mock = Mock(wraps=outer_func)
+
+    inner_dv = DerivedVariable(inner_mock, variables=[var1])
+    outer_dv = DerivedVariable(outer_mock, variables=[inner_dv.get('nonexistent').get('path')])
+
+    builder.add_page('Test', content=MockComponent(text=outer_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Request with a nested path that doesn't exist on the pydantic model
+        response = await _get_derived_variable(
+            client,
+            outer_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(inner_dv.uid),
+                        'values': [5],
+                        'nested': ['nonexistent', 'path'],
+                    }
+                ],
+                'ws_channel': 'test_channel',
+                'force_key': None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['value'] is None
+
+
+class Level1Model(BaseModel):
+    l1_data: int
+
+
+class Level2Model(BaseModel):
+    l2_data: int
+
+
+async def test_deeply_nested_derived_variable_chain_with_pydantic():
+    """
+    Test a chain of derived variables where nested properties are used at multiple levels,
+    with pydantic models returned at each level.
+    Regression test for: nested property access did not work if DV resolved to a pydantic model.
+    """
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+
+    def level1_func(a: int) -> Level1Model:
+        return Level1Model(l1_data=a * 2)
+
+    def level2_func(l1_val: int) -> Level2Model:
+        return Level2Model(l2_data=l1_val + 10)
+
+    def level3_func(l2_val: int) -> int:
+        return l2_val * 3
+
+    l1_mock = Mock(wraps=level1_func)
+    l2_mock = Mock(wraps=level2_func)
+    l3_mock = Mock(wraps=level3_func)
+
+    level1_dv = DerivedVariable(l1_mock, variables=[var1])
+    level2_dv = DerivedVariable(l2_mock, variables=[level1_dv.get('l1_data')])
+    level3_dv = DerivedVariable(l3_mock, variables=[level2_dv.get('l2_data')])
+
+    builder.add_page('Test', content=MockComponent(text=level3_dv))
+
+    config = create_app(builder)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        # Input: 5
+        # Level1: Level1Model(l1_data=10) -> nested extracts 10
+        # Level2: receives 10, returns Level2Model(l2_data=20) -> nested extracts 20
+        # Level3: receives 20, returns 20 * 3 = 60
+        response = await _get_derived_variable(
+            client,
+            level3_dv,
+            {
+                'values': [
+                    {
+                        'type': 'derived',
+                        'uid': str(level2_dv.uid),
+                        'values': [
+                            {
+                                'type': 'derived',
+                                'uid': str(level1_dv.uid),
+                                'values': [5],
+                                'nested': ['l1_data'],
+                            }
+                        ],
+                        'nested': ['l2_data'],
                     }
                 ],
                 'ws_channel': 'test_channel',

@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Internal: Route preloading now stops at control flow component boundaries (If, Match, For). Dependencies inside conditional branches are no longer preloaded since only one branch will render at runtime, reducing unnecessary work.
+- Fixed an issue where passing a `DerivedVariable` instance with `.get()` call to another `DerivedVariable`/`action`/`py_component` would not resolve `pydantic` model fields correctly
 
 ## 1.25.0
 
