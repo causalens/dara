@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+-  Fixed an issue where passing a `DerivedVariable` instance with `.get()` call to another `DerivedVariable`/`action`/`py_component` would not resolve `pydantic` model fields correctly
+
 ## 1.25.0
 
 - Added `StreamVariable` - a new variable type for SSE-based real-time event streams. Supports keyed mode (list of items with unique IDs) and custom JSON mode (arbitrary state with JSON Patch). Includes automatic reconnection with exponential backoff and proper lifecycle management via Recoil atom effects.
