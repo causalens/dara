@@ -158,21 +158,16 @@ export function getOrRegisterPlainVariable<T>(
                         ({ get }) => {
                             const variableValue = get(family(currentExtras));
 
-                            return resolveNested(
-                                variableValue,
-                                variable.nested.map((n) => String(n))
-                            );
+                            // After templating, all nested keys are guaranteed to be strings
+                            return resolveNested(variableValue, variable.nested as string[]);
                         },
                     key,
                     set:
                         (currentExtras: RequestExtrasSerializable) =>
                         ({ set }, newValue) => {
+                            // After templating, all nested keys are guaranteed to be strings
                             set(family(currentExtras), (v: Record<string, any>) =>
-                                setNested(
-                                    v,
-                                    variable.nested.map((n) => String(n)),
-                                    newValue
-                                )
+                                setNested(v, variable.nested as string[], newValue)
                             );
                         },
                 })

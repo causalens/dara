@@ -1,0 +1,19 @@
+{
+  "Variable:{{var_uid}}:static_key,LoopVar:{{loop_var_uid}}:id": {
+    "default": {},
+    "nested": [
+      "static_key",
+      {
+        "__ref": "LoopVariable:{{loop_var_uid}}:id"
+      }
+    ],
+    "uid": "{{var_uid}}",
+    "__typename": "Variable",
+    "store": null
+  },
+  "LoopVariable:{{loop_var_uid}}:id": {
+    "uid": "{{loop_var_uid}}",
+    "nested": ["id"],
+    "__typename": "LoopVariable"
+  }
+}

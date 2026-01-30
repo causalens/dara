@@ -1,12 +1,14 @@
 import {
     type AnyVariable,
     type DerivedVariable,
+    type NestedKey,
     type NormalizedPayload,
     type ResolvedDerivedVariable,
     isDerivedVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
 } from '@/types';
+import { isLoopVariable } from '@/types/utils';
 
 /* eslint-disable no-underscore-dangle */
 type Mapping = Record<string, any>;
@@ -21,11 +23,27 @@ function isPlaceholder(value: any): value is Placeholder {
     return typeof value === 'object' && '__ref' in value;
 }
 
+/**
+ * Serialize a nested key for identifier computation.
+ * Handles both string keys and LoopVariable objects.
+ */
+function serializeNestedKey(key: NestedKey): string {
+    if (typeof key === 'string') {
+        return key;
+    }
+    // It's a LoopVariable
+    if (isLoopVariable(key)) {
+        const loopNested = key.nested.join(',');
+        return `LoopVar:${key.uid}:${loopNested}`;
+    }
+    return String(key);
+}
+
 export function getIdentifier(variable: AnyVariable<any>): string {
     let id = `${variable.__typename}:${variable.uid}`;
 
     if ('nested' in variable && variable.nested.length > 0) {
-        id += `:${variable.nested.join(',')}`;
+        id += `:${variable.nested.map(serializeNestedKey).join(',')}`;
     }
 
     return id;

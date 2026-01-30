@@ -82,6 +82,12 @@ def _resolve_nested(value: Any, nested: list[str] | None) -> Any:
 
     result = value
     for key in nested:
+        # Defensive check: LoopVariable should have been resolved by frontend templating
+        if isinstance(key, dict):
+            raise ValueError(
+                'LoopVariable found in nested path during backend resolution. '
+                'This should have been resolved by frontend templating.'
+            )
         # Can recurse into a dict or a pydantic model
         if isinstance(result, dict):
             # Path does not exist, resolve to None
