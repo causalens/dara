@@ -19,6 +19,12 @@ import {
     extractKey,
     getStreamValue,
 } from '@/shared/interactivity/stream-variable';
+import {
+    clearStreamUsage_TEST,
+    getActiveConnectionCount,
+    getActiveConnectionKeys,
+    getConnectionController,
+} from '@/shared/interactivity/stream-usage-tracker';
 
 import { server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
@@ -37,19 +43,14 @@ describe('StreamVariable', () => {
         vi.restoreAllMocks();
         setSessionToken(SESSION_TOKEN);
         clearRegistries_TEST();
-        // Clear active connections between tests
-        _internal.activeConnections.clear();
+        clearStreamUsage_TEST();
     });
 
     afterEach(() => {
         setSessionToken(null);
         vi.clearAllTimers();
         server.resetHandlers();
-        // Abort any remaining connections
-        for (const controller of _internal.activeConnections.values()) {
-            controller.abort();
-        }
-        _internal.activeConnections.clear();
+        clearStreamUsage_TEST();
     });
 
     afterAll(() => server.close());
@@ -697,7 +698,7 @@ describe('StreamVariable', () => {
             ...overrides,
         });
 
-        it('returns a cleanup function that aborts the connection', () => {
+        it('returns cleanup and controller that can abort the connection', () => {
             // Setup SSE mock that never completes
             server.use(
                 http.post('/api/core/stream/test-stream', () => {
@@ -708,24 +709,26 @@ describe('StreamVariable', () => {
                 })
             );
 
-            const setSelf = vi.fn();
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
             const params = createMockParams();
 
-            const cleanup = _internal.startStreamConnection(params, setSelf);
+            const { cleanup, controller } = _internal.startStreamConnection(params, callbacks);
 
             expect(typeof cleanup).toBe('function');
-
-            // Should have registered a connection
-            expect(_internal.activeConnections.size).toBe(1);
+            expect(controller).toBeInstanceOf(AbortController);
 
             // Cleanup should abort
             cleanup();
 
-            // Connection should be removed
-            expect(_internal.activeConnections.size).toBe(0);
+            // Controller should be aborted
+            expect(controller.signal.aborted).toBe(true);
         });
 
-        it('aborts existing connection when starting new one with same key', () => {
+        it('returns new controller for each connection', () => {
             server.use(
                 http.post('/api/core/stream/test-stream', () => {
                     return new HttpResponse(null, {
@@ -735,23 +738,27 @@ describe('StreamVariable', () => {
                 })
             );
 
-            const setSelf = vi.fn();
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
             const params = createMockParams({ resolvedValues: ['dep1'] });
 
             // Start first connection
-            _internal.startStreamConnection(params, setSelf);
-            expect(_internal.activeConnections.size).toBe(1);
+            const first = _internal.startStreamConnection(params, callbacks);
+            const firstController = first.controller;
 
-            // Get the first controller (we verified size is 1 above)
-            const firstKey = Array.from(_internal.activeConnections.keys())[0]!;
-            const firstController = _internal.activeConnections.get(firstKey)!;
-            const abortSpy = vi.spyOn(firstController, 'abort');
+            // Start second connection with same params
+            const second = _internal.startStreamConnection(params, callbacks);
+            const secondController = second.controller;
 
-            // Start second connection with same params (should abort first)
-            _internal.startStreamConnection(params, setSelf);
+            // Should be different controllers
+            expect(firstController).not.toBe(secondController);
 
-            expect(abortSpy).toHaveBeenCalled();
-            expect(_internal.activeConnections.size).toBe(1); // Still just one
+            // Clean up
+            first.cleanup();
+            second.cleanup();
         });
     });
 });

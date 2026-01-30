@@ -22,6 +22,7 @@ import {
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
+
 // eslint-disable-next-line import/no-cycle
 import {
     getOrRegisterPlainVariable,
@@ -29,7 +30,9 @@ import {
     useDerivedVariable,
     useSwitchVariable,
 } from './internal';
+import { findStreamVariables } from './find-stream-variables';
 import { getOrRegisterStreamVariable } from './stream-variable';
+import { useStreamSubscription } from './use-stream-subscription';
 import { useTabularVariable } from './use-tabular-variable';
 
 /** Disabling rules of hook because of assumptions that variables never change their types which makes the hook order consistent */
@@ -101,6 +104,13 @@ export function useVariable<T>(
             variablesContext?.variables.current.delete(variable.uid);
         };
     }, []);
+
+    // Find all StreamVariables in the dependency tree and subscribe to them
+    // This runs in useEffect - the SSE starts immediately in atom effect,
+    // this just tracks active users so we know when to cleanup
+    // Keyed by uid+extras so different auth contexts are independent
+    const streamUids = useMemo(() => findStreamVariables(variable).map((s) => s.uid), [variable.uid]);
+    useStreamSubscription(streamUids, extras);
 
     if (isDerivedVariable(variable)) {
         const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
