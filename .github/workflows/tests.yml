@@ -262,38 +262,37 @@ jobs:
       - name: Test changelog parser output is valid JSON
         run: |
           # Run parser for v1.25.1 (known to contain single quotes that previously broke parsing)
-          OUTPUT=$(./tooling/changelog-parser/main.js v1.25.1)
-          echo "Parser output: $OUTPUT"
-          
-          # Verify it's valid JSON and can be used in JS string contexts
-          node -e "
-            const output = process.argv[1];
+          # Pipe directly to node to avoid bash escape interpretation
+          ./tooling/changelog-parser/main.js v1.25.1 | node -e "
+            const fs = require('fs');
+            const output = fs.readFileSync('/dev/stdin', 'utf8');
+            console.log('Parser output:', output.substring(0, 200) + '...');
             
             // 1. Verify it's valid JSON
             const parsed = JSON.parse(output);
             console.log('✓ Valid JSON with', parsed.length, 'sections');
             
-            // 2. Simulate the old workflow: single-quoted JS string (what used to break)
-            // This tests that single quotes are properly escaped
-            try {
-              eval(\"JSON.parse('\" + output + \"')\");
-              console.log('✓ Safe for single-quoted JS string interpolation');
-            } catch (e) {
-              console.error('✗ Failed single-quote test:', e.message);
-              process.exit(1);
-            }
+            // 2. Verify each section is a string (as expected by Slack)
+            parsed.forEach((section, i) => {
+              if (typeof section !== 'string') {
+                console.error('✗ Section', i, 'is not a string:', typeof section);
+                process.exit(1);
+              }
+            });
+            console.log('✓ All sections are strings');
             
-            // 3. Simulate toJSON() output (defense in depth)
+            // 3. Simulate toJSON() workflow (how it's used in release.yml)
+            // toJSON() wraps the value in quotes and escapes for JS context
             try {
-              eval('JSON.parse(' + JSON.stringify(output) + ')');
-              console.log('✓ Safe for toJSON() interpolation');
+              const result = eval('JSON.parse(' + JSON.stringify(output) + ')');
+              console.log('✓ Safe for toJSON() interpolation, got', result.length, 'sections');
             } catch (e) {
               console.error('✗ Failed toJSON test:', e.message);
               process.exit(1);
             }
             
             console.log('All validations passed');
-          " "$OUTPUT"
+          "
 
   notify:
     needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests, changelog-parser-test]

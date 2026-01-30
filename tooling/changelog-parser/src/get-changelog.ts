@@ -81,8 +81,7 @@ export async function getChangelogForTag(tag: string, rootDirectory: string): Pr
 
     await Promise.allSettled(tasks);
 
-    // Postprocess - escape backslashes, single quotes, and newlines for safe JS string interpolation
-    return changelogSections.map((section) =>
-        section.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')
-    );
+    // No additional escaping needed - JSON.stringify in the caller handles it,
+    // and the workflow uses toJSON() for safe interpolation
+    return changelogSections;
 }
