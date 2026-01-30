@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.1
  - Added fix on table stickiness property
  - Added way to adjust table row height
  - Added functionality to inject actions into the table via dara-components

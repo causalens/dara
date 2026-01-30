@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.1
 
 - Added support for `LoopVariable` in `Variable.get()` nested property, enabling dynamic property access like `my_var.get(items.list_item.get('id'))` inside `For` loops
 - Internal: Route preloading now stops at control flow component boundaries (If, Match, For). Dependencies inside conditional branches are no longer preloaded since only one branch will render at runtime, reducing unnecessary work.
