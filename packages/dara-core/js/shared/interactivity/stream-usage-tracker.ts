@@ -16,7 +16,6 @@
  * Subscriptions are keyed by uid+extras to handle different auth contexts
  * using the same variable independently.
  */
-
 import { type RequestExtras } from '@/api/http';
 
 /** Debounce period before pausing an unused stream (ms) */

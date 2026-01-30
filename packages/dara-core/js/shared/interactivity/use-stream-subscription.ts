@@ -8,7 +8,6 @@
  * This hook just tracks that components are actively using the stream,
  * so the tracker knows when to cleanup.
  */
-
 import { useEffect } from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';

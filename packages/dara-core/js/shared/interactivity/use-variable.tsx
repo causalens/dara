@@ -22,7 +22,7 @@ import {
 } from '@/types';
 
 import { useEventBus } from '../event-bus/event-bus';
-
+import { findStreamVariables } from './find-stream-variables';
 // eslint-disable-next-line import/no-cycle
 import {
     getOrRegisterPlainVariable,
@@ -30,7 +30,6 @@ import {
     useDerivedVariable,
     useSwitchVariable,
 } from './internal';
-import { findStreamVariables } from './find-stream-variables';
 import { getOrRegisterStreamVariable } from './stream-variable';
 import { useStreamSubscription } from './use-stream-subscription';
 import { useTabularVariable } from './use-tabular-variable';

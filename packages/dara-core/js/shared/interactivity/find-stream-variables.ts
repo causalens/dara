@@ -4,7 +4,6 @@
  * Recursively walks a variable's dependency tree to find all StreamVariables.
  * Used for tracking stream usage when components mount/unmount.
  */
-
 import {
     type AnyVariable,
     type StreamVariable,

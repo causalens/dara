@@ -36,7 +36,6 @@ import { preloadDerivedValue, resolveDerivedValue } from './derived-variable';
 import { findStreamVariablesInArray } from './find-stream-variables';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
 import { cleanKwargs, resolveVariable } from './resolve-variable';
-import { useStreamSubscription } from './use-stream-subscription';
 import {
     type TriggerIndexValue,
     atomRegistry,
@@ -44,6 +43,7 @@ import {
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
+import { useStreamSubscription } from './use-stream-subscription';
 
 function isTaskResponse(response: any): response is TaskResponse {
     return response && typeof response === 'object' && 'task_id' in response;

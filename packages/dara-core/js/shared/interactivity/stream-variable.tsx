@@ -39,8 +39,8 @@ import { getUniqueIdentifier } from '../utils/hashing';
 import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { resolveNested, resolveValue, resolveVariable } from './internal';
-import { registerStreamConnection } from './stream-usage-tracker';
 import { type SelectorFamily } from './store';
+import { registerStreamConnection } from './stream-usage-tracker';
 import { buildTriggerList, registerChildTriggers } from './triggers';
 
 /**
