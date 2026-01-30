@@ -2,6 +2,6 @@
 source = []
 package-mode = false
 name = "ui-causal-graph-editor"
-version = "1.25.0"
+version = "1.25.1"
 packages = []
 include = []
