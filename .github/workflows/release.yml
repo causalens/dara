@@ -193,7 +193,7 @@ jobs:
                     "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
                   }
                 },
-                ...JSON.parse('${{ steps.set-changelog.outputs.changelog }}')
+                ...JSON.parse(${{ toJSON(steps.set-changelog.outputs.changelog) }})
                   .map(section => ({
                       "type": "section",
                       "text": {
