@@ -86,10 +86,8 @@ function cleanupConnections(key: string): void {
     }
 
     // Abort all active connections
-    for (const [atomKey, conn] of usage.connections) {
+    for (const [, conn] of usage.connections) {
         if (conn.active) {
-            // eslint-disable-next-line no-console
-            console.log(`[StreamTracker] cleaning up connection for ${key} (atomKey: ${atomKey.slice(0, 50)}...)`);
             if (conn.controller) {
                 conn.controller.abort();
             }
@@ -111,10 +109,8 @@ function restartConnections(key: string): void {
     }
 
     // Restart any inactive connections
-    for (const [atomKey, conn] of usage.connections) {
+    for (const [, conn] of usage.connections) {
         if (!conn.active) {
-            // eslint-disable-next-line no-console
-            console.log(`[StreamTracker] restarting connection for ${key} (atomKey: ${atomKey.slice(0, 50)}...)`);
             const { cleanup, controller } = conn.start();
             conn.cleanup = cleanup;
             conn.controller = controller;
@@ -174,17 +170,12 @@ export function registerStreamConnection(
     // Register the connection with the start function for potential restart
     usage.connections.set(atomKey, { start, cleanup, controller, active: true });
 
-    // eslint-disable-next-line no-console
-    console.log(`[StreamTracker] registerStreamConnection(${key}): connections=${usage.connections.size}`);
-
     // If no subscribers yet, start orphan timer - cleanup if no subscription arrives
     if (usage.count === 0 && !usage.orphanTimer) {
         usage.orphanTimer = setTimeout(() => {
             usage.orphanTimer = undefined;
             // If still no subscribers, this connection is orphaned
             if (usage.count === 0) {
-                // eslint-disable-next-line no-console
-                console.warn(`[StreamTracker] orphan timeout for ${key} - no subscribers after ${ORPHAN_TIMEOUT_MS}ms`);
                 cleanupConnections(key);
             }
         }, ORPHAN_TIMEOUT_MS);
@@ -241,8 +232,6 @@ export function subscribeStream(uid: string, extras: RequestExtras): () => void 
 
     const wasEmpty = usage.count === 0;
     usage.count++;
-    // eslint-disable-next-line no-console
-    console.log(`[StreamTracker] subscribeStream(${key}): count=${usage.count}, wasEmpty=${wasEmpty}`);
 
     // If count was 0, restart any inactive connections
     if (wasEmpty) {
@@ -253,19 +242,12 @@ export function subscribeStream(uid: string, extras: RequestExtras): () => void 
     return () => {
         const currentUsage = streamUsage.get(key);
         if (!currentUsage) {
-            // eslint-disable-next-line no-console
-            console.log(`[StreamTracker] unsubscribe(${key}): no usage found!`);
             return;
         }
 
         currentUsage.count = Math.max(0, currentUsage.count - 1);
-        // eslint-disable-next-line no-console
-        console.log(`[StreamTracker] unsubscribe(${key}): count=${currentUsage.count}`);
 
         if (currentUsage.count === 0) {
-            // eslint-disable-next-line no-console
-            console.log(`[StreamTracker] unsubscribe(${key}): count=0, scheduling cleanup in ${PAUSE_DEBOUNCE_MS}ms`);
-
             // Schedule cleanup after debounce
             currentUsage.cleanupTimer = setTimeout(() => {
                 currentUsage.cleanupTimer = undefined;

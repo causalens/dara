@@ -11,6 +11,8 @@
 
 import { useEffect } from 'react';
 
+import { useDeepCompare } from '@darajs/ui-utils';
+
 import { type RequestExtras } from '@/api/http';
 
 import { subscribeStream } from './stream-usage-tracker';
@@ -37,5 +39,8 @@ export function useStreamSubscription(streamUids: string[], extras: RequestExtra
         return () => {
             unsubscribes.forEach((unsub) => unsub());
         };
-    }, [streamUids, extras]);
+        // Use useDeepCompare to ensure stable array reference for streamUids
+        // Without this, a new array instance on each render would trigger subscribe/unsubscribe cycles
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [useDeepCompare(streamUids), extras]);
 }
