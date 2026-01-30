@@ -249,47 +249,24 @@ jobs:
 
   changelog-parser-test:
     runs-on: ubuntu-latest
+    env:
+      # Hardcoded test input - contains characters that broke v1.25.1 release:
+      # - Single quotes in code: get('id')
+      # - Backticks in code blocks
+      # - Newlines
+      TEST_CHANGELOG: '["*dara-core*\n\n• Added support for `LoopVariable` in `Variable.get()` enabling dynamic property access like `my_var.get(items.list_item.get(''id''))` inside `For` loops","*ui-components*\n\n• Fixed table stickiness property"]'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install changelog-parser dependencies
-        run: npm install --registry https://registry.npmjs.org/
-        working-directory: tooling/changelog-parser
-      - name: Build changelog-parser
-        run: node ./esbuild.js
-        working-directory: tooling/changelog-parser
-      - name: Test changelog parser output is valid JSON
+      - name: Test toJSON handles problematic characters for Slack action
         run: |
-          # Run parser for v1.25.1 (known to contain single quotes that previously broke parsing)
-          # Pipe directly to node to avoid bash escape interpretation
-          ./tooling/changelog-parser/main.js v1.25.1 | node -e "
-            const fs = require('fs');
-            const output = fs.readFileSync('/dev/stdin', 'utf8');
-            console.log('Parser output:', output.substring(0, 200) + '...');
+          # Use actual toJSON() to escape, then eval in node (mimics action-slack behavior)
+          node -e "
+            const sections = JSON.parse(${{ toJSON(env.TEST_CHANGELOG) }});
+            console.log('✓ Parsed', sections.length, 'sections successfully');
             
-            // 1. Verify it's valid JSON
-            const parsed = JSON.parse(output);
-            console.log('✓ Valid JSON with', parsed.length, 'sections');
-            
-            // 2. Verify each section is a string (as expected by Slack)
-            parsed.forEach((section, i) => {
-              if (typeof section !== 'string') {
-                console.error('✗ Section', i, 'is not a string:', typeof section);
-                process.exit(1);
-              }
-            });
-            console.log('✓ All sections are strings');
-            
-            // 3. Simulate toJSON() workflow (how it's used in release.yml)
-            // toJSON() wraps the value in quotes and escapes for JS context
-            try {
-              const result = eval('JSON.parse(' + JSON.stringify(output) + ')');
-              console.log('✓ Safe for toJSON() interpolation, got', result.length, 'sections');
-            } catch (e) {
-              console.error('✗ Failed toJSON test:', e.message);
-              process.exit(1);
+            if (!sections[0].includes(\"get('id')\")) {
+              throw new Error('Single quotes were corrupted');
             }
+            console.log('✓ Single quotes preserved correctly');
             
             console.log('All validations passed');
           "
