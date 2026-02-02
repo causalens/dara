@@ -8,6 +8,7 @@ import { setSessionToken } from '@/auth';
 import { createRoute } from '@/router/create-router';
 import { ResponseChunk } from '@/router/fetching';
 import { clearRegistries_TEST, useVariable } from '@/shared';
+import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import DynamicComponent, { clearCaches_TEST, preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { preloadActions } from '@/shared/interactivity/use-action';
 import {
@@ -53,6 +54,7 @@ describe('Route Loader', () => {
     afterEach(() => {
         server.resetHandlers();
         clearCaches_TEST();
+        clearStreamUsage_TEST();
         act(() => {
             setSessionToken(null);
         });
