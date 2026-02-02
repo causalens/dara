@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.2
 
 - Improved: Stream variables now properly cleanup SSE connections when components unmount using reference counting, instead of relying on Recoil's unreliable atom release
 
