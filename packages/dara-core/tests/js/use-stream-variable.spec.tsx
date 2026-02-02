@@ -357,13 +357,14 @@ describe('useVariable with StreamVariable', () => {
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
-        // Change the dependency
-        screen.getByTestId('change-dep').click();
+        // Change the dependency - wrap in act to ensure state updates complete
+        await act(async () => {
+            screen.getByTestId('change-dep').click();
+            // Wait a tick to let the state update propagate
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
 
         // With suspend=false, should NOT show loading - should keep showing stale value
-        // Wait a tick to let the state update propagate
-        await new Promise((resolve) => setTimeout(resolve, 20));
-
         // Stale value should still be visible (not loading)
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
@@ -375,6 +376,9 @@ describe('useVariable with StreamVariable', () => {
 
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+
+        // Explicit cleanup to ensure all stream connections are closed before test ends
+        clearStreamUsage_TEST();
     });
 
     /**
