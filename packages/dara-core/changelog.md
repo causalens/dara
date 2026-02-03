@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.3
 
 - Fixed an issue where StreamVariable connections could be prematurely killed by the orphan timer before React Suspense resolved, causing streams with slow first messages to never receive data
 
