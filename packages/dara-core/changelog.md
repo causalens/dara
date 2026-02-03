@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where StreamVariable connections could be prematurely killed by the orphan timer before React Suspense resolved, causing streams with slow first messages to never receive data
+
 ## 1.25.2
 
 - Improved: Stream variables now properly cleanup SSE connections when components unmount using reference counting, instead of relying on Recoil's unreliable atom release
