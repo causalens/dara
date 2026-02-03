@@ -11,10 +11,12 @@ import { setSessionToken } from '@/auth/use-session-token';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import {
+    _internal as streamTrackerInternal,
     clearStreamUsage_TEST,
     getActiveConnectionCount,
     getActiveConnectionKeys,
     getConnectionController,
+    registerStreamConnection,
 } from '@/shared/interactivity/stream-usage-tracker';
 import { useStreamSubscription } from '@/shared/interactivity/use-stream-subscription';
 import { denormalize } from '@/shared/utils/normalization';
@@ -680,11 +682,7 @@ describe('useVariable with StreamVariable', () => {
             // Use fake timers for this test
             vi.useFakeTimers();
 
-            // Import the timeout constant for this test
-            const { _internal: trackerInternal, registerStreamConnection } = await import(
-                '@/shared/interactivity/stream-usage-tracker'
-            );
-            const ORPHAN_TIMEOUT = trackerInternal.ORPHAN_TIMEOUT_MS;
+            const ORPHAN_TIMEOUT = streamTrackerInternal.ORPHAN_TIMEOUT_MS;
 
             const mockController = new AbortController();
             const mockStart = vi.fn().mockReturnValue({
@@ -705,6 +703,110 @@ describe('useVariable with StreamVariable', () => {
 
             // Restore real timers
             vi.useRealTimers();
+        });
+
+        it('does NOT kill connection when first SSE message is delayed (regression test)', async () => {
+            // REGRESSION TEST for orphan timer race condition with React Suspense.
+            // Bug: With a short orphan timeout (e.g., 5s), the timer fires before useEffect
+            // can call subscribeStream() because component is suspended waiting for first SSE data.
+            // Fix: Orphan timeout is now long enough (2 minutes) to act as a safety net,
+            // allowing slow streams to deliver their first message before cleanup.
+            vi.useFakeTimers();
+
+            // Simulate a "slow" stream - first message takes 30 seconds.
+            // This would have failed with the old 5-second orphan timeout.
+            const SLOW_FIRST_MESSAGE_DELAY_MS = 30000;
+
+            const streamVar: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-delayed-first-message',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            // Track if connection was aborted
+            let connectionAborted = false;
+            let sendFirstMessage: (() => void) | null = null;
+
+            // SSE handler that opens immediately but delays first message
+            server.use(
+                http.post('/api/core/stream/test-delayed-first-message', () => {
+                    const encoder = new TextEncoder();
+
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            // Store function to send message later
+                            sendFirstMessage = () => {
+                                if (!connectionAborted) {
+                                    const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { delayed: true } })}\n\n`;
+                                    controller.enqueue(encoder.encode(data));
+                                    controller.close();
+                                }
+                            };
+                        },
+                        cancel() {
+                            connectionAborted = true;
+                        },
+                    });
+
+                    return new HttpResponse(stream, {
+                        headers: {
+                            'Content-Type': 'text/event-stream',
+                            'Cache-Control': 'no-cache',
+                            Connection: 'keep-alive',
+                        },
+                    });
+                })
+            );
+
+            function Subscriber(): JSX.Element {
+                const [data] = useVariable(streamVar);
+                return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
+            }
+
+            wrappedRender(
+                <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                    <Subscriber />
+                </Suspense>
+            );
+
+            // Let React render and SSE connection start
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(100);
+            });
+
+            // Should show loading (suspended waiting for first SSE data)
+            expect(screen.getByTestId('loading')).toBeInTheDocument();
+
+            // Connection should be active
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(connectionAborted).toBe(false);
+
+            // Advance time to simulate slow first message (30 seconds)
+            // With old 5s timeout, this would have killed the connection
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(SLOW_FIRST_MESSAGE_DELAY_MS);
+            });
+
+            // Connection should still be active (orphan timeout is now 2 minutes)
+            expect(connectionAborted).toBe(false);
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Now send the first message
+            await act(async () => {
+                sendFirstMessage?.();
+                await vi.advanceTimersByTimeAsync(100);
+            });
+
+            // Component should unsuspend and show data
+            await waitFor(() => {
+                expect(screen.getByTestId('subscriber')).toBeInTheDocument();
+            });
+            expect(screen.getByTestId('subscriber')).toHaveTextContent('{"delayed":true}');
+
+            vi.useRealTimers();
+            clearStreamUsage_TEST();
         });
     });
 });

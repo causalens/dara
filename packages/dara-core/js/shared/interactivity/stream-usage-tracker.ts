@@ -21,8 +21,13 @@ import { type RequestExtras } from '@/api/http';
 /** Debounce period before pausing an unused stream (ms) */
 const PAUSE_DEBOUNCE_MS = 1500;
 
-/** Timeout for orphaned connections - if no subscription arrives within this period, cleanup (ms) */
-const ORPHAN_TIMEOUT_MS = 5000;
+/**
+ * Timeout for orphaned connections - if no subscription arrives within this period, cleanup.
+ * This is intentionally long (2 minutes) to act as a safety net rather than aggressive cleanup.
+ * React Suspense can delay useEffect (which calls subscribeStream) until first data arrives,
+ * and slow streams may take significant time to emit their first event.
+ */
+const ORPHAN_TIMEOUT_MS = 120000;
 
 /**
  * Create a stable subscription key from uid and extras.
