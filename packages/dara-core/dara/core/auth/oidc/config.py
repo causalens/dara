@@ -106,7 +106,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         issuer_url = get_oidc_settings().issuer_url
         return f'{issuer_url}/.well-known/openid-configuration'
 
-    async def startup_hook(self) -> None:
+    async def startup_hook(self):
         await self.client.__aenter__()
 
         # 1. Enforce SSO env vars are set - this will run validation and raise if not set
@@ -140,6 +140,12 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=oidc_settings.jwks_lifespan)
         utils_registry.register(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
+
+        # Return cleanup to close the HTTP client
+        async def _cleanup():
+            await self.client.aclose()
+
+        return _cleanup
 
     def generate_state(self, redirect_to: str | None = None) -> str:
         """

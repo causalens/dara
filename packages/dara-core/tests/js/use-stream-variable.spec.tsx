@@ -2,7 +2,7 @@
  * Integration tests for StreamVariable via useVariable hook.
  * Tests user-observable behavior by rendering components and asserting on the DOM.
  */
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Suspense, useContext, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -127,6 +127,9 @@ describe('useVariable with StreamVariable', () => {
     });
 
     afterEach(() => {
+        // Unmount React tree BEFORE clearing streams so useEffect cleanups
+        // run first and Recoil doesn't try to re-render on aborted connections
+        cleanup();
         setSessionToken(null);
         server.resetHandlers();
         clearStreamUsage_TEST();

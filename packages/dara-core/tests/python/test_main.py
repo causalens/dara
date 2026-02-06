@@ -413,3 +413,101 @@ async def test_async_startup_function(config: Configuration):
 
     mock_startup.assert_called_once()
     assert a == 2
+
+
+async def test_startup_cleanup_function(config: Configuration):
+    """Check that cleanup functions returned by startup functions are called on shutdown"""
+    cleanup_mock = MagicMock()
+
+    def startup_with_cleanup():
+        return cleanup_mock
+
+    config.startup_functions.append(startup_with_cleanup)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        # Cleanup should not have been called yet (app is still running)
+        cleanup_mock.assert_not_called()
+
+    # After exiting the client context, the app lifespan ends and cleanup runs
+    cleanup_mock.assert_called_once()
+
+
+async def test_async_startup_cleanup_function(config: Configuration):
+    """Check that async cleanup functions returned by async startup functions are called on shutdown"""
+    cleaned_up = False
+
+    async def async_cleanup():
+        nonlocal cleaned_up
+        cleaned_up = True
+
+    async def startup_with_async_cleanup():
+        return async_cleanup
+
+    config.startup_functions.append(startup_with_async_cleanup)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        assert not cleaned_up
+
+    assert cleaned_up
+
+
+async def test_startup_cleanup_reverse_order(config: Configuration):
+    """Check that cleanup functions are called in reverse order (LIFO)"""
+    call_order: list[str] = []
+
+    def startup_first():
+        return lambda: call_order.append('first')
+
+    def startup_second():
+        return lambda: call_order.append('second')
+
+    config.startup_functions.extend([startup_first, startup_second])
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+
+    assert call_order == ['second', 'first']
+
+
+async def test_startup_cleanup_error_isolation(config: Configuration):
+    """Check that one cleanup function failing does not prevent others from running"""
+    call_order: list[str] = []
+
+    def startup_first():
+        return lambda: call_order.append('first')
+
+    def startup_failing():
+        def failing_cleanup():
+            raise RuntimeError('cleanup error')
+
+        return failing_cleanup
+
+    def startup_third():
+        return lambda: call_order.append('third')
+
+    config.startup_functions.extend([startup_first, startup_failing, startup_third])
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+
+    # Reverse order: third, failing (error swallowed), first
+    assert call_order == ['third', 'first']
+
+
+async def test_startup_no_cleanup_when_none_returned(config: Configuration):
+    """Check that startup functions returning None do not cause issues"""
+    mock_startup = MagicMock(return_value=None)
+
+    config.startup_functions.append(mock_startup)
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        await client.get('/api/core/config', headers=AUTH_HEADERS)
+
+    mock_startup.assert_called_once()

@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import abc
+from collections.abc import Callable
 from typing import ClassVar
 
 from fastapi import HTTPException, Response
@@ -78,10 +79,14 @@ class BaseAuthConfig(BaseModel, abc.ABC):
     Will be added to the app if this auth config is used.
     """
 
-    async def startup_hook(self) -> None:
+    async def startup_hook(self) -> Callable | None:
         """
-        Called when the server is starting up, can be used to set up e.g. JWKS clients for OIDC auth
+        Called when the server is starting up, can be used to set up e.g. JWKS clients for OIDC auth.
+
+        Can optionally return a cleanup callable that will be invoked during application shutdown.
+        The cleanup callable can be sync or async.
         """
+        return None
 
     @abc.abstractmethod
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added cleanup support to `on_startup`: startup functions can now optionally return a cleanup callable which is invoked during application shutdown in reverse order (LIFO). Both sync and async cleanup functions are supported.
+
 ## 1.25.3
 
 - Fixed an issue where StreamVariable connections could be prematurely killed by the orphan timer before React Suspense resolved, causing streams with slow first messages to never receive data
