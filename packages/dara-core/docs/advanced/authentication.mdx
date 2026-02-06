@@ -303,7 +303,7 @@ You can optionally override these methods for additional functionality:
 | --------------- | --------------------------------------------------------------------------------------------- |
 | `refresh_token` | Create a new session token from a refresh token.                                              |
 | `revoke_token`  | Revoke a session token (logout). Can return a redirect for SSO logout.                        |
-| `startup_hook`  | Called when the server starts. Useful for initializing clients (e.g., JWKS clients for OIDC). |
+| `startup_hook`  | Called when the server starts. Useful for initializing clients (e.g., JWKS clients for OIDC). Can optionally return a cleanup callable to be invoked during shutdown. |
 
 ### Auth Components
 

@@ -81,6 +81,45 @@ config = ConfigurationBuilder()
 my_custom_plugin(config)
 ```
 
+### Startup and Cleanup
+
+You can register functions to run when the application starts using `config.on_startup`. This is useful for initializing resources like database connections, HTTP clients, or caches.
+
+Startup functions can optionally return a **cleanup function**. If returned, the cleanup function will be called during application shutdown in **reverse order** (last registered cleanup runs first). Both startup and cleanup functions can be sync or async.
+
+```python title=main.py
+from dara.core import ConfigurationBuilder
+
+config = ConfigurationBuilder()
+
+# As a decorator
+@config.on_startup
+def setup_database():
+    db = connect_to_database()
+
+    # Returning a cleanup function is optional
+    def cleanup():
+        db.close()
+
+    return cleanup
+
+# As a method call
+config.on_startup(my_startup_function)
+
+# Async startup with async cleanup
+@config.on_startup
+async def setup_http_client():
+    client = httpx.AsyncClient()
+    await client.__aenter__()
+
+    async def cleanup():
+        await client.aclose()
+
+    return cleanup
+```
+
+Cleanup functions are guaranteed to run during application shutdown, even if an error occurs in one of them - each cleanup function runs independently. They execute in reverse registration order, mirroring a stack-based resource management pattern.
+
 ### Pages
 
 Pages hold the contents of your app. They are added with methods available on the `Router` instance - a default router is created for you in the `router` property of the `ConfigurationBuilder` instance.

@@ -49,7 +49,7 @@ def _get_numpy_dtypes_encoder(typ: type[Any]):
 
     :param typ: The numpy generic datatype class
     """
-    return Encoder(serialize=lambda x: x.item(), deserialize=lambda x: typ(x))
+    return Encoder(serialize=lambda x: x.item(), deserialize=typ)
 
 
 def _get_numpy_str_encoder(typ: type[Any]):
@@ -58,7 +58,7 @@ def _get_numpy_str_encoder(typ: type[Any]):
 
     :param typ: The numpy datatype class
     """
-    return Encoder(serialize=lambda x: str(x), deserialize=lambda x: typ(x))
+    return Encoder(serialize=str, deserialize=typ)
 
 
 def _get_pandas_array_encoder(array_type: type[Any], dtype: Any, raise_: bool = False):
@@ -124,10 +124,10 @@ def _df_deserialize(x):
 
 # A encoder_registry to handle serialization/deserialization for numpy/pandas type
 encoder_registry: MutableMapping[type[Any], Encoder] = {
-    int: Encoder(serialize=lambda x: x, deserialize=lambda x: int(x)),
-    float: Encoder(serialize=lambda x: x, deserialize=lambda x: float(x)),
-    str: Encoder(serialize=lambda x: x, deserialize=lambda x: str(x)),
-    numpy.ndarray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: numpy.array(x)),
+    int: Encoder(serialize=lambda x: x, deserialize=int),
+    float: Encoder(serialize=lambda x: x, deserialize=float),
+    str: Encoder(serialize=lambda x: x, deserialize=str),
+    numpy.ndarray: Encoder(serialize=lambda x: x.tolist(), deserialize=numpy.array),
     numpy.int8: _get_numpy_dtypes_encoder(numpy.int8),
     numpy.int16: _get_numpy_dtypes_encoder(numpy.int16),
     numpy.int32: _get_numpy_dtypes_encoder(numpy.int32),
@@ -148,11 +148,11 @@ encoder_registry: MutableMapping[type[Any], Encoder] = {
     numpy.complex64: _get_numpy_str_encoder(numpy.complex64),
     numpy.complex128: _get_numpy_str_encoder(numpy.complex128),
     numpy.clongdouble: _get_numpy_str_encoder(numpy.clongdouble),
-    numpy.bytes_: Encoder(serialize=lambda x: x.decode('utf-8'), deserialize=lambda x: numpy.bytes_(x)),
+    numpy.bytes_: Encoder(serialize=lambda x: x.decode('utf-8'), deserialize=numpy.bytes_),
     numpy.str_: _get_numpy_dtypes_encoder(numpy.str_),
     numpy.void: Encoder(serialize=lambda x: x.tobytes().decode(), deserialize=lambda x: numpy.void(x.encode())),
     numpy.bool_: _get_numpy_dtypes_encoder(numpy.bool_),
-    numpy.datetime64: Encoder(serialize=lambda x: x.item().isoformat(), deserialize=lambda x: numpy.datetime64(x)),
+    numpy.datetime64: Encoder(serialize=lambda x: x.item().isoformat(), deserialize=numpy.datetime64),
     type(numpy.dtype('int8')): _get_numpy_str_encoder(numpy.dtype),
     type(numpy.dtype('int16')): _get_numpy_str_encoder(numpy.dtype),
     type(numpy.dtype('int32')): _get_numpy_str_encoder(numpy.dtype),
@@ -171,7 +171,7 @@ encoder_registry: MutableMapping[type[Any], Encoder] = {
     # bytes_/str_/void belongs to dtype('O')
     type(numpy.dtype('O')): _get_numpy_str_encoder(numpy.dtype),
     type(numpy.dtype('datetime64')): _get_numpy_str_encoder(numpy.dtype),
-    ExtensionArray: Encoder(serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x)),
+    ExtensionArray: Encoder(serialize=lambda x: x.tolist(), deserialize=pandas.array),
     pandas.arrays.IntervalArray: _get_pandas_array_encoder(pandas.arrays.IntervalArray, pandas.Interval, True),
     pandas.arrays.PeriodArray: _get_pandas_array_encoder(pandas.arrays.PeriodArray, pandas.Period, True),
     pandas.arrays.DatetimeArray: _get_pandas_array_encoder(pandas.arrays.DatetimeArray, numpy.dtype('datetime64[ns]')),
@@ -181,12 +181,12 @@ encoder_registry: MutableMapping[type[Any], Encoder] = {
     pandas.arrays.BooleanArray: Encoder(
         serialize=lambda x: x.tolist(), deserialize=lambda x: pandas.array(x, dtype='boolean')
     ),
-    pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Series(x)),
-    pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=lambda x: pandas.Index(x)),
-    pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=lambda x: pandas.Timestamp(x)),
+    pandas.Series: Encoder(serialize=lambda x: x.to_list(), deserialize=pandas.Series),
+    pandas.Index: Encoder(serialize=lambda x: x.to_list(), deserialize=pandas.Index),
+    pandas.Timestamp: Encoder(serialize=lambda x: x.isoformat(), deserialize=pandas.Timestamp),
     pandas.DataFrame: Encoder(
         serialize=lambda x: jsonable_encoder(_tuple_key_serialize(x.to_dict(orient='dict'))),
-        deserialize=lambda x: _df_deserialize(x),
+        deserialize=_df_deserialize,
     ),
 }
 
@@ -200,9 +200,9 @@ except ImportError:
 else:
     encoder_registry.update(
         {
-            CausalGraph: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: CausalGraph.from_dict(x)),
-            Skeleton: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: Skeleton.from_dict(x)),
-            Node: Encoder(serialize=lambda x: x.to_dict(), deserialize=lambda x: Node.from_dict(x)),
+            CausalGraph: Encoder(serialize=lambda x: x.to_dict(), deserialize=CausalGraph.from_dict),
+            Skeleton: Encoder(serialize=lambda x: x.to_dict(), deserialize=Skeleton.from_dict),
+            Node: Encoder(serialize=lambda x: x.to_dict(), deserialize=Node.from_dict),
         }
     )
 

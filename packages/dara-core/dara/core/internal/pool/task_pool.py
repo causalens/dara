@@ -102,9 +102,11 @@ class TaskPool:
             # Wait for pool to start and all workers to be ready to receive tasks
             try:
                 await wait_while(
-                    lambda: self.status != PoolStatus.RUNNING
-                    or len(self.workers) != self.desired_workers
-                    or not all(w.status == WorkerStatus.IDLE for w in self.workers.values()),
+                    lambda: (
+                        self.status != PoolStatus.RUNNING
+                        or len(self.workers) != self.desired_workers
+                        or not all(w.status == WorkerStatus.IDLE for w in self.workers.values())
+                    ),
                     timeout=timeout,
                 )
             except TimeoutError as e:

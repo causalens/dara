@@ -138,7 +138,7 @@ def find_module_path(config_path: str):
     """
     Find the parent path to the module containing the config file wihout importing it.
     """
-    module_name = config_path.split(':')[0]
+    module_name = config_path.split(':', maxsplit=1)[0]
     module_spec = find_spec(module_name)
 
     if module_spec is None:
