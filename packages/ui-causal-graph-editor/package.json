@@ -40,7 +40,7 @@
     "@storybook/react-vite": "^9.1.17",
     "@testing-library/dom": "^9.3.0",
     "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^14.0.0",
+    "@testing-library/react": "^16.3.2",
     "@types/cytoscape": "^3.19.9",
     "@types/cytoscape-fcose": "^2.2.0",
     "@types/d3": "^6.2.0",
