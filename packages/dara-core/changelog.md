@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.25.4
 
 - Improved component serialization to exclude styling fields at their default values, significantly reducing payload size.
 - Added cleanup support to `on_startup`: startup functions can now optionally return a cleanup callable which is invoked during application shutdown in reverse order (LIFO). Both sync and async cleanup functions are supported.
