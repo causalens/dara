@@ -102,11 +102,11 @@ function Card(props: CardProps): JSX.Element {
     return (
         <CardDiv $rawCss={css} accent={props.accent} style={style} id={props.id_}>
             {title && <Title>{title}</Title>}
-            {subtitle && <Subtitle hasTitle={props.title !== null}>{subtitle}</Subtitle>}
+            {subtitle && <Subtitle hasTitle={props.title != null}>{subtitle}</Subtitle>}
             <ChildrenWrapper
                 data-type="children-wrapper"
-                hasSubtitle={props.subtitle !== null}
-                hasTitle={props.title !== null}
+                hasSubtitle={props.subtitle != null}
+                hasTitle={props.title != null}
                 style={{
                     alignItems: props.align,
                     justifyContent: props.justify,

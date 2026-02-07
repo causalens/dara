@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import ValidationInfo, field_validator
 
@@ -125,6 +125,10 @@ class Select(FormComponent):
     :param value: A Variable instance recording the component's state
     :param size: An optional font size for the select component, in REM units
     """
+
+    _exclude_when_default: ClassVar[frozenset[str]] = FormComponent._exclude_when_default | frozenset(
+        {'multiselect', 'searchable', 'max_rows'}
+    )
 
     id: str | None = None
     multiselect: bool = False

@@ -22,11 +22,8 @@ class TestParagraphComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Paragraph',
             'props': {
-                'bold': False,
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
-                'italic': False,
                 'position': 'relative',
-                'underline': False,
             },
             'uid': 'uid',
         }

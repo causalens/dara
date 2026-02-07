@@ -46,11 +46,11 @@ function Text(props: TextProps): JSX.Element {
                 style={{
                     border: props?.border ?? 'none',
                     color,
-                    fontStyle: props.italic ? 'italic' : 'normal',
-                    fontWeight: props.bold ? 'bold' : 'normal',
+                    fontStyle: props.italic ? 'italic' : undefined,
+                    fontWeight: props.bold ? 'bold' : undefined,
                     marginRight: '0.1em',
                     textAlign: props.align as any,
-                    textDecoration: props.underline ? 'underline' : '',
+                    textDecoration: props.underline ? 'underline' : undefined,
                     ...style,
                 }}
             >

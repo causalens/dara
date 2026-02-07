@@ -14,12 +14,9 @@ class TestProgressBarComponent(unittest.TestCase):
         expected_dict = {
             'name': 'ProgressBar',
             'props': {
-                'bold': False,
                 'children': [],
                 'progress': 50,
-                'italic': False,
                 'small': True,
-                'underline': False,
             },
             'uid': 'uid',
         }

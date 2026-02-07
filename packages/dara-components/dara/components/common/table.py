@@ -901,6 +901,10 @@ class Table(ContentComponent):
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
 
+    _exclude_when_default: ClassVar[frozenset[str]] = ContentComponent._exclude_when_default | frozenset(
+        {'multi_select', 'searchable', 'include_index', 'show_checkboxes', 'suppress_click_events_for_selection'}
+    )
+
     columns: Sequence[Column | dict | str] | ClientVariable | None = None
     data: AnyVariable | DataFrame | list
     multi_select: bool = False

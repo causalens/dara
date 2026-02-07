@@ -35,9 +35,6 @@ class TestIfComponent(unittest.TestCase):
                 },
                 'false_children': [jsonable_encoder(t3, exclude_none=True)],
                 'true_children': [jsonable_encoder(t1, exclude_none=True), jsonable_encoder(t2, exclude_none=True)],
-                'bold': False,
-                'italic': False,
-                'underline': False,
             },
             'uid': str(test_uid),
         }

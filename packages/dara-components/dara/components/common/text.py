@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import ClassVar
+
 from pydantic import field_validator
 
 from dara.components.common.base_component import ContentComponent
@@ -51,8 +53,10 @@ class Text(ContentComponent):
     :param formatted: Whether to display the text with existing formatting intact or not, default False
     """
 
+    _exclude_when_default: ClassVar[frozenset[str]] = ContentComponent._exclude_when_default | frozenset({'formatted'})
+
     text: str | ClientVariable
-    align: str | None = 'left'  # type: ignore # this is actually textAlign not align-items
+    align: str | None = None  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False
 
     @field_validator('text')

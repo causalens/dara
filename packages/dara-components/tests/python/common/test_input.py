@@ -20,10 +20,7 @@ class TestInputComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Input',
             'props': {
-                'bold': False,
                 'children': [],
-                'italic': False,
-                'underline': False,
                 'value': value.dict(exclude_none=True),
             },
             'uid': str(test_uid),

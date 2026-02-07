@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Improved serialization of commonly useed components to exclude component-specific fields at their default values, reducing payload size.
+
 ## 1.25.1
 
 - Added `size` prop to `Select` component to control font-size of each sub-component
