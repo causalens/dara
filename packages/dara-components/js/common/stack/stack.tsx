@@ -43,12 +43,15 @@ const StyledStack = injectCss(styled.div<StackProps>`
     height: ${(props) => (props.direction === 'horizontal' ? '100%' : undefined)};
 `);
 
-function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Element {
+function Stack(
+    { direction = 'vertical', ...props }: StackProps,
+    ref: ForwardedRef<HTMLDivElement>
+): JSX.Element {
     const [collapsed] = useVariable(props.collapsed);
     const [style, css] = useComponentStyles(props);
 
     const stackContent = (
-        <DisplayCtx.Provider value={{ component: 'stack', direction: props.direction }}>
+        <DisplayCtx.Provider value={{ component: 'stack', direction }}>
             {props.children.map((child, idx) => (
                 <DynamicComponent component={child} key={`stack-${idx}-${child.uid}`} />
             ))}
@@ -61,7 +64,7 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
             $rawCss={css}
             className={props.className}
             data-type="children-wrapper"
-            direction={props.direction}
+            direction={direction}
             ref={ref}
             style={{
                 alignItems: props.align,
@@ -76,7 +79,7 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
                         <div
                             style={{
                                 display: 'flex',
-                                flexDirection: props.direction === 'horizontal' ? 'row' : 'column',
+                                flexDirection: direction === 'horizontal' ? 'row' : 'column',
                                 gap: style.gap ?? '0.75rem',
                                 height,
                                 overflow: 'auto',

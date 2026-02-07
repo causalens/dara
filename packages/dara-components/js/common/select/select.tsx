@@ -93,7 +93,7 @@ interface SelectProps extends FormComponentProps {
  *
  * @param props the component props
  */
-function Select(props: SelectProps): JSX.Element {
+function Select({ max_rows = 3, ...props }: SelectProps): JSX.Element {
     const formCtx = useFormContext(props);
     const [items] = useVariable(props.items);
     const [style, css] = useComponentStyles(props);
@@ -222,7 +222,7 @@ function Select(props: SelectProps): JSX.Element {
                 $rawCss={css}
                 className={props.className}
                 items={itemArray}
-                maxRows={props.max_rows}
+                maxRows={max_rows}
                 onSelect={onSelect}
                 placeholder={props.placeholder}
                 selectedItems={selectedItems}

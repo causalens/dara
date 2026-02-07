@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from enum import Enum
-from typing import cast
+from typing import ClassVar, cast
 
 from dara.components.common.base_component import LayoutComponent
 from dara.components.common.text import Text
@@ -122,6 +122,10 @@ class Button(LayoutComponent):
         often used as primary actions, while outline buttons are more subtle and commonly used as secondary actions.
     :param stop_click_propagation: Whether to stop the click event from propagating to the parent element, defaults to true
     """
+
+    _exclude_when_default: ClassVar[frozenset[str]] = LayoutComponent._exclude_when_default | frozenset(
+        {'outline', 'stop_click_propagation'}
+    )
 
     disabled: Condition | ClientVariable | bool | None = None
     loading: Condition | ClientVariable | bool | None = None

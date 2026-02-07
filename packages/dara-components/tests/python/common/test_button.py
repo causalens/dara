@@ -23,10 +23,8 @@ class TestButtonComponent(unittest.TestCase):
             'name': 'Button',
             'props': {
                 'children': [Text(text='Click Here').dict(exclude_none=True)],
-                'stop_click_propagation': True,
                 'onclick': action.dict(exclude_none=True),
                 'styling': ButtonStyle.PRIMARY.value,
-                'outline': False,
                 'position': 'relative',
             },
             'uid': str(test_uid),

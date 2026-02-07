@@ -508,7 +508,11 @@ function resolveColumns(
 
 const TableWrapper = injectCss('div');
 
-function Table(props: TableProps): JSX.Element {
+function Table({
+    include_index = true,
+    show_checkboxes = true,
+    ...props
+}: TableProps): JSX.Element {
     const getData = useTabularVariable(props.data);
     const [selectedRowIndices, setSelectedRowIndices] = useVariable(props.selected_indices);
 
@@ -542,7 +546,7 @@ function Table(props: TableProps): JSX.Element {
             }
 
             // update columns with schema on each fetch
-            const columns = resolveColumns(data[0]!, schema, resolvedPropColumns, props.include_index);
+            const columns = resolveColumns(data[0]!, schema, resolvedPropColumns, include_index);
             setResolvedColumns(columns);
             const datetimeColumns = getDatetimeColumns(columns);
 
@@ -560,7 +564,7 @@ function Table(props: TableProps): JSX.Element {
                 totalCount: count,
             };
         },
-        [getData, filters, searchQuery, sortingRules, resolvedPropColumns, props.include_index, columnHints]
+        [getData, filters, searchQuery, sortingRules, resolvedPropColumns, include_index, columnHints]
     );
 
     const extraDataCache = useRef<Record<string, DataRow>>({});
@@ -636,12 +640,12 @@ function Table(props: TableProps): JSX.Element {
 
         const mappedCols = mapColumns(resolvedColumns);
 
-        if ((props.show_checkboxes && (props.onclick_row || props.onselect_row)) || props.selected_indices) {
+        if ((show_checkboxes && (props.onclick_row || props.onselect_row)) || props.selected_indices) {
             mappedCols?.unshift(UiTable.ActionColumn([UiTable.Actions.SELECT], 'select_box_col', 'left', true));
         }
 
         return mappedCols;
-    }, [resolvedColumns, props.show_checkboxes, props.onclick_row, props.selected_indices, props.onselect_row]);
+    }, [resolvedColumns, show_checkboxes, props.onclick_row, props.selected_indices, props.onselect_row]);
 
     const onSelect = useCallback(
         async (row: any, isCheckboxSelect: boolean = false): Promise<void> => {

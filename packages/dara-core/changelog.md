@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Improved component serialization to exclude `None` values and common styling fields at their default values, significantly reducing payload size.
+- Improved component serialization to exclude default values for all fields whose default is `None`, reducing payload size.
 
 ## 1.25.4
 

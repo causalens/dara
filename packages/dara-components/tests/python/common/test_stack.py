@@ -26,11 +26,8 @@ class TestStackComponent(unittest.TestCase):
             'name': 'Stack',
             'props': {
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
-                'collapsed': False,
-                'direction': Direction.VERTICAL.value,
                 'hug': False,
                 'position': 'relative',
-                'scroll': False,
             },
             'uid': 'uid',
         }
@@ -43,11 +40,9 @@ class TestStackComponent(unittest.TestCase):
             'props': {
                 'align': 'end',
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
-                'collapsed': False,
                 'direction': Direction.HORIZONTAL.value,
                 'hug': False,
                 'position': 'relative',
-                'scroll': False,
             },
             'uid': 'uid',
         }

@@ -113,7 +113,7 @@ function ForImpl(props: ForProps & { suspend: number | boolean }): React.ReactNo
         return <DynamicComponent component={props.placeholder} />;
     }
 
-    if (props.virtualization === null) {
+    if (props.virtualization == null) {
         // reapply the parent suspend setting
         return (
             <FallbackCtx.Provider value={{ suspend: props.suspend }}>

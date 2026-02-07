@@ -15,7 +15,6 @@ class TestTextComponent(unittest.TestCase):
             'name': 'Text',
             'props': {
                 'children': [],
-                'formatted': False,
                 'text': 'Some Text',
             },
             'uid': 'uid',
@@ -28,7 +27,6 @@ class TestTextComponent(unittest.TestCase):
             'props': {
                 'children': [],
                 'align': 'center',
-                'formatted': False,
                 'width': '10px',
                 'text': 'Some Text',
             },

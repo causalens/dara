@@ -38,7 +38,6 @@ class TestTableComponent(unittest.TestCase):
             'name': 'Table',
             'props': {
                 'children': [],
-                'include_index': True,
                 'columns': [
                     {
                         'col_id': 'name',
@@ -53,10 +52,6 @@ class TestTableComponent(unittest.TestCase):
                     },
                 ],
                 'data': data_var.dict(exclude_none=True),
-                'multi_select': False,
-                'show_checkboxes': True,
-                'searchable': False,
-                'suppress_click_events_for_selection': False,
             },
             'uid': 'uid',
         }
@@ -75,7 +70,6 @@ class TestTableComponent(unittest.TestCase):
             'name': 'Table',
             'props': {
                 'children': [],
-                'include_index': True,
                 'columns': [
                     {
                         'col_id': 'col1',
@@ -90,10 +84,6 @@ class TestTableComponent(unittest.TestCase):
                     {'col_id': 'col2', 'label': 'col2'},
                 ],
                 'data': data_var.dict(exclude_none=True),
-                'multi_select': False,
-                'show_checkboxes': True,
-                'searchable': False,
-                'suppress_click_events_for_selection': False,
             },
             'uid': 'uid',
         }

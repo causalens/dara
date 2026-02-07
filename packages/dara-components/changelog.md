@@ -4,8 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Fixed `Card` component to handle missing `title`/`subtitle` props correctly when `None` values are excluded from serialization.
-- Fixed `Text` component to not emit unnecessary inline CSS properties when styling props are at their defaults.
+- Improved serialization of commonly useed components to exclude component-specific fields at their default values, reducing payload size.
 
 ## 1.25.1
 

@@ -138,7 +138,9 @@ class Stack(LayoutComponent):
     # Override to keep 'hug' in the serialized payload. Stack defaults hug=False
     # which differs from StyledComponentInstance's hug=None. If excluded, the JS client
     # receives undefined and would incorrectly inherit hug from a parent Grid context.
-    _exclude_when_default: ClassVar[frozenset[str]] = LayoutComponent._exclude_when_default - frozenset({'hug'})
+    _exclude_when_default: ClassVar[frozenset[str]] = (
+        LayoutComponent._exclude_when_default - frozenset({'hug'})
+    ) | frozenset({'collapsed', 'direction', 'scroll'})
 
     collapsed: Variable[bool] | bool = False
     direction: Direction = Direction.VERTICAL
