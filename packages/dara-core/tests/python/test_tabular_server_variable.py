@@ -646,4 +646,4 @@ async def test_py_component_with_data_variable():
         )
 
         # Should return (2 + len(df)) + len(df), so (2 + 5 + 5) = 12
-        assert data == {'name': 'MockComponent', 'props': {'text': '12', 'action': None}, 'uid': 'uid'}
+        assert data == {'name': 'MockComponent', 'props': {'text': '12'}, 'uid': 'uid'}

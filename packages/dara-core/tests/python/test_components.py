@@ -122,7 +122,6 @@ def test_fallback():
                 'fallback': jsonable_encoder(fallback),
                 'func_name': 'TestComponent',
                 'dynamic_kwargs': {},
-                'polling_interval': None,
             },
             'uid': component.uid,
         }

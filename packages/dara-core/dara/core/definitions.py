@@ -241,14 +241,20 @@ class ComponentInstance(BaseModel):
         # Uses model_fields to resolve per-class defaults (e.g. LayoutComponent overrides
         # position='relative' while StyledComponentInstance defaults to None).
         exclude_fields = getattr(type(self), '_exclude_when_default', frozenset())
-        for field_name in exclude_fields:
+        for field_name, field_info in type(self).model_fields.items():
             if field_name not in props:
                 continue
-            field_info = type(self).model_fields.get(field_name)
-            if field_info is None or field_info.default is PydanticUndefined:
+            if field_info.default is PydanticUndefined:
                 continue
             default = field_info.default.value if isinstance(field_info.default, Enum) else field_info.default
-            if props[field_name] == default:
+            # Two exclusion rules, both pop the field:
+            # 1. _exclude_when_default fields: exclude when value matches the declared default
+            # 2. All fields: exclude None when the field's default is None. Safe because the
+            #    client treats missing (undefined) and null equivalently for Optional fields.
+            #    Does NOT strip None when default is non-None (e.g. track_progress: bool | None = False).
+            if (field_name in exclude_fields and props[field_name] == default) or (
+                default is None and props[field_name] is None
+            ):
                 props.pop(field_name)
 
         return {
