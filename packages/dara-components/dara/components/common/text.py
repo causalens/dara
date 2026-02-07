@@ -52,7 +52,7 @@ class Text(ContentComponent):
     """
 
     text: str | ClientVariable
-    align: str | None = 'left'  # type: ignore # this is actually textAlign not align-items
+    align: str | None = None  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False
 
     @field_validator('text')

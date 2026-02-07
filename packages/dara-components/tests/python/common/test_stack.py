@@ -18,16 +18,17 @@ class TestStackComponent(unittest.TestCase):
 
         test_stack = Stack(t1, t2)
 
-        # Default styling fields (bold, italic, underline, hug, etc.) are excluded
-        # from serialization when they match their defaults. Component-specific defaults
-        # like collapsed, direction, scroll are still included since the client
-        # does not apply matching defaults for those.
+        # Default styling fields (bold, italic, underline, etc.) are excluded from
+        # serialization when they match their defaults. Stack overrides _exclude_when_default
+        # to keep 'hug' so the client always receives an explicit value (preventing
+        # incorrect hug-inheritance from parent Grid contexts).
         expected_dict = {
             'name': 'Stack',
             'props': {
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
                 'collapsed': False,
                 'direction': Direction.VERTICAL.value,
+                'hug': False,
                 'position': 'relative',
                 'scroll': False,
             },
@@ -44,6 +45,7 @@ class TestStackComponent(unittest.TestCase):
                 'children': [t1.dict(exclude_none=True), t2.dict(exclude_none=True)],
                 'collapsed': False,
                 'direction': Direction.HORIZONTAL.value,
+                'hug': False,
                 'position': 'relative',
                 'scroll': False,
             },

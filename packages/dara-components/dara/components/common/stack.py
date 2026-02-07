@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import logging
+from typing import ClassVar
 
 from dara.components.common.base_component import LayoutComponent
 from dara.core.definitions import ComponentInstance
@@ -133,6 +134,11 @@ class Stack(LayoutComponent):
     :param hug: Whether to hug the content of the stack, defaults to False
     :param scroll: Whether to scroll the content of the stack, defaults to False
     """
+
+    # Override to keep 'hug' in the serialized payload. Stack defaults hug=False
+    # which differs from StyledComponentInstance's hug=None. If excluded, the JS client
+    # receives undefined and would incorrectly inherit hug from a parent Grid context.
+    _exclude_when_default: ClassVar[frozenset[str]] = LayoutComponent._exclude_when_default - frozenset({'hug'})
 
     collapsed: Variable[bool] | bool = False
     direction: Direction = Direction.VERTICAL

@@ -4,8 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Fixed `Text` component to not emit unnecessary CSS properties for bold/italic/underline when they are at their defaults.
-- Fixed `Stack` component to correctly default `hug` to `false` when the prop is not sent by the server.
+- Fixed `Text` component to not emit unnecessary inline CSS properties when styling props are at their defaults.
 
 ## 1.25.1
 

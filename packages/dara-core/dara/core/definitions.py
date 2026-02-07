@@ -340,7 +340,6 @@ class StyledComponentInstance(ComponentInstance):
             'bold',
             'border',
             'border_radius',
-            'children',
             'color',
             'font',
             'font_size',
