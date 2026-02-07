@@ -508,11 +508,7 @@ function resolveColumns(
 
 const TableWrapper = injectCss('div');
 
-function Table({
-    include_index = true,
-    show_checkboxes = true,
-    ...props
-}: TableProps): JSX.Element {
+function Table({ include_index = true, show_checkboxes = true, ...props }: TableProps): JSX.Element {
     const getData = useTabularVariable(props.data);
     const [selectedRowIndices, setSelectedRowIndices] = useVariable(props.selected_indices);
 

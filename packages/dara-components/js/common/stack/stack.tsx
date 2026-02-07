@@ -43,10 +43,7 @@ const StyledStack = injectCss(styled.div<StackProps>`
     height: ${(props) => (props.direction === 'horizontal' ? '100%' : undefined)};
 `);
 
-function Stack(
-    { direction = 'vertical', ...props }: StackProps,
-    ref: ForwardedRef<HTMLDivElement>
-): JSX.Element {
+function Stack({ direction = 'vertical', ...props }: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Element {
     const [collapsed] = useVariable(props.collapsed);
     const [style, css] = useComponentStyles(props);
 
