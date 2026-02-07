@@ -64,18 +64,12 @@ def test_children():
         'uid': instance.uid,
         'props': {
             'foo': 'bar',
-            'underline': False,
-            'bold': False,
-            'italic': False,
             'children': [
                 {
                     'name': 'TestComponent',
                     'uid': instance.children[0].uid,
                     'props': {
                         'foo': 'baz',
-                        'bold': False,
-                        'underline': False,
-                        'italic': False,
                     },
                 },
             ],

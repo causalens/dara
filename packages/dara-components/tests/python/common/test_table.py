@@ -38,10 +38,7 @@ class TestTableComponent(unittest.TestCase):
             'name': 'Table',
             'props': {
                 'children': [],
-                'bold': False,
                 'include_index': True,
-                'italic': False,
-                'underline': False,
                 'columns': [
                     {
                         'col_id': 'name',
@@ -78,10 +75,7 @@ class TestTableComponent(unittest.TestCase):
             'name': 'Table',
             'props': {
                 'children': [],
-                'bold': False,
-                'italic': False,
                 'include_index': True,
-                'underline': False,
                 'columns': [
                     {
                         'col_id': 'col1',

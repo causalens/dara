@@ -41,6 +41,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticUndefined
 
 from dara.core.base_definitions import Action, ComponentType
 from dara.core.base_definitions import DaraBaseModel as BaseModel
@@ -116,6 +117,15 @@ class ErrorHandlingConfig(BaseModel):
 class ComponentInstance(BaseModel):
     """
     Definition of a Component Instance
+    """
+
+    _exclude_when_default: ClassVar[frozenset[str]] = frozenset(
+        {'raw_css', 'track_progress', 'error_handler', 'fallback', 'id_', 'for_'}
+    )
+    """
+    Fields listed here will be excluded from serialization when their value matches the field's default.
+    This reduces payload size by not sending default values the client already knows about.
+    Subclasses can extend this set.
     """
 
     uid: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -222,32 +232,24 @@ class ComponentInstance(BaseModel):
 
         props.pop('uid')
 
-        # Exclude raw_css if not set
-        if 'raw_css' in props and props.get('raw_css') is None:
-            props.pop('raw_css')
-        elif isinstance(self.raw_css, CSSProperties):
-            # If it's an instance of CSSProperties, serialize but exclude none
+        # Special handling for raw_css: CSSProperties needs exclude_none serialization
+        if isinstance(self.raw_css, CSSProperties):
             props['raw_css'] = self.raw_css.model_dump(exclude_none=True)
 
-        # Exclude track_progress if not set
-        if 'track_progress' in props and props.get('track_progress') is False:
-            props.pop('track_progress')
-
-        # Exclude error handler if not set
-        if 'error_handler' in props and props.get('error_handler') is None:
-            props.pop('error_handler')
-
-        # Exclude fallback if not set
-        if 'fallback' in props and props.get('fallback') is None:
-            props.pop('fallback')
-
-        # Exclude id_ if not set
-        if 'id_' in props and props.get('id_') is None:
-            props.pop('id_')
-
-        # Exclude for_ if not set
-        if 'for_' in props and props.get('for_') is None:
-            props.pop('for_')
+        # Exclude fields at their default values to reduce serialized payload size.
+        # The client handles missing (undefined) fields by applying matching defaults.
+        # Uses model_fields to resolve per-class defaults (e.g. LayoutComponent overrides
+        # position='relative' while StyledComponentInstance defaults to None).
+        exclude_fields = getattr(type(self), '_exclude_when_default', frozenset())
+        for field_name in exclude_fields:
+            if field_name not in props:
+                continue
+            field_info = type(self).model_fields.get(field_name)
+            if field_info is None or field_info.default is PydanticUndefined:
+                continue
+            default = field_info.default.value if isinstance(field_info.default, Enum) else field_info.default
+            if props[field_name] == default:
+                props.pop(field_name)
 
         return {
             'name': self.py_component or type(self).__name__,
@@ -329,6 +331,39 @@ class StyledComponentInstance(ComponentInstance):
     :param underline: whether to underline the font, defaults to False
     :param width: the width of the component, can be an number, which will be converted to pixels, or a string
     """
+
+    _exclude_when_default: ClassVar[frozenset[str]] = ComponentInstance._exclude_when_default | frozenset(
+        {
+            'align',
+            'background',
+            'basis',
+            'bold',
+            'border',
+            'border_radius',
+            'children',
+            'color',
+            'font',
+            'font_size',
+            'gap',
+            'grow',
+            'height',
+            'hug',
+            'italic',
+            'margin',
+            'max_height',
+            'max_width',
+            'min_height',
+            'min_width',
+            'overflow',
+            'padding',
+            # Note: 'position' is intentionally excluded from this set.
+            # LayoutComponent overrides it to 'relative' and client layout components
+            # rely on receiving it for proper stacking context.
+            'shrink',
+            'underline',
+            'width',
+        }
+    )
 
     align: AlignItems | None = None
     background: str | None = None

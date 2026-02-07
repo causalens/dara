@@ -23,15 +23,12 @@ class TestDatepickerComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Datepicker',
             'props': {
-                'bold': False,
                 'children': [],
                 'value': value.dict(exclude_none=True),
                 'date_format': 'dd/MM/yyyy',
                 'enable_time': False,
-                'italic': False,
                 'range': False,
                 'select_close': True,
-                'underline': False,
             },
             'uid': str(test_uid),
         }

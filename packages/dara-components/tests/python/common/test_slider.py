@@ -129,13 +129,10 @@ class TestSlider(unittest.TestCase):
         expected_dict = {
             'name': 'Slider',
             'props': {
-                'bold': False,
                 'children': [],
                 'domain': [0.0, 1.0],
-                'italic': False,
                 'rail_from_start': True,
                 'rail_to_end': False,
-                'underline': False,
                 'value': value.dict(exclude_none=True),
                 'disable_input_alternative': False,
                 'onchange': onchange.dict(exclude_none=True),

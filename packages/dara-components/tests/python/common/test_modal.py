@@ -38,10 +38,7 @@ class TestModalComponent(unittest.TestCase):
             'name': 'Modal',
             'props': {
                 'children': [t1.model_dump(exclude_none=True)],
-                'bold': False,
-                'italic': False,
                 'position': 'relative',
-                'underline': False,
                 'show': show.model_dump(exclude_none=True),
                 'on_attempt_close': on_attempt_close().model_dump(exclude_none=True),
                 'on_closed': on_closed().model_dump(exclude_none=True),

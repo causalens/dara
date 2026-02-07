@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed `Text` component to not emit unnecessary CSS properties for bold/italic/underline when they are at their defaults.
+- Fixed `Stack` component to correctly default `hug` to `false` when the prop is not sent by the server.
+
 ## 1.25.1
 
 - Added `size` prop to `Select` component to control font-size of each sub-component

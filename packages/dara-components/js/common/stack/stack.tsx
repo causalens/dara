@@ -45,7 +45,11 @@ const StyledStack = injectCss(styled.div<StackProps>`
 
 function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Element {
     const [collapsed] = useVariable(props.collapsed);
-    const [style, css] = useComponentStyles(props);
+    // Default hug to false for Stack — when the server excludes hug=false (the default),
+    // props.hug is undefined. Without this, undefined would cause hug-inheritance from
+    // the parent DisplayCtx, which is incorrect for Stack's default behavior.
+    const resolvedProps = props.hug == null ? { ...props, hug: false } : props;
+    const [style, css] = useComponentStyles(resolvedProps);
 
     const stackContent = (
         <DisplayCtx.Provider value={{ component: 'stack', direction: props.direction }}>

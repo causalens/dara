@@ -14,13 +14,9 @@ class TestTextComponent(unittest.TestCase):
         expected_dict = {
             'name': 'Text',
             'props': {
-                'align': 'left',
-                'bold': False,
                 'children': [],
                 'formatted': False,
-                'italic': False,
                 'text': 'Some Text',
-                'underline': False,
             },
             'uid': 'uid',
         }
@@ -32,10 +28,7 @@ class TestTextComponent(unittest.TestCase):
             'props': {
                 'children': [],
                 'align': 'center',
-                'bold': False,
                 'formatted': False,
-                'italic': False,
-                'underline': False,
                 'width': '10px',
                 'text': 'Some Text',
             },

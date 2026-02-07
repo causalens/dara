@@ -24,11 +24,8 @@ class TestTextareaComponent(unittest.TestCase):
             'name': 'Textarea',
             'props': {
                 'autofocus': False,
-                'bold': False,
                 'children': [],
-                'italic': False,
                 'value': value.dict(exclude_none=True),
-                'underline': False,
             },
             'uid': str(test_uid),
         }

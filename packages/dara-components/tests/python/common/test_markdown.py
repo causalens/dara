@@ -25,12 +25,9 @@ Some text
         expected_dict = {
             'name': 'Markdown',
             'props': {
-                'bold': False,
                 'children': [],
                 'html_raw': False,
-                'italic': False,
                 'markdown': '# Heading\nSome text\n*italic words* **bold words**\n## List\n+ Sub-lists:\n- Marker\n* Another marker\n\n[link text](https://www.causalens.com/)',
-                'underline': False,
             },
             'uid': 'uid',
         }

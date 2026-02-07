@@ -49,7 +49,7 @@ function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, us
     }
     // If hug is set, then the flex-basis should be set to content
     // Otherwise we check if the parent is a component that has hug set to true, and its children should inherit
-    if (props.hug || (props.hug !== false && displayCtx.hug)) {
+    if (props.hug || (props.hug == null && displayCtx.hug)) {
         flexBasis ??= 'content';
         flexShrink ??= '1';
         flexGrow ??= '0';
@@ -97,8 +97,8 @@ export default function useComponentStyles(
             color: props.color,
             fontFamily: props.font,
             fontSize: props.font_size,
-            fontStyle: props.italic ? 'italic' : 'normal',
-            fontWeight: props.bold ? 'bold' : 'normal',
+            fontStyle: props.italic ? 'italic' : undefined,
+            fontWeight: props.bold ? 'bold' : undefined,
             gap: props.gap,
             height: props.height,
             margin: props.margin,
@@ -109,7 +109,7 @@ export default function useComponentStyles(
             overflow: props.overflow,
             padding: props.padding,
             position: props.position,
-            textDecoration: props.underline ? 'underline' : 'none',
+            textDecoration: props.underline ? 'underline' : undefined,
             width: props.width,
             ...flexProps,
             ...rawStyles,

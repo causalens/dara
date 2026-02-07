@@ -4,6 +4,9 @@ title: Changelog
 
 ## NEXT
 
+- Improved component serialization to exclude styling fields at their default values, significantly reducing payload size. Fields like `bold`, `italic`, `underline`, `align`, `background`, `hug`, and other styling props are no longer sent when they match their defaults. This is controlled via `_exclude_when_default` ClassVar on `ComponentInstance` and `StyledComponentInstance`, which subclasses can extend.
+- Fixed `useComponentStyles` to not emit unnecessary CSS properties (`fontStyle: 'normal'`, `fontWeight: 'normal'`, `textDecoration: 'none'`) when styling props are not set.
+- Fixed `flexStyles` hug-inheritance logic to correctly treat missing `hug` prop the same as `null` (inherit from parent context) rather than `false` (explicit no-hug).
 - Added cleanup support to `on_startup`: startup functions can now optionally return a cleanup callable which is invoked during application shutdown in reverse order (LIFO). Both sync and async cleanup functions are supported.
 
 ## 1.25.3
