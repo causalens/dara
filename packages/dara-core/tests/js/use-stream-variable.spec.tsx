@@ -382,8 +382,6 @@ describe('useVariable with StreamVariable', () => {
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
 
-        // Explicit cleanup to ensure all stream connections are closed before test ends
-        clearStreamUsage_TEST();
     });
 
     /**
@@ -809,7 +807,6 @@ describe('useVariable with StreamVariable', () => {
             expect(screen.getByTestId('subscriber')).toHaveTextContent('{"delayed":true}');
 
             vi.useRealTimers();
-            clearStreamUsage_TEST();
         });
     });
 });
