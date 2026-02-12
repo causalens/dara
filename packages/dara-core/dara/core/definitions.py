@@ -46,6 +46,7 @@ from dara.core.base_definitions import Action, ComponentType
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
+from dara.core.interactivity.client_variable import ClientVariable
 
 
 class HttpMethod(Enum):
@@ -458,7 +459,7 @@ class PyComponentDef(BaseModel):
     name: str
     dynamic_kwargs: Mapping[str, AnyVariable] | None = None
     fallback: BaseFallback | ComponentInstance | None = None
-    polling_interval: int | None = None
+    polling_interval: int | ClientVariable | None = None
     render_component: Callable[..., Awaitable[Any]]
     """Handler to render the component. Defaults to dara.core.visual.dynamic_component.render_component"""
 

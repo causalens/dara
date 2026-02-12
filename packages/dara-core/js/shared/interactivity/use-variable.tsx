@@ -112,7 +112,8 @@ export function useVariable<T>(
     useStreamSubscription(streamUids, extras);
 
     if (isDerivedVariable(variable)) {
-        const selector = useDerivedVariable(variable, wsClient, taskContext, extras);
+        const [pollingInterval] = useVariable<number | null>(variable.polling_interval ?? null);
+        const selector = useDerivedVariable(variable, wsClient, taskContext, extras, pollingInterval ?? undefined);
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         useEffect(() => {

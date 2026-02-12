@@ -209,6 +209,22 @@ describe('useVariable - SwitchVariable', () => {
             expect(result.current[0]).toBeUndefined();
         });
 
+        it('should return mapped null instead of default when key exists', () => {
+            const switchVariable: SwitchVariable<string | null> = {
+                __typename: 'SwitchVariable',
+                uid: 'switch-null-mapped-value',
+                value: 'off' as any,
+                value_map: { off: null, on: 'enabled' },
+                default: 'fallback',
+            };
+
+            const { result } = renderHook(() => useVariable(switchVariable), {
+                wrapper: Wrapper,
+            });
+
+            expect(result.current[0]).toBeNull();
+        });
+
         it('should return warning function for update attempts', () => {
             const switchVariable: SwitchVariable<string> = {
                 __typename: 'SwitchVariable',

@@ -171,13 +171,14 @@ class DataFactory(BaseModel):
     def list_datasets_var(
         self,
         cache: CacheType | ClientVariable = CacheType.GLOBAL,
-        polling_interval: int | None = None,
+        polling_interval: int | ClientVariable | None = None,
     ) -> DerivedVariable[list[str]]:
         """
         Create a DerivedVariable which stores a list of datasets (filenames) available for a given cache type
 
         :param cache: cache type to get the list of datasets for
-        :param polling_interval: optional polling_interval in seconds for the derived variable
+        :param polling_interval: optional polling interval in seconds for the derived variable. Can be either a fixed
+            integer or a ClientVariable for dynamic polling/disable behavior
         """
         cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)
 
@@ -289,14 +290,15 @@ class DataFactory(BaseModel):
         self,
         name: str | ClientVariable,
         cache: CacheType | ClientVariable = CacheType.GLOBAL,
-        polling_interval: int | None = None,
+        polling_interval: int | ClientVariable | None = None,
     ) -> DerivedVariable:
         """
         Create a DerivedVariable which reads a specific dataset from disk
 
         :param name: name of the dataset
         :param cache: cache to get the dataset for
-        :param polling_interval: optional polling interval in seconds for the derived variable
+        :param polling_interval: optional polling interval in seconds for the derived variable. Can be either a fixed
+            integer or a ClientVariable for dynamic polling/disable behavior
         """
         name_var = name if isinstance(name, ClientVariable) else Variable(name)
         cache_var = cache if isinstance(cache, ClientVariable) else Variable(cache)

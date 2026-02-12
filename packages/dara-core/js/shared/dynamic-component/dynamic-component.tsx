@@ -17,13 +17,14 @@ import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker';
 import { FallbackCtx, VariableCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
-import { useRefreshSelector } from '@/shared/interactivity';
+import { useRefreshSelector, useVariable } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
 import { useInterval } from '@/shared/utils';
 import {
     type ComponentInstance,
     type DerivedVariable,
     type JsComponent,
+    type Variable,
     isDerivedVariable,
     isPyComponent,
 } from '@/types';
@@ -40,7 +41,7 @@ import { cleanProps } from './clean-props';
 function getDerivedVariablePollingInterval(variable: DerivedVariable): number | undefined {
     let pollingInterval!: number;
 
-    if (variable.polling_interval) {
+    if (typeof variable.polling_interval === 'number') {
         pollingInterval = variable.polling_interval;
     }
     variable.variables.forEach((value) => {
@@ -63,7 +64,7 @@ function getDerivedVariablePollingInterval(variable: DerivedVariable): number | 
  */
 function computePollingInterval(
     kwargs: Record<string, AnyVariable<any>>,
-    componentInterval: number | null
+    componentInterval: number | null | undefined
 ): number | undefined {
     let pollingInterval: number | undefined;
 
@@ -76,7 +77,7 @@ function computePollingInterval(
         }
     });
 
-    if (componentInterval && (!pollingInterval || pollingInterval > componentInterval)) {
+    if (typeof componentInterval === 'number' && (!pollingInterval || pollingInterval > componentInterval)) {
         pollingInterval = componentInterval;
     }
 
@@ -354,7 +355,7 @@ interface PythonWrapperProps {
     /* Py_component name/uid - the same for all instances of the py_component */
     name: string;
     /* Polling interval to use for refetching the component */
-    polling_interval: number | null;
+    polling_interval: Variable<number | null> | number | null;
     /* Component instance uid - unique for each instances */
     uid: string;
 }
@@ -374,11 +375,12 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         props.component.loop_instance_uid
     );
     const refresh = useRefreshServerComponent(props.uid, props.component.loop_instance_uid);
+    const [componentPollingInterval] = useVariable<number | null>(props.polling_interval ?? null);
 
     // Poll to update the component if polling_interval is set
     const pollingInterval = useMemo(
-        () => computePollingInterval(props.dynamic_kwargs, props.polling_interval),
-        [props.dynamic_kwargs, props.polling_interval]
+        () => computePollingInterval(props.dynamic_kwargs, componentPollingInterval),
+        [props.dynamic_kwargs, componentPollingInterval]
     );
     useInterval(refresh, pollingInterval);
 
