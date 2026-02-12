@@ -1,0 +1,46 @@
+line-length = 120
+exclude = ["*.ipynb"]
+
+# target our minimum supported python version
+target-version = "py310"
+
+[format]
+quote-style = "single"
+exclude = ["*.ipynb"]
+
+[lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "I",   # isort
+    "PL",   # pylint
+    "FAST" # FastAPI specific
+]
+ignore = [
+    "E501",     # line-too-long
+    "PLC0415",  # import-outside-toplevel
+    "PLE0307",  # invalid-str-returned
+    "PLR0911",  # too-many-return-statements
+    "PLR0912",  # too-many-branches
+    "PLR0913",  # too-many-arguments
+    "PLR0914",  # too-many-locals
+    "PLR0915",  # too-many-statements
+    "PLR0916",  # too-many-boolean-expressions
+    "PLR0917",  # too-many-positional-arguments
+    "PLR1702",  # too-many-nested-blocks
+    "PLR1704",  # redefined-argument-from-local
+    "PLW0603",  # global-statement
+    "PLR2004",  # magic-value-comparison
+]
+
+[lint.isort]
+section-order = ["future", "standard-library", "third-party", "dara", "first-party", "local-folder"]
+sections = { dara = ["cai*", "dara*"] }
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.File", "fastapi.Body", "fastapi.Header", "fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query", "fastapi.security.http.HTTPBearer", "fastapi.security.HTTPBearer"]
+
+
