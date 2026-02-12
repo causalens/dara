@@ -69,25 +69,25 @@ importers:
         specifier: ^6.0.0
         version: 6.39.11
       '@darajs/core':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../dara-core
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-causal-graph-editor':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-causal-graph-editor
       '@darajs/ui-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-components
       '@darajs/ui-hierarchy-viewer':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-hierarchy-viewer
       '@darajs/ui-icons':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       '@lezer/highlight':
         specifier: ^1.2.1
@@ -151,13 +151,13 @@ importers:
         specifier: ^7.23.5
         version: 7.28.6
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@testing-library/react-hooks':
         specifier: ^3.4.2
@@ -223,16 +223,16 @@ importers:
   packages/dara-core:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-components
       '@darajs/ui-notifications':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       '@fortawesome/fontawesome-free':
         specifier: ~6.4.0
@@ -335,13 +335,13 @@ importers:
         specifier: ^7.23.0
         version: 7.28.5(@babel/core@7.28.6)
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@rollup/plugin-inject':
         specifier: ^4.0.4
@@ -437,28 +437,10 @@ importers:
         specifier: ^3.6.20
         version: 3.6.20
 
-  packages/demo-app/dist:
-    dependencies:
-      '@darajs/components':
-        specifier: 1.25.4
-        version: link:../../dara-components
-      '@darajs/core':
-        specifier: 1.25.4
-        version: link:../../dara-core
-      '@vitejs/plugin-react':
-        specifier: 4.6.0
-        version: 4.6.0(vite@7.0.8(@types/node@18.19.130)(terser@5.46.0)(yaml@2.8.2))
-      vite:
-        specifier: 7.0.8
-        version: 7.0.8(@types/node@18.19.130)(terser@5.46.0)(yaml@2.8.2)
-      vite-plugin-node-polyfills:
-        specifier: 0.24.0
-        version: 0.24.0(rollup@4.57.0)(vite@7.0.8(@types/node@18.19.130)(terser@5.46.0)(yaml@2.8.2))
-
   packages/eslint-config:
     dependencies:
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.26.1
@@ -519,13 +501,13 @@ importers:
         version: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@types/styled-components':
         specifier: ^5.1.26
@@ -570,22 +552,22 @@ importers:
   packages/ui-causal-graph-editor:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-icons
       '@darajs/ui-notifications':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       '@darajs/ui-widgets':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-widgets
       comlink:
         specifier: ^4.4.1
@@ -676,13 +658,13 @@ importers:
         specifier: ^7.15.0
         version: 7.28.5(@babel/core@7.28.6)
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
@@ -784,13 +766,13 @@ importers:
   packages/ui-components:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       '@floating-ui/react':
         specifier: ^0.26.12
@@ -887,13 +869,13 @@ importers:
         specifier: ^7.15.0
         version: 7.28.5(@babel/core@7.28.6)
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
@@ -995,10 +977,10 @@ importers:
   packages/ui-hierarchy-viewer:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       d3:
         specifier: 6.2.0
@@ -1008,13 +990,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@types/d3':
         specifier: ^6.2.0
@@ -1056,7 +1038,7 @@ importers:
   packages/ui-icons:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@fortawesome/fontawesome-svg-core':
         specifier: ~6.4.0
@@ -1084,13 +1066,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
@@ -1129,13 +1111,13 @@ importers:
   packages/ui-notifications:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       lodash:
         specifier: 4.17.21
@@ -1151,13 +1133,13 @@ importers:
         version: 7.8.2
     devDependencies:
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
@@ -1236,13 +1218,13 @@ importers:
         specifier: ^7.14.5
         version: 7.28.5(@babel/core@7.28.6)
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
@@ -1290,16 +1272,16 @@ importers:
   packages/ui-widgets:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../ui-utils
       lodash:
         specifier: 4.17.21
@@ -1327,13 +1309,13 @@ importers:
         specifier: ^7.15.0
         version: 7.28.5(@babel/core@7.28.6)
       '@darajs/eslint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../eslint-config
       '@darajs/prettier-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../prettier-config
       '@darajs/stylelint-config':
-        specifier: 1.25.4
+        specifier: 1.25.6
         version: link:../stylelint-config
       '@testing-library/dom':
         specifier: ^9.3.0
@@ -6537,11 +6519,13 @@ packages:
 
   glob@10.5.0:
     resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@13.0.0:
@@ -6555,6 +6539,7 @@ packages:
   glob@9.3.5:
     resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
     engines: {node: '>=16 || 14 >=14.17'}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-dirs@3.0.1:
     resolution: {integrity: sha512-NBcGGFbBA9s1VzD41QXDG+3++t9Mn5t1FpLdhESY6oKY4gYTFpX4wO3sqGUa0Srjtbfj3szX0RnemmrVRUdULA==}
@@ -9581,7 +9566,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
