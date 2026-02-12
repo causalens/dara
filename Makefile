@@ -90,8 +90,7 @@ publish:
 
 publish-docs:
 	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple
-	poetry add setuptools
-	poetry add --source=causalens docs-builder@~0.2.8
+	poetry add --source=causalens docs-builder@~0.2.14
 	poetry run python ./tooling/scripts/docs-upload.py
 
 # Clean development artifacts from the repository
