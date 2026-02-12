@@ -164,8 +164,9 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                   session, per user or to not cache at all
     :param run_as_task: whether to run the calculation in a separate process, recommended for any CPU intensive
                         tasks, defaults to False
-    :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
-                         component to poll the backend and refresh itself every n seconds.
+    :param polling_interval: an optional polling interval in seconds for the DerivedVariable. This can be either a
+                         fixed integer or a ClientVariable (e.g. SwitchVariable) for dynamic polling/disable behavior.
+                         Setting this will cause the component to poll the backend and refresh itself every n seconds.
     :param filter_resolver: an optional function to resolve the filter query for the derived variable. This can be
     used to customize the way tabular data is resolved. This is invoked with the result of the main DerivedVariable function,
     as well as filters and pagination. The function should return a DataFrame and total count.
@@ -180,7 +181,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
     cache: BaseCachePolicy | None
     variables: list[AnyVariable]
-    polling_interval: int | None
+    polling_interval: int | ClientVariable | None
     deps: list[AnyVariable] | None = Field(validate_default=True)
     nested: list[NestedKey] = Field(default_factory=list)
     uid: str
@@ -192,7 +193,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         variables: list[AnyVariable],
         cache: CacheArgType | None = Cache.Type.GLOBAL,
         run_as_task: bool = False,
-        polling_interval: int | None = None,
+        polling_interval: int | ClientVariable | None = None,
         deps: list[AnyVariable] | None = None,
         uid: str | None = None,
         nested: list[NestedKey] | None = None,
@@ -749,7 +750,7 @@ class DerivedVariableRegistryEntry(CachedRegistryEntry):
     filter_resolver: FilterResolver | None
     run_as_task: bool
     variables: list[AnyVariable]
-    polling_interval: int | None
+    polling_interval: int | ClientVariable | None
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
     get_tabular_data: Callable[..., Awaitable[DataResponse | MetaTask]]

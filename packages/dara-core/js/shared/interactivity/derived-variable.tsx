@@ -923,7 +923,8 @@ export function useDerivedVariable(
     variable: DerivedVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
-    extras: RequestExtras
+    extras: RequestExtras,
+    pollingInterval?: number
 ): RecoilValue<any> {
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
@@ -946,7 +947,7 @@ export function useDerivedVariable(
     );
 
     // Using useInterval to poll, forcing recalculation everytime
-    useInterval(trigger, variable.polling_interval);
+    useInterval(trigger, pollingInterval);
 
     return dvSelector;
 }

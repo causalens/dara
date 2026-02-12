@@ -122,17 +122,17 @@ describe('useVariable with StreamVariable', () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
         setSessionToken(SESSION_TOKEN);
-        clearRegistries_TEST();
-        clearStreamUsage_TEST();
     });
 
     afterEach(() => {
         // Unmount React tree BEFORE clearing streams so useEffect cleanups
         // run first and Recoil doesn't try to re-render on aborted connections
         cleanup();
+        vi.useRealTimers();
         setSessionToken(null);
         server.resetHandlers();
         clearStreamUsage_TEST();
+        clearRegistries_TEST();
     });
 
     afterAll(() => server.close());
@@ -382,8 +382,6 @@ describe('useVariable with StreamVariable', () => {
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
 
-        // Explicit cleanup to ensure all stream connections are closed before test ends
-        clearStreamUsage_TEST();
     });
 
     /**
@@ -545,7 +543,7 @@ describe('useVariable with StreamVariable', () => {
                 return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
             }
 
-            wrappedRender(
+            const { unmount } = wrappedRender(
                 <Suspense fallback={<div data-testid="loading">Loading...</div>}>
                     <Subscriber />
                 </Suspense>
@@ -573,6 +571,9 @@ describe('useVariable with StreamVariable', () => {
             // Manually abort the connection via the controller
             // (simulating what happens during cleanup)
             controller!.abort();
+
+            // Unmount first so we don't clear stream tracker while Recoil tree is live.
+            unmount();
 
             // Use cleanupAllStreams to properly clear tracker state
             clearStreamUsage_TEST();
@@ -809,7 +810,6 @@ describe('useVariable with StreamVariable', () => {
             expect(screen.getByTestId('subscriber')).toHaveTextContent('{"delayed":true}');
 
             vi.useRealTimers();
-            clearStreamUsage_TEST();
         });
     });
 });

@@ -35,6 +35,7 @@ from fastapi.encoders import jsonable_encoder
 from dara.core.base_definitions import BaseTask
 from dara.core.definitions import BaseFallback, ComponentInstance, PyComponentDef
 from dara.core.interactivity import AnyVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.state_variable import StateVariable
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
@@ -51,7 +52,7 @@ CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
 class PyComponentInstance(ComponentInstance):
     func_name: str
     dynamic_kwargs: Mapping[str, AnyVariable]
-    polling_interval: int | None = None
+    polling_interval: int | ClientVariable | None = None
     js_module: ClassVar[str | None] = None
 
 
@@ -68,7 +69,7 @@ def py_component(
     placeholder: BaseFallback | ComponentInstance | None = None,
     fallback: BaseFallback | ComponentInstance | None = None,
     track_progress: bool | None = False,
-    polling_interval: int | None = None,
+    polling_interval: int | ClientVariable | None = None,
 ) -> Callable[[Callable], Callable[..., PyComponentInstance]]: ...
 
 
@@ -78,7 +79,7 @@ def py_component(
     placeholder: BaseFallback | ComponentInstance | None = None,
     fallback: BaseFallback | ComponentInstance | None = None,
     track_progress: bool | None = False,
-    polling_interval: int | None = None,
+    polling_interval: int | ClientVariable | None = None,
 ) -> Callable[..., PyComponentInstance] | Callable[[Callable], Callable[..., PyComponentInstance]]:
     """
     A decorator that can be used to trigger a component function to be rerun whenever a give variable changes. It should be
@@ -87,8 +88,9 @@ def py_component(
     :param placeholder: a placeholder component to render whilst waiting for the component to be rendered. Deprecated, use fallback instead
     :param fallback: a fallback component to render in place of the actual UI if it has not finished loading
     :param track_progress: whether to show a ProgressTracker when there is a task running, takes precedence over fallback
-    :param polling_interval: an optional polling interval for the component. Setting this will cause the component to
-                             poll the backend and refresh itself every n seconds.
+    :param polling_interval: an optional polling interval in seconds for the component. This can be either a fixed
+                             integer or a ClientVariable (e.g. SwitchVariable) for dynamic polling/disable behavior.
+                             Setting this will cause the component to poll the backend and refresh itself every n seconds.
     """
     fallback_component = None
 

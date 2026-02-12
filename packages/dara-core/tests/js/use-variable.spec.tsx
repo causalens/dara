@@ -15,6 +15,7 @@ import type {
     DerivedVariable,
     QueryParamStore,
     SingleVariable,
+    SwitchVariable,
     TriggerVariableImpl,
     Variable,
 } from '@/types/core';
@@ -841,6 +842,76 @@ describe('useVariable', () => {
                     ws_channel: 'uid',
                 });
                 expect(result.current[1]).toBeInstanceOf(Function);
+            });
+        });
+
+        it('should support SwitchVariable as polling_interval and stop polling when disabled', async () => {
+            vi.useFakeTimers();
+            const pollingEnabled: Variable<boolean> = {
+                __typename: 'Variable',
+                default: true,
+                uid: 'polling-enabled',
+                nested: [],
+            };
+            const pollingInterval: SwitchVariable<number | null> = {
+                __typename: 'SwitchVariable',
+                uid: 'polling-switch',
+                value: pollingEnabled,
+                value_map: {
+                    true: 2,
+                    false: null,
+                },
+                default: null,
+            };
+
+            const { result } = renderHook(
+                () => {
+                    const [derivedValue] = useVariable<any>({
+                        __typename: 'DerivedVariable',
+                        default: 'test',
+                        deps: [
+                            { __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>,
+                            { __typename: 'Variable', default: '2', uid: 'dep2' } as Variable<string>,
+                        ],
+                        nested: [],
+                        polling_interval: pollingInterval,
+                        uid: 'uid-polling-switch',
+                        variables: [
+                            { __typename: 'Variable', default: '1', uid: 'dep1' } as Variable<string>,
+                            { __typename: 'Variable', default: '2', uid: 'dep2' } as Variable<string>,
+                        ],
+                    } as DerivedVariable);
+                    const [, setPollingEnabled] = useVariable<boolean>(pollingEnabled);
+
+                    return { derivedValue, setPollingEnabled };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await waitFor(() => {
+                expect(result.current.derivedValue.force_key).toBeNull();
+            });
+
+            act(() => {
+                vi.advanceTimersByTime(2500);
+            });
+
+            await waitFor(() => {
+                expect(result.current.derivedValue.force_key).toEqual(expect.any(String));
+            });
+
+            const forceKeyAfterPolling = result.current.derivedValue.force_key;
+
+            act(() => {
+                result.current.setPollingEnabled(false);
+            });
+
+            act(() => {
+                vi.advanceTimersByTime(3000);
+            });
+
+            await waitFor(() => {
+                expect(result.current.derivedValue.force_key).toEqual(forceKeyAfterPolling);
             });
         });
 

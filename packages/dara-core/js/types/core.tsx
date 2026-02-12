@@ -241,7 +241,7 @@ export interface DerivedVariable {
     cache?: null | CachePolicy;
     deps: Array<AnyVariable<any> | any>;
     nested: NestedKey[];
-    polling_interval?: number;
+    polling_interval?: Variable<number | null> | number | null;
     uid: string;
     variables: Array<AnyVariable<any> | any>;
     /**
@@ -435,7 +435,7 @@ export type PyComponentInstance = ComponentInstance<
         func_name: string;
         dynamic_kwargs: Record<string, AnyVariable<any>>;
         js_module: string | null;
-        polling_interval: number | null;
+        polling_interval: Variable<number | null> | number | null;
     }
 >;
 

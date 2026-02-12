@@ -6,7 +6,7 @@ import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from pydantic import BaseModel
 
-from dara.core import DerivedVariable, Variable, py_component
+from dara.core import DerivedVariable, SwitchVariable, Variable, py_component
 from dara.core.base_definitions import Cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import BaseFallback, ComponentInstance
@@ -473,6 +473,35 @@ async def test_compatibility_with_polling():
         assert component_2.get('props').get('polling_interval') is None
 
 
+async def test_compatibility_with_variable_polling():
+    """Test that a py_component can be configured with a ClientVariable polling interval."""
+
+    builder = ConfigurationBuilder()
+    poll_toggle = Variable(True)
+    polling_interval = SwitchVariable.when(condition=poll_toggle, true_value=2, false_value=None)
+
+    @py_component(polling_interval=polling_interval)
+    def TestSimpleComp():
+        return MockComponent(text='test')
+
+    builder.router = Router(
+        PageRoute(path='test', content=TestSimpleComp(), id='test'),
+    )
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
+
+        component_polling = component.get('props').get('polling_interval')
+        assert component_polling.get('__typename') == 'SwitchVariable'
+        assert component_polling.get('value_map').get('true') == 2
+        assert component_polling.get('value_map').get('false') is None
+
+
 async def test_derived_variables_restore_base_models():
     """
     Check that DerivedVariables whose Variables inherit from BaseModel correctly restore those model when calculating
@@ -606,6 +635,46 @@ async def test_derived_variables_with_polling():
             component.get('props').get('dynamic_kwargs').get('input_val').get('cache')
             == Cache.Policy.from_arg('global').model_dump()
         )
+
+
+async def test_derived_variables_with_variable_polling():
+    """Test that a DerivedVariable can use a ClientVariable polling interval."""
+
+    builder = ConfigurationBuilder()
+
+    var1 = Variable()
+    var2 = Variable()
+    var3 = Variable()
+    poll_toggle = Variable(True)
+    polling_interval = SwitchVariable.when(condition=poll_toggle, true_value=2, false_value=None)
+
+    class InputClass(BaseModel):
+        val: int
+
+    def calc(a: InputClass, *args):
+        return sum([a.val, *args])
+
+    derived = DerivedVariable(calc, variables=[var1, var2, var3], polling_interval=polling_interval)
+
+    @py_component
+    def TestBasicComp(input_val: int):
+        return MockComponent(text=str(input_val))
+
+    builder.router = Router()
+    builder.router.add_page(path='test', content=TestBasicComp(derived), id='test')
+
+    config = create_app(builder)
+
+    # Run the app so the component is initialized
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response, status = await _get_template(client, page_id='test')
+        component = response['template']
+
+        polling_interval = component.get('props').get('dynamic_kwargs').get('input_val').get('polling_interval')
+        assert polling_interval.get('__typename') == 'SwitchVariable'
+        assert polling_interval.get('value_map').get('true') == 2
+        assert polling_interval.get('value_map').get('false') is None
 
 
 async def test_chained_derived_variables():
