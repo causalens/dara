@@ -521,7 +521,7 @@ export const TableWithRowDataIdSingle = (args: Props<any>): JSX.Element => {
 TableWithRowDataIdSingle.args = {
     columns,
     data: sampleData,
-    rowDataIdColumn: 'age',
+    rowDataIdColumn: 'lastName',
 } as Props<any>;
 
 TableWithRowDataIdSingle.parameters = {
