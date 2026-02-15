@@ -351,6 +351,16 @@ export interface Props<T extends { [k: string]: any }> {
     style?: React.CSSProperties;
     /** Pass through of the style prop to the table options Dropdown */
     tableOptionsStyle?: React.CSSProperties;
+    /** Optional row height for the table */
+    rowHeight?: number;
+
+    /** Optional actions for the table */
+    actions?: Array<ActionCol>;
+
+    /**
+     * Optional column(s) to use as the row data id. When an array, values are joined with underscores.
+     */
+    rowDataIdColumn?: string | string[];
 }
 
 type TableType = React.ForwardRefExoticComponent<Props<{ [k: string]: any }> & React.RefAttributes<TableHandle>> &
@@ -374,7 +384,9 @@ const createItemData = memoize(
         onClickRow,
         throttledClickRow,
         backgroundColor,
-        mappedColumns
+        mappedColumns,
+        rowHeight,
+        rowDataIdColumn
     ) => ({
         backgroundColor,
         currentEditCell,
@@ -384,6 +396,8 @@ const createItemData = memoize(
         onClickRow,
         prepareRow,
         rows,
+        rowHeight,
+        rowDataIdColumn,
         throttledClickRow,
         totalColumnsWidth,
         width,
@@ -416,6 +430,7 @@ const Table = forwardRef(
             onChange,
             onClickRow,
             onItemsRendered,
+            rowDataIdColumn,
             onFilter,
             onSort,
             showTableOptions,
@@ -679,7 +694,9 @@ const Table = forwardRef(
                                     onClickRow,
                                     throttledClickRow,
                                     backgroundColor,
-                                    mappedColumns
+                                    mappedColumns,
+                                    tableRowHeight,
+                                    rowDataIdColumn
                                 )}
                                 itemSize={ROW_HEIGHT}
                                 key="table-list"

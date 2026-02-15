@@ -319,3 +319,173 @@ TableInfinite.args = {
     itemCount: sampleData.length,
     onItemsRendered: () => Promise.resolve(),
 } as Props<any>;
+
+export const TableMultipleStickyColumnsLeft = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+const stickyColumnsLeft = [
+    {
+        Header: 'First Name',
+        accessor: 'firstName',
+        sticky: 'left',
+        width: '100px',
+    },
+    {
+        Header: 'Last Name',
+        accessor: 'lastName',
+        sticky: 'left',
+        width: '100px',
+    },
+
+    {
+        Header: 'Age',
+        accessor: 'age',
+        sticky: 'left',
+        width: '100px',
+    },
+    {
+        Cell: TableComponent.cells.DATETIME(),
+        Header: 'Date of Birth',
+        accessor: 'dob',
+        filter: 'datetime',
+        width: '5000px',
+    },
+];
+TableMultipleStickyColumnsLeft.args = {
+    columns: stickyColumnsLeft,
+    data: sampleData,
+} as Props<any>;
+
+export const TableMultipleStickyColumnsRight = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+const stickyColumnsRight = [
+    {
+        Header: 'First Name',
+        accessor: 'firstName',
+        sticky: 'right',
+        width: '150px',
+    },
+    {
+        Header: 'Last Name',
+        accessor: 'lastName',
+        sticky: 'right',
+        width: '150px',
+    },
+    {
+        Header: 'Age',
+        accessor: 'age',
+        sticky: 'right',
+        width: '100px',
+    },
+    {
+        Cell: TableComponent.cells.DATETIME(),
+        Header: 'Date of Birth',
+        accessor: 'dob',
+        filter: 'datetime',
+        width: '5000px',
+    },
+];
+TableMultipleStickyColumnsRight.args = {
+    columns: stickyColumnsRight,
+    data: sampleData,
+} as Props<any>;
+
+export const TableWithRowHeight = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+const columnsWithLongDescriptions = [
+    ...columns,
+    {
+        Header: 'Description',
+        accessor: 'description',
+    },
+];
+TableWithRowHeight.args = {
+    rowHeight: 150,
+    columns: columnsWithLongDescriptions,
+    data: sampleData,
+} as Props<any>;
+
+export const TableWithActions = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithActions.args = {
+    actions: [
+        {
+            icon: Copy,
+            label: 'Edit',
+            id: 'edit',
+        },
+        {
+            icon: Trash,
+            label: 'Delete',
+            id: 'delete',
+        },
+    ],
+    columns,
+    data: sampleData,
+} as Props<any>;
+
+export const TableWithRowDataId = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithRowDataId.args = {
+    columns,
+    data: sampleData,
+    rowDataIdColumn: ['age', 'lastName'],
+} as Props<any>;
+
+TableWithRowDataId.parameters = {
+    docs: {
+        description: {
+            story: 'Rows have a `data-row-id` attribute for testing/selection. Use an array of columns; values are joined with underscores (e.g. `["age", "lastName"]` → `data-row-id="4_box"`).',
+        },
+    },
+};
+
+export const TableWithRowDataIdSingle = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithRowDataIdSingle.args = {
+    columns,
+    data: sampleData,
+    rowDataIdColumn: 'age',
+} as Props<any>;
+
+TableWithRowDataIdSingle.parameters = {
+    docs: {
+        description: {
+            story: 'Single column for `data-row-id` (e.g. `"age"` → `data-row-id="4"`).',
+        },
+    },
+};

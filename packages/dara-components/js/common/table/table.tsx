@@ -93,6 +93,28 @@ interface TableProps extends StyledComponentProps {
      * Whether to render the index column
      */
     include_index?: boolean;
+
+    /**
+     * Set a Row Height for the table, if not set, the row height will be the table default(font size * 2.5)
+     */
+
+    row_height?: number;
+
+    /**
+     * Optional actions for the table
+     */
+    actions?: Array<ActionProps>;
+
+    /**
+     * Optional column(s) to use as the row data id. When an array, values are joined with underscores.
+     */
+    row_data_id_column?: string | string[];
+}
+
+interface ActionProps {
+    icon_name: string;
+    label: string;
+    id: string;
 }
 
 interface ColumnProps {
@@ -633,7 +655,7 @@ function Table(props: TableProps): JSX.Element {
                 if (props.multi_select) {
                     // In multiselect mode, send selected rows
                     selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
-                }
+                } 
             } else {
                 let newSelectedIndices = [...(selectedRowIndices ?? []), row[INDEX_COL]];
 
@@ -675,6 +697,14 @@ function Table(props: TableProps): JSX.Element {
             if (actionId === UiTable.Actions.SELECT.id) {
                 onSelect(row, true);
             }
+
+            // Call the on_action handler, if it doesn't exist, it is a no-op anyways
+            // Preserve original data column names on action
+            // Limitation: If there are columns with duplicate names, data from only one of them will be returned
+            onActionRaw({
+                action_id: actionId,
+                data: mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))),
+            });
         },
         [onSelect]
     );
@@ -777,6 +807,7 @@ function Table(props: TableProps): JSX.Element {
                         onItemsRendered={onItemsRendered}
                         onSort={onSort}
                         style={{ padding: 0 }}
+                        rowDataIdColumn={props.row_data_id_column}
                     />
                 </div>
             )}
