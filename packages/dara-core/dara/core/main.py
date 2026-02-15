@@ -20,6 +20,7 @@ import json
 import os
 import sys
 import traceback
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
@@ -189,17 +190,32 @@ def _start_application(config: Configuration):
 
             # App is now ready, call user-defined startup functions
             eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
+            cleanup_functions: list[Callable] = []
             for startup_function in config.startup_functions:
                 res = startup_function()
 
                 # Check if the response is awaitable and if it is then wait for it
                 if iscoroutine(res):
-                    await res
+                    res = await res
+
+                # If the startup function returned a callable, collect it as a cleanup function
+                if callable(res):
+                    cleanup_functions.append(res)
 
             # Yield back to the app
             yield
 
             # SHUTDOWN
+            # Run user-defined cleanup functions in reverse order (LIFO)
+            eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
+            for cleanup_fn in reversed(cleanup_functions):
+                try:
+                    cleanup_res = cleanup_fn()
+                    if iscoroutine(cleanup_res):
+                        await cleanup_res
+                except Exception as e:
+                    eng_logger.error('Error running cleanup function', e)
+
             eng_logger.debug('App shutting down, attempting to cancel all tasks and shut down the task pool')
             await task_manager.cancel_all_tasks()
 

@@ -1,0 +1,23 @@
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "demo_app"
+version = "1.25.6"
+description = "Demo App"
+authors = ["Author <author@example.com>"]
+source = []
+
+[tool.poetry.dependencies]
+python = ">=3.10.0, <3.13.0"
+dara-core = "1.25.6"
+dara-components = "1.25.6"
+
+[tool.poetry.dev-dependencies]
+ruff = ">=0.12.2"
+pyright = "^1.1.400"
+
+
+

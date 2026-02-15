@@ -21,7 +21,7 @@ import warnings
 from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Generic
+from typing import TYPE_CHECKING, Any, Generic
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
@@ -40,6 +40,15 @@ from dara.core.internal.utils import call_async
 from dara.core.logging import dev_logger
 from dara.core.persistence import BackendStore, BrowserStore, PersistenceStore
 
+if TYPE_CHECKING:
+    from dara.core.interactivity.loop_variable import LoopVariable
+
+    # Type alias for static type checking
+    NestedKey = str | LoopVariable
+else:
+    # At runtime, use Any to avoid forward reference issues with Pydantic
+    NestedKey = Any
+
 VARIABLE_INIT_OVERRIDE = ContextVar[Callable[[dict], dict] | None]('VARIABLE_INIT_OVERRIDE', default=None)
 
 VariableType = TypeVar('VariableType')
@@ -56,7 +65,7 @@ class Variable(ClientVariable, Generic[VariableType, PersistenceStoreType_co]):
     default: VariableType | None = None
     store: SerializeAsAny[PersistenceStoreType_co | None] = None
     uid: str
-    nested: list[str] = Field(default_factory=list)
+    nested: list[NestedKey] = Field(default_factory=list)
     model_config = ConfigDict(extra='forbid')
 
     def __init__(
@@ -65,7 +74,7 @@ class Variable(ClientVariable, Generic[VariableType, PersistenceStoreType_co]):
         persist_value: bool | None = False,
         uid: str | None = None,
         store: PersistenceStoreType_co | None = None,
-        nested: list[str] | None = None,
+        nested: list[NestedKey] | None = None,
         **kwargs,
     ):
         """
@@ -144,10 +153,12 @@ class Variable(ClientVariable, Generic[VariableType, PersistenceStoreType_co]):
         yield
         VARIABLE_INIT_OVERRIDE.reset(token)
 
-    def get(self, key: str):
+    def get(self, key: NestedKey):
         """
         Create a copy of this Variable that points to a nested key. This is useful when
         storing e.g. a dictionary in a Variable and wanting to access a specific key.
+
+        The key can be a string or a LoopVariable for dynamic access within a For loop.
 
         ```python
         from dara.core import Variable, UpdateVariable
@@ -177,7 +188,11 @@ class Variable(ClientVariable, Generic[VariableType, PersistenceStoreType_co]):
             )
         )
 
-        :param key: the key to access; must be a string
+        # Dynamic access using LoopVariable
+        items = Variable([{'id': 'a'}, {'id': 'b'}])
+        For(items=items, renderer=Input(value=state.get(items.list_item.get('id'))))
+
+        :param key: the key to access; can be a string or LoopVariable
         ```
         """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)

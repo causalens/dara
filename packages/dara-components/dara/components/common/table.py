@@ -507,6 +507,12 @@ class Column(BaseModel):
         return filter
 
 
+class TableAction(BaseModel):
+    icon_name: str
+    label: str
+    id: str
+
+
 class Table(ContentComponent):
     """
     ![Table](../../../../docs/packages/dara-components/common/assets/Table.png)
@@ -835,12 +841,52 @@ class Table(ContentComponent):
     )
     ```
 
+    You can also set row height for the table. This is particularly useful if you have text that is overflowing and you want the table to be taller. The height is a number that defines the height in pixels.
+
+    ```python
+    Table(
+        columns=columns,
+        data=data,
+        row_height=100,
+    )
+    ```
+
+    A table component can also work with custom actions. This will automatically add an action column to the table at the end, where you can define the actions you want to display.
+
+    ```python
+    from dara.components.common import Table, TableAction
+    from dara.core import action
+
+
+    @action
+    async def on_action(ctx: action.Ctx):
+        action_params = ctx.input
+        action_id = action_params['action_id']
+        data = action_params['data']
+        print(f'Action performed: {action_id} with data: {data}')
+
+        if action_id == 'delete':
+            # Do delete here
+        elif action_id == 'edit':
+            # Do edit here
+
+    Table(
+        columns=columns,
+        data=data,
+        on_action=on_action,
+        actions=[
+            TableAction(icon_name='trash', label='Delete', id='delete'),
+            TableAction(icon_name='pencil', label='Edit', id='edit'),
+        ],
+    )
+    ```
     :param columns: The table's columns, this can be a list, a Variable/DerivedVariable or if left undefined it will be inferred from the data
     :param data: The table's data, can be a list of records or a Variable resolving to a list of records
     :param multi_select: Whether to allow selection of multiple rows, works with onclick_row and defaults to False
     :param show_checkboxes: Whether to show or hide checkboxes column when onclick_row is set. Defaults to True
     :param onclick_row: An action handler for when a row is clicked on the table
     :param onselect_row: An action handler for when a row is selected via the checkbox column
+    :param on_action: An action handler for when an action is performed on the table, tied to the actions list
     :param selected_indices: Optional variable to store the selected rows indices, must be a list of numbers. Note that these indices are
     the sequential indices of the rows as accepted by `DataFrame.iloc`, not the `row.index` value. If you would like the selection to persist over
     page reloads, you must use a `BrowserStore` on a `Variable`.
@@ -862,6 +908,7 @@ class Table(ContentComponent):
     show_checkboxes: bool = True
     onclick_row: Action | None = None
     onselect_row: Action | None = None
+    on_action: Action | None = None
     selected_indices: list[int] | Variable | None = None
     search_columns: list[str] | None = None
     searchable: bool = False

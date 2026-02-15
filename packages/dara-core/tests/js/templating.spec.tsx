@@ -473,6 +473,231 @@ describe('templating utilities', () => {
         });
     });
 
+    describe('nested_loop_var markers', () => {
+        it('should find LoopVariable inside variable nested array', () => {
+            const variableWithLoopVarInNested = {
+                __typename: 'Variable' as const,
+                uid: 'var-123',
+                default: {},
+                nested: ['static', mockLoopVariable],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    data: variableWithLoopVarInNested,
+                },
+                uid: 'component-uid',
+            };
+
+            const markers = getInjectionMarkers(renderer);
+            expect(markers).toContainEqual({
+                type: 'nested_loop_var',
+                path: 'props.data',
+                nestedIndex: 1,
+                loopVarNested: ['name'],
+            });
+        });
+
+        it('should find multiple LoopVariables in same nested array', () => {
+            const variableWithMultipleLoopVars = {
+                __typename: 'Variable' as const,
+                uid: 'var-456',
+                default: {},
+                nested: [mockLoopVariable, mockLoopVariableWithDeepNesting],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    value: variableWithMultipleLoopVars,
+                },
+                uid: 'component-uid',
+            };
+
+            const markers = getInjectionMarkers(renderer);
+            const nestedLoopVarMarkers = markers.filter((m) => m.type === 'nested_loop_var');
+
+            expect(nestedLoopVarMarkers).toHaveLength(2);
+            expect(nestedLoopVarMarkers).toContainEqual({
+                type: 'nested_loop_var',
+                path: 'props.value',
+                nestedIndex: 0,
+                loopVarNested: ['name'],
+            });
+            expect(nestedLoopVarMarkers).toContainEqual({
+                type: 'nested_loop_var',
+                path: 'props.value',
+                nestedIndex: 1,
+                loopVarNested: ['user', 'profile', 'email'],
+            });
+        });
+
+        it('should add derived_var marker when LoopVariable found in DerivedVariable nested', () => {
+            const derivedWithLoopVarInNested: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                uid: 'dv-789',
+                cache: null,
+                deps: [],
+                variables: [],
+                nested: ['key', mockLoopVariable],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    computed: derivedWithLoopVarInNested,
+                },
+                uid: 'component-uid',
+            };
+
+            const markers = getInjectionMarkers(renderer);
+
+            expect(markers).toContainEqual({
+                type: 'nested_loop_var',
+                path: 'props.computed',
+                nestedIndex: 1,
+                loopVarNested: ['name'],
+            });
+            expect(markers).toContainEqual({
+                type: 'derived_var',
+                path: 'props.computed',
+                loopInstanceUid: 'loop-uid-123',
+            });
+        });
+    });
+
+    describe('applyMarkers with nested_loop_var', () => {
+        it('should resolve LoopVariable in nested array to string', () => {
+            const variableWithLoopVarInNested = {
+                __typename: 'Variable' as const,
+                uid: 'var-123',
+                default: {},
+                nested: ['data', mockLoopVariable],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    value: { ...variableWithLoopVarInNested },
+                },
+                uid: 'component-uid',
+            };
+
+            const markers: Marker[] = [
+                {
+                    type: 'nested_loop_var',
+                    path: 'props.value',
+                    nestedIndex: 1,
+                    loopVarNested: ['name'],
+                },
+            ];
+
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { name: 'resolved-key', other: 'value' },
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
+
+            expect(result.props.value.nested).toEqual(['data', 'resolved-key']);
+        });
+
+        it('should resolve multiple LoopVariables in nested array', () => {
+            const variableWithMultipleLoopVars = {
+                __typename: 'Variable' as const,
+                uid: 'var-456',
+                default: {},
+                nested: [
+                    { ...mockLoopVariable, nested: ['section'] },
+                    { ...mockLoopVariableWithDeepNesting, nested: ['key'] },
+                ],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    value: { ...variableWithMultipleLoopVars },
+                },
+                uid: 'component-uid',
+            };
+
+            const markers: Marker[] = [
+                {
+                    type: 'nested_loop_var',
+                    path: 'props.value',
+                    nestedIndex: 0,
+                    loopVarNested: ['section'],
+                },
+                {
+                    type: 'nested_loop_var',
+                    path: 'props.value',
+                    nestedIndex: 1,
+                    loopVarNested: ['key'],
+                },
+            ];
+
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { section: 'users', key: 'abc123' },
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
+
+            expect(result.props.value.nested).toEqual(['users', 'abc123']);
+        });
+
+        it('should handle nested_loop_var alongside other marker types', () => {
+            const variableWithLoopVarInNested = {
+                __typename: 'Variable' as const,
+                uid: 'var-123',
+                default: {},
+                nested: ['prefix', mockLoopVariable],
+            };
+
+            const renderer = {
+                name: 'TestComponent',
+                props: {
+                    value: { ...variableWithLoopVarInNested },
+                    user: mockLoopVariable,
+                },
+                uid: 'component-uid',
+            };
+
+            const markers: Marker[] = [
+                {
+                    type: 'nested_loop_var',
+                    path: 'props.value',
+                    nestedIndex: 1,
+                    loopVarNested: ['name'],
+                },
+                {
+                    type: 'loop_var',
+                    path: 'props.user',
+                    nested: ['name'],
+                },
+            ];
+
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue: { name: 'John' },
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
+
+            // nested_loop_var should resolve the LoopVariable in nested to a string
+            expect(result.props.value.nested).toEqual(['prefix', 'John']);
+            // loop_var should replace the entire value with the resolved value
+            expect(result.props.user).toBe('John');
+        });
+    });
+
     describe('hasMarkers', () => {
         it('should return null when component has no loop variables in top-level props', () => {
             const component: ComponentInstance = {

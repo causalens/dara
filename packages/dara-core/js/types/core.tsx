@@ -217,10 +217,21 @@ export function isRouteMatchStore(store: PersistenceStore): store is RouteMatchS
     return store.__typename === '_RouteMatchStore';
 }
 
+export interface LoopVariable {
+    __typename: 'LoopVariable';
+    uid: string;
+    nested: string[];
+}
+
+/**
+ * A nested key can be a string or a LoopVariable for dynamic access within a For loop.
+ */
+export type NestedKey = string | LoopVariable;
+
 export interface SingleVariable<T = any, TStore extends PersistenceStore = PersistenceStore> {
     __typename: 'Variable';
     default: T | DerivedVariable;
-    nested: string[];
+    nested: NestedKey[];
     store?: TStore;
     uid: string;
 }
@@ -229,8 +240,8 @@ export interface DerivedVariable {
     __typename: 'DerivedVariable';
     cache?: null | CachePolicy;
     deps: Array<AnyVariable<any> | any>;
-    nested: string[];
-    polling_interval?: number;
+    nested: NestedKey[];
+    polling_interval?: Variable<number | null> | number | null;
     uid: string;
     variables: Array<AnyVariable<any> | any>;
     /**
@@ -238,12 +249,6 @@ export interface DerivedVariable {
      * and use different client-side cache
      * */
     loop_instance_uid?: string;
-}
-
-export interface LoopVariable {
-    __typename: 'LoopVariable';
-    uid: string;
-    nested: string[];
 }
 
 export interface SwitchVariable<T = any> {
@@ -276,7 +281,7 @@ export interface StreamVariable {
     uid: string;
     variables: Array<AnyVariable<any> | any>;
     key_accessor: string | null;
-    nested: string[];
+    nested: NestedKey[];
 }
 
 export type AnyVariable<T> =
@@ -430,7 +435,7 @@ export type PyComponentInstance = ComponentInstance<
         func_name: string;
         dynamic_kwargs: Record<string, AnyVariable<any>>;
         js_module: string | null;
-        polling_interval: number | null;
+        polling_interval: Variable<number | null> | number | null;
     }
 >;
 

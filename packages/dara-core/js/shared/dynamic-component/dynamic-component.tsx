@@ -17,13 +17,14 @@ import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker';
 import { FallbackCtx, VariableCtx, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
-import { useRefreshSelector } from '@/shared/interactivity';
+import { useRefreshSelector, useVariable } from '@/shared/interactivity';
 import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
 import { useInterval } from '@/shared/utils';
 import {
     type ComponentInstance,
     type DerivedVariable,
     type JsComponent,
+    type Variable,
     isDerivedVariable,
     isPyComponent,
 } from '@/types';
@@ -31,56 +32,36 @@ import { type AnyVariable, type ModuleContent, UserError, isInvalidComponent, is
 
 import { cleanProps } from './clean-props';
 
-/**
- * Helper function to take a derived variable and get the lowest polling_interval of it and its chained derived
- * variables. It will recursively call itself to get the polling_interval of the chained derived variables.
- *
- * @param variable the derived variable to get the polling interval
- */
-function getDerivedVariablePollingInterval(variable: DerivedVariable): number | undefined {
-    let pollingInterval!: number;
-
-    if (variable.polling_interval) {
-        pollingInterval = variable.polling_interval;
-    }
-    variable.variables.forEach((value) => {
-        if (isDerivedVariable(value)) {
-            const innerPollingInterval = getDerivedVariablePollingInterval(value);
-            if (innerPollingInterval && (!pollingInterval || pollingInterval > innerPollingInterval)) {
-                pollingInterval = innerPollingInterval;
-            }
-        }
-    });
-    return pollingInterval;
-}
-
-/**
- * Compute the polling interval for a component. This will take the polling_interval of the component and the
- * polling_interval of any derived variables in the component kwargs and return the lowest value.
- *
- * @param kwargs component kwargs
- * @param componentInterval component polling interval
- */
 function computePollingInterval(
-    kwargs: Record<string, AnyVariable<any>>,
-    componentInterval: number | null
+    resolvedKwargIntervals: Array<number | null>,
+    componentInterval: number | null | undefined
 ): number | undefined {
     let pollingInterval: number | undefined;
 
-    Object.values(kwargs).forEach((value) => {
-        if (isDerivedVariable(value)) {
-            const innerPollingInterval = getDerivedVariablePollingInterval(value);
-            if (innerPollingInterval && (!pollingInterval || pollingInterval > innerPollingInterval)) {
-                pollingInterval = innerPollingInterval;
-            }
+    resolvedKwargIntervals.forEach((interval) => {
+        if (typeof interval === 'number' && (!pollingInterval || pollingInterval > interval)) {
+            pollingInterval = interval;
         }
     });
 
-    if (componentInterval && (!pollingInterval || pollingInterval > componentInterval)) {
+    if (typeof componentInterval === 'number' && (!pollingInterval || pollingInterval > componentInterval)) {
         pollingInterval = componentInterval;
     }
 
     return pollingInterval;
+}
+
+function collectDerivedPollingIntervals(
+    variable: DerivedVariable,
+    intervals: Array<Variable<number | null> | number | null>
+): void {
+    intervals.push(variable.polling_interval ?? null);
+
+    variable.variables.forEach((value) => {
+        if (isDerivedVariable(value)) {
+            collectDerivedPollingIntervals(value, intervals);
+        }
+    });
 }
 
 /** py_module -> loaded module */
@@ -354,9 +335,33 @@ interface PythonWrapperProps {
     /* Py_component name/uid - the same for all instances of the py_component */
     name: string;
     /* Polling interval to use for refetching the component */
-    polling_interval: number | null;
+    polling_interval: Variable<number | null> | number | null;
     /* Component instance uid - unique for each instances */
     uid: string;
+}
+
+function useResolveDynamicKwargPollingIntervals(
+    dynamicKwargs: PythonWrapperProps['dynamic_kwargs']
+): Array<number | null> {
+    const derivedPollingIntervals = useMemo(() => {
+        const intervals: Array<Variable<number | null> | number | null> = [];
+        const orderedDynamicKwargKeys = Object.keys(dynamicKwargs).sort((left, right) => left.localeCompare(right));
+
+        orderedDynamicKwargKeys.forEach((key) => {
+            const value = dynamicKwargs[key];
+            if (isDerivedVariable(value)) {
+                collectDerivedPollingIntervals(value, intervals);
+            }
+        });
+
+        return intervals;
+    }, [dynamicKwargs]);
+
+    return derivedPollingIntervals.map((interval) => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const [resolvedInterval] = useVariable<number | null>(interval ?? null, { suspend: false });
+        return resolvedInterval;
+    });
 }
 
 /**
@@ -374,11 +379,13 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         props.component.loop_instance_uid
     );
     const refresh = useRefreshServerComponent(props.uid, props.component.loop_instance_uid);
+    const [componentPollingInterval] = useVariable<number | null>(props.polling_interval ?? null);
+    const resolvedKwargPollingIntervals = useResolveDynamicKwargPollingIntervals(props.dynamic_kwargs);
 
     // Poll to update the component if polling_interval is set
     const pollingInterval = useMemo(
-        () => computePollingInterval(props.dynamic_kwargs, props.polling_interval),
-        [props.dynamic_kwargs, props.polling_interval]
+        () => computePollingInterval(resolvedKwargPollingIntervals, componentPollingInterval),
+        [resolvedKwargPollingIntervals, componentPollingInterval]
     );
     useInterval(refresh, pollingInterval);
 

@@ -50,8 +50,8 @@ import EditSelectCell from './cells/edit-select-cell';
 import { FilterContainer, HeaderIconWrapper, TextFilter, categorical, datetime, numeric } from './filters';
 import SelectHeader from './headers/select-header';
 import OptionsMenu from './options-menu';
-import RenderRow, { ROW_HEIGHT, shouldForwardProp } from './render-row';
-import { type TableColumn } from './types';
+import RenderRow, { shouldForwardProp } from './render-row';
+import { DEFAULT_ROW_HEIGHT, type TableColumn } from './types';
 
 const Wrapper = styled.div<{ $hasMaxRows: boolean }>`
     display: inline-block;
@@ -118,7 +118,7 @@ const HeaderCell = styled.div`
     justify-content: space-between;
 
     min-width: 80px;
-    height: ${ROW_HEIGHT}px;
+    height: ${DEFAULT_ROW_HEIGHT}px;
 
     color: ${(props) => props.theme.colors.text};
 
@@ -242,6 +242,61 @@ const orderStickyCols = (columns: Array<TableColumn>): Array<TableColumn> => {
     return [...leftStickyCols, ...nonStickyCols, ...rightStickyCols];
 };
 
+/**
+ * Helper to compute left offsets for left-sticky columns based on the widths of
+ * all preceding left-sticky columns.
+ *
+ * This augments the column definitions with a `stickyOffset` property that is then
+ * used when rendering headers and cells to correctly position multiple sticky
+ * columns next to each other.
+ *
+ * @param columns - columns after sticky reordering and filter augmentation
+ */
+const appendStickyOffsets = (columns: Array<TableColumn>): Array<TableColumn> => {
+    let leftOffset = 0;
+    let rightOffset = 0;
+
+    // Get a list of all the right sticky column widths, without the first one
+    const rightStickyColumnWidths = columns
+        .filter((col) => col.sticky === 'right')
+        .slice(1)
+        .map((col) => parseInt(col.width as any) || 150);
+
+    return columns.map((col) => {
+        // Handle left-sticky columns: offset increases from left to right
+        if (col.sticky === 'left') {
+            const nextCol: TableColumn = {
+                ...col,
+                stickyOffset: leftOffset,
+            };
+
+            // Width can be a number or a px string; fall back to 150 if not set
+            const width = parseInt(col.width as any) || 150;
+            leftOffset += width;
+
+            return nextCol;
+        }
+
+        // Handle right-sticky columns: offset decreases from right to left
+        if (col.sticky === 'right') {
+            // Sum the widths of all the right sticky columns
+            rightOffset = rightStickyColumnWidths.reduce((acc, width) => acc + width, 0);
+
+            const nextCol: TableColumn = {
+                ...col,
+                stickyOffset: rightOffset,
+            };
+
+            // Remove the first width from the list
+            rightStickyColumnWidths.shift();
+
+            return nextCol;
+        }
+
+        return col;
+    });
+};
+
 // Map of filter name -> filter component
 const filterComponentMap: Record<string, (props: FilterProps<any>) => JSX.Element> = {
     categorical: CategoricalFilter,
@@ -274,6 +329,35 @@ const appendFilterComponents = (columns: Array<TableColumn>): Array<TableColumn>
             Filter: filterComponentMap[col.filter],
         };
     });
+};
+
+/**
+ * Helper function to create an action column
+ *
+ * @param actions: An array of actions to be added to this column
+ * @param accessor: Optional parameter to define a unique accessor property if you have multiple action columns
+ * @param sticky: Optional param to sticky the action column to left or right
+ * @param disableSelectAll: optional parameter to exclude the select-all header even if SELECT action is added
+ */
+const createActionColumn = (
+    actions: Array<ActionCol>,
+    accessor?: string,
+    sticky?: string,
+    disableSelectAll = false
+): TableColumn => {
+    // 24 for width of each action and 12 padding either side
+    const width = actions.includes(Actions.SELECT) ? 52 : actions.length * 24 + 24;
+    return {
+        Cell: ActionCell,
+        Header: actions.includes(Actions.SELECT) && !disableSelectAll ? SelectHeader : '',
+        accessor: accessor || 'actions',
+        actions,
+        disableSortBy: true,
+        maxWidth: width,
+        minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
+        sticky: sticky || null,
+        width,
+    };
 };
 
 /** Predefined cells */
@@ -368,6 +452,9 @@ type TableType = React.ForwardRefExoticComponent<Props<{ [k: string]: any }> & R
 
 interface ColumnHeader extends HeaderGroup<object> {
     tooltip?: string;
+    // Custom properties coming from our column definition
+    sticky?: string;
+    stickyOffset?: number;
 }
 
 // This helper function memoizes incoming props,
@@ -418,6 +505,7 @@ const Table = forwardRef(
     <T extends { [k: string]: any }>(
         {
             allowHiding,
+            actions,
             backgroundColor,
             className,
             columns,
@@ -433,6 +521,7 @@ const Table = forwardRef(
             rowDataIdColumn,
             onFilter,
             onSort,
+            rowHeight,
             showTableOptions,
             style,
             tableOptionsStyle,
@@ -442,6 +531,7 @@ const Table = forwardRef(
         // This state helps in retaining the current sorted column even if the data gets updated
         const [currentSortBy, setCurrentSortBy] = useState<Array<SortingRule<string>>>(initialSort);
 
+        const tableRowHeight = rowHeight || DEFAULT_ROW_HEIGHT;
         useEffect(
             () => {
                 setCurrentSortBy(initialSort);
@@ -487,10 +577,22 @@ const Table = forwardRef(
 
         /**
          * Columns with transformations applied:
+         * - action column added if actions prop is provided
          * - re-ordered using sticky - to have left sticky columns first and right sticky columns in the end
          * - filter components appended based on filter chosen
+         * - sticky offsets calculated for left-sticky columns
          */
-        const mappedColumns = useMemo(() => appendFilterComponents(orderStickyCols(columns)), [columns]);
+        const mappedColumns = useMemo(() => {
+            let processedColumns = columns;
+
+            // Add action column if actions prop is provided
+            if (actions && actions.length > 0) {
+                const actionColumn = createActionColumn(actions);
+                processedColumns = [...columns, actionColumn];
+            }
+
+            return appendStickyOffsets(appendFilterComponents(orderStickyCols(processedColumns)));
+        }, [columns, actions]);
 
         // Check if the table has fixed columns, then only apply sticky hooks and classes based on this
         const hasFixedColumns = useMemo(() => mappedColumns.some((column) => 'sticky' in column), [mappedColumns]);
@@ -594,13 +696,25 @@ const Table = forwardRef(
                                                 key={`col-${gidx}-${cidx}`}
                                                 style={{
                                                     ...headerProps.style,
-
                                                     maxWidth: col.maxWidth,
                                                     // If width calc has messed up then use the raw width from the column
                                                     width:
                                                         (headerProps.style as any).width === 'NaNpx' ?
                                                             mappedColumns[cidx].width
                                                         :   (headerProps.style as any).width,
+                                                    // For left-sticky columns, explicitly set the left offset so
+                                                    // multiple sticky columns are positioned correctly next to
+                                                    // each other.
+                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number' ?
+                                                        {
+                                                            left: `${col.stickyOffset}px`,
+                                                        }
+                                                    :   {}),
+                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number' ?
+                                                        {
+                                                            right: `${col.stickyOffset}px`,
+                                                        }
+                                                    :   {}),
                                                 }}
                                             >
                                                 <HeaderTooltipContainer
@@ -674,7 +788,7 @@ const Table = forwardRef(
                 {...getTableProps()}
                 $hasMaxRows={!!maxRows}
                 className={`${className} ${hasFixedColumns ? 'sticky' : ''}`}
-                style={{ height: maxRows ? (Math.min(rows.length, maxRows) + 1) * ROW_HEIGHT : '100%', ...style }}
+                style={{ height: maxRows ? (Math.min(rows.length, maxRows) + 1) * tableRowHeight : '100%', ...style }}
             >
                 <AutoSizer>
                     {({ height, width }) => {
@@ -698,12 +812,12 @@ const Table = forwardRef(
                                     tableRowHeight,
                                     rowDataIdColumn
                                 )}
-                                itemSize={ROW_HEIGHT}
+                                itemSize={tableRowHeight}
                                 key="table-list"
                                 onItemsRendered={onItemsRendered}
                                 style={{
                                     overflowX: width < totalColumnsWidth ? 'auto' : 'hidden',
-                                    overflowY: height < (rows.length + 1) * ROW_HEIGHT ? 'auto' : 'hidden',
+                                    overflowY: height < (rows.length + 1) * tableRowHeight ? 'auto' : 'hidden',
                                 }}
                                 width={width}
                             >
@@ -728,26 +842,7 @@ Table.displayName = 'Table';
  * @param sticky: Optional param to sticky the action column to left or right
  * @param disableSelectAll: optional parameter to exclude the select-all header even if SELECT action is added
  */
-Table.ActionColumn = (
-    actions: Array<ActionCol>,
-    accessor?: string,
-    sticky?: string,
-    disableSelectAll = false
-): TableColumn => {
-    // 24 for width of each action and 12 padding either side
-    const width = actions.includes(Actions.SELECT) ? 52 : actions.length * 24 + 24;
-    return {
-        Cell: ActionCell,
-        Header: actions.includes(Actions.SELECT) && !disableSelectAll ? SelectHeader : '',
-        accessor: accessor || 'actions',
-        actions,
-        disableSortBy: true,
-        maxWidth: width,
-        minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
-        sticky: sticky || null,
-        width,
-    };
-};
+Table.ActionColumn = createActionColumn;
 Table.Actions = Actions;
 Table.cells = cells;
 

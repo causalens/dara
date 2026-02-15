@@ -17,6 +17,7 @@ limitations under the License.
 
 from typing import Any, Literal, TypeGuard
 
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from dara.core.base_definitions import BaseTask, PendingTask
@@ -75,16 +76,27 @@ def _resolve_nested(value: Any, nested: list[str] | None) -> Any:
     if not nested or len(nested) == 0:
         return value
 
-    # Not a dict (equivalent to frontend's object check)
-    if value is None or not isinstance(value, dict):
+    # Not a dict/model
+    if value is None or not isinstance(value, (dict, BaseModel)):
         return value
 
     result = value
     for key in nested:
-        # If the key doesn't exist, return None as we're referring to a path which doesn't exist yet
-        if not isinstance(result, dict) or key not in result:
-            return None
-        result = result[key]
+        # Defensive check: LoopVariable should have been resolved by frontend templating
+        if isinstance(key, dict):
+            raise ValueError(
+                'LoopVariable found in nested path during backend resolution. '
+                'This should have been resolved by frontend templating.'
+            )
+        # Can recurse into a dict or a pydantic model
+        if isinstance(result, dict):
+            # Path does not exist, resolve to None
+            if key not in result:
+                return None
+            result = result[key]
+        elif isinstance(result, BaseModel):
+            # fall back to None, if key doesn't exist/is None, we'll skip iterating anyway
+            result = getattr(result, key, None)
 
     return result
 

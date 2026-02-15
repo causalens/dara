@@ -39,8 +39,16 @@ import { getUniqueIdentifier } from '../utils/hashing';
 import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { resolveNested, resolveValue, resolveVariable } from './internal';
-import { selectorFamilyMembersRegistry, selectorFamilyRegistry, streamAtomRegistry } from './store';
+import { type SelectorFamily } from './store';
+import { registerStreamConnection } from './stream-usage-tracker';
 import { buildTriggerList, registerChildTriggers } from './triggers';
+
+/**
+ * Local registry for stream selector families.
+ * Only stores families (factory functions), NOT instances.
+ * This allows Recoil to properly release instances when components unmount.
+ */
+const streamSelectorFamilyRegistry = new Map<string, SelectorFamily>();
 
 /**
  * Stream event types as sent from the server
@@ -337,12 +345,6 @@ export function deserializeAtomParams(key: string): StreamAtomParams {
     return JSON.parse(key) as StreamAtomParams;
 }
 
-/**
- * Map to store active AbortControllers for SSE connections.
- * Key: serialized atom params
- */
-const activeConnections = new Map<string, AbortController>();
-
 /** Stream state after first data arrives */
 const INITIAL_CONNECTED_STATE: StreamState = {
     data: undefined,
@@ -366,19 +368,13 @@ interface StreamConnectionCallbacks {
  *
  * @param params Stream atom params (contains uid, resolved values, etc.)
  * @param callbacks Callbacks for stream events
- * @returns Cleanup function to abort the connection
+ * @returns Object with cleanup function and AbortController
  */
-function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnectionCallbacks): () => void {
-    const connectionKey = serializeAtomParams(params);
-
-    // Abort any existing connection for this key
-    const existingController = activeConnections.get(connectionKey);
-    if (existingController) {
-        existingController.abort();
-    }
-
+function startStreamConnection(
+    params: StreamAtomParams,
+    callbacks: StreamConnectionCallbacks
+): { cleanup: () => void; controller: AbortController } {
     const controller = new AbortController();
-    activeConnections.set(connectionKey, controller);
 
     let retryCount = 0;
     let isFirstMessage = true;
@@ -466,17 +462,22 @@ function startStreamConnection(params: StreamAtomParams, callbacks: StreamConnec
         headers: params.extras.headers,
     });
 
-    // Return cleanup function
-    return () => {
-        controller.abort();
-        activeConnections.delete(connectionKey);
+    // Return cleanup function and controller
+    return {
+        cleanup: () => {
+            controller.abort();
+        },
+        controller,
     };
 }
 
 /**
  * Atom effect that manages SSE connection lifecycle.
  * Uses recoil-sync pattern: setSelf(promise) to enable native Recoil Suspense.
- * Starts connection on mount, cleans up on unmount.
+ *
+ * SSE connection starts immediately when the atom effect runs.
+ * Cleanup is managed by the stream usage tracker based on component subscriptions,
+ * NOT by Recoil's atom release (which is unreliable).
  */
 function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
     return ({ setSelf }) => {
@@ -496,41 +497,48 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
         // Set atom to the Promise - Recoil will handle Suspense natively
         setSelf(initialDataPromise);
 
-        // Start SSE connection with callbacks
-        const cleanup = startStreamConnection(params, {
-            onFirstData: (state) => {
-                // Resolve the initial Promise - this wakes up suspended components
-                if (resolveInitialData) {
-                    resolveInitialData(state);
-                    resolveInitialData = null;
-                    rejectInitialData = null;
-                }
-                // Also explicitly set the atom value to ensure Recoil sees the update
-                setSelf(state);
-            },
-            onUpdate: (state) => {
-                // Subsequent updates use setSelf directly
-                setSelf(state);
-            },
-            onError: (error) => {
-                if (rejectInitialData) {
-                    // If we haven't received first data yet, reject the Promise
-                    rejectInitialData(new Error(error));
-                    resolveInitialData = null;
-                    rejectInitialData = null;
-                } else {
-                    // Otherwise update the state with error
-                    setSelf({
-                        data: undefined,
-                        status: 'error',
-                        error,
-                    });
-                }
-            },
-        });
+        // Create start function that the tracker will call (and can re-call on restart)
+        const startConnection = (): { cleanup: () => void; controller: AbortController } => {
+            return startStreamConnection(params, {
+                onFirstData: (state) => {
+                    // Resolve the initial Promise - this wakes up suspended components
+                    if (resolveInitialData) {
+                        resolveInitialData(state);
+                        resolveInitialData = null;
+                        rejectInitialData = null;
+                    }
+                    // Also explicitly set the atom value to ensure Recoil sees the update
+                    setSelf(state);
+                },
+                onUpdate: (state) => {
+                    // Subsequent updates use setSelf directly
+                    setSelf(state);
+                },
+                onError: (error) => {
+                    if (rejectInitialData) {
+                        // If we haven't received first data yet, reject the Promise
+                        rejectInitialData(new Error(error));
+                        resolveInitialData = null;
+                        rejectInitialData = null;
+                    } else {
+                        // Otherwise update the state with error
+                        setSelf({
+                            data: undefined,
+                            status: 'error',
+                            error,
+                        });
+                    }
+                },
+            });
+        };
 
-        // Cleanup on unmount
-        return cleanup;
+        // Register with stream usage tracker - it starts SSE immediately and manages restarts
+        // The tracker is the primary cleanup mechanism, not Recoil's atom release
+        // Keyed by uid+extras so different auth contexts are independent
+        const unregister = registerStreamConnection(params.uid, params.extras, atomKey, startConnection);
+
+        // Return unregister as backup cleanup (in case Recoil does release the atom)
+        return unregister;
     };
 }
 
@@ -539,6 +547,9 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
  * Key is JSON-serialized StreamAtomParams containing everything needed for SSE.
  * No default value - atom starts in "pending" state. The effect sets it to a Promise
  * that resolves when first data arrives (recoil-sync pattern for native Suspense).
+ *
+ * SSE lifecycle is managed by the stream usage tracker, not Recoil's retention.
+ * The tracker uses component-level subscription counting to pause/resume SSE connections.
  */
 const streamAtomFamily = atomFamily<StreamState, string>({
     key: 'StreamVariable/state',
@@ -548,19 +559,14 @@ const streamAtomFamily = atomFamily<StreamState, string>({
 /**
  * Get or create a stream variable atom for the given params.
  * The atom has effects that manage the SSE connection lifecycle.
- * Registers the atom in streamAtomRegistry for tracking.
+ * Uses Recoil's atomFamily internal caching - no external registry needed.
  *
  * @param atomKey Serialized StreamAtomParams
  * @returns Recoil atom for stream state
  */
 export function getOrCreateStreamVariableAtom(atomKey: string): RecoilState<StreamState> {
-    // Just use atomFamily directly - it already caches atoms by key
-    const atom = streamAtomFamily(atomKey);
-    // Still register for tracking purposes
-    if (!streamAtomRegistry.has(atomKey)) {
-        streamAtomRegistry.set(atomKey, atom);
-    }
-    return atom;
+    // atomFamily internally caches atoms by key - no need for external registry
+    return streamAtomFamily(atomKey);
 }
 
 /**
@@ -588,13 +594,13 @@ function getOrRegisterStreamVariableParams(
 ): RecoilValue<string> {
     const key = getStreamRegistryKey(variable, 'params-selector');
 
-    if (!selectorFamilyRegistry.has(key)) {
-        selectorFamilyRegistry.set(
+    if (!streamSelectorFamilyRegistry.has(key)) {
+        streamSelectorFamilyRegistry.set(
             key,
-            selectorFamily({
+            selectorFamily<string, RequestExtrasSerializable>({
                 key: nanoid(),
                 get:
-                    (extrasSerializable: RequestExtrasSerializable) =>
+                    (extrasSerializable) =>
                     async ({ get }) => {
                         // Resolve all dependency variables to Recoil atoms/ResolvedDerivedVariable/etc
                         const resolvedVariables = await Promise.all(
@@ -625,21 +631,13 @@ function getOrRegisterStreamVariableParams(
 
                         return serializeAtomParams(params);
                     },
-            })
+            }) as SelectorFamily
         );
     }
 
-    const family = selectorFamilyRegistry.get(key)!;
-    const serializableExtras = new RequestExtrasSerializable(extras);
-    const selectorInstance = family(serializableExtras);
-
-    // Register selector instance
-    if (!selectorFamilyMembersRegistry.has(family)) {
-        selectorFamilyMembersRegistry.set(family, new Map());
-    }
-    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
-
-    return selectorInstance;
+    // Get instance from family - selectorFamily caches internally, no need for external instance registry
+    const family = streamSelectorFamilyRegistry.get(key)!;
+    return family(new RequestExtrasSerializable(extras)) as RecoilValue<string>;
 }
 
 /**
@@ -658,13 +656,13 @@ function getOrRegisterStreamVariableValue(
     // NO nested in key - share across different nested paths
     const key = getStreamRegistryKey(variable, 'value-selector');
 
-    if (!selectorFamilyRegistry.has(key)) {
-        selectorFamilyRegistry.set(
+    if (!streamSelectorFamilyRegistry.has(key)) {
+        streamSelectorFamilyRegistry.set(
             key,
-            selectorFamily({
+            selectorFamily<unknown, RequestExtrasSerializable>({
                 key: nanoid(),
                 get:
-                    (extrasSerializable: RequestExtrasSerializable) =>
+                    (extrasSerializable) =>
                     ({ get }) => {
                         // Get params from params selector
                         const paramsSelector = getOrRegisterStreamVariableParams(
@@ -675,32 +673,20 @@ function getOrRegisterStreamVariableValue(
                         );
                         const atomKey = get(paramsSelector);
 
-                        // Get atom from atomFamily
+                        // Get atom from atomFamily - it caches internally
                         const atom = streamAtomFamily(atomKey);
-                        // Track in registry
-                        if (!streamAtomRegistry.has(atomKey)) {
-                            streamAtomRegistry.set(atomKey, atom);
-                        }
                         const streamState = get(atom);
 
                         // Get the exposed value (array for keyed mode)
                         return getStreamValue(streamState, variable.key_accessor);
                     },
-            })
+            }) as SelectorFamily
         );
     }
 
-    const family = selectorFamilyRegistry.get(key)!;
-    const serializableExtras = new RequestExtrasSerializable(extras);
-    const selectorInstance = family(serializableExtras);
-
-    // Register selector instance
-    if (!selectorFamilyMembersRegistry.has(family)) {
-        selectorFamilyMembersRegistry.set(family, new Map());
-    }
-    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
-
-    return selectorInstance;
+    // Get instance from family - selectorFamily caches internally, no need for external instance registry
+    const family = streamSelectorFamilyRegistry.get(key)!;
+    return family(new RequestExtrasSerializable(extras));
 }
 
 /**
@@ -724,13 +710,13 @@ export function getOrRegisterStreamVariable(
     // Key USES nested - different selector per nested path
     const key = `StreamVariable:${getUniqueIdentifier(variable, { useNested: true })}:nested-selector`;
 
-    if (!selectorFamilyRegistry.has(key)) {
-        selectorFamilyRegistry.set(
+    if (!streamSelectorFamilyRegistry.has(key)) {
+        streamSelectorFamilyRegistry.set(
             key,
-            selectorFamily({
+            selectorFamily<unknown, RequestExtrasSerializable>({
                 key: nanoid(),
                 get:
-                    (extrasSerializable: RequestExtrasSerializable) =>
+                    (extrasSerializable) =>
                     ({ get }) => {
                         // Get value from layer 2
                         const valueSelector = getOrRegisterStreamVariableValue(
@@ -746,21 +732,13 @@ export function getOrRegisterStreamVariable(
                                 resolveNested(value as Record<string, unknown>, variable.nested)
                             :   value;
                     },
-            })
+            }) as SelectorFamily
         );
     }
 
-    const family = selectorFamilyRegistry.get(key)!;
-    const serializableExtras = new RequestExtrasSerializable(extras);
-    const selectorInstance = family(serializableExtras);
-
-    // Register selector instance
-    if (!selectorFamilyMembersRegistry.has(family)) {
-        selectorFamilyMembersRegistry.set(family, new Map());
-    }
-    selectorFamilyMembersRegistry.get(family)!.set(serializableExtras.toJSON(), selectorInstance);
-
-    return selectorInstance;
+    // Get instance from family - selectorFamily caches internally, no need for external instance registry
+    const family = streamSelectorFamilyRegistry.get(key)!;
+    return family(new RequestExtrasSerializable(extras));
 }
 
 /**
@@ -768,7 +746,6 @@ export function getOrRegisterStreamVariable(
  */
 export const _internal = {
     streamAtomFamily,
-    activeConnections,
     getBackoffDelay,
     serializeAtomParams,
     deserializeAtomParams,

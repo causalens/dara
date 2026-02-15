@@ -18,6 +18,8 @@ import type { Meta } from '@storybook/react-vite';
 import { useRef } from 'react';
 import { fn } from 'storybook/test';
 
+import { Copy, Trash } from '@darajs/ui-icons';
+
 import { type Props, default as TableComponent, type TableHandle } from './table';
 
 export default {
@@ -41,6 +43,8 @@ const sampleData = [
         progress: 40,
         status: 'single',
         visits: 36,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 21,
@@ -50,6 +54,8 @@ const sampleData = [
         progress: 79,
         status: 'relationship',
         visits: 14,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 26,
@@ -59,6 +65,8 @@ const sampleData = [
         progress: 11,
         status: 'single',
         visits: 53,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 20,
@@ -68,6 +76,8 @@ const sampleData = [
         progress: 15,
         status: 'single',
         visits: 7,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 20,
@@ -77,6 +87,8 @@ const sampleData = [
         progress: 46,
         status: 'relationship',
         visits: 46,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 12,
@@ -86,6 +98,8 @@ const sampleData = [
         progress: 28,
         status: 'single',
         visits: 49,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 9,
@@ -95,6 +109,8 @@ const sampleData = [
         progress: 53,
         status: 'single',
         visits: 38,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 19,
@@ -104,6 +120,8 @@ const sampleData = [
         progress: 54,
         status: 'relationship',
         visits: 39,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 3,
@@ -113,6 +131,8 @@ const sampleData = [
         progress: 7,
         status: 'complicated',
         visits: 1,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 26,
@@ -122,6 +142,8 @@ const sampleData = [
         progress: 35,
         status: 'relationship',
         visits: 85,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 27,
@@ -131,6 +153,8 @@ const sampleData = [
         progress: 21,
         status: 'single',
         visits: 4,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 3,
@@ -140,6 +164,8 @@ const sampleData = [
         progress: 83,
         status: 'single',
         visits: 22,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 5,
@@ -149,6 +175,8 @@ const sampleData = [
         progress: 83,
         status: 'relationship',
         visits: 78,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 14,
@@ -158,6 +186,8 @@ const sampleData = [
         progress: 35,
         status: 'relationship',
         visits: 8,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 0,
@@ -167,6 +197,8 @@ const sampleData = [
         progress: 39,
         status: 'relationship',
         visits: 74,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 15,
@@ -176,6 +208,8 @@ const sampleData = [
         progress: 21,
         status: 'complicated',
         visits: 70,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 24,
@@ -185,6 +219,8 @@ const sampleData = [
         progress: 33,
         status: 'single',
         visits: 54,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 24,
@@ -194,6 +230,8 @@ const sampleData = [
         progress: 17,
         status: 'complicated',
         visits: 86,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 17,
@@ -203,6 +241,8 @@ const sampleData = [
         progress: 98,
         status: 'complicated',
         visits: 12,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
     {
         age: 25,
@@ -212,6 +252,8 @@ const sampleData = [
         progress: 92,
         status: 'single',
         visits: 56,
+        description:
+            'This is a description that is far too long to ever fit on a row and it is definitely going to overflow so I want to see what happens',
     },
 ];
 

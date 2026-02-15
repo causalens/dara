@@ -28,6 +28,7 @@ from dara.core.base_definitions import (
     CacheArgType,
 )
 from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.interactivity.derived_variable import (
     DerivedVariable,
 )
@@ -50,7 +51,7 @@ class DerivedDataVariable(DerivedVariable):
         variables: list[AnyVariable],
         cache: CacheArgType = Cache.Type.GLOBAL,
         run_as_task: bool = False,
-        polling_interval: int | None = None,
+        polling_interval: int | ClientVariable | None = None,
         deps: list[AnyVariable] | None = None,
         uid: str | None = None,
     ) -> None:
@@ -67,8 +68,9 @@ class DerivedDataVariable(DerivedVariable):
                       session, or per user
         :param run_as_task: whether to run the calculation in a separate process, recommended for any CPU intensive
                             tasks, defaults to False
-        :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
-                             component to poll the backend and refresh itself every n seconds.
+        :param polling_interval: an optional polling interval in seconds for the DerivedVariable. This can be either a
+                             fixed integer or a ClientVariable (e.g. SwitchVariable) for dynamic polling/disable behavior.
+                             Setting this will cause the component to poll the backend and refresh itself every n seconds.
         :param deps: an optional array of variables, specifying which dependant variables changing should trigger a
                         recalculation of the derived variable
         - `deps = None` - `func` is ran everytime (default behaviour),

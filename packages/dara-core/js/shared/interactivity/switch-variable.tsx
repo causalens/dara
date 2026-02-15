@@ -12,5 +12,8 @@ export function useSwitchVariable<T>(variable: SwitchVariable<T>): any {
     // Always convert to string for consistent lookup since JS object keys are strings
     // This ensures consistent behavior between condition-based and value-based lookups
     const lookupKey = String(value);
-    return valueMap[lookupKey] ?? defaultValue;
+    if (Object.prototype.hasOwnProperty.call(valueMap, lookupKey)) {
+        return valueMap[lookupKey];
+    }
+    return defaultValue;
 }

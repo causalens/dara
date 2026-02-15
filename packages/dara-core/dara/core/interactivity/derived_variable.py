@@ -22,6 +22,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from inspect import Parameter, signature
 from typing import (
+    TYPE_CHECKING,
     Any,
     Generic,
     Protocol,
@@ -40,6 +41,15 @@ from pydantic import (
     model_serializer,
 )
 from typing_extensions import TypedDict, TypeVar, runtime_checkable
+
+if TYPE_CHECKING:
+    from dara.core.interactivity.loop_variable import LoopVariable
+
+    # Type alias for static type checking
+    NestedKey = str | LoopVariable
+else:
+    # At runtime, use Any to avoid forward reference issues with Pydantic
+    NestedKey = Any
 
 from dara.core.base_definitions import (
     BaseCachePolicy,
@@ -154,8 +164,9 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                   session, per user or to not cache at all
     :param run_as_task: whether to run the calculation in a separate process, recommended for any CPU intensive
                         tasks, defaults to False
-    :param polling_interval: an optional polling interval for the DerivedVariable. Setting this will cause the
-                         component to poll the backend and refresh itself every n seconds.
+    :param polling_interval: an optional polling interval in seconds for the DerivedVariable. This can be either a
+                         fixed integer or a ClientVariable (e.g. SwitchVariable) for dynamic polling/disable behavior.
+                         Setting this will cause the component to poll the backend and refresh itself every n seconds.
     :param filter_resolver: an optional function to resolve the filter query for the derived variable. This can be
     used to customize the way tabular data is resolved. This is invoked with the result of the main DerivedVariable function,
     as well as filters and pagination. The function should return a DataFrame and total count.
@@ -170,9 +181,9 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
     cache: BaseCachePolicy | None
     variables: list[AnyVariable]
-    polling_interval: int | None
+    polling_interval: int | ClientVariable | None
     deps: list[AnyVariable] | None = Field(validate_default=True)
-    nested: list[str] = Field(default_factory=list)
+    nested: list[NestedKey] = Field(default_factory=list)
     uid: str
     model_config = ConfigDict(extra='forbid', use_enum_values=True, arbitrary_types_allowed=True)
 
@@ -182,10 +193,10 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         variables: list[AnyVariable],
         cache: CacheArgType | None = Cache.Type.GLOBAL,
         run_as_task: bool = False,
-        polling_interval: int | None = None,
+        polling_interval: int | ClientVariable | None = None,
         deps: list[AnyVariable] | None = None,
         uid: str | None = None,
-        nested: list[str] | None = None,
+        nested: list[NestedKey] | None = None,
         filter_resolver: FilterResolver | None = None,
         **kwargs,
     ):
@@ -271,7 +282,14 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
         return deps
 
-    def get(self, key: str):
+    def get(self, key: NestedKey):
+        """
+        Create a copy of this DerivedVariable that points to a nested key.
+
+        The key can be a string or a LoopVariable for dynamic access within a For loop.
+
+        :param key: the key to access; can be a string or LoopVariable
+        """
         return self.model_copy(update={'nested': [*self.nested, key]}, deep=True)
 
     def trigger(self, force: bool = True):
@@ -732,7 +750,7 @@ class DerivedVariableRegistryEntry(CachedRegistryEntry):
     filter_resolver: FilterResolver | None
     run_as_task: bool
     variables: list[AnyVariable]
-    polling_interval: int | None
+    polling_interval: int | ClientVariable | None
     get_value: Callable[..., Awaitable[Any]]
     """Handler to get the value of the derived variable. Defaults to DerivedVariable.get_value, should match the signature"""
     get_tabular_data: Callable[..., Awaitable[DataResponse | MetaTask]]

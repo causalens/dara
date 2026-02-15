@@ -20,6 +20,7 @@ import {
     UserError,
     type Variable,
     combineFilters,
+    getIcon,
     injectCss,
     useAction,
     useComponentStyles,
@@ -68,6 +69,10 @@ interface TableProps extends StyledComponentProps {
      * Onselect handler; when provided, is called when a row is selected
      */
     onselect_row?: Action;
+    /**
+     * On action handler; when provided, is called when an action is performed
+     */
+    on_action?: Action;
     /**
      * List of searchable columns
      */
@@ -692,6 +697,8 @@ function Table(props: TableProps): JSX.Element {
         ]
     );
 
+    const onActionRaw = useAction(props.on_action);
+
     const onAction = useCallback(
         (actionId: string, row: any): void => {
             if (actionId === UiTable.Actions.SELECT.id) {
@@ -706,7 +713,17 @@ function Table(props: TableProps): JSX.Element {
                 data: mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))),
             });
         },
-        [onSelect]
+        [onSelect, onActionRaw]
+    );
+
+    const actions = useMemo(
+        () =>
+            props.actions?.map((action) => ({
+                icon: getIcon(action.icon_name),
+                label: action.label,
+                id: action.id,
+            })) ?? [],
+        [props.actions]
     );
 
     const searchColumns = useMemo(() => props.search_columns ?? [], [props.search_columns]);
@@ -806,6 +823,8 @@ function Table(props: TableProps): JSX.Element {
                         onFilter={onFilter}
                         onItemsRendered={onItemsRendered}
                         onSort={onSort}
+                        rowHeight={props.row_height}
+                        actions={actions}
                         style={{ padding: 0 }}
                         rowDataIdColumn={props.row_data_id_column}
                     />

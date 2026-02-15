@@ -541,11 +541,27 @@ class ConfigurationBuilder:
 
     def on_startup(self, startup_function: Callable):
         """
-        Adds a function to be run upon startup of a Dara app
+        Adds a function to be run upon startup of a Dara app.
 
-        :param startup_function: The function to be run
+        The startup function can optionally return a cleanup callable. If a cleanup function is returned,
+        it will be called during application shutdown in reverse order (last registered cleanup runs first).
+        The cleanup function can be sync or async.
+
+        Can be used as a decorator::
+
+            @config.on_startup
+            def setup_resource():
+                conn = connect_to_db()
+                return lambda: conn.close()
+
+        Or called directly::
+
+            config.on_startup(my_startup_function)
+
+        :param startup_function: The function to be run on startup. May return a cleanup callable.
         """
         self.startup_functions.append(startup_function)
+        return startup_function
 
     def scheduler(self, job: ScheduledJob, args: None | list[Any] = None):
         if args is None:

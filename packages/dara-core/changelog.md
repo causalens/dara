@@ -2,6 +2,29 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added support for passing `ClientVariable` values to `polling_interval` in `DerivedVariable` and `@py_component`, enabling dynamic polling behavior (for example via `SwitchVariable`).
+- Fixed an issue where `SwitchVariable` mapped values of `None`/`null` would incorrectly fall back to `default` instead of using the explicit mapped value.
+
+## 1.25.4
+
+- Added cleanup support to `on_startup`: startup functions can now optionally return a cleanup callable which is invoked during application shutdown in reverse order (LIFO). Both sync and async cleanup functions are supported.
+
+## 1.25.3
+
+- Fixed an issue where StreamVariable connections could be prematurely killed by the orphan timer before React Suspense resolved, causing streams with slow first messages to never receive data
+
+## 1.25.2
+
+- Improved: Stream variables now properly cleanup SSE connections when components unmount using reference counting, instead of relying on Recoil's unreliable atom release
+
+## 1.25.1
+
+- Added support for `LoopVariable` in `Variable.get()` nested property, enabling dynamic property access like `my_var.get(items.list_item.get('id'))` inside `For` loops
+- Internal: Route preloading now stops at control flow component boundaries (If, Match, For). Dependencies inside conditional branches are no longer preloaded since only one branch will render at runtime, reducing unnecessary work.
+- Fixed an issue where passing a `DerivedVariable` instance with `.get()` call to another `DerivedVariable`/`action`/`py_component` would not resolve `pydantic` model fields correctly
+
 ## 1.25.0
 
 - Added `StreamVariable` - a new variable type for SSE-based real-time event streams. Supports keyed mode (list of items with unique IDs) and custom JSON mode (arbitrary state with JSON Patch). Includes automatic reconnection with exponential backoff and proper lifecycle management via Recoil atom effects.

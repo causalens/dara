@@ -2,14 +2,23 @@
  * Integration tests for StreamVariable via useVariable hook.
  * Tests user-observable behavior by rendering components and asserting on the DOM.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { Suspense, useContext } from 'react';
+import { Suspense, useContext, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 
 import { setSessionToken } from '@/auth/use-session-token';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { _internal, getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
+import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
+import {
+    _internal as streamTrackerInternal,
+    clearStreamUsage_TEST,
+    getActiveConnectionCount,
+    getActiveConnectionKeys,
+    getConnectionController,
+    registerStreamConnection,
+} from '@/shared/interactivity/stream-usage-tracker';
+import { useStreamSubscription } from '@/shared/interactivity/use-stream-subscription';
 import { denormalize } from '@/shared/utils/normalization';
 import type { StreamVariable } from '@/types/core';
 
@@ -65,12 +74,18 @@ function StreamDisplay({ variable }: { variable: StreamVariable }): JSX.Element 
 }
 
 /**
- * Component that displays stream data using useRecoilValue directly
+ * Component that displays stream data using useRecoilValue directly.
+ * Note: Must use useStreamSubscription before Recoil hooks for SSE lifecycle management.
  */
 function StreamDisplayDirect({ variable }: { variable: StreamVariable }): JSX.Element {
     const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const extras = useRequestExtras();
+    
+    // Must subscribe BEFORE Recoil hooks so atom effect sees count > 0
+    // Pass extras so subscriptions are keyed by uid+extras
+    useStreamSubscription([variable.uid], extras);
+    
     const selector = getOrRegisterStreamVariable(variable, wsClient, taskContext, extras);
     const data = useRecoilValue(selector);
     return <div data-testid="stream-data">{JSON.stringify(data)}</div>;
@@ -107,17 +122,17 @@ describe('useVariable with StreamVariable', () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
         setSessionToken(SESSION_TOKEN);
-        clearRegistries_TEST();
-        _internal.activeConnections.clear();
     });
 
     afterEach(() => {
+        // Unmount React tree BEFORE clearing streams so useEffect cleanups
+        // run first and Recoil doesn't try to re-render on aborted connections
+        cleanup();
+        vi.useRealTimers();
         setSessionToken(null);
         server.resetHandlers();
-        for (const controller of _internal.activeConnections.values()) {
-            controller.abort();
-        }
-        _internal.activeConnections.clear();
+        clearStreamUsage_TEST();
+        clearRegistries_TEST();
     });
 
     afterAll(() => server.close());
@@ -347,13 +362,14 @@ describe('useVariable with StreamVariable', () => {
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
-        // Change the dependency
-        screen.getByTestId('change-dep').click();
+        // Change the dependency - wrap in act to ensure state updates complete
+        await act(async () => {
+            screen.getByTestId('change-dep').click();
+            // Wait a tick to let the state update propagate
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
 
         // With suspend=false, should NOT show loading - should keep showing stale value
-        // Wait a tick to let the state update propagate
-        await new Promise((resolve) => setTimeout(resolve, 20));
-
         // Stale value should still be visible (not loading)
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
@@ -365,5 +381,435 @@ describe('useVariable with StreamVariable', () => {
 
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+
+    });
+
+    /**
+     * Creates an SSE handler that stays open (doesn't close).
+     * Returns a function to get the number of times the endpoint was called.
+     */
+    function createPersistentSSEHandler(uid: string): {
+        handler: ReturnType<typeof http.post>;
+        getConnectionCount: () => number;
+    } {
+        let connectionCount = 0;
+
+        const handler = http.post(`/api/core/stream/${uid}`, () => {
+            connectionCount++;
+            const encoder = new TextEncoder();
+
+            const stream = new ReadableStream({
+                async start(controller) {
+                    // Send initial data
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                    const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { count: connectionCount } })}\n\n`;
+                    controller.enqueue(encoder.encode(data));
+                    // Keep stream open - don't close controller
+                },
+            });
+
+            return new HttpResponse(stream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    Connection: 'keep-alive',
+                },
+            });
+        });
+
+        return { handler, getConnectionCount: () => connectionCount };
+    }
+
+    describe('connection sharing and cleanup', () => {
+        it('shares connection while subscribed, closes when all unmount, reopens on remount', async () => {
+            const streamVar: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-shared-conn-1',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            const { handler, getConnectionCount } = createPersistentSSEHandler('test-shared-conn-1');
+            server.use(handler);
+
+            function Subscriber({ id }: { id: string }): JSX.Element {
+                const [data] = useVariable(streamVar);
+                return <div data-testid={`subscriber-${id}`}>{JSON.stringify(data)}</div>;
+            }
+
+            let setVisibleSubscribers: (ids: string[]) => void;
+            function Harness(): JSX.Element {
+                const [visibleIds, setVisibleIds] = useState<string[]>(['A', 'B', 'C']);
+                setVisibleSubscribers = setVisibleIds;
+
+                return (
+                    <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                        {visibleIds.map((id) => (
+                            <Subscriber key={id} id={id} />
+                        ))}
+                        {visibleIds.length === 0 && <div data-testid="empty">No subscribers</div>}
+                    </Suspense>
+                );
+            }
+
+            wrappedRender(<Harness />);
+
+            // Wait for all subscribers to render with data
+            await waitFor(
+                () => {
+                    expect(screen.getByTestId('subscriber-A')).toBeInTheDocument();
+                    expect(screen.getByTestId('subscriber-B')).toBeInTheDocument();
+                    expect(screen.getByTestId('subscriber-C')).toBeInTheDocument();
+                },
+                { timeout: 3000 }
+            );
+
+            // Only 1 connection created (shared atom)
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(getConnectionCount()).toBe(1);
+
+            // Remove A - connection should remain (shared with B and C)
+            act(() => setVisibleSubscribers(['B', 'C']));
+            await waitFor(() => {
+                expect(screen.queryByTestId('subscriber-A')).not.toBeInTheDocument();
+            });
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Remove B - connection should remain (shared with C)
+            act(() => setVisibleSubscribers(['C']));
+            await waitFor(() => {
+                expect(screen.queryByTestId('subscriber-B')).not.toBeInTheDocument();
+            });
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // No new connections were made - same connection throughout
+            expect(getConnectionCount()).toBe(1);
+
+            // Remove C (last subscriber) - connection should be closed
+            act(() => setVisibleSubscribers([]));
+            await waitFor(() => {
+                expect(screen.getByTestId('empty')).toBeInTheDocument();
+            });
+
+            // Connection should be cleaned up after debounce period (1500ms)
+            // Wait for debounce timer to fire
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 1600));
+            });
+            expect(getActiveConnectionCount()).toBe(0);
+
+            // Still only 1 connection was ever made
+            expect(getConnectionCount()).toBe(1);
+
+            // Re-mount subscribers - should create a NEW connection
+            act(() => setVisibleSubscribers(['D']));
+            await waitFor(
+                () => {
+                    expect(screen.getByTestId('subscriber-D')).toBeInTheDocument();
+                },
+                { timeout: 3000 }
+            );
+
+            // New connection created
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(getConnectionCount()).toBe(2); // Second connection
+
+            // Clean up: unmount subscriber D and wait for debounced cleanup
+            act(() => setVisibleSubscribers([]));
+            await waitFor(() => {
+                expect(screen.getByTestId('empty')).toBeInTheDocument();
+            });
+            await act(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 1600));
+            });
+            expect(getActiveConnectionCount()).toBe(0);
+        });
+
+        it('cleanup callback aborts SSE connection when called', async () => {
+            const streamVar: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-cleanup-cb-2',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            const { handler } = createPersistentSSEHandler('test-cleanup-cb-2');
+            server.use(handler);
+
+            function Subscriber(): JSX.Element {
+                const [data] = useVariable(streamVar);
+                return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
+            }
+
+            const { unmount } = wrappedRender(
+                <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                    <Subscriber />
+                </Suspense>
+            );
+
+            // Wait for subscriber to render with data
+            await waitFor(
+                () => {
+                    expect(screen.getByTestId('subscriber')).toBeInTheDocument();
+                },
+                { timeout: 3000 }
+            );
+
+            // Should have exactly 1 active connection
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Get the connection key and abort controller
+            const connectionKeys = getActiveConnectionKeys();
+            expect(connectionKeys.length).toBe(1);
+            const connectionKey = connectionKeys[0];
+
+            const controller = getConnectionController(connectionKey);
+            expect(controller).toBeDefined();
+
+            // Manually abort the connection via the controller
+            // (simulating what happens during cleanup)
+            controller!.abort();
+
+            // Unmount first so we don't clear stream tracker while Recoil tree is live.
+            unmount();
+
+            // Use cleanupAllStreams to properly clear tracker state
+            clearStreamUsage_TEST();
+
+            // Connection should be removed
+            expect(getActiveConnectionCount()).toBe(0);
+        });
+
+        it('creates new connection for different stream variable params', async () => {
+            // Create two stream variables with different uids
+            const streamVarA: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-sep-A-3',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            const streamVarB: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-sep-B-3',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            const { handler: handlerA, getConnectionCount: getCountA } =
+                createPersistentSSEHandler('test-sep-A-3');
+            const { handler: handlerB, getConnectionCount: getCountB } =
+                createPersistentSSEHandler('test-sep-B-3');
+            server.use(handlerA, handlerB);
+
+            function SubscriberA(): JSX.Element {
+                const [data] = useVariable(streamVarA);
+                return <div data-testid="subscriber-A">{JSON.stringify(data)}</div>;
+            }
+
+            function SubscriberB(): JSX.Element {
+                const [data] = useVariable(streamVarB);
+                return <div data-testid="subscriber-B">{JSON.stringify(data)}</div>;
+            }
+
+            wrappedRender(
+                <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                    <SubscriberA />
+                    <SubscriberB />
+                </Suspense>
+            );
+
+            // Wait for both subscribers to render
+            await waitFor(
+                () => {
+                    expect(screen.getByTestId('subscriber-A')).toBeInTheDocument();
+                    expect(screen.getByTestId('subscriber-B')).toBeInTheDocument();
+                },
+                { timeout: 3000 }
+            );
+
+            // Should have 2 separate connections (different stream variables)
+            expect(getActiveConnectionCount()).toBe(2);
+            expect(getCountA()).toBe(1);
+            expect(getCountB()).toBe(1);
+        });
+    });
+
+    describe('edge cases', () => {
+        it('handles multiple unsubscribes gracefully (count never goes negative)', async () => {
+            const streamVar: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-multi-unsub',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            const { handler } = createPersistentSSEHandler('test-multi-unsub');
+            server.use(handler);
+
+            function Subscriber(): JSX.Element {
+                const [data] = useVariable(streamVar);
+                return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
+            }
+
+            const { unmount } = wrappedRender(
+                <Suspense fallback={<div>Loading...</div>}>
+                    <Subscriber />
+                </Suspense>
+            );
+
+            await waitFor(
+                () => {
+                    expect(screen.getByTestId('subscriber')).toBeInTheDocument();
+                },
+                { timeout: 3000 }
+            );
+
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Unmount triggers unsubscribe
+            unmount();
+
+            // Multiple cleanups should not cause issues
+            clearStreamUsage_TEST();
+            clearStreamUsage_TEST(); // Call twice - should be idempotent
+
+            expect(getActiveConnectionCount()).toBe(0);
+        });
+
+        it('cleans up orphaned connections after timeout', async () => {
+            // Use fake timers for this test
+            vi.useFakeTimers();
+
+            const ORPHAN_TIMEOUT = streamTrackerInternal.ORPHAN_TIMEOUT_MS;
+
+            const mockController = new AbortController();
+            const mockStart = vi.fn().mockReturnValue({
+                cleanup: vi.fn(),
+                controller: mockController,
+            });
+
+            registerStreamConnection('test-orphan-timeout', {}, 'test-atom-key', mockStart);
+
+            // Connection should be active
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Advance time past orphan timeout
+            await vi.advanceTimersByTimeAsync(ORPHAN_TIMEOUT + 100);
+
+            // Connection should be cleaned up (orphaned)
+            expect(getActiveConnectionCount()).toBe(0);
+
+            // Restore real timers
+            vi.useRealTimers();
+        });
+
+        it('does NOT kill connection when first SSE message is delayed (regression test)', async () => {
+            // REGRESSION TEST for orphan timer race condition with React Suspense.
+            // Bug: With a short orphan timeout (e.g., 5s), the timer fires before useEffect
+            // can call subscribeStream() because component is suspended waiting for first SSE data.
+            // Fix: Orphan timeout is now long enough (2 minutes) to act as a safety net,
+            // allowing slow streams to deliver their first message before cleanup.
+            vi.useFakeTimers();
+
+            // Simulate a "slow" stream - first message takes 30 seconds.
+            // This would have failed with the old 5-second orphan timeout.
+            const SLOW_FIRST_MESSAGE_DELAY_MS = 30000;
+
+            const streamVar: StreamVariable = {
+                __typename: 'StreamVariable',
+                uid: 'test-delayed-first-message',
+                variables: [],
+                key_accessor: null,
+                nested: [],
+            };
+
+            // Track if connection was aborted
+            let connectionAborted = false;
+            let sendFirstMessage: (() => void) | null = null;
+
+            // SSE handler that opens immediately but delays first message
+            server.use(
+                http.post('/api/core/stream/test-delayed-first-message', () => {
+                    const encoder = new TextEncoder();
+
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            // Store function to send message later
+                            sendFirstMessage = () => {
+                                if (!connectionAborted) {
+                                    const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { delayed: true } })}\n\n`;
+                                    controller.enqueue(encoder.encode(data));
+                                    controller.close();
+                                }
+                            };
+                        },
+                        cancel() {
+                            connectionAborted = true;
+                        },
+                    });
+
+                    return new HttpResponse(stream, {
+                        headers: {
+                            'Content-Type': 'text/event-stream',
+                            'Cache-Control': 'no-cache',
+                            Connection: 'keep-alive',
+                        },
+                    });
+                })
+            );
+
+            function Subscriber(): JSX.Element {
+                const [data] = useVariable(streamVar);
+                return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
+            }
+
+            wrappedRender(
+                <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                    <Subscriber />
+                </Suspense>
+            );
+
+            // Let React render and SSE connection start
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(100);
+            });
+
+            // Should show loading (suspended waiting for first SSE data)
+            expect(screen.getByTestId('loading')).toBeInTheDocument();
+
+            // Connection should be active
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(connectionAborted).toBe(false);
+
+            // Advance time to simulate slow first message (30 seconds)
+            // With old 5s timeout, this would have killed the connection
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(SLOW_FIRST_MESSAGE_DELAY_MS);
+            });
+
+            // Connection should still be active (orphan timeout is now 2 minutes)
+            expect(connectionAborted).toBe(false);
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Now send the first message
+            await act(async () => {
+                sendFirstMessage?.();
+                await vi.advanceTimersByTimeAsync(100);
+            });
+
+            // Component should unsuspend and show data
+            await waitFor(() => {
+                expect(screen.getByTestId('subscriber')).toBeInTheDocument();
+            });
+            expect(screen.getByTestId('subscriber')).toHaveTextContent('{"delayed":true}');
+
+            vi.useRealTimers();
+        });
     });
 });

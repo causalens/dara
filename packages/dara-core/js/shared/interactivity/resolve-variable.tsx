@@ -63,7 +63,8 @@ export async function resolveVariable<VariableType>(
             type: 'derived',
             uid: variable.uid,
             values,
-            nested: variable.nested,
+            // After templating, nested should be all strings
+            nested: variable.nested as string[],
         } satisfies ResolvedDerivedVariable;
     }
 
@@ -140,7 +141,8 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
             type: 'derived',
             uid: variable.uid,
             values,
-            nested: variable.nested,
+            // After templating, nested should be all strings
+            nested: variable.nested as string[],
         } satisfies ResolvedDerivedVariable;
     }
 
