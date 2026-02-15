@@ -440,6 +440,11 @@ export interface Props<T extends { [k: string]: any }> {
 
     /** Optional actions for the table */
     actions?: Array<ActionCol>;
+
+    /**
+     * Optional column(s) to use as the row data id. When an array, values are joined with underscores.
+     */
+    rowDataIdColumn?: string | string[];
 }
 
 type TableType = React.ForwardRefExoticComponent<Props<{ [k: string]: any }> & React.RefAttributes<TableHandle>> &
@@ -467,7 +472,8 @@ const createItemData = memoize(
         throttledClickRow,
         backgroundColor,
         mappedColumns,
-        rowHeight
+        rowHeight,
+        rowDataIdColumn
     ) => ({
         backgroundColor,
         currentEditCell,
@@ -478,6 +484,7 @@ const createItemData = memoize(
         prepareRow,
         rows,
         rowHeight,
+        rowDataIdColumn,
         throttledClickRow,
         totalColumnsWidth,
         width,
@@ -511,6 +518,7 @@ const Table = forwardRef(
             onChange,
             onClickRow,
             onItemsRendered,
+            rowDataIdColumn,
             onFilter,
             onSort,
             rowHeight,
@@ -801,7 +809,8 @@ const Table = forwardRef(
                                     throttledClickRow,
                                     backgroundColor,
                                     mappedColumns,
-                                    tableRowHeight
+                                    tableRowHeight,
+                                    rowDataIdColumn
                                 )}
                                 itemSize={tableRowHeight}
                                 key="table-list"

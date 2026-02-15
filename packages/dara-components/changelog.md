@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added row_data_id_column to the `Table` component, to allow users to set the `data-row-id` property to make it easier to test the table
+- Fixed the result of action to result the property name not the index_based property name used by the frontend.
+
 ## 1.25.1
 
 - Added `size` prop to `Select` component to control font-size of each sub-component
