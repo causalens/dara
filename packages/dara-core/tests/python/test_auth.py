@@ -471,7 +471,9 @@ async def test_refresh_token_concurrent_requests():
             # Add a small delay to simulate work and increase chance of concurrent access
             time.sleep(0.1)
             refresh_count += 1
-            return _make_refreshed_session_token(old_token, f'concurrent_{refresh_count}'), f'refresh_token_{refresh_count}'
+            return _make_refreshed_session_token(
+                old_token, f'concurrent_{refresh_count}'
+            ), f'refresh_token_{refresh_count}'
 
     config.add_auth(ConcurrentTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -519,7 +521,9 @@ async def test_refresh_token_cache_expiration():
         async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             refresh_count += 1
-            return _make_refreshed_session_token(old_token, f'expiration_{refresh_count}'), f'refresh_token_{refresh_count}'
+            return _make_refreshed_session_token(
+                old_token, f'expiration_{refresh_count}'
+            ), f'refresh_token_{refresh_count}'
 
     config.add_auth(ExpirationTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -631,7 +635,9 @@ async def test_refresh_token_error_not_cached():
                 error_count += 1
                 raise Exception('some error')
             success_count += 1
-            return _make_refreshed_session_token(old_token, f'error_cache_{success_count}'), f'refresh_token_{success_count}'
+            return _make_refreshed_session_token(
+                old_token, f'error_cache_{success_count}'
+            ), f'refresh_token_{success_count}'
 
     config.add_auth(ErrorTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
