@@ -4,17 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Removed legacy websocket auth transport (`?token=` query and `token_update` messages); websocket auth now relies on session cookies and server-side session auth cache updates.
-- Simplified auth runtime coordination by consolidating token refresh locking/broadcast behavior into `use-session-token`, removing duplicate auth state channels.
-- Removed `pending_tokens_registry` and related wait loops in interactivity value fetch paths.
-- Centralized auth cookie policy/constants for session and refresh cookies across core auth and OIDC routes.
-- Switched auth token client state from `localStorage` to dedicated in-memory session state synchronized across tabs via `BroadcastChannel`, with Web Locks used to coordinate refresh token races.
-- Added cookie-first auth transport for HTTP and websocket flows, while preserving bearer-header compatibility for downstream extensions.
-- Added dual auth acceptance on backend auth endpoints (session cookie or bearer header), including cookie-based token refresh and revoke paths.
-- Updated websocket auth context handling to use server-side session token state refreshed by `/api/auth/refresh-token`, so live websocket handlers pick up refreshed token data without reconnecting.
-- Updated session-scoped frontend persistence/cache keying to use a dedicated session identifier, with compatibility fallback to token-derived keys.
-- Added support for passing `ClientVariable` values to `polling_interval` in `DerivedVariable` and `@py_component`, enabling dynamic polling behavior (for example via `SwitchVariable`).
-- Fixed an issue where `SwitchVariable` mapped values of `None`/`null` would incorrectly fall back to `default` instead of using the explicit mapped value.
+- Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
 
 ## 1.25.4
 
