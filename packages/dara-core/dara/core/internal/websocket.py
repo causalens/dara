@@ -426,10 +426,13 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     Websocket handler. Used for live_reloading in dev mode and for notifying the UI of task results.
 
     :param websocket: The websocket connection
-    :param token: The authentication token
+    :param token: The authentication token from query params (legacy path)
     """
-    if token is None:
-        raise WebSocketException(code=403, reason='Token missing from websocket connection query parameter')
+    from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME
+
+    session_token = token or websocket.cookies.get(SESSION_TOKEN_COOKIE_NAME)
+    if session_token is None:
+        raise WebSocketException(code=403, reason='Token missing from websocket connection')
 
     from dara.core.auth.base import BaseAuthConfig
     from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, AuthError, TokenData, UserData
@@ -452,9 +455,9 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         verifier = auth_config.verify_token
 
         if inspect.iscoroutinefunction(verifier):
-            token_content = await verifier(token)
+            token_content = await verifier(session_token)
         else:
-            token_content = verifier(token)
+            token_content = verifier(session_token)
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err
@@ -470,8 +473,8 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         websocket_registry.set(token_content.session_id, {channel})
 
     # Remove from pending tokens if present
-    if pending_tokens_registry.has(token):
-        pending_tokens_registry.remove(token)
+    if pending_tokens_registry.has(session_token):
+        pending_tokens_registry.remove(session_token)
 
     user_identifier = token_content.identity_id
 

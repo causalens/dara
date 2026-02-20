@@ -317,6 +317,18 @@ async def test_websocket_invalid_token(config: Configuration):
             await session.connect()
 
 
+async def test_websocket_session_cookie_auth(config: Configuration):
+    app = _start_application(config)
+
+    async with AsyncTestClient(app) as client:
+        login = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
+        assert login.status_code == 200
+
+        async with client.websocket_connect('/api/core/ws') as websocket:
+            init = await websocket.receive_json()
+            assert init['type'] == 'init'
+
+
 async def test_custom_ws_handler():
     builder = ConfigurationBuilder()
 

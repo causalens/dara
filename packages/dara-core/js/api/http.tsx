@@ -71,7 +71,8 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     const sessionToken = await globalStore.getValue(getTokenKey());
     const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
 
-    const { headers, ...other } = mergedOptions;
+    const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
+    const credentials = mergedCredentials ?? 'include';
 
     const headersInterface = new Headers(headers);
 
@@ -94,6 +95,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
     const response = await fetch(baseUrl + urlString, {
+        credentials,
         headers: headersInterface,
         ...other,
     });
@@ -106,6 +108,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
             // rather than invoking the refresh again.
             const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
+                    credentials,
                     headers: headersInterface,
                     method: 'POST',
                 });
@@ -121,6 +124,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
             // retry the request with the new token
             headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
             return fetch(baseUrl + urlString, {
+                credentials,
                 headers: headersInterface,
                 ...other,
             });

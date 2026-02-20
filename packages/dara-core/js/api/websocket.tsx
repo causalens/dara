@@ -230,7 +230,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     socket: WebSocket;
 
-    token: string;
+    token: string | null;
 
     liveReload: boolean;
 
@@ -246,7 +246,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     #reconnectCount: number;
 
-    constructor(_socketUrl: string, _token: string, _liveReload = false) {
+    constructor(_socketUrl: string, _token: string | null, _liveReload = false) {
         this.token = _token;
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
@@ -269,10 +269,12 @@ export class WebSocketClient implements WebSocketClientInterface {
         const url = new URL(this.#socketUrl);
 
         // Get the latest token from the global store to ensure it's always up to date
-        this.token = globalStore.getValueSync(getTokenKey())!;
+        this.token = globalStore.getValueSync(getTokenKey());
 
-        // Set the token on the params of the request
-        url.searchParams.set('token', this.token);
+        // Keep token query for backwards compatibility where available.
+        if (this.token) {
+            url.searchParams.set('token', this.token);
+        }
         const socket = new WebSocket(url);
 
         // Send heartbeat to ping every few seconds and clear it on error
@@ -601,7 +603,7 @@ export class WebSocketClient implements WebSocketClientInterface {
  * @param sessionToken session token
  * @param liveReload whether to enable live reload
  */
-export function setupWebsocket(sessionToken: string, liveReload: boolean): WebSocketClient {
+export function setupWebsocket(sessionToken: string | null, liveReload: boolean): WebSocketClient {
     // Setup socket url
     let { host } = window.location;
 
@@ -617,10 +619,6 @@ export function setupWebsocket(sessionToken: string, liveReload: boolean): WebSo
     }
 
     const socketUrl = `${window.location.protocol === 'https:' ? 'wss://' : 'ws://'}${host}/api/core/ws`;
-
-    // Append session token to the WS url for authentication
-    const url = new URL(socketUrl);
-    url.searchParams.set('token', sessionToken);
 
     return new WebSocketClient(socketUrl, sessionToken, liveReload);
 }

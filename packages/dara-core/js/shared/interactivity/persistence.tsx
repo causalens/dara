@@ -12,7 +12,7 @@ import { useLatestRef, validateResponse } from '@darajs/ui-utils';
 import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { getSessionToken } from '@/auth/use-session-token';
+import { getSessionIdentifier } from '@/auth/use-session-token';
 import { useRouterContext } from '@/router/context';
 import { type LoaderData } from '@/router/fetching';
 import { isEmbedded } from '@/shared/utils/embed';
@@ -321,7 +321,7 @@ export function getSessionKey(uid: string): string {
         return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset.daraPageId}-var-${uid}`;
     }
 
-    return `dara-session-${getSessionToken()}-var-${uid}`;
+    return `dara-session-${getSessionIdentifier()}-var-${uid}`;
 }
 
 /**
@@ -359,7 +359,7 @@ function BrowserStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     const match = e.key.match(/^dara-session-(.*)-var-(.*)$/);
                     if (match) {
                         const [, sessionToken, uid] = match;
-                        if (sessionToken === getSessionToken()) {
+                        if (sessionToken === getSessionIdentifier()) {
                             updateItem(uid!, JSON.parse(e.newValue ?? 'null'));
                         }
                     }

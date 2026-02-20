@@ -7,6 +7,8 @@ import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { getTokenKey } from '@/shared/utils/embed';
 import { type User, type UserData } from '@/types';
 
+import { setSessionIdentifier, setSessionToken } from './use-session-token';
+
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
     EXPIRED_TOKEN = 'expired',
@@ -129,7 +131,8 @@ export async function handleAuthErrors(
     const content = await res.clone().json();
 
     if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
-        localStorage.removeItem(getTokenKey());
+        setSessionToken(null);
+        setSessionIdentifier(null);
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
@@ -203,5 +206,18 @@ export async function verifySessionToken(): Promise<boolean> {
     const res = await request('/api/auth/verify-session', {
         method: HTTP_METHOD.POST,
     });
-    return res.ok;
+
+    if (!res.ok) {
+        setSessionIdentifier(null);
+        return false;
+    }
+
+    try {
+        const sessionId = await res.json();
+        setSessionIdentifier(typeof sessionId === 'string' ? sessionId : null);
+    } catch {
+        setSessionIdentifier(null);
+    }
+
+    return true;
 }
