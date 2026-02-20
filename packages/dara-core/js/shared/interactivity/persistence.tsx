@@ -15,7 +15,7 @@ import { handleAuthErrors } from '@/auth/auth';
 import { getSessionIdentifier } from '@/auth/use-session-token';
 import { useRouterContext } from '@/router/context';
 import { type LoaderData } from '@/router/fetching';
-import { isEmbedded } from '@/shared/utils/embed';
+import { isEmbedded } from '@/shared/utils/iframe';
 import {
     type GlobalTaskContext,
     type PathParamStore,

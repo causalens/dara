@@ -3,7 +3,7 @@ import { type AtomEffect, type RecoilState, type Snapshot, atomFamily, selectorF
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { isEmbedded } from '@/shared/utils/embed';
+import { isEmbedded } from '@/shared/utils/iframe';
 import {
     type DerivedVariable,
     type GlobalTaskContext,
