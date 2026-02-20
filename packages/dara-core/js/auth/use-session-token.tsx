@@ -1,8 +1,7 @@
 import * as React from 'react';
 
-import { getTokenKey } from '@/shared/utils/embed';
-
 const SESSION_ID_STORAGE_SUFFIX = '-session-id';
+const SESSION_STATE_TOKEN_KEY = 'dara-jwt-token';
 const SESSION_STATE_CHANNEL_NAME = 'dara-session-state';
 
 type SessionStateMessage =
@@ -92,7 +91,7 @@ channel.addEventListener('message', (event: MessageEvent<unknown>) => {
  * Retrieve the key under which the current Dara session ID is stored.
  */
 export function getSessionIdKey(): string {
-    return `${getTokenKey()}${SESSION_ID_STORAGE_SUFFIX}`;
+    return `${SESSION_STATE_TOKEN_KEY}${SESSION_ID_STORAGE_SUFFIX}`;
 }
 
 /**
