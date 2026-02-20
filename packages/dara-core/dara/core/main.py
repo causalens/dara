@@ -231,6 +231,12 @@ def _start_application(config: Configuration):
         default_response_class=CustomResponse,
     )
 
+    # Ensure session-cookie auth is reflected in Authorization header for
+    # downstream handlers still expecting bearer token transport.
+    from dara.core.auth.middleware import ensure_authorization_header_from_session_cookie
+
+    app.middleware('http')(ensure_authorization_header_from_session_cookie)
+
     # Define catch-all mechanisms
     @app.middleware('http')
     async def catchall_middleware(req: Request, call_next):

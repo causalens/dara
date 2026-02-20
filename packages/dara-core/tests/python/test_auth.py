@@ -5,6 +5,7 @@ import time
 import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
+from fastapi import Request
 
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
 from dara.core.auth.definitions import ID_TOKEN, JWT_ALGO, SESSION_ID, SESSION_TOKEN_COOKIE_NAME, TokenData
@@ -100,6 +101,76 @@ async def test_verify_session_cookie():
         response = await client.get('/api/test-ext/test', cookies={SESSION_TOKEN_COOKIE_NAME: token})
         assert response.status_code == 200
         assert response.json() == {'test': 'test'}
+
+
+async def test_authorization_header_injected_from_session_cookie():
+    """Check that a missing Authorization header is synthesized from the session cookie"""
+
+    @get('test-ext/auth-header')
+    def handle(request: Request):
+        return {'authorization': request.headers.get('Authorization')}
+
+    builder = ConfigurationBuilder()
+    builder.add_endpoint(handle)
+    app = _start_application(builder._to_configuration())
+
+    token = jwt.encode(
+        TokenData(
+            identity_id='user',
+            identity_name='user',
+            session_id='token1',
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+        ).dict(),
+        TEST_JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
+
+    async with AsyncClient(app) as client:
+        response = await client.get('/api/test-ext/auth-header', cookies={SESSION_TOKEN_COOKIE_NAME: token})
+        assert response.status_code == 200
+        assert response.json() == {'authorization': f'Bearer {token}'}
+
+
+async def test_authorization_header_not_overwritten_by_session_cookie():
+    """Check that an explicit Authorization header is preserved when session cookie is present"""
+
+    @get('test-ext/auth-header')
+    def handle(request: Request):
+        return {'authorization': request.headers.get('Authorization')}
+
+    builder = ConfigurationBuilder()
+    builder.add_endpoint(handle)
+    app = _start_application(builder._to_configuration())
+
+    cookie_token = jwt.encode(
+        TokenData(
+            identity_id='user',
+            identity_name='user',
+            session_id='cookie-token',
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+        ).dict(),
+        TEST_JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
+    header_token = jwt.encode(
+        TokenData(
+            identity_id='user',
+            identity_name='user',
+            session_id='header-token',
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+        ).dict(),
+        TEST_JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
+
+    async with AsyncClient(app) as client:
+        response = await client.get(
+            '/api/test-ext/auth-header',
+            cookies={SESSION_TOKEN_COOKIE_NAME: cookie_token},
+            headers={'Authorization': f'Bearer {header_token}'},
+        )
+        assert response.status_code == 200
+        assert response.json() == {'authorization': f'Bearer {header_token}'}
 
 
 async def test_revoke_session_cookie():
@@ -349,36 +420,34 @@ async def test_refresh_token_live_ws_connection():
 
     app = _start_application(config._to_configuration())
 
-    async with AsyncClient(app) as client:
-        # create two WS connections
-        async with _async_ws_connect(client, token=old_token) as ws1:
-            # check initial ws1 context
-            await ws1.receive_json()
-            await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-            ws1_message = await ws1.receive_json()
-            assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
+    async with AsyncClient(app) as client, _async_ws_connect(client, token=old_token) as ws1:
+        # check initial ws1 context
+        await ws1.receive_json()
+        await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
+        ws1_message = await ws1.receive_json()
+        assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-            # Refresh token for ws1
-            response = await client.post(
-                '/api/auth/refresh-token',
-                cookies={'dara_refresh_token': 'refresh_token'},
-                headers={'Authorization': f'Bearer {old_token}'},
-            )
-            assert response.status_code == 200
-            assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
+        # Refresh token for ws1
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+        assert response.status_code == 200
+        assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
-            # token in the WS connection should still be old
-            await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-            ws1_message = await ws1.receive_json()
-            assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
+        # token in the WS connection should still be old
+        await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
+        ws1_message = await ws1.receive_json()
+        assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-            # Now imitate client notifying the backend that the token has been updated
-            await ws1.send_json({'type': 'token_update', 'message': response.json()['token']})
+        # Now imitate client notifying the backend that the token has been updated
+        await ws1.send_json({'type': 'token_update', 'message': response.json()['token']})
 
-            # Check that the ID token has been updated but session stays the same
-            await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
-            ws1_updated_message = await ws1.receive_json()
-            assert ws1_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}
+        # Check that the ID token has been updated but session stays the same
+        await ws1.send_json({'type': 'custom', 'message': {'kind': 'get_context', 'data': None}})
+        ws1_updated_message = await ws1.receive_json()
+        assert ws1_updated_message['message']['data'] == {'id_token': 'NEW_TOKEN', 'session_id': 'session_1'}
 
 
 async def test_refresh_token_concurrent_requests():
