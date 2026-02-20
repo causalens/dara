@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
-import { getSessionToken } from '@/auth/use-session-token';
 import type { ActionImpl, AnyVariable } from '@/types';
 
 const interAttemptTimeout = 500;
@@ -39,11 +38,6 @@ interface InitMessage {
 interface PingPongMessage {
     message: null;
     type: 'ping' | 'pong';
-}
-
-interface TokenUpdateMessage {
-    message: string;
-    type: 'token_update';
 }
 
 export enum TaskStatus {
@@ -147,7 +141,6 @@ export interface CustomMessage {
 export type WebSocketMessage =
     | InitMessage
     | PingPongMessage
-    | TokenUpdateMessage
     | TaskNotificationMessage
     | ProgressNotificationMessage
     | ServerErrorMessage
@@ -215,7 +208,6 @@ export interface WebSocketClientInterface {
     taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
     variableRequests$: () => Observable<VariableRequestMessage>;
     waitForTask: (task_id: string) => Promise<any>;
-    updateToken: (token: string) => void;
 }
 
 /**
@@ -228,8 +220,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     messages$: Subject<WebSocketMessage>;
 
     socket: WebSocket;
-
-    token: string | null;
 
     liveReload: boolean;
 
@@ -245,8 +235,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     #reconnectCount: number;
 
-    constructor(_socketUrl: string, _token: string | null, _liveReload = false) {
-        this.token = _token;
+    constructor(_socketUrl: string, _liveReload = false) {
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
         this.closeHandler = this.onClose.bind(this);
@@ -264,17 +253,8 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     initialize(isReconnect = false): WebSocket {
-        // Create the underlying socket instance from the url and token
-        const url = new URL(this.#socketUrl);
-
-        // Read latest in-memory token, if present, for backwards-compatible query token support.
-        this.token = getSessionToken();
-
-        // Keep token query for backwards compatibility where available.
-        if (this.token) {
-            url.searchParams.set('token', this.token);
-        }
-        const socket = new WebSocket(url);
+        // Create the underlying socket instance from the url.
+        const socket = new WebSocket(this.#socketUrl);
 
         // Send heartbeat to ping every few seconds and clear it on error
         this.#pingInterval = setInterval(() => {
@@ -524,24 +504,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
-     * Send a 'token_update' message to the backend to notify the live connection
-     * that a token for the current session has been updated (refreshed).
-     *
-     * @param newToken new session token
-     */
-    updateToken(newToken: string): void {
-        this.token = newToken;
-        if (this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(
-                JSON.stringify({
-                    message: newToken,
-                    type: 'token_update',
-                })
-            );
-        }
-    }
-
-    /**
      * Send custom message to the backend
      *
      * @param kind kind of custom message
@@ -599,10 +561,9 @@ export class WebSocketClient implements WebSocketClientInterface {
 /**
  * Set up websocket connection and handlers.
  *
- * @param sessionToken session token
  * @param liveReload whether to enable live reload
  */
-export function setupWebsocket(sessionToken: string | null, liveReload: boolean): WebSocketClient {
+export function setupWebsocket(liveReload: boolean): WebSocketClient {
     // Setup socket url
     let { host } = window.location;
 
@@ -619,5 +580,5 @@ export function setupWebsocket(sessionToken: string | null, liveReload: boolean)
 
     const socketUrl = `${window.location.protocol === 'https:' ? 'wss://' : 'ws://'}${host}/api/core/ws`;
 
-    return new WebSocketClient(socketUrl, sessionToken, liveReload);
+    return new WebSocketClient(socketUrl, liveReload);
 }

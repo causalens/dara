@@ -9,7 +9,7 @@ import {
     notifySessionRefreshed,
     runSessionRefresh,
     waitForOngoingSessionRefresh,
-} from '@/auth/session-coordination';
+} from '@/auth/use-session-token';
 
 /**
  * Extra options to pass to the request function.

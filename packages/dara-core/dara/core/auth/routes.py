@@ -23,9 +23,11 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import (
+    AUTH_COOKIE_KWARGS,
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
+    REFRESH_TOKEN_COOKIE_NAME,
     SESSION_ID,
     SESSION_TOKEN_COOKIE_NAME,
     USER,
@@ -38,16 +40,24 @@ from dara.core.logging import dev_logger
 auth_router = APIRouter()
 
 
-def _cache_session_auth_token(session_id: str, session_token: str):
+def _cache_session_auth_token(session_token: str):
     """
     Store latest session token for websocket auth context refreshes.
 
-    :param session_id: session identifier
     :param session_token: latest session token
     """
     from dara.core.internal.registries import session_auth_token_registry
 
-    session_auth_token_registry.set(session_id, session_token)
+    try:
+        decoded_token = decode_token(session_token, options={'verify_exp': False})
+    except BaseException as e:
+        dev_logger.warning(
+            'Unable to decode refreshed session token for websocket auth cache',
+            {'reason': str(e)},
+        )
+        return
+
+    session_auth_token_registry.set(decoded_token.session_id, decoded_token)
 
 
 def _clear_cached_session_auth_token(token: str):
@@ -63,7 +73,7 @@ def _clear_cached_session_auth_token(token: str):
     except BaseException as e:
         dev_logger.warning(
             'Unable to decode session token while clearing session auth cache',
-            error=e if isinstance(e, Exception) else Exception(str(e)),
+            {'reason': str(e)},
         )
         return
 
@@ -126,13 +136,7 @@ def _set_session_token_cookie(response: Response, token: str):
     :param response: FastAPI response object
     :param token: session token value
     """
-    response.set_cookie(
-        key=SESSION_TOKEN_COOKIE_NAME,
-        value=token,
-        secure=True,
-        httponly=True,
-        samesite='strict',
-    )
+    response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, **AUTH_COOKIE_KWARGS)
 
 
 def _delete_session_token_cookie(response: Response):
@@ -222,7 +226,7 @@ async def handle_refresh_token(
     request: Request,
     response: Response,
     dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
-    dara_refresh_token: Annotated[str | None, Cookie()] = None,
+    dara_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_TOKEN_COOKIE_NAME)] = None,
 ):
     """
     Given a refresh token, issues a new session token and refresh token cookie.
@@ -253,17 +257,14 @@ async def handle_refresh_token(
         session_token, refresh_token = await cached_refresh_token(
             auth_config.refresh_token, old_token_data, dara_refresh_token
         )
-        _cache_session_auth_token(old_token_data.session_id, session_token)
+        _cache_session_auth_token(session_token)
 
-        # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
-        response.set_cookie(
-            key='dara_refresh_token', value=refresh_token, secure=True, httponly=True, samesite='strict'
-        )
+        response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=refresh_token, **AUTH_COOKIE_KWARGS)
         _set_session_token_cookie(response, session_token)
         return {'token': session_token}
     except BaseException as e:
         # Regardless of exception type, clear the refresh token cookie
-        response.delete_cookie('dara_refresh_token')
+        response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
         _delete_session_token_cookie(response)
         headers = {'set-cookie': response.headers['set-cookie']}
 

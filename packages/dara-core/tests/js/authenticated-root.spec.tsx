@@ -62,16 +62,4 @@ describe('AuthenticatedRoot', () => {
         });
     });
 
-    it('should subscribe to changes in the websocket token and trigger an update in the client', () => {
-        const updateTokenSpy = vi.spyOn(wsClient, 'updateToken');
-
-        wrappedRender(<AuthenticatedRoot initialWebsocketClient={wsClient as any} daraData={daraData} />);
-
-        // Update the token in session state
-        act(() => {
-            setSessionToken('new_token');
-        });
-
-        expect(updateTokenSpy).toHaveBeenCalledWith('new_token');
-    });
 });

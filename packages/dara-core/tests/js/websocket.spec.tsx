@@ -17,7 +17,7 @@ function toMsg(type: string, message: any): string {
 
 async function initialize(liveReload = false): Promise<[server: WS, client: WebSocketClient]> {
     const server = new WS('ws://localhost:1234');
-    const client = new WebSocketClient('ws://localhost:1234', 'test', liveReload);
+    const client = new WebSocketClient('ws://localhost:1234', liveReload);
 
     await server.connected;
     server.send(toMsg('init', { channel: 'test' }));

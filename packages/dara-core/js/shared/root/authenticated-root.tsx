@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 import styled from '@darajs/styled-components';
@@ -6,7 +6,7 @@ import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth/auth';
-import { getSessionToken, onTokenChange, useSessionIdentifier } from '@/auth/use-session-token';
+import { useSessionIdentifier } from '@/auth/use-session-token';
 import { DevTools } from '@/devtools';
 import { WebSocketCtx } from '@/shared/context';
 import cleanSessionCache from '@/shared/utils/clean-session-cache';
@@ -61,7 +61,7 @@ export function createAuthenticatedRootLoader(daraData: DaraData) {
     return function loader() {
         // ensure ws client is set up
         if (window.dara.ws.status === 'pending') {
-            window.dara.ws.resolve(setupWebsocket(getSessionToken(), daraData.live_reload));
+            window.dara.ws.resolve(setupWebsocket(daraData.live_reload));
         }
     };
 }
@@ -93,16 +93,6 @@ function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
             navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
         }
     }, [sessionId, navigate]);
-
-    useEffect(() => {
-        // subscribe to token changes and notify the live WS connection
-        return onTokenChange((newToken) => {
-            // it only changes to null if we're logging out
-            if (newToken) {
-                wsClient.updateToken(newToken);
-            }
-        });
-    }, [wsClient]);
 
     return (
         <WebSocketCtx.Provider value={{ client: wsClient }}>

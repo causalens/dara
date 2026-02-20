@@ -16,10 +16,10 @@ limitations under the License.
 """
 
 from collections.abc import Callable, Mapping
-from datetime import datetime
 from typing import Any
 
 from dara.core.auth import BaseAuthConfig
+from dara.core.auth.definitions import TokenData
 from dara.core.base_definitions import ActionDef, ActionResolverDef, UploadResolverDef
 from dara.core.defaults import CORE_ACTIONS, CORE_COMPONENTS, INITIAL_CORE_INTERNALS
 from dara.core.definitions import (
@@ -62,11 +62,8 @@ websocket_registry = Registry[set[str]](RegistryType.WEBSOCKET_CHANNELS)
 sessions_registry = Registry[set[str]](RegistryType.USER_SESSION)
 """maps user_identifier -> session_ids """
 
-session_auth_token_registry = Registry[str](RegistryType.SESSION_AUTH_TOKEN)
-"""maps session_id -> latest session token used by live websocket handlers"""
-
-pending_tokens_registry = Registry[datetime](RegistryType.PENDING_TOKENS)
-"""map of token -> expiry, for tokens pending connection"""
+session_auth_token_registry = Registry[TokenData](RegistryType.SESSION_AUTH_TOKEN)
+"""maps session_id -> latest decoded session token data used by live websocket handlers"""
 
 custom_ws_handlers_registry = Registry[Callable[[str, CustomClientMessagePayload], Any]](
     RegistryType.CUSTOM_WS_HANDLERS

@@ -27,7 +27,7 @@ import anyio
 from anyio import Event, create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from exceptiongroup import catch
-from fastapi import Query, WebSocketException
+from fastapi import WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
 from pydantic import (
@@ -421,25 +421,22 @@ class WebsocketManager:
             del self.handlers[channel_id]
 
 
-async def ws_handler(websocket: WebSocket, token: str | None = Query(default=None)):
+async def ws_handler(websocket: WebSocket):
     """
     Websocket handler. Used for live_reloading in dev mode and for notifying the UI of task results.
 
     :param websocket: The websocket connection
-    :param token: The authentication token from query params (legacy path)
     """
     from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME
 
-    session_token = token or websocket.cookies.get(SESSION_TOKEN_COOKIE_NAME)
+    session_token = websocket.cookies.get(SESSION_TOKEN_COOKIE_NAME)
     if session_token is None:
         raise WebSocketException(code=403, reason='Token missing from websocket connection')
 
     from dara.core.auth.base import BaseAuthConfig
     from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, AuthError, TokenData, UserData
-    from dara.core.auth.utils import decode_token
     from dara.core.internal.registries import (
         auth_registry,
-        pending_tokens_registry,
         session_auth_token_registry,
         sessions_registry,
         utils_registry,
@@ -473,12 +470,8 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     else:
         websocket_registry.set(token_content.session_id, {channel})
 
-    # Store the latest known session token for this session.
-    session_auth_token_registry.set(token_content.session_id, session_token)
-
-    # Remove from pending tokens if present
-    if pending_tokens_registry.has(session_token):
-        pending_tokens_registry.remove(session_token)
+    # Store the latest known decoded session token data for this session.
+    session_auth_token_registry.set(token_content.session_id, token_content)
 
     user_identifier = token_content.identity_id
 
@@ -503,13 +496,12 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         ID_TOKEN.set(token_data.id_token)
 
     def refresh_context_from_registry():
-        latest_session_token = session_token
+        latest_token_data = token_content
         if session_auth_token_registry.has(token_content.session_id):
-            latest_session_token = session_auth_token_registry.get(token_content.session_id)
+            latest_token_data = session_auth_token_registry.get(token_content.session_id)
 
-        latest_token_data = decode_token(latest_session_token, options={'verify_exp': False})
         if latest_token_data.session_id != token_content.session_id:
-            raise ValueError('Token update session id mismatch for websocket connection')
+            raise ValueError('Session auth token id mismatch for websocket connection')
 
         update_context(latest_token_data)
 
@@ -551,16 +543,6 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})
-                        elif data['type'] == 'token_update':
-                            try:
-                                # update Auth context vars for the WS connection
-                                token_data = decode_token(data['message'], options={'verify_exp': False})
-                                if token_data.session_id != token_content.session_id:
-                                    raise ValueError('Token update session id mismatch for websocket connection')
-                                session_auth_token_registry.set(token_content.session_id, data['message'])
-                                update_context(token_data)
-                            except Exception as e:
-                                eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
                                 refresh_context_from_registry()

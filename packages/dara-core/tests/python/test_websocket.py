@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 
 from dara.core import DerivedVariable, UpdateVariable, Variable
 from dara.core.auth import BasicAuthConfig, MultiBasicAuthConfig
-from dara.core.auth.definitions import SessionRequestBody
+from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME, SessionRequestBody
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.any_variable import NOT_REGISTERED
@@ -313,7 +313,7 @@ async def test_websocket_invalid_token(config: Configuration):
 
     async with AsyncTestClient(app) as client:
         with pytest.raises(Exception):
-            session = client.websocket_connect('/api/core/ws?token=random_token')
+            session = client.websocket_connect('/api/core/ws', cookies={SESSION_TOKEN_COOKIE_NAME: 'random_token'})
             await session.connect()
 
 

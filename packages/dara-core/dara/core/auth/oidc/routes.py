@@ -21,9 +21,11 @@ import jwt
 from fastapi import Depends, HTTPException, Response
 
 from dara.core.auth.definitions import (
+    AUTH_COOKIE_KWARGS,
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
+    REFRESH_TOKEN_COOKIE_NAME,
     SESSION_TOKEN_COOKIE_NAME,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
@@ -31,7 +33,7 @@ from dara.core.auth.utils import sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
-from .definitions import REFRESH_TOKEN_COOKIE_NAME, AuthCodeRequestBody
+from .definitions import AuthCodeRequestBody
 from .utils import decode_id_token, get_token_from_idp
 
 
@@ -124,21 +126,9 @@ async def sso_callback(
 
         # Set refresh token cookie if provided
         if oidc_tokens.refresh_token:
-            response.set_cookie(
-                key=REFRESH_TOKEN_COOKIE_NAME,
-                value=oidc_tokens.refresh_token,
-                secure=True,
-                httponly=True,
-                samesite='strict',
-            )
+            response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=oidc_tokens.refresh_token, **AUTH_COOKIE_KWARGS)
 
-        response.set_cookie(
-            key=SESSION_TOKEN_COOKIE_NAME,
-            value=session_token,
-            secure=True,
-            httponly=True,
-            samesite='strict',
-        )
+        response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=session_token, **AUTH_COOKIE_KWARGS)
 
         return {'token': session_token}
 
