@@ -17,35 +17,25 @@ export function getEmbedTokenKey(): string {
 }
 
 /**
- * Get token for the embedded Dara app
+ * Get token for the embedded Dara app.
+ *
+ * Embedded-token bootstrap has been removed from core auth, so this now always
+ * returns null and session auth is sourced from cookies.
  */
 export function getEmbedToken(): string | null {
-    const key = getEmbedTokenKey();
-    if (!key) {
-        return null;
-    }
-    return localStorage.getItem(key);
+    return null;
 }
 
 /**
  * Get the jwt token. Uses the embedded token if the app is embedded.
  */
 export function getToken(): string | null {
-    if (isEmbedded()) {
-        const embedToken = getEmbedToken();
-        return embedToken;
-    }
-
-    return localStorage.getItem(DARA_JWT_TOKEN);
+    return null;
 }
 
 /**
- * Get the token key used to persist the jwt token. Uses the embedded token key if the app is embedded.
+ * Get the stable token key identifier used for in-memory session state.
  */
 export function getTokenKey(): string {
-    if (isEmbedded()) {
-        return getEmbedTokenKey();
-    }
-
     return DARA_JWT_TOKEN;
 }
