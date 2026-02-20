@@ -3,8 +3,7 @@ import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
-import globalStore from '@/shared/global-state-store';
-import { getTokenKey } from '@/shared/utils/embed';
+import { getSessionToken } from '@/auth/use-session-token';
 import type { ActionImpl, AnyVariable } from '@/types';
 
 const interAttemptTimeout = 500;
@@ -268,8 +267,8 @@ export class WebSocketClient implements WebSocketClientInterface {
         // Create the underlying socket instance from the url and token
         const url = new URL(this.#socketUrl);
 
-        // Get the latest token from the global store to ensure it's always up to date
-        this.token = globalStore.getValueSync(getTokenKey());
+        // Read latest in-memory token, if present, for backwards-compatible query token support.
+        this.token = getSessionToken();
 
         // Keep token query for backwards compatibility where available.
         if (this.token) {

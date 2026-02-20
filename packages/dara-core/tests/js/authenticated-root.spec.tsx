@@ -5,10 +5,9 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 
 import { setSessionToken } from '@/auth/use-session-token';
 import { clearCaches_TEST } from '@/shared/dynamic-component/dynamic-component';
-import globalStore from '@/shared/global-state-store';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
-import { AuthenticatedRoot, DARA_JWT_TOKEN } from '../../js/shared';
+import { AuthenticatedRoot } from '../../js/shared';
 import { server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 import { daraData, wsClient } from './utils/wrapped-render';
@@ -68,9 +67,9 @@ describe('AuthenticatedRoot', () => {
 
         wrappedRender(<AuthenticatedRoot initialWebsocketClient={wsClient as any} daraData={daraData} />);
 
-        // Update the token in the global store
+        // Update the token in session state
         act(() => {
-            globalStore.setValue(DARA_JWT_TOKEN, 'new_token');
+            setSessionToken('new_token');
         });
 
         expect(updateTokenSpy).toHaveBeenCalledWith('new_token');
