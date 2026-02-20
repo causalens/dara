@@ -3,8 +3,13 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import globalStore from '@/shared/global-state-store';
-import { getTokenKey } from '@/shared/utils/embed';
+import {
+    getLatestSessionToken,
+    notifySessionLoggedOut,
+    notifySessionRefreshed,
+    runSessionRefresh,
+    waitForOngoingSessionRefresh,
+} from '@/auth/session-coordination';
 
 /**
  * Extra options to pass to the request function.
@@ -67,9 +72,10 @@ export class RequestExtrasSerializable {
  * @param options optional fetch options. Multiple option sets can be provided, they will be merged in order with later options overriding earlier ones.
  */
 export async function request(url: string | URL, ...options: RequestInit[]): Promise<Response> {
-    // block on the token in case it's locked, i.e. being refreshed by another concurrent request
-    const tokenKey = getTokenKey();
-    const sessionToken = await globalStore.getValue(tokenKey);
+    // If another request/tab is currently refreshing the session, wait for it first
+    // so we don't send avoidable 401/403 requests with stale credentials.
+    await waitForOngoingSessionRefresh();
+    const sessionToken = getLatestSessionToken();
     const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
 
     const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
@@ -104,23 +110,22 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     // in case of an auth error, attempt to refresh the token and retry the request
     if (response.status === 401 || response.status === 403) {
         try {
-            // Lock the token value while it's being replaced.
-            // If it's already being replaced, this will instead wait for the replacement to complete
-            // rather than invoking the refresh again.
-            const refreshedToken = await globalStore.replaceValue(tokenKey, async () => {
-                const latestToken = globalStore.getValueSync(tokenKey);
+            // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
+            const refreshedToken = await runSessionRefresh(async () => {
+                const latestToken = getLatestSessionToken();
                 // Another tab/request may have already refreshed while we were waiting for the lock.
                 if (latestToken !== sessionToken) {
-                    if (latestToken === null) {
-                        throw new Error('Session token missing after refresh lock release');
-                    }
-
                     return latestToken;
+                }
+
+                const refreshHeaders = new Headers({ Accept: 'application/json' });
+                if (latestToken) {
+                    refreshHeaders.set('Authorization', `Bearer ${latestToken}`);
                 }
 
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
                     credentials,
-                    headers: headersInterface,
+                    headers: refreshHeaders,
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
@@ -131,12 +136,14 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
                         'token' in content &&
                         typeof content.token === 'string'
                     ) {
+                        notifySessionRefreshed(content.token);
                         return content.token;
                     }
 
                     throw new Error('Refresh response missing token');
                 }
 
+                notifySessionLoggedOut();
                 // this will throw an error with the error content
                 await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
             });
