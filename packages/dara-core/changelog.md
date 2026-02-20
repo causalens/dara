@@ -4,6 +4,9 @@ title: Changelog
 
 ## NEXT
 
+- Added cookie-first auth transport for HTTP and websocket flows, while preserving bearer-header compatibility for downstream extensions.
+- Added dual auth acceptance on backend auth endpoints (session cookie or bearer header), including cookie-based token refresh and revoke paths.
+- Updated session-scoped frontend persistence/cache keying to use a dedicated session identifier, with compatibility fallback to token-derived keys.
 - Added support for passing `ClientVariable` values to `polling_interval` in `DerivedVariable` and `@py_component`, enabling dynamic polling behavior (for example via `SwitchVariable`).
 - Fixed an issue where `SwitchVariable` mapped values of `None`/`null` would incorrectly fall back to `default` instead of using the explicit mapped value.
 

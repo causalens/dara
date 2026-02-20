@@ -23,6 +23,12 @@ config = ConfigurationBuilder()
 config.add_auth(BasicAuthConfig(username='admin', password='secret'))
 ```
 
+## Session Transport
+
+Dara uses a signed, `HttpOnly` session cookie as the primary transport for authenticated requests.
+
+For backwards compatibility, Dara still issues a session token in auth responses and the frontend continues to send a bearer header when available. This allows existing custom extensions that explicitly inspect `Authorization` headers to keep working during migration.
+
 ## Default Authentication
 
 The `DefaultAuthConfig` is the default authentication mode when no authentication is explicitly configured. It is useful for local development as it automatically generates a session token without requiring any credentials.
@@ -69,7 +75,7 @@ config.add_auth(MultiBasicAuthConfig(users={
 }))
 ```
 
-Both configurations present a login form where users enter their credentials. Upon successful authentication, a JWT token is issued and used for subsequent requests.
+Both configurations present a login form where users enter their credentials. Upon successful authentication, Dara sets a signed session cookie and also returns a JWT session token for compatibility.
 
 ## OIDC Authentication
 
@@ -116,7 +122,7 @@ When using OIDC authentication, the following flow occurs:
 4. The identity provider redirects back to your app's callback URL with an authorization code
 5. The app exchanges the authorization code for tokens
 6. The app verifies the ID token and checks group membership
-7. A Dara session token is issued to the user
+7. Dara sets a signed session cookie and returns a session token for compatibility
 
 ### Handling Custom Claims
 
