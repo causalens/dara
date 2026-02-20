@@ -440,6 +440,7 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     from dara.core.internal.registries import (
         auth_registry,
         pending_tokens_registry,
+        session_auth_token_registry,
         sessions_registry,
         utils_registry,
         websocket_registry,
@@ -472,6 +473,9 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     else:
         websocket_registry.set(token_content.session_id, {channel})
 
+    # Store the latest known session token for this session.
+    session_auth_token_registry.set(token_content.session_id, session_token)
+
     # Remove from pending tokens if present
     if pending_tokens_registry.has(session_token):
         pending_tokens_registry.remove(session_token)
@@ -497,6 +501,17 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         )
         SESSION_ID.set(token_data.session_id)
         ID_TOKEN.set(token_data.id_token)
+
+    def refresh_context_from_registry():
+        latest_session_token = session_token
+        if session_auth_token_registry.has(token_content.session_id):
+            latest_session_token = session_auth_token_registry.get(token_content.session_id)
+
+        latest_token_data = decode_token(latest_session_token, options={'verify_exp': False})
+        if latest_token_data.session_id != token_content.session_id:
+            raise ValueError('Token update session id mismatch for websocket connection')
+
+        update_context(latest_token_data)
 
     WS_CHANNEL.set(channel)
 
@@ -539,11 +554,16 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
                         elif data['type'] == 'token_update':
                             try:
                                 # update Auth context vars for the WS connection
-                                update_context(decode_token(data['message']))
+                                token_data = decode_token(data['message'], options={'verify_exp': False})
+                                if token_data.session_id != token_content.session_id:
+                                    raise ValueError('Token update session id mismatch for websocket connection')
+                                session_auth_token_registry.set(token_content.session_id, data['message'])
+                                update_context(token_data)
                             except Exception as e:
                                 eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
+                                refresh_context_from_registry()
                                 parsed_data = TypeAdapter(ClientMessage).validate_python(data)
                                 result = handler.process_client_message(parsed_data)
                                 # Process the resulting coroutine before moving on to next message
@@ -581,4 +601,7 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
                 if channel in channels:
                     channels.remove(channel)
                     websocket_registry.set(token_content.session_id, channels)
+
+                    if len(channels) == 0 and session_auth_token_registry.has(token_content.session_id):
+                        session_auth_token_registry.remove(token_content.session_id)
             ws_mgr.remove_handler(channel)

@@ -62,6 +62,9 @@ websocket_registry = Registry[set[str]](RegistryType.WEBSOCKET_CHANNELS)
 sessions_registry = Registry[set[str]](RegistryType.USER_SESSION)
 """maps user_identifier -> session_ids """
 
+session_auth_token_registry = Registry[str](RegistryType.SESSION_AUTH_TOKEN)
+"""maps session_id -> latest session token used by live websocket handlers"""
+
 pending_tokens_registry = Registry[datetime](RegistryType.PENDING_TOKENS)
 """map of token -> expiry, for tokens pending connection"""
 

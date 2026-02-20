@@ -38,6 +38,39 @@ from dara.core.logging import dev_logger
 auth_router = APIRouter()
 
 
+def _cache_session_auth_token(session_id: str, session_token: str):
+    """
+    Store latest session token for websocket auth context refreshes.
+
+    :param session_id: session identifier
+    :param session_token: latest session token
+    """
+    from dara.core.internal.registries import session_auth_token_registry
+
+    session_auth_token_registry.set(session_id, session_token)
+
+
+def _clear_cached_session_auth_token(token: str):
+    """
+    Remove cached session token for the session associated with the provided token.
+
+    :param token: session token
+    """
+    from dara.core.internal.registries import session_auth_token_registry
+
+    try:
+        decoded = decode_token(token, options={'verify_exp': False})
+    except BaseException as e:
+        dev_logger.warning(
+            'Unable to decode session token while clearing session auth cache',
+            error=e if isinstance(e, Exception) else Exception(str(e)),
+        )
+        return
+
+    if session_auth_token_registry.has(decoded.session_id):
+        session_auth_token_registry.remove(decoded.session_id)
+
+
 def _get_bearer_token(request: Request, *, error_message: str) -> str | None:
     """
     Extract bearer token from authorization header.
@@ -179,6 +212,7 @@ async def _revoke_session(
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
     result = auth_config.revoke_token(token, response)
+    _clear_cached_session_auth_token(token)
     _delete_session_token_cookie(response)
     return result
 
@@ -219,6 +253,7 @@ async def handle_refresh_token(
         session_token, refresh_token = await cached_refresh_token(
             auth_config.refresh_token, old_token_data, dara_refresh_token
         )
+        _cache_session_auth_token(old_token_data.session_id, session_token)
 
         # Using 'Strict' as it is only used for the refresh-token endpoint so cross-site requests are not expected
         response.set_cookie(

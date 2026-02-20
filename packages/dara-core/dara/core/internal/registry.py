@@ -41,6 +41,7 @@ class RegistryType(str, Enum):
     STATIC_KWARGS = 'Static kwargs'
     WEBSOCKET_CHANNELS = 'Websocket Channels'
     USER_SESSION = 'User session'
+    SESSION_AUTH_TOKEN = 'Session auth token'
     PENDING_TOKENS = 'Pending tokens'
     CUSTOM_WS_HANDLERS = 'Custom WS handlers'
     BACKEND_STORE = 'Backend Store'
