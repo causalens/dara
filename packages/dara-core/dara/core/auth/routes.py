@@ -48,15 +48,7 @@ def _cache_session_auth_token(session_token: str):
     """
     from dara.core.internal.registries import session_auth_token_registry
 
-    try:
-        decoded_token = decode_token(session_token, options={'verify_exp': False})
-    except BaseException as e:
-        dev_logger.warning(
-            'Unable to decode refreshed session token for websocket auth cache',
-            {'reason': str(e)},
-        )
-        return
-
+    decoded_token = decode_token(session_token, options={'verify_exp': False})
     session_auth_token_registry.set(decoded_token.session_id, decoded_token)
 
 

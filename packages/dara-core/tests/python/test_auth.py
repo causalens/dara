@@ -25,6 +25,20 @@ def clear_cache():
     token_refresh_cache.clear()
 
 
+def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:
+    return jwt.encode(
+        TokenData(
+            session_id=old_token.session_id,
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+            identity_name=old_token.identity_name,
+            identity_id=old_token.identity_id,
+            id_token=marker,
+        ).dict(),
+        TEST_JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
+
+
 async def test_verify_session():
     """Check that verify session validates token correctly"""
 
@@ -281,7 +295,7 @@ async def test_refresh_token_success():
 
     class TestAuthConfig(BasicAuthConfig):
         async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
-            return f'session_token_{old_token.session_id}', 'new_refresh_token'
+            return _make_refreshed_session_token(old_token, 'refresh_success'), 'new_refresh_token'
 
     config.add_auth(TestAuthConfig('test', 'test'))
 
@@ -294,7 +308,9 @@ async def test_refresh_token_success():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         assert response.status_code == 200
-        assert response.json() == {'token': f'session_token_{old_token_data.session_id}'}
+        refreshed_token = response.json()['token']
+        decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
+        assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
 
@@ -314,7 +330,7 @@ async def test_refresh_token_success_with_session_cookie():
 
     class TestAuthConfig(BasicAuthConfig):
         async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
-            return f'session_token_{old_token.session_id}', 'new_refresh_token'
+            return _make_refreshed_session_token(old_token, 'refresh_success_cookie'), 'new_refresh_token'
 
     config.add_auth(TestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -328,7 +344,9 @@ async def test_refresh_token_success_with_session_cookie():
             },
         )
         assert response.status_code == 200
-        assert response.json() == {'token': f'session_token_{old_token_data.session_id}'}
+        refreshed_token = response.json()['token']
+        decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
+        assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
 
@@ -453,7 +471,7 @@ async def test_refresh_token_concurrent_requests():
             # Add a small delay to simulate work and increase chance of concurrent access
             time.sleep(0.1)
             refresh_count += 1
-            return f'session_token_{refresh_count}', f'refresh_token_{refresh_count}'
+            return _make_refreshed_session_token(old_token, f'concurrent_{refresh_count}'), f'refresh_token_{refresh_count}'
 
     config.add_auth(ConcurrentTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -501,7 +519,7 @@ async def test_refresh_token_cache_expiration():
         async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             refresh_count += 1
-            return f'session_token_{refresh_count}', f'refresh_token_{refresh_count}'
+            return _make_refreshed_session_token(old_token, f'expiration_{refresh_count}'), f'refresh_token_{refresh_count}'
 
     config.add_auth(ExpirationTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -558,7 +576,10 @@ async def test_refresh_token_different_tokens_not_cached():
         async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
             nonlocal refresh_count
             refresh_count += 1
-            return f'session_token_{refresh_token}_{refresh_count}', f'refresh_token_{refresh_count}'
+            return (
+                _make_refreshed_session_token(old_token, f'different_{refresh_token}_{refresh_count}'),
+                f'refresh_token_{refresh_count}',
+            )
 
     config.add_auth(DifferentTokenTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
@@ -610,7 +631,7 @@ async def test_refresh_token_error_not_cached():
                 error_count += 1
                 raise Exception('some error')
             success_count += 1
-            return f'session_token_{success_count}', f'refresh_token_{success_count}'
+            return _make_refreshed_session_token(old_token, f'error_cache_{success_count}'), f'refresh_token_{success_count}'
 
     config.add_auth(ErrorTestAuthConfig('test', 'test'))
     app = _start_application(config._to_configuration())
