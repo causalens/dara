@@ -127,6 +127,7 @@ def BAD_REQUEST_ERROR(msg):
 
 
 JWT_ALGO = 'HS256'
+SESSION_TOKEN_COOKIE_NAME = 'dara_session_token'
 
 # Context
 SESSION_ID: ContextVar[str | None] = ContextVar('session_id', default=None)

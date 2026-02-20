@@ -24,6 +24,7 @@ from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
+    SESSION_TOKEN_COOKIE_NAME,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.utils import sign_jwt
@@ -130,6 +131,14 @@ async def sso_callback(
                 httponly=True,
                 samesite='strict',
             )
+
+        response.set_cookie(
+            key=SESSION_TOKEN_COOKIE_NAME,
+            value=session_token,
+            secure=True,
+            httponly=True,
+            samesite='strict',
+        )
 
         return {'token': session_token}
 
