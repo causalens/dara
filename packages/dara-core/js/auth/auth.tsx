@@ -4,7 +4,6 @@ import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
-import { getTokenKey } from '@/shared/utils/embed';
 import { type User, type UserData } from '@/types';
 
 import { setSessionIdentifier, setSessionToken } from './use-session-token';
@@ -186,7 +185,7 @@ export async function requestSessionToken(body: User = {}): Promise<string | nul
 
     const { token } = parsedResponse;
 
-    localStorage.setItem(getTokenKey(), token);
+    setSessionToken(token);
     return token;
 }
 

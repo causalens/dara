@@ -1,11 +1,31 @@
 /* eslint-disable class-methods-use-this */
 /**
- * Global state store. Acts as a wrapper around localStorage.
+ * Global state store.
  *
  * Supports a simple key-value store with subscriptions and async value replacement,
  * while ensuring that only one replacement is in progress at a time.
  */
-class GlobalStore {
+interface StoreSetMessage {
+    key: string;
+    type: 'set';
+    value: string | null;
+}
+
+interface StoreClearMessage {
+    type: 'clear';
+}
+
+type StoreMessage = StoreSetMessage | StoreClearMessage;
+
+const STORE_CHANNEL_NAME = 'dara-global-store';
+const STORE_LOCK_PREFIX = 'dara-global-store-lock:';
+
+export class GlobalStore {
+    /**
+     * Values tracked in-memory for the current tab.
+     */
+    #values: Record<string, string | null>;
+
     /**
      * Locks for each key to ensure only one replacement is in progress at a time.
      * Each promise represents an ongoing replacement which will resolve to the new value or reject if replacement fails.
@@ -17,18 +37,102 @@ class GlobalStore {
      */
     #subscribers: Record<string, ((val: string | null) => void)[]>;
 
+    /**
+     * Broadcast channel used to synchronize values across tabs.
+     */
+    #channel: BroadcastChannel;
+
     constructor() {
-        this.#locks = {} as Record<string, Promise<string>>;
-        this.#subscribers = {} as Record<string, ((val: string | null) => void)[]>;
+        this.#values = {};
+        this.#locks = {};
+        this.#subscribers = {};
+        this.#channel = this.#createChannel();
+    }
+
+    /**
+     * Construct a BroadcastChannel for cross-tab synchronization.
+     */
+    #createChannel(): BroadcastChannel {
+        const channel = new BroadcastChannel(STORE_CHANNEL_NAME);
+        channel.addEventListener('message', (e: MessageEvent<StoreMessage>) => {
+            this.#handleBroadcastMessage(e.data);
+        });
+        return channel;
+    }
+
+    /**
+     * Handle messages from other tabs.
+     */
+    #handleBroadcastMessage(message: StoreMessage): void {
+        if (message.type === 'clear') {
+            this.#clearLocalValues();
+            return;
+        }
+
+        this.#setLocalValue(message.key, message.value);
+    }
+
+    /**
+     * Notify subscribers for a given key.
+     */
+    #notifySubscribers(key: string, value: string | null): void {
+        this.#subscribers[key]?.forEach((cb) => cb(value));
+    }
+
+    /**
+     * Set a value locally without broadcasting.
+     */
+    #setLocalValue(key: string, value: string | null): void {
+        if (value === null) {
+            delete this.#values[key];
+        } else {
+            this.#values[key] = value;
+        }
+
+        this.#notifySubscribers(key, value);
+    }
+
+    /**
+     * Clear all locally tracked values and notify subscribers.
+     */
+    #clearLocalValues(): void {
+        const keys = Object.keys(this.#values);
+        this.#values = {};
+        keys.forEach((key) => {
+            this.#notifySubscribers(key, null);
+        });
+    }
+
+    /**
+     * Create a namespaced lock name for a store key.
+     */
+    #getLockName(key: string): string {
+        return `${STORE_LOCK_PREFIX}${key}`;
+    }
+
+    /**
+     * Wait for any in-flight cross-tab replacement for this key to complete.
+     */
+    async #waitForCrossTabUnlock(key: string): Promise<void> {
+        await navigator.locks.request(this.#getLockName(key), () => undefined);
+    }
+
+    /**
+     * Run a callback guarded by a cross-tab lock for this key.
+     */
+    async #runWithCrossTabLock<T>(key: string, callback: () => Promise<T>): Promise<T> {
+        return navigator.locks.request(this.#getLockName(key), () => callback());
     }
 
     /**
      * Clear the store.
-     * Removes all values and subscribers.
+     * Removes all values, locks and subscribers.
      */
     public clear(): void {
-        this.#locks = {} as Record<string, Promise<string>>;
-        this.#subscribers = {} as Record<string, ((val: string | null) => void)[]>;
+        this.#clearLocalValues();
+        this.#locks = {};
+        this.#subscribers = {};
+        this.#channel.postMessage({ type: 'clear' } satisfies StoreClearMessage);
     }
 
     /**
@@ -42,7 +146,8 @@ class GlobalStore {
             return this.#locks[key];
         }
 
-        return localStorage.getItem(key);
+        await this.#waitForCrossTabUnlock(key);
+        return this.getValueSync(key);
     }
 
     /**
@@ -52,7 +157,7 @@ class GlobalStore {
      * @param key - key to get value for
      */
     public getValueSync(key: string): string | null {
-        return localStorage.getItem(key);
+        return this.#values[key] ?? null;
     }
 
     /**
@@ -62,16 +167,8 @@ class GlobalStore {
      * @param value - value to set
      */
     public setValue(key: string, value: string | null): void {
-        if (value === null) {
-            localStorage.removeItem(key);
-        } else {
-            localStorage.setItem(key, value);
-        }
-
-        // Notify any local subscribers of a change in the value
-        if (this.#subscribers[key]) {
-            this.#subscribers[key].forEach((cb) => cb(value));
-        }
+        this.#setLocalValue(key, value);
+        this.#channel.postMessage({ key, type: 'set', value } satisfies StoreSetMessage);
     }
 
     /**
@@ -89,9 +186,9 @@ class GlobalStore {
 
         // Create a new Promise to resolve to the replaced value
         // TODO: this can be Promise.withResolvers once it's more widely supported
-        let unlock!: (res: string) => void;
+        let unlock!: (res: string | null) => void;
         let unlockError!: (err: Error) => void;
-        const lockPromise = new Promise<string>((resolve, reject) => {
+        const lockPromise = new Promise<string | null>((resolve, reject) => {
             unlock = resolve;
             unlockError = reject;
         });
@@ -99,11 +196,9 @@ class GlobalStore {
         // Store it for the given key so we can resolve other replacements/retrievals to the same promise
         this.#locks[key] = lockPromise;
 
-        let result: string;
-
         try {
             // Run the provided function to get the new value
-            result = await fn();
+            const result = await this.#runWithCrossTabLock(key, fn);
 
             // On success - set the value (notifying subscribers) and resolve the 'lock' promise.
             // This resolves both the caller and other ongoing requests blocking on the lock to the new value.
@@ -112,7 +207,7 @@ class GlobalStore {
         } catch (e: unknown) {
             // On error - error out the 'lock' promise.
             // This errors both the caller and other ongoing requests blocking on the lock.
-            unlockError(e as Error);
+            unlockError(e instanceof Error ? e : new Error('Failed to replace value in the global store'));
         } finally {
             // Clear the lock for the key so future replaceValue calls call the `fn` again
             delete this.#locks[key];
@@ -132,28 +227,20 @@ class GlobalStore {
             this.#subscribers[key] = [];
         }
 
-        // create a subscription scoped to the key
-        const subFunc = (e: StorageEvent): void => {
-            if (e.storageArea === localStorage && e.key === key) {
-                callback(e.newValue);
-            }
-        };
-
         // Add the callback to the local subscribers list
-        // The storage event only fires when localStorage is changed from another document so we need to track changes
-        // locally as well.
         this.#subscribers[key].push(callback);
-
-        // Add a listener to the storage event for changes coming from other tabs
-        window.addEventListener('storage', subFunc);
 
         // Cleanup the subscriptions
         return () => {
-            window.removeEventListener('storage', subFunc);
-            this.#subscribers[key]?.splice(
-                this.#subscribers[key].findIndex((val) => val === callback),
-                1
-            );
+            const subscribers = this.#subscribers[key];
+            if (!subscribers) {
+                return;
+            }
+
+            const index = subscribers.findIndex((val) => val === callback);
+            if (index >= 0) {
+                subscribers.splice(index, 1);
+            }
         };
     }
 }

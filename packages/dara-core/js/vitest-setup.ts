@@ -31,3 +31,38 @@ global.jest = {
     // @ts-expect-error vi is globally available
     advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms),
 } as any;
+
+// jsdom does not currently expose navigator.locks, provide a deterministic test polyfill.
+if (!navigator.locks) {
+    const lockTails = new Map<string, Promise<void>>();
+
+    const lockManager = {
+        async request<T>(name: string, callback: () => Promise<T> | T): Promise<T> {
+            const previousTail = lockTails.get(name) ?? Promise.resolve();
+            let release!: () => void;
+            const nextTail = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            lockTails.set(
+                name,
+                previousTail.then(() => nextTail)
+            );
+
+            await previousTail;
+
+            try {
+                return await callback();
+            } finally {
+                release();
+                if (lockTails.get(name) === nextTail) {
+                    lockTails.delete(name);
+                }
+            }
+        },
+    };
+
+    Object.defineProperty(navigator, 'locks', {
+        configurable: true,
+        value: lockManager,
+    });
+}

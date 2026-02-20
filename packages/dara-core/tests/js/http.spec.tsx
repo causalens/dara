@@ -16,6 +16,14 @@ const requested403 = vi.fn();
 
 let delay: Promise<void> | null = null;
 
+interface LockManagerMock {
+    request: <T>(name: string, callback: () => Promise<T> | T) => Promise<T>;
+}
+
+interface NavigatorWithOptionalLocks extends Navigator {
+    locks?: LockManagerMock;
+}
+
 const server = setupServer(
     // example authenticated endpoints
     http.get('/error-401', (info) => {
@@ -125,6 +133,36 @@ describe('HTTP Utils', () => {
 
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
         expect(requested401).toHaveBeenCalledTimes(requestCount);
+    });
+
+    it('uses the web locks api for refresh coordination when available', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+        const lockRequestSpy = vi.fn();
+        const lockManager: LockManagerMock = {
+            request: (name, callback) => {
+                lockRequestSpy(name);
+                return Promise.resolve(callback());
+            },
+        };
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: lockManager,
+        });
+
+        try {
+            const res = await request('/error-401');
+            expect(res.status).toBe(200);
+            expect(lockRequestSpy).toHaveBeenCalled();
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
     });
 
     it('request made while refresh is occuring waits for the refresh to complete', async () => {

@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Switched auth token client state from `localStorage` to an in-memory global store synchronized across tabs via `BroadcastChannel`, with Web Locks used to coordinate refresh token races.
 - Added cookie-first auth transport for HTTP and websocket flows, while preserving bearer-header compatibility for downstream extensions.
 - Added dual auth acceptance on backend auth endpoints (session cookie or bearer header), including cookie-based token refresh and revoke paths.
 - Updated session-scoped frontend persistence/cache keying to use a dedicated session identifier, with compatibility fallback to token-derived keys.

@@ -68,7 +68,8 @@ export class RequestExtrasSerializable {
  */
 export async function request(url: string | URL, ...options: RequestInit[]): Promise<Response> {
     // block on the token in case it's locked, i.e. being refreshed by another concurrent request
-    const sessionToken = await globalStore.getValue(getTokenKey());
+    const tokenKey = getTokenKey();
+    const sessionToken = await globalStore.getValue(tokenKey);
     const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
 
     const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
@@ -106,15 +107,34 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
             // Lock the token value while it's being replaced.
             // If it's already being replaced, this will instead wait for the replacement to complete
             // rather than invoking the refresh again.
-            const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
+            const refreshedToken = await globalStore.replaceValue(tokenKey, async () => {
+                const latestToken = globalStore.getValueSync(tokenKey);
+                // Another tab/request may have already refreshed while we were waiting for the lock.
+                if (latestToken !== sessionToken) {
+                    if (latestToken === null) {
+                        throw new Error('Session token missing after refresh lock release');
+                    }
+
+                    return latestToken;
+                }
+
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
                     credentials,
                     headers: headersInterface,
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
-                    const { token } = await refreshResponse.json();
-                    return token;
+                    const content = await refreshResponse.json();
+                    if (
+                        content &&
+                        typeof content === 'object' &&
+                        'token' in content &&
+                        typeof content.token === 'string'
+                    ) {
+                        return content.token;
+                    }
+
+                    throw new Error('Refresh response missing token');
                 }
 
                 // this will throw an error with the error content
@@ -122,7 +142,11 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
             });
 
             // retry the request with the new token
-            headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
+            if (refreshedToken) {
+                headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
+            } else {
+                headersInterface.delete('Authorization');
+            }
             return fetch(baseUrl + urlString, {
                 credentials,
                 headers: headersInterface,
