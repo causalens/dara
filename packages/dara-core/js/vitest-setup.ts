@@ -32,6 +32,64 @@ global.jest = {
     advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms),
 } as any;
 
+// Use an in-memory BroadcastChannel polyfill for tests to avoid cross-worker
+// traffic (which can leak session-state between Vitest workers), while still
+// supporting libs like msw that require BroadcastChannel to exist.
+class InMemoryBroadcastChannel extends EventTarget {
+    private static channels = new Map<string, Set<InMemoryBroadcastChannel>>();
+
+    readonly name: string;
+
+    onmessage: ((event: MessageEvent<unknown>) => void) | null = null;
+
+    constructor(name: string) {
+        super();
+        this.name = name;
+
+        const peers = InMemoryBroadcastChannel.channels.get(name) ?? new Set<InMemoryBroadcastChannel>();
+        peers.add(this);
+        InMemoryBroadcastChannel.channels.set(name, peers);
+    }
+
+    postMessage(message: unknown): void {
+        const peers = InMemoryBroadcastChannel.channels.get(this.name);
+        if (!peers) {
+            return;
+        }
+
+        for (const peer of peers) {
+            if (peer === this) {
+                continue;
+            }
+            peer.dispatchMessage(message);
+        }
+    }
+
+    close(): void {
+        const peers = InMemoryBroadcastChannel.channels.get(this.name);
+        if (!peers) {
+            return;
+        }
+
+        peers.delete(this);
+        if (peers.size === 0) {
+            InMemoryBroadcastChannel.channels.delete(this.name);
+        }
+    }
+
+    private dispatchMessage(message: unknown): void {
+        const event = new MessageEvent('message', { data: message });
+        this.onmessage?.(event);
+        this.dispatchEvent(event);
+    }
+}
+
+Object.defineProperty(globalThis, 'BroadcastChannel', {
+    configurable: true,
+    writable: true,
+    value: InMemoryBroadcastChannel,
+});
+
 // jsdom does not currently expose navigator.locks, provide a deterministic test polyfill.
 if (!navigator.locks) {
     const lockTails = new Map<string, Promise<void>>();
