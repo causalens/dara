@@ -55,7 +55,7 @@ async def sso_callback(
     :param body: Request body containing auth_code and optional state
     :param response: FastAPI response object (for setting cookies)
     :param settings: Application settings
-    :return: Token response containing the session token
+    :return: success response
     """
     from dara.core.internal.registries import auth_registry
 
@@ -130,7 +130,7 @@ async def sso_callback(
 
         response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=session_token, **AUTH_COOKIE_KWARGS)
 
-        return {'token': session_token}
+        return {'success': True}
 
     except jwt.ExpiredSignatureError as e:
         dev_logger.error('Expired Token Signature', error=e)

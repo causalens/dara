@@ -253,7 +253,7 @@ async def handle_refresh_token(
 
         response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=refresh_token, **AUTH_COOKIE_KWARGS)
         _set_session_token_cookie(response, session_token)
-        return {'token': session_token}
+        return {'success': True}
     except BaseException as e:
         # Regardless of exception type, clear the refresh token cookie
         response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
@@ -286,6 +286,7 @@ async def _get_session(body: SessionRequestBody, response: Response):
     session_response = auth_config.get_token(body)
     if 'token' in session_response:
         _set_session_token_cookie(response, session_response['token'])
+        return {'success': True}
     return session_response
 
 

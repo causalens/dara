@@ -7,10 +7,9 @@ import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
-import { setSessionToken } from '../use-session-token';
 
 /**
- * The Login component gets a new session token from the backend and stores it in local storage
+ * The Login component requests a new server-managed session cookie and then redirects.
  */
 function DefaultAuthLogin(): JSX.Element {
     const location = useLocation();
@@ -21,10 +20,9 @@ function DefaultAuthLogin(): JSX.Element {
     const previousLocation = queryParams.get('referrer') ?? defaultPath;
 
     async function getNewToken(): Promise<void> {
-        const sessionToken = await requestSessionToken({});
+        const sessionCreated = await requestSessionToken({});
         // in default auth this always succeeds
-        if (sessionToken) {
-            setSessionToken(sessionToken);
+        if (sessionCreated) {
             navigate(decodeURIComponent(previousLocation));
         }
     }

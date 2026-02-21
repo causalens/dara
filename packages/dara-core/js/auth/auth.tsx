@@ -6,7 +6,7 @@ import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { type User, type UserData } from '@/types';
 
-import { setSessionIdentifier, setSessionToken } from './use-session-token';
+import { notifySessionLoggedOut, setSessionIdentifier } from './use-session-token';
 
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -130,8 +130,7 @@ export async function handleAuthErrors(
     const content = await res.clone().json();
 
     if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
-        setSessionToken(null);
-        setSessionIdentifier(null);
+        notifySessionLoggedOut();
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
@@ -166,8 +165,8 @@ export function useUser(): UseQueryResult<UserData, RequestError> {
     });
 }
 
-/** Api call to fetch the session token from the backend */
-export async function requestSessionToken(body: User = {}): Promise<string | null> {
+/** Api call to create a session with the backend */
+export async function requestSessionToken(body: User = {}): Promise<boolean> {
     const res = await request('/api/auth/session', {
         body: JSON.stringify(body),
         method: HTTP_METHOD.POST,
@@ -177,20 +176,15 @@ export async function requestSessionToken(body: User = {}): Promise<string | nul
     const loggedOut = await handleAuthErrors(res, false, [AuthenticationErrorReason.INVALID_CREDENTIALS]);
 
     if (loggedOut) {
-        return null;
+        return false;
     }
 
-    await validateResponse(res, 'Failed to fetch the session token');
-    const parsedResponse = await res.json();
-
-    const { token } = parsedResponse;
-
-    setSessionToken(token);
-    return token;
+    await validateResponse(res, 'Failed to create a session');
+    return true;
 }
 
-/** Api call to fetch the session token from the backend */
-export function useSession(body: User = {}): UseQueryResult<string, RequestError> {
+/** Api call to create a session with the backend */
+export function useSession(body: User = {}): UseQueryResult<boolean, RequestError> {
     return useQuery({
         queryFn: async () => {
             return requestSessionToken(body);

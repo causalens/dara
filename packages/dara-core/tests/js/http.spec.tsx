@@ -5,7 +5,6 @@ import { setupServer } from 'msw/node';
 import { request } from '@/api';
 import { setSessionIdentifier, setSessionToken } from '@/auth/use-session-token';
 
-const VALID_TOKEN = 'VALID';
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
 const REFRESH_TOKEN = 'REFRESH';
 
@@ -14,6 +13,7 @@ const requested401 = vi.fn();
 const requested403 = vi.fn();
 
 let delay: Promise<void> | null = null;
+let hasValidSession = false;
 
 interface LockManagerMock {
     request: <T>(name: string, callback: () => Promise<T> | T) => Promise<T>;
@@ -25,17 +25,17 @@ interface NavigatorWithOptionalLocks extends Navigator {
 
 const server = setupServer(
     // example authenticated endpoints
-    http.get('/error-401', (info) => {
+    http.get('/error-401', () => {
         requested401();
-        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+        if (hasValidSession) {
             return HttpResponse.json({ success: true });
         }
 
         return HttpResponse.json({ detail: 'Authentication error' }, { status: 401 });
     }),
-    http.get('/error-403', (info) => {
+    http.get('/error-403', () => {
         requested403();
-        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+        if (hasValidSession) {
             return HttpResponse.json({ success: true });
         }
 
@@ -51,7 +51,8 @@ const server = setupServer(
                 // simulate a delay in refreshing the token
                 await delay;
             }
-            return HttpResponse.json({ token: VALID_TOKEN });
+            hasValidSession = true;
+            return HttpResponse.json({ success: true });
         }
 
         return HttpResponse.json({}, { status: 400 });
@@ -66,6 +67,7 @@ describe('HTTP Utils', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         delay = null;
+        hasValidSession = false;
     });
 
     afterEach(() => {

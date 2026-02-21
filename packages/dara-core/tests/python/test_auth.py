@@ -308,7 +308,8 @@ async def test_refresh_token_success():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         assert response.status_code == 200
-        refreshed_token = response.json()['token']
+        assert response.json() == {'success': True}
+        refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
         decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
@@ -344,7 +345,8 @@ async def test_refresh_token_success_with_session_cookie():
             },
         )
         assert response.status_code == 200
-        refreshed_token = response.json()['token']
+        assert response.json() == {'success': True}
+        refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
         decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
@@ -452,6 +454,7 @@ async def test_refresh_token_live_ws_connection():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         assert response.status_code == 200
+        assert response.json() == {'success': True}
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
         # token in the WS connection should be updated from server-side session auth state
@@ -500,8 +503,8 @@ async def test_refresh_token_concurrent_requests():
         # All responses should be successful
         assert all(r.status_code == 200 for r in responses)
 
-        # All responses should have the same token (from cache)
-        tokens = [r.json()['token'] for r in responses]
+        # All responses should have the same session cookie token (from cache)
+        tokens = [r.cookies[SESSION_TOKEN_COOKIE_NAME] for r in responses]
         assert all(token == tokens[0] for token in tokens)
 
         # All responses should have the same refresh token
@@ -543,7 +546,7 @@ async def test_refresh_token_cache_expiration():
             cookies={'dara_refresh_token': 'test_refresh_token'},
             headers={'Authorization': f'Bearer {old_token}'},
         )
-        token1 = response1.json()['token']
+        token1 = response1.cookies[SESSION_TOKEN_COOKIE_NAME]
 
         # Immediate second request should use cache
         response2 = await client.post(
@@ -551,7 +554,7 @@ async def test_refresh_token_cache_expiration():
             cookies={'dara_refresh_token': 'test_refresh_token'},
             headers={'Authorization': f'Bearer {old_token}'},
         )
-        token2 = response2.json()['token']
+        token2 = response2.cookies[SESSION_TOKEN_COOKIE_NAME]
 
         assert token1 == token2
         assert refresh_count == 1
@@ -565,7 +568,7 @@ async def test_refresh_token_cache_expiration():
             cookies={'dara_refresh_token': 'test_refresh_token'},
             headers={'Authorization': f'Bearer {old_token}'},
         )
-        token3 = response3.json()['token']
+        token3 = response3.cookies[SESSION_TOKEN_COOKIE_NAME]
 
         assert token3 != token1
         assert refresh_count == 2
@@ -615,7 +618,7 @@ async def test_refresh_token_different_tokens_not_cached():
         assert all(r.status_code == 200 for r in responses)
 
         # Should get different tokens for different refresh tokens
-        tokens = [r.json()['token'] for r in responses]
+        tokens = [r.cookies[SESSION_TOKEN_COOKIE_NAME] for r in responses]
         assert tokens[0] != tokens[1]
 
         # Should have made two refreshes

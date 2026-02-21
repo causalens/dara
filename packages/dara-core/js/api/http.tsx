@@ -3,13 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import {
-    getLatestSessionToken,
-    notifySessionLoggedOut,
-    notifySessionRefreshed,
-    runSessionRefresh,
-    waitForOngoingSessionRefresh,
-} from '@/auth/use-session-token';
+import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/use-session-token';
 
 /**
  * Extra options to pass to the request function.
@@ -75,7 +69,6 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     // If another request/tab is currently refreshing the session, wait for it first
     // so we don't send avoidable 401/403 requests with stale credentials.
     await waitForOngoingSessionRefresh();
-    const sessionToken = getLatestSessionToken();
     const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
 
     const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
@@ -93,11 +86,6 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
         headersInterface.set('Content-Type', 'application/json');
     }
 
-    // default auth header if token is present
-    if (sessionToken && !headersInterface.has('Authorization')) {
-        headersInterface.set('Authorization', `Bearer ${sessionToken}`);
-    }
-
     const baseUrl: string = window.dara?.base_url ?? '';
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
@@ -111,17 +99,8 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     if (response.status === 401 || response.status === 403) {
         try {
             // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
-            const refreshedToken = await runSessionRefresh(async () => {
-                const latestToken = getLatestSessionToken();
-                // Another tab/request may have already refreshed while we were waiting for the lock.
-                if (latestToken !== sessionToken) {
-                    return latestToken;
-                }
-
+            await runSessionRefresh(async () => {
                 const refreshHeaders = new Headers({ Accept: 'application/json' });
-                if (latestToken) {
-                    refreshHeaders.set('Authorization', `Bearer ${latestToken}`);
-                }
 
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
                     credentials,
@@ -129,31 +108,16 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
-                    const content = await refreshResponse.json();
-                    if (
-                        content &&
-                        typeof content === 'object' &&
-                        'token' in content &&
-                        typeof content.token === 'string'
-                    ) {
-                        notifySessionRefreshed(content.token);
-                        return content.token;
-                    }
-
-                    throw new Error('Refresh response missing token');
+                    return null;
                 }
 
                 notifySessionLoggedOut();
                 // this will throw an error with the error content
                 await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
+                throw new Error('Request auth error, failed to refresh the session token');
             });
 
-            // retry the request with the new token
-            if (refreshedToken) {
-                headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
-            } else {
-                headersInterface.delete('Authorization');
-            }
+            // retry the request after refresh
             return fetch(baseUrl + urlString, {
                 credentials,
                 headers: headersInterface,

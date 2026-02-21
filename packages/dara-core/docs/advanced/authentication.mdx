@@ -27,11 +27,13 @@ config.add_auth(BasicAuthConfig(username='admin', password='secret'))
 
 Dara uses a signed, `HttpOnly` session cookie as the primary transport for authenticated requests.
 
-For backwards compatibility, Dara still issues a session token in auth responses and the frontend continues to send a bearer header when available. This allows existing custom extensions that explicitly inspect `Authorization` headers to keep working during migration.
+Auth endpoints set/rotate cookies and return status payloads (for example `{ "success": true }`) instead of returning raw session tokens.
+
+For backwards compatibility, Dara still synthesizes an `Authorization: Bearer ...` header from the session cookie on incoming requests when the header is missing. This allows existing custom extensions that explicitly inspect `Authorization` headers to keep working during migration.
 
 ## Default Authentication
 
-The `DefaultAuthConfig` is the default authentication mode when no authentication is explicitly configured. It is useful for local development as it automatically generates a session token without requiring any credentials.
+The `DefaultAuthConfig` is the default authentication mode when no authentication is explicitly configured. It is useful for local development as it automatically creates a session without requiring any credentials.
 
 ```python
 from dara.core import ConfigurationBuilder
@@ -75,7 +77,7 @@ config.add_auth(MultiBasicAuthConfig(users={
 }))
 ```
 
-Both configurations present a login form where users enter their credentials. Upon successful authentication, Dara sets a signed session cookie and also returns a JWT session token for compatibility.
+Both configurations present a login form where users enter their credentials. Upon successful authentication, Dara sets a signed session cookie.
 
 ## OIDC Authentication
 
@@ -122,7 +124,7 @@ When using OIDC authentication, the following flow occurs:
 4. The identity provider redirects back to your app's callback URL with an authorization code
 5. The app exchanges the authorization code for tokens
 6. The app verifies the ID token and checks group membership
-7. Dara sets a signed session cookie and returns a session token for compatibility
+7. Dara sets a signed session cookie
 
 ### Handling Custom Claims
 

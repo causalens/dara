@@ -11,7 +11,6 @@ import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
-import { setSessionToken } from '../use-session-token';
 
 const Wrapper = styled.div`
     display: flex;
@@ -147,10 +146,9 @@ function BasicAuthLogin(): JSX.Element {
         setIsError(false);
 
         try {
-            const sessionToken = await requestSessionToken({ password, username });
+            const sessionCreated = await requestSessionToken({ password, username });
 
-            if (sessionToken) {
-                setSessionToken(sessionToken);
+            if (sessionCreated) {
                 navigate(decodeURIComponent(previousLocation));
             }
         } catch {
