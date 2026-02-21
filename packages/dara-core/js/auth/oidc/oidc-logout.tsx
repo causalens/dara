@@ -5,7 +5,7 @@ import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 
 import { revokeSession } from '../auth';
-import { notifySessionLoggedOut } from '../use-session-token';
+import { notifySessionLoggedOut } from '../session-state';
 
 /**
  * Auth component that handles OIDC logout.

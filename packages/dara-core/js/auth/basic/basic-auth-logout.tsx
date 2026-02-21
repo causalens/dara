@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { revokeSession } from '@/auth/auth';
 
-import { notifySessionLoggedOut } from '../use-session-token';
+import { notifySessionLoggedOut } from '../session-state';
 
 /**
  * Auth component that wipes user token in AuthContext on mount and redirects to /login

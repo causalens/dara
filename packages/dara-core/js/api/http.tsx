@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/use-session-token';
+import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/session-state';
 
 /**
  * Extra options to pass to the request function.
@@ -108,7 +108,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
-                    return null;
+                    return;
                 }
 
                 notifySessionLoggedOut();

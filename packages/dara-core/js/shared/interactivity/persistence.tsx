@@ -12,7 +12,7 @@ import { useLatestRef, validateResponse } from '@darajs/ui-utils';
 import { type BackendStorePatchMessage, type WebSocketClientInterface } from '@/api';
 import { RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { getSessionIdentifier } from '@/auth/use-session-token';
+import { getSessionIdentifier } from '@/auth/session-state';
 import { useRouterContext } from '@/router/context';
 import { type LoaderData } from '@/router/fetching';
 import { isEmbedded } from '@/shared/utils/iframe';

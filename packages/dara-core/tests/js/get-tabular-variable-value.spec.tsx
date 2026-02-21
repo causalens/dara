@@ -4,7 +4,7 @@ import { useContext } from 'react';
 import { useLocation } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST, getTabularVariableValue } from '@/shared';
 import { WebSocketCtx, useRequestExtras } from '@/shared/context';
 import { useTaskContext } from '@/shared/context/global-task-context';
@@ -63,11 +63,11 @@ describe('getTabularVariableValue', () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
     });
     afterEach(() => {
         clearRegistries_TEST();
-        setSessionToken(null);
+        setSessionIdentifier(null);
         vi.clearAllTimers();
         server.resetHandlers();
     });

@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import * as React from 'react';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearCaches_TEST } from '@/shared/dynamic-component/dynamic-component';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 
@@ -23,22 +23,22 @@ describe('AuthenticatedRoot', () => {
         clearCaches_TEST();
         localStorage.clear();
         vi.restoreAllMocks();
-        setSessionToken('TEST_TOKEN');
+        setSessionIdentifier('TEST_TOKEN');
     });
     afterEach(() => {
         server.resetHandlers();
         act(() => {
-            setSessionToken(null);
+            setSessionIdentifier(null);
         });
     });
     afterAll(() => server.close());
 
     it('should clean up cache on startup', async () => {
         // get session key while an invalid token is active
-        setSessionToken('SOME_OTHER_SESSION_KEY');
+        setSessionIdentifier('SOME_OTHER_SESSION_KEY');
         const invalidKey = getSessionKey('test-uid-1');
         // reset it back
-        setSessionToken('TEST_TOKEN');
+        setSessionIdentifier('TEST_TOKEN');
         const validKey = getSessionKey('test-uid-2');
 
         localStorage.setItem(invalidKey, 'val1');
@@ -61,5 +61,4 @@ describe('AuthenticatedRoot', () => {
             expect(sessionStorage.getItem(validKey)).toEqual('val4');
         });
     });
-
 });

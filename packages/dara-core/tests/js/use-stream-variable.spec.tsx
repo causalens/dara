@@ -3,21 +3,21 @@
  * Tests user-observable behavior by rendering components and asserting on the DOM.
  */
 import { act, cleanup, screen, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { Suspense, useContext, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import {
-    _internal as streamTrackerInternal,
     clearStreamUsage_TEST,
     getActiveConnectionCount,
     getActiveConnectionKeys,
     getConnectionController,
     registerStreamConnection,
+    _internal as streamTrackerInternal,
 } from '@/shared/interactivity/stream-usage-tracker';
+import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import { useStreamSubscription } from '@/shared/interactivity/use-stream-subscription';
 import { denormalize } from '@/shared/utils/normalization';
 import type { StreamVariable } from '@/types/core';
@@ -81,11 +81,11 @@ function StreamDisplayDirect({ variable }: { variable: StreamVariable }): JSX.El
     const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const extras = useRequestExtras();
-    
+
     // Must subscribe BEFORE Recoil hooks so atom effect sees count > 0
     // Pass extras so subscriptions are keyed by uid+extras
     useStreamSubscription([variable.uid], extras);
-    
+
     const selector = getOrRegisterStreamVariable(variable, wsClient, taskContext, extras);
     const data = useRecoilValue(selector);
     return <div data-testid="stream-data">{JSON.stringify(data)}</div>;
@@ -121,7 +121,7 @@ describe('useVariable with StreamVariable', () => {
     beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
     });
 
     afterEach(() => {
@@ -129,7 +129,7 @@ describe('useVariable with StreamVariable', () => {
         // run first and Recoil doesn't try to re-render on aborted connections
         cleanup();
         vi.useRealTimers();
-        setSessionToken(null);
+        setSessionIdentifier(null);
         server.resetHandlers();
         clearStreamUsage_TEST();
         clearRegistries_TEST();
@@ -155,9 +155,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
 
         // After snapshot arrives, shows data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
@@ -181,9 +184,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
 
         // After snapshot arrives, shows data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
@@ -210,17 +216,17 @@ describe('useVariable with StreamVariable', () => {
         server.use(
             http.post('/api/core/stream/test-suspend-deps', async ({ request }) => {
                 // Request body is in normalized format: { values: { data: [...], lookup: {...} } }
-                const body = await request.json() as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
-                
+
                 const encoder = new TextEncoder();
                 const stream = new ReadableStream({
                     async start(controller) {
                         await new Promise((resolve) => setTimeout(resolve, 50));
-                        const data = `data: ${JSON.stringify({ 
-                            type: 'json_snapshot', 
-                            data: { dep: depValue, message: `data for ${String(depValue)}` }
+                        const data = `data: ${JSON.stringify({
+                            type: 'json_snapshot',
+                            data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));
                         controller.close();
@@ -241,7 +247,7 @@ describe('useVariable with StreamVariable', () => {
         function TestComponent(): JSX.Element {
             const [, setDepValue] = useVariable(dependencyVar);
             const [streamData] = useVariable(streamVar);
-            
+
             return (
                 <div>
                     <div data-testid="stream-data">{JSON.stringify(streamData)}</div>
@@ -262,9 +268,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('loading')).toBeInTheDocument();
 
         // Wait for initial data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
@@ -272,15 +281,21 @@ describe('useVariable with StreamVariable', () => {
         screen.getByTestId('change-dep').click();
 
         // Should show loading again while fetching new data
-        await waitFor(() => {
-            expect(screen.getByTestId('loading')).toBeInTheDocument();
-        }, { timeout: 1000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('loading')).toBeInTheDocument();
+            },
+            { timeout: 1000 }
+        );
 
         // Wait for new data to arrive
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-            expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+                expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
+            },
+            { timeout: 3000 }
+        );
     });
 
     it('shows stale value instead of suspending when suspend=false', async () => {
@@ -303,7 +318,7 @@ describe('useVariable with StreamVariable', () => {
         // Handler that returns different data based on dependency value with a delay
         server.use(
             http.post('/api/core/stream/test-nosuspend', async ({ request }) => {
-                const body = await request.json() as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
 
@@ -314,7 +329,7 @@ describe('useVariable with StreamVariable', () => {
                         await new Promise((resolve) => setTimeout(resolve, 100));
                         const data = `data: ${JSON.stringify({
                             type: 'json_snapshot',
-                            data: { dep: depValue, message: `data for ${String(depValue)}` }
+                            data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
                         controller.enqueue(encoder.encode(data));
                         controller.close();
@@ -356,9 +371,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('loading')).toBeInTheDocument();
 
         // Wait for initial data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
@@ -375,13 +393,15 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
         // Eventually new data arrives and updates
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
+            },
+            { timeout: 3000 }
+        );
 
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
-
     });
 
     /**
@@ -600,10 +620,8 @@ describe('useVariable with StreamVariable', () => {
                 nested: [],
             };
 
-            const { handler: handlerA, getConnectionCount: getCountA } =
-                createPersistentSSEHandler('test-sep-A-3');
-            const { handler: handlerB, getConnectionCount: getCountB } =
-                createPersistentSSEHandler('test-sep-B-3');
+            const { handler: handlerA, getConnectionCount: getCountA } = createPersistentSSEHandler('test-sep-A-3');
+            const { handler: handlerB, getConnectionCount: getCountB } = createPersistentSSEHandler('test-sep-B-3');
             server.use(handlerA, handlerB);
 
             function SubscriberA(): JSX.Element {

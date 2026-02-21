@@ -6,7 +6,7 @@ import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth/auth';
-import { useSessionIdentifier } from '@/auth/use-session-token';
+import { useSessionIdentifier } from '@/auth/session-state';
 import { DevTools } from '@/devtools';
 import { WebSocketCtx } from '@/shared/context';
 import cleanSessionCache from '@/shared/utils/clean-session-cache';

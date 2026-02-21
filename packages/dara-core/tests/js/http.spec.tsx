@@ -3,7 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
-import { setSessionIdentifier, setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
 const REFRESH_TOKEN = 'REFRESH';
@@ -73,7 +73,6 @@ describe('HTTP Utils', () => {
     afterEach(() => {
         // force delete the cookie by making it expire
         document.cookie = `${REFRESH_TOKEN_NAME}=; Expires=1 Jan 1970 00:00:00 GMT`;
-        setSessionToken(null);
         setSessionIdentifier(null);
         vi.clearAllTimers();
         vi.useRealTimers();

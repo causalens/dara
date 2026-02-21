@@ -1,4 +1,5 @@
 import { type UseQueryResult, useQuery } from '@tanstack/react-query';
+import { z } from 'zod/v4';
 
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
@@ -6,7 +7,7 @@ import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { type User, type UserData } from '@/types';
 
-import { notifySessionLoggedOut, setSessionIdentifier } from './use-session-token';
+import { notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -22,19 +23,29 @@ interface AuthenticationError {
     reason: AuthenticationErrorReason;
 }
 
+const AuthenticationErrorSchema = z.object({
+    message: z.string(),
+    reason: z.enum([
+        AuthenticationErrorReason.BAD_REQUEST,
+        AuthenticationErrorReason.EXPIRED_TOKEN,
+        AuthenticationErrorReason.INVALID_CREDENTIALS,
+        AuthenticationErrorReason.INVALID_TOKEN,
+        AuthenticationErrorReason.OTHER,
+        AuthenticationErrorReason.UNAUTHORIZED,
+    ]),
+});
+
 /**
  * Whether a message is an authentication error
  *
  * @param message message
  */
-function isAuthenticationError(message: any): message is AuthenticationError {
-    return (
-        message !== null &&
-        message !== undefined &&
-        typeof message === 'object' &&
-        'reason' in message &&
-        Object.values(AuthenticationErrorReason).includes(message.reason)
-    );
+function parseAuthenticationError(message: unknown): AuthenticationError | null {
+    const parsed = AuthenticationErrorSchema.safeParse(message);
+    if (!parsed.success) {
+        return null;
+    }
+    return parsed.data;
 }
 
 /**
@@ -129,7 +140,9 @@ export async function handleAuthErrors(
 
     const content = await res.clone().json();
 
-    if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
+    const authError = parseAuthenticationError(content?.detail);
+
+    if (authError && !shouldIgnoreError(authError, ignoreErrors ?? [])) {
         notifySessionLoggedOut();
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
@@ -137,9 +150,7 @@ export async function handleAuthErrors(
         const referrer = queryParams.get('referrer') ?? resolveReferrer();
 
         const path =
-            toLogin || shouldRedirectToLogin(content.detail) ?
-                `/login?referrer=${referrer}`
-            :   `/error?code=${res.status}`;
+            toLogin || shouldRedirectToLogin(authError) ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
         window.location.href = `${window.dara.base_url}${path}`;
 
         return true;
