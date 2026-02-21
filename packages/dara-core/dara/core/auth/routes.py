@@ -20,6 +20,7 @@ from typing import Annotated, cast
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import (
@@ -140,6 +141,19 @@ def _delete_session_token_cookie(response: Response):
     response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
 
 
+def _build_auth_error_response(status_code: int, detail: str | dict):
+    """
+    Build an auth error response and clear all auth cookies.
+
+    :param status_code: HTTP status code
+    :param detail: error detail payload
+    """
+    error_response = JSONResponse(status_code=status_code, content={'detail': detail})
+    error_response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
+    error_response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
+    return error_response
+
+
 @auth_router.post('/verify-session')
 async def verify_session(
     req: Request,
@@ -255,25 +269,19 @@ async def handle_refresh_token(
         _set_session_token_cookie(response, session_token)
         return {'success': True}
     except BaseException as e:
-        # Regardless of exception type, clear the refresh token cookie
-        response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
-        _delete_session_token_cookie(response)
-        headers = {'set-cookie': response.headers['set-cookie']}
-
-        # If an explicit HTTPException was raised, re-raise it with the cookie header
+        # If an explicit HTTPException was raised, preserve status and error payload.
         if isinstance(e, HTTPException):
             dev_logger.error('Auth Error', error=e)
-            e.headers = headers
-            raise e
+            return _build_auth_error_response(e.status_code, cast(str | dict, e.detail))
 
         # Explicitly handle expired signature error
         if isinstance(e, jwt.ExpiredSignatureError):
             dev_logger.error('Expired Token Signature', error=e)
-            raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR, headers=headers) from e
+            return _build_auth_error_response(status_code=401, detail=EXPIRED_TOKEN_ERROR)
 
         # Otherwise show a generic invalid token error
         dev_logger.error('Invalid Token', error=cast(Exception, e))
-        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR, headers=headers) from e
+        return _build_auth_error_response(status_code=401, detail=INVALID_TOKEN_ERROR)
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.

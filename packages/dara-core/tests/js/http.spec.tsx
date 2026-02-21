@@ -3,7 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
-import { setSessionIdentifier } from '@/auth/session-state';
+import { setSessionIdentifier, waitForOngoingSessionRefresh, withSessionRefreshLock } from '@/auth/session-state';
 
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
 const REFRESH_TOKEN = 'REFRESH';
@@ -180,6 +180,33 @@ describe('HTTP Utils', () => {
             const responses = await Promise.all([request('/error-401'), request('/error-401')]);
             expect(responses.map((res) => res.status)).toEqual([200, 200]);
             expect(refreshAttempted).toHaveBeenCalledTimes(1);
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
+    });
+
+    it('waitForOngoingSessionRefresh waits for async lock callbacks when web locks api is unavailable', async () => {
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+        let refreshCompleted = false;
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            const lockPromise = withSessionRefreshLock(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 30));
+                refreshCompleted = true;
+            });
+
+            await waitForOngoingSessionRefresh();
+            expect(refreshCompleted).toBe(true);
+            await lockPromise;
         } finally {
             Object.defineProperty(nav, 'locks', {
                 configurable: true,

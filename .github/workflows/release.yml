@@ -180,6 +180,8 @@ jobs:
           body: ${{steps.build_changelog.outputs.changelog}}
 
       - uses: 8398a7/action-slack@v3
+        # Temporarily disable Slack notifications while auth changes are being validated.
+        if: ${{ false }}
         with:
           status: custom
           custom_payload: |

@@ -99,9 +99,9 @@ function withInTabRefreshLock<T>(callback: () => Promise<T> | T): Promise<T> {
         previousTail.then(() => nextTail)
     );
 
-    return previousTail.then(() => {
+    return previousTail.then(async () => {
         try {
-            return Promise.resolve(callback());
+            return await callback();
         } finally {
             releaseTail();
             if (inTabLockTails.get(SESSION_REFRESH_LOCK_NAME) === nextTail) {

@@ -371,7 +371,9 @@ async def test_refresh_token_expired():
         )
         assert response.status_code == 401
         assert 'Session has expired' in response.json()['detail']['message']
-        assert response.headers.get('Set-Cookie').startswith('dara_refresh_token="";')
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
 async def test_refresh_token_error():
@@ -394,7 +396,9 @@ async def test_refresh_token_error():
         assert response.status_code == 401
         # generic error shown
         assert 'Token is invalid' in response.json()['detail']['message']
-        assert response.headers.get('Set-Cookie').startswith('dara_refresh_token="";')
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
 async def test_refresh_token_live_ws_connection():
