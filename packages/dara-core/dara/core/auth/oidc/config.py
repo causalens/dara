@@ -17,6 +17,7 @@ from ..definitions import (
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
+    REFRESH_TOKEN_COOKIE_NAME,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
     USER,
@@ -32,7 +33,6 @@ from ..definitions import (
 from ..utils import decode_token, sign_jwt
 from .definitions import (
     JWK_CLIENT_REGISTRY_KEY,
-    REFRESH_TOKEN_COOKIE_NAME,
     IdTokenClaims,
     OIDCDiscoveryMetadata,
     StateObject,

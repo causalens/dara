@@ -3,9 +3,10 @@ from secrets import token_urlsafe
 
 from pydantic import BaseModel, ConfigDict, Field
 
-JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
+from dara.core.auth.definitions import REFRESH_TOKEN_COOKIE_NAME as CORE_REFRESH_TOKEN_COOKIE_NAME
 
-REFRESH_TOKEN_COOKIE_NAME = 'dara_refresh_token'
+JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
+REFRESH_TOKEN_COOKIE_NAME = CORE_REFRESH_TOKEN_COOKIE_NAME
 
 
 class AuthCodeRequestBody(BaseModel):

@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import * as React from 'react';
 import { Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { RouterContextProvider } from '@/router';
 import { clearRegistries_TEST, useVariable } from '@/shared';
 import { RouteMatchSync } from '@/shared/interactivity/persistence';
@@ -62,12 +62,12 @@ const definitionMap = new Map<string, RouteDefinition>([
 
 describe('Route Matches Variable', () => {
     beforeEach(() => {
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
         vi.restoreAllMocks();
         clearRegistries_TEST();
     });
     afterEach(() => {
-        setSessionToken(null);
+        setSessionIdentifier(null);
     });
 
     it('should follow current route matches', async () => {

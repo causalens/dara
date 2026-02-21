@@ -5,7 +5,7 @@ import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 
 import { revokeSession } from '../auth';
-import { setSessionToken } from '../use-session-token';
+import { notifySessionLoggedOut } from '../session-state';
 
 /**
  * Auth component that handles OIDC logout.
@@ -21,8 +21,8 @@ function OIDCAuthLogout(): JSX.Element {
 
     useEffect(() => {
         revokeSession().then((responseData) => {
-            // Always clear the local session token
-            setSessionToken(null);
+            // Always clear the local session state
+            notifySessionLoggedOut();
 
             // Check if we got a redirect URL (IDP supports RP-Initiated Logout)
             if (responseData && 'redirect_uri' in responseData) {

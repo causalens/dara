@@ -2,7 +2,7 @@ import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/re
 import { HttpResponse, http } from 'msw';
 
 import type { ServerVariableMessage } from '@/api/websocket';
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import type { DerivedVariable, ResolvedServerVariable, ServerVariable, Variable } from '@/types/core';
 
@@ -26,14 +26,14 @@ describe('ServerVariable', () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
 
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
         clearRegistries_TEST();
     });
     afterEach(() => {
-        setSessionToken(null);
+        setSessionIdentifier(null);
         vi.clearAllTimers();
         server.resetHandlers();
     });

@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import * as React from 'react';
 import { Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import type { LoaderResult } from '@/router';
 import { clearRegistries_TEST, useVariable } from '@/shared';
 import { PathParamSync } from '@/shared/interactivity/persistence';
@@ -29,12 +29,12 @@ function createPathVariable(param: string): SingleVariable<any, PathParamStore> 
 
 describe('Path Param Variable', () => {
     beforeEach(() => {
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
         vi.restoreAllMocks();
         clearRegistries_TEST();
     });
     afterEach(() => {
-        setSessionToken(null);
+        setSessionIdentifier(null);
     });
 
     it('should initialize from the path param', async () => {

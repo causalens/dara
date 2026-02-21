@@ -1,11 +1,10 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { useState } from 'react';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
 import { request } from '@/api';
-import { setSessionToken } from '@/auth/use-session-token';
 import { PartialRequestExtrasProvider, RequestExtrasProvider, useRequestExtras } from '@/shared';
 
 /**
@@ -42,17 +41,12 @@ const server = setupServer(
 describe('Request Extras', () => {
     beforeAll(() => server.listen());
 
-    beforeEach(() => {
-        setSessionToken('TEST_TOKEN');
-    });
-
     afterEach(() => {
         server.resetHandlers();
-        setSessionToken(null);
     });
     afterAll(() => server.close());
 
-    it('should send session token', async () => {
+    it('should send default request headers', async () => {
         const { getByTestId } = render(<TestComponent />);
 
         fireEvent.click(getByTestId('request'));
@@ -60,7 +54,7 @@ describe('Request Extras', () => {
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
             expect(parsedHeaders.accept).toEqual('application/json');
-            expect(parsedHeaders.authorization).toEqual('Bearer TEST_TOKEN');
+            expect(parsedHeaders.authorization).toBeUndefined();
         });
     });
 
@@ -82,7 +76,7 @@ describe('Request Extras', () => {
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
             expect(parsedHeaders.accept).toEqual('application/json');
-            expect(parsedHeaders.authorization).toEqual('Bearer TEST_TOKEN');
+            expect(parsedHeaders.authorization).toBeUndefined();
             expect(parsedHeaders['x-dara-test']).toEqual('test-value');
         });
     });
@@ -113,7 +107,7 @@ describe('Request Extras', () => {
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
             expect(parsedHeaders.accept).toEqual('application/json');
-            expect(parsedHeaders.authorization).toEqual('Bearer TEST_TOKEN');
+            expect(parsedHeaders.authorization).toBeUndefined();
             expect(parsedHeaders['x-dara-test-2']).toEqual('test-value-2');
             expect(parsedHeaders['x-dara-test']).toBeUndefined();
         });
@@ -145,7 +139,7 @@ describe('Request Extras', () => {
         await waitFor(() => {
             const parsedHeaders = JSON.parse(getByTestId('response').textContent);
             expect(parsedHeaders.accept).toEqual('application/json');
-            expect(parsedHeaders.authorization).toEqual('Bearer TEST_TOKEN');
+            expect(parsedHeaders.authorization).toBeUndefined();
             expect(parsedHeaders['x-dara-test-2']).toEqual('test-value-2');
             expect(parsedHeaders['x-dara-test']).toEqual('test-value');
         });

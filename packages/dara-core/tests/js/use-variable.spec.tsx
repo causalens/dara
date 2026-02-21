@@ -4,7 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 import { preloadActions } from '@/shared/interactivity/use-action';
@@ -123,7 +123,7 @@ describe('useVariable', () => {
         window.localStorage.clear();
         vi.restoreAllMocks();
 
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
 
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
@@ -132,7 +132,7 @@ describe('useVariable', () => {
         await preloadActions(importers, Object.values(mockActions));
     });
     afterEach(() => {
-        setSessionToken(null);
+        setSessionIdentifier(null);
         vi.clearAllTimers();
         vi.useRealTimers();
         server.resetHandlers();

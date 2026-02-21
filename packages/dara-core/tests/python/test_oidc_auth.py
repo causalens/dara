@@ -17,6 +17,7 @@ from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
     JWT_ALGO,
     OTHER_AUTH_ERROR,
+    SESSION_TOKEN_COOKIE_NAME,
     UNAUTHORIZED_ERROR,
     AuthError,
 )
@@ -263,7 +264,8 @@ async def test_sso_callback_creates_valid_session_token():
             assert 'set-cookie' in response.headers
             assert response.headers['set-cookie'].startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
 
-            session_token = response.json()['token']
+            assert response.json() == {'success': True}
+            session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
@@ -581,7 +583,8 @@ async def test_refresh_token_creates_valid_session_token():
             assert 'set-cookie' in response.headers
             assert response.headers['set-cookie'].startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
 
-            session_token = response.json()['token']
+            assert response.json() == {'success': True}
+            session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
@@ -964,7 +967,8 @@ async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
                 # JWKS endpoint should have been called once to retrieve the key
                 assert mock_urllib.call_count == 1
 
-                session_token = response.json()['token']
+                assert response.json() == {'success': True}
+                session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
                 # User data should come from userinfo, not id_token
@@ -1030,7 +1034,8 @@ async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_use
                 # Userinfo endpoint should NOT have been called
                 assert userinfo_route.call_count == 0
 
-                session_token = response.json()['token']
+                assert response.json() == {'success': True}
+                session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
                 # User data should come from id_token (identity claim), not userinfo
@@ -1091,7 +1096,8 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
                 # Should still succeed
                 assert response.status_code == 200
 
-                session_token = response.json()['token']
+                assert response.json() == {'success': True}
+                session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
                 # User data should fall back to id_token data
@@ -1157,7 +1163,8 @@ async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
 
                 assert response.status_code == 200
 
-                session_token = response.json()['token']
+                assert response.json() == {'success': True}
+                session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
                 # User data should come from userinfo

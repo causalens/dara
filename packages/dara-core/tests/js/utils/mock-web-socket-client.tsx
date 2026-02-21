@@ -114,7 +114,6 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
         return this.messages$.pipe(filter(isServerErrorMessage));
     }
 
-
     /**
      * Get the observable to receive variable request messages
      */
@@ -141,11 +140,6 @@ export default class MockWebSocketClient implements MockWebSocketClientInterface
     // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
     sendVariable(value: any, channel: string): void {
         // Do nothing
-    }
-
-    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
-    updateToken(newToken: string): void {
-        // Do Nothing
     }
 
     // eslint-disable-next-line

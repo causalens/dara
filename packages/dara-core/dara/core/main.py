@@ -59,6 +59,7 @@ from dara.core.internal.registries import (
     config_registry,
     custom_ws_handlers_registry,
     latest_value_registry,
+    session_auth_token_registry,
     sessions_registry,
     utils_registry,
     websocket_registry,
@@ -133,6 +134,7 @@ def _start_application(config: Configuration):
     latest_value_registry.replace({}, deepcopy=False)
     websocket_registry.replace({}, deepcopy=False)
     sessions_registry.replace({}, deepcopy=False)
+    session_auth_token_registry.replace({}, deepcopy=False)
     config_registry.replace({}, deepcopy=False)
 
     @asynccontextmanager
@@ -230,6 +232,12 @@ def _start_application(config: Configuration):
         redoc_url=None if is_production else '/redoc',
         default_response_class=CustomResponse,
     )
+
+    # Ensure session-cookie auth is reflected in Authorization header for
+    # downstream handlers still expecting bearer token transport.
+    from dara.core.auth.middleware import ensure_authorization_header_from_session_cookie
+
+    app.middleware('http')(ensure_authorization_header_from_session_cookie)
 
     # Define catch-all mechanisms
     @app.middleware('http')

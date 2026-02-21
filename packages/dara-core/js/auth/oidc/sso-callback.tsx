@@ -10,7 +10,6 @@ import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { handleAuthErrors } from '../auth';
-import { setSessionToken } from '../use-session-token';
 
 interface StatePayload {
     redirect_to?: string;
@@ -41,15 +40,15 @@ function decodeStateRedirect(state: string | null): string | null {
 }
 
 /**
- * Makes a call to /sso-callback and returns a new token
- * Returns null if no token was returned (i.e. 403)
+ * Makes a call to /sso-callback and returns the post-auth redirect path.
+ * Returns null on auth failure.
  *
  * @param search current search string
  */
-export async function getSSOCallbackToken(
+export async function getSSOCallbackResult(
     search: string,
     defaultPath: string
-): Promise<{ token: string; redirectTo: string } | null> {
+): Promise<{ redirectTo: string } | null> {
     try {
         const params = new URLSearchParams(search);
         const state = params.get('state');
@@ -68,9 +67,7 @@ export async function getSSOCallbackToken(
         }
 
         if (res.ok) {
-            const { token } = await res.json();
             return {
-                token,
                 redirectTo: decodeStateRedirect(state) ?? defaultPath,
             };
         }
@@ -87,10 +84,9 @@ function OIDCAuthSSOCallback(): JSX.Element {
     const routerContext = useRouterContext();
 
     useEffect(() => {
-        getSSOCallbackToken(search, routerContext.defaultPath)
+        getSSOCallbackResult(search, routerContext.defaultPath)
             .then((result) => {
                 if (result) {
-                    setSessionToken(result.token);
                     navigate(result.redirectTo);
                 }
             })

@@ -24,18 +24,14 @@ os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
 
 async def login(client: TestClient) -> dict:
-    token = (
-        (
-            await client.post(
-                '/api/auth/session',
-                json={'username': 'cl', 'password': 'data_ext'},
-                headers={'Accept': 'application/json'},
-            )
-        )
-        .json()
-        .get('token')
+    response = await client.post(
+        '/api/auth/session',
+        json={'username': 'cl', 'password': 'data_ext'},
+        headers={'Accept': 'application/json'},
     )
-    return {'Authorization': f'Bearer {token}'}
+    assert response.status_code == 200
+    assert response.json() == {'success': True}
+    return {}
 
 
 @pytest.fixture(autouse=True)

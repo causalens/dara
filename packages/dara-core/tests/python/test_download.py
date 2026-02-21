@@ -28,7 +28,7 @@ from dara.core.internal.registries import utils_registry
 from dara.core.internal.registry import RegistryType
 from dara.core.main import _start_application
 
-from tests.python.utils import _async_ws_connect, _call_action, get_action_results
+from tests.python.utils import AUTH_HEADERS, _async_ws_connect, _call_action, get_action_results
 
 pytestmark = pytest.mark.anyio
 
@@ -189,7 +189,7 @@ async def test_file_not_found(_uid):
         assert isinstance(action_results[0]['url'], str)
 
         with pytest.raises((BaseExceptionGroup, FileNotFoundError)) as err:
-            await client.get(action_results[0]['url'])
+            await client.get(action_results[0]['url'], headers=AUTH_HEADERS)
 
         error_msg = str(err.value.exceptions[0]) if isinstance(err.value, BaseExceptionGroup) else str(err.value)
         assert "No such file or directory: './test.txt'" in error_msg
@@ -242,7 +242,7 @@ async def test_file_cleanup(_uid):
         assert len(action_results) == 1
         url = action_results[0]['url']
 
-        response2 = await client.get(url)
+        response2 = await client.get(url, headers=AUTH_HEADERS)
 
         # Checks if request successful
         assert response2.content == b'Some content for the file'
@@ -300,7 +300,7 @@ async def test_file_cleanup_false(_uid):
         assert len(action_results) == 1
         url = action_results[0]['url']
 
-        response2 = await client.get(url)
+        response2 = await client.get(url, headers=AUTH_HEADERS)
 
         # Checks if request successful
         assert response2.content == b'Some content for the file'
@@ -360,7 +360,7 @@ async def test_download_override():
 
         # call the download endpoint directly
         async with AsyncClient(app) as client:
-            response = await client.get(f'/api/core/download?code={code}')
+            response = await client.get(f'/api/core/download?code={code}', headers=AUTH_HEADERS)
             assert response.status_code == 200
             assert response.content == b'test'
             assert custom_download_called

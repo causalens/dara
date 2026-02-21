@@ -1,4 +1,4 @@
-export * from './use-session-token';
+export * from './session-state';
 export * from './auth';
 export { default as BasicAuthLogin } from './basic/basic-auth-login';
 export { default as BasicAuthLogout } from './basic/basic-auth-logout';

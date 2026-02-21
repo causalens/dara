@@ -2,7 +2,7 @@ import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 
 import { type BackendStoreMessage, type BackendStorePatchMessage } from '@/api/websocket';
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { RequestExtrasProvider } from '@/shared';
 import { getSessionKey } from '@/shared/interactivity/persistence';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
@@ -24,7 +24,7 @@ describe('Variable Persistence', () => {
     beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
 
         // This is necessary to avoid data bleeding between tests
         // Though this causes warnings about duplicate atoms in the test console
@@ -34,7 +34,7 @@ describe('Variable Persistence', () => {
         vi.clearAllTimers();
         vi.useRealTimers();
         server.resetHandlers();
-        setSessionToken(null);
+        setSessionIdentifier(null);
     });
     afterAll(() => server.close());
 
