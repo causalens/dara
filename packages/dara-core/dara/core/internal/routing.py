@@ -179,7 +179,7 @@ async def get_action(uid: str, body: ActionRequestBody):
     return {'execution_id': response}
 
 
-@core_api_router.get('/download')  # explicitly unauthenticated
+@core_api_router.get('/download', dependencies=[Depends(verify_session)])
 async def get_download(code: str):
     store: CacheStore = utils_registry.get('Store')
 

@@ -20,8 +20,7 @@ const sessionIdSubscribers = new Set<(val: string | null) => void>();
 let sessionIdentifier: string | null = null;
 let activeRefreshPromise: Promise<void> | null = null;
 
-const channel =
-    typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SESSION_STATE_CHANNEL_NAME) : null;
+const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SESSION_STATE_CHANNEL_NAME) : null;
 
 const inTabLockTails = new Map<string, Promise<void>>();
 
