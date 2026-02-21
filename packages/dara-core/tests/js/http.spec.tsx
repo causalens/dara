@@ -165,6 +165,29 @@ describe('HTTP Utils', () => {
         }
     });
 
+    it('falls back to in-tab refresh coordination when web locks api is unavailable', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            const responses = await Promise.all([request('/error-401'), request('/error-401')]);
+            expect(responses.map((res) => res.status)).toEqual([200, 200]);
+            expect(refreshAttempted).toHaveBeenCalledTimes(1);
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
+    });
+
     it('request made while refresh is occuring waits for the refresh to complete', async () => {
         // set a cookie, in reality it would be http-only etc
         document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
