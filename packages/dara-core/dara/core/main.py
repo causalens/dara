@@ -420,8 +420,7 @@ def _start_application(config: Configuration):
             sys.exit(1)
 
         dev_logger.info('Registering pages:')
-        # TODO: convert this to use the logger?
-        config.router.print_route_tree()
+        config.router.print_route_tree(dev_logger.info)
 
         # Add the page data loader route
         create_loader_route(config, app)
