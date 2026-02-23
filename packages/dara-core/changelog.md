@@ -6,6 +6,8 @@ title: Changelog
 
 - Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
 - Improved websocket reconnection resilience after inactivity by resuming capped retry bursts on visibility, focus, online, and session refresh signals.
+- Auth endpoints now clear both session and refresh cookies consistently on logout/error paths.
+- Session auth cookies now expire at token `exp + 60s` when an `exp` claim is present.
 
 # 1.25.6
 

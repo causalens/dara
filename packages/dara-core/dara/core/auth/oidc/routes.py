@@ -29,7 +29,7 @@ from dara.core.auth.definitions import (
     SESSION_TOKEN_COOKIE_NAME,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
-from dara.core.auth.utils import sign_jwt
+from dara.core.auth.utils import get_cookie_expiration_from_token, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
@@ -128,7 +128,18 @@ async def sso_callback(
         if oidc_tokens.refresh_token:
             response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=oidc_tokens.refresh_token, **AUTH_COOKIE_KWARGS)
 
-        response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=session_token, **AUTH_COOKIE_KWARGS)
+        session_cookie_expiration = get_cookie_expiration_from_token(session_token)
+        if session_cookie_expiration is None:
+            response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=session_token, **AUTH_COOKIE_KWARGS)
+        else:
+            max_age, expires = session_cookie_expiration
+            response.set_cookie(
+                key=SESSION_TOKEN_COOKIE_NAME,
+                value=session_token,
+                max_age=max_age,
+                expires=expires,
+                **AUTH_COOKIE_KWARGS,
+            )
 
         return {'success': True}
 

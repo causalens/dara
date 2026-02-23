@@ -35,7 +35,7 @@ from dara.core.auth.definitions import (
     AuthError,
     SessionRequestBody,
 )
-from dara.core.auth.utils import cached_refresh_token, decode_token
+from dara.core.auth.utils import cached_refresh_token, decode_token, get_cookie_expiration_from_token
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -129,15 +129,22 @@ def _set_session_token_cookie(response: Response, token: str):
     :param response: FastAPI response object
     :param token: session token value
     """
-    response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, **AUTH_COOKIE_KWARGS)
+    expiration = get_cookie_expiration_from_token(token)
+    if expiration is None:
+        response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, **AUTH_COOKIE_KWARGS)
+        return
+
+    max_age, expires = expiration
+    response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS)
 
 
-def _delete_session_token_cookie(response: Response):
+def _clear_auth_cookies(response: Response):
     """
-    Delete the session token cookie.
+    Clear both auth cookies.
 
     :param response: FastAPI response object
     """
+    response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
     response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
 
 
@@ -149,8 +156,7 @@ def _build_auth_error_response(status_code: int, detail: str | dict):
     :param detail: error detail payload
     """
     error_response = JSONResponse(status_code=status_code, content={'detail': detail})
-    error_response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
-    error_response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
+    _clear_auth_cookies(error_response)
     return error_response
 
 
@@ -223,7 +229,7 @@ async def _revoke_session(
 
     result = auth_config.revoke_token(token, response)
     _clear_cached_session_auth_token(token)
-    _delete_session_token_cookie(response)
+    _clear_auth_cookies(response)
     return result
 
 

@@ -35,6 +35,32 @@ from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
 
+def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tuple[int, datetime] | None:
+    """
+    Derive cookie max-age and expiry from a token's exp claim, with an optional grace period.
+
+    This intentionally decodes the token without signature verification because it's only used
+    for client-side cookie expiry alignment. Token authenticity is still validated separately
+    by the auth verification path.
+
+    :param token: encoded token
+    :param grace_seconds: additional grace period added after exp
+    :returns: (max_age_seconds, expires_datetime_utc) or None when exp is unavailable
+    """
+    try:
+        decoded = jwt.decode(token, options={'verify_signature': False, 'verify_exp': False})
+    except jwt.PyJWTError:
+        return None
+
+    exp_claim = decoded.get('exp')
+    if not isinstance(exp_claim, (int, float)):
+        return None
+
+    expires_at = datetime.fromtimestamp(exp_claim, tz=timezone.utc) + timedelta(seconds=grace_seconds)
+    max_age = max(0, int((expires_at - datetime.now(tz=timezone.utc)).total_seconds()))
+    return max_age, expires_at
+
+
 def decode_token(token: str, **kwargs) -> TokenData:
     """
     Decode a JWT token
