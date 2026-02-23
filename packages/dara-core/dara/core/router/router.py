@@ -840,7 +840,7 @@ class Router(HasChildRoutes):
 
         return navigable_routes
 
-    def print_route_tree(self):
+    def print_route_tree(self, line_handler: Callable[[str], None] = print):
         """
         Print a visual representation of the route tree showing:
         - Route hierarchy with indentation
@@ -860,11 +860,13 @@ class Router(HasChildRoutes):
            ├─ /my-api/users [UsersPage]
            └─ /my-api/posts/:id [PostDetail]
         ```
-        """
-        print('Router')
-        self._print_routes(self.children, prefix='')
 
-    def _print_routes(self, routes: list['BaseRoute'], prefix: str = ''):
+        :param line_handler: Callback invoked for each output line (defaults to ``print``).
+        """
+        line_handler('Router')
+        self._print_routes(self.children, prefix='', line_handler=line_handler)
+
+    def _print_routes(self, routes: list['BaseRoute'], prefix: str = '', line_handler: Callable[[str], None] = print):
         """Helper method to recursively print route tree structure"""
 
         def _format_content(content: Callable[..., ComponentInstance] | ComponentInstance):
@@ -915,12 +917,12 @@ class Router(HasChildRoutes):
                     content_name = _format_content(route_content)
                     route_info += f' [{content_name}]'
 
-            print(current_prefix + route_info)
+            line_handler(current_prefix + route_info)
 
             # Recursively print children if they exist
             route_children = getattr(route, 'children', None)
             if route_children:
-                self._print_routes(route_children, next_prefix)
+                self._print_routes(route_children, next_prefix, line_handler)
 
 
 def _execute_route_func(

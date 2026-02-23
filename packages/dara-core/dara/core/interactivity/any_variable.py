@@ -102,7 +102,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         elif isinstance(auth_config, BasicAuthConfig):
             # basic auth - assume it's the single existing user
             user_identity = list(auth_config.users.keys())[0]
-            USER.set(UserData(identity_name=user_identity))
+            USER.set(UserData(identity_name=user_identity, identity_id=user_identity))
 
         # If still couldn't find user, warn and return
         if user_identity is None:
