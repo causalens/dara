@@ -135,7 +135,9 @@ def _set_session_token_cookie(response: Response, token: str):
         return
 
     max_age, expires = expiration
-    response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS)
+    response.set_cookie(
+        key=SESSION_TOKEN_COOKIE_NAME, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS
+    )
 
 
 def _clear_auth_cookies(response: Response):

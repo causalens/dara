@@ -319,7 +319,9 @@ async def test_refresh_token_success():
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
         set_cookies = response.headers.getall('set-cookie')
-        session_cookie = next((cookie for cookie in set_cookies if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')), None)
+        session_cookie = next(
+            (cookie for cookie in set_cookies if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')), None
+        )
         assert session_cookie is not None
         assert 'Max-Age=' in session_cookie
         assert 'expires=' in session_cookie.lower()
