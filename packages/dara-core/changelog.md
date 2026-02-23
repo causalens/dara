@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed an issue where setting `DARA_BASE_URL` would cause UI crashes
+
 ## 1.26.0
 
 - Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
