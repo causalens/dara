@@ -140,7 +140,10 @@ def _start_application(config: Configuration):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # STARTUP
-        setup_signal_handlers()
+        try:
+            setup_signal_handlers()
+        except Exception as e:
+            dev_logger.warning(f'Failed to set up signal handlers: {e}')
 
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables
