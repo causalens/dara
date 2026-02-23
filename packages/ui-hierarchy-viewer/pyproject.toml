@@ -2,4 +2,4 @@
 source = []
 package-mode = false
 name = "ui-hierarchy-viewer"
-version = "1.25.6"
+version = "1.26.0"

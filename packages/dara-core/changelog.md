@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.0
 
 - Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
 
