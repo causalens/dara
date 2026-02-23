@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.1
 
 - Fixed an issue where setting `DARA_BASE_URL` would cause UI crashes
 
