@@ -106,7 +106,7 @@ export function resolveReferrer(): string {
         return encodeURIComponent(window.location.pathname + window.location.search);
     }
 
-    const base_url_path = new URL(window.dara.base_url).pathname;
+    const base_url_path = new URL(window.dara.base_url, window.location.origin).pathname;
     const referrer = window.location.pathname;
 
     // Remove the matching part of the base_url from the referrer.
