@@ -250,8 +250,6 @@ jobs:
   notify:
     needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests]
     runs-on: ubuntu-latest
-    # Temporarily disable Slack notifications while auth changes are being validated.
-    if: ${{ false }}
     steps:
       - uses: 8398a7/action-slack@v3
         with:
